@@ -37,10 +37,8 @@ import org.eclipse.ditto.signals.commands.base.Command;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 
-import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 
 /**
@@ -146,10 +144,7 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     }
 
     @Override
-    protected abstract Flow<Contextual<WithDittoHeaders>, Contextual<WithDittoHeaders>, NotUsed> processMessageFlow();
-
-    @Override
-    protected abstract Sink<Contextual<WithDittoHeaders>, ?> processedMessageSink();
+    protected abstract Sink<Contextual<WithDittoHeaders>, ?> createSink();
 
     @Override
     protected int getBufferSize() {

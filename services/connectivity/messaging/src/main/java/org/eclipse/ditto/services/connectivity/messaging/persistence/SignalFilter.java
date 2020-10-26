@@ -85,11 +85,12 @@ final class SignalFilter {
     List<Target> filter(final Signal<?> signal) {
         return connection.getTargets().stream()
                 .filter(t -> isTargetAuthorized(t, signal)) // this is cheaper, so check this first
-                // count authorized targets
+                .filter(t -> isTargetSubscribedForTopicGenerally(t, signal))
+                // count authorized targets which generally are interested in the topic (e.g. "live messages")
                 .peek(authorizedTarget -> connectionMonitorRegistry.forOutboundDispatched(connection.getId(),
                         authorizedTarget.getAddress())
                         .success(signal))
-                .filter(t -> isTargetSubscribedForTopic(t, signal))
+                .filter(t -> isTargetSubscribedForTopicWithFiltering(t, signal))
                 // count authorized + filtered targets
                 .peek(filteredTarget -> connectionMonitorRegistry.forOutboundFiltered(connection.getId(),
                         filteredTarget.getAddress())
@@ -103,7 +104,12 @@ final class SignalFilter {
         return authorizationContext.isAuthorized(headers.getReadGrantedSubjects(), headers.getReadRevokedSubjects());
     }
 
-    private boolean isTargetSubscribedForTopic(final Target target, final Signal<?> signal) {
+    private static boolean isTargetSubscribedForTopicGenerally(final Target target, final Signal<?> signal) {
+        return target.getTopics().stream()
+                .anyMatch(applyTopicFilter(signal));
+    }
+
+    private static boolean isTargetSubscribedForTopicWithFiltering(final Target target, final Signal<?> signal) {
         return target.getTopics().stream()
                 .filter(applyTopicFilter(signal))
                 .filter(applyNamespaceFilter(signal))
@@ -123,7 +129,7 @@ final class SignalFilter {
         return NamespaceReader.fromEntityId(withId.getEntityId()).orElse(null);
     }
 
-    private boolean matchesFilterBeforeEnrichment(final FilteredTopic filteredTopic, final Signal<?> signal) {
+    private static boolean matchesFilterBeforeEnrichment(final FilteredTopic filteredTopic, final Signal<?> signal) {
         final Optional<String> filterOptional = filteredTopic.getFilter();
         if (filterOptional.isPresent() && signal instanceof ThingEvent) {
             // match filter ignoring "extraFields"
@@ -145,7 +151,7 @@ final class SignalFilter {
      * @throws org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException if the filter string cannot be
      * mapped to a valid criterion
      */
-    private Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {
+    private static Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {
         return QueryFilterCriteriaFactory.modelBased().filterCriteria(filter, dittoHeaders);
     }
 

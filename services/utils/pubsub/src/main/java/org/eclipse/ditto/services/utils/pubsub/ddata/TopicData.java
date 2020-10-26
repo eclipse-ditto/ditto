@@ -97,13 +97,13 @@ public final class TopicData<H> {
      * @return an unmodifiable copy of the set of subscribers.
      */
     public Set<ActorRef> exportSubscribers() {
-        return Collections.unmodifiableSet(new HashSet<>(subscribers));
+        return Set.copyOf(subscribers);
     }
 
     @Override
     public boolean equals(final Object other) {
         if (other instanceof TopicData) {
-            final TopicData that = (TopicData) other;
+            final TopicData<?> that = (TopicData<?>) other;
             return subscribers.equals(that.subscribers) && hashes.equals(that.hashes);
         } else {
             return false;

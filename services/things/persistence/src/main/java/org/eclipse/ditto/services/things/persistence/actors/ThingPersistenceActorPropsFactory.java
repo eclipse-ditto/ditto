@@ -31,5 +31,5 @@ public interface ThingPersistenceActorPropsFactory {
      * @param distributedPub the distributed-pub access.
      * @return Props of the thing-persistence-actor.
      */
-    Props props(ThingId thingId, DistributedPub<ThingEvent> distributedPub);
+    Props props(ThingId thingId, DistributedPub<ThingEvent<?>> distributedPub);
 }

@@ -42,6 +42,7 @@ import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
@@ -368,16 +369,34 @@ public abstract class AbstractConsumerActorTest<M> {
                 .thenReturn(logger);
         Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
                 .thenReturn(logger);
-        final MessageMappingProcessor mappingProcessor =
-                MessageMappingProcessor.of(CONNECTION_ID, CONNECTION.getConnectionType(), payloadMappingDefinition,
-                        actorSystem,
-                        connectivityConfig, protocolAdapterProvider, logger);
+        final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
+        final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(CONNECTION_ID,
+                CONNECTION.getConnectionType(),
+                payloadMappingDefinition,
+                actorSystem,
+                connectivityConfig,
+                protocolAdapter,
+                logger);
+        final OutboundMappingProcessor outboundMappingProcessor = OutboundMappingProcessor.of(CONNECTION_ID,
+                CONNECTION.getConnectionType(),
+                payloadMappingDefinition,
+                actorSystem,
+                connectivityConfig,
+                protocolAdapter,
+                logger);
+        final Props props = OutboundMappingProcessorActor.props(clientActor, outboundMappingProcessor, CONNECTION, 43);
+        final ActorRef outboundProcessorActor = actorSystem.actorOf(props,
+                OutboundMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
+        final Props inboundDispatchingActorProps = InboundDispatchingActor.props(CONNECTION,
+                protocolAdapter.headerTranslator(), proxyActor, connectionActorProbe.ref(), outboundProcessorActor);
+        final ActorRef inboundDispatchingActor = actorSystem.actorOf(inboundDispatchingActorProps,
+                InboundDispatchingActor.ACTOR_NAME + "-" + name.getMethodName());
         final Props messageMappingProcessorProps =
-                MessageMappingProcessorActor.props(proxyActor, clientActor, mappingProcessor,
-                        CONNECTION, connectionActorProbe.ref(), 43);
+                InboundMappingProcessorActor.props(inboundMappingProcessor, protocolAdapter.headerTranslator(),
+                        CONNECTION, 99, inboundDispatchingActor);
 
         return actorSystem.actorOf(messageMappingProcessorProps,
-                MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
+                InboundMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
     }
 
 }

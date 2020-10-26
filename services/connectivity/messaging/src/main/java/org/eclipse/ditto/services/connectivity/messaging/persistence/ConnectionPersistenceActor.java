@@ -14,22 +14,30 @@ package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.UPDATE_SUBSCRIPTIONS;
+import static org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator.resolveConnectionIdPlaceholder;
 import static org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants.CLUSTER_ROLE;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredException;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
@@ -40,11 +48,15 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionLifecycle;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
+import org.eclipse.ditto.model.connectivity.ConnectivityInternalErrorException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.FilteredTopic;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.placeholders.ExpressionResolver;
+import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
@@ -87,6 +99,7 @@ import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersiste
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -173,9 +186,19 @@ public final class ConnectionPersistenceActor
     private final Duration loggingEnabledDuration;
     private final ConnectionConfig config;
     private final MonitoringConfig monitoringConfig;
+    private final ExpressionResolver connectionIdResolver;
 
     private int subscriptionCounter = 0;
     private ConnectivityStatus pubSubStatus = ConnectivityStatus.UNKNOWN;
+
+    /**
+     * Whether this actor holds the declared ack labels.
+     * Reset on start-up and whenever the connection is modified.
+     * While false, the actor will attempt to declare the ack labels repeatedly until the declaration succeeds.
+     * While false, target-issued acknowledgements are disabled.
+     */
+    private boolean ackLabelsDeclared = false;
+    private final Set<AcknowledgementLabel> declaredAckLabels = new HashSet<>();
 
     ConnectionPersistenceActor(final ConnectionId connectionId,
             final DittoProtocolSub dittoProtocolSub,
@@ -232,6 +255,9 @@ public final class ConnectionPersistenceActor
         this.loggingEnabledDuration = monitoringConfig.logger().logDuration();
         this.checkLoggingActiveInterval = monitoringConfig.logger().loggingActiveCheckInterval();
         this.clientActorsPerNode = clientActorsPerNode;
+
+        connectionIdResolver = PlaceholderFactory.newExpressionResolver(PlaceholderFactory.newConnectionIdPlaceholder(),
+                connectionId);
     }
 
     /**
@@ -354,6 +380,7 @@ public final class ConnectionPersistenceActor
             restoreOpenConnection();
         }
         becomeCreatedOrDeletedHandler();
+        initializeAckLabelsDeclared();
     }
 
     @Override
@@ -363,6 +390,7 @@ public final class ConnectionPersistenceActor
             interpretStagedCommand(((StagedCommand) command).withSenderUnlessDefined(getSender()));
         } else {
             super.onMutation(command, event, response, becomeCreated, becomeDeleted);
+            initializeAckLabelsDeclared();
         }
     }
 
@@ -395,6 +423,13 @@ public final class ConnectionPersistenceActor
             case APPLY_EVENT:
                 entity = getEventStrategy().handle(command.getEvent(), entity, getRevisionNumber());
                 interpretStagedCommand(command.next());
+                initializeAckLabelsDeclared();
+                break;
+            case PERSIST_AND_APPLY_EVENT:
+                persistAndApplyEvent(command.getEvent(), (event, connection) -> {
+                    interpretStagedCommand(command.next());
+                    initializeAckLabelsDeclared();
+                });
                 break;
             case SEND_RESPONSE:
                 command.getSender().tell(command.getResponse(), getSelf());
@@ -416,9 +451,6 @@ public final class ConnectionPersistenceActor
             case STOP_CLIENT_ACTORS:
                 stopClientActors();
                 interpretStagedCommand(command.next());
-                break;
-            case PERSIST_AND_APPLY_EVENT:
-                persistAndApplyEvent(command.getEvent(), (event, connection) -> interpretStagedCommand(command.next()));
                 break;
             case BECOME_CREATED:
                 becomeCreatedHandler();
@@ -464,14 +496,30 @@ public final class ConnectionPersistenceActor
     protected Receive matchAnyAfterInitialization() {
         return ReceiveBuilder.create()
                 // command response and search commands: can only be incoming
+                .match(Acknowledgement.class, this::isNotSourceDeclaredAck, this::denyNonSourceDeclaredAck)
                 .match(CommandResponse.class, this::handleResponseOrAcknowledgement)
                 .match(ThingSearchCommand.class, this::forwardThingSearchCommandToClientActors)
                 // other signals: can only be outgoing; the incoming path does not go through here
                 .match(Signal.class, this::handleSignal)
 
-                .matchEquals(CheckLoggingActive.INSTANCE, this::checkLoggingEnabled)
+                .matchEquals(Control.CHECK_LOGGING_ACTIVE, this::checkLoggingEnabled)
+
+                // maintaining the flag this.ackLabelsDeclared
+                .matchEquals(Control.DECLARE_ACKNOWLEDGEMENT_LABELS, this::declareAcknowledgementLabels)
+                .matchEquals(Control.ACKNOWLEDGEMENT_LABELS_DECLARED, this::acknowledgementLabelsAreConsideredDeclared)
+                .match(AcknowledgementLabelNotUniqueException.class, this::acknowledgementLabelNotUnique)
+
                 .matchAny(message -> log.warning("Unknown message: {}", message))
                 .build();
+    }
+
+    private boolean isNotSourceDeclaredAck(final Acknowledgement ack) {
+        return !getSourceDeclaredAcks().contains(ack.getLabel());
+    }
+
+    private void denyNonSourceDeclaredAck(final Acknowledgement ack) {
+        getSender().tell(AcknowledgementLabelNotDeclaredException.of(ack.getLabel(), ack.getDittoHeaders()),
+                ActorRef.noSender());
     }
 
     private void handleResponseOrAcknowledgement(final WithDittoHeaders<?> responseOrAck) {
@@ -492,10 +540,6 @@ public final class ConnectionPersistenceActor
     }
 
     private void handleSignal(final Signal<?> signal) {
-        forwardSignalToClientActors(signal);
-    }
-
-    private void forwardSignalToClientActors(final Signal<?> signal) {
         enhanceLogUtil(signal);
         if (clientActorRouter == null) {
             logDroppedSignal(signal.getType(), "Client actor not ready.");
@@ -517,14 +561,9 @@ public final class ConnectionPersistenceActor
         }
 
         final Signal<?> signalToForward;
-        if (hasSource() && signal instanceof WithThingId) {
-            // no point starting the acknowledgement forwarder if there is no source.
-            // issued acknowledgements from targets go to the sender directly with internal headers intact.
+        if (signal instanceof WithThingId) {
             final WithThingId thingEvent = (WithThingId) signal;
-            signalToForward = AcknowledgementForwarderActor.startAcknowledgementForwarderConflictFree(getContext(),
-                    thingEvent.getThingEntityId(),
-                    signal,
-                    config.getAcknowledgementConfig());
+            signalToForward = adjustSignalAndStartAckForwarder(signal, thingEvent.getThingEntityId());
         } else {
             signalToForward = signal;
         }
@@ -536,6 +575,70 @@ public final class ConnectionPersistenceActor
                 OutboundSignalFactory.newOutboundSignal(signalToForward, subscribedAndAuthorizedTargets);
         final Object msg = consistentHashableEnvelope(outbound, outbound.getSource().getEntityId().toString());
         clientActorRouter.tell(msg, getSender());
+    }
+
+    private Signal<?> adjustSignalAndStartAckForwarder(final Signal<?> signal, final ThingId thingId) {
+        final Collection<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
+        if (ackRequests.isEmpty()) {
+            return signal;
+        }
+        final Predicate<AcknowledgementLabel> isSourceDeclaredAck = getSourceDeclaredAcks()::contains;
+        final Set<AcknowledgementLabel> targetIssuedAcks = getTargetIssuedAcks();
+        final boolean hasSourceDeclaredAcks = ackRequests.stream()
+                .map(AcknowledgementRequest::getLabel)
+                .anyMatch(isSourceDeclaredAck);
+        if (hasSourceDeclaredAcks) {
+            // start ackregator for source declared acks
+            return AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(),
+                    thingId,
+                    signal,
+                    config.getAcknowledgementConfig(),
+                    isSourceDeclaredAck.or(targetIssuedAcks::contains)
+            );
+        } else {
+            // no need to start ackregator for target-issued acks; they go to the sender directly
+            return signal.setDittoHeaders(signal.getDittoHeaders().toBuilder()
+                    .acknowledgementRequests(ackRequests.stream()
+                            .filter(request -> targetIssuedAcks.contains(request.getLabel()))
+                            .collect(Collectors.toList()))
+                    .build());
+        }
+    }
+
+    /**
+     * Return the set of source-declared acks if declaration was successful; return an empty set otherwise.
+     *
+     * @return successfully declared acknowledgement labels of the sources.
+     */
+    private Set<AcknowledgementLabel> getSourceDeclaredAcks() {
+
+        if (entity != null && ackLabelsDeclared) {
+            return entity.getSources()
+                    .stream()
+                    .flatMap(source -> source.getDeclaredAcknowledgementLabels().stream())
+                    .map(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .collect(Collectors.toSet());
+        } else {
+            return Set.of();
+        }
+    }
+
+    private Set<AcknowledgementLabel> getTargetIssuedAcks() {
+
+        if (entity != null && ackLabelsDeclared) {
+            return entity.getTargets()
+                    .stream()
+                    .map(Target::getIssuedAcknowledgementLabel)
+                    .flatMap(Optional::stream)
+                    .map(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
+                    .filter(Optional::isPresent)
+                    .flatMap(Optional::stream)
+                    .collect(Collectors.toSet());
+        } else {
+            return Set.of();
+        }
     }
 
     /**
@@ -614,7 +717,7 @@ public final class ConnectionPersistenceActor
         return Integer.toHexString(getClientCount()).length();
     }
 
-    private void checkLoggingEnabled(final CheckLoggingActive message) {
+    private void checkLoggingEnabled(final Control message) {
         final CheckConnectionLogsActive checkLoggingActive = CheckConnectionLogsActive.of(entityId, Instant.now());
         broadcastToClientActorsIfStarted(checkLoggingActive, getSelf());
     }
@@ -634,10 +737,22 @@ public final class ConnectionPersistenceActor
             startEnabledLoggingChecker();
             updateLoggingIfEnabled();
             dittoProtocolSub.subscribe(toStreamingTypes(getUniqueTopics(entity)), getTargetAuthSubjects(), getSelf())
-                    .thenAccept(done -> {
-                        log.debug("subscription to ditto pubsub succeeded");
-                        pubSubStatus = ConnectivityStatus.OPEN;
-                        getSelf().tell(command, ActorRef.noSender());
+                    .whenComplete((done, throwable) -> {
+                        if (null == throwable) {
+                            log.debug("subscription to Ditto pubsub succeeded");
+                            pubSubStatus = ConnectivityStatus.OPEN;
+                            getSelf().tell(command, ActorRef.noSender());
+                        } else {
+                            log.error(throwable, "subscription to Ditto pubsub failed: {}", throwable.getMessage());
+                            final DittoRuntimeException dittoRuntimeException = DittoRuntimeException
+                                    .asDittoRuntimeException(throwable,
+                                            cause -> ConnectivityInternalErrorException.newBuilder()
+                                                    .dittoHeaders(command.getDittoHeaders())
+                                                    .cause(cause)
+                                                    .build()
+                                    );
+                            command.getSender().tell(dittoRuntimeException, getSelf());
+                        }
                     });
         } else {
             interpretStagedCommand(command);
@@ -748,11 +863,11 @@ public final class ConnectionPersistenceActor
     }
 
     private void cancelEnabledLoggingChecker() {
-        timers().cancel(CheckLoggingActive.INSTANCE);
+        timers().cancel(Control.CHECK_LOGGING_ACTIVE);
     }
 
     private void startEnabledLoggingChecker() {
-        timers().startPeriodicTimer(CheckLoggingActive.INSTANCE, CheckLoggingActive.INSTANCE,
+        timers().startTimerWithFixedDelay(Control.CHECK_LOGGING_ACTIVE, Control.CHECK_LOGGING_ACTIVE,
                 checkLoggingActiveInterval);
     }
 
@@ -966,8 +1081,84 @@ public final class ConnectionPersistenceActor
         openConnection(stagedCommand, false);
     }
 
-    private boolean hasSource() {
-        return entity != null && !entity.getSources().isEmpty();
+    /**
+     * Initialize this.ackLabelsDeclared and start or cancel the associated timer on recovery
+     * and on each connection modification.
+     */
+    private void initializeAckLabelsDeclared() {
+        final Set<AcknowledgementLabel> labelsToDeclare = getAckLabelsToDeclare();
+        if (labelsToDeclare.isEmpty()) {
+            noAcknowledgementLabelToDeclare();
+        } else {
+            acknowledgementLabelsAreToBeDeclared();
+        }
+    }
+
+    private void noAcknowledgementLabelToDeclare() {
+        dittoProtocolSub.removeAcknowledgementLabelDeclaration(getSelf());
+        acknowledgementLabelsAreConsideredDeclared(null);
+    }
+
+    private void acknowledgementLabelNotUnique(final AcknowledgementLabelNotUniqueException exception) {
+        log.error(exception, "Failed to declare acknowledgement labels.");
+        acknowledgementLabelsAreToBeDeclared();
+    }
+
+    private void acknowledgementLabelsAreConsideredDeclared(@Nullable final Control event) {
+        ackLabelsDeclared = true;
+        timers().cancel(Control.DECLARE_ACKNOWLEDGEMENT_LABELS);
+    }
+
+    private void acknowledgementLabelsAreToBeDeclared() {
+        ackLabelsDeclared = false;
+        if (!timers().isTimerActive(Control.DECLARE_ACKNOWLEDGEMENT_LABELS)) {
+            // start timer to declare ack labels
+            timers().startTimerWithFixedDelay(Control.DECLARE_ACKNOWLEDGEMENT_LABELS,
+                    Control.DECLARE_ACKNOWLEDGEMENT_LABELS, config.getAckLabelDeclareInterval());
+
+            // send self another trigger to declare ack labels right away
+            getSelf().tell(Control.DECLARE_ACKNOWLEDGEMENT_LABELS, ActorRef.noSender());
+        }
+    }
+
+    /**
+     * Compute the acknowledgement labels to declare. Closed or deleted connections do not declare any acknowledgement
+     * labels.
+     *
+     * @return The set of acknowledgement labels to declare.
+     */
+    private Set<AcknowledgementLabel> getAckLabelsToDeclare() {
+        if (entity == null || entity.getConnectionStatus() != ConnectivityStatus.OPEN) {
+            return Set.of();
+        } else {
+            return ConnectionValidator.getAcknowledgementLabelsToDeclare(entity)
+                    .collect(Collectors.toSet());
+        }
+    }
+
+    private void declareAcknowledgementLabels(final Control trigger) {
+        final Set<AcknowledgementLabel> acknowledgementLabels = getAckLabelsToDeclare();
+        if (acknowledgementLabels.isEmpty()) {
+            log.warning("Got <{}> while there is no acknowledgement label to declare", trigger);
+            acknowledgementLabelsAreConsideredDeclared(null);
+        } else {
+            log.info("Declaring acknowledgement labels <{}>", acknowledgementLabels);
+            final CompletionStage<Object> replyFuture =
+                    dittoProtocolSub.declareAcknowledgementLabels(acknowledgementLabels, getSelf())
+                            .<Object>thenApply(_void -> {
+                                declaredAckLabels.clear();
+                                declaredAckLabels.addAll(acknowledgementLabels);
+                                log.info("Acknowledgement label declaration successful for labels: <{}>",
+                                        acknowledgementLabels);
+                                return Control.ACKNOWLEDGEMENT_LABELS_DECLARED;
+                            })
+                            .exceptionally(error -> {
+                                log.info("Acknowledgement label declaration failed for labels: <{}> - cause: {} {}",
+                                        acknowledgementLabels, error.getClass().getSimpleName(), error.getMessage());
+                                return toDittoRuntimeException(error, entityId, DittoHeaders.empty());
+                            });
+            Patterns.pipe(replyFuture, getContext().dispatcher()).to(getSelf());
+        }
     }
 
     private static Collection<StreamingType> toStreamingTypes(final Set<Topic> uniqueTopics) {
@@ -988,12 +1179,6 @@ public final class ConnectionPersistenceActor
                 .collect(Collectors.toList());
     }
 
-    private static <T> CompletionStage<T> failedFuture(final Throwable cause) {
-        final CompletableFuture<T> future = new CompletableFuture<>();
-        future.completeExceptionally(cause);
-        return future;
-    }
-
     private static DittoRuntimeException toDittoRuntimeException(final Throwable error, final ConnectionId id,
             final DittoHeaders headers) {
 
@@ -1008,9 +1193,9 @@ public final class ConnectionPersistenceActor
     private static CompletionStage<Object> processClientAskResult(final CompletionStage<Object> askResultFuture) {
         return askResultFuture.thenCompose(response -> {
             if (response instanceof Status.Failure) {
-                return failedFuture(((Status.Failure) response).cause());
+                return CompletableFuture.failedStage(((Status.Failure) response).cause());
             } else if (response instanceof DittoRuntimeException) {
-                return failedFuture((DittoRuntimeException) response);
+                return CompletableFuture.failedStage((DittoRuntimeException) response);
             } else {
                 return CompletableFuture.completedFuture(response);
             }
@@ -1018,10 +1203,24 @@ public final class ConnectionPersistenceActor
     }
 
     /**
-     * Message that will be sent by scheduler and indicates a check if logging is still enabled for this connection.
+     * Message that will be sent by scheduler.
      */
-    enum CheckLoggingActive {
-        INSTANCE
+    enum Control {
+
+        /**
+         * Indicates a check if logging is still enabled for this connection.
+         */
+        CHECK_LOGGING_ACTIVE,
+
+        /**
+         * Trigger to re-attempt ack label declaration.
+         */
+        DECLARE_ACKNOWLEDGEMENT_LABELS,
+
+        /**
+         * Event that an acknowledgement declaration succeeded.
+         */
+        ACKNOWLEDGEMENT_LABELS_DECLARED
     }
 
 }

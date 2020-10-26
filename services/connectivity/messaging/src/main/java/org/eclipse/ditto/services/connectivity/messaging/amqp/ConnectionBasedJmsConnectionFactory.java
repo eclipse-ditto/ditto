@@ -37,6 +37,7 @@ import javax.naming.NamingException;
 
 import org.apache.qpid.jms.JmsConnection;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.services.connectivity.messaging.config.Amqp10Config;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
 import org.slf4j.LoggerFactory;
 
@@ -50,31 +51,22 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
             LoggerFactory.getLogger(ConnectionBasedJmsConnectionFactory.class);
 
     private static final String SECURE_AMQP_SCHEME = "amqps";
-    private static final int DEFAULT_REQUEST_TIMEOUT = 5000;
 
-    // max milliseconds waiting for disposition from broker - see AmqpProvider.java:1444 for the time unit milliseconds
-    // using 0 means sent messages are always considered to have failed
-    private static final int DEFAULT_SEND_TIMEOUT = 120_000;
+    private final Amqp10Config amqp10Config;
 
-    /**
-     * Input buffer size for consumers. Set to a small value to prevent flooding.
-     * Not settable by specific config.
-     */
-    private static final int DEFAULT_PREFETCH_POLICY_ALL = 10;
 
-    private static final ConnectionBasedJmsConnectionFactory INSTANCE = new ConnectionBasedJmsConnectionFactory();
-
-    private ConnectionBasedJmsConnectionFactory() {
-        // no-op
+    private ConnectionBasedJmsConnectionFactory(final Amqp10Config amqp10Config) {
+        this.amqp10Config = amqp10Config;
     }
 
     /**
      * Returns an instance of {@code ConnectionBasedJmsConnectionFactory}.
      *
+     * @param amqp10Config the AMQP 1.0 configuration to apply for the new connection factory.
      * @return the instance.
      */
-    public static ConnectionBasedJmsConnectionFactory getInstance() {
-        return INSTANCE;
+    public static ConnectionBasedJmsConnectionFactory getInstance(final Amqp10Config amqp10Config) {
+        return new ConnectionBasedJmsConnectionFactory(amqp10Config);
     }
 
     @Override
@@ -97,7 +89,7 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
     }
 
     private Context createContext(final Connection connection) throws NamingException {
-        final String connectionUri = buildAmqpConnectionUriFromConnection(connection);
+        final String connectionUri = buildAmqpConnectionUriFromConnection(connection, amqp10Config);
         @SuppressWarnings("squid:S1149") final Hashtable<Object, Object> env = new Hashtable<>();
         env.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
         env.put("connectionfactory." + connection.getId(), connectionUri);
@@ -105,7 +97,8 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
         return new InitialContext(env);
     }
 
-    public static String buildAmqpConnectionUriFromConnection(final Connection connection) {
+    public static String buildAmqpConnectionUriFromConnection(final Connection connection,
+            @Nullable final Amqp10Config amqp10Config) {
         final String id = connection.getId().toString();
         final String username = connection.getUsername().orElse(null);
         final String password = connection.getPassword().orElse(null);
@@ -126,7 +119,7 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
         final String nestedUri = baseUri + parameters.stream().collect(Collectors.joining("&", "?", ""));
 
         final List<String> globalParameters =
-                new ArrayList<>(getJmsParameters(id, username, password, specificConfig));
+                new ArrayList<>(getJmsParameters(id, username, password, amqp10Config, specificConfig));
         final String connectionUri;
         if (failoverEnabled) {
             globalParameters.addAll(getFailoverParameters(specificConfig));
@@ -149,8 +142,12 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
     }
 
     @SuppressWarnings("squid:S2068")
-    private static List<String> getJmsParameters(final String id, @Nullable final String username,
-            @Nullable final String password, final Map<String, String> specificConfig) {
+    private static List<String> getJmsParameters(final String id,
+            @Nullable final String username,
+            @Nullable final String password,
+            @Nullable final Amqp10Config amqp10Config,
+            final Map<String, String> specificConfig) {
+
         String encodedId;
         try {
             encodedId = URLEncoder.encode(id, StandardCharsets.UTF_8.displayName());
@@ -166,21 +163,31 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
 
         jmsParams.add("jms.clientID=" + encodedId);
 
-        // set default for sendTimeout and requestTimeout, qpid jms default waits indefinitely
-        if (!specificConfig.containsKey("jms.sendTimeout")) {
-            jmsParams.add("jms.sendTimeout=" + DEFAULT_SEND_TIMEOUT);
-        }
-        if (!specificConfig.containsKey("jms.requestTimeout")) {
-            jmsParams.add("jms.requestTimeout=" + DEFAULT_REQUEST_TIMEOUT);
+        if (null != amqp10Config) {
+            final Duration globalConnectTimeout = amqp10Config.getGlobalConnectTimeout();
+            final Duration globalSendTimeout = amqp10Config.getGlobalSendTimeout();
+            final Duration globalRequestTimeout = amqp10Config.getGlobalRequestTimeout();
+            final int globalPrefetchPolicyAllCount = amqp10Config.getGlobalPrefetchPolicyAllCount();
+
+            if (!specificConfig.containsKey("jms.connectTimeout")) {
+                jmsParams.add("jms.connectTimeout=" + globalConnectTimeout.toMillis());
+            }
+            // set default for sendTimeout and requestTimeout, qpid jms default waits indefinitely
+            if (!specificConfig.containsKey("jms.sendTimeout")) {
+                jmsParams.add("jms.sendTimeout=" + globalSendTimeout.toMillis());
+            }
+            if (!specificConfig.containsKey("jms.requestTimeout")) {
+                jmsParams.add("jms.requestTimeout=" + globalRequestTimeout.toMillis());
+            }
+
+            // set prefetch policy no matter what the specific config is
+            jmsParams.add("jms.prefetchPolicy.all=" + globalPrefetchPolicyAllCount);
         }
 
         if (username != null && !username.isEmpty() && password != null && !password.isEmpty()) {
             jmsParams.add("jms.username=" + username);
             jmsParams.add("jms.password=" + password);
         }
-
-        // set prefetch policy no matter what the specific config is
-        jmsParams.add("jms.prefetchPolicy.all=" + DEFAULT_PREFETCH_POLICY_ALL);
 
         return jmsParams;
     }

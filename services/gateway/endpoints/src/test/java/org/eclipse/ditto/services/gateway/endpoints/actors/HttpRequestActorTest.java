@@ -398,4 +398,5 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                     probeResponse, expectedHttpStatusCode, null, expectedHttpResponseEntity);
         }};
     }
+
 }

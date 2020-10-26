@@ -29,11 +29,6 @@ public enum MetricType {
     CONSUMED("consumed", MetricDirection.INBOUND),
 
     /**
-     * Counts inbound messages that were acknowledged.
-     */
-    ACKNOWLEDGED("acknowledged", MetricDirection.INBOUND),
-
-    /**
      * Counts outbound messages that were dispatched.
      */
     DISPATCHED("dispatched", MetricDirection.OUTBOUND),
@@ -61,7 +56,12 @@ public enum MetricType {
     /**
      * Counts messages published to external systems.
      */
-    PUBLISHED("published", MetricDirection.OUTBOUND);
+    PUBLISHED("published", MetricDirection.OUTBOUND),
+
+    /**
+     * Counts inbound/outbound messages that were acknowledged.
+     */
+    ACKNOWLEDGED("acknowledged", MetricDirection.INBOUND, MetricDirection.OUTBOUND);
 
     private final String name;
     private final List<MetricDirection> possibleMetricDirections;

@@ -80,8 +80,6 @@ http://localhost:8080/api/<1|2>/things?fields=thingId,attributes
 
 #### Field enrichment
 
-{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
-
 In addition to the fields projection, one can also choose to select [extra fields](basic-enrichment.html) 
 to return in addition to the actually changed fields, e.g.:
 ```

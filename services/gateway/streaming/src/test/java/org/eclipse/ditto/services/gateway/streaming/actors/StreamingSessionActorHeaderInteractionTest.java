@@ -14,12 +14,16 @@ package org.eclipse.ditto.services.gateway.streaming.actors;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
@@ -44,6 +48,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -117,7 +122,8 @@ public final class StreamingSessionActorHeaderInteractionTest {
 
         final Source<SessionedJsonifiable, SourceQueueWithComplete<SessionedJsonifiable>> source =
                 Source.queue(10, OverflowStrategy.fail());
-        sourceQueue = source.toMat(Sink.actorRef(eventResponsePublisherProbe.ref(), "COMPLETE"), Keep.left()).run(actorSystem);
+        sourceQueue = source.toMat(Sink.actorRef(eventResponsePublisherProbe.ref(), "COMPLETE"), Keep.left())
+                .run(actorSystem);
     }
 
     @BeforeClass
@@ -129,6 +135,12 @@ public final class StreamingSessionActorHeaderInteractionTest {
     @AfterClass
     public static void shutdown() {
         TestKit.shutdownActorSystem(actorSystem);
+    }
+
+    @Before
+    public void setup() {
+        when(dittoProtocolSub.declareAcknowledgementLabels(any(), any()))
+                .thenReturn(CompletableFuture.completedFuture(null));
     }
 
     @After
@@ -163,7 +175,7 @@ public final class StreamingSessionActorHeaderInteractionTest {
     private ActorRef createStreamingSessionActor() {
         final Connect connect =
                 new Connect(sourceQueue, "connectionCorrelationId", "ws",
-                        JsonSchemaVersion.V_2, null);
+                        JsonSchemaVersion.V_2, null, Set.of());
         final Props props = StreamingSessionActor.props(connect, dittoProtocolSub, commandRouterProbe.ref(),
                 DefaultAcknowledgementConfig.of(ConfigFactory.empty()), HeaderTranslator.empty(),
                 Props.create(TestProbeForwarder.class, subscriptionManagerProbe), Mockito.mock(JwtValidator.class),

@@ -25,7 +25,9 @@ final class ImmutableAcknowledgementLabel implements AcknowledgementLabel {
 
     private final String label;
 
-    private ImmutableAcknowledgementLabel(final String label) {this.label = label;}
+    private ImmutableAcknowledgementLabel(final String label) {
+        this.label = label;
+    }
 
     /**
      * Returns a new AcknowledgementLabel based on the provided string.

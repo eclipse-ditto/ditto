@@ -29,8 +29,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CacheFactory;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
@@ -47,7 +47,8 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  */
 public final class CachingSignalEnrichmentFacade implements SignalEnrichmentFacade {
 
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(CachingSignalEnrichmentFacade.class);
+    private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory
+            .getThreadSafeLogger(CachingSignalEnrichmentFacade.class);
 
     private final Cache<EntityIdWithResourceType, JsonObject> extraFieldsCache;
 

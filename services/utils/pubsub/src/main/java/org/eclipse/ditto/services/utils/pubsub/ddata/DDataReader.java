@@ -13,9 +13,14 @@
 package org.eclipse.ditto.services.utils.pubsub.ddata;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 import akka.actor.ActorRef;
+import akka.cluster.ddata.Key;
+import akka.cluster.ddata.ORMultiMap;
+import akka.cluster.ddata.Replicator;
+import scala.collection.immutable.Set;
 
 /**
  * Reader of distributed Bloom filters of subscribed topics.
@@ -33,10 +38,39 @@ public interface DDataReader<T> {
     CompletionStage<Collection<ActorRef>> getSubscribers(Collection<T> topicHashes);
 
     /**
+     * Read a low-level map from the local replicator.
+     *
+     * @return the low-level map.
+     */
+    default CompletionStage<Map<ActorRef, Set<T>>> read() {
+        return read(Replicator.readLocal());
+    }
+
+    /**
+     * Read a low-level map from the local replicator.
+     *
+     * @return the low-level map.
+     */
+    CompletionStage<Map<ActorRef, Set<T>>> read(Replicator.ReadConsistency readConsistency);
+
+    /**
      * Map a topic to a key with which to read distributed data.
      *
      * @param topic the topic.
      * @return its approximation in the distributed data.
      */
     T approximate(String topic);
+
+    /**
+     * Start sending distributed data change events to the recipient.
+     * No further events are sent once the recipient terminates.
+     *
+     * @param recipient the recipient of distributed data events.
+     */
+    void receiveChanges(ActorRef recipient);
+
+    /**
+     * @return Key of the distributed data.
+     */
+    Key<ORMultiMap<ActorRef, T>> getKey();
 }

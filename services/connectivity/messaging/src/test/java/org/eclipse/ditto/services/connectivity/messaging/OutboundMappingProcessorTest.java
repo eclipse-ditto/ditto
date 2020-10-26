@@ -29,7 +29,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -38,13 +42,16 @@ import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.Topic;
+import org.eclipse.ditto.model.messages.Message;
+import org.eclipse.ditto.model.messages.MessageDirection;
+import org.eclipse.ditto.model.messages.MessageHeaders;
+import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
-import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
-import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
+import org.eclipse.ditto.services.connectivity.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -52,7 +59,8 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.protocol.DittoProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
-import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
+import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -65,11 +73,11 @@ import akka.actor.ActorSystem;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link MessageMappingProcessor}.
+ * Tests {@link OutboundMappingProcessor}.
  */
-public final class MessageMappingProcessorTest {
+public final class OutboundMappingProcessorTest {
 
-    private MessageMappingProcessor underTest;
+    private OutboundMappingProcessor underTest;
 
     private static final String DITTO_MAPPER = "ditto";
     private static final Map<String, String> DITTO_MAPPER_CONDITIONS = Map.of(
@@ -114,11 +122,15 @@ public final class MessageMappingProcessorTest {
     public void init() {
         final Map<String, MappingContext> mappings = new HashMap<>();
         mappings.put(DITTO_MAPPER, DittoMessageMapper.CONTEXT);
-        mappings.put(DITTO_MAPPER_BY_ALIAS, ConnectivityModelFactory.newMappingContext("Ditto", JsonObject.empty(),
-                DITTO_MAPPER_CONDITIONS, Collections.emptyMap()));
+        mappings.put(DITTO_MAPPER_BY_ALIAS,
+                ConnectivityModelFactory.newMappingContext("Ditto", JsonObject.empty(),
+                        DITTO_MAPPER_CONDITIONS, Collections.emptyMap()));
 
         final Map<String, String> dittoCustomMapperHeaders = new HashMap<>();
-        dittoCustomMapperHeaders.put(MessageMapperConfiguration.CONTENT_TYPE_BLOCKLIST, "foo/bar");
+        dittoCustomMapperHeaders.put(
+                MessageMapperConfiguration.CONTENT_TYPE_BLOCKLIST,
+                "foo/bar"
+        );
         final MappingContext dittoCustomMappingContext =
                 ConnectivityModelFactory.newMappingContext("Ditto", dittoCustomMapperHeaders);
         mappings.put(DITTO_MAPPER_CUSTOM_HEADER_BLOCKLIST, dittoCustomMappingContext);
@@ -137,10 +149,9 @@ public final class MessageMappingProcessorTest {
         final PayloadMappingDefinition payloadMappingDefinition =
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappings);
 
-        underTest =
-                MessageMappingProcessor.of(ConnectionId.of("theConnection"), ConnectionType.AMQP_10,
-                        payloadMappingDefinition, actorSystem,
-                        connectivityConfig, protocolAdapterProvider, logger);
+        underTest = OutboundMappingProcessor.of(ConnectionId.of("theConnection"), ConnectionType.AMQP_10,
+                payloadMappingDefinition, actorSystem,
+                connectivityConfig, protocolAdapterProvider.getProtocolAdapter(null), logger);
     }
 
     @Test
@@ -172,22 +183,109 @@ public final class MessageMappingProcessorTest {
     }
 
     @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void testOutboundMessageEnriched() {
         new TestKit(actorSystem) {{
             final ThingModifiedEvent signal = TestConstants.thingModified(Collections.emptyList());
             final JsonObject extra = JsonObject.newBuilder().set("x", 5).build();
             final OutboundSignal outboundSignal = Mockito.mock(OutboundSignal.class);
-            final MappingResultHandler<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingResultHandler.class);
+            final MappingOutcome.Visitor<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingOutcome.Visitor.class);
             when(outboundSignal.getExtra()).thenReturn(Optional.of(extra));
             when(outboundSignal.getSource()).thenReturn(signal);
-            underTest.process(outboundSignal, mock);
+            underTest.process(outboundSignal).forEach(outcome -> outcome.accept(mock));
             final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
-            verify(mock, times(1)).onMessageMapped(captor.capture());
-            verify(mock, times(0)).onException(any(Exception.class));
-            verify(mock, times(0)).onMessageDropped();
+            verify(mock, times(1)).onMapped(any(String.class), captor.capture());
+            verify(mock, times(0)).onError(any(String.class), any(Exception.class), any(), any());
+            verify(mock, times(0)).onDropped(any(String.class), any());
 
             assertThat(captor.getAllValues()).allSatisfy(em -> assertThat(em.getAdaptable().getPayload().getExtra())
                     .contains(extra));
+        }};
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void testOutboundEventWithRequestedAcksWhichAreIssuedByTargetDontContainRequestedAcks() {
+        new TestKit(actorSystem) {{
+            ThingModifiedEvent signal = TestConstants.thingModified(Collections.emptyList());
+            final AcknowledgementLabel customAckLabel = AcknowledgementLabel.of("custom:ack");
+            final AcknowledgementLabel targetIssuedAckLabel = AcknowledgementLabel.of("issued:ack");
+            signal = signal.setDittoHeaders(signal.getDittoHeaders().toBuilder()
+                    .acknowledgementRequest(AcknowledgementRequest.of(targetIssuedAckLabel),
+                            AcknowledgementRequest.of(customAckLabel))
+                    .build()
+            );
+            final OutboundSignal outboundSignal = Mockito.mock(OutboundSignal.class);
+            final MappingOutcome.Visitor<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingOutcome.Visitor.class);
+            when(outboundSignal.getSource()).thenReturn(signal);
+            when(outboundSignal.getTargets()).thenReturn(List.of(
+                    ConnectivityModelFactory.newTargetBuilder()
+                            .address("test")
+                            .issuedAcknowledgementLabel(targetIssuedAckLabel)
+                            .authorizationContext(AuthorizationContext.newInstance(
+                                    DittoAuthorizationContextType.UNSPECIFIED,
+                                    AuthorizationSubject.newInstance("issuer:subject")))
+                            .topics(Topic.TWIN_EVENTS)
+                            .build()
+            ));
+            underTest.process(outboundSignal).forEach(outcome -> outcome.accept(mock));
+            final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
+            verify(mock, times(1)).onMapped(any(String.class), captor.capture());
+            verify(mock, times(0)).onError(any(String.class), any(Exception.class), any(), any());
+            verify(mock, times(0)).onDropped(any(String.class), any());
+
+            assertThat(captor.getAllValues()).allSatisfy(em ->
+                    assertThat(em.getAdaptable().getDittoHeaders().getAcknowledgementRequests())
+                            .containsOnly(AcknowledgementRequest.of(customAckLabel)));
+        }};
+    }
+
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public void testOutboundLiveMessageWithRequestedAcksWhichAreIssuedByTargetDontContainRequestedAcks() {
+        new TestKit(actorSystem) {{
+            final AcknowledgementLabel customAckLabel = AcknowledgementLabel.of("custom:ack");
+            final AcknowledgementLabel targetIssuedAckLabel = AcknowledgementLabel.of("issued:ack");
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                    .channel(TopicPath.Channel.LIVE.getName())
+                    .acknowledgementRequest(AcknowledgementRequest.of(targetIssuedAckLabel),
+                            AcknowledgementRequest.of(customAckLabel))
+                    .build();
+            final Message<Object> message =
+                    Message.newBuilder(
+                            MessageHeaders.newBuilder(MessageDirection.TO, TestConstants.Things.THING_ID, "ditto")
+                                    // adding the ack requests additionally to the message headers would break the test
+                                    // as the messageHeaders are merged into the DittoHeaders and overwrite them
+                                    .acknowledgementRequest(AcknowledgementRequest.of(targetIssuedAckLabel),
+                                            AcknowledgementRequest.of(customAckLabel))
+                                    .build())
+                            .build();
+            final MessageCommand signal =  SendThingMessage.of(TestConstants.Things.THING_ID, message, dittoHeaders);
+            final OutboundSignal outboundSignal = Mockito.mock(OutboundSignal.class);
+            final MappingOutcome.Visitor<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingOutcome.Visitor.class);
+            when(outboundSignal.getSource()).thenReturn(signal);
+            when(outboundSignal.getTargets()).thenReturn(List.of(
+                    ConnectivityModelFactory.newTargetBuilder()
+                            .address("test")
+                            .issuedAcknowledgementLabel(targetIssuedAckLabel)
+                            .authorizationContext(AuthorizationContext.newInstance(
+                                    DittoAuthorizationContextType.UNSPECIFIED,
+                                    AuthorizationSubject.newInstance("issuer:subject")))
+                            .topics(Topic.TWIN_EVENTS)
+                            .build()
+            ));
+            underTest.process(outboundSignal).forEach(outcome -> outcome.accept(mock));
+            final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
+            verify(mock, times(1)).onMapped(any(String.class), captor.capture());
+            verify(mock, times(0)).onError(any(String.class), any(Exception.class), any(), any());
+            verify(mock, times(0)).onDropped(any(String.class), any());
+
+            assertThat(captor.getAllValues()).allSatisfy(em ->
+                    assertThat(em.getAdaptable().getDittoHeaders().getAcknowledgementRequests())
+                            .containsAll(List.of(
+                                    AcknowledgementRequest.of(customAckLabel),
+                                    AcknowledgementRequest.of(targetIssuedAckLabel)))
+            );
         }};
     }
 
@@ -214,88 +312,6 @@ public final class MessageMappingProcessorTest {
                 targetWithMapping(DROPPING_MAPPER, FAILING_MAPPER, DITTO_MAPPER, DUPLICATING_MAPPER));
     }
 
-    @Test
-    public void testInboundMessageMapped() {
-        testInbound(1, 0, 0);
-    }
-
-    @Test
-    public void testInboundMessageWithCondition() {
-        testInboundWithCor(0, 1, 0, DITTO_MAPPER_BY_ALIAS);
-    }
-
-    @Test
-    public void testInboundMessageDropped() {
-        testInbound(0, 1, 0, DROPPING_MAPPER);
-    }
-
-    @Test
-    public void testInboundMessageDuplicated() {
-        testInbound(2, 0, 0, DUPLICATING_MAPPER);
-    }
-
-    @Test
-    public void testInboundMappingFails() {
-        testInbound(0, 0, 1, FAILING_MAPPER);
-    }
-
-    @Test
-    public void testInboundMessageDroppedFailedMappedDuplicated() {
-        testInbound(2 /* duplicated */ + 1 /* mapped */, 1, 1,
-                DROPPING_MAPPER, FAILING_MAPPER, DITTO_MAPPER, DUPLICATING_MAPPER);
-    }
-
-    @Test
-    public void testInboundMessageDroppedForHonoEmptyNotificationMessagesWithDefaultMapper() {
-        final Map<String, String> headers = new HashMap<>();
-        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, "application/vnd.eclipse-hono-empty-notification");
-        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
-                .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping())
-                .build();
-        testInbound(message, 0, 1, 0);
-    }
-
-    @Test
-    public void testInboundMessageDroppedForHonoEmptyNotificationMessagesWithDittoMapper() {
-        final Map<String, String> headers = new HashMap<>();
-        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, "application/vnd.eclipse-hono-empty-notification");
-        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
-                .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPER))
-                .build();
-        testInbound(message, 0, 1, 0);
-    }
-
-    @Test
-    public void testInboundMessageDroppedForHonoEmptyNotificationMessagesWithDittoByAliasMapper() {
-        final Map<String, String> headers = new HashMap<>();
-        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, "application/vnd.eclipse-hono-empty-notification");
-        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
-                .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPER_BY_ALIAS))
-                .build();
-        testInbound(message, 0, 1, 0);
-    }
-
-    @Test
-    public void testInboundFailedForHonoEmptyNotificationMessagesWithCustomDittoMapper() {
-        final Map<String, String> headers = new HashMap<>();
-        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, "application/vnd.eclipse-hono-empty-notification");
-        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
-                .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPER_CUSTOM_HEADER_BLOCKLIST))
-                .build();
-        // should fail because no payload was present:
-        testInbound(message, 0, 0, 1);
-    }
-
-    @Test
-    public void testInboundMessageDroppedForCustomContentType() {
-        final Map<String, String> headers = new HashMap<>();
-        headers.put(ExternalMessage.CONTENT_TYPE_HEADER, "application/custom-json");
-        final ExternalMessage message = ExternalMessageFactory.newExternalMessageBuilder(headers)
-                .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping(DUPLICATING_MAPPER))
-                .build();
-        testInbound(message, 0, 1, 0);
-    }
-
     private static Target targetWithMapping(final String... mappings) {
         return ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
                 .address(UUID.randomUUID().toString())
@@ -307,18 +323,9 @@ public final class MessageMappingProcessorTest {
         testOutbound(TestConstants.thingModified(Collections.emptyList()), mapped, dropped, failed, true, targets);
     }
 
-    private void testOutboundWithCor(final int mapped, final int dropped, final int failed, final Target... targets) {
-        testOutbound(TestConstants.thingModifiedWithCor(Collections.emptyList()), mapped, dropped, failed, true,
-                targets);
-    }
-
-    private void testOutbound(final ThingModifiedEvent<?> signal,
-            final int mapped,
-            final int dropped,
-            final int failed,
-            final boolean assertTargets,
-            final Target... targets) {
-
+    @SuppressWarnings("unchecked")
+    private void testOutbound(final ThingModifiedEvent<?> signal, final int mapped, final int dropped, final int failed,
+            final boolean assertTargets, final Target... targets) {
         new TestKit(actorSystem) {{
 
             // expect one message per mapper per target
@@ -328,13 +335,13 @@ public final class MessageMappingProcessorTest {
 
             final OutboundSignal outboundSignal =
                     OutboundSignalFactory.newOutboundSignal(signal, Arrays.asList(targets));
-            //noinspection unchecked
-            final MappingResultHandler<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingResultHandler.class);
-            underTest.process(outboundSignal, mock);
+
+            final MappingOutcome.Visitor<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingOutcome.Visitor.class);
+            underTest.process(outboundSignal).forEach(outcome -> outcome.accept(mock));
             final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
-            verify(mock, times(mapped)).onMessageMapped(captor.capture());
-            verify(mock, times(failed)).onException(any(Exception.class));
-            verify(mock, times(dropped)).onMessageDropped();
+            verify(mock, times(mapped)).onMapped(any(String.class), captor.capture());
+            verify(mock, times(failed)).onError(any(String.class), any(Exception.class), any(), any());
+            verify(mock, times(dropped)).onDropped(any(String.class), any());
 
             assertThat(captor.getAllValues()).allSatisfy(em ->
                     assertThat(em.getExternalMessage().getTextPayload())
@@ -347,54 +354,6 @@ public final class MessageMappingProcessorTest {
                         .collect(Collectors.toList()))
                         .containsExactlyInAnyOrderElementsOf(expectedTargets);
             }
-        }};
-    }
-
-    private void testInbound(final int mapped, final int dropped, final int failed, final String... mappers) {
-        final ExternalMessage externalMessage = ExternalMessageFactory
-                .newExternalMessageBuilder(Collections.emptyMap())
-                .withText(TestConstants.modifyThing())
-                .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping(mappers))
-                .build();
-        testInbound(externalMessage, mapped, dropped, failed);
-    }
-
-    private void testInboundWithCor(final int mapped,
-            final int dropped,
-            final int failed,
-            final String... mappers) {
-
-        final ExternalMessage externalMessage = ExternalMessageFactory
-                .newExternalMessageBuilder(Collections.emptyMap())
-                .withText(TestConstants.modifyThing())
-                .withPayloadMapping(ConnectivityModelFactory.newPayloadMapping(mappers))
-                .withAdditionalHeaders(DittoHeaders.newBuilder().correlationId("testCor").build())
-                .build();
-        testInbound(externalMessage, mapped, dropped, failed);
-    }
-
-    private void testInbound(final ExternalMessage externalMessage,
-            final int mapped,
-            final int dropped,
-            final int failed) {
-
-        new TestKit(actorSystem) {{
-            final MappingResultHandler<MappedInboundExternalMessage, Void> mock =
-                    Mockito.mock(MappingResultHandler.class);
-            underTest.process(externalMessage, mock);
-            final ArgumentCaptor<MappedInboundExternalMessage> captor =
-                    ArgumentCaptor.forClass(MappedInboundExternalMessage.class);
-            verify(mock, times(mapped)).onMessageMapped(captor.capture());
-            verify(mock, times(failed)).onException(any(Exception.class));
-            verify(mock, times(dropped)).onMessageDropped();
-
-            assertThat(captor.getAllValues()).allSatisfy(mapped -> {
-                assertThat(mapped.getSignal().getDittoHeaders()).containsEntry(
-                        DittoHeaderDefinition.CORRELATION_ID.getKey(),
-                        TestConstants.CORRELATION_ID);
-                assertThat((Object) mapped.getSignal().getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
-                assertThat(mapped.getSignal()).isInstanceOf(ModifyThing.class);
-            });
         }};
     }
 

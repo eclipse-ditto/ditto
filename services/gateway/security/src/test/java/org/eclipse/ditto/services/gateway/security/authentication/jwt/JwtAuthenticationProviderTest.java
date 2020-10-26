@@ -103,7 +103,8 @@ public final class JwtAuthenticationProviderTest {
                                 AuthorizationSubject.newInstance("myAuthSubj"))));
         final RequestContext requestContext = mockRequestContext(VALID_AUTHORIZATION_HEADER);
 
-        final AuthenticationResult authenticationResult = underTest.authenticate(requestContext, knownDittoHeaders);
+        final AuthenticationResult authenticationResult =
+                underTest.authenticate(requestContext, knownDittoHeaders).join();
 
         softly.assertThat(authenticationResult.isSuccess()).isTrue();
     }
@@ -116,7 +117,8 @@ public final class JwtAuthenticationProviderTest {
                 .thenThrow(new RuntimeException("Something happened"));
         final RequestContext requestContext = mockRequestContext(VALID_AUTHORIZATION_HEADER);
 
-        final AuthenticationResult authenticationResult = underTest.authenticate(requestContext, knownDittoHeaders);
+        final AuthenticationResult authenticationResult =
+                underTest.authenticate(requestContext, knownDittoHeaders).join();
 
         verify(authenticationContextProvider).getAuthenticationResult(any(JsonWebToken.class), any(DittoHeaders.class));
         softly.assertThat(authenticationResult.isSuccess()).isFalse();
@@ -136,7 +138,8 @@ public final class JwtAuthenticationProviderTest {
     public void doExtractAuthenticationWithMissingJwt() {
         final RequestContext requestContext = mockRequestContext();
 
-        final AuthenticationResult authenticationResult = underTest.authenticate(requestContext, knownDittoHeaders);
+        final AuthenticationResult authenticationResult =
+                underTest.authenticate(requestContext, knownDittoHeaders).join();
 
         softly.assertThat(authenticationResult.isSuccess()).isFalse();
         softly.assertThat(authenticationResult.getReasonOfFailure())
@@ -159,7 +162,8 @@ public final class JwtAuthenticationProviderTest {
                         BinaryValidationResult.invalid(new IllegalStateException("foo"))));
         final RequestContext requestContext = mockRequestContext(VALID_AUTHORIZATION_HEADER);
 
-        final AuthenticationResult authenticationResult = underTest.authenticate(requestContext, knownDittoHeaders);
+        final AuthenticationResult authenticationResult =
+                underTest.authenticate(requestContext, knownDittoHeaders).join();
 
         softly.assertThat(authenticationResult.isSuccess()).isFalse();
         softly.assertThat(authenticationResult.getReasonOfFailure())

@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.after;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -27,7 +29,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.junit.AfterClass;
@@ -74,9 +76,13 @@ public final class EnforcementSchedulerTest {
             final TestProbe pubSubProbe = TestProbe.apply(actorSystem);
             final TestProbe conciergeForwarderProbe = TestProbe.apply(actorSystem);
             final TestProbe receiverProbe = TestProbe.apply(actorSystem);
+            final ThreadSafeDittoLoggingAdapter mockLogger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
+            doAnswer(invocation -> mockLogger).when(mockLogger).withCorrelationId(any(DittoHeaders.class));
+            doAnswer(invocation -> mockLogger).when(mockLogger).withCorrelationId(any(WithDittoHeaders.class));
+            doAnswer(invocation -> mockLogger).when(mockLogger).withCorrelationId(any(CharSequence.class));
             final Contextual<WithDittoHeaders> baseContextual = Contextual.forActor(getRef(), deadLetterProbe.ref(),
                     pubSubProbe.ref(), conciergeForwarderProbe.ref(),
-                    Duration.ofSeconds(10), Mockito.mock(DittoDiagnosticLoggingAdapter.class),
+                    Duration.ofSeconds(10), mockLogger,
                     null
             );
             final ThingId thingId = ThingId.of("busy", "thing");

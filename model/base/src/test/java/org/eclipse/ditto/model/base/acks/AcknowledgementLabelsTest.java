@@ -77,10 +77,10 @@ public final class AcknowledgementLabelsTest {
                     RegexValidationParameter.invalid("A"),
                     RegexValidationParameter.invalid("AB"),
                     RegexValidationParameter.valid("ABC"),
-                    RegexValidationParameter.valid(IntStream.range(0, 100)
+                    RegexValidationParameter.valid(IntStream.range(0, 145)
                             .mapToObj(i -> "a")
                             .collect(Collectors.joining())),
-                    RegexValidationParameter.invalid(IntStream.range(0, 101)
+                    RegexValidationParameter.invalid(IntStream.range(0, 146)
                             .mapToObj(i -> "b")
                             .collect(Collectors.joining())),
                     RegexValidationParameter.invalid("ab?"),
@@ -88,7 +88,7 @@ public final class AcknowledgementLabelsTest {
                     RegexValidationParameter.valid("___"),
                     RegexValidationParameter.valid("FOO-BAR"),
                     RegexValidationParameter.valid("0123456789"),
-                    RegexValidationParameter.valid("0123456789:")
+                    RegexValidationParameter.valid("{{connection:id}}:foo")
             );
         }
 

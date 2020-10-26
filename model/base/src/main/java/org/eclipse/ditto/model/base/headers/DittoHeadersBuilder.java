@@ -255,11 +255,6 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R exte
      * In addition to built-in ACK labels like
      * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#TWIN_PERSISTED} also custom labels may be used
      * which can be sent back even by external systems.
-     * </p>
-     * <p>
-     * As long as ACKs are requested, calls of {@link #responseRequired(boolean)} are neglected as requested ACKs always
-     * imply that a response is required.
-     * </p>
      *
      * @param acknowledgementRequests the requests for acknowledgements.
      * @return this builder.

@@ -156,7 +156,7 @@ public final class AcknowledgementForwarderActorStarterTest {
     private AcknowledgementForwarderActorStarter getActorStarter(final DittoHeaders dittoHeaders) {
         return AcknowledgementForwarderActorStarter.getInstance(actorContext, KNOWN_ENTITY_ID,
                 ThingDeleted.of(KNOWN_ENTITY_ID, 1L, dittoHeaders),
-                acknowledgementConfig);
+                acknowledgementConfig, label -> true);
     }
 
 }

@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.mockito.Mockito.eq;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -29,6 +30,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.GenericTarget;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -64,6 +66,7 @@ public final class SendingTest {
     @Mock private ConnectionMonitor acknowledgedMonitor;
     @Mock private ConnectionMonitor droppedMonitor;
     @Mock private Target autoAckTarget;
+    @Mock private ExpressionResolver connectionIdResolver;
     @Mock private ThreadSafeDittoLoggingAdapter logger;
 
     private DittoHeaders dittoHeaders;
@@ -94,7 +97,8 @@ public final class SendingTest {
     @Test
     public void createInstanceWithNullSendingContext() {
         assertThatNullPointerException()
-                .isThrownBy(() -> new Sending(null, CompletableFuture.completedStage(null), logger))
+                .isThrownBy(
+                        () -> new Sending(null, CompletableFuture.completedStage(null), connectionIdResolver, logger))
                 .withMessage("The sendingContext must not be null!")
                 .withNoCause();
     }
@@ -102,7 +106,7 @@ public final class SendingTest {
     @Test
     public void createInstanceWithNullFuture() {
         assertThatNullPointerException()
-                .isThrownBy(() -> new Sending(sendingContext, null, logger))
+                .isThrownBy(() -> new Sending(sendingContext, null, connectionIdResolver, logger))
                 .withMessage("The futureResponse must not be null!")
                 .withNoCause();
     }
@@ -110,7 +114,8 @@ public final class SendingTest {
     @Test
     public void createInstanceWithNullLogger() {
         assertThatNullPointerException()
-                .isThrownBy(() -> new Sending(sendingContext, CompletableFuture.completedStage(null), null))
+                .isThrownBy(() -> new Sending(sendingContext, CompletableFuture.completedStage(null),
+                        connectionIdResolver, null))
                 .withMessage("The logger must not be null!")
                 .withNoCause();
     }
@@ -133,13 +138,14 @@ public final class SendingTest {
                 .message("Message sending terminated without the expected acknowledgement.")
                 .description("Please contact the service team.")
                 .build();
-        final Sending underTest = new Sending(sendingContext, CompletableFuture.completedStage(null), logger);
+        final Sending underTest = new Sending(sendingContext, CompletableFuture.completedStage(null),
+                connectionIdResolver, logger);
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
 
         Mockito.verify(publishedMonitor).failure(externalMessage, expectedException);
         Mockito.verify(acknowledgedMonitor)
-                .failure(Mockito.eq(externalMessage), Mockito.any(DittoRuntimeException.class));
+                .failure(eq(externalMessage), Mockito.any(DittoRuntimeException.class));
         assertThat(result).hasValueSatisfying(
                 resultFuture -> assertThat(resultFuture).isCompletedWithValue(expectedResponse));
     }
@@ -150,12 +156,13 @@ public final class SendingTest {
         final var acknowledgementStatusCode = HttpStatusCode.ACCEPTED;
         Mockito.when(acknowledgement.getStatusCode()).thenReturn(acknowledgementStatusCode);
         final Sending underTest =
-                new Sending(sendingContext, CompletableFuture.completedStage(acknowledgement), logger);
+                new Sending(sendingContext, CompletableFuture.completedStage(acknowledgement), connectionIdResolver,
+                        logger);
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
 
-        Mockito.verifyNoInteractions(acknowledgedMonitor);
-        Mockito.verify(publishedMonitor).success(externalMessage);
+        Mockito.verify(acknowledgedMonitor).success(eq(externalMessage));
+        Mockito.verify(publishedMonitor).success(eq(externalMessage));
         assertThat(result)
                 .hasValueSatisfying(resultFuture -> assertThat(resultFuture).isCompletedWithValue(acknowledgement));
     }
@@ -173,7 +180,8 @@ public final class SendingTest {
                 .description("Payload: " + acknowledgementPayload)
                 .build();
         final Sending underTest =
-                new Sending(sendingContext, CompletableFuture.completedStage(acknowledgement), logger);
+                new Sending(sendingContext, CompletableFuture.completedStage(acknowledgement), connectionIdResolver,
+                        logger);
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
 
@@ -191,12 +199,13 @@ public final class SendingTest {
         final var commandResponseStatusCode = HttpStatusCode.ACCEPTED;
         Mockito.when(commandResponse.getStatusCode()).thenReturn(commandResponseStatusCode);
         final Sending underTest =
-                new Sending(sendingContext, CompletableFuture.completedStage(commandResponse), logger);
+                new Sending(sendingContext, CompletableFuture.completedStage(commandResponse), connectionIdResolver,
+                        logger);
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
 
-        Mockito.verifyNoInteractions(acknowledgedMonitor);
-        Mockito.verify(publishedMonitor).success(externalMessage);
+        Mockito.verify(acknowledgedMonitor).success(eq(externalMessage));
+        Mockito.verify(publishedMonitor).success(eq(externalMessage));
         assertThat(result)
                 .hasValueSatisfying(resultFuture -> assertThat(resultFuture).isCompletedWithValue(commandResponse));
     }
@@ -216,7 +225,8 @@ public final class SendingTest {
                 .description("Payload: " + commandResponsePayload)
                 .build();
         final Sending underTest =
-                new Sending(sendingContext, CompletableFuture.completedStage(commandResponse), logger);
+                new Sending(sendingContext, CompletableFuture.completedStage(commandResponse), connectionIdResolver,
+                        logger);
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
 
@@ -237,7 +247,8 @@ public final class SendingTest {
                 .build();
         final CommandResponse<?> commandResponse = null;
         final Sending underTest =
-                new Sending(sendingContext, CompletableFuture.completedStage(commandResponse), logger);
+                new Sending(sendingContext, CompletableFuture.completedStage(commandResponse), connectionIdResolver,
+                        logger);
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
 
@@ -250,12 +261,12 @@ public final class SendingTest {
     public void monitorAndAcknowledgeWhenFutureResponseTerminatedExceptionallyAndNoAckLabelIssued() {
         final var rootCause = new IllegalStateException("A foo must not bar! Never ever!");
         final Sending underTest =
-                new Sending(sendingContext, CompletableFuture.failedStage(rootCause), logger);
+                new Sending(sendingContext, CompletableFuture.failedStage(rootCause), connectionIdResolver, logger);
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
 
         Mockito.verifyNoInteractions(acknowledgedMonitor);
-        Mockito.verify(publishedMonitor).exception(Mockito.eq(externalMessage), Mockito.eq(rootCause));
+        Mockito.verify(publishedMonitor).exception(eq(externalMessage), eq(rootCause));
         Mockito.verify(logger).withCorrelationId(testName.getMethodName());
         assertThat(result).hasValueSatisfying(resultFuture -> assertThat(resultFuture).isCompletedWithValue(null));
     }

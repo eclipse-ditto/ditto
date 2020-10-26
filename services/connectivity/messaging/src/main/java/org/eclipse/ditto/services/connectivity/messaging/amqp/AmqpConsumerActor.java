@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 
@@ -33,6 +34,7 @@ import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
 import javax.jms.TextMessage;
 
+import org.apache.qpid.jms.JmsAcknowledgeCallback;
 import org.apache.qpid.jms.JmsMessageConsumer;
 import org.apache.qpid.jms.message.JmsMessage;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -43,7 +45,6 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Enforcement;
-import org.eclipse.ditto.model.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
@@ -55,6 +56,8 @@ import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivit
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
+import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
@@ -94,10 +97,10 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
 
     @SuppressWarnings("unused")
     private AmqpConsumerActor(final ConnectionId connectionId, final ConsumerData consumerData,
-            final ActorRef messageMappingProcessor, final ActorRef jmsActor) {
+            final ActorRef inboundMappingProcessor, final ActorRef jmsActor) {
         super(connectionId,
                 checkNotNull(consumerData, "consumerData").getAddress(),
-                messageMappingProcessor,
+                inboundMappingProcessor,
                 consumerData.getSource(),
                 ConnectionType.AMQP_10);
         final ConnectionConfig connectionConfig =
@@ -123,14 +126,14 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
      *
      * @param connectionId the connection id
      * @param consumerData the consumer data.
-     * @param messageMappingProcessor the message mapping processor where received messages are forwarded to
+     * @param inboundMappingProcessor the message mapping processor where received messages are forwarded to
      * @param jmsActor reference of the {@code JMSConnectionHandlingActor).
      * @return the Akka configuration Props object.
      */
     static Props props(final ConnectionId connectionId, final ConsumerData consumerData,
-            final ActorRef messageMappingProcessor, final ActorRef jmsActor) {
+            final ActorRef inboundMappingProcessor, final ActorRef jmsActor) {
 
-        return Props.create(AmqpConsumerActor.class, connectionId, consumerData, messageMappingProcessor, jmsActor);
+        return Props.create(AmqpConsumerActor.class, connectionId, consumerData, inboundMappingProcessor, jmsActor);
     }
 
     @Override
@@ -280,10 +283,13 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         try {
             recordIncomingForRateLimit(message.getJMSMessageID());
             if (log.isDebugEnabled()) {
+                final Integer ackType = Optional.ofNullable(message.getAcknowledgeCallback())
+                        .map(JmsAcknowledgeCallback::getAckType)
+                        .orElse(null);
                 log.debug("Received JmsMessage from AMQP 1.0: {} with Properties: {} and AckType {}",
                         message.toString(),
-                        message.getAllPropertyNames().toString(),
-                        message.getAcknowledgeCallback().getAckType());
+                        message.getAllPropertyNames(),
+                        ackType);
             }
             headers = extractHeadersMapFromJmsMessage(message);
             correlationId = headers.get(DittoHeaderDefinition.CORRELATION_ID.getKey());
@@ -365,9 +371,10 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             message.getAcknowledgeCallback().setAckType(ackType);
             message.acknowledge();
             if (isSuccess) {
-                inboundAcknowledgedMonitor.getLogger().success("Sending acknowledgement {0}", ackTypeName);
+                inboundAcknowledgedMonitor.success(InfoProviderFactory.forHeaders(externalMessageHeaders),
+                        "Sending success acknowledgement: <{0}>", ackTypeName);
             } else {
-                inboundAcknowledgedMonitor.exception("Sending negative acknowledgement {0}.", ackTypeName);
+                inboundAcknowledgedMonitor.exception("Sending negative acknowledgement: <{0}>", ackTypeName);
             }
         } catch (final JMSException e) {
             log.withCorrelationId(correlationId).error(e, "Failed to ack an AMQP message");

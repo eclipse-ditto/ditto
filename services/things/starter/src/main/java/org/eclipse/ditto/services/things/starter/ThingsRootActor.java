@@ -72,7 +72,7 @@ public final class ThingsRootActor extends DittoRootActor {
         final ShardRegionExtractor shardRegionExtractor =
                 ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem);
         final ThingEventPubSubFactory pubSubFactory = ThingEventPubSubFactory.of(getContext(), shardRegionExtractor);
-        final DistributedPub<ThingEvent> distributedPub = pubSubFactory.startDistributedPub();
+        final DistributedPub<ThingEvent<?>> distributedPub = pubSubFactory.startDistributedPub();
 
         final ActorRef thingsShardRegion = ClusterSharding.get(actorSystem)
                 .start(ThingsMessagingConstants.SHARD_REGION,
@@ -152,7 +152,7 @@ public final class ThingsRootActor extends DittoRootActor {
 
     private static Props getThingSupervisorActorProps(
             final ActorRef pubSubMediator,
-            final DistributedPub<ThingEvent> distributedPub,
+            final DistributedPub<ThingEvent<?>> distributedPub,
             final ThingPersistenceActorPropsFactory propsFactory) {
 
         return ThingSupervisorActor.props(pubSubMediator, distributedPub, propsFactory);

@@ -89,11 +89,6 @@ public final class PlaceholderFunctionTooComplexException extends DittoRuntimeEx
      * Returns a mutable builder for this exception.
      *
      * @return the builder.
-     */
-    /**
-     * Returns a mutable builder for this exception.
-     *
-     * @return the builder.
      * @deprecated since 1.3.0; might be removed in future releases.
      */
     @Deprecated
@@ -104,6 +99,17 @@ public final class PlaceholderFunctionTooComplexException extends DittoRuntimeEx
                 .description(getDescription().orElse(DESCRIPTION_TEMPLATE))
                 .cause(getCause())
                 .href(getHref().orElse(null));
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
+                .dittoHeaders(dittoHeaders)
+                .build();
     }
 
     /**

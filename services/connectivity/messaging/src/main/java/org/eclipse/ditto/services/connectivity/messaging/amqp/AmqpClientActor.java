@@ -45,6 +45,9 @@ import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ConnectionR
 import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ConsumerClosedStatusReport;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ProducerClosedStatusReport;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.status.SessionClosedStatusReport;
+import org.eclipse.ditto.services.connectivity.messaging.config.Amqp10Config;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.AbstractWithOrigin;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
@@ -58,6 +61,7 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.Connect
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 
@@ -96,7 +100,30 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private ActorRef amqpPublisherActor;
 
     /*
-     * This constructor is called via reflection by the static method propsForTest.
+     * This constructor is called via reflection by the static method props.
+     */
+    @SuppressWarnings("unused")
+    private AmqpClientActor(final Connection connection,
+            @Nullable final ActorRef proxyActor,
+            final ActorRef connectionActor) {
+
+        super(connection, proxyActor, connectionActor);
+
+        final ConnectionConfig connectionConfig =
+                DittoConnectivityConfig.of(
+                        DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
+                        .getConnectionConfig();
+        final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
+
+        this.jmsConnectionFactory = ConnectionBasedJmsConnectionFactory.getInstance(amqp10Config);
+        connectionListener = new StatusReportingListener(getSelf(), logger, connectionLogger);
+        consumerByNamePrefix = new HashMap<>();
+        recoverSessionOnSessionClosed = isRecoverSessionOnSessionClosedEnabled(connection);
+        recoverSessionOnConnectionRestored = isRecoverSessionOnConnectionRestoredEnabled(connection);
+    }
+
+    /*
+     * This constructor is called via reflection by the static method propsForTests.
      */
     @SuppressWarnings("unused")
     private AmqpClientActor(final Connection connection,
@@ -105,21 +132,12 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             final ActorRef connectionActor) {
 
         super(connection, proxyActor, connectionActor);
+
         this.jmsConnectionFactory = jmsConnectionFactory;
         connectionListener = new StatusReportingListener(getSelf(), logger, connectionLogger);
         consumerByNamePrefix = new HashMap<>();
         recoverSessionOnSessionClosed = isRecoverSessionOnSessionClosedEnabled(connection);
         recoverSessionOnConnectionRestored = isRecoverSessionOnConnectionRestoredEnabled(connection);
-    }
-
-    /*
-     * This constructor is called via reflection by the static method props(Connection, ActorRef).
-     */
-    @SuppressWarnings("unused")
-    private AmqpClientActor(final Connection connection, @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor) {
-
-        this(connection, ConnectionBasedJmsConnectionFactory.getInstance(), proxyActor, connectionActor);
     }
 
     /**
@@ -154,8 +172,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     private static Connection validateConnection(final Connection connection) {
         try {
-            ProviderFactory.create(
-                    URI.create(ConnectionBasedJmsConnectionFactory.buildAmqpConnectionUriFromConnection(connection)));
+            ProviderFactory.create(URI.create(ConnectionBasedJmsConnectionFactory
+                    .buildAmqpConnectionUriFromConnection(connection, null)));
+            // it is safe to pass "null" as amqp10Config as only default values are loaded via that config of which
+            //  we can be certain that they are always valid
             return connection;
         } catch (final Exception e) {
             final String msgPattern = "Failed to instantiate an amqp provider from the given configuration: {0}";
@@ -347,7 +367,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private void startCommandConsumers(final List<ConsumerData> consumers, final ActorRef jmsActor) {
         if (isConsuming()) {
             stopCommandConsumers();
-            consumers.forEach(consumer -> startCommandConsumer(consumer, getMessageMappingProcessorActor(), jmsActor));
+            consumers.forEach(consumer -> startCommandConsumer(consumer, getInboundMappingProcessorActor(), jmsActor));
             connectionLogger.success("Subscriptions {0} initialized successfully.", consumers);
             logger.info("Subscribed Connection <{}> to sources: {}", connectionId(), consumers);
         } else {
@@ -355,10 +375,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         }
     }
 
-    private void startCommandConsumer(final ConsumerData consumer, final ActorRef messageMappingProcessor,
+    private void startCommandConsumer(final ConsumerData consumer, final ActorRef inboundMappingProcessor,
             final ActorRef jmsActor) {
         final String namePrefix = consumer.getActorNamePrefix();
-        final Props props = AmqpConsumerActor.props(connectionId(), consumer, messageMappingProcessor, jmsActor);
+        final Props props = AmqpConsumerActor.props(connectionId(), consumer, inboundMappingProcessor, jmsActor);
 
         final ActorRef child = startChildActorConflictFree(namePrefix, props);
         consumerByNamePrefix.put(namePrefix, child);

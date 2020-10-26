@@ -96,6 +96,17 @@ public final class PolicyEntryInvalidException extends DittoRuntimeException imp
         return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
     }
 
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
+                .dittoHeaders(dittoHeaders)
+                .build();
+    }
+
     /**
      * A mutable builder with a fluent API for a {@link PolicyEntryInvalidException}.
      */
