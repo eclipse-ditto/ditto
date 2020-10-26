@@ -41,13 +41,13 @@ public final class FeatureDesiredPropertyDeletedStrategyTest extends AbstractStr
     public void appliesEventCorrectly() {
         final Instant timestamp = Instant.now();
         final FeatureDesiredPropertyDeletedStrategy strategy = new FeatureDesiredPropertyDeletedStrategy();
-        final FeatureDesiredPropertyDeleted event = FeatureDesiredPropertyDeleted.of(THING_ID, FEATURE_ID, FEATURE_PROPERTY_POINTER,
+        final FeatureDesiredPropertyDeleted event = FeatureDesiredPropertyDeleted.of(THING_ID, FEATURE_ID, FEATURE_DESIRED_PROPERTY_POINTER,
                 REVISION, timestamp, DittoHeaders.empty(), null);
 
         final Thing thingWithFeatureWithDesiredProperty = THING.toBuilder()
                 .setFeature(FEATURE.toBuilder()
                         .desiredProperties(FeatureProperties.newBuilder()
-                                .set(FEATURE_PROPERTY_POINTER, FEATURE_PROPERTY_VALUE)
+                                .set(FEATURE_DESIRED_PROPERTY_POINTER, FEATURE_DESIRED_PROPERTY_VALUE)
                                 .build())
                         .build())
                 .build();
@@ -66,7 +66,7 @@ public final class FeatureDesiredPropertyDeletedStrategyTest extends AbstractStr
         final Metadata eventMetadata = Metadata.newMetadata(JsonObject.of("{\"coloring\":[\"E104\",\"E129\"]}"));
         final Instant timestamp = Instant.now();
         final FeatureDesiredPropertyDeletedStrategy strategy = new FeatureDesiredPropertyDeletedStrategy();
-        final FeatureDesiredPropertyDeleted event = FeatureDesiredPropertyDeleted.of(THING_ID, FEATURE_ID, FEATURE_PROPERTY_POINTER,
+        final FeatureDesiredPropertyDeleted event = FeatureDesiredPropertyDeleted.of(THING_ID, FEATURE_ID, FEATURE_DESIRED_PROPERTY_POINTER,
                 REVISION, timestamp, DittoHeaders.empty(), eventMetadata);
 
         final Metadata thingMetadata = Metadata.newBuilder()
@@ -75,7 +75,7 @@ public final class FeatureDesiredPropertyDeletedStrategyTest extends AbstractStr
         final Thing thingWithFeatureWithDesiredProperty = THING.toBuilder()
                 .setFeature(FEATURE.toBuilder()
                         .desiredProperties(FeatureProperties.newBuilder()
-                                .set(FEATURE_PROPERTY_POINTER, FEATURE_PROPERTY_VALUE)
+                                .set(FEATURE_DESIRED_PROPERTY_POINTER, FEATURE_DESIRED_PROPERTY_VALUE)
                                 .build())
                         .build())
                 .setMetadata(thingMetadata)
@@ -84,7 +84,7 @@ public final class FeatureDesiredPropertyDeletedStrategyTest extends AbstractStr
 
         final Metadata expectedMetadata = thingMetadata.toBuilder()
                 .set(JsonPointer.of(String.format("features/%s/desiredProperties", FEATURE_ID))
-                        .append(FEATURE_PROPERTY_POINTER), eventMetadata)
+                        .append(FEATURE_DESIRED_PROPERTY_POINTER), eventMetadata)
                 .build();
         final Thing expected = THING.toBuilder()
                 .setFeatureDesiredProperties(FEATURE_ID, FeatureProperties.newBuilder().build())

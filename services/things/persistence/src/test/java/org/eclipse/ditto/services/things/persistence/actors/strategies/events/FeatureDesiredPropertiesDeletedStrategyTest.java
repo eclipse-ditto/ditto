@@ -45,7 +45,7 @@ public final class FeatureDesiredPropertiesDeletedStrategyTest extends AbstractS
 
         final Thing thingWithFeatureWithDesiredProperties = THING.toBuilder()
                 .setFeature(FEATURE.toBuilder()
-                        .desiredProperties(FEATURE_PROPERTIES)
+                        .desiredProperties(FEATURE_DESIRED_PROPERTIES)
                         .build())
                 .build();
         final Thing thingWithEventApplied = strategy.handle(event, thingWithFeatureWithDesiredProperties,
@@ -73,7 +73,7 @@ public final class FeatureDesiredPropertiesDeletedStrategyTest extends AbstractS
                 .build());
         final Thing thingWithFeatureWithDesiredProperties = THING.toBuilder()
                 .setFeature(FEATURE.toBuilder()
-                        .desiredProperties(FEATURE_PROPERTIES)
+                        .desiredProperties(FEATURE_DESIRED_PROPERTIES)
                         .build())
                 .setMetadata(existingMetadata)
                 .build();

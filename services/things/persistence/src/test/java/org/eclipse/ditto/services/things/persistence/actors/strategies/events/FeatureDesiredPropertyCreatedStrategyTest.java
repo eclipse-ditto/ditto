@@ -34,13 +34,13 @@ public final class FeatureDesiredPropertyCreatedStrategyTest extends AbstractStr
     @Test
     public void appliesEventCorrectly() {
         final FeatureDesiredPropertyCreatedStrategy strategy = new FeatureDesiredPropertyCreatedStrategy();
-        final FeatureDesiredPropertyCreated event = FeatureDesiredPropertyCreated.of(THING_ID, FEATURE_ID, FEATURE_PROPERTY_POINTER,
-                FEATURE_PROPERTY_VALUE, REVISION, null, DittoHeaders.empty(), null);
+        final FeatureDesiredPropertyCreated event = FeatureDesiredPropertyCreated.of(THING_ID, FEATURE_ID, FEATURE_DESIRED_PROPERTY_POINTER,
+                FEATURE_DESIRED_PROPERTY_VALUE, REVISION, null, DittoHeaders.empty(), null);
 
         final Thing thingWithEventApplied = strategy.handle(event, THING, NEXT_REVISION);
 
         final Thing expected = THING.toBuilder()
-                .setFeatureDesiredProperty(FEATURE_ID, FEATURE_PROPERTY_POINTER, FEATURE_PROPERTY_VALUE)
+                .setFeatureDesiredProperty(FEATURE_ID, FEATURE_DESIRED_PROPERTY_POINTER, FEATURE_DESIRED_PROPERTY_VALUE)
                 .setRevision(NEXT_REVISION)
                 .build();
 
