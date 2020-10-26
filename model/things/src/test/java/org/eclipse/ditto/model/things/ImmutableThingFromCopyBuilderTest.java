@@ -397,7 +397,7 @@ public final class ImmutableThingFromCopyBuilderTest {
     }
 
     @Test(expected = NullPointerException.class)
-    public void tryToDesiredRemoveFeaturePropertyForNullFeatureId() {
+    public void tryToRemoveFeatureDesiredPropertyForNullFeatureId() {
         underTestV2.removeFeatureDesiredProperty(null, PROPERTY_PATH);
     }
 

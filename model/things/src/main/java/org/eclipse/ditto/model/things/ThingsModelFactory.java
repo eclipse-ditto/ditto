@@ -394,8 +394,10 @@ public final class ThingsModelFactory {
      * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      * @since 1.4.0
      */
-    public static Feature newFeature(final String featureId, @Nullable final FeatureDefinition featureDefinition,
-            @Nullable final FeatureProperties featureProperties, @Nullable FeatureProperties desiredFeatureProperties) {
+    public static Feature newFeature(final CharSequence featureId,
+            @Nullable final FeatureDefinition featureDefinition,
+            @Nullable final FeatureProperties featureProperties,
+            @Nullable FeatureProperties desiredFeatureProperties) {
 
         return ImmutableFeature.of(featureId, featureDefinition, featureProperties, desiredFeatureProperties);
     }

@@ -322,8 +322,10 @@ public interface ThingBuilder {
          * @throws NullPointerException if {@code featureId} is {@code null}.
          * @since 1.4.0
          */
-        FromScratch setFeature(String featureId, FeatureDefinition featureDefinition,
-                FeatureProperties featureProperties, FeatureProperties featureDesiredProperties);
+        FromScratch setFeature(CharSequence featureId,
+                @Nullable FeatureDefinition featureDefinition,
+                @Nullable FeatureProperties featureProperties,
+                @Nullable FeatureProperties featureDesiredProperties);
 
         /**
          * Sets a Feature with the given ID and properties to this builder. A previously set Feature with the
@@ -416,7 +418,7 @@ public interface ThingBuilder {
          * @throws NullPointerException if any argument is {@code null}.
          * @since 1.4.0
          */
-        FromScratch setFeatureDesiredProperty(String featureId, JsonPointer desiredPropertyPath,
+        FromScratch setFeatureDesiredProperty(CharSequence featureId, JsonPointer desiredPropertyPath,
                 JsonValue desiredPropertyValue);
 
         /**
@@ -428,7 +430,7 @@ public interface ThingBuilder {
          * @throws NullPointerException if any argument is {@code null}.
          * @since 1.4.0
          */
-        FromScratch removeFeatureDesiredProperty(String featureId, JsonPointer desiredPropertyPath);
+        FromScratch removeFeatureDesiredProperty(CharSequence featureId, JsonPointer desiredPropertyPath);
 
         /**
          * Sets the given desired properties to the Feature with the given ID on this builder.
@@ -439,7 +441,7 @@ public interface ThingBuilder {
          * @throws NullPointerException if any argument is {@code null}.
          * @since 1.4.0
          */
-        FromScratch setFeatureDesiredProperties(String featureId, FeatureProperties desiredFeatureProperties);
+        FromScratch setFeatureDesiredProperties(CharSequence featureId, FeatureProperties desiredFeatureProperties);
 
         /**
          * Removes all desired properties from the Feature with the given ID on this builder.
@@ -449,7 +451,7 @@ public interface ThingBuilder {
          * @throws NullPointerException if {@code featureId} is {@code null}.
          * @since 1.4.0
          */
-        FromScratch removeFeatureDesiredProperties(String featureId);
+        FromScratch removeFeatureDesiredProperties(CharSequence featureId);
 
         /**
          * Sets the features to this builder. The features are parsed from the given JSON object representation of
@@ -1052,7 +1054,7 @@ public interface ThingBuilder {
         /**
          * Sets the given Feature to this builder. A previously set Feature with the same ID is replaced.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param feature the Feature to be set.
          * @return this builder to allow method chaining.
@@ -1074,7 +1076,7 @@ public interface ThingBuilder {
         /**
          * Sets a Feature with the given ID to this builder. A previously set Feature with the same ID is replaced.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param featureId the ID of the Feature to be set.
          * @return this builder to allow method chaining.
@@ -1096,7 +1098,7 @@ public interface ThingBuilder {
         /**
          * Removes the Feature with the given ID from this builder.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param featureId the ID of the Feature to be removed.
          * @return this builder to allow method chaining.
@@ -1121,7 +1123,7 @@ public interface ThingBuilder {
          * Sets a Feature with the given ID and properties to this builder. A previously set Feature with the
          * same ID is replaced.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param featureId the ID of the Feature to be set.
          * @param featureProperties the properties of the Feature to be set.
@@ -1159,8 +1161,10 @@ public interface ThingBuilder {
          * @throws NullPointerException if {@code featureId} is {@code null}.
          * @since 1.4.0
          */
-        default FromCopy setFeature(final String featureId, final FeatureDefinition featureDefinition,
-                final FeatureProperties featureProperties, FeatureProperties featureDesiredProperties) {
+        default FromCopy setFeature(final CharSequence featureId,
+                final FeatureDefinition featureDefinition,
+                final FeatureProperties featureProperties,
+                FeatureProperties featureDesiredProperties) {
 
             return setFeature(existingFeatures -> true, featureId, featureDefinition, featureProperties,
                     featureDesiredProperties);
@@ -1170,7 +1174,7 @@ public interface ThingBuilder {
          * Sets a Feature with the given ID and properties to this builder. A previously set Feature with the
          * same ID is replaced.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param featureId the ID of the Feature to be set.
          * @param featureDefinition the definition of the Feature to be set.
@@ -1187,7 +1191,7 @@ public interface ThingBuilder {
          * Sets a Feature with the given ID and properties to this builder. A previously set Feature with the
          * same ID is replaced.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param featureId the ID of the Feature to be set.
          * @param featureDefinition the definition of the Feature to be set.
@@ -1198,7 +1202,7 @@ public interface ThingBuilder {
          * @since 1.4.0
          */
         FromCopy setFeature(Predicate<Features> existingFeaturesPredicate,
-                String featureId,
+                CharSequence featureId,
                 FeatureDefinition featureDefinition,
                 FeatureProperties featureProperties,
                 FeatureProperties featureDesiredProperties);
@@ -1255,7 +1259,7 @@ public interface ThingBuilder {
         /**
          * Sets the given property to the Feature with the given ID on this builder.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param featureId the ID of the Feature.
          * @param propertyPath the hierarchical path within the Feature to the property to be set.
@@ -1281,7 +1285,7 @@ public interface ThingBuilder {
         /**
          * Removes the given property from the Feature with the given ID on this builder.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param featureId the ID of the Feature.
          * @param propertyPath the hierarchical path to within the Feature to the property to be removed.
@@ -1306,7 +1310,7 @@ public interface ThingBuilder {
         /**
          * Sets the given properties to the Feature with the given ID on this builder.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param featureId the ID of the Feature.
          * @param featureProperties the properties to be set.
@@ -1330,7 +1334,7 @@ public interface ThingBuilder {
         /**
          * Removes all properties from the Feature with the given ID on this builder.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param featureId the ID of the Feature.
          * @return this builder to allow method chaining.
@@ -1348,7 +1352,7 @@ public interface ThingBuilder {
          * @throws NullPointerException if any argument is {@code null}.
          * @since 1.4.0
          */
-        default FromCopy setFeatureDesiredProperty(final String featureId, final JsonPointer desiredPropertyPath,
+        default FromCopy setFeatureDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath,
                 final JsonValue desiredPropertyValue) {
 
             return setFeatureDesiredProperty(existingFeatures -> true, featureId, desiredPropertyPath,
@@ -1358,7 +1362,7 @@ public interface ThingBuilder {
         /**
          * Sets the given desired property to the Feature with the given ID on this builder.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param featureId the ID of the Feature.
          * @param desiredPropertyPath the hierarchical path within the Feature to the desired property to be set.
@@ -1367,7 +1371,7 @@ public interface ThingBuilder {
          * @throws NullPointerException if any argument is {@code null}.
          * @since 1.4.0
          */
-        FromCopy setFeatureDesiredProperty(Predicate<Features> existingFeaturesPredicate, String featureId,
+        FromCopy setFeatureDesiredProperty(Predicate<Features> existingFeaturesPredicate, CharSequence featureId,
                 JsonPointer desiredPropertyPath, JsonValue desiredPropertyValue);
 
         /**
@@ -1379,14 +1383,14 @@ public interface ThingBuilder {
          * @throws NullPointerException if any argument is {@code null}.
          * @since 1.4.0
          */
-        default FromCopy removeFeatureDesiredProperty(final String featureId, final JsonPointer desiredPropertyPath) {
+        default FromCopy removeFeatureDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath) {
             return removeFeatureDesiredProperty(existingFeatures -> true, featureId, desiredPropertyPath);
         }
 
         /**
          * Removes the given desired property from the Feature with the given ID on this builder.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param featureId the ID of the Feature.
          * @param desiredPropertyPath the hierarchical path to within the Feature to the desired property to be removed.
@@ -1394,7 +1398,7 @@ public interface ThingBuilder {
          * @throws NullPointerException if any argument is {@code null}.
          * @since 1.4.0
          */
-        FromCopy removeFeatureDesiredProperty(Predicate<Features> existingFeaturesPredicate, String featureId,
+        FromCopy removeFeatureDesiredProperty(Predicate<Features> existingFeaturesPredicate, CharSequence featureId,
                 JsonPointer desiredPropertyPath);
 
         /**
@@ -1406,15 +1410,16 @@ public interface ThingBuilder {
          * @throws NullPointerException if any argument is {@code null}.
          * @since 1.4.0
          */
-        default FromCopy setFeatureDesiredProperties(final String featureId,
+        default FromCopy setFeatureDesiredProperties(final CharSequence featureId,
                 final FeatureProperties desiredFeatureProperties) {
+
             return setFeatureDesiredProperties(features -> true, featureId, desiredFeatureProperties);
         }
 
         /**
          * Sets the given desired properties to the Feature with the given ID on this builder.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param featureId the ID of the Feature.
          * @param desiredFeatureProperties the desired properties to be set.
@@ -1422,7 +1427,7 @@ public interface ThingBuilder {
          * @throws NullPointerException if any argument is {@code null}.
          * @since 1.4.0
          */
-        FromCopy setFeatureDesiredProperties(Predicate<Features> existingFeaturesPredicate, String featureId,
+        FromCopy setFeatureDesiredProperties(Predicate<Features> existingFeaturesPredicate, CharSequence featureId,
                 FeatureProperties desiredFeatureProperties);
 
         /**
@@ -1433,21 +1438,21 @@ public interface ThingBuilder {
          * @throws NullPointerException if {@code featureId} is {@code null}.
          * @since 1.4.0
          */
-        default FromCopy removeFeatureDesiredProperties(final String featureId) {
+        default FromCopy removeFeatureDesiredProperties(final CharSequence featureId) {
             return removeFeatureDesiredProperties(existingFeatures -> true, featureId);
         }
 
         /**
          * Removes all desired properties from the Feature with the given ID on this builder.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param featureId the ID of the Feature.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if any argument is {@code null}.
          * @since 1.4.0
          */
-        FromCopy removeFeatureDesiredProperties(Predicate<Features> existingFeaturesPredicate, String featureId);
+        FromCopy removeFeatureDesiredProperties(Predicate<Features> existingFeaturesPredicate, CharSequence featureId);
 
         /**
          * Sets the features to this builder. The features are parsed from the given JSON object representation of
@@ -1467,7 +1472,7 @@ public interface ThingBuilder {
          * Sets the features to this builder. The features are parsed from the given JSON object representation of
          * {@link Features}.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param featuresJsonObject JSON object representation of the features to be set.
          * @return this builder to allow method chaining.
@@ -1493,7 +1498,7 @@ public interface ThingBuilder {
         /**
          * Sets the Features of the Thing based on the given JSON object.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param featuresJsonString JSON string providing the Features of the Thing.
          * @return this builder to allow method chaining.
@@ -1517,7 +1522,7 @@ public interface ThingBuilder {
         /**
          * Sets the given Features to this builder.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @param features the Features to be set.
          * @return this builder to allow method chaining.
@@ -1537,7 +1542,7 @@ public interface ThingBuilder {
         /**
          * Removes all features from this builder.
          *
-         * @param existingFeaturesPredicate a predicate to decide whether the given features are set. The predicate
+         * @param existingFeaturesPredicate a predicate to decide whether the given features exist. The predicate
          * receives the currently set features.
          * @return this builder to allow method chaining.
          * @throws NullPointerException if {@code existingFeaturesPredicate} is {@code null}.

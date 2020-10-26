@@ -415,7 +415,7 @@ final class ImmutableThing implements Thing {
     }
 
     @Override
-    public Thing setFeatureDesiredProperties(final String featureId, final FeatureProperties desiredProperties) {
+    public Thing setFeatureDesiredProperties(final CharSequence featureId, final FeatureProperties desiredProperties) {
         if (null == features || features.isNull()) {
             return setFeature(ThingsModelFactory.newFeature(featureId, null, null,
                     desiredProperties));
@@ -424,12 +424,12 @@ final class ImmutableThing implements Thing {
     }
 
     @Override
-    public Thing removeFeatureDesiredProperties(final String featureId) {
+    public Thing removeFeatureDesiredProperties(final CharSequence featureId) {
         return (null != features) ? setFeatures(features.removeDesiredProperties(featureId)) : this;
     }
 
     @Override
-    public Thing setFeatureDesiredProperty(final String featureId, final JsonPointer desiredPropertyPath,
+    public Thing setFeatureDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath,
             final JsonValue desiredPropertyValue) {
 
         final Features newFeatures;
@@ -446,7 +446,7 @@ final class ImmutableThing implements Thing {
     }
 
     @Override
-    public Thing removeFeatureDesiredProperty(final String featureId, final JsonPointer desiredPropertyPath) {
+    public Thing removeFeatureDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath) {
         return (null != features) ? setFeatures(features.removeDesiredProperty(featureId, desiredPropertyPath)) : this;
     }
 

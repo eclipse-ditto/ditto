@@ -494,7 +494,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
 
     @Override
     public FromCopy setFeature(final Predicate<Features> existingFeaturesPredicate,
-            final String featureId,
+            final CharSequence featureId,
             final FeatureDefinition featureDefinition,
             final FeatureProperties featureProperties,
             final FeatureProperties featureDesiredProperties) {
@@ -506,7 +506,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
-    public FromCopy setFeature(final String featureId, @Nullable final FeatureDefinition featureDefinition,
+    public FromCopy setFeature(final CharSequence featureId, @Nullable final FeatureDefinition featureDefinition,
             @Nullable final FeatureProperties featureProperties, @Nullable final FeatureProperties featureDesiredProperties) {
 
         fromScratchBuilder.setFeature(featureId, featureDefinition, featureProperties, featureDesiredProperties);
@@ -610,7 +610,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
-    public FromCopy setFeatureDesiredProperty(final String featureId, final JsonPointer desiredPropertyPath,
+    public FromCopy setFeatureDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath,
             final JsonValue desiredPropertyValue) {
 
         fromScratchBuilder.setFeatureDesiredProperty(featureId, desiredPropertyPath, desiredPropertyValue);
@@ -619,7 +619,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
 
     @Override
     public FromCopy setFeatureDesiredProperty(final Predicate<Features> existingFeaturesPredicate,
-            final String featureId,
+            final CharSequence featureId,
             final JsonPointer desiredPropertyPath,
             final JsonValue desiredPropertyValue) {
 
@@ -630,13 +630,13 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
-    public FromCopy removeFeatureDesiredProperty(final String featureId, final JsonPointer desiredPropertyPath) {
+    public FromCopy removeFeatureDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath) {
         fromScratchBuilder.removeFeatureDesiredProperty(featureId, desiredPropertyPath);
         return this;
     }
 
     @Override
-    public FromCopy removeFeatureDesiredProperty(final Predicate<Features> existingFeaturesPredicate, final String featureId,
+    public FromCopy removeFeatureDesiredProperty(final Predicate<Features> existingFeaturesPredicate, final CharSequence featureId,
             final JsonPointer desiredPropertyPath) {
 
         if (testFeaturesPredicate(existingFeaturesPredicate)) {
@@ -646,7 +646,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
-    public FromCopy setFeatureDesiredProperties(final Predicate<Features> existingFeaturesPredicate, final String featureId,
+    public FromCopy setFeatureDesiredProperties(final Predicate<Features> existingFeaturesPredicate, final CharSequence featureId,
             final FeatureProperties desiredProperties) {
 
         if (testFeaturesPredicate(existingFeaturesPredicate)) {
@@ -657,7 +657,7 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
 
     @Override
     public FromCopy removeFeatureDesiredProperties(final Predicate<Features> existingFeaturesPredicate,
-            final String featureId) {
+            final CharSequence featureId) {
 
         if (testFeaturesPredicate(existingFeaturesPredicate)) {
             fromScratchBuilder.removeFeatureDesiredProperties(featureId);

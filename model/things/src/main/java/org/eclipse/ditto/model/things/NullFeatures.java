@@ -49,7 +49,7 @@ final class NullFeatures implements Features {
         return new NullFeatures();
     }
 
-    private static void checkFeatureId(final String featureId) {
+    private static void checkFeatureId(final CharSequence featureId) {
         ConditionChecker.checkNotNull(featureId, "Feature ID");
     }
 
@@ -123,35 +123,36 @@ final class NullFeatures implements Features {
     }
 
     @Override
-    public Features setDesiredProperties(final String featureId, final FeatureProperties desiredProperties) {
+    public Features setDesiredProperties(final CharSequence featureId, final FeatureProperties desiredProperties) {
         checkFeatureId(featureId);
-        ConditionChecker.checkNotNull(desiredProperties, "desired properties to be set");
+        ConditionChecker.checkNotNull(desiredProperties, "desiredProperties");
 
         return this;
     }
 
     @Override
     @SuppressWarnings("squid:S4144")
-    public Features removeDesiredProperties(final String featureId) {
+    public Features removeDesiredProperties(final CharSequence featureId) {
         checkFeatureId(featureId);
 
         return this;
     }
 
     @Override
-    public Features setDesiredProperty(final String featureId, final JsonPointer desiredPropertyPath,
+    public Features setDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath,
             final JsonValue desiredPropertyValue) {
+
         checkFeatureId(featureId);
-        ConditionChecker.checkNotNull(desiredPropertyPath, "JSON pointer to the desired property to be set");
-        ConditionChecker.checkNotNull(desiredPropertyPath, "value of the desired property to be set");
+        ConditionChecker.checkNotNull(desiredPropertyPath, "desiredPropertyPath");
+        ConditionChecker.checkNotNull(desiredPropertyValue, "desiredPropertyValue");
 
         return this;
     }
 
     @Override
-    public Features removeDesiredProperty(final String featureId, final JsonPointer desiredPropertyPath) {
+    public Features removeDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath) {
         checkFeatureId(featureId);
-        ConditionChecker.checkNotNull(desiredPropertyPath, "JSON pointer to the desired property to be removed");
+        ConditionChecker.checkNotNull(desiredPropertyPath, "desiredPropertyPath");
 
         return this;
     }

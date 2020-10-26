@@ -127,6 +127,11 @@ final class ImmutableFeatures implements Features {
         return features.get(checkFeatureId(featureId));
     }
 
+    @Nullable
+    private Feature getFeatureOrNull(final CharSequence featureId) {
+        return features.get(checkFeatureId(featureId.toString()));
+    }
+
     private Features createNewFeaturesWithNewFeature(final Feature newFeature) {
         final Map<String, Feature> featuresCopy = copyFeatures();
         featuresCopy.put(newFeature.getId(), newFeature);
@@ -217,8 +222,8 @@ final class ImmutableFeatures implements Features {
     }
 
     @Override
-    public Features setDesiredProperties(final String featureId, final FeatureProperties desiredProperties) {
-        checkNotNull(desiredProperties, "desired properties to be set");
+    public Features setDesiredProperties(final CharSequence featureId, final FeatureProperties desiredProperties) {
+        checkNotNull(desiredProperties, "desiredProperties");
 
         Feature feature = getFeatureOrNull(featureId);
         if (null != feature) {
@@ -230,7 +235,7 @@ final class ImmutableFeatures implements Features {
     }
 
     @Override
-    public Features removeDesiredProperties(final String featureId) {
+    public Features removeDesiredProperties(final CharSequence featureId) {
         final Feature feature = getFeatureOrNull(featureId);
         if (null != feature) {
             return setFeature(feature.removeDesiredProperties());
@@ -240,22 +245,23 @@ final class ImmutableFeatures implements Features {
     }
 
     @Override
-    public Features setDesiredProperty(final String featureId, final JsonPointer desiredPropertyPath,
+    public Features setDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath,
             final JsonValue desiredPropertyValue) {
+
         Feature feature = getFeatureOrNull(featureId);
         if (null != feature) {
             feature = feature.setDesiredProperty(desiredPropertyPath, desiredPropertyValue);
         } else {
             feature = ThingsModelFactory.newFeature(featureId, null, null,
                     ThingsModelFactory.newFeaturePropertiesBuilder()
-                    .set(desiredPropertyPath, desiredPropertyValue)
-                    .build());
+                            .set(desiredPropertyPath, desiredPropertyValue)
+                            .build());
         }
         return setFeature(feature);
     }
 
     @Override
-    public Features removeDesiredProperty(final String featureId, final JsonPointer desiredPropertyPath) {
+    public Features removeDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath) {
         final Feature feature = getFeatureOrNull(featureId);
         if (null != feature) {
             return setFeature(feature.removeDesiredProperty(desiredPropertyPath));

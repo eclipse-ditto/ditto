@@ -182,7 +182,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
-    public FromScratch setFeature(final String featureId, @Nullable final FeatureDefinition featureDefinition,
+    public FromScratch setFeature(final CharSequence featureId, @Nullable final FeatureDefinition featureDefinition,
             @Nullable final FeatureProperties featureProperties, @Nullable final FeatureProperties featureDesiredProperties) {
 
         return setFeature(ThingsModelFactory.newFeature(featureId, featureDefinition, featureProperties,
@@ -277,10 +277,10 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
-    public FromScratch setFeatureDesiredProperty(final String featureId, final JsonPointer desiredPropertyPath,
+    public FromScratch setFeatureDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath,
             final JsonValue desiredPropertyValue) {
 
-        checkNotNull(desiredPropertyPath, "desired property value to be set");
+        checkNotNull(desiredPropertyPath, "desiredPropertyPath");
 
         final Features existingFeatures = getFeatures();
         if (null != existingFeatures) {
@@ -294,9 +294,9 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
-    public FromScratch removeFeatureDesiredProperty(final String featureId, final JsonPointer desiredPropertyPath) {
-        checkNotNull(featureId, "identifier of the Feature from which the desired property to be removed");
-        checkNotNull(desiredPropertyPath, "path to the desired property to be removed");
+    public FromScratch removeFeatureDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath) {
+        checkNotNull(featureId, "featureId");
+        checkNotNull(desiredPropertyPath, "desiredPropertyPath");
 
         if (null != featuresBuilder) {
             final Features existingFeatures = getFeatures();
@@ -308,9 +308,9 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
-    public FromScratch setFeatureDesiredProperties(final String featureId, final FeatureProperties desiredPropertiesPath) {
-        checkNotNull(featureId, "ID of the Feature to set the desired properties for");
-        checkNotNull(desiredPropertiesPath, "desired FeatureProperties to be set");
+    public FromScratch setFeatureDesiredProperties(final CharSequence featureId, final FeatureProperties desiredPropertiesPath) {
+        checkNotNull(featureId, "featureId");
+        checkNotNull(desiredPropertiesPath, "desiredPropertiesPath");
 
         invokeOnFeaturesBuilder(fb -> fb.set(fb.get(featureId)
                 .map(feature -> feature.setDesiredProperties(desiredPropertiesPath))
@@ -320,8 +320,8 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
-    public FromScratch removeFeatureDesiredProperties(final String featureId) {
-        checkNotNull(featureId, "ID of the Feature to set the properties for");
+    public FromScratch removeFeatureDesiredProperties(final CharSequence featureId) {
+        checkNotNull(featureId, "featureId");
         if (null != featuresBuilder) {
             featuresBuilder.get(featureId)
                     .map(Feature::removeDesiredProperties)

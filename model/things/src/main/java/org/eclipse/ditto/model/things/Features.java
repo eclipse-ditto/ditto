@@ -152,7 +152,7 @@ public interface Features extends Iterable<Feature>, Jsonifiable.WithFieldSelect
      * @throws NullPointerException if any argument is {@code null}.
      * @since 1.4.0
      */
-    Features setDesiredProperties(String featureId, FeatureProperties desiredProperties);
+    Features setDesiredProperties(CharSequence featureId, FeatureProperties desiredProperties);
 
     /**
      * Removes all desired properties of the Feature with the given ID from a copy of this Features.
@@ -162,7 +162,7 @@ public interface Features extends Iterable<Feature>, Jsonifiable.WithFieldSelect
      * @throws NullPointerException if {@code featureId} is {@code null}.
      * @since 1.4.0
      */
-    Features removeDesiredProperties(String featureId);
+    Features removeDesiredProperties(CharSequence featureId);
 
     /**
      * Sets the value of the desired property which is referred by the given JSON Pointer of the Feature with the given
@@ -175,7 +175,7 @@ public interface Features extends Iterable<Feature>, Jsonifiable.WithFieldSelect
      * @throws NullPointerException if any argument is {@code null}.
      * @since 1.4.0
      */
-    Features setDesiredProperty(String featureId, JsonPointer desiredPropertyPath, JsonValue desiredPropertyValue);
+    Features setDesiredProperty(CharSequence featureId, JsonPointer desiredPropertyPath, JsonValue desiredPropertyValue);
 
     /**
      * Removes the desired property which is referred by the given JSON Pointer from the Feature with the given ID on
@@ -187,7 +187,7 @@ public interface Features extends Iterable<Feature>, Jsonifiable.WithFieldSelect
      * @throws NullPointerException if any argument is {@code null}.
      * @since 1.4.0
      */
-    Features removeDesiredProperty(String featureId, JsonPointer desiredPropertyPath);
+    Features removeDesiredProperty(CharSequence featureId, JsonPointer desiredPropertyPath);
 
     /**
      * Indicates whether this Features are equivalent to semantic {@code null}.

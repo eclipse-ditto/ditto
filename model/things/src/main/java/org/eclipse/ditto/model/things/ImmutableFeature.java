@@ -107,8 +107,10 @@ final class ImmutableFeature implements Feature {
      * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      * @since 1.4.0
      */
-    public static ImmutableFeature of(final String featureId, @Nullable final FeatureDefinition definition,
-            @Nullable final FeatureProperties properties, @Nullable final FeatureProperties desiredProperties) {
+    public static ImmutableFeature of(final CharSequence featureId,
+            @Nullable final FeatureDefinition definition,
+            @Nullable final FeatureProperties properties,
+            @Nullable final FeatureProperties desiredProperties) {
 
         ConditionChecker.checkNotNull(featureId, "ID of the Feature");
 
@@ -118,7 +120,7 @@ final class ImmutableFeature implements Feature {
                     .build();
         }
 
-        return new ImmutableFeature(featureId, definition, properties, desiredProperties);
+        return new ImmutableFeature(featureId.toString(), definition, properties, desiredProperties);
     }
 
     @Override
