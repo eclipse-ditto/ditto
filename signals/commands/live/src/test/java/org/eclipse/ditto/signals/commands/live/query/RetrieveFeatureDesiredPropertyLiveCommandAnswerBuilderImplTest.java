@@ -89,7 +89,7 @@ public final class RetrieveFeatureDesiredPropertyLiveCommandAnswerBuilderImplTes
                 .hasNoEvent()
                 .hasThingQueryCommandResponse()
                 .hasType(RetrieveFeatureDesiredPropertyResponse.TYPE)
-                .hasDittoHeaders(DittoHeaders.empty())
+                .hasDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .hasResourcePath(JsonPointer.of(
                         "features/" + TestConstants.Feature.FLUX_CAPACITOR_ID + "/desiredProperties/target_year_1"));
     }
@@ -106,7 +106,7 @@ public final class RetrieveFeatureDesiredPropertyLiveCommandAnswerBuilderImplTes
                 .hasNoEvent()
                 .hasThingErrorResponse()
                 .withType(ThingErrorResponse.TYPE)
-                .withDittoHeaders(DittoHeaders.empty())
+                .withDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .withStatus(HttpStatusCode.NOT_FOUND)
                 .withDittoRuntimeExceptionOfType(FeatureDesiredPropertyNotAccessibleException.class);
     }

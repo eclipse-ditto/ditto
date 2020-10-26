@@ -87,7 +87,7 @@ public final class RetrieveFeatureDesiredPropertiesLiveCommandAnswerBuilderImplT
                 .hasNoEvent()
                 .hasThingQueryCommandResponse()
                 .hasType(RetrieveFeatureDesiredPropertiesResponse.TYPE)
-                .hasDittoHeaders(DittoHeaders.empty())
+                .hasDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .hasResourcePath(JsonPointer.of("features/" + TestConstants.Feature.FLUX_CAPACITOR_ID + "/desiredProperties"));
     }
 
@@ -103,7 +103,7 @@ public final class RetrieveFeatureDesiredPropertiesLiveCommandAnswerBuilderImplT
                 .hasNoEvent()
                 .hasThingErrorResponse()
                 .withType(ThingErrorResponse.TYPE)
-                .withDittoHeaders(DittoHeaders.empty())
+                .withDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .withStatus(HttpStatusCode.NOT_FOUND)
                 .withDittoRuntimeExceptionOfType(FeatureDesiredPropertiesNotAccessibleException.class);
     }

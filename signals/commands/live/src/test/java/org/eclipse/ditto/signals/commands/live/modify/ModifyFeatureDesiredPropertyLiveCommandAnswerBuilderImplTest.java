@@ -104,7 +104,7 @@ public final class ModifyFeatureDesiredPropertyLiveCommandAnswerBuilderImplTest 
                 .hasNoEvent()
                 .hasThingErrorResponse()
                 .withType(ThingErrorResponse.TYPE)
-                .withDittoHeaders(DittoHeaders.empty())
+                .withDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .withStatus(HttpStatusCode.NOT_FOUND)
                 .withDittoRuntimeExceptionOfType(FeatureDesiredPropertyNotAccessibleException.class);
     }
@@ -122,7 +122,7 @@ public final class ModifyFeatureDesiredPropertyLiveCommandAnswerBuilderImplTest 
                 .hasNoEvent()
                 .hasThingErrorResponse()
                 .withType(ThingErrorResponse.TYPE)
-                .withDittoHeaders(DittoHeaders.empty())
+                .withDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .withStatus(HttpStatusCode.FORBIDDEN)
                 .withDittoRuntimeExceptionOfType(FeatureDesiredPropertyNotModifiableException.class);
     }
