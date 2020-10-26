@@ -102,7 +102,7 @@ public class ImmutableExpressionResolverTest {
         // verify different whitespace
         assertThat(underTest.resolve("{{topic:entityId }}"))
                 .contains(THING_NAME);
-        assertThat(underTest.resolve("{{topic:entityId}}"))
+        assertThat(underTest.resolve("{{topic:entityName}}"))
                 .contains(THING_NAME);
         assertThat(underTest.resolve("{{        topic:entityId}}"))
                 .contains(THING_NAME);
