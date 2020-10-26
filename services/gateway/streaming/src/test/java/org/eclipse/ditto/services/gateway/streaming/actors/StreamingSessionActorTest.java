@@ -19,6 +19,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -33,15 +34,19 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.common.BinaryValidationResult;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.jwt.JsonWebToken;
+import org.eclipse.ditto.model.jwt.JwtInvalidException;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.IncomingSignal;
+import org.eclipse.ditto.services.gateway.streaming.Jwt;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
@@ -51,12 +56,13 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.mockito.Mockito;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -94,6 +100,7 @@ public final class StreamingSessionActorTest {
     private final SourceQueueWithComplete<SessionedJsonifiable> sourceQueue;
     private final TestSubscriber.Probe<SessionedJsonifiable> sinkProbe;
     private final KillSwitch killSwitch;
+    private final JwtValidator mockValidator = Mockito.mock(JwtValidator.class);
 
     public StreamingSessionActorTest() {
         actorSystem = ActorSystem.create();
@@ -212,12 +219,40 @@ public final class StreamingSessionActorTest {
         }};
     }
 
+    @Test
+    public void invalidJwtClosesStream() {
+        Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
+                .thenReturn(CompletableFuture.completedFuture(
+                        BinaryValidationResult.invalid(JwtInvalidException.newBuilder().build())));
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = watch(actorSystem.actorOf(getProps("ack")));
+
+            final Jwt jwt = Jwt.newInstance(getTokenString(), testName.getMethodName());
+
+            underTest.tell(jwt, getRef());
+
+            assertThat(sinkProbe.expectSubscriptionAndError())
+                    .isInstanceOf(GatewayWebsocketSessionClosedException.class);
+        }};
+    }
+
+    private static String getTokenString() {
+        final String header = "{\"header\":\"foo\"}";
+        final String payload = "{\"payload\":\"bar\"}";
+        final String signature = "{\"signature\":\"baz\"}";
+        return base64(header) + "." + base64(payload) + "." + base64(signature);
+    }
+
+    private static String base64(final String value) {
+        return new String(Base64.getEncoder().encode(value.getBytes()));
+    }
+
     private Props getProps(final String... declaredAcks) {
         final Connect connect = getConnect(acks(declaredAcks));
         final AcknowledgementConfig acknowledgementConfig = DefaultAcknowledgementConfig.of(ConfigFactory.empty());
         final HeaderTranslator headerTranslator = HeaderTranslator.empty();
         final Props mockProps = Props.create(Actor.class, () -> new TestActor(new LinkedBlockingDeque<>()));
-        final JwtValidator mockValidator = mock(JwtValidator.class);
         final JwtAuthenticationResultProvider mockProvider = mock(JwtAuthenticationResultProvider.class);
         return StreamingSessionActor.props(connect, mockSub, commandRouterProbe.ref(), acknowledgementConfig,
                 headerTranslator, mockProps, mockValidator, mockProvider);
