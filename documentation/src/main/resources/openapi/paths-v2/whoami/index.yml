@@ -1,0 +1,20 @@
+get:
+  summary: Retrieve information about the current caller
+  description: |-
+    Get information about the current caller, e.g. the auth subjects that are generated for the caller.
+  tags:
+    - Policies
+  responses:
+    '200':
+      description: |-
+        The request successfully returned information about the caller.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/WhoAmI'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'

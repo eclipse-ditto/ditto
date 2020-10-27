@@ -27,6 +27,14 @@ Feature properties are represented as one JSON object.
 
 Each property itself can be either a simple/scalar value or a complex object; allowed is any JSON value.
 
+### Feature desired properties
+
+Desired properties represent the desired state of the properties. They are a tool to represent the desired target state of the properties. The **desiredProperties** related to Features are managed in form of a **list of properties**. These desired properties can be categorized,
+e.g. to manage the status, the configuration or any fault information.
+Feature desired properties are represented as one JSON object.
+
+Each desired property itself can be either a simple/scalar value or a complex object; allowed is any JSON value.
+
 ### Feature definition
 
 Ditto supports specifying a definition for a feature in order to document how a feature's state is structured
@@ -66,6 +74,11 @@ The following snippet shows a Feature with the ID "arbitrary-feature" and a defi
           "house no": 42
         }
       }
+    },
+    "desiredProperties": {
+      "status": {
+        "connected": false
+      }
     }
   }
 }
@@ -73,10 +86,13 @@ The following snippet shows a Feature with the ID "arbitrary-feature" and a defi
 
 ## Model specification
 
-The feature model is the same for API version 1 and 2:
+The feature model differs for API version 1 and 2:
 
+### V1
 {% include docson.html schema="jsonschema/feature.json" %}
 
+### V2
+{% include docson.html schema="jsonschema/feature_v2.json" %}
 
 ## The link to Eclipse Vorto
 
