@@ -337,15 +337,24 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 }
 
                 if (result != null && isMessageCommand) {
-                    // Do only add command response for live commands with a correct response.
-                    return validateLiveResponse(result, (MessageCommand<?, ?>) signal);
+                    // Do only return command response for live commands with a correct response.
+                    validateLiveResponse(result, (MessageCommand<?, ?>) signal);
+                }
+                if (result == null) {
+                    connectionLogger.success(
+                            "No CommandResponse created from HTTP response with status <{0}> and body <{1}>.",
+                            response.status(), body);
+                } else {
+                    connectionLogger.success(
+                            "CommandResponse <{0}> created from HTTP response with Status <{1}> and body <{2}>.",
+                            result, response.status(), body);
                 }
                 return result;
             });
         }
     }
 
-    private CommandResponse<?> validateLiveResponse(final CommandResponse<?> commandResponse,
+    private void validateLiveResponse(final CommandResponse<?> commandResponse,
             final MessageCommand<?, ?> messageCommand) {
 
         final ThingId messageThingId = messageCommand.getEntityId();
@@ -400,7 +409,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             default:
                 handleInvalidResponse("Initial message command type <{}> is unknown.", commandResponse);
         }
-        return commandResponse;
     }
 
     private void handleInvalidResponse(final String message, final CommandResponse<?> commandResponse) {

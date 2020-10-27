@@ -139,8 +139,17 @@ public interface TopicPath {
      * Returns the id part of this {@code TopicPath}.
      *
      * @return the id.
+     * @deprecated Since 1.4.0. Use {@link #getEntityName()} instead.
      */
+    @Deprecated
     String getId();
+
+    /**
+     * Returns the entity name part of this {@code TopicPath}.
+     *
+     * @return the entity name.
+     */
+    String getEntityName();
 
     /**
      * Returns the path of this {@code TopicPath}.
