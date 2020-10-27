@@ -22,7 +22,8 @@
           "y": 2.718,
           "z": 1,
           "unit": "g"
-        }
+        },
+        "desiredProperties": {}
       }
     }
   },
