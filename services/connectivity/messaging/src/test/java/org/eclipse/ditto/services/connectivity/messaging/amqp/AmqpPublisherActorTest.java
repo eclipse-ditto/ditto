@@ -111,7 +111,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
      * @throws Exception should not be thrown
      */
     @Test
-    @Ignore("TODO: fix this")
     public void testMsgPublishedOntoFullQueueShallBeDropped() throws Exception {
 
         new TestKit(actorSystem) {{
@@ -133,6 +132,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             publisherCreated(this, publisherActor);
 
             final int queueSize = connectionConfig.getMaxQueueSize() + connectionConfig.getPublisherParallelism();
+            LOGGER.warn(connectionConfig.toString());
 
             //Act
             final OutboundSignal.MultiMapped multiMapped = newMultiMappedThingDeleted(dittoHeaders, ack, getRef());
@@ -153,7 +153,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                     assertThat(msg).contains("AMQP message dropped")
             );
 
-            verify(messageProducer, times(queueSize)).send(any(JmsMessage.class), any(CompletionListener.class));
+            verify(messageProducer, times(connectionConfig.getPublisherParallelism()))
+                    .send(any(JmsMessage.class), any(CompletionListener.class));
         }};
 
     }
