@@ -37,12 +37,12 @@ final class DittoTrustManager implements X509TrustManager {
 
     private final X509TrustManager delegateWithRevocationCheck;
     @Nullable private final X509TrustManager delegateWithoutRevocationCheck;
-    @Nullable private final String hostnameOrIp;
+    private final String hostnameOrIp;
     private final ConnectionLogger connectionLogger;
 
     private DittoTrustManager(final X509TrustManager delegateWithRevocationCheck,
             @Nullable final X509TrustManager delegateWithoutRevocationCheck,
-            @Nullable final String hostnameOrIp,
+            final String hostnameOrIp,
             final ConnectionLogger connectionLogger) {
         this.delegateWithRevocationCheck = delegateWithRevocationCheck;
         this.delegateWithoutRevocationCheck = delegateWithoutRevocationCheck;
@@ -64,7 +64,7 @@ final class DittoTrustManager implements X509TrustManager {
      */
     static TrustManager[] wrapTrustManagers(final TrustManager[] trustManagerWithRevocationCheck,
             final TrustManager[] trustManagerWithoutRevocationCheck,
-            @Nullable final String hostnameOrIP,
+            final String hostnameOrIP,
             final ConnectionLogger connectionLogger) {
 
         if (trustManagerWithRevocationCheck.length != 1 || trustManagerWithoutRevocationCheck.length != 1) {
@@ -88,20 +88,16 @@ final class DittoTrustManager implements X509TrustManager {
     public void checkServerTrusted(final X509Certificate[] chain, final String authType) throws CertificateException {
 
         // verify certificate chain
-        CertificateException revocationError = null;
         try {
             delegateWithRevocationCheck.checkServerTrusted(chain, authType);
         } catch (final CertificateException e) {
-            revocationError = e;
-        }
-        if (revocationError != null) {
-            // check again without revocation to detect any masked errors
             if (delegateWithoutRevocationCheck != null) {
+                // check again without revocation to detect any masked errors
                 delegateWithoutRevocationCheck.checkServerTrusted(chain, authType);
+                connectionLogger.exception(InfoProviderFactory.empty(), e);
             } else {
-                throw revocationError;
+                throw e;
             }
-            connectionLogger.exception(InfoProviderFactory.empty(), revocationError);
         }
 
         // verify hostname
@@ -112,7 +108,7 @@ final class DittoTrustManager implements X509TrustManager {
         // first certificate is the server certificate (from rfc-5246: "This is a sequence (chain) of certificates. The
         // sender's certificate MUST come first in the list.")
         final X509Certificate serverCertificate = chain[0];
-        if (hostnameOrIp != null && !isServerCertificateInTrustStore(serverCertificate)) {
+        if (!isServerCertificateInTrustStore(serverCertificate)) {
             HOSTNAME_CHECKER.match(hostnameOrIp, serverCertificate);
         }
     }
@@ -126,9 +122,8 @@ final class DittoTrustManager implements X509TrustManager {
         return Arrays.asList(delegateWithRevocationCheck.getAcceptedIssuers()).contains(serverCertificate);
     }
 
-    @Nullable
-    private static String stripIpv6Brackets(@Nullable final String hostnameOrIp) {
-        if (hostnameOrIp != null && IPV6_URI_PATTERN.matcher(hostnameOrIp).matches()) {
+    private static String stripIpv6Brackets(final String hostnameOrIp) {
+        if (IPV6_URI_PATTERN.matcher(hostnameOrIp).matches()) {
             return hostnameOrIp.substring(1, hostnameOrIp.length() - 1);
         } else {
             return hostnameOrIp;

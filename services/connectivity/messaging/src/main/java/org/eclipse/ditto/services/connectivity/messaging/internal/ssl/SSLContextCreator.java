@@ -37,7 +37,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
 
     @Nullable private final TrustManager trustManager;
     private final ExceptionMapper exceptionMapper;
-    @Nullable private final String hostname;
+    private final String hostname;
     private final KeyManagerFactoryFactory keyManagerFactoryFactory;
     @Nullable private final TrustManagerFactoryFactory trustManagerFactoryFactory;
     @Nullable private final String trustedCertificates;
@@ -45,7 +45,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
 
     private SSLContextCreator(@Nullable final String trustedCertificates,
             @Nullable final DittoHeaders dittoHeaders,
-            @Nullable final String hostname,
+            final String hostname,
             final ConnectionLogger connectionLogger) {
         exceptionMapper = new ExceptionMapper(dittoHeaders);
         this.hostname = hostname;
@@ -110,7 +110,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
      */
     public static SSLContextCreator of(@Nullable final String trustedCertificates,
             @Nullable final DittoHeaders dittoHeaders,
-            @Nullable final String hostnameOrIp,
+            final String hostnameOrIp,
             final ConnectionLogger connectionLogger) {
         return new SSLContextCreator(trustedCertificates, dittoHeaders, hostnameOrIp, connectionLogger);
     }

@@ -64,6 +64,8 @@ public abstract class AbstractSSLContextTest {
                     .clientCertificate(Certificates.SERVER_WITH_ALT_NAMES_CRT)
                     .build();
 
+    private static final String HOSTNAME = "example.com";
+
     abstract SSLContext createSSLContext(final String trustedCertificates, final String hostname,
             final Credentials credentials) throws Exception;
 
@@ -75,7 +77,7 @@ public abstract class AbstractSSLContextTest {
     public void distrustServerSignedByUntrustedCA() {
         assertThatExceptionOfType(SSLHandshakeException.class).isThrownBy(() -> {
             try (final ServerSocket serverSocket = startServer(false)) {
-                try (final Socket underTest = createSSLContext(null, null, null)
+                try (final Socket underTest = createSSLContext(null, HOSTNAME, null)
                         .getSocketFactory()
                         .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
@@ -149,9 +151,8 @@ public abstract class AbstractSSLContextTest {
 
     @Test
     public void trustSignedServerDNSName() throws Exception {
-        final String signedAltName = "example.com";
         try (final ServerSocket serverSocket = startServer(false, SERVER_WITH_ALT_NAMES);
-                final Socket underTest = createSSLContext(Certificates.CA_CRT, signedAltName, null)
+                final Socket underTest = createSSLContext(Certificates.CA_CRT, HOSTNAME, null)
                         .getSocketFactory()
                         .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
@@ -200,8 +201,8 @@ public abstract class AbstractSSLContextTest {
 
     @Test
     public void distrustSelfSignedClient() throws Exception {
-        try (final ServerSocket serverSocket = startServer(true);
-                final Socket underTest = createSSLContext(Certificates.CA_CRT, null, SELF_SIGNED_CLIENT_CREDENTIALS)
+        try (final ServerSocket serverSocket = startServer(true, SERVER_WITH_ALT_NAMES);
+                final Socket underTest = createSSLContext(Certificates.CA_CRT, HOSTNAME, SELF_SIGNED_CLIENT_CREDENTIALS)
                         .getSocketFactory()
                         .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
@@ -211,8 +212,8 @@ public abstract class AbstractSSLContextTest {
 
     @Test
     public void trustSignedClient() throws Exception {
-        try (final ServerSocket serverSocket = startServer(true);
-                final Socket underTest = createSSLContext(Certificates.CA_CRT, null, CLIENT_CREDENTIALS)
+        try (final ServerSocket serverSocket = startServer(true, SERVER_WITH_ALT_NAMES);
+                final Socket underTest = createSSLContext(Certificates.CA_CRT, HOSTNAME, CLIENT_CREDENTIALS)
                         .getSocketFactory()
                         .createSocket(serverSocket.getInetAddress(), serverSocket.getLocalPort())) {
 
@@ -241,7 +242,7 @@ public abstract class AbstractSSLContextTest {
             throws Exception {
 
         final SSLServerSocket serverSocket =
-                (SSLServerSocket) SSLContextCreator.of(Certificates.CA_CRT, null, null, connectionLoggerMock)
+                (SSLServerSocket) SSLContextCreator.of(Certificates.CA_CRT, null, HOSTNAME, connectionLoggerMock)
                         .clientCertificate(credentials)
                         .getServerSocketFactory()
                         .createServerSocket(0);
