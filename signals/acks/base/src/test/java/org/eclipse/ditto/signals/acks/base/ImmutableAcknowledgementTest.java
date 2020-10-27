@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Before;
@@ -327,6 +328,40 @@ public final class ImmutableAcknowledgementTest {
                         KNOWN_PAYLOAD);
 
         assertThat(underTest.getType()).isEqualTo(expected);
+    }
+
+    @Test
+    public void isWeakWhenHeaderIsTrue() {
+        final DittoHeaders ackHeader = dittoHeaders.toBuilder()
+                .putHeader(DittoHeaderDefinition.IS_WEAK_ACK.getKey(), "true")
+                .build();
+        final ImmutableAcknowledgement<ThingId> underTest = ImmutableAcknowledgement.of(KNOWN_ACK_LABEL,
+                KNOWN_ENTITY_ID, KNOWN_STATUS_CODE, ackHeader, KNOWN_PAYLOAD);
+
+        assertThat(underTest.isWeak()).isTrue();
+    }
+
+    @Test
+    public void isNotWeakWhenHeaderIsFalse() {
+        final DittoHeaders ackHeader = dittoHeaders
+                .toBuilder()
+                .putHeader(DittoHeaderDefinition.IS_WEAK_ACK.getKey(), "false")
+                .build();
+        final ImmutableAcknowledgement<ThingId> underTest = ImmutableAcknowledgement.of(KNOWN_ACK_LABEL,
+                KNOWN_ENTITY_ID, KNOWN_STATUS_CODE, ackHeader, KNOWN_PAYLOAD);
+
+        assertThat(underTest.isWeak()).isFalse();
+    }
+
+    @Test
+    public void isNotWeakWhenHeaderIsNotPresent() {
+        final DittoHeaders ackHeader = dittoHeaders.toBuilder()
+                .removeHeader(DittoHeaderDefinition.IS_WEAK_ACK.getKey())
+                .build();
+        final ImmutableAcknowledgement<ThingId> underTest = ImmutableAcknowledgement.of(KNOWN_ACK_LABEL,
+                KNOWN_ENTITY_ID, KNOWN_STATUS_CODE, ackHeader, KNOWN_PAYLOAD);
+
+        assertThat(underTest.isWeak()).isFalse();
     }
 
 }

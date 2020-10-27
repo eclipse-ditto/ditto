@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.entity.type.WithEntityType;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -79,6 +80,28 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
     }
 
     /**
+     * Returns a new weak {@code Acknowledgement} for the specified parameters.
+     *
+     * @param label the label of the new Acknowledgement.
+     * @param entityId the ID of the affected entity being acknowledged.
+     * @param dittoHeaders the DittoHeaders.
+     * @param payload the optional payload of the Acknowledgement.
+     * @return the ImmutableAcknowledgement.
+     * @throws NullPointerException if one of the required parameters was {@code null}.
+     */
+    static Acknowledgement weak(final AcknowledgementLabel label,
+            final EntityIdWithType entityId,
+            final DittoHeaders dittoHeaders,
+            @Nullable final JsonValue payload) {
+
+        final DittoHeaders weakAckHeaders = dittoHeaders.toBuilder()
+                .putHeader(DittoHeaderDefinition.IS_WEAK_ACK.getKey(), Boolean.TRUE.toString())
+                .build();
+        // TODO: Decide which status code to use for weak acks.
+        return AcknowledgementFactory.newAcknowledgement(label, entityId, HttpStatusCode.OK, weakAckHeaders, payload);
+    }
+
+    /**
      * Returns a new {@code Acknowledgement} for the specified parameters.
      *
      * @param label the label of the new Acknowledgement.
@@ -110,6 +133,15 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      * @return {@code true} if this Acknowledgement is successful.
      */
     boolean isSuccess();
+
+    /**
+     * Indicates whether this Acknowledgement is a weak acknowledgement.
+     * Weak acknowledgements are issued automatically by the service, if a subscriber declared to issued an
+     * acknowledgement with this  {@link #getLabel()}, but was for some reason not allowed to receive the signal.
+     *
+     * @return true if this is a weak acknowledgement, false otherwise.
+     */
+    boolean isWeak();
 
     /**
      * Indicates whether this Acknowledgement represents a timeout.

@@ -286,7 +286,16 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @since 1.3.0
      */
     ALLOW_POLICY_LOCKOUT("allow-policy-lockout", boolean.class, true, false,
-            HeaderValueValidators.getBooleanValidator());
+            HeaderValueValidators.getBooleanValidator()),
+
+    /**
+     * Header definition to identify a weak acknowledgement.
+     * Weak acknowledgements are issued by the service in case a subscriber could not provide the acknowledgement
+     * because of missing permissions or rql filtering.
+     *
+     * @since 1.5.0
+     */
+    IS_WEAK_ACK("is-weak-ack", boolean.class, false, true, HeaderValueValidators.getBooleanValidator());
 
     /**
      * Map to speed up lookup of header definition by key.
