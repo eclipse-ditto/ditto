@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Certificates;
+import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -29,6 +30,7 @@ import javax.net.ssl.SSLServerSocket;
 
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.Credentials;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.junit.Test;
 
 /**
@@ -62,11 +64,12 @@ public abstract class AbstractSSLContextTest {
                     .clientCertificate(Certificates.SERVER_WITH_ALT_NAMES_CRT)
                     .build();
 
-    abstract SSLContext createSSLContext(@Nullable final String trustedCertificates,
-            final String hostname,
+    abstract SSLContext createSSLContext(final String trustedCertificates, final String hostname,
             final Credentials credentials) throws Exception;
 
     abstract SSLContext createAcceptAnySSLContext() throws Exception;
+
+    protected final ConnectionLogger connectionLoggerMock = mock(ConnectionLogger.class);
 
     @Test
     public void distrustServerSignedByUntrustedCA() {
@@ -238,7 +241,7 @@ public abstract class AbstractSSLContextTest {
             throws Exception {
 
         final SSLServerSocket serverSocket =
-                (SSLServerSocket) SSLContextCreator.of(Certificates.CA_CRT, null, null, null)
+                (SSLServerSocket) SSLContextCreator.of(Certificates.CA_CRT, null, null, connectionLoggerMock)
                         .clientCertificate(credentials)
                         .getServerSocketFactory()
                         .createServerSocket(0);

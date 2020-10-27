@@ -38,12 +38,12 @@ final class DittoTrustManager implements X509TrustManager {
     private final X509TrustManager delegateWithRevocationCheck;
     @Nullable private final X509TrustManager delegateWithoutRevocationCheck;
     @Nullable private final String hostnameOrIp;
-    @Nullable private final ConnectionLogger connectionLogger;
+    private final ConnectionLogger connectionLogger;
 
     private DittoTrustManager(final X509TrustManager delegateWithRevocationCheck,
             @Nullable final X509TrustManager delegateWithoutRevocationCheck,
             @Nullable final String hostnameOrIp,
-            @Nullable final ConnectionLogger connectionLogger) {
+            final ConnectionLogger connectionLogger) {
         this.delegateWithRevocationCheck = delegateWithRevocationCheck;
         this.delegateWithoutRevocationCheck = delegateWithoutRevocationCheck;
         this.hostnameOrIp = stripIpv6Brackets(hostnameOrIp);
@@ -65,7 +65,7 @@ final class DittoTrustManager implements X509TrustManager {
     static TrustManager[] wrapTrustManagers(final TrustManager[] trustManagerWithRevocationCheck,
             final TrustManager[] trustManagerWithoutRevocationCheck,
             @Nullable final String hostnameOrIP,
-            @Nullable final ConnectionLogger connectionLogger) {
+            final ConnectionLogger connectionLogger) {
 
         if (trustManagerWithRevocationCheck.length != 1 || trustManagerWithoutRevocationCheck.length != 1) {
             throw new IllegalArgumentException("Expect 1 trust manager with and without revocation check, got " +
@@ -101,9 +101,7 @@ final class DittoTrustManager implements X509TrustManager {
             } else {
                 throw revocationError;
             }
-            if (connectionLogger != null) {
-                connectionLogger.exception(InfoProviderFactory.empty(), revocationError);
-            }
+            connectionLogger.exception(InfoProviderFactory.empty(), revocationError);
         }
 
         // verify hostname

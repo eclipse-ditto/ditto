@@ -41,12 +41,12 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
     private final KeyManagerFactoryFactory keyManagerFactoryFactory;
     @Nullable private final TrustManagerFactoryFactory trustManagerFactoryFactory;
     @Nullable private final String trustedCertificates;
-    @Nullable private final ConnectionLogger connectionLogger;
+    private final ConnectionLogger connectionLogger;
 
     private SSLContextCreator(@Nullable final String trustedCertificates,
             @Nullable final DittoHeaders dittoHeaders,
             @Nullable final String hostname,
-            @Nullable final ConnectionLogger connectionLogger) {
+            final ConnectionLogger connectionLogger) {
         exceptionMapper = new ExceptionMapper(dittoHeaders);
         this.hostname = hostname;
         keyManagerFactoryFactory = new KeyManagerFactoryFactory(exceptionMapper);
@@ -89,7 +89,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
      * @return the SSL context creator.
      */
     public static SSLContextCreator fromConnection(final Connection connection,
-            @Nullable final DittoHeaders dittoHeaders, @Nullable final ConnectionLogger connectionLogger) {
+            @Nullable final DittoHeaders dittoHeaders, final ConnectionLogger connectionLogger) {
         final boolean isValidateCertificates = connection.isValidateCertificates();
         if (isValidateCertificates) {
             final String trustedCertificates = connection.getTrustedCertificates().orElse(null);
@@ -111,7 +111,7 @@ public final class SSLContextCreator implements CredentialsVisitor<SSLContext> {
     public static SSLContextCreator of(@Nullable final String trustedCertificates,
             @Nullable final DittoHeaders dittoHeaders,
             @Nullable final String hostnameOrIp,
-            @Nullable final ConnectionLogger connectionLogger) {
+            final ConnectionLogger connectionLogger) {
         return new SSLContextCreator(trustedCertificates, dittoHeaders, hostnameOrIp, connectionLogger);
     }
 

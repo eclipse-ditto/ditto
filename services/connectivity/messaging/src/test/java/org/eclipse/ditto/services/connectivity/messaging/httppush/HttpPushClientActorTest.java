@@ -34,6 +34,7 @@ import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
@@ -46,6 +47,9 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.typesafe.config.ConfigValueFactory;
 
@@ -71,6 +75,7 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Tests {@link org.eclipse.ditto.services.connectivity.messaging.httppush.HttpPushClientActor}.
  */
+@RunWith(MockitoJUnitRunner.class)
 public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
     private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
@@ -81,6 +86,8 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
     private Connection connection;
     private BlockingQueue<HttpRequest> requestQueue;
     private BlockingQueue<HttpResponse> responseQueue;
+    @Mock
+    private ConnectionLogger connectionLogger;
 
     @Before
     public void createActorSystem() {
@@ -168,8 +175,9 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
                 .clientKey(TestConstants.Certificates.CLIENT_SELF_SIGNED_KEY)
                 .clientCertificate(TestConstants.Certificates.CLIENT_SELF_SIGNED_CRT)
                 .build();
-        final SSLContext sslContext = SSLContextCreator.fromConnection(connection, DittoHeaders.empty(), null)
-                .clientCertificate(credentials);
+        final SSLContext sslContext =
+                SSLContextCreator.fromConnection(connection, DittoHeaders.empty(), connectionLogger)
+                        .clientCertificate(credentials);
         final HttpsConnectionContext invalidHttpsContext = ConnectionContext.httpsServer(sslContext);
 
         final int port = binding.localAddress().getPort();
@@ -206,8 +214,9 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
                 .credentials(credentials)
                 .trustedCertificates(TestConstants.Certificates.CLIENT_SELF_SIGNED_CRT)
                 .build();
-        final SSLContext sslContext = SSLContextCreator.fromConnection(connection, DittoHeaders.empty(), null)
-                .clientCertificate(credentials);
+        final SSLContext sslContext =
+                SSLContextCreator.fromConnection(connection, DittoHeaders.empty(), connectionLogger)
+                        .clientCertificate(credentials);
         final HttpsConnectionContext httpsContext = ConnectionContext.httpsServer(sslContext);
 
         final int port = binding.localAddress().getPort();

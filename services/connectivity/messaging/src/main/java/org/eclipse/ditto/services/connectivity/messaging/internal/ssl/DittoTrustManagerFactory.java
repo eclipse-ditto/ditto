@@ -43,14 +43,6 @@ public final class DittoTrustManagerFactory extends TrustManagerFactory {
                 connectionLogger);
     }
 
-    static DittoTrustManagerFactory from(@Nullable final String trustedCertificates, final String hostname,
-            final ConnectionLogger connectionLogger) {
-        return new DittoTrustManagerFactory(FACTORY.newTrustManagerFactory(trustedCertificates, true),
-                FACTORY.newTrustManagerFactory(trustedCertificates, false),
-                hostname,
-                connectionLogger);
-    }
-
     private DittoTrustManagerFactory(final TrustManagerFactory delegateWithRevocationCheck,
             final TrustManagerFactory delegateWithoutRevocationCheck,
             final String hostname,
