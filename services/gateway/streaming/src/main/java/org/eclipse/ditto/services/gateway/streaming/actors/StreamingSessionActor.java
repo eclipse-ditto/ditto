@@ -285,7 +285,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                         return;
                     }
                     final StreamingSession session = StreamingSession.of(startStreaming.getNamespaces(), criteria,
-                            startStreaming.getExtraFields().orElse(null));
+                            startStreaming.getExtraFields().orElse(null), self());
                     streamingSessions.put(startStreaming.getStreamingType(), session);
 
                     logger.debug("Got 'StartStreaming' message in <{}> session, subscribing for <{}> in Cluster ...",
@@ -609,8 +609,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     final DittoRuntimeException dittoRuntimeException =
                             DittoRuntimeException.asDittoRuntimeException(error,
                                     cause -> DittoRuntimeException.newBuilder(template).cause(cause).build());
-                        logger.info("Acknowledgement label declaration failed for labels: <{}> - cause: {} {}",
-                                acknowledgementLabels, error.getClass().getSimpleName(), error.getMessage());
+                    logger.info("Acknowledgement label declaration failed for labels: <{}> - cause: {} {}",
+                            acknowledgementLabels, error.getClass().getSimpleName(), error.getMessage());
                     self.tell(dittoRuntimeException, ActorRef.noSender());
                     return null;
                 });
