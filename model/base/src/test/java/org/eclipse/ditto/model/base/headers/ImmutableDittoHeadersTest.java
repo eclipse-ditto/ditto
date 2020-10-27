@@ -114,6 +114,7 @@ public final class ImmutableDittoHeadersTest {
     private static final JsonValue KNOWN_METADATA_VALUE = JsonValue.of("knownMetadata");
     private static final MetadataHeaders KNOWN_METADATA_HEADERS;
     private static final boolean KNOWN_ALLOW_POLICY_LOCKOUT = true;
+    private static final boolean KNOWN_IS_WEAK_ACK = false;
 
     static {
         KNOWN_METADATA_HEADERS = MetadataHeaders.newInstance();
@@ -165,6 +166,7 @@ public final class ImmutableDittoHeadersTest {
                 .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), KNOWN_CONNECTION_ID)
                 .expectedResponseTypes(KNOWN_EXPECTED_RESPONSE_TYPES)
                 .allowPolicyLockout(KNOWN_ALLOW_POLICY_LOCKOUT)
+                .putHeader(DittoHeaderDefinition.IS_WEAK_ACK.getKey(), String.valueOf(KNOWN_IS_WEAK_ACK))
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -384,6 +386,7 @@ public final class ImmutableDittoHeadersTest {
                         charSequencesToJsonArray(KNOWN_EXPECTED_RESPONSE_TYPES))
                 .set(DittoHeaderDefinition.PUT_METADATA.getKey(), KNOWN_METADATA_HEADERS.toJson())
                 .set(DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT.getKey(), KNOWN_ALLOW_POLICY_LOCKOUT)
+                .set(DittoHeaderDefinition.IS_WEAK_ACK.getKey(), KNOWN_IS_WEAK_ACK)
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
 
@@ -591,6 +594,7 @@ public final class ImmutableDittoHeadersTest {
                 charSequencesToJsonArray(KNOWN_EXPECTED_RESPONSE_TYPES).toString());
         result.put(DittoHeaderDefinition.PUT_METADATA.getKey(), KNOWN_METADATA_HEADERS.toJsonString());
         result.put(DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT.getKey(), String.valueOf(KNOWN_ALLOW_POLICY_LOCKOUT));
+        result.put(DittoHeaderDefinition.IS_WEAK_ACK.getKey(), String.valueOf(KNOWN_IS_WEAK_ACK));
 
         return result;
     }
