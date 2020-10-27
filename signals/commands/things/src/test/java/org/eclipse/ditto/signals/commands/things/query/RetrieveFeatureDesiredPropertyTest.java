@@ -36,14 +36,17 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class RetrieveFeatureDesiredPropertyTest {
 
-    private static final JsonPointer PROPERTY_JSON_POINTER = JsonFactory.newPointer("desiredProperties/foo");
-    private static final JsonPointer INVALID_PROPERTY_JSON_POINTER = JsonFactory.newPointer("desiredProperties/bar/füü");
+    private static final JsonPointer DESIRED_PROPERTY_JSON_POINTER =
+            JsonFactory.newPointer("desiredProperties/foo");
+
+    private static final JsonPointer INVALID_DESIRED_PROPERTY_JSON_POINTER =
+            JsonFactory.newPointer("desiredProperties/bar/füü");
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, RetrieveFeatureDesiredProperty.TYPE)
             .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(RetrieveFeatureDesiredProperty.JSON_FEATURE_ID, TestConstants.Feature.HOVER_BOARD_ID)
-            .set(RetrieveFeatureDesiredProperty.JSON_DESIRED_PROPERTY_POINTER, PROPERTY_JSON_POINTER.toString())
+            .set(RetrieveFeatureDesiredProperty.JSON_DESIRED_PROPERTY_POINTER, DESIRED_PROPERTY_JSON_POINTER.toString())
             .build();
 
 
@@ -66,35 +69,37 @@ public final class RetrieveFeatureDesiredPropertyTest {
     @Test(expected = ThingIdInvalidException.class)
     public void tryToCreateInstanceWithNullThingId() {
         RetrieveFeatureDesiredProperty.of(ThingId.of(null), TestConstants.Feature.HOVER_BOARD_ID,
-                PROPERTY_JSON_POINTER,
+                DESIRED_PROPERTY_JSON_POINTER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullFeatureId() {
-        RetrieveFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, null, PROPERTY_JSON_POINTER,
+        RetrieveFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, null, DESIRED_PROPERTY_JSON_POINTER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullJsonPointer() {
-        RetrieveFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID, null,
+        RetrieveFeatureDesiredProperty.of(TestConstants.Thing.THING_ID,
+                TestConstants.Feature.HOVER_BOARD_ID,
+                null,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
     public void tryToCreateInstanceWithValidArguments() {
         RetrieveFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
-                PROPERTY_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+                DESIRED_PROPERTY_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
     public void jsonSerializationWorksAsExpected() {
         final RetrieveFeatureDesiredProperty underTest =
                 RetrieveFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
-                        PROPERTY_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+                        DESIRED_PROPERTY_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -113,14 +118,14 @@ public final class RetrieveFeatureDesiredPropertyTest {
     @Test(expected = JsonKeyInvalidException.class)
     public void tryToCreateInstanceWithInvalidArguments() {
         RetrieveFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
-                INVALID_PROPERTY_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+                INVALID_DESIRED_PROPERTY_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = JsonKeyInvalidException.class)
     public void createInstanceFromInvalidJson() {
         final JsonObject invalidJson = KNOWN_JSON.toBuilder()
                 .set(RetrieveFeatureDesiredProperty.JSON_DESIRED_PROPERTY_POINTER,
-                        INVALID_PROPERTY_JSON_POINTER.toString())
+                        INVALID_DESIRED_PROPERTY_JSON_POINTER.toString())
                 .build();
         RetrieveFeatureDesiredProperty.fromJson(invalidJson, TestConstants.EMPTY_DITTO_HEADERS);
     }

@@ -446,12 +446,22 @@ public final class TestConstants {
         public static final JsonPointer HOVER_BOARD_PROPERTY_POINTER = JsonFactory.newPointer("speed");
 
         /**
-         * Value of a known Feature Property.
+         * Pointer of a known Feature desired Property.
          */
-        public static final JsonValue HOVER_BOARD_PROPERTY_VALUE = JsonFactory.newValue(20);
+        public static final JsonPointer HOVER_BOARD_DESIRED_PROPERTY_POINTER = HOVER_BOARD_PROPERTY_POINTER;
 
         /**
-         * Properties of a known Feature.
+         * Value of a known Feature property.
+         */
+        public static final JsonValue HOVER_BOARD_PROPERTY_VALUE = JsonFactory.newValue(21);
+
+        /**
+         * Value of a known Feature desired Property.
+         */
+        public static final JsonValue HOVER_BOARD_DESIRED_PROPERTY_VALUE = JsonFactory.newValue(12);
+
+        /**
+         * Definition of a known Feature.
          */
         public static final FeatureDefinition HOVER_BOARD_DEFINITION =
                 FeatureDefinition.fromIdentifier("org.eclipse.ditto:hoverboard:1.0.0");
@@ -462,23 +472,39 @@ public final class TestConstants {
         public static final FeatureProperties HOVER_BOARD_PROPERTIES =
                 ThingsModelFactory.newFeaturePropertiesBuilder()
                         .set("speed", 20)
-                        .set("location_x", "7239954")
-                        .set("location_y", "8239084")
+                        .set("height_above_ground", "12")
+                        .set("stability_factor", "2")
                         .build();
 
         /**
-         * A known Feature which is required for time travel.
+         * Desired properties of a known Feature.
+         */
+        public static final FeatureProperties HOVER_BOARD_DESIRED_PROPERTIES =
+                ThingsModelFactory.newFeaturePropertiesBuilder()
+                        .set("speed", 32)
+                        .set("height_above_ground", "16")
+                        .set("stability_factor", "10")
+                        .build();
+
+        /**
+         * A known Feature which is required for relaxed locomotion.
          */
         public static final org.eclipse.ditto.model.things.Feature HOVER_BOARD =
                 ThingsModelFactory.newFeatureBuilder()
-                        .properties(FLUX_CAPACITOR_PROPERTIES)
-                        .withId(FLUX_CAPACITOR_ID)
+                        .definition(HOVER_BOARD_DEFINITION)
+                        .properties(HOVER_BOARD_PROPERTIES)
+                        .desiredProperties(HOVER_BOARD_DESIRED_PROPERTIES)
+                        .withId(HOVER_BOARD_ID)
                         .build();
 
         /**
          * Known features of a Thing.
          */
-        public static final Features FEATURES = ThingsModelFactory.newFeatures(FLUX_CAPACITOR);
+        public static final Features FEATURES =
+                ThingsModelFactory.newFeaturesBuilder()
+                        .set(FLUX_CAPACITOR)
+                        .set(HOVER_BOARD)
+                        .build();
 
         /**
          * A known {@code FeaturesNotAccessibleException}.
@@ -562,7 +588,7 @@ public final class TestConstants {
         public static final FeatureDesiredPropertyNotAccessibleException
                 FEATURE_DESIRED_PROPERTY_NOT_ACCESSIBLE_EXCEPTION =
                 FeatureDesiredPropertyNotAccessibleException
-                        .newBuilder(Thing.THING_ID, HOVER_BOARD_ID, HOVER_BOARD_PROPERTY_POINTER).build();
+                        .newBuilder(Thing.THING_ID, HOVER_BOARD_ID, HOVER_BOARD_DESIRED_PROPERTY_POINTER).build();
 
         /**
          * A known {@code FeatureDesiredPropertyNotModifiableException}.
@@ -570,7 +596,7 @@ public final class TestConstants {
         public static final FeatureDesiredPropertyNotModifiableException
                 FEATURE_DESIRED_PROPERTY_NOT_MODIFIABLE_EXCEPTION =
                 FeatureDesiredPropertyNotModifiableException
-                        .newBuilder(Thing.THING_ID, HOVER_BOARD_ID, HOVER_BOARD_PROPERTY_POINTER).build();
+                        .newBuilder(Thing.THING_ID, HOVER_BOARD_ID, HOVER_BOARD_DESIRED_PROPERTY_POINTER).build();
 
         private Feature() {
             throw new AssertionError();
@@ -582,6 +608,7 @@ public final class TestConstants {
         public static final JsonPointer EMPTY_JSON_POINTER = JsonFactory.emptyPointer();
         public static final JsonPointer VALID_JSON_POINTER = JsonFactory.newPointer("properties/foo");
         public static final JsonPointer INVALID_JSON_POINTER = JsonFactory.newPointer("key1/äöü/foo");
+
     }
 
 }

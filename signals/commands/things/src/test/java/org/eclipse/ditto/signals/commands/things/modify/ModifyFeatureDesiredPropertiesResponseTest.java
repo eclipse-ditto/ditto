@@ -40,7 +40,7 @@ public class ModifyFeatureDesiredPropertiesResponseTest {
             .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyFeatureDesiredPropertiesResponse.JSON_FEATURE_ID, TestConstants.Feature.HOVER_BOARD_ID)
             .set(ModifyFeatureDesiredPropertiesResponse.JSON_DESIRED_PROPERTIES,
-                    TestConstants.Feature.HOVER_BOARD_PROPERTIES.toJson(FieldType.regularOrSpecial()))
+                    TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTIES.toJson(FieldType.regularOrSpecial()))
             .build();
 
     private static final JsonObject KNOWN_JSON_UPDATED = JsonFactory.newObjectBuilder()
@@ -50,14 +50,12 @@ public class ModifyFeatureDesiredPropertiesResponseTest {
             .set(ModifyFeatureDesiredPropertiesResponse.JSON_FEATURE_ID, TestConstants.Feature.HOVER_BOARD_ID)
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(ModifyFeatureDesiredPropertiesResponse.class,
                 areImmutable(),
                 provided(FeatureProperties.class, ThingId.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -66,25 +64,29 @@ public class ModifyFeatureDesiredPropertiesResponseTest {
                 .verify();
     }
 
-
     @Test
     public void toJsonReturnsExpected() {
         final ModifyFeatureDesiredPropertiesResponse underTestCreated =
-                ModifyFeatureDesiredPropertiesResponse.created(TestConstants.Thing.THING_ID,
-                        TestConstants.Feature.HOVER_BOARD_ID,
-                        TestConstants.Feature.HOVER_BOARD_PROPERTIES, TestConstants.EMPTY_DITTO_HEADERS);
+                ModifyFeatureDesiredPropertiesResponse
+                        .created(TestConstants.Thing.THING_ID,
+                                TestConstants.Feature.HOVER_BOARD_ID,
+                                TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTIES,
+                                TestConstants.EMPTY_DITTO_HEADERS);
+
         final JsonObject actualJsonCreated = underTestCreated.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJsonCreated).isEqualTo(KNOWN_JSON_CREATED);
 
-        final ModifyFeatureDesiredPropertiesResponse underTestUpdated = ModifyFeatureDesiredPropertiesResponse
-                .modified(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+        final ModifyFeatureDesiredPropertiesResponse underTestUpdated =
+                ModifyFeatureDesiredPropertiesResponse
+                        .modified(TestConstants.Thing.THING_ID,
+                                TestConstants.Feature.HOVER_BOARD_ID,
+                                TestConstants.EMPTY_DITTO_HEADERS);
+
         final JsonObject actualJsonUpdated = underTestUpdated.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJsonUpdated).isEqualTo(KNOWN_JSON_UPDATED);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {
@@ -93,7 +95,7 @@ public class ModifyFeatureDesiredPropertiesResponseTest {
 
         assertThat(underTestCreated).isNotNull();
         assertThat(underTestCreated.getDesiredPropertiesCreated())
-                .hasValue(TestConstants.Feature.HOVER_BOARD_PROPERTIES);
+                .hasValue(TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTIES);
 
         final ModifyFeatureDesiredPropertiesResponse underTestUpdated =
                 ModifyFeatureDesiredPropertiesResponse.fromJson(KNOWN_JSON_UPDATED, TestConstants.EMPTY_DITTO_HEADERS);

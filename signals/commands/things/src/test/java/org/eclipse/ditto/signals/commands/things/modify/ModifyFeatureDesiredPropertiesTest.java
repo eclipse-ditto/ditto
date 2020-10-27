@@ -44,7 +44,8 @@ public final class ModifyFeatureDesiredPropertiesTest {
             .set(ThingCommand.JsonFields.TYPE, ModifyFeatureDesiredProperties.TYPE)
             .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyFeatureDesiredProperties.JSON_FEATURE_ID, TestConstants.Feature.HOVER_BOARD_ID)
-            .set(ModifyFeatureDesiredProperties.JSON_DESIRED_PROPERTIES, TestConstants.Feature.HOVER_BOARD_PROPERTIES)
+            .set(ModifyFeatureDesiredProperties.JSON_DESIRED_PROPERTIES,
+                    TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTIES)
             .build();
 
     @Test
@@ -65,35 +66,36 @@ public final class ModifyFeatureDesiredPropertiesTest {
     @Test(expected = ThingIdInvalidException.class)
     public void tryToCreateInstanceWithNullThingIdString() {
         ModifyFeatureDesiredProperties.of(ThingId.of(null), TestConstants.Feature.HOVER_BOARD_ID,
-                TestConstants.Feature.HOVER_BOARD_PROPERTIES, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTIES, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
         ModifyFeatureDesiredProperties.of(null, TestConstants.Feature.HOVER_BOARD_ID,
-                TestConstants.Feature.HOVER_BOARD_PROPERTIES, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTIES, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullFeatureId() {
-        ModifyFeatureDesiredProperties.of(TestConstants.Thing.THING_ID, null, TestConstants.Feature.HOVER_BOARD_PROPERTIES,
+        ModifyFeatureDesiredProperties.of(TestConstants.Thing.THING_ID, null,
+                TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTIES,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullProperties() {
-        ModifyFeatureDesiredProperties.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID, null,
-                TestConstants.EMPTY_DITTO_HEADERS);
+        ModifyFeatureDesiredProperties.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
+                null, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
     @Test
     public void toJsonReturnsExpected() {
         final ModifyFeatureDesiredProperties underTest = ModifyFeatureDesiredProperties.of(TestConstants.Thing.THING_ID,
-                TestConstants.Feature.HOVER_BOARD_ID, TestConstants.Feature.HOVER_BOARD_PROPERTIES,
+                TestConstants.Feature.HOVER_BOARD_ID, TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTIES,
                 TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
@@ -108,15 +110,17 @@ public final class ModifyFeatureDesiredPropertiesTest {
         assertThat(underTest).isNotNull();
         assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.HOVER_BOARD_ID);
-        Assertions.assertThat(underTest.getDesiredProperties()).isEqualTo(TestConstants.Feature.HOVER_BOARD_PROPERTIES);
+        Assertions.assertThat(underTest.getDesiredProperties())
+                .isEqualTo(TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTIES);
     }
 
     @Test(expected = JsonKeyInvalidException.class)
     public void createInstanceFromJsonWithInvalidPropertiesPath() {
 
         final FeatureProperties featurePropertiesWithInvalidPath =
-                TestConstants.Feature.HOVER_BOARD_PROPERTIES.setValue("valid",
-                        JsonFactory.newObjectBuilder().set("invälid", JsonValue.of(42)).build());
+                TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTIES
+                        .setValue("valid", JsonFactory.newObjectBuilder().set("invälid", JsonValue.of(42)).build());
+
         final JsonObject invalidJson = KNOWN_JSON.toBuilder()
                 .set(ModifyFeatureDesiredProperties.JSON_DESIRED_PROPERTIES, featurePropertiesWithInvalidPath)
                 .build();
@@ -132,11 +136,13 @@ public final class ModifyFeatureDesiredPropertiesTest {
         }
         sb.append('b');
 
-        final FeatureProperties featureProperties =
+        final FeatureProperties featureDesiredProperties =
                 FeatureProperties.newBuilder().set("a", JsonValue.of(sb.toString())).build();
 
-        assertThatThrownBy(() -> ModifyFeatureDesiredProperties.of(ThingId.of("foo", "bar"), "foo", featureProperties,
-                DittoHeaders.empty()))
+        assertThatThrownBy(() ->
+                ModifyFeatureDesiredProperties.of(ThingId.of("foo", "bar"),
+                        "foo", featureDesiredProperties,
+                        DittoHeaders.empty()))
                 .isInstanceOf(ThingTooLargeException.class);
     }
 

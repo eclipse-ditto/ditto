@@ -36,15 +36,16 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class DeleteFeatureDesiredPropertyTest {
 
-    private static final JsonPointer PROPERTY_JSON_POINTER = JsonFactory.newPointer("desiredProperties/speed");
-    private static final JsonPointer INVALID_PROPERTY_JSON_POINTER = JsonFactory.newPointer("desiredProperties/target_year_1" +
-            "/füü/bar");
+    private static final JsonPointer DESIRED_PROPERTY_POINTER = JsonFactory.newPointer("desiredProperties/speed");
+    private static final JsonPointer INVALID_DESIRED_PROPERTY_JSON_POINTER =
+            JsonFactory.newPointer("desiredProperties/speed" +
+                    "/füü/bar");
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, DeleteFeatureDesiredProperty.TYPE)
             .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(DeleteFeatureDesiredProperty.JSON_FEATURE_ID, TestConstants.Feature.HOVER_BOARD_ID)
-            .set(DeleteFeatureDesiredProperty.JSON_DESIRED_PROPERTY, PROPERTY_JSON_POINTER.toString())
+            .set(DeleteFeatureDesiredProperty.JSON_DESIRED_PROPERTY, DESIRED_PROPERTY_POINTER.toString())
             .build();
 
 
@@ -66,19 +67,20 @@ public final class DeleteFeatureDesiredPropertyTest {
 
     @Test(expected = ThingIdInvalidException.class)
     public void tryToCreateInstanceWithNullThingIdString() {
-        DeleteFeatureDesiredProperty.of(ThingId.of(null), TestConstants.Feature.HOVER_BOARD_ID, PROPERTY_JSON_POINTER,
+        DeleteFeatureDesiredProperty.of(ThingId.of(null), TestConstants.Feature.HOVER_BOARD_ID,
+                DESIRED_PROPERTY_POINTER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        DeleteFeatureDesiredProperty.of(null, TestConstants.Feature.HOVER_BOARD_ID, PROPERTY_JSON_POINTER,
+        DeleteFeatureDesiredProperty.of(null, TestConstants.Feature.HOVER_BOARD_ID, DESIRED_PROPERTY_POINTER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullFeatureId() {
-        DeleteFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, null, PROPERTY_JSON_POINTER,
+        DeleteFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, null, DESIRED_PROPERTY_POINTER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -92,7 +94,7 @@ public final class DeleteFeatureDesiredPropertyTest {
     @Test
     public void createInstanceWithValidArguments() {
         final DeleteFeatureDesiredProperty underTest = DeleteFeatureDesiredProperty.of(TestConstants.Thing.THING_ID,
-                TestConstants.Feature.HOVER_BOARD_ID, PROPERTY_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Feature.HOVER_BOARD_ID, DESIRED_PROPERTY_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
     }
@@ -100,14 +102,14 @@ public final class DeleteFeatureDesiredPropertyTest {
     @Test(expected = JsonKeyInvalidException.class)
     public void createInstanceWithInvalidArgument() {
         DeleteFeatureDesiredProperty.of(TestConstants.Thing.THING_ID,
-                TestConstants.Feature.HOVER_BOARD_ID, INVALID_PROPERTY_JSON_POINTER,
+                TestConstants.Feature.HOVER_BOARD_ID, INVALID_DESIRED_PROPERTY_JSON_POINTER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
     public void toJsonReturnsExpected() {
         final DeleteFeatureDesiredProperty underTest = DeleteFeatureDesiredProperty.of(TestConstants.Thing.THING_ID,
-                TestConstants.Feature.HOVER_BOARD_ID, PROPERTY_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Feature.HOVER_BOARD_ID, DESIRED_PROPERTY_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -121,7 +123,7 @@ public final class DeleteFeatureDesiredPropertyTest {
         assertThat(underTest).isNotNull();
         assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
         assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.HOVER_BOARD_ID);
-        assertThat(underTest.getDesiredPropertyPointer()).isEqualTo(PROPERTY_JSON_POINTER);
+        assertThat(underTest.getDesiredPropertyPointer()).isEqualTo(DESIRED_PROPERTY_POINTER);
     }
 
 }

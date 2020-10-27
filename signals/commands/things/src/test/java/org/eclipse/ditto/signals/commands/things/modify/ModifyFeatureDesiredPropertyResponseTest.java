@@ -44,8 +44,9 @@ public class ModifyFeatureDesiredPropertyResponseTest {
             .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyFeatureDesiredPropertyResponse.JSON_FEATURE_ID, TestConstants.Feature.HOVER_BOARD_ID)
             .set(ModifyFeatureDesiredPropertyResponse.JSON_DESIRED_PROPERTY,
-                    TestConstants.Feature.HOVER_BOARD_PROPERTY_POINTER.toString())
-            .set(ModifyFeatureDesiredPropertyResponse.JSON_DESIRED_VALUE, TestConstants.Feature.HOVER_BOARD_PROPERTY_VALUE)
+                    TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTY_POINTER.toString())
+            .set(ModifyFeatureDesiredPropertyResponse.JSON_DESIRED_VALUE,
+                    TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTY_VALUE)
             .build();
 
     private static final JsonObject KNOWN_JSON_UPDATED = JsonFactory.newObjectBuilder()
@@ -54,7 +55,7 @@ public class ModifyFeatureDesiredPropertyResponseTest {
             .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyFeatureDesiredPropertiesResponse.JSON_FEATURE_ID, TestConstants.Feature.HOVER_BOARD_ID)
             .set(ModifyFeatureDesiredPropertyResponse.JSON_DESIRED_PROPERTY,
-                    TestConstants.Feature.HOVER_BOARD_PROPERTY_POINTER.toString())
+                    TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTY_POINTER.toString())
             .build();
 
     @Test
@@ -75,8 +76,8 @@ public class ModifyFeatureDesiredPropertyResponseTest {
     public void toJsonReturnsExpected() {
         final ModifyFeatureDesiredPropertyResponse underTestCreated = ModifyFeatureDesiredPropertyResponse.created(
                 TestConstants.Thing.THING_ID,
-                TestConstants.Feature.HOVER_BOARD_ID, TestConstants.Feature.HOVER_BOARD_PROPERTY_POINTER,
-                TestConstants.Feature.HOVER_BOARD_PROPERTY_VALUE, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Feature.HOVER_BOARD_ID, TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTY_POINTER,
+                TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTY_VALUE, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJsonCreated = underTestCreated.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJsonCreated).isEqualTo(KNOWN_JSON_CREATED);
@@ -84,7 +85,7 @@ public class ModifyFeatureDesiredPropertyResponseTest {
         final ModifyFeatureDesiredPropertyResponse underTestUpdated =
                 ModifyFeatureDesiredPropertyResponse.modified(TestConstants.Thing.THING_ID,
                         TestConstants.Feature.HOVER_BOARD_ID,
-                        TestConstants.Feature.HOVER_BOARD_PROPERTY_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTY_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJsonUpdated = underTestUpdated.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJsonUpdated).isEqualTo(KNOWN_JSON_UPDATED);
@@ -97,7 +98,7 @@ public class ModifyFeatureDesiredPropertyResponseTest {
 
         assertThat(underTestCreated).isNotNull();
         assertThat(underTestCreated.getDesiredPropertyValue())
-                .hasValue(TestConstants.Feature.HOVER_BOARD_PROPERTY_VALUE);
+                .hasValue(TestConstants.Feature.HOVER_BOARD_DESIRED_PROPERTY_VALUE);
 
         final ModifyFeatureDesiredPropertyResponse underTestUpdated =
                 ModifyFeatureDesiredPropertyResponse.fromJson(KNOWN_JSON_UPDATED, TestConstants.EMPTY_DITTO_HEADERS);
@@ -108,13 +109,15 @@ public class ModifyFeatureDesiredPropertyResponseTest {
 
     @Test
     public void tryToCreateInstanceWithValidArguments() {
-        ModifyFeatureDesiredPropertyResponse.modified(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
+        ModifyFeatureDesiredPropertyResponse.modified(TestConstants.Thing.THING_ID,
+                TestConstants.Feature.HOVER_BOARD_ID,
                 VALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = JsonKeyInvalidException.class)
     public void tryToCreateInstanceWithInvalidArguments() {
-        ModifyFeatureDesiredPropertyResponse.modified(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
+        ModifyFeatureDesiredPropertyResponse.modified(TestConstants.Thing.THING_ID,
+                TestConstants.Feature.HOVER_BOARD_ID,
                 INVALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
     }
 }
