@@ -62,7 +62,7 @@ public final class TestPubSubFactory extends AbstractPubSubFactory<String> imple
      * @return subscribers of those topics in the distributed data.
      */
     private static <T> CompletionStage<Collection<ActorRef>> getSubscribers(
-            final Collection<String> topics, final DDataReader<T> reader) {
+            final Collection<String> topics, final DDataReader<ActorRef, T> reader) {
         return reader.getSubscribers(topics.stream().map(reader::approximate).collect(Collectors.toSet()));
     }
 

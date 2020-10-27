@@ -43,7 +43,7 @@ public final class Publisher<T> extends AbstractActor {
 
     private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
-    private final DDataReader<T> ddataReader;
+    private final DDataReader<ActorRef, T> ddataReader;
 
     private final Counter messageCounter = DittoMetrics.counter("pubsub-published-messages");
     private final Counter topicCounter = DittoMetrics.counter("pubsub-published-topics");
@@ -51,7 +51,7 @@ public final class Publisher<T> extends AbstractActor {
     private CompletionStage<Void> currentPublication = CompletableFuture.completedFuture(null);
 
     @SuppressWarnings("unused")
-    private Publisher(final DDataReader<T> ddataReader) {
+    private Publisher(final DDataReader<ActorRef, T> ddataReader) {
         this.ddataReader = ddataReader;
     }
 
@@ -62,7 +62,7 @@ public final class Publisher<T> extends AbstractActor {
      * @param <T> representation of topics in the distributed data.
      * @return a Props object.
      */
-    public static <T> Props props(final DDataReader<T> ddataReader) {
+    public static <T> Props props(final DDataReader<ActorRef, T> ddataReader) {
 
         return Props.create(Publisher.class, ddataReader);
     }

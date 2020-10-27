@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata.literal;
 
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
@@ -19,11 +20,13 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.AbstractDDataHandler;
 
 import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
+import akka.actor.Address;
+import akka.cluster.ddata.Replicator;
 
 /**
  * A distributed collection of strings indexed by ActorRef.
  */
-public final class LiteralDDataHandler extends AbstractDDataHandler<String, LiteralUpdate> {
+public final class LiteralDDataHandler extends AbstractDDataHandler<Address, String, LiteralUpdate> {
 
     private LiteralDDataHandler(final DistributedDataConfig config,
             final ActorRefFactory actorRefFactory,
@@ -52,5 +55,11 @@ public final class LiteralDDataHandler extends AbstractDDataHandler<String, Lite
     @Override
     public String approximate(final String topic) {
         return topic;
+    }
+
+    @Override
+    public CompletionStage<Void> removeAddress(final Address address,
+            final Replicator.WriteConsistency writeConsistency) {
+        return update(writeConsistency, mmap -> mmap.remove(selfUniqueAddress, address));
     }
 }

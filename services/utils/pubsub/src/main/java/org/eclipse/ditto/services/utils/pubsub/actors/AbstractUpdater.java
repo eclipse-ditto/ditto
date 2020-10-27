@@ -42,10 +42,11 @@ import akka.japi.pf.ReceiveBuilder;
  * Abstract super class of SubUpdater and AcksUpdater.
  * Implement the logic to aggregate subscription changes and to replicate the changes each clock tick.
  *
+ * @param <K> type of keys of the distributed multimap.
  * @param <T> type of topics in the distributed data.
  * @param <P> type of payload of DDataOpSuccess messages.
  */
-public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
+public abstract class AbstractUpdater<K, T, P> extends AbstractActorWithTimers {
 
     // pseudo-random number generator for force updates. quality matters little.
     private final Random random = new Random();
@@ -54,8 +55,8 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
 
     protected final PubSubConfig config;
     protected final Subscriptions<T> subscriptions;
-    protected final DDataWriter<T> topicsWriter;
-    protected final ActorRef subscriber;
+    protected final DDataWriter<K, T> topicsWriter;
+    protected final K subscriber;
 
     protected final Gauge topicMetric;
     protected final Gauge awaitUpdateMetric;
@@ -74,7 +75,7 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
     /**
      * Write consistency of the next message to the replicator.
      */
-    protected Replicator.WriteConsistency nextWriteConsistency = Replicator.writeLocal();
+    protected Replicator.WriteConsistency nextWriteConsistency = (Replicator.WriteConsistency) Replicator.writeLocal();
 
     /**
      * Whether local subscriptions changed.
@@ -85,9 +86,9 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
 
     protected AbstractUpdater(final String actorNamePrefix,
             final PubSubConfig config,
-            final ActorRef subscriber,
+            final K subscriber,
             final Subscriptions<T> subscriptions,
-            final DDataWriter<T> topicsWriter) {
+            final DDataWriter<K, T> topicsWriter) {
         this.config = config;
         this.subscriber = subscriber;
         this.subscriptions = subscriptions;
@@ -224,7 +225,7 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
     }
 
     /**
-     * Handle thje result of a distributed data write by sending a report to self.
+     * Handle the result of a distributed data write by sending a report to self.
      *
      * @param lastSeqNr the final sequence number of this update.
      * @param writeConsistency the write consistency of this update.

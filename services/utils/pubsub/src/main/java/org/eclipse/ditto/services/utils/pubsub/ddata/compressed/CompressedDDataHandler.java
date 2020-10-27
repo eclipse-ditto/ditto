@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.utils.pubsub.ddata.compressed;
 
 import java.util.List;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
@@ -20,16 +21,21 @@ import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.AbstractDDataHandler;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
 
+import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
+import akka.actor.Address;
+import akka.cluster.ddata.ORMultiMap;
+import akka.cluster.ddata.Replicator;
 import akka.util.ByteString;
-import scala.collection.JavaConverters;
+import scala.jdk.javaapi.CollectionConverters;
 
 /**
  * A distributed collection of hashes of strings indexed by ActorRef.
  * The hash functions for all filter should be identical.
  */
-public final class CompressedDDataHandler extends AbstractDDataHandler<ByteString, CompressedUpdate> implements Hashes {
+public final class CompressedDDataHandler extends AbstractDDataHandler<ActorRef, ByteString, CompressedUpdate>
+        implements Hashes {
 
     private final List<Integer> seeds;
 
@@ -78,10 +84,24 @@ public final class CompressedDDataHandler extends AbstractDDataHandler<ByteStrin
         return hashCodesToByteString(getHashes(topic));
     }
 
+    @Override
+    public CompletionStage<Void> removeAddress(final Address address,
+            final Replicator.WriteConsistency writeConsistency) {
+        return update(writeConsistency, mmap -> {
+            ORMultiMap<ActorRef, ByteString> result = mmap;
+            for (final ActorRef subscriber : mmap.getEntries().keySet()) {
+                if (subscriber.path().address().equals(address)) {
+                    result = result.remove(selfUniqueAddress, subscriber);
+                }
+            }
+            return result;
+        });
+    }
+
     @SuppressWarnings("unchecked")
     static ByteString hashCodesToByteString(final List<Integer> hashes) {
         // force-casting to List<Object> to interface with covariant Scala collection
         final List<Object> hashesForScala = (List<Object>) (Object) hashes;
-        return ByteString.fromInts(JavaConverters.asScalaBuffer(hashesForScala).toSeq());
+        return ByteString.fromInts(CollectionConverters.asScala(hashesForScala).toSeq());
     }
 }

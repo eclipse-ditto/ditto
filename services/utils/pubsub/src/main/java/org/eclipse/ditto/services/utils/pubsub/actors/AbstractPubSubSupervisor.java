@@ -93,7 +93,7 @@ public abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers i
                             getSender(), restartDelay);
                     scheduleRestartChildren();
                     onChildFailure();
-                    return SupervisorStrategy.stop();
+                    return (SupervisorStrategy.Directive) SupervisorStrategy.stop();
                 }).build());
     }
 

@@ -17,13 +17,14 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 
 import akka.actor.ActorRef;
+import akka.actor.Address;
 import akka.actor.Props;
 import akka.cluster.ddata.Replicator;
 import akka.event.LoggingAdapter;
@@ -40,7 +41,7 @@ import scala.jdk.javaapi.CollectionConverters;
  * <li>On DData change, fail local subscribers that lost a race against remote subscribers.</li>
  * </ol>
  */
-public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorRef, Set<String>>>
+public final class AcksUpdater extends AbstractUpdater<Address, LiteralUpdate, Map<Address, Set<String>>>
         implements ClusterMemberRemovedAware {
 
     /**
@@ -48,14 +49,14 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorR
      */
     public static final String ACTOR_NAME_PREFIX = "acksUpdater";
 
-    private final DData<String, LiteralUpdate> acksDData;
-    @Nullable private Map<ActorRef, Set<String>> mmap;
+    private final DData<Address, String, LiteralUpdate> acksDData;
+    @Nullable private Map<Address, Set<String>> mmap;
 
     @SuppressWarnings("unused")
     private AcksUpdater(final PubSubConfig config,
-            final ActorRef subscriber,
-            final DData<String, LiteralUpdate> acksDData) {
-        super(ACTOR_NAME_PREFIX, config, subscriber, acksDData.createSubscriptions(), acksDData.getWriter());
+            final Address ownAddress,
+            final DData<Address, String, LiteralUpdate> acksDData) {
+        super(ACTOR_NAME_PREFIX, config, ownAddress, acksDData.createSubscriptions(), acksDData.getWriter());
         this.acksDData = acksDData;
         subscribeForClusterMemberRemovedAware();
         acksDData.getReader().receiveChanges(getSelf());
@@ -70,8 +71,8 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorR
      * @return the Props object.
      */
     public static Props props(final PubSubConfig config,
-            final ActorRef subscriber,
-            final DData<String, LiteralUpdate> acksDData) {
+            final Address subscriber,
+            final DData<Address, String, LiteralUpdate> acksDData) {
 
         return Props.create(AcksUpdater.class, config, subscriber, acksDData);
     }
@@ -91,7 +92,7 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorR
     }
 
     @Override
-    public DDataWriter<?> getDDataWriter() {
+    public DDataWriter<Address, ?> getDDataWriter() {
         return acksDData.getWriter();
     }
 
@@ -119,7 +120,7 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorR
     }
 
     @Override
-    protected void ddataOpSuccess(final DDataOpSuccess<Map<ActorRef, Set<String>>> opSuccess) {
+    protected void ddataOpSuccess(final DDataOpSuccess<Map<Address, Set<String>>> opSuccess) {
         log.warning("Unexpected DDataOpSuccess: sn=<{}> wc=<{}> payload=<{}>",
                 opSuccess.seqNr, opSuccess.writeConsistency, opSuccess.payload);
     }
@@ -133,7 +134,7 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorR
 
     private void writeLocalDData() {
         acksDData.getWriter()
-                .put(subscriber, subscriptions.export(true), Replicator.writeLocal())
+                .put(subscriber, subscriptions.export(true), (Replicator.WriteConsistency) Replicator.writeLocal())
                 .whenComplete((_void, error) -> {
                     if (error != null) {
                         log.error(error, "Failed to update local DData");
@@ -159,7 +160,7 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorR
      * @param remoteAckLabels ack labels claimed remotely.
      * @return a future set of local subscribers who lost a race.
      */
-    private java.util.Set<ActorRef> getLocalLosers(final Map<ActorRef, Set<String>> remoteAckLabels) {
+    private java.util.Set<ActorRef> getLocalLosers(final Map<Address, Set<String>> remoteAckLabels) {
         return remoteAckLabels.entrySet()
                 .stream()
                 .filter(entry -> isSmallerThanMySubscriber(entry.getKey()))
@@ -182,8 +183,8 @@ public final class AcksUpdater extends AbstractUpdater<LiteralUpdate, Map<ActorR
         }
     }
 
-    private boolean isSmallerThanMySubscriber(final ActorRef otherSubscriber) {
-        return otherSubscriber.compareTo(subscriber) < 0;
+    private boolean isSmallerThanMySubscriber(final Address otherSubscriber) {
+        return Address.addressOrdering().compare(otherSubscriber, subscriber) < 0;
     }
 
 }

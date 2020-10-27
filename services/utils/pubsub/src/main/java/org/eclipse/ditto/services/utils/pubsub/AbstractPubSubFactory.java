@@ -31,6 +31,7 @@ import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
+import akka.actor.Address;
 import akka.actor.ExtendedActorSystem;
 import akka.actor.Props;
 
@@ -47,8 +48,8 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
     protected final PubSubTopicExtractor<T> topicExtractor;
 
     protected final DistributedDataConfig ddataConfig;
-    protected final DData<?, ?> ddata;
-    @Nullable protected final DData<String, LiteralUpdate> acksDdata;
+    protected final DData<ActorRef, ?, ?> ddata;
+    @Nullable protected final DData<Address, String, LiteralUpdate> acksDdata;
 
     /**
      * Create a pub-sub factory.

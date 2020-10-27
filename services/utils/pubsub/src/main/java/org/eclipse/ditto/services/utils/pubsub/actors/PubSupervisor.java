@@ -50,12 +50,12 @@ public final class PubSupervisor extends AbstractPubSubSupervisor {
 
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
-    private final DData<?, ?> ddata;
+    private final DData<ActorRef, ?, ?> ddata;
 
     @Nullable private ActorRef publisher;
 
     @SuppressWarnings("unused")
-    private PubSupervisor(final DData<?, ?> ddata) {
+    private PubSupervisor(final DData<ActorRef, ?, ?> ddata) {
         super();
         this.ddata = ddata;
     }
@@ -66,7 +66,7 @@ public final class PubSupervisor extends AbstractPubSubSupervisor {
      * @param ddata read-write access to the distributed data.
      * @return the Props object.
      */
-    public static Props props(final DData<?, ?> ddata) {
+    public static Props props(final DData<ActorRef, ?, ?> ddata) {
         return Props.create(PubSupervisor.class, ddata);
     }
 

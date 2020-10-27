@@ -36,7 +36,7 @@ interface ClusterMemberRemovedAware extends Actor {
     /**
      * @return the distributed data writer of this actor.
      */
-    DDataWriter<?> getDDataWriter();
+    DDataWriter<?, ?> getDDataWriter();
 
     default AbstractActor.Receive receiveClusterMemberRemoved() {
         return ReceiveBuilder.create()
@@ -61,11 +61,12 @@ interface ClusterMemberRemovedAware extends Actor {
         // acksUpdater detected unreachable remote. remove it from local ORMultiMap.
         final Address address = memberRemoved.member().address();
         log().info("Removing declared acks on removed member <{}>", address);
-        getDDataWriter().removeAddress(address, Replicator.writeLocal()).whenComplete((_void, error) -> {
-            if (error != null) {
-                log().error(error, "Failed to remove declared acks on removed cluster member <{}>", address);
-            }
-        });
+        getDDataWriter().removeAddress(address, (Replicator.WriteConsistency) Replicator.writeLocal())
+                .whenComplete((_void, error) -> {
+                    if (error != null) {
+                        log().error(error, "Failed to remove declared acks on removed cluster member <{}>", address);
+                    }
+                });
     }
 
     /**

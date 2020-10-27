@@ -19,8 +19,10 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorRef;
+import akka.actor.Address;
 import akka.actor.Props;
 import akka.actor.Terminated;
+import akka.cluster.Cluster;
 import akka.cluster.ddata.Replicator;
 import akka.japi.pf.ReceiveBuilder;
 
@@ -63,9 +65,10 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
 
     private final Class<T> messageClass;
     private final PubSubTopicExtractor<T> topicExtractor;
+    private final Address selfAddress;
 
-    private final DData<?, U> topicsDData;
-    @Nullable private final DData<String, LiteralUpdate> acksDData;
+    private final DData<ActorRef, ?, U> topicsDData;
+    @Nullable private final DData<Address, String, LiteralUpdate> acksDData;
 
     @Nullable private ActorRef updater;
     @Nullable private ActorRef acksUpdater;
@@ -73,13 +76,14 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
     @SuppressWarnings("unused")
     private SubSupervisor(final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
-            final DData<?, U> topicsDData,
-            @Nullable final DData<String, LiteralUpdate> acksDData) {
+            final DData<ActorRef, ?, U> topicsDData,
+            @Nullable final DData<Address, String, LiteralUpdate> acksDData) {
         super();
         this.messageClass = messageClass;
         this.topicExtractor = topicExtractor;
         this.topicsDData = topicsDData;
         this.acksDData = acksDData;
+        selfAddress = Cluster.get(getContext().getSystem()).selfAddress();
     }
 
     /**
@@ -96,8 +100,8 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
      */
     public static <T, U> Props props(final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
-            final DData<?, U> topicsDData,
-            @Nullable final DData<String, LiteralUpdate> acksDData) {
+            final DData<ActorRef, ?, U> topicsDData,
+            @Nullable final DData<Address, String, LiteralUpdate> acksDData) {
 
         return Props.create(SubSupervisor.class, messageClass, topicExtractor, topicsDData, acksDData);
     }
@@ -133,17 +137,15 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
         updater = startChild(updaterProps, SubUpdater.ACTOR_NAME_PREFIX);
 
         if (acksDData != null) {
-            final Props acksUpdaterProps = AcksUpdater.props(config, subscriber, acksDData);
+            final Props acksUpdaterProps = AcksUpdater.props(config, selfAddress, acksDData);
             acksUpdater = startChild(acksUpdaterProps, AcksUpdater.ACTOR_NAME_PREFIX);
         }
     }
 
     private void subscriberTerminated(final Terminated terminated) {
         log.error("Subscriber terminated. Removing subscriber from DData: <{}>", terminated.getActor());
-        topicsDData.getWriter().removeSubscriber(terminated.getActor(), Replicator.writeLocal());
-        if (acksDData != null) {
-            acksDData.getWriter().removeSubscriber(terminated.getActor(), Replicator.writeLocal());
-        }
+        topicsDData.getWriter().removeSubscriber(terminated.getActor(),
+                (Replicator.WriteConsistency) Replicator.writeLocal());
     }
 
     private boolean isUpdaterAvailable() {

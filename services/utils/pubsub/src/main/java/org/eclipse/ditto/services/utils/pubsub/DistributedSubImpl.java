@@ -72,21 +72,24 @@ final class DistributedSubImpl implements DistributedSub {
     @Override
     public void subscribeWithoutAck(final Collection<String> topics, final ActorRef subscriber) {
         final SubUpdater.Request request =
-                SubUpdater.Subscribe.of(new HashSet<>(topics), subscriber, Replicator.writeLocal(), false);
+                SubUpdater.Subscribe.of(new HashSet<>(topics), subscriber,
+                        (Replicator.WriteConsistency) Replicator.writeLocal(), false);
         subSupervisor.tell(request, subscriber);
     }
 
     @Override
     public void unsubscribeWithoutAck(final Collection<String> topics, final ActorRef subscriber) {
         final SubUpdater.Request request =
-                SubUpdater.Unsubscribe.of(new HashSet<>(topics), subscriber, Replicator.writeLocal(), false);
+                SubUpdater.Unsubscribe.of(new HashSet<>(topics), subscriber,
+                        (Replicator.WriteConsistency) Replicator.writeLocal(), false);
         subSupervisor.tell(request, subscriber);
     }
 
     @Override
     public void removeSubscriber(final ActorRef subscriber) {
         final SubUpdater.Request request =
-                SubUpdater.RemoveSubscriber.of(subscriber, Replicator.writeLocal(), false);
+                SubUpdater.RemoveSubscriber.of(subscriber, (Replicator.WriteConsistency) Replicator.writeLocal(),
+                        false);
         subSupervisor.tell(request, subscriber);
     }
 
@@ -106,7 +109,8 @@ final class DistributedSubImpl implements DistributedSub {
     @Override
     public void removeAcknowledgementLabelDeclaration(final ActorRef subscriber) {
         final AbstractUpdater.RemoveSubscriber request =
-                AbstractUpdater.RemoveSubscriber.of(subscriber, Replicator.writeLocal(), false)
+                AbstractUpdater.RemoveSubscriber.of(subscriber, (Replicator.WriteConsistency) Replicator.writeLocal(),
+                        false)
                         .forAcknowledgementLabelDeclaration();
         subSupervisor.tell(request, ActorRef.noSender());
     }
