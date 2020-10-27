@@ -29,13 +29,13 @@ import javax.annotation.concurrent.Immutable;
 final class ImmutableTopicPath implements TopicPath {
 
     static final String PROP_NAME_NAMESPACE = "namespace";
-    static final String PROP_NAME_ID = "id";
+    static final String PROP_NAME_ID = "entityName";
     private static final String PROP_NAME_GROUP = "group";
     private static final String PROP_NAME_CHANNEL = "channel";
     private static final String PROP_NAME_CRITERION = "criterion";
 
     private final String namespace;
-    private final String id;
+    private final String name;
     private final Group group;
     private final Channel channel;
     private final Criterion criterion;
@@ -44,11 +44,11 @@ final class ImmutableTopicPath implements TopicPath {
     @Nullable private final SearchAction searchAction;
     private final String path;
 
-    private ImmutableTopicPath(final String namespace, final String id, final Group group,
+    private ImmutableTopicPath(final String namespace, final String name, final Group group,
             @Nullable final Channel channel, final Criterion criterion, @Nullable final Action action, @Nullable final SearchAction searchAction,
             @Nullable final String subject) {
         this.namespace = checkNotNull(namespace, PROP_NAME_NAMESPACE);
-        this.id = checkNotNull(id, PROP_NAME_ID);
+        this.name = checkNotNull(name, PROP_NAME_ID);
         this.group = checkNotNull(group, PROP_NAME_GROUP);
         this.channel = checkChannelArgument(channel, group);
         this.criterion = checkNotNull(criterion, PROP_NAME_CRITERION);
@@ -71,28 +71,28 @@ final class ImmutableTopicPath implements TopicPath {
     }
 
     /**
-     * Returns a new ImmutableTopicPath for the specified {@code namespace}, {@code id}, {@code group} and
+     * Returns a new ImmutableTopicPath for the specified {@code namespace}, {@code entityname}, {@code group} and
      * {@code criterion}.
      *
      * @param namespace the namespace.
-     * @param id the id.
+     * @param entityname the entityname.
      * @param group the group.
      * @param channel the channel.
      * @param criterion the criterion.
      * @return the TopicPath.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ImmutableTopicPath of(final String namespace, final String id, final Group group,
+    public static ImmutableTopicPath of(final String namespace, final String entityname, final Group group,
             final Channel channel, final Criterion criterion) {
-        return new ImmutableTopicPath(namespace, id, group, channel, criterion, null, null, null);
+        return new ImmutableTopicPath(namespace, entityname, group, channel, criterion, null, null, null);
     }
 
     /**
-     * Returns a new ImmutableTopicPath for the specified {@code namespace}, {@code id}, {@code group},
+     * Returns a new ImmutableTopicPath for the specified {@code namespace}, {@code entityName}, {@code group},
      * {@code criterion} and {@code action}.
      *
      * @param namespace the namespace.
-     * @param id the id.
+     * @param entityName the entityName.
      * @param group the group.
      * @param channel the channel.
      * @param criterion the criterion.
@@ -100,19 +100,19 @@ final class ImmutableTopicPath implements TopicPath {
      * @return the TopicPath.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ImmutableTopicPath of(final String namespace, final String id, final Group group,
+    public static ImmutableTopicPath of(final String namespace, final String entityName, final Group group,
             final Channel channel, final Criterion criterion, final Action action) {
         checkNotNull(action, "action");
-        return new ImmutableTopicPath(namespace, id, group, channel, criterion, action, null, null);
+        return new ImmutableTopicPath(namespace, entityName, group, channel, criterion, action, null, null);
     }
 
 
     /**
-     * Returns a new ImmutableTopicPath for the specified {@code namespace}, {@code id}, {@code group},
+     * Returns a new ImmutableTopicPath for the specified {@code namespace}, {@code entityName}, {@code group},
      * {@code criterion} and {@code action}
      *
      * @param namespace the namespace.
-     * @param id the id.
+     * @param entityName the entityName.
      * @param group the group.
      * @param channel the channel.
      * @param criterion the criterion.
@@ -120,18 +120,18 @@ final class ImmutableTopicPath implements TopicPath {
      * @return the TopicPath.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ImmutableTopicPath of(final String namespace, final String id, final Group group,
+    public static ImmutableTopicPath of(final String namespace, final String entityName, final Group group,
             final Channel channel, final Criterion criterion, final String subject) {
         checkNotNull(subject, "subject");
-        return new ImmutableTopicPath(namespace, id, group, channel, criterion, null, null, subject);
+        return new ImmutableTopicPath(namespace, entityName, group, channel, criterion, null, null, subject);
     }
 
     /**
-     * Returns a new ImmutableTopicPath for the specified {@code namespace}, {@code id}, {@code group},
+     * Returns a new ImmutableTopicPath for the specified {@code namespace}, {@code entityName}, {@code group},
      * {@code criterion} and {@code action}
      *
      * @param namespace the namespace.
-     * @param id the id.
+     * @param entityName the entityName.
      * @param group the group.
      * @param channel the channel.
      * @param criterion the criterion.
@@ -139,10 +139,10 @@ final class ImmutableTopicPath implements TopicPath {
      * @return the TopicPath.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ImmutableTopicPath of(final String namespace, final String id, final Group group,
+    public static ImmutableTopicPath of(final String namespace, final String entityName, final Group group,
             final Channel channel, final Criterion criterion, final SearchAction searchAction) {
         checkNotNull(searchAction, "searchAction");
-        return new ImmutableTopicPath(namespace, id, group, channel, criterion, null, searchAction, null);
+        return new ImmutableTopicPath(namespace, entityName, group, channel, criterion, null, searchAction, null);
     }
 
     @Override
@@ -182,7 +182,12 @@ final class ImmutableTopicPath implements TopicPath {
 
     @Override
     public String getId() {
-        return id;
+        return name;
+    }
+
+    @Override
+    public String getEntityName() {
+        return name;
     }
 
     @Override
@@ -200,7 +205,7 @@ final class ImmutableTopicPath implements TopicPath {
             return false;
         }
         final ImmutableTopicPath that = (ImmutableTopicPath) o;
-        return Objects.equals(namespace, that.namespace) && Objects.equals(id, that.id) && group == that.group
+        return Objects.equals(namespace, that.namespace) && Objects.equals(name, that.name) && group == that.group
                 && channel == that.channel && criterion == that.criterion && Objects.equals(action, that.action) &&
                 Objects.equals(searchAction, that.searchAction) &&
                 Objects.equals(subject, that.subject) && Objects.equals(path, that.path);
@@ -208,19 +213,19 @@ final class ImmutableTopicPath implements TopicPath {
 
     @Override
     public int hashCode() {
-        return Objects.hash(namespace, id, group, channel, criterion, action, searchAction, path, subject);
+        return Objects.hash(namespace, name, group, channel, criterion, action, searchAction, path, subject);
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + "namespace=" + namespace + ", id=" + id + ", group=" + group +
+        return getClass().getSimpleName() + " [" + "namespace=" + namespace + ", id=" + name + ", group=" + group +
                 ", channel=" + channel
                 + ", criterion=" + criterion + ", action=" + action + ", searchAction=" + searchAction + ", subject=" + subject + ", path=" + path + ']';
     }
 
     private String buildPath() {
 
-        final String namespaceIdGroup = MessageFormat.format("{0}/{1}/{2}", namespace, id, group);
+        final String namespaceIdGroup = MessageFormat.format("{0}/{1}/{2}", namespace, name, group);
         final StringBuilder builder = new StringBuilder(namespaceIdGroup);
 
         // e.g. policy commands do not have a channel

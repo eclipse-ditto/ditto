@@ -68,18 +68,18 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     /**
-     * Returns a new TopicPathBuilder for the specified {@code namespace} and {@code id}.
+     * Returns a new TopicPathBuilder for the specified {@code namespace} and {@code entityName}.
      *
      * @param namespace the Namespace.
-     * @param id the Id.
+     * @param entityName the Id.
      * @return the builder.
-     * @throws NullPointerException if {@code namespace} or {@code id} is {@code null}.
+     * @throws NullPointerException if {@code namespace} or {@code entityName} is {@code null}.
      */
-    public static TopicPathBuilder of(final String namespace, final String id) {
+    public static TopicPathBuilder of(final String namespace, final String entityName) {
         requireNonNull(namespace, ImmutableTopicPath.PROP_NAME_NAMESPACE);
-        requireNonNull(id, ImmutableTopicPath.PROP_NAME_ID);
+        requireNonNull(entityName, ImmutableTopicPath.PROP_NAME_ID);
 
-        return new ImmutableTopicPathBuilder(namespace, id);
+        return new ImmutableTopicPathBuilder(namespace, entityName);
     }
 
     @Override
@@ -278,6 +278,11 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
 
         @Override
         public String getNamespace() {
+            return null;
+        }
+
+        @Override
+        public String getEntityName() {
             return null;
         }
 

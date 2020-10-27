@@ -36,7 +36,8 @@ In [connections](basic-connections.html), the following placeholders are availab
 | `{%raw%}{{ request:subjectId }}{%endraw%}` | primary authorization subject of a command, or primary authorization subject that caused an event |
 | `{%raw%}{{ topic:full }}{%endraw%}` | full [Ditto Protocol topic path](protocol-specification-topic.html)<br/>in the form `{namespace}/{entityId}/{group}/`<br/>`{channel}/{criterion}/{action-subject}` |
 | `{%raw%}{{ topic:namespace }}{%endraw%}` | Ditto Protocol [Namespace](protocol-specification-topic.html#namespace) |
-| `{%raw%}{{ topic:entityId }}{%endraw%}` | Ditto Protocol [Entity ID](protocol-specification-topic.html#entity-name) |
+| `{%raw%}{{ topic:entityId }}{%endraw%}` | Deprecated. Use `{%raw%}{{ topic:entityName }}{%endraw%}` instead. |
+| `{%raw%}{{ topic:entityName }}{%endraw%}` | Ditto Protocol [Entity Name](protocol-specification-topic.html#entity-name) |
 | `{%raw%}{{ topic:group }}{%endraw%}` | Ditto Protocol [Group](protocol-specification-topic.html#group) |
 | `{%raw%}{{ topic:channel }}{%endraw%}` | Ditto Protocol [Channel](protocol-specification-topic.html#channel) |
 | `{%raw%}{{ topic:criterion }}{%endraw%}` | Ditto Protocol [Criterion](protocol-specification-topic.html#criterion) |
@@ -54,7 +55,7 @@ _org.eclipse.ditto/device-123/things/twin/commands/create_ these placeholders wo
 |-------------|----------------|
 | `topic:full` | _org.eclipse.ditto/device-123/things/twin/commands/create_ |
 | `topic:namespace` | _org.eclipse.ditto_ |
-| `topic:entityId` | _device-123_ |
+| `topic:entityName` | _device-123_ |
 | `topic:group` | _things_ |
 | `topic:channel` | _twin_ |
 | `topic:criterion` | _commands_ |
@@ -69,7 +70,7 @@ _org.eclipse.ditto/device-123/things/live/messages/hello.world_ these placeholde
 |-------------|----------------|
 | `topic:full`  | _org.eclipse.ditto/device-123/things/live/messages/hello.world_ |
 | `topic:namespace` | _org.eclipse.ditto_ |
-| `topic:entityId` | _device-123_ |
+| `topic:entityName` | _device-123_ |
 | `topic:group` | _things_ |
 | `topic:channel` | _live_ |
 | `topic:criterion` | _messages_ |

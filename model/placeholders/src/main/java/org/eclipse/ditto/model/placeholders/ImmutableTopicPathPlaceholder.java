@@ -27,7 +27,7 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
  * <ul>
  * <li>{@code topic:full} -> {@code {namespace}/{entityId}/{group}/{channel}/{criterion}/{action-subject}}</li>
  * <li>{@code topic:namespace}</li>
- * <li>{@code topic:entityId}</li>
+ * <li>{@code topic:entityName}</li>
  * <li>{@code topic:group}</li>
  * <li>{@code topic:channel}</li>
  * <li>{@code topic:criterion}</li>
@@ -47,7 +47,8 @@ final class ImmutableTopicPathPlaceholder implements TopicPathPlaceholder {
 
     private static final String FULL_PLACEHOLDER = "full";
     private static final String NAMESPACE_PLACEHOLDER = "namespace";
-    private static final String ENTITYID_PLACEHOLDER = "entityId";
+    @Deprecated private static final String ENTITYID_PLACEHOLDER = "entityId";
+    private static final String ENTITY_NAME_PLACEHOLDER = "entityName";
     private static final String GROUP_PLACEHOLDER = "group";
     private static final String CHANNEL_PLACEHOLDER = "channel";
     private static final String CRITERION_PLACEHOLDER = "criterion";
@@ -56,9 +57,9 @@ final class ImmutableTopicPathPlaceholder implements TopicPathPlaceholder {
     private static final String ACTION_OR_SUBJECT_PLACEHOLDER = "action-subject";
 
     private static final List<String> SUPPORTED = Collections.unmodifiableList(
-            Arrays.asList(FULL_PLACEHOLDER, NAMESPACE_PLACEHOLDER, ENTITYID_PLACEHOLDER, GROUP_PLACEHOLDER,
-                    CHANNEL_PLACEHOLDER, CRITERION_PLACEHOLDER, ACTION_PLACEHOLDER, SUBJECT_PLACEHOLDER,
-                    ACTION_OR_SUBJECT_PLACEHOLDER));
+            Arrays.asList(FULL_PLACEHOLDER, NAMESPACE_PLACEHOLDER, ENTITY_NAME_PLACEHOLDER, ENTITYID_PLACEHOLDER,
+                    GROUP_PLACEHOLDER, CHANNEL_PLACEHOLDER, CRITERION_PLACEHOLDER, ACTION_PLACEHOLDER,
+                    SUBJECT_PLACEHOLDER, ACTION_OR_SUBJECT_PLACEHOLDER));
 
     private ImmutableTopicPathPlaceholder() {
     }
@@ -84,6 +85,8 @@ final class ImmutableTopicPathPlaceholder implements TopicPathPlaceholder {
         switch (placeholder) {
             case NAMESPACE_PLACEHOLDER:
                 return Optional.of(topicPath.getNamespace());
+            case ENTITY_NAME_PLACEHOLDER:
+                return Optional.of(topicPath.getEntityName());
             case ENTITYID_PLACEHOLDER:
                 return Optional.of(topicPath.getId());
             case GROUP_PLACEHOLDER:
