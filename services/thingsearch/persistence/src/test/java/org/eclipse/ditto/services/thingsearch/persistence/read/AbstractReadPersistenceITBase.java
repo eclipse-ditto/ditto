@@ -105,6 +105,7 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
 
     void deleteThing(final ThingId thingId, final long revision, @Nullable final PolicyId policyId,
             final long policyRevision) {
+
         runBlockingWithReturn(writePersistence.delete(thingId, revision, policyId, policyRevision));
     }
 

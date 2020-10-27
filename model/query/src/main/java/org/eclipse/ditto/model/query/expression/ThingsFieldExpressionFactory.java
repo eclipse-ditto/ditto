@@ -58,10 +58,10 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
     }
 
     /**
-     * Return a sortOptions field expression for the given feature desiredProperty key.
+     * Return a sortOptions field expression for the given feature desired property key.
      *
      * @param featureId the feature id
-     * @param property the property path
+     * @param property the desired property path
      * @return the sortOptions field expression
      */
     default SortFieldExpression sortByFeatureProperty(final String featureId, final String property) {
@@ -69,10 +69,10 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
     }
 
     /**
-     * Return a filter field expression for the given feature id and desiredProperty key.
+     * Return a filter field expression for the given feature id and desired property key.
      *
      * @param featureId the feature id
-     * @param desiredProperty the property path
+     * @param desiredProperty the desired property path
      * @return the filter field expression
      */
     default FilterFieldExpression filterByFeatureDesiredProperty(final String featureId, final String desiredProperty) {
@@ -80,10 +80,10 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
     }
 
     /**
-     * Return a exist field expression for the given feature id and desiredProperty key.
+     * Return a exist field expression for the given feature id and desired property key.
      *
      * @param featureId the feature id
-     * @param desiredProperty the property path
+     * @param desiredProperty the desired property path
      * @return the exist field expression
      */
     default ExistsFieldExpression existsByFeatureDesiredProperty(final String featureId, final String desiredProperty) {
@@ -91,10 +91,10 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
     }
 
     /**
-     * Return a sortOptions field expression for the given feature desiredProperty key.
+     * Return a sortOptions field expression for the given feature desired property key.
      *
      * @param featureId the feature id
-     * @param desiredProperty the property path
+     * @param desiredProperty the desired property path
      * @return the sortOptions field expression
      */
     default SortFieldExpression sortByFeatureDesiredProperty(final String featureId, final String desiredProperty) {

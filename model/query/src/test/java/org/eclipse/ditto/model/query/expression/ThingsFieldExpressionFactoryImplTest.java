@@ -131,7 +131,7 @@ public final class ThingsFieldExpressionFactoryImplTest {
     }
 
     @Test
-    public void sortByWithJsonPointer_desired() {
+    public void sortByWithJsonPointerDesired() {
         final FieldExpression fieldExpression = ef.sortBy(SLASH + KNOWN_FEATURE_DESIRED_PROPERTY_WITH_ID);
 
         final SortFieldExpression expected =

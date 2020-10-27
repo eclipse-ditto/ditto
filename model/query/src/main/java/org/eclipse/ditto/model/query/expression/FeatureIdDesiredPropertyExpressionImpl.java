@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.query.expression.visitors.FilterFieldExpressionVi
 import org.eclipse.ditto.model.query.expression.visitors.SortFieldExpressionVisitor;
 
 /**
- * Field expression for feature desiredProperties with a given feature id.
+ * Field expression for feature desired properties with a given feature id.
  *
  * @since 1.5.0
  */
@@ -36,7 +36,7 @@ public class FeatureIdDesiredPropertyExpressionImpl
      * Constructor.
      *
      * @param featureId the feature id
-     * @param desiredProperty the feature property path
+     * @param desiredProperty the feature desired property path
      */
     public FeatureIdDesiredPropertyExpressionImpl(final String featureId, final String desiredProperty) {
         this.desiredProperty = requireNonNull(desiredProperty);
