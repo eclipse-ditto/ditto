@@ -17,7 +17,6 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nullable;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
@@ -36,12 +35,12 @@ final class DittoTrustManager implements X509TrustManager {
     private static final Pattern IPV6_URI_PATTERN = Pattern.compile("^\\[[A-Fa-f0-9.:\\s]++]$");
 
     private final X509TrustManager delegateWithRevocationCheck;
-    @Nullable private final X509TrustManager delegateWithoutRevocationCheck;
+    private final X509TrustManager delegateWithoutRevocationCheck;
     private final String hostnameOrIp;
     private final ConnectionLogger connectionLogger;
 
     private DittoTrustManager(final X509TrustManager delegateWithRevocationCheck,
-            @Nullable final X509TrustManager delegateWithoutRevocationCheck,
+            final X509TrustManager delegateWithoutRevocationCheck,
             final String hostnameOrIp,
             final ConnectionLogger connectionLogger) {
         this.delegateWithRevocationCheck = delegateWithRevocationCheck;
@@ -91,13 +90,9 @@ final class DittoTrustManager implements X509TrustManager {
         try {
             delegateWithRevocationCheck.checkServerTrusted(chain, authType);
         } catch (final CertificateException e) {
-            if (delegateWithoutRevocationCheck != null) {
-                // check again without revocation to detect any masked errors
-                delegateWithoutRevocationCheck.checkServerTrusted(chain, authType);
-                connectionLogger.exception(InfoProviderFactory.empty(), e);
-            } else {
-                throw e;
-            }
+            // check again without revocation to detect any masked errors
+            delegateWithoutRevocationCheck.checkServerTrusted(chain, authType);
+            connectionLogger.exception(InfoProviderFactory.empty(), e);
         }
 
         // verify hostname
