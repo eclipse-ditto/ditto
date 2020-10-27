@@ -40,13 +40,13 @@ public final class RetrieveFeatureDesiredPropertiesTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, RetrieveFeatureDesiredProperties.TYPE)
             .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
-            .set(RetrieveFeatureDesiredProperties.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
+            .set(RetrieveFeatureDesiredProperties.JSON_FEATURE_ID, TestConstants.Feature.HOVER_BOARD_ID)
             .build();
 
     private static final JsonObject KNOWN_JSON_WITH_FIELD_SELECTION = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, RetrieveFeatureDesiredProperties.TYPE)
             .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
-            .set(RetrieveFeatureDesiredProperties.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
+            .set(RetrieveFeatureDesiredProperties.JSON_FEATURE_ID, TestConstants.Feature.HOVER_BOARD_ID)
             .set(RetrieveFeatureDesiredProperties.JSON_SELECTED_FIELDS, SELECTED_FIELDS)
             .build();
 
@@ -72,7 +72,7 @@ public final class RetrieveFeatureDesiredPropertiesTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        RetrieveFeatureProperties.of((ThingId) null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+        RetrieveFeatureProperties.of((ThingId) null, TestConstants.Feature.HOVER_BOARD_ID,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -85,7 +85,7 @@ public final class RetrieveFeatureDesiredPropertiesTest {
 
     @Test
     public void tryToCreateInstanceWithValidArguments() {
-        RetrieveFeatureDesiredProperties.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+        RetrieveFeatureDesiredProperties.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -93,7 +93,7 @@ public final class RetrieveFeatureDesiredPropertiesTest {
     @Test
     public void toJsonReturnsExpected() {
         final RetrieveFeatureDesiredProperties underTest =
-                RetrieveFeatureDesiredProperties.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                RetrieveFeatureDesiredProperties.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
                         TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
@@ -104,7 +104,7 @@ public final class RetrieveFeatureDesiredPropertiesTest {
     @Test
     public void jsonSerializationWorksAsExpectedWithSelectedFields() {
         final RetrieveFeatureDesiredProperties underTest =
-                RetrieveFeatureDesiredProperties.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                RetrieveFeatureDesiredProperties.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
                         JsonFactory.newFieldSelector(SELECTED_FIELDS, JSON_PARSE_OPTIONS),
                         TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
@@ -120,7 +120,7 @@ public final class RetrieveFeatureDesiredPropertiesTest {
 
         assertThat(underTest).isNotNull();
         assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
+        assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.HOVER_BOARD_ID);
     }
 
 

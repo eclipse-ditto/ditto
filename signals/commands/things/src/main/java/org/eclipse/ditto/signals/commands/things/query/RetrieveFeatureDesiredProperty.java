@@ -42,7 +42,8 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * @since 1.5.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveFeatureDesiredProperty.TYPE_PREFIX, name = RetrieveFeatureDesiredProperty.NAME)
+@JsonParsableCommand(typePrefix = RetrieveFeatureDesiredProperty.TYPE_PREFIX,
+        name = RetrieveFeatureDesiredProperty.NAME)
 public final class RetrieveFeatureDesiredProperty extends AbstractCommand<RetrieveFeatureDesiredProperty> implements
         ThingQueryCommand<RetrieveFeatureDesiredProperty>, WithFeatureId {
 
@@ -67,19 +68,20 @@ public final class RetrieveFeatureDesiredProperty extends AbstractCommand<Retrie
     private final JsonPointer desiredPropertyPointer;
 
     private RetrieveFeatureDesiredProperty(final ThingId thingId,
-            final String featureId,
+            final CharSequence featureId,
             final JsonPointer desiredPropertyPointer,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "Thing ID");
-        this.featureId = checkNotNull(featureId, "Feature ID");
+        this.thingId = checkNotNull(thingId, "thingId");
+        this.featureId = checkNotNull(featureId == null || featureId.toString().isEmpty() ? null : featureId.toString(),
+                "featureId");
         this.desiredPropertyPointer = checkDesiredPropertyPointer(desiredPropertyPointer);
     }
 
-    private JsonPointer checkDesiredPropertyPointer(final JsonPointer propertyPointer) {
-        checkNotNull(propertyPointer, "desired property pointer");
-        return ThingsModelFactory.validateFeaturePropertyPointer(propertyPointer);
+    private JsonPointer checkDesiredPropertyPointer(final JsonPointer desiredPropertyPointer) {
+        checkNotNull(desiredPropertyPointer, "desiredPropertyPointer");
+        return ThingsModelFactory.validateFeaturePropertyPointer(desiredPropertyPointer);
     }
 
     /**
@@ -135,7 +137,8 @@ public final class RetrieveFeatureDesiredProperty extends AbstractCommand<Retrie
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of the desired property pointer are not valid
      * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
-    public static RetrieveFeatureDesiredProperty fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static RetrieveFeatureDesiredProperty fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveFeatureDesiredProperty>(TYPE, jsonObject).deserialize(() -> {
             final String extractedThingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);

@@ -49,9 +49,9 @@ public final class RetrieveFeatureDesiredPropertyLiveCommandAnswerBuilderImplTes
     public void setUp() {
         Mockito.when(commandMock.getThingEntityId()).thenReturn(TestConstants.Thing.THING_ID);
         Mockito.when(commandMock.getDittoHeaders()).thenReturn(DittoHeaders.empty());
-        Mockito.when(commandMock.getFeatureId()).thenReturn(TestConstants.Feature.FLUX_CAPACITOR_ID);
+        Mockito.when(commandMock.getFeatureId()).thenReturn(TestConstants.Feature.HOVER_BOARD_ID);
         Mockito.when(commandMock.getDesiredPropertyPointer())
-                .thenReturn(TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_POINTER);
+                .thenReturn(TestConstants.Feature.HOVER_BOARD_PROPERTY_POINTER);
 
         underTest = RetrieveFeatureDesiredPropertyLiveCommandAnswerBuilderImpl.newInstance(commandMock);
     }
@@ -79,7 +79,7 @@ public final class RetrieveFeatureDesiredPropertyLiveCommandAnswerBuilderImplTes
     /** */
     @Test
     public void buildAnswerWithRetrieveFeatureDesiredPropertyResponseOnly() {
-        final JsonValue FeatureDesiredProperty = TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_VALUE;
+        final JsonValue FeatureDesiredProperty = TestConstants.Feature.HOVER_BOARD_PROPERTY_VALUE;
 
         final LiveCommandAnswer liveCommandAnswer =
                 underTest.withResponse(responseFactory -> responseFactory.retrieved(FeatureDesiredProperty))
@@ -91,7 +91,7 @@ public final class RetrieveFeatureDesiredPropertyLiveCommandAnswerBuilderImplTes
                 .hasType(RetrieveFeatureDesiredPropertyResponse.TYPE)
                 .hasDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .hasResourcePath(JsonPointer.of(
-                        "features/" + TestConstants.Feature.FLUX_CAPACITOR_ID + "/desiredProperties/target_year_1"));
+                        "features/" + TestConstants.Feature.HOVER_BOARD_ID + "/desiredProperties/speed"));
     }
 
     /** */

@@ -57,29 +57,13 @@ public final class DeleteFeatureDesiredPropertiesResponse
     private final ThingId thingId;
     private final String featureId;
 
-    private DeleteFeatureDesiredPropertiesResponse(final ThingId thingId, final String featureId,
+    private DeleteFeatureDesiredPropertiesResponse(final ThingId thingId, final CharSequence featureId,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "Thing ID");
-        this.featureId = checkNotNull(featureId, "Feature ID");
-    }
-
-    /**
-     * Creates a response to a {@link DeleteFeatureDesiredProperties} command.
-     *
-     * @param thingId the Thing ID of the deleted desired properties.
-     * @param featureId the {@code Feature}'s ID whose desired properties were deleted.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
-     * instead.
-     */
-    @Deprecated
-    public static DeleteFeatureDesiredPropertiesResponse of(final String thingId, final String featureId,
-            final DittoHeaders dittoHeaders) {
-        return of(ThingId.of(thingId), featureId, dittoHeaders);
+        this.thingId = checkNotNull(thingId, "thingId");
+        this.featureId = checkNotNull(featureId == null || featureId.toString().isEmpty() ? null : featureId.toString(),
+                "featureId");
     }
 
     /**
@@ -91,7 +75,7 @@ public final class DeleteFeatureDesiredPropertiesResponse
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DeleteFeatureDesiredPropertiesResponse of(final ThingId thingId, final String featureId,
+    public static DeleteFeatureDesiredPropertiesResponse of(final ThingId thingId, final CharSequence featureId,
             final DittoHeaders dittoHeaders) {
         return new DeleteFeatureDesiredPropertiesResponse(thingId, featureId, dittoHeaders);
     }
@@ -125,6 +109,7 @@ public final class DeleteFeatureDesiredPropertiesResponse
      */
     public static DeleteFeatureDesiredPropertiesResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return new CommandResponseJsonDeserializer<DeleteFeatureDesiredPropertiesResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
                     final String extractedThingId =
@@ -168,6 +153,7 @@ public final class DeleteFeatureDesiredPropertiesResponse
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);

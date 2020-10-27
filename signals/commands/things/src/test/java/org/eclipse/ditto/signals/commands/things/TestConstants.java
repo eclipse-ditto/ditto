@@ -185,7 +185,6 @@ public final class TestConstants {
         }
     }
 
-
     /**
      * Thing-related test constants.
      */
@@ -437,6 +436,46 @@ public final class TestConstants {
                         .build();
 
         /**
+         * A known ID of a Feature.
+         */
+        public static final String HOVER_BOARD_ID = "HoverBoard";
+
+        /**
+         * Pointer of a known Feature Property.
+         */
+        public static final JsonPointer HOVER_BOARD_PROPERTY_POINTER = JsonFactory.newPointer("speed");
+
+        /**
+         * Value of a known Feature Property.
+         */
+        public static final JsonValue HOVER_BOARD_PROPERTY_VALUE = JsonFactory.newValue(20);
+
+        /**
+         * Properties of a known Feature.
+         */
+        public static final FeatureDefinition HOVER_BOARD_DEFINITION =
+                FeatureDefinition.fromIdentifier("org.eclipse.ditto:hoverboard:1.0.0");
+
+        /**
+         * Properties of a known Feature.
+         */
+        public static final FeatureProperties HOVER_BOARD_PROPERTIES =
+                ThingsModelFactory.newFeaturePropertiesBuilder()
+                        .set("speed", 20)
+                        .set("location_x", "7239954")
+                        .set("location_y", "8239084")
+                        .build();
+
+        /**
+         * A known Feature which is required for time travel.
+         */
+        public static final org.eclipse.ditto.model.things.Feature HOVER_BOARD =
+                ThingsModelFactory.newFeatureBuilder()
+                        .properties(FLUX_CAPACITOR_PROPERTIES)
+                        .withId(FLUX_CAPACITOR_ID)
+                        .build();
+
+        /**
          * Known features of a Thing.
          */
         public static final Features FEATURES = ThingsModelFactory.newFeatures(FLUX_CAPACITOR);
@@ -489,7 +528,6 @@ public final class TestConstants {
         public static final FeaturePropertiesNotModifiableException FEATURE_PROPERTIES_NOT_MODIFIABLE_EXCEPTION =
                 FeaturePropertiesNotModifiableException.newBuilder(Thing.THING_ID, FLUX_CAPACITOR_ID).build();
 
-
         /**
          * A known {@code FeaturePropertyNotAccessibleException}.
          */
@@ -509,15 +547,14 @@ public final class TestConstants {
          */
         public static final FeatureDesiredPropertiesNotAccessibleException
                 FEATURE_DESIRED_PROPERTIES_NOT_ACCESSIBLE_EXCEPTION =
-                FeatureDesiredPropertiesNotAccessibleException.newBuilder(Thing.THING_ID, FLUX_CAPACITOR_ID).build();
+                FeatureDesiredPropertiesNotAccessibleException.newBuilder(Thing.THING_ID, HOVER_BOARD_ID).build();
 
         /**
          * A known {@code FeatureDesiredPropertiesNotModifiableException}.
          */
         public static final FeatureDesiredPropertiesNotModifiableException
                 FEATURE_DESIRED_PROPERTIES_NOT_MODIFIABLE_EXCEPTION =
-                FeatureDesiredPropertiesNotModifiableException.newBuilder(Thing.THING_ID, FLUX_CAPACITOR_ID).build();
-
+                FeatureDesiredPropertiesNotModifiableException.newBuilder(Thing.THING_ID, HOVER_BOARD_ID).build();
 
         /**
          * A known {@code FeatureDesiredPropertyNotAccessibleException}.
@@ -525,7 +562,7 @@ public final class TestConstants {
         public static final FeatureDesiredPropertyNotAccessibleException
                 FEATURE_DESIRED_PROPERTY_NOT_ACCESSIBLE_EXCEPTION =
                 FeatureDesiredPropertyNotAccessibleException
-                        .newBuilder(Thing.THING_ID, FLUX_CAPACITOR_ID, FLUX_CAPACITOR_PROPERTY_POINTER).build();
+                        .newBuilder(Thing.THING_ID, HOVER_BOARD_ID, HOVER_BOARD_PROPERTY_POINTER).build();
 
         /**
          * A known {@code FeatureDesiredPropertyNotModifiableException}.
@@ -533,7 +570,7 @@ public final class TestConstants {
         public static final FeatureDesiredPropertyNotModifiableException
                 FEATURE_DESIRED_PROPERTY_NOT_MODIFIABLE_EXCEPTION =
                 FeatureDesiredPropertyNotModifiableException
-                        .newBuilder(Thing.THING_ID, FLUX_CAPACITOR_ID, FLUX_CAPACITOR_PROPERTY_POINTER).build();
+                        .newBuilder(Thing.THING_ID, HOVER_BOARD_ID, HOVER_BOARD_PROPERTY_POINTER).build();
 
         private Feature() {
             throw new AssertionError();

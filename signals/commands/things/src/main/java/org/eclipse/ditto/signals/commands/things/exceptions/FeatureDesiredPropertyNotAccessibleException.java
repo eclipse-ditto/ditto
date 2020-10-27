@@ -60,6 +60,7 @@ public final class FeatureDesiredPropertyNotAccessibleException extends DittoRun
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
+
         super(ERROR_CODE, HttpStatusCode.NOT_FOUND, dittoHeaders, message, description, cause, href);
     }
 
@@ -85,6 +86,7 @@ public final class FeatureDesiredPropertyNotAccessibleException extends DittoRun
      */
     public static FeatureDesiredPropertyNotAccessibleException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
+
         return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
@@ -102,6 +104,7 @@ public final class FeatureDesiredPropertyNotAccessibleException extends DittoRun
      */
     public static FeatureDesiredPropertyNotAccessibleException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
@@ -136,6 +139,7 @@ public final class FeatureDesiredPropertyNotAccessibleException extends DittoRun
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
+
             return new FeatureDesiredPropertyNotAccessibleException(dittoHeaders, message, description, cause, href);
         }
     }

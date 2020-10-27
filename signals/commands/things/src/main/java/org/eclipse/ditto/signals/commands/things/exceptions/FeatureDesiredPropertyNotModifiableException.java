@@ -58,6 +58,7 @@ public class FeatureDesiredPropertyNotModifiableException extends DittoRuntimeEx
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
+
         super(ERROR_CODE, HttpStatusCode.FORBIDDEN, dittoHeaders, message, description, cause, href);
     }
 
@@ -70,8 +71,8 @@ public class FeatureDesiredPropertyNotModifiableException extends DittoRuntimeEx
      * @return the builder.
      */
     public static FeatureDesiredPropertyNotModifiableException.Builder newBuilder(final ThingId thingId,
-            final String featureId,
-            final JsonPointer jsonPointer) {
+            final String featureId, final JsonPointer jsonPointer) {
+
         return new FeatureDesiredPropertyNotModifiableException.Builder(thingId, featureId, jsonPointer);
     }
 
@@ -85,6 +86,7 @@ public class FeatureDesiredPropertyNotModifiableException extends DittoRuntimeEx
      */
     public static FeatureDesiredPropertyNotModifiableException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
+
         return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
@@ -102,6 +104,7 @@ public class FeatureDesiredPropertyNotModifiableException extends DittoRuntimeEx
      */
     public static FeatureDesiredPropertyNotModifiableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
@@ -119,7 +122,8 @@ public class FeatureDesiredPropertyNotModifiableException extends DittoRuntimeEx
      * A mutable builder with a fluent API for a {@link FeatureDesiredPropertyNotModifiableException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<FeatureDesiredPropertyNotModifiableException> {
+    public static final class Builder
+            extends DittoRuntimeExceptionBuilder<FeatureDesiredPropertyNotModifiableException> {
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
@@ -136,6 +140,7 @@ public class FeatureDesiredPropertyNotModifiableException extends DittoRuntimeEx
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
+
             return new FeatureDesiredPropertyNotModifiableException(dittoHeaders, message, description, cause, href);
         }
     }

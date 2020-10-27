@@ -44,7 +44,7 @@ public final class DeleteFeatureDesiredPropertiesLiveCommandImplTest {
     @Before
     public void setUp() {
         twinCommand = DeleteFeatureDesiredProperties.of(TestConstants.Thing.THING_ID,
-                TestConstants.Feature.FLUX_CAPACITOR_ID, DittoHeaders.empty());
+                TestConstants.Feature.HOVER_BOARD_ID, DittoHeaders.empty());
         underTest = DeleteFeatureDesiredPropertiesLiveCommandImpl.of(twinCommand);
     }
 

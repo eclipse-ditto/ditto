@@ -36,15 +36,17 @@ import org.eclipse.ditto.model.things.ThingId;
  */
 @Immutable
 @JsonParsableException(errorCode = FeatureDesiredPropertiesNotAccessibleException.ERROR_CODE)
-public final class FeatureDesiredPropertiesNotAccessibleException extends DittoRuntimeException implements ThingException {
+public final class FeatureDesiredPropertiesNotAccessibleException extends DittoRuntimeException
+        implements ThingException {
 
     /**
      * Error code of this exception.
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "feature.desiredProperties.notfound";
 
-    private static final String MESSAGE_TEMPLATE = "The desired properties of the Feature with ID ''{0}'' on the Thing with ID "
-            + "''{1}'' do not exist or the requester had insufficient permissions to access it.";
+    private static final String MESSAGE_TEMPLATE =
+            "The desired properties of the Feature with ID ''{0}'' on the Thing with ID "
+                    + "''{1}'' do not exist or the requester had insufficient permissions to access it.";
 
     private static final String DEFAULT_DESCRIPTION =
             "Check if the ID of the Thing and the Feature ID was correct and you have sufficient permissions.";
@@ -56,6 +58,7 @@ public final class FeatureDesiredPropertiesNotAccessibleException extends DittoR
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
+
         super(ERROR_CODE, HttpStatusCode.NOT_FOUND, dittoHeaders, message, description, cause, href);
     }
 
@@ -80,6 +83,7 @@ public final class FeatureDesiredPropertiesNotAccessibleException extends DittoR
      */
     public static FeatureDesiredPropertiesNotAccessibleException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
+
         return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
@@ -97,6 +101,7 @@ public final class FeatureDesiredPropertiesNotAccessibleException extends DittoR
      */
     public static FeatureDesiredPropertiesNotAccessibleException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
@@ -114,7 +119,8 @@ public final class FeatureDesiredPropertiesNotAccessibleException extends DittoR
      * A mutable builder with a fluent API for a {@link FeatureDesiredPropertiesNotAccessibleException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<FeatureDesiredPropertiesNotAccessibleException> {
+    public static final class Builder
+            extends DittoRuntimeExceptionBuilder<FeatureDesiredPropertiesNotAccessibleException> {
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
@@ -131,6 +137,7 @@ public final class FeatureDesiredPropertiesNotAccessibleException extends DittoR
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
+
             return new FeatureDesiredPropertiesNotAccessibleException(dittoHeaders, message, description, cause, href);
         }
     }

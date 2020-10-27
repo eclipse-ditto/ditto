@@ -47,8 +47,8 @@ public final class ModifyFeatureDesiredPropertiesLiveCommandAnswerBuilderImplTes
     public void setUp() {
         Mockito.when(commandMock.getThingEntityId()).thenReturn(TestConstants.Thing.THING_ID);
         Mockito.when(commandMock.getDittoHeaders()).thenReturn(DittoHeaders.empty());
-        Mockito.when(commandMock.getFeatureId()).thenReturn(TestConstants.Feature.FLUX_CAPACITOR_ID);
-        Mockito.when(commandMock.getDesiredProperties()).thenReturn(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+        Mockito.when(commandMock.getFeatureId()).thenReturn(TestConstants.Feature.HOVER_BOARD_ID);
+        Mockito.when(commandMock.getDesiredProperties()).thenReturn(TestConstants.Feature.HOVER_BOARD_PROPERTIES);
 
         underTest = ModifyFeatureDesiredPropertiesLiveCommandAnswerBuilderImpl.newInstance(commandMock);
     }

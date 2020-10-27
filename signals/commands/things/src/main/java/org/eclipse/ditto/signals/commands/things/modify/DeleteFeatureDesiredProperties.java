@@ -62,11 +62,13 @@ public final class DeleteFeatureDesiredProperties extends AbstractCommand<Delete
     private final ThingId thingId;
     private final String featureId;
 
-    private DeleteFeatureDesiredProperties(final ThingId thingId, final String featureId,
+    private DeleteFeatureDesiredProperties(final ThingId thingId, final CharSequence featureId,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "Thing ID");
-        this.featureId = checkNotNull(featureId, "Feature ID");
+        this.thingId = checkNotNull(thingId, "thingId");
+        this.featureId = checkNotNull(featureId == null || featureId.toString().isEmpty() ? null : featureId.toString(),
+                "featureId");
     }
 
     /**
@@ -78,7 +80,7 @@ public final class DeleteFeatureDesiredProperties extends AbstractCommand<Delete
      * @return a Command for deleting the provided desired properties.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
      */
-    public static DeleteFeatureDesiredProperties of(final ThingId thingId, final String featureId,
+    public static DeleteFeatureDesiredProperties of(final ThingId thingId, final CharSequence featureId,
             final DittoHeaders dittoHeaders) {
 
         return new DeleteFeatureDesiredProperties(thingId, featureId, dittoHeaders);
@@ -115,6 +117,7 @@ public final class DeleteFeatureDesiredProperties extends AbstractCommand<Delete
      */
     public static DeleteFeatureDesiredProperties fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return new CommandJsonDeserializer<DeleteFeatureDesiredProperties>(TYPE, jsonObject).deserialize(() -> {
             final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
@@ -153,6 +156,7 @@ public final class DeleteFeatureDesiredProperties extends AbstractCommand<Delete
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);

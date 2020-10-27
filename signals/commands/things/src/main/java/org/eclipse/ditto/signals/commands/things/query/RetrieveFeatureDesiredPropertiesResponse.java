@@ -64,12 +64,14 @@ public final class RetrieveFeatureDesiredPropertiesResponse
     private final String featureId;
     private final FeatureProperties desiredProperties;
 
-    private RetrieveFeatureDesiredPropertiesResponse(final ThingId thingId, final String featureId,
+    private RetrieveFeatureDesiredPropertiesResponse(final ThingId thingId, final CharSequence featureId,
             final FeatureProperties desiredProperties, final DittoHeaders dittoHeaders) {
+
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "thing ID");
-        this.featureId = checkNotNull(featureId, "Feature ID");
-        this.desiredProperties = checkNotNull(desiredProperties, "desired properties");
+        this.thingId = checkNotNull(thingId, "thingId");
+        this.featureId = checkNotNull(featureId == null || featureId.toString().isEmpty() ? null : featureId.toString(),
+                "featureId");
+        this.desiredProperties = checkNotNull(desiredProperties, "desiredProperties");
     }
 
     /**
@@ -82,8 +84,11 @@ public final class RetrieveFeatureDesiredPropertiesResponse
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveFeatureDesiredPropertiesResponse of(final ThingId thingId, final String featureId,
-            final FeatureProperties desiredProperties, final DittoHeaders dittoHeaders) {
+    public static RetrieveFeatureDesiredPropertiesResponse of(final ThingId thingId,
+            final CharSequence featureId,
+            final FeatureProperties desiredProperties,
+            final DittoHeaders dittoHeaders) {
+
         return new RetrieveFeatureDesiredPropertiesResponse(thingId, featureId, desiredProperties, dittoHeaders);
     }
 
@@ -97,15 +102,12 @@ public final class RetrieveFeatureDesiredPropertiesResponse
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveFeatureDesiredPropertiesResponse of(final ThingId thingId, final String featureId,
-            @Nullable final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static RetrieveFeatureDesiredPropertiesResponse of(final ThingId thingId,
+            final CharSequence featureId,
+            @Nullable final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
 
-        final FeatureProperties desiredProperties;
-        if (jsonObject == null || jsonObject.isNull()) {
-            desiredProperties = ThingsModelFactory.nullFeatureProperties();
-        } else {
-            desiredProperties = ThingsModelFactory.newFeatureProperties(jsonObject);
-        }
+        final FeatureProperties desiredProperties = ThingsModelFactory.newFeatureProperties(jsonObject);
 
         return of(thingId, featureId, desiredProperties, dittoHeaders);
     }
@@ -123,6 +125,7 @@ public final class RetrieveFeatureDesiredPropertiesResponse
      */
     public static RetrieveFeatureDesiredPropertiesResponse fromJson(final String jsonString,
             final DittoHeaders dittoHeaders) {
+
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
@@ -209,6 +212,7 @@ public final class RetrieveFeatureDesiredPropertiesResponse
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);

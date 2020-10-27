@@ -72,14 +72,15 @@ public final class ModifyFeatureDesiredProperties extends AbstractCommand<Modify
     private final FeatureProperties desiredProperties;
 
     private ModifyFeatureDesiredProperties(final ThingId thingId,
-            final String featureId,
+            final CharSequence featureId,
             final FeatureProperties desiredProperties,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "Thing ID");
-        this.featureId = checkNotNull(featureId, "Feature ID");
-        this.desiredProperties = checkNotNull(desiredProperties, "Feature desired properties");
+        this.thingId = checkNotNull(thingId, "thingId");
+        this.featureId = checkNotNull(featureId == null || featureId.toString().isEmpty() ? null : featureId.toString(),
+                "featureId");
+        this.desiredProperties = checkNotNull(desiredProperties, "desiredProperties");
 
         final JsonObject propertiesJsonObject = desiredProperties.toJson();
 
@@ -90,7 +91,7 @@ public final class ModifyFeatureDesiredProperties extends AbstractCommand<Modify
     }
 
     /**
-     * Returns a Command for modifying a Feature's desired Properties on a Thing.
+     * Returns a Command for modifying a Feature's desired properties on a Thing.
      *
      * @param thingId the {@code Thing}'s ID whose {@code Feature}'s desired properties to modify.
      * @param featureId the {@code Feature}'s ID whose desired properties to modify.
@@ -99,8 +100,10 @@ public final class ModifyFeatureDesiredProperties extends AbstractCommand<Modify
      * @return a Command for modifying the provided desired properties.
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
      */
-    public static ModifyFeatureDesiredProperties of(final ThingId thingId, final String featureId,
-            final FeatureProperties desiredProperties, final DittoHeaders dittoHeaders) {
+    public static ModifyFeatureDesiredProperties of(final ThingId thingId,
+            final CharSequence featureId,
+            final FeatureProperties desiredProperties,
+            final DittoHeaders dittoHeaders) {
 
         return new ModifyFeatureDesiredProperties(thingId, featureId, desiredProperties, dittoHeaders);
     }
@@ -136,18 +139,14 @@ public final class ModifyFeatureDesiredProperties extends AbstractCommand<Modify
      */
     public static ModifyFeatureDesiredProperties fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return new CommandJsonDeserializer<ModifyFeatureDesiredProperties>(TYPE, jsonObject).deserialize(() -> {
             final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
             final JsonObject propertiesJsonObject = jsonObject.getValueOrThrow(JSON_DESIRED_PROPERTIES);
 
-            final FeatureProperties extractedProperties;
-            if (propertiesJsonObject.isNull()) {
-                extractedProperties = ThingsModelFactory.nullFeatureProperties();
-            } else {
-                extractedProperties = ThingsModelFactory.newFeatureProperties(propertiesJsonObject);
-            }
+            final FeatureProperties extractedProperties = ThingsModelFactory.newFeatureProperties(propertiesJsonObject);
 
             return of(thingId, extractedFeatureId, extractedProperties, dittoHeaders);
         });

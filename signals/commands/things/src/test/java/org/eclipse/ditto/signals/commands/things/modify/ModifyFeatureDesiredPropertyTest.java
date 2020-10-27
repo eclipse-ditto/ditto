@@ -41,14 +41,14 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ModifyFeatureDesiredPropertyTest {
 
-    private static final JsonPointer PROPERTY_JSON_POINTER = JsonFactory.newPointer("properties/foo");
+    private static final JsonPointer PROPERTY_JSON_POINTER = JsonFactory.newPointer("desiredProperties/foo");
 
     private static final JsonValue PROPERTY_VALUE = JsonFactory.newValue("bar");
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, ModifyFeatureDesiredProperty.TYPE)
             .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
-            .set(ModifyFeatureDesiredProperty.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
+            .set(ModifyFeatureDesiredProperty.JSON_FEATURE_ID, TestConstants.Feature.HOVER_BOARD_ID)
             .set(ModifyFeatureDesiredProperty.JSON_DESIRED_PROPERTY, PROPERTY_JSON_POINTER.toString())
             .set(ModifyFeatureDesiredProperty.JSON_DESIRED_PROPERTY_VALUE, PROPERTY_VALUE)
             .build();
@@ -69,14 +69,14 @@ public final class ModifyFeatureDesiredPropertyTest {
 
     @Test(expected = ThingIdInvalidException.class)
     public void tryToCreateInstanceWithNullThingIdString() {
-        ModifyFeatureDesiredProperty.of(ThingId.of(null), TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER,
+        ModifyFeatureDesiredProperty.of(ThingId.of(null), TestConstants.Feature.HOVER_BOARD_ID, PROPERTY_JSON_POINTER,
                 PROPERTY_VALUE,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        ModifyFeatureDesiredProperty.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID, PROPERTY_JSON_POINTER,
+        ModifyFeatureDesiredProperty.of(null, TestConstants.Feature.HOVER_BOARD_ID, PROPERTY_JSON_POINTER,
                 PROPERTY_VALUE,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
@@ -89,22 +89,20 @@ public final class ModifyFeatureDesiredPropertyTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPropertyJsonPointer() {
-        ModifyFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID, null,
-                PROPERTY_VALUE,
-                TestConstants.EMPTY_DITTO_HEADERS);
+        ModifyFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID, null,
+                PROPERTY_VALUE, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPropertyValue() {
-        ModifyFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
-                PROPERTY_JSON_POINTER, null,
-                TestConstants.EMPTY_DITTO_HEADERS);
+        ModifyFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
+                PROPERTY_JSON_POINTER, null, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
     public void toJsonReturnsExpected() {
         final ModifyFeatureDesiredProperty underTest =
-                ModifyFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                ModifyFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
                         PROPERTY_JSON_POINTER, PROPERTY_VALUE, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
@@ -113,13 +111,13 @@ public final class ModifyFeatureDesiredPropertyTest {
 
     @Test
     public void tryToCreateInstanceWithValidArguments() {
-        ModifyFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+        ModifyFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
                 PROPERTY_JSON_POINTER, PROPERTY_VALUE, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = JsonKeyInvalidException.class)
     public void tryToCreateInstanceWithInvalidArguments() {
-        ModifyFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+        ModifyFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
                 INVALID_JSON_POINTER, PROPERTY_VALUE, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -135,7 +133,7 @@ public final class ModifyFeatureDesiredPropertyTest {
     public void createInstanceFromInvalidJsonValue() {
         final JsonValue invalid = JsonValue.of(JsonObject.of("{\"bar/baz\":false}"));
 
-        ModifyFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+        ModifyFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
                 VALID_JSON_POINTER, invalid, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -143,7 +141,7 @@ public final class ModifyFeatureDesiredPropertyTest {
     public void tryToCreateInstanceWithValidPropertyJsonObject() {
         final JsonValue valid = JsonValue.of(JsonObject.of("{\"bar.baz\":false}"));
 
-        ModifyFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+        ModifyFeatureDesiredProperty.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
                 VALID_JSON_POINTER, valid, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -154,7 +152,7 @@ public final class ModifyFeatureDesiredPropertyTest {
 
         assertThat(underTest).isNotNull();
         assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
+        assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.HOVER_BOARD_ID);
         assertThat(underTest.getDesiredPropertyPointer()).isEqualTo(PROPERTY_JSON_POINTER);
         assertThat(underTest.getDesiredPropertyValue()).isEqualTo(PROPERTY_VALUE);
     }

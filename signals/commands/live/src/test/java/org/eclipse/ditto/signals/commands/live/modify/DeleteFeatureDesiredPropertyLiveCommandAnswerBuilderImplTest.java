@@ -47,9 +47,9 @@ public final class DeleteFeatureDesiredPropertyLiveCommandAnswerBuilderImplTest 
     public void setUp() {
         Mockito.when(commandMock.getThingEntityId()).thenReturn(TestConstants.Thing.THING_ID);
         Mockito.when(commandMock.getDittoHeaders()).thenReturn(DittoHeaders.empty());
-        Mockito.when(commandMock.getFeatureId()).thenReturn(TestConstants.Feature.FLUX_CAPACITOR_ID);
+        Mockito.when(commandMock.getFeatureId()).thenReturn(TestConstants.Feature.HOVER_BOARD_ID);
         Mockito.when(commandMock.getDesiredPropertyPointer())
-                .thenReturn(TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_POINTER);
+                .thenReturn(TestConstants.Feature.HOVER_BOARD_PROPERTY_POINTER);
 
         underTest = DeleteFeatureDesiredPropertyLiveCommandAnswerBuilderImpl.newInstance(commandMock);
     }

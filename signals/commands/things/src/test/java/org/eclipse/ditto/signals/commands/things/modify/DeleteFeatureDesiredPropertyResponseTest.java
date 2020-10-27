@@ -41,9 +41,9 @@ public final class DeleteFeatureDesiredPropertyResponseTest {
             .set(ThingCommandResponse.JsonFields.TYPE, DeleteFeatureDesiredPropertyResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.NO_CONTENT.toInt())
             .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
-            .set(DeleteFeatureDesiredPropertyResponse.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
+            .set(DeleteFeatureDesiredPropertyResponse.JSON_FEATURE_ID, TestConstants.Feature.HOVER_BOARD_ID)
             .set(DeleteFeatureDesiredPropertyResponse.JSON_DESIRED_PROPERTY,
-                    TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_POINTER.toString())
+                    TestConstants.Feature.HOVER_BOARD_PROPERTY_POINTER.toString())
             .build();
 
 
@@ -64,8 +64,8 @@ public final class DeleteFeatureDesiredPropertyResponseTest {
     @Test
     public void toJsonReturnsExpected() {
         final DeleteFeatureDesiredPropertyResponse underTest =
-                DeleteFeatureDesiredPropertyResponse.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
-                        TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_POINTER, DittoHeaders.empty());
+                DeleteFeatureDesiredPropertyResponse.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
+                        TestConstants.Feature.HOVER_BOARD_PROPERTY_POINTER, DittoHeaders.empty());
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -81,7 +81,7 @@ public final class DeleteFeatureDesiredPropertyResponseTest {
 
     @Test(expected = JsonKeyInvalidException.class)
     public void createInstanceWithInvalidArguments() {
-        DeleteFeatureDesiredPropertyResponse.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+        DeleteFeatureDesiredPropertyResponse.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
                 INVALID_JSON_POINTER, TestConstants.EMPTY_DITTO_HEADERS);
     }
 }

@@ -66,7 +66,8 @@ public final class FeatureDesiredPropertiesDeleted extends AbstractThingEvent<Fe
             @Nullable final Metadata metadata) {
 
         super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
-        this.featureId = checkNotNull(featureId.toString(), "featureId");
+        this.featureId = checkNotNull(featureId == null || featureId.toString().isEmpty() ? null : featureId.toString(),
+                "featureId");
     }
 
     /**

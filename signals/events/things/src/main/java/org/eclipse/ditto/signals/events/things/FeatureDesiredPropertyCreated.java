@@ -78,7 +78,8 @@ public final class FeatureDesiredPropertyCreated extends AbstractThingEvent<Feat
             @Nullable final Metadata metadata) {
 
         super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
-        this.featureId = checkNotNull(featureId.toString(), "featureId");
+        this.featureId = checkNotNull(featureId == null || featureId.toString().isEmpty() ? null : featureId.toString(),
+                "featureId");
         this.desiredPropertyPointer = checkNotNull(desiredPropertyPointer, "desiredPropertyPointer");
         this.desiredPropertyValue = checkNotNull(desiredPropertyValue, "desiredPropertyValue");
     }

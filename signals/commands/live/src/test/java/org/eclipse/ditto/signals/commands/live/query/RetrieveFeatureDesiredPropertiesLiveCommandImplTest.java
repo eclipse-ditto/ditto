@@ -42,7 +42,7 @@ public final class RetrieveFeatureDesiredPropertiesLiveCommandImplTest {
     @Before
     public void setUp() {
         retrieveFeatureDesiredPropertiesTwinCommand = RetrieveFeatureDesiredProperties.of(TestConstants.Thing.THING_ID,
-                TestConstants.Feature.FLUX_CAPACITOR_ID, TestConstants.JSON_FIELD_SELECTOR_ATTRIBUTES,
+                TestConstants.Feature.HOVER_BOARD_ID, TestConstants.JSON_FIELD_SELECTOR_ATTRIBUTES,
                 DittoHeaders.empty());
         underTest = RetrieveFeatureDesiredPropertiesLiveCommandImpl.of(retrieveFeatureDesiredPropertiesTwinCommand);
     }

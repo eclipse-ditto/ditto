@@ -62,18 +62,19 @@ public final class DeleteFeatureDesiredPropertyResponse
     private final String featureId;
     private final JsonPointer desiredPropertyPointer;
 
-    private DeleteFeatureDesiredPropertyResponse(final ThingId thingId, final String featureId,
+    private DeleteFeatureDesiredPropertyResponse(final ThingId thingId, final CharSequence featureId,
             final JsonPointer desiredPropertyPointer,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
-        this.featureId = checkNotNull(featureId, "Feature ID");
+        this.featureId = checkNotNull(featureId == null || featureId.toString().isEmpty() ? null : featureId.toString(),
+                "Feature ID");
         this.desiredPropertyPointer = checkDesiredPropertyPointer(desiredPropertyPointer);
     }
 
     private JsonPointer checkDesiredPropertyPointer(final JsonPointer desiredPropertyPointer) {
-        checkNotNull(desiredPropertyPointer, "Desired property JsonPointer");
+        checkNotNull(desiredPropertyPointer, "desiredPropertyPointer");
         return ThingsModelFactory.validateFeaturePropertyPointer(desiredPropertyPointer);
     }
 
@@ -89,7 +90,7 @@ public final class DeleteFeatureDesiredPropertyResponse
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code desiredPropertyPointer} are not valid
      * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
-    public static DeleteFeatureDesiredPropertyResponse of(final ThingId thingId, final String featureId,
+    public static DeleteFeatureDesiredPropertyResponse of(final ThingId thingId, final CharSequence featureId,
             final JsonPointer desiredPropertyPointer, final DittoHeaders dittoHeaders) {
 
         return new DeleteFeatureDesiredPropertyResponse(thingId, featureId, desiredPropertyPointer, dittoHeaders);

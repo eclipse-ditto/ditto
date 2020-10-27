@@ -67,20 +67,24 @@ public final class RetrieveFeatureDesiredPropertyResponse
     private final JsonPointer desiredPropertyPointer;
     private final JsonValue desiredPropertyValue;
 
-    private RetrieveFeatureDesiredPropertyResponse(final ThingId thingId, final String featureId,
-            final JsonPointer desiredPropertyPointer, final JsonValue desiredPropertyValue,
+    private RetrieveFeatureDesiredPropertyResponse(final ThingId thingId,
+            final CharSequence featureId,
+            final JsonPointer desiredPropertyPointer,
+            final JsonValue desiredPropertyValue,
             final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "thing ID");
-        this.featureId = checkNotNull(featureId, "Feature ID");
+        this.thingId = checkNotNull(thingId, "thingId");
+        this.featureId = checkNotNull(featureId == null || featureId.toString().isEmpty() ? null : featureId.toString(),
+                "featureId");
         this.desiredPropertyPointer = checkDesiredPropertyPointer(desiredPropertyPointer);
-        this.desiredPropertyValue = checkNotNull(desiredPropertyValue, "desired property value");
+        this.desiredPropertyValue = checkNotNull(desiredPropertyValue, "desiredPropertyValue");
     }
 
-    private JsonPointer checkDesiredPropertyPointer(final JsonPointer propertyPointer) {
-        checkNotNull(propertyPointer, "desired property pointer");
-        return ThingsModelFactory.validateFeaturePropertyPointer(propertyPointer);
+    private JsonPointer checkDesiredPropertyPointer(final JsonPointer desiredPropertyPointer) {
+        checkNotNull(desiredPropertyPointer, "desiredPropertyPointer");
+        return ThingsModelFactory.validateFeaturePropertyPointer(desiredPropertyPointer);
     }
 
     /**
@@ -96,9 +100,12 @@ public final class RetrieveFeatureDesiredPropertyResponse
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code desiredPropertyPointer} are not valid
      * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
-    public static RetrieveFeatureDesiredPropertyResponse of(final ThingId thingId, final String featureId,
+    public static RetrieveFeatureDesiredPropertyResponse of(final ThingId thingId,
+            final CharSequence featureId,
             final JsonPointer desiredPropertyPointer,
-            final JsonValue desiredPropertyValue, final DittoHeaders dittoHeaders) {
+            final JsonValue desiredPropertyValue,
+            final DittoHeaders dittoHeaders) {
+
         return new RetrieveFeatureDesiredPropertyResponse(thingId, featureId, desiredPropertyPointer,
                 desiredPropertyValue,
                 HttpStatusCode.OK, dittoHeaders);
@@ -119,6 +126,7 @@ public final class RetrieveFeatureDesiredPropertyResponse
      */
     public static RetrieveFeatureDesiredPropertyResponse fromJson(final String jsonString,
             final DittoHeaders dittoHeaders) {
+
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
@@ -218,6 +226,7 @@ public final class RetrieveFeatureDesiredPropertyResponse
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);

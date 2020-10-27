@@ -41,9 +41,9 @@ public class FeatureDesiredPropertiesNotModifiableException extends DittoRuntime
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "feature.desiredProperties.notmodifiable";
 
-    private static final String MESSAGE_TEMPLATE = "The desired properties of the Feature with ID ''{0}'' on the Thing with ID "
-            +
-            "''{1}'' cannot be modified as the requester had insufficient permissions to modify it ('WRITE' is required).";
+    private static final String MESSAGE_TEMPLATE = "The desired properties of the Feature with ID ''{0}'' " +
+            "on the Thing with ID " + "''{1}'' cannot be modified as the requester had insufficient permissions " +
+            "to modify it ('WRITE' is required).";
 
     private static final String DEFAULT_DESCRIPTION =
             "Check if the ID of the Thing and the Feature ID was correct and you have sufficient permissions.";
@@ -55,6 +55,7 @@ public class FeatureDesiredPropertiesNotModifiableException extends DittoRuntime
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
+
         super(ERROR_CODE, HttpStatusCode.FORBIDDEN, dittoHeaders, message, description, cause, href);
     }
 
@@ -67,6 +68,7 @@ public class FeatureDesiredPropertiesNotModifiableException extends DittoRuntime
      */
     public static FeatureDesiredPropertiesNotModifiableException.Builder newBuilder(final ThingId thingId,
             final String featureId) {
+
         return new FeatureDesiredPropertiesNotModifiableException.Builder(thingId, featureId);
     }
 
@@ -80,6 +82,7 @@ public class FeatureDesiredPropertiesNotModifiableException extends DittoRuntime
      */
     public static FeatureDesiredPropertiesNotModifiableException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
+
         return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
@@ -97,6 +100,7 @@ public class FeatureDesiredPropertiesNotModifiableException extends DittoRuntime
      */
     public static FeatureDesiredPropertiesNotModifiableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
@@ -114,13 +118,14 @@ public class FeatureDesiredPropertiesNotModifiableException extends DittoRuntime
      * A mutable builder with a fluent API for a {@link FeatureDesiredPropertiesNotModifiableException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<FeatureDesiredPropertiesNotModifiableException> {
+    public static final class Builder
+            extends DittoRuntimeExceptionBuilder<FeatureDesiredPropertiesNotModifiableException> {
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final ThingId thingId, final String featureId) {
+        private Builder(final ThingId thingId, final CharSequence featureId) {
             this();
             message(MessageFormat.format(MESSAGE_TEMPLATE, featureId, String.valueOf(thingId)));
         }
@@ -131,6 +136,7 @@ public class FeatureDesiredPropertiesNotModifiableException extends DittoRuntime
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
+
             return new FeatureDesiredPropertiesNotModifiableException(dittoHeaders, message, description, cause, href);
         }
     }

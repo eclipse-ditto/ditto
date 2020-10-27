@@ -42,8 +42,8 @@ public final class ModifyFeatureDesiredPropertiesLiveCommandImplTest {
     /** */
     @Before
     public void setUp() {
-        twinCommand = ModifyFeatureDesiredProperties.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
-                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES, DittoHeaders.empty());
+        twinCommand = ModifyFeatureDesiredProperties.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
+                TestConstants.Feature.HOVER_BOARD_PROPERTIES, DittoHeaders.empty());
         underTest = ModifyFeatureDesiredPropertiesLiveCommandImpl.of(twinCommand);
     }
 

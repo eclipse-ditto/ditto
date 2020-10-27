@@ -73,13 +73,16 @@ public final class ModifyFeatureDesiredProperty extends AbstractCommand<ModifyFe
     private final JsonPointer desiredPropertyPointer;
     private final JsonValue desiredPropertyValue;
 
-    private ModifyFeatureDesiredProperty(final ThingId thingId, final String featureId,
+    private ModifyFeatureDesiredProperty(final ThingId thingId,
+            final CharSequence featureId,
             final JsonPointer desiredPropertyPointer,
-            final JsonValue desiredPropertyValue, final DittoHeaders dittoHeaders) {
+            final JsonValue desiredPropertyValue,
+            final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
-        this.featureId = checkNotNull(featureId, "featureId");
+        this.featureId = checkNotNull(featureId == null || featureId.toString().isEmpty() ? null : featureId.toString(),
+                "featureId");
         this.desiredPropertyPointer =
                 checkDesiredPropertyPointer(checkNotNull(desiredPropertyPointer, "desiredPropertyPointer"));
         this.desiredPropertyValue =
@@ -115,8 +118,10 @@ public final class ModifyFeatureDesiredProperty extends AbstractCommand<ModifyFe
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code desiredPropertyJsonPointer} are not valid
      * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
-    public static ModifyFeatureDesiredProperty of(final ThingId thingId, final String featureId,
-            final JsonPointer desiredPropertyJsonPointer, final JsonValue desiredPropertyValue,
+    public static ModifyFeatureDesiredProperty of(final ThingId thingId,
+            final CharSequence featureId,
+            final JsonPointer desiredPropertyJsonPointer,
+            final JsonValue desiredPropertyValue,
             final DittoHeaders dittoHeaders) {
 
         return new ModifyFeatureDesiredProperty(thingId, featureId, desiredPropertyJsonPointer, desiredPropertyValue,
@@ -157,6 +162,7 @@ public final class ModifyFeatureDesiredProperty extends AbstractCommand<ModifyFe
      * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ModifyFeatureDesiredProperty fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+
         return new CommandJsonDeserializer<ModifyFeatureDesiredProperty>(TYPE, jsonObject).deserialize(() -> {
             final String extractedThingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
@@ -221,6 +227,7 @@ public final class ModifyFeatureDesiredProperty extends AbstractCommand<ModifyFe
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);

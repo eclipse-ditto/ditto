@@ -66,13 +66,14 @@ public final class DeleteFeatureDesiredProperty extends AbstractCommand<DeleteFe
     private final String featureId;
     private final JsonPointer desiredPropertyPointer;
 
-    private DeleteFeatureDesiredProperty(final ThingId thingId, final String featureId,
+    private DeleteFeatureDesiredProperty(final ThingId thingId, final CharSequence featureId,
             final JsonPointer desiredPropertyPointer,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "Thing ID");
-        this.featureId = checkNotNull(featureId, "Feature ID");
+        this.thingId = checkNotNull(thingId, "thingId");
+        this.featureId = checkNotNull(featureId == null || featureId.toString().isEmpty() ? null : featureId.toString(),
+                "featureId");
         this.desiredPropertyPointer = checkDesiredPropertyPointer(desiredPropertyPointer);
     }
 
@@ -93,7 +94,7 @@ public final class DeleteFeatureDesiredProperty extends AbstractCommand<DeleteFe
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code desiredPropertyPointer} are not valid
      * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
-    public static DeleteFeatureDesiredProperty of(final ThingId thingId, final String featureId,
+    public static DeleteFeatureDesiredProperty of(final ThingId thingId, final CharSequence featureId,
             final JsonPointer desiredPropertyPointer, final DittoHeaders dittoHeaders) {
 
         return new DeleteFeatureDesiredProperty(thingId, featureId, desiredPropertyPointer, dittoHeaders);
@@ -182,6 +183,7 @@ public final class DeleteFeatureDesiredProperty extends AbstractCommand<DeleteFe
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);

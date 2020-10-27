@@ -41,9 +41,9 @@ public class RetrieveFeatureDesiredPropertiesResponseTest {
             .set(ThingCommandResponse.JsonFields.TYPE, RetrieveFeatureDesiredPropertiesResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
             .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
-            .set(RetrieveFeatureDesiredPropertiesResponse.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
+            .set(RetrieveFeatureDesiredPropertiesResponse.JSON_FEATURE_ID, TestConstants.Feature.HOVER_BOARD_ID)
             .set(RetrieveFeatureDesiredPropertiesResponse.JSON_DESIRED_PROPERTIES,
-                    TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.toJson(KNOWN_SCHEMA_VERSION))
+                    TestConstants.Feature.HOVER_BOARD_PROPERTIES.toJson(KNOWN_SCHEMA_VERSION))
             .build();
 
 
@@ -64,7 +64,7 @@ public class RetrieveFeatureDesiredPropertiesResponseTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullFeatureDesiredProperties() {
-        RetrieveFeatureDesiredPropertiesResponse.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+        RetrieveFeatureDesiredPropertiesResponse.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
                 null,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
@@ -74,8 +74,8 @@ public class RetrieveFeatureDesiredPropertiesResponseTest {
     public void toJsonReturnsExpected() {
         final RetrieveFeatureDesiredPropertiesResponse underTest =
                 RetrieveFeatureDesiredPropertiesResponse.of(TestConstants.Thing.THING_ID,
-                        TestConstants.Feature.FLUX_CAPACITOR_ID,
-                        TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES, TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.Feature.HOVER_BOARD_ID,
+                        TestConstants.Feature.HOVER_BOARD_PROPERTIES, TestConstants.EMPTY_DITTO_HEADERS);
         final String actualJsonString = underTest.toJson(FieldType.regularOrSpecial()).toString();
 
         assertThat(actualJsonString).isEqualTo(KNOWN_JSON.toString());
@@ -88,7 +88,7 @@ public class RetrieveFeatureDesiredPropertiesResponseTest {
                 RetrieveFeatureDesiredPropertiesResponse.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getDesiredProperties()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+        assertThat(underTest.getDesiredProperties()).isEqualTo(TestConstants.Feature.HOVER_BOARD_PROPERTIES);
     }
 
 }

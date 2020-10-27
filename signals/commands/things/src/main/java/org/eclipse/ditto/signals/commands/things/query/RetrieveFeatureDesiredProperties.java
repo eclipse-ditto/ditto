@@ -43,7 +43,8 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
  * @since 1.5.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = RetrieveFeatureDesiredProperties.TYPE_PREFIX, name = RetrieveFeatureDesiredProperties.NAME)
+@JsonParsableCommand(typePrefix = RetrieveFeatureDesiredProperties.TYPE_PREFIX,
+        name = RetrieveFeatureDesiredProperties.NAME)
 public final class RetrieveFeatureDesiredProperties extends AbstractCommand<RetrieveFeatureDesiredProperties> implements
         ThingQueryCommand<RetrieveFeatureDesiredProperties>, WithFeatureId {
 
@@ -68,13 +69,14 @@ public final class RetrieveFeatureDesiredProperties extends AbstractCommand<Retr
     @Nullable private final JsonFieldSelector selectedFields;
 
     private RetrieveFeatureDesiredProperties(final ThingId thingId,
-            final String featureId,
+            final CharSequence featureId,
             @Nullable final JsonFieldSelector selectedFields,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "Thing ID");
-        this.featureId = checkNotNull(featureId, "Feature ID");
+        this.thingId = checkNotNull(thingId, "thingId");
+        this.featureId = checkNotNull(featureId == null || featureId.toString().isEmpty() ? null : featureId.toString(),
+                "featureId");
         this.selectedFields = selectedFields;
     }
 
@@ -104,7 +106,7 @@ public final class RetrieveFeatureDesiredProperties extends AbstractCommand<Retr
      * @throws NullPointerException if {@code featureId} or {@code dittoHeaders} is {@code null}.
      */
     public static RetrieveFeatureDesiredProperties of(final ThingId thingId,
-            final String featureId,
+            final CharSequence featureId,
             @Nullable final JsonFieldSelector selectedFields,
             final DittoHeaders dittoHeaders) {
 
@@ -140,7 +142,8 @@ public final class RetrieveFeatureDesiredProperties extends AbstractCommand<Retr
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to {@link
      * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      */
-    public static RetrieveFeatureDesiredProperties fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static RetrieveFeatureDesiredProperties fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<RetrieveFeatureDesiredProperties>(TYPE, jsonObject).deserialize(() -> {
             final String extractedThingId = jsonObject.getValueOrThrow(ThingQueryCommand.JsonFields.JSON_THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);

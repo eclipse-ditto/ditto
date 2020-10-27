@@ -66,12 +66,13 @@ public final class ModifyFeatureDesiredPropertiesResponse
     private final String featureId;
     @Nullable private final FeatureProperties desiredPropertiesCreated;
 
-    private ModifyFeatureDesiredPropertiesResponse(final ThingId thingId, final String featureId,
+    private ModifyFeatureDesiredPropertiesResponse(final ThingId thingId, final CharSequence featureId,
             @Nullable final FeatureProperties desiredPropertiesCreated,
             final HttpStatusCode statusCode, final DittoHeaders dittoHeaders) {
         super(TYPE, statusCode, dittoHeaders);
-        this.thingId = checkNotNull(thingId, "Thing ID");
-        this.featureId = requireNonNull(featureId, "The Feature ID must not be null!");
+        this.thingId = checkNotNull(thingId, "thingId");
+        this.featureId = checkNotNull(featureId == null || featureId.toString().isEmpty() ? null : featureId.toString(),
+                "featureId");
         this.desiredPropertiesCreated = desiredPropertiesCreated;
     }
 
@@ -88,8 +89,11 @@ public final class ModifyFeatureDesiredPropertiesResponse
      * @return a command response for created desired properties.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifyFeatureDesiredPropertiesResponse created(final ThingId thingId, final String featureId,
-            final FeatureProperties desiredProperties, final DittoHeaders dittoHeaders) {
+    public static ModifyFeatureDesiredPropertiesResponse created(final ThingId thingId,
+            final CharSequence featureId,
+            final FeatureProperties desiredProperties,
+            final DittoHeaders dittoHeaders) {
+
         return new ModifyFeatureDesiredPropertiesResponse(thingId, featureId, desiredProperties, HttpStatusCode.CREATED,
                 dittoHeaders);
     }
@@ -106,8 +110,9 @@ public final class ModifyFeatureDesiredPropertiesResponse
      * @return a command response for modified desired properties.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static ModifyFeatureDesiredPropertiesResponse modified(final ThingId thingId, final String featureId,
+    public static ModifyFeatureDesiredPropertiesResponse modified(final ThingId thingId, final CharSequence featureId,
             final DittoHeaders dittoHeaders) {
+
         return new ModifyFeatureDesiredPropertiesResponse(thingId, featureId, null, HttpStatusCode.NO_CONTENT,
                 dittoHeaders);
     }
@@ -125,6 +130,7 @@ public final class ModifyFeatureDesiredPropertiesResponse
      */
     public static ModifyFeatureDesiredPropertiesResponse fromJson(final String jsonString,
             final DittoHeaders dittoHeaders) {
+
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
@@ -140,6 +146,7 @@ public final class ModifyFeatureDesiredPropertiesResponse
      */
     public static ModifyFeatureDesiredPropertiesResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return new CommandResponseJsonDeserializer<ModifyFeatureDesiredPropertiesResponse>(TYPE, jsonObject)
                 .deserialize((statusCode) -> {
                     final String extractedThingId =
@@ -204,6 +211,7 @@ public final class ModifyFeatureDesiredPropertiesResponse
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);

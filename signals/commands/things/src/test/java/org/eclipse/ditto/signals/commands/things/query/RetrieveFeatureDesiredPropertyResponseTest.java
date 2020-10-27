@@ -41,10 +41,10 @@ public class RetrieveFeatureDesiredPropertyResponseTest {
             .set(ThingCommandResponse.JsonFields.TYPE, RetrieveFeatureDesiredPropertyResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
             .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
-            .set(RetrieveFeatureDesiredPropertiesResponse.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
+            .set(RetrieveFeatureDesiredPropertiesResponse.JSON_FEATURE_ID, TestConstants.Feature.HOVER_BOARD_ID)
             .set(RetrieveFeatureDesiredPropertyResponse.JSON_DESIRED_PROPERTY,
-                    TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_POINTER.toString())
-            .set(RetrieveFeatureDesiredPropertyResponse.JSON_DESIRED_VALUE, TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_VALUE)
+                    TestConstants.Feature.HOVER_BOARD_PROPERTY_POINTER.toString())
+            .set(RetrieveFeatureDesiredPropertyResponse.JSON_DESIRED_VALUE, TestConstants.Feature.HOVER_BOARD_PROPERTY_VALUE)
             .build();
 
     @Test
@@ -62,16 +62,16 @@ public class RetrieveFeatureDesiredPropertyResponseTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullFeatureProperty() {
-        RetrieveFeatureDesiredPropertyResponse.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
-                TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_POINTER, null, TestConstants.EMPTY_DITTO_HEADERS);
+        RetrieveFeatureDesiredPropertyResponse.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
+                TestConstants.Feature.HOVER_BOARD_PROPERTY_POINTER, null, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
     public void toJsonReturnsExpected() {
         final RetrieveFeatureDesiredPropertyResponse underTest = RetrieveFeatureDesiredPropertyResponse.of(
-                TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
-                TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_POINTER,
-                TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_VALUE, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
+                TestConstants.Feature.HOVER_BOARD_PROPERTY_POINTER,
+                TestConstants.Feature.HOVER_BOARD_PROPERTY_VALUE, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -83,13 +83,13 @@ public class RetrieveFeatureDesiredPropertyResponseTest {
                 RetrieveFeatureDesiredPropertyResponse.fromJson(KNOWN_JSON.toString(), TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
-        assertThat(underTest.getDesiredPropertyValue()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_VALUE);
+        assertThat(underTest.getDesiredPropertyValue()).isEqualTo(TestConstants.Feature.HOVER_BOARD_PROPERTY_VALUE);
     }
 
     @Test(expected = JsonKeyInvalidException.class)
     public void tryToCreateInstanceWithInvalidArguments() {
-        RetrieveFeatureDesiredPropertyResponse.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
-                INVALID_JSON_POINTER, TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_VALUE,
+        RetrieveFeatureDesiredPropertyResponse.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
+                INVALID_JSON_POINTER, TestConstants.Feature.HOVER_BOARD_PROPERTY_VALUE,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 

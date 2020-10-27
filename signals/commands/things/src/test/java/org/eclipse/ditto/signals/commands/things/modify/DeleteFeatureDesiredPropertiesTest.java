@@ -38,7 +38,7 @@ public final class DeleteFeatureDesiredPropertiesTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, DeleteFeatureDesiredProperties.TYPE)
             .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
-            .set(DeleteFeatureDesiredProperties.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
+            .set(DeleteFeatureDesiredProperties.JSON_FEATURE_ID, TestConstants.Feature.HOVER_BOARD_ID)
             .build();
 
     @Test
@@ -56,14 +56,14 @@ public final class DeleteFeatureDesiredPropertiesTest {
     @Test
     public void tryToCreateInstanceWithNullThingIdString() {
         assertThatExceptionOfType(ThingIdInvalidException.class)
-                .isThrownBy(() -> DeleteFeatureDesiredProperties.of(ThingId.of(null), TestConstants.Feature.FLUX_CAPACITOR_ID,
+                .isThrownBy(() -> DeleteFeatureDesiredProperties.of(ThingId.of(null), TestConstants.Feature.HOVER_BOARD_ID,
                         TestConstants.EMPTY_DITTO_HEADERS));
     }
 
     @Test
     public void tryToCreateInstanceWithNullThingId() {
         assertThatExceptionOfType(NullPointerException.class)
-                .isThrownBy(() -> DeleteFeatureDesiredProperties.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                .isThrownBy(() -> DeleteFeatureDesiredProperties.of(null, TestConstants.Feature.HOVER_BOARD_ID,
                         TestConstants.EMPTY_DITTO_HEADERS))
                 .withNoCause();
     }
@@ -73,14 +73,14 @@ public final class DeleteFeatureDesiredPropertiesTest {
         assertThatNullPointerException()
                 .isThrownBy(() -> DeleteFeatureDesiredProperties.of(TestConstants.Thing.THING_ID, null,
                         TestConstants.EMPTY_DITTO_HEADERS))
-                .withMessage("The %s must not be null!", "Feature ID")
+                .withMessage("The %s must not be null!", "featureId")
                 .withNoCause();
     }
 
     @Test
     public void createInstanceWithValidArguments() {
         final DeleteFeatureDesiredProperties underTest = DeleteFeatureDesiredProperties.of(TestConstants.Thing.THING_ID,
-                TestConstants.Feature.FLUX_CAPACITOR_ID, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Feature.HOVER_BOARD_ID, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
     }
@@ -88,7 +88,7 @@ public final class DeleteFeatureDesiredPropertiesTest {
     @Test
     public void toJsonReturnsExpected() {
         final DeleteFeatureDesiredProperties underTest = DeleteFeatureDesiredProperties.of(TestConstants.Thing.THING_ID,
-                TestConstants.Feature.FLUX_CAPACITOR_ID, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Feature.HOVER_BOARD_ID, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -101,7 +101,7 @@ public final class DeleteFeatureDesiredPropertiesTest {
 
         assertThat(underTest).isNotNull();
         assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
+        assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.HOVER_BOARD_ID);
     }
 
 }

@@ -43,8 +43,8 @@ public final class ModifyFeatureDesiredPropertiesTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, ModifyFeatureDesiredProperties.TYPE)
             .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
-            .set(ModifyFeatureDesiredProperties.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
-            .set(ModifyFeatureDesiredProperties.JSON_DESIRED_PROPERTIES, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES)
+            .set(ModifyFeatureDesiredProperties.JSON_FEATURE_ID, TestConstants.Feature.HOVER_BOARD_ID)
+            .set(ModifyFeatureDesiredProperties.JSON_DESIRED_PROPERTIES, TestConstants.Feature.HOVER_BOARD_PROPERTIES)
             .build();
 
     @Test
@@ -64,28 +64,28 @@ public final class ModifyFeatureDesiredPropertiesTest {
 
     @Test(expected = ThingIdInvalidException.class)
     public void tryToCreateInstanceWithNullThingIdString() {
-        ModifyFeatureDesiredProperties.of(ThingId.of(null), TestConstants.Feature.FLUX_CAPACITOR_ID,
-                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES, TestConstants.EMPTY_DITTO_HEADERS);
+        ModifyFeatureDesiredProperties.of(ThingId.of(null), TestConstants.Feature.HOVER_BOARD_ID,
+                TestConstants.Feature.HOVER_BOARD_PROPERTIES, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullThingId() {
-        ModifyFeatureDesiredProperties.of(null, TestConstants.Feature.FLUX_CAPACITOR_ID,
-                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES, TestConstants.EMPTY_DITTO_HEADERS);
+        ModifyFeatureDesiredProperties.of(null, TestConstants.Feature.HOVER_BOARD_ID,
+                TestConstants.Feature.HOVER_BOARD_PROPERTIES, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullFeatureId() {
-        ModifyFeatureDesiredProperties.of(TestConstants.Thing.THING_ID, null, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES,
+        ModifyFeatureDesiredProperties.of(TestConstants.Thing.THING_ID, null, TestConstants.Feature.HOVER_BOARD_PROPERTIES,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullProperties() {
-        ModifyFeatureDesiredProperties.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID, null,
+        ModifyFeatureDesiredProperties.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID, null,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -93,7 +93,7 @@ public final class ModifyFeatureDesiredPropertiesTest {
     @Test
     public void toJsonReturnsExpected() {
         final ModifyFeatureDesiredProperties underTest = ModifyFeatureDesiredProperties.of(TestConstants.Thing.THING_ID,
-                TestConstants.Feature.FLUX_CAPACITOR_ID, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES,
+                TestConstants.Feature.HOVER_BOARD_ID, TestConstants.Feature.HOVER_BOARD_PROPERTIES,
                 TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
@@ -107,15 +107,15 @@ public final class ModifyFeatureDesiredPropertiesTest {
 
         assertThat(underTest).isNotNull();
         assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
-        Assertions.assertThat(underTest.getDesiredProperties()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+        assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.HOVER_BOARD_ID);
+        Assertions.assertThat(underTest.getDesiredProperties()).isEqualTo(TestConstants.Feature.HOVER_BOARD_PROPERTIES);
     }
 
     @Test(expected = JsonKeyInvalidException.class)
     public void createInstanceFromJsonWithInvalidPropertiesPath() {
 
         final FeatureProperties featurePropertiesWithInvalidPath =
-                TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES.setValue("valid",
+                TestConstants.Feature.HOVER_BOARD_PROPERTIES.setValue("valid",
                         JsonFactory.newObjectBuilder().set("invälid", JsonValue.of(42)).build());
         final JsonObject invalidJson = KNOWN_JSON.toBuilder()
                 .set(ModifyFeatureDesiredProperties.JSON_DESIRED_PROPERTIES, featurePropertiesWithInvalidPath)
