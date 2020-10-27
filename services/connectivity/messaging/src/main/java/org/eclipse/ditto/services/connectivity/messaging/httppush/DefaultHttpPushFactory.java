@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
@@ -74,7 +75,8 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         this.httpsConnectionContext = httpsConnectionContext;
     }
 
-    static HttpPushFactory of(final Connection connection, final HttpPushConfig httpPushConfig) {
+    static HttpPushFactory of(final Connection connection, final HttpPushConfig httpPushConfig,
+            final ConnectionLogger connectionLogger) {
         final ConnectionId connectionId = connection.getId();
         final Uri baseUri = Uri.create(connection.getUri());
         final int parallelism = parseParallelism(connection.getSpecificConfig());
@@ -82,7 +84,7 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         final HttpsConnectionContext httpsConnectionContext;
         if (HttpPushValidator.isSecureScheme(baseUri.getScheme())) {
             final SSLContextCreator sslContextCreator =
-                    SSLContextCreator.fromConnection(connection, DittoHeaders.empty());
+                    SSLContextCreator.fromConnection(connection, DittoHeaders.empty(), connectionLogger);
             final SSLContext sslContext = connection.getCredentials()
                     .map(credentials -> credentials.accept(sslContextCreator))
                     .orElse(sslContextCreator.withoutClientCertificate());

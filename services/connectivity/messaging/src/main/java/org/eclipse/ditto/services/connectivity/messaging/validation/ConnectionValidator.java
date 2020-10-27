@@ -43,7 +43,9 @@ import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ModelBasedThingsFieldExpressionFactory;
 import org.eclipse.ditto.services.connectivity.mapping.MapperLimitsConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
@@ -62,6 +64,8 @@ public final class ConnectionValidator {
 
     private final HostValidator hostValidator;
 
+    private final MonitoringLoggerConfig loggerConfig;
+
     private ConnectionValidator(
             final ConnectivityConfig connectivityConfig,
             LoggingAdapter loggingAdapter, final AbstractProtocolValidator... connectionSpecs) {
@@ -76,6 +80,7 @@ public final class ConnectionValidator {
         final MapperLimitsConfig mapperLimitsConfig = connectivityConfig.getMappingConfig().getMapperLimitsConfig();
         mappingNumberLimitSource = mapperLimitsConfig.getMaxSourceMappers();
         mappingNumberLimitTarget = mapperLimitsConfig.getMaxTargetMappers();
+        loggerConfig = connectivityConfig.getMonitoringConfig().logger();
 
         hostValidator = new HostValidator(connectivityConfig, loggingAdapter);
     }
@@ -154,8 +159,9 @@ public final class ConnectionValidator {
         final AbstractProtocolValidator spec = specMap.get(connection.getConnectionType());
         validateSourceAndTargetAddressesAreNonempty(connection, dittoHeaders);
         validateDeclaredAndIssuedAcknowledgements(connection);
+        final ConnectionLogger connectionLogger = ConnectionLogger.getInstance(connection.getId(), loggerConfig);
         checkMappingNumberOfSourcesAndTargets(dittoHeaders, connection);
-        validateFormatOfCertificates(connection, dittoHeaders);
+        validateFormatOfCertificates(connection, dittoHeaders, connectionLogger);
         hostValidator.validateHostname(connection.getHostname(), dittoHeaders);
         if (spec != null) {
             // throw error at validation site for clarity of stack trace
@@ -232,13 +238,14 @@ public final class ConnectionValidator {
                 });
     }
 
-    private static void validateFormatOfCertificates(final Connection connection, final DittoHeaders dittoHeaders) {
+    private static void validateFormatOfCertificates(final Connection connection, final DittoHeaders dittoHeaders,
+            final ConnectionLogger connectionLogger) {
         final Optional<String> trustedCertificates = connection.getTrustedCertificates();
         final Optional<Credentials> credentials = connection.getCredentials();
         // check if there are certificates to check
         if (trustedCertificates.isPresent() || credentials.isPresent()) {
             credentials.orElseGet(ClientCertificateCredentials::empty)
-                    .accept(SSLContextCreator.fromConnection(connection, dittoHeaders));
+                    .accept(SSLContextCreator.fromConnection(connection, dittoHeaders, connectionLogger));
         }
     }
 
