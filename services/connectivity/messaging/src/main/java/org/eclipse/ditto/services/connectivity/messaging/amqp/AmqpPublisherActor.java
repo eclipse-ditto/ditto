@@ -49,12 +49,8 @@ import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ProducerClosedStatusReport;
 import org.eclipse.ditto.services.connectivity.messaging.backoff.BackOffActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
@@ -84,7 +80,6 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private final Map<Destination, MessageProducer> staticTargets;
     private final int producerCacheSize;
     private final ActorRef backOffActor;
-    private final ConnectionLogger connectionLogger;
 
     private boolean isInBackOffMode;
 
@@ -99,16 +94,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         producerCacheSize = checkArgument(connectionConfig.getAmqp10Config().getProducerCacheSize(), i -> i > 0,
                 () -> "producer-cache-size must be 1 or more");
 
-        connectionLogger = getConnectionLogger(connection);
         backOffActor = getContext().actorOf(BackOffActor.props(connectionConfig.getAmqp10Config().getBackOffConfig()));
         isInBackOffMode = false;
-    }
-
-    private ConnectionLogger getConnectionLogger(final Connection connection) {
-        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
-        final MonitoringLoggerConfig loggerConfig = monitoringConfig.logger();
-        final ConnectionLoggerRegistry connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(loggerConfig);
-        return connectionLoggerRegistry.forConnection(connection.getId());
     }
 
     /**
@@ -172,6 +159,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             throw e;
         }
     }
+
     private void createStaticTargetProducers() {
         final List<Target> targets = connection.getTargets();
 
@@ -362,7 +350,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     @Nullable
-    private MessageProducer  createProducer(final Destination destination) throws JMSException {
+    private MessageProducer createProducer(final Destination destination) throws JMSException {
         logger.debug("Creating AMQP Producer for destination <{}>.", destination);
         return session.createProducer(destination);
     }

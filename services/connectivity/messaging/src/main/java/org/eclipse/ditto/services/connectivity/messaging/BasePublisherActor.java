@@ -56,12 +56,15 @@ import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -94,6 +97,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
     protected final ConnectivityConfig connectivityConfig;
     protected final ConnectionConfig connectionConfig;
+    protected final ConnectionLogger connectionLogger;
 
     /**
      * Common logger for all sub-classes of BasePublisherActor as its MDC already contains the connection ID.
@@ -119,14 +123,16 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
         connectivityConfig = getConnectivityConfig();
         connectionConfig = connectivityConfig.getConnectionConfig();
-        connectionMonitorRegistry =
-                DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig.getMonitoringConfig());
+        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
+        final MonitoringLoggerConfig loggerConfig = monitoringConfig.logger();
+        this.connectionLogger = ConnectionLogger.getInstance(connection.getId(), loggerConfig);
+        connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(connection.getId());
         responsePublishedMonitor = connectionMonitorRegistry.forResponsePublished(connection.getId());
         responseAcknowledgedMonitor = connectionMonitorRegistry.forResponseAcknowledged(connection.getId());
         replyTargets = connection.getSources().stream().map(Source::getReplyTarget).collect(Collectors.toList());
         acknowledgementSizeBudget = connectionConfig.getAcknowledgementConfig().getIssuedMaxBytes();
-        logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
+        this.logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
 
         connectionIdResolver = PlaceholderFactory.newExpressionResolver(PlaceholderFactory.newConnectionIdPlaceholder(),

@@ -50,12 +50,8 @@ import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
@@ -115,7 +111,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private final HttpPushFactory factory;
 
-    private final ConnectionLogger connectionLogger;
     private final Materializer materializer;
     private final SourceQueue<Pair<HttpRequest, HttpPushContext>> sourceQueue;
     private final KillSwitch killSwitch;
@@ -127,7 +122,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
         final HttpPushConfig config = connectionConfig.getHttpPushConfig();
 
-        connectionLogger = getConnectionLogger(connection);
         materializer = Materializer.createMaterializer(this::getContext);
         final Pair<Pair<SourceQueueWithComplete<Pair<HttpRequest, HttpPushContext>>, UniqueKillSwitch>,
                 CompletionStage<Done>> materialized =
@@ -147,11 +141,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     static Props props(final Connection connection, final HttpPushFactory factory) {
         return Props.create(HttpPublisherActor.class, connection, factory);
-    }
-
-    private ConnectionLogger getConnectionLogger(final Connection connection) {
-        final MonitoringLoggerConfig loggerConfig = connectivityConfig.getMonitoringConfig().logger();
-        return ConnectionLogger.getInstance(connection.getId(), loggerConfig);
     }
 
     @Override
