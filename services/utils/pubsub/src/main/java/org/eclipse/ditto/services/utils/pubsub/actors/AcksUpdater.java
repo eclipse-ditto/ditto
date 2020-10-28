@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.actors;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -21,11 +22,13 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
+import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 
 import akka.actor.ActorRef;
 import akka.actor.Address;
 import akka.actor.Props;
+import akka.actor.Terminated;
 import akka.cluster.ddata.Replicator;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
@@ -51,6 +54,8 @@ public final class AcksUpdater extends AbstractUpdater<Address, LiteralUpdate, M
 
     private final DData<Address, String, LiteralUpdate> acksDData;
     @Nullable private Map<Address, Set<String>> mmap;
+    private final java.util.Set<ActorRef> ddataChangeRecipients;
+    private final java.util.Set<ActorRef> localChangeRecipients;
 
     @SuppressWarnings("unused")
     private AcksUpdater(final PubSubConfig config,
@@ -58,6 +63,8 @@ public final class AcksUpdater extends AbstractUpdater<Address, LiteralUpdate, M
             final DData<Address, String, LiteralUpdate> acksDData) {
         super(ACTOR_NAME_PREFIX, config, ownAddress, acksDData.createSubscriptions(), acksDData.getWriter());
         this.acksDData = acksDData;
+        ddataChangeRecipients = new HashSet<>();
+        localChangeRecipients = new HashSet<>();
         subscribeForClusterMemberRemovedAware();
         acksDData.getReader().receiveChanges(getSelf());
     }
@@ -77,10 +84,34 @@ public final class AcksUpdater extends AbstractUpdater<Address, LiteralUpdate, M
         return Props.create(AcksUpdater.class, config, subscriber, acksDData);
     }
 
+    /**
+     * Create a request to this actor that causes the given receiver to receive changes from the underlying distributed
+     * data.
+     *
+     * @param receiver The receiver of distributed data changes.
+     * @return The request.
+     */
+    public static Request receiveDDataChanges(final ActorRef receiver) {
+        return new ReceiveDDataChanges(receiver);
+    }
+
+    /**
+     * Create a request to this actor that causes the given receiver to receive changes of local subscriptions.
+     *
+     * @param receiver The receiver of local subscriptions.
+     * @return The request.
+     */
+    public static Request receiveLocalChanges(final ActorRef receiver) {
+        return new ReceiveLocalChanges(receiver);
+    }
+
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(Replicator.Changed.class, this::onChanged)
+                .match(ReceiveDDataChanges.class, this::onReceiveDDataChanges)
+                .match(ReceiveLocalChanges.class, this::onReceiveLocalChanges)
+                .match(Terminated.class, this::terminated)
                 .build()
                 .orElse(receiveClusterMemberRemoved())
                 .orElse(super.createReceive());
@@ -117,6 +148,8 @@ public final class AcksUpdater extends AbstractUpdater<Address, LiteralUpdate, M
     @Override
     protected void tick(final Clock tick) {
         writeLocalDData();
+        final SubscriptionsChanged subscriptionsChanged = new SubscriptionsChanged(subscriptions.snapshot());
+        localChangeRecipients.forEach(recipient -> recipient.tell(subscriptionsChanged, getSelf()));
     }
 
     @Override
@@ -130,6 +163,25 @@ public final class AcksUpdater extends AbstractUpdater<Address, LiteralUpdate, M
         final java.util.Set<ActorRef> localLosers = getLocalLosers(mmap);
         localLosers.forEach(this::failSubscribe);
         localLosers.forEach(subscriptions::removeSubscriber);
+        final DDataChanged ddataChanged = new DDataChanged(mmap);
+        ddataChangeRecipients.forEach(recipient -> recipient.tell(ddataChanged, getSelf()));
+    }
+
+    private void onReceiveDDataChanges(final ReceiveDDataChanges request) {
+        ddataChangeRecipients.add(request.receiver);
+        getContext().watch(request.receiver);
+    }
+
+    private void onReceiveLocalChanges(final ReceiveLocalChanges request) {
+        localChangeRecipients.add(request.receiver);
+        getContext().watch(request.receiver);
+    }
+
+    private void terminated(final Terminated terminated) {
+        final ActorRef terminatedActor = terminated.getActor();
+        doRemoveSubscriber(terminatedActor);
+        ddataChangeRecipients.remove(terminatedActor);
+        localChangeRecipients.remove(terminatedActor);
     }
 
     private void writeLocalDData() {
@@ -185,6 +237,83 @@ public final class AcksUpdater extends AbstractUpdater<Address, LiteralUpdate, M
 
     private boolean isSmallerThanMySubscriber(final Address otherSubscriber) {
         return Address.addressOrdering().compare(otherSubscriber, subscriber) < 0;
+    }
+
+    private static abstract class ReceiveChanges implements Request {
+
+        protected final ActorRef receiver;
+
+        private ReceiveChanges(final ActorRef receiver) {
+            this.receiver = receiver;
+        }
+
+        @Override
+        public java.util.Set<String> getTopics() {
+            return java.util.Set.of();
+        }
+
+        @Override
+        public Replicator.WriteConsistency getWriteConsistency() {
+            return (Replicator.WriteConsistency) Replicator.writeLocal();
+        }
+
+        @Override
+        public boolean shouldAcknowledge() {
+            return false;
+        }
+    }
+
+    private static final class ReceiveDDataChanges extends ReceiveChanges {
+
+        private ReceiveDDataChanges(final ActorRef receiver) {
+            super(receiver);
+        }
+    }
+
+    private static final class ReceiveLocalChanges extends ReceiveChanges {
+
+        private ReceiveLocalChanges(final ActorRef receiver) {
+            super(receiver);
+        }
+    }
+
+    /**
+     * Notification that the distributed data changed.
+     */
+    public static final class DDataChanged {
+
+        private final Map<Address, Set<String>> multimap;
+
+        private DDataChanged(final Map<Address, Set<String>> multimap) {
+            this.multimap = multimap;
+        }
+
+        /**
+         * The changed distributed multimap as a Java map.
+         *
+         * @return the changed distributed data.
+         */
+        public Map<Address, Set<String>> getMultiMap() {
+            return multimap;
+        }
+    }
+
+    public static final class SubscriptionsChanged {
+
+        private final SubscriptionsReader subscriptionsReader;
+
+        private SubscriptionsChanged(final SubscriptionsReader subscriptionsReader) {
+            this.subscriptionsReader = subscriptionsReader;
+        }
+
+        /**
+         * The snapshot of local subscriptions.
+         *
+         * @return the snapshot.
+         */
+        public SubscriptionsReader getSubscriptionsReader() {
+            return subscriptionsReader;
+        }
     }
 
 }

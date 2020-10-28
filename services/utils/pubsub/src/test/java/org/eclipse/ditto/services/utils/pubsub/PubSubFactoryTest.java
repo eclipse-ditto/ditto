@@ -17,6 +17,7 @@ import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -30,6 +31,7 @@ import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.services.utils.pubsub.actors.AbstractUpdater;
+import org.eclipse.ditto.services.utils.pubsub.actors.AcksUpdater;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
 import org.junit.After;
 import org.junit.Before;
@@ -291,18 +293,36 @@ public final class PubSubFactoryTest {
     }
 
     @Test
-    public void failAckDeclarationDueToRemoteConflict() throws Exception {
+    public void receiveLocalDeclaredAcks() {
+        new TestKit(system1) {{
+            final TestProbe subscriber1 = TestProbe.apply("subscriber1", system1);
+            await(factory1.getDistributedAcks()
+                    .declareAcknowledgementLabels(acks("lorem"), subscriber1.ref()));
+            factory1.getDistributedAcks().receiveLocalDeclaredAcks(getRef());
+            final AcksUpdater.SubscriptionsChanged subscriptionsChanged =
+                    expectMsgClass(java.time.Duration.ofSeconds(10L), AcksUpdater.SubscriptionsChanged.class);
+            assertThat(subscriptionsChanged.getSubscriptionsReader().getSubscribers(List.of("lorem")))
+                    .contains(subscriber1.ref());
+        }};
+    }
+
+    @Test
+    public void failAckDeclarationDueToRemoteConflict() {
         new TestKit(system1) {{
             // GIVEN: 2 subscribers exist in different actor systems
             final TestProbe subscriber1 = TestProbe.apply("subscriber1", system1);
             final TestProbe subscriber2 = TestProbe.apply("subscriber2", system2);
 
+            factory1.getDistributedAcks().receiveDistributedDeclaredAcks(getRef());
+
             // GIVEN: "sit" is declared by a subscriber on system2
             await(factory2.getDistributedAcks().declareAcknowledgementLabels(acks("dolor", "sit"),
                     subscriber2.ref()));
 
-            // GIVEN: the update is replicated to system1 (sleep for 2 gossip intervals)
-            Thread.sleep(dilated(java.time.Duration.ofSeconds(6L)).toMillis());
+            // GIVEN: the update is replicated to system1
+            final AcksUpdater.DDataChanged ddataChanged =
+                    expectMsgClass(java.time.Duration.ofSeconds(10L), AcksUpdater.DDataChanged.class);
+            assertThat(ddataChanged.getMultiMap()).containsKey(cluster2.selfAddress());
 
             // WHEN: another subscriber from system1 declares conflicting labels with the subscriber from system2
             // THEN: the declaration should fail

@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.pubsub.actors.AbstractUpdater;
 import org.eclipse.ditto.services.utils.pubsub.actors.AcksSupervisor;
+import org.eclipse.ditto.services.utils.pubsub.actors.AcksUpdater;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDData;
 
@@ -69,12 +70,12 @@ final class DistributedAcksImpl implements DistributedAcks {
 
     @Override
     public void receiveLocalDeclaredAcks(final ActorRef receiver) {
-        throw new UnsupportedOperationException("TODO");
+        acksSupervisor.tell(AcksUpdater.receiveLocalChanges(receiver), ActorRef.noSender());
     }
 
     @Override
     public void receiveDistributedDeclaredAcks(final ActorRef receiver) {
-        throw new UnsupportedOperationException("TODO");
+        acksSupervisor.tell(AcksUpdater.receiveDDataChanges(receiver), ActorRef.noSender());
     }
 
     @Override
@@ -92,19 +93,20 @@ final class DistributedAcksImpl implements DistributedAcks {
         final Set<String> ackLabelStrings = acknowledgementLabels.stream()
                 .map(AcknowledgementLabel::toString)
                 .collect(Collectors.toSet());
-        final AbstractUpdater.DeclareAckLabels declareAckLabels =
-                AbstractUpdater.DeclareAckLabels.of(ackLabelStrings, subscriber,
-                        (Replicator.WriteConsistency) Replicator.writeLocal(), true);
-        return askSubSupervisor(declareAckLabels);
+        final AbstractUpdater.Subscribe subscribe =
+                AbstractUpdater.Subscribe.of(ackLabelStrings, subscriber, writeLocal(), true);
+        return askSubSupervisor(subscribe);
     }
 
     @Override
     public void removeAcknowledgementLabelDeclaration(final ActorRef subscriber) {
         final AbstractUpdater.RemoveSubscriber request =
-                AbstractUpdater.RemoveSubscriber.of(subscriber, (Replicator.WriteConsistency) Replicator.writeLocal(),
-                        false)
-                        .forAcknowledgementLabelDeclaration();
+                AbstractUpdater.RemoveSubscriber.of(subscriber, writeLocal(), false);
         acksSupervisor.tell(request, ActorRef.noSender());
+    }
+
+    private static Replicator.WriteConsistency writeLocal() {
+        return (Replicator.WriteConsistency) Replicator.writeLocal();
     }
 
     private static CompletionStage<AbstractUpdater.SubAck> processAskResponse(final Object askResponse) {

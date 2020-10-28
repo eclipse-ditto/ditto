@@ -53,11 +53,8 @@ public final class AcksSupervisor extends AbstractPubSubSupervisor {
     @Override
     protected Receive createPubSubBehavior() {
         return ReceiveBuilder.create()
-                .match(AbstractUpdater.DeclareAckLabels.class, this::isAcksUpdaterAvailable, this::declareAckLabels)
-                .match(AbstractUpdater.DeclareAckLabels.class, this::acksUpdaterUnavailable)
-                .match(AbstractUpdater.RemoveSubscriber.class,
-                        AbstractUpdater.RemoveSubscriber::isForAcknowledgementLabelDeclaration,
-                        this::removeAcknowledgementLabelDeclaration)
+                .match(AbstractUpdater.Request.class, this::isAcksUpdaterAvailable, this::forwardRequest)
+                .match(AbstractUpdater.Request.class, this::acksUpdaterUnavailable)
                 .build();
     }
 
@@ -79,8 +76,8 @@ public final class AcksSupervisor extends AbstractPubSubSupervisor {
     }
 
     @SuppressWarnings("ConstantConditions")
-    private void declareAckLabels(final AbstractUpdater.DeclareAckLabels request) {
-        acksUpdater.tell(request.toSubscribe(), getSender());
+    private void forwardRequest(final AbstractUpdater.Request request) {
+        acksUpdater.tell(request, getSender());
     }
 
     private void updaterUnavailable(final SubUpdater.Request request) {
@@ -88,7 +85,7 @@ public final class AcksSupervisor extends AbstractPubSubSupervisor {
         getSender().tell(new IllegalStateException("AcksUpdater not available"), getSelf());
     }
 
-    private void acksUpdaterUnavailable(final AbstractUpdater.DeclareAckLabels request) {
+    private void acksUpdaterUnavailable(final AbstractUpdater.Request request) {
         log.error("AcksUpdater unavailable. Failing <{}>", request);
         getSender().tell(new IllegalStateException("AcksUpdater not available"), getSelf());
     }

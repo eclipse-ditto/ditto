@@ -259,7 +259,7 @@ public abstract class AbstractUpdater<K, T, P> extends AbstractActorWithTimers {
         doRemoveSubscriber(request.getSubscriber());
     }
 
-    private void doRemoveSubscriber(final ActorRef subscriber) {
+    protected void doRemoveSubscriber(final ActorRef subscriber) {
         localSubscriptionsChanged |= subscriptions.removeSubscriber(subscriber);
         getContext().unwatch(subscriber);
     }
@@ -292,14 +292,32 @@ public abstract class AbstractUpdater<K, T, P> extends AbstractActorWithTimers {
     /**
      * Super class of subscription requests.
      */
-    public abstract static class Request {
+    public interface Request {
+
+        /**
+         * @return topics in the subscription.
+         */
+        Set<String> getTopics();
+
+        /**
+         * @return write consistency for the request.
+         */
+        Replicator.WriteConsistency getWriteConsistency();
+
+        /**
+         * @return whether acknowledgement is expected.
+         */
+        boolean shouldAcknowledge();
+    }
+
+    private abstract static class AbstractRequest implements Request {
 
         private final Set<String> topics;
         private final ActorRef subscriber;
         private final Replicator.WriteConsistency writeConsistency;
         private final boolean acknowledge;
 
-        private Request(final Set<String> topics,
+        private AbstractRequest(final Set<String> topics,
                 final ActorRef subscriber,
                 final Replicator.WriteConsistency writeConsistency,
                 final boolean acknowledge) {
@@ -352,7 +370,7 @@ public abstract class AbstractUpdater<K, T, P> extends AbstractActorWithTimers {
     /**
      * Request to subscribe to topics.
      */
-    public static final class Subscribe extends Request {
+    public static final class Subscribe extends AbstractRequest {
 
         private static final Predicate<Collection<String>> CONSTANT_TRUE = topics -> true;
 
@@ -407,7 +425,7 @@ public abstract class AbstractUpdater<K, T, P> extends AbstractActorWithTimers {
     /**
      * Request to unsubscribe to topics.
      */
-    public static final class Unsubscribe extends Request {
+    public static final class Unsubscribe extends AbstractRequest {
 
         private Unsubscribe(final Set<String> topics, final ActorRef subscriber,
                 final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
@@ -432,14 +450,12 @@ public abstract class AbstractUpdater<K, T, P> extends AbstractActorWithTimers {
     /**
      * Request to remove a subscriber.
      */
-    public static final class RemoveSubscriber extends Request {
+    public static final class RemoveSubscriber extends AbstractRequest {
 
-        private final boolean forAcknowledgementLabelDeclaration;
-
-        private RemoveSubscriber(final ActorRef subscriber, final Replicator.WriteConsistency writeConsistency,
-                final boolean acknowledge, final boolean forAcknowledgementLabelDeclaration) {
+        private RemoveSubscriber(final ActorRef subscriber,
+                final Replicator.WriteConsistency writeConsistency,
+                final boolean acknowledge) {
             super(Collections.emptySet(), subscriber, writeConsistency, acknowledge);
-            this.forAcknowledgementLabelDeclaration = forAcknowledgementLabelDeclaration;
         }
 
         /**
@@ -452,26 +468,9 @@ public abstract class AbstractUpdater<K, T, P> extends AbstractActorWithTimers {
          */
         public static RemoveSubscriber of(final ActorRef subscriber,
                 final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
-            return new RemoveSubscriber(subscriber, writeConsistency, acknowledge, false);
+            return new RemoveSubscriber(subscriber, writeConsistency, acknowledge);
         }
 
-        /**
-         * Create a copy of this request with 'forAcknowledgementLabelDeclaration' set to true.
-         *
-         * @return the copy.
-         */
-        public RemoveSubscriber forAcknowledgementLabelDeclaration() {
-            return new RemoveSubscriber(getSubscriber(), getWriteConsistency(), shouldAcknowledge(), true);
-        }
-
-        /**
-         * Check whether this request is for acknowledgement declaration.
-         *
-         * @return if this request is for acknowledgement declaration.
-         */
-        public boolean isForAcknowledgementLabelDeclaration() {
-            return forAcknowledgementLabelDeclaration;
-        }
     }
 
     /**
@@ -530,43 +529,6 @@ public abstract class AbstractUpdater<K, T, P> extends AbstractActorWithTimers {
          * Clock tick to update distributed data.
          */
         TICK
-    }
-
-    /**
-     * Message to declare ack labels for a subscriber.
-     */
-    public static final class DeclareAckLabels extends Request {
-
-        private DeclareAckLabels(final Set<String> ackLabels,
-                final ActorRef subscriber,
-                final Replicator.WriteConsistency writeConsistency,
-                final boolean acknowledge) {
-
-            super(ackLabels, subscriber, writeConsistency, acknowledge);
-        }
-
-        /**
-         * Create a message to declare unique ack labels for a subscriber.
-         *
-         * @param ackLabels what ack labels to declare.
-         * @param subscriber the subscriber.
-         * @param writeConsistency write consistency for the distributed data.
-         * @param acknowledge whether SubAck is expected.
-         * @return the message to declare ack labels.
-         */
-        public static DeclareAckLabels of(final Set<String> ackLabels, final ActorRef subscriber,
-                final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
-            return new DeclareAckLabels(ackLabels, subscriber, writeConsistency, acknowledge);
-        }
-
-        /**
-         * Convert this message to a Subscribe message for an AbstractUpdater.
-         *
-         * @return the equivalent AbstractUpdater.Subscribe message.
-         */
-        public Subscribe toSubscribe() {
-            return Subscribe.of(getTopics(), getSubscriber(), getWriteConsistency(), shouldAcknowledge());
-        }
     }
 
     /**
