@@ -192,7 +192,7 @@ public final class SignalFilterTest {
                         URI).targets(targets).build();
 
         final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
-        final List<Target> filteredTargets = signalFilter.filter(signal(signalTopic, readSubjects));
+        final List<Target> filteredTargets = signalFilter.filter(signal(signalTopic, readSubjects), target -> {});
         Assertions.assertThat(filteredTargets)
                 .isEqualTo(expectedTargets);
     }

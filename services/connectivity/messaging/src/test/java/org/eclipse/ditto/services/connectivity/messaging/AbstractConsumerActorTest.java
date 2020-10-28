@@ -213,8 +213,10 @@ public abstract class AbstractConsumerActorTest<M> {
             final TestProbe sender = TestProbe.apply(actorSystem);
             final TestProbe concierge = TestProbe.apply(actorSystem);
             final TestProbe clientActor = TestProbe.apply(actorSystem);
+            final TestProbe connectionActor = TestProbe.apply(actorSystem);
 
-            final ActorRef mappingActor = setupMessageMappingProcessorActor(clientActor.ref(), concierge.ref());
+            final ActorRef mappingActor =
+                    setupMessageMappingProcessorActor(clientActor.ref(), concierge.ref(), connectionActor.ref());
             final ActorRef underTest = childActorOf(getConsumerActorProps(mappingActor, Collections.emptySet()));
 
             underTest.tell(getInboundMessage(payload, header("device_id", TestConstants.Things.THING_ID)),
@@ -319,8 +321,10 @@ public abstract class AbstractConsumerActorTest<M> {
             final TestProbe sender = TestProbe.apply(actorSystem);
             final TestProbe proxyActor = TestProbe.apply(actorSystem);
             final TestProbe clientActor = TestProbe.apply(actorSystem);
+            final TestProbe connectionActor = TestProbe.apply(actorSystem);
 
-            final ActorRef mappingActor = setupMessageMappingProcessorActor(clientActor.ref(), proxyActor.ref());
+            final ActorRef mappingActor =
+                    setupMessageMappingProcessorActor(clientActor.ref(), proxyActor.ref(), connectionActor.ref());
 
             final ActorRef underTest = actorSystem.actorOf(getConsumerActorProps(mappingActor, payloadMapping));
 
@@ -348,8 +352,8 @@ public abstract class AbstractConsumerActorTest<M> {
         }};
     }
 
-    private ActorRef setupMessageMappingProcessorActor(final ActorRef clientActor,
-            final ActorRef proxyActor) {
+    private ActorRef setupMessageMappingProcessorActor(final ActorRef clientActor, final ActorRef proxyActor,
+            final ActorRef connectionActor) {
 
         final Map<String, MappingContext> mappings = new HashMap<>();
         mappings.put("ditto", DittoMessageMapper.CONTEXT);
@@ -384,7 +388,8 @@ public abstract class AbstractConsumerActorTest<M> {
                 connectivityConfig,
                 protocolAdapter,
                 logger);
-        final Props props = OutboundMappingProcessorActor.props(clientActor, outboundMappingProcessor, CONNECTION, 43);
+        final Props props = OutboundMappingProcessorActor.props(clientActor, outboundMappingProcessor, CONNECTION,
+                connectionActor, 43);
         final ActorRef outboundProcessorActor = actorSystem.actorOf(props,
                 OutboundMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
         final Props inboundDispatchingActorProps = InboundDispatchingActor.props(CONNECTION,

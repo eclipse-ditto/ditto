@@ -31,14 +31,18 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -540,7 +544,6 @@ public final class ConnectionPersistenceActor
     }
 
     private void handleSignal(final Signal<?> signal) {
-        enhanceLogUtil(signal);
         if (clientActorRouter == null) {
             logDroppedSignal(signal.getType(), "Client actor not ready.");
             return;
@@ -553,8 +556,8 @@ public final class ConnectionPersistenceActor
             logDroppedSignal(signal.getType(), "Was sent by myself.");
             return;
         }
-
-        final List<Target> subscribedAndAuthorizedTargets = signalFilter.filter(signal);
+        final List<Target> subscribedAndAuthorizedTargets =
+                signalFilter.filter(signal, target -> issuePotentialWeakAcknowledgements(target, signal));
         if (subscribedAndAuthorizedTargets.isEmpty()) {
             logDroppedSignal(signal.getType(), "No subscribed and authorized targets present");
             return;
@@ -575,6 +578,25 @@ public final class ConnectionPersistenceActor
                 OutboundSignalFactory.newOutboundSignal(signalToForward, subscribedAndAuthorizedTargets);
         final Object msg = consistentHashableEnvelope(outbound, outbound.getSource().getEntityId().toString());
         clientActorRouter.tell(msg, getSender());
+    }
+
+    private void issuePotentialWeakAcknowledgements(final Target filteringTarget, final Signal<?> signal) {
+        final EntityId entityId = signal.getEntityId();
+        if (entityId instanceof EntityIdWithType) {
+            final ActorRef sender = getSender();
+            final JsonValue ackBody = JsonValue.of("\"Acknowledgement was issued automatically, " +
+                    "because the event was filtered due to a configured RQL filter.\"");
+            final Set<AcknowledgementLabel> sourceDeclaredAcks = getSourceDeclaredAcks();
+            final Optional<AcknowledgementLabel> optionalIssuedAck = filteringTarget.getIssuedAcknowledgementLabel();
+            final Set<AcknowledgementLabel> ackLabelsToAcknowledgeWeakly =
+                    Stream.concat(sourceDeclaredAcks.stream(), optionalIssuedAck.stream()).collect(Collectors.toSet());
+            final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+            dittoHeaders.getAcknowledgementRequests().stream()
+                    .map(AcknowledgementRequest::getLabel)
+                    .filter(ackLabelsToAcknowledgeWeakly::contains)
+                    .map(label -> Acknowledgement.weak(label, (EntityIdWithType) entityId, dittoHeaders, ackBody))
+                    .forEach(weakAck -> sender.tell(weakAck, ActorRef.noSender()));
+        }
     }
 
     private Signal<?> adjustSignalAndStartAckForwarder(final Signal<?> signal, final ThingId thingId) {

@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -82,7 +83,7 @@ final class SignalFilter {
      * Target cannot be mapped to a valid criterion
      */
     @SuppressWarnings("squid:S3864")
-    List<Target> filter(final Signal<?> signal) {
+    List<Target> filter(final Signal<?> signal, Consumer<Target> onRqlFiltered) {
         return connection.getTargets().stream()
                 .filter(t -> isTargetAuthorized(t, signal)) // this is cheaper, so check this first
                 .filter(t -> isTargetSubscribedForTopicGenerally(t, signal))
@@ -90,7 +91,13 @@ final class SignalFilter {
                 .peek(authorizedTarget -> connectionMonitorRegistry.forOutboundDispatched(connection.getId(),
                         authorizedTarget.getAddress())
                         .success(signal))
-                .filter(t -> isTargetSubscribedForTopicWithFiltering(t, signal))
+                .filter(t -> {
+                    final boolean keepSignal = isTargetSubscribedForTopicWithFiltering(t, signal);
+                    if (!keepSignal) {
+                        onRqlFiltered.accept(t);
+                    }
+                    return keepSignal;
+                })
                 // count authorized + filtered targets
                 .peek(filteredTarget -> connectionMonitorRegistry.forOutboundFiltered(connection.getId(),
                         filteredTarget.getAddress())

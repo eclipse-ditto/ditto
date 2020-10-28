@@ -35,8 +35,11 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -120,6 +123,7 @@ public final class OutboundMappingProcessorActor
     private final ActorRef clientActor;
     private final OutboundMappingProcessor outboundMappingProcessor;
     private final ConnectionId connectionId;
+    private final ActorRef connectionActor;
     private final MappingConfig mappingConfig;
     private final DefaultConnectionMonitorRegistry connectionMonitorRegistry;
     private final ConnectionMonitor responseDispatchedMonitor;
@@ -133,6 +137,7 @@ public final class OutboundMappingProcessorActor
     private OutboundMappingProcessorActor(final ActorRef clientActor,
             final OutboundMappingProcessor outboundMappingProcessor,
             final Connection connection,
+            final ActorRef connectionActor,
             final int processorPoolSize) {
 
         super(OutboundSignal.class);
@@ -140,6 +145,7 @@ public final class OutboundMappingProcessorActor
         this.clientActor = clientActor;
         this.outboundMappingProcessor = outboundMappingProcessor;
         this.connectionId = connection.getId();
+        this.connectionActor = connectionActor;
 
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
@@ -183,12 +189,14 @@ public final class OutboundMappingProcessorActor
     public static Props props(final ActorRef clientActor,
             final OutboundMappingProcessor outboundMappingProcessor,
             final Connection connection,
+            final ActorRef connectionActor,
             final int processorPoolSize) {
 
         return Props.create(OutboundMappingProcessorActor.class,
                 clientActor,
                 outboundMappingProcessor,
                 connection,
+                connectionActor,
                 processorPoolSize
         ).withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
     }
@@ -551,27 +559,44 @@ public final class OutboundMappingProcessorActor
                 });
     }
 
-    private static Collection<OutboundSignalWithId> applyFilter(final OutboundSignalWithId outboundSignalWithExtra,
+    private Collection<OutboundSignalWithId> applyFilter(final OutboundSignalWithId outboundSignalWithExtra,
             final FilteredTopic filteredTopic) {
 
         final Optional<String> filter = filteredTopic.getFilter();
         final Optional<JsonFieldSelector> extraFields = filteredTopic.getExtraFields();
         if (filter.isPresent() && extraFields.isPresent()) {
             // evaluate filter criteria again if signal enrichment is involved.
+            final Signal<?> signal = outboundSignalWithExtra.getSource();
+            final DittoHeaders dittoHeaders = signal.getDittoHeaders();
             final Criteria criteria = QueryFilterCriteriaFactory.modelBased()
-                    .filterCriteria(filter.get(), outboundSignalWithExtra.getSource().getDittoHeaders());
+                    .filterCriteria(filter.get(), dittoHeaders);
             return outboundSignalWithExtra.getExtra()
-                    .flatMap(extra -> {
-                        final Signal<?> signal = outboundSignalWithExtra.getSource();
-                        return ThingEventToThingConverter.mergeThingWithExtraFields(signal, extraFields.get(), extra)
-                                .filter(ThingPredicateVisitor.apply(criteria))
-                                .map(thing -> outboundSignalWithExtra);
-                    })
+                    .flatMap(extra -> ThingEventToThingConverter
+                            .mergeThingWithExtraFields(signal, extraFields.get(), extra)
+                            .filter(ThingPredicateVisitor.apply(criteria))
+                            .map(thing -> outboundSignalWithExtra))
                     .map(Collections::singletonList)
-                    .orElseGet(Collections::emptyList);
+                    .orElseGet(() -> {
+                        issuePotentialWeakAcknowledgements(signal);
+                        return List.of();
+                    });
         } else {
             // no signal enrichment: filtering is already done in SignalFilter since there is no ignored field
             return Collections.singletonList(outboundSignalWithExtra);
+        }
+    }
+
+    private void issuePotentialWeakAcknowledgements(final Signal<?> signal) {
+        final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+        final EntityId entityId = signal.getEntityId();
+        if (entityId instanceof EntityIdWithType) {
+            final JsonValue ackBody = JsonValue.of("\"Acknowledgement was issued automatically, " +
+                    "because the event was filtered due to a configured RQL filter.\"");
+            dittoHeaders.getAcknowledgementRequests()
+                    .stream()
+                    .map(AcknowledgementRequest::getLabel)
+                    .map(label -> Acknowledgement.weak(label, (EntityIdWithType) entityId, dittoHeaders, ackBody))
+                    .forEach(weakAck -> connectionActor.tell(weakAck, ActorRef.noSender()));
         }
     }
 
