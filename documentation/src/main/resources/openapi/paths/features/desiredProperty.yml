@@ -172,7 +172,7 @@ delete:
     - $ref: '#/components/parameters/responseRequiredParam'
   responses:
     '204':
-      description: The property was successfully deleted.
+      description: The desired property was successfully deleted.
     '400':
       description: |-
         The request could not be completed. Possible reasons:
