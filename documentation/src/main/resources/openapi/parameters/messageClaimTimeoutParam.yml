@@ -1,0 +1,9 @@
+name: timeout
+in: query
+description: |-
+  Contains an optional timeout (in seconds) of how long to wait for the Claim response and therefore block the
+  HTTP request. Default value (if omitted): 60 seconds. Maximum value: 600 seconds. A value of 0 seconds applies
+  fire and forget semantics for the message.
+required: false
+schema:
+  type: integer

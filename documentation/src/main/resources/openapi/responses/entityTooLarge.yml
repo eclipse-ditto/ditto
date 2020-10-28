@@ -1,0 +1,6 @@
+description: |-
+  The created or modified entity is larger than the accepted limit of 100 kB.
+content:
+  application/json:
+    schema:
+      $ref: '#/components/schemas/AdvancedError'

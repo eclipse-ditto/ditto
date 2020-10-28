@@ -1,0 +1,6 @@
+description: |-
+  The request could not be completed as there is no consumer for this message connected.
+content:
+  application/json:
+    schema:
+      $ref: '#/components/schemas/AdvancedError'

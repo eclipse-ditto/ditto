@@ -1,0 +1,6 @@
+name: attributePath
+in: path
+description: The path to the attribute, e.g. **manufacturer/name**
+required: true
+schema:
+  type: string

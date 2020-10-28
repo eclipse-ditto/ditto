@@ -1,0 +1,10 @@
+type: object
+description: Single policy entry containing Subjects and Resources.
+required:
+  - subjects
+  - resources
+properties:
+  subjects:
+    $ref: '#/components/schemas/Subjects'
+  resources:
+    $ref: '#/components/schemas/Resources'

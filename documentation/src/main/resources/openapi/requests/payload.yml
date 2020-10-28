@@ -1,0 +1,16 @@
+content:
+  application/json:
+    schema:
+      type: string
+      example: ''
+  application/octet-stream:
+    schema:
+      type: string
+      example: ''
+  text/plain:
+    schema:
+      type: string
+      example: ''
+description: |-
+  Payload of the message with max size of 250 kB. It can be any HTTP
+  supported content, including binary content.

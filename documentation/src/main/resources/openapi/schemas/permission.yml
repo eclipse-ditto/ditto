@@ -1,0 +1,5 @@
+type: string
+description: A Permission allows a certain action on an entity
+enum:
+  - READ
+  - WRITE

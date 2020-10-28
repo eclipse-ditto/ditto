@@ -1,0 +1,6 @@
+name: messageSubject
+in: path
+description: The subject of the Message - has to conform to RFC-3986 (URI)
+required: true
+schema:
+  type: string

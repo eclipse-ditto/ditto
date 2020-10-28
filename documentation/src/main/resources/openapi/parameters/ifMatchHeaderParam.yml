@@ -1,0 +1,9 @@
+name: If-Match
+in: header
+description: >-
+  The `If-Match` header, which has to conform to RFC-7232 (Conditional Requests). Common usages are:
+    * optimistic locking by specifying the `ETag` from a previous GET response, e.g. `If-Match: "rev:4711"`
+    * retrieving or modifying a resource only if it already exists, e.g. `If-Match: *`
+required: false
+schema:
+  type: string

@@ -1,0 +1,16 @@
+properties:
+  status:
+    type: integer
+    description: The HTTP status of the error
+  message:
+    type: string
+    description: The message of the error - what went wrong
+  description:
+    type: string
+    description: A description how to fix the error or more details
+  href:
+    type: string
+    description: A link to further information about the error and how to fix it
+required:
+  - status
+  - message

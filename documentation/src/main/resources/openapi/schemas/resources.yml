@@ -1,0 +1,13 @@
+type: object
+description: |-
+  (Authorization) Resources containing one ResourceEntry for each
+  `type:path` key, `type` being one of the following `thing`, `policy`, `message`.
+properties:
+  'thing:/':
+    $ref: '#/components/schemas/ResourceEntry'
+  'thing:/attributes/some/path':
+    $ref: '#/components/schemas/ResourceEntryRestricted'
+  'policy:/':
+    $ref: '#/components/schemas/ResourceEntry'
+  'message:/':
+    $ref: '#/components/schemas/ResourceEntry'

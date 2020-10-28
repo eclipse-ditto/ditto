@@ -38,968 +38,218 @@ tags:
 security:
   #  - Google:
   #    - openid
-  - basicAuth: []
-  - bearerAuth: []
+  - basicAuth: [ ]
+  - bearerAuth: [ ]
 paths:
+
   ###
   ### Things
   ###
   /things:
-    $ref: ./paths-v2/things/index.yml
+    $ref: "./paths/things/index.yml"
   '/things/{thingId}':
-    $ref: ./paths-v2/things/thing.yml
+    $ref: "./paths/things/thing.yml"
   '/things/{thingId}/definition':
-    $ref: ./paths-v2/things/definition.yml
+    $ref: "./paths/things/definition.yml"
   '/things/{thingId}/policyId':
-    $ref: ./paths-v2/things/policyid.yml
+    $ref: "./paths/things/policyid.yml"
   '/things/{thingId}/attributes':
-    $ref: ./paths-v2/things/attributes.yml
+    $ref: "./paths/things/attributes.yml"
   '/things/{thingId}/attributes/{attributePath}':
-    $ref: ./paths-v2/things/attribute.yml
+    $ref: "./paths/things/attribute.yml"
+
   ###
   ### Features
   ###
   '/things/{thingId}/features':
-    $ref: ./paths-v2/features/index.yml
+    $ref: "./paths/features/index.yml"
   '/things/{thingId}/features/{featureId}':
-    $ref: ./paths-v2/features/feature.yml
+    $ref: "./paths/features/feature.yml"
   '/things/{thingId}/features/{featureId}/definition':
-    $ref: ./paths-v2/features/definition.yml
+    $ref: "./paths/features/definition.yml"
   '/things/{thingId}/features/{featureId}/properties':
-    $ref: ./paths-v2/features/properties.yml
+    $ref: "./paths/features/properties.yml"
   '/things/{thingId}/features/{featureId}/properties/{propertyPath}':
-    $ref: ./paths-v2/features/property.yml
+    $ref: "./paths/features/property.yml"
+  '/things/{thingId}/features/{featureId}/desiredProperties':
+    $ref: "./paths/features/desiredProperties.yml"
+  '/things/{thingId}/features/{featureId}/desiredProperties/{desiredPropertyPath}':
+    $ref: "./paths/features/desiredProperty.yml"
+
   ###
   ### Messages
   ###
   '/things/{thingId}/inbox/claim':
-    $ref: ./paths-v2/messages/inbox-claim.yml
+    $ref: "./paths/messages/inbox-claim.yml"
   '/things/{thingId}/inbox/messages/{messageSubject}':
-    $ref: ./paths-v2/messages/inbox-message.yml
+    $ref: "./paths/messages/inbox-message.yml"
   '/things/{thingId}/outbox/messages/{messageSubject}':
-    $ref: ./paths-v2/messages/outbox-message.yml
+    $ref: "./paths/messages/outbox-message.yml"
   '/things/{thingId}/features/{featureId}/inbox/messages/{messageSubject}':
-    $ref: ./paths-v2/messages/feature-inbox-message.yml
+    $ref: "./paths/messages/feature-inbox-message.yml"
   '/things/{thingId}/features/{featureId}/outbox/messages/{messageSubject}':
-    $ref: ./paths-v2/messages/feature-outbox-message.yml
+    $ref: "./paths/messages/feature-outbox-message.yml"
+
   ###
   ### Policies
   ###
   '/policies/{policyId}':
-    $ref: ./paths-v2/policies/policy.yml
+    $ref: "./paths/policies/policy.yml"
   '/policies/{policyId}/entries':
-    $ref: ./paths-v2/policies/entries.yml
+    $ref: "./paths/policies/entries.yml"
   '/policies/{policyId}/entries/{label}':
-    $ref: ./paths-v2/policies/entry.yml
+    $ref: "./paths/policies/entry.yml"
   '/policies/{policyId}/entries/{label}/subjects':
-    $ref: ./paths-v2/policies/subjects.yml
+    $ref: "./paths/policies/subjects.yml"
   '/policies/{policyId}/entries/{label}/subjects/{subjectId}':
-    $ref: ./paths-v2/policies/subject.yml
+    $ref: "./paths/policies/subject.yml"
   '/policies/{policyId}/entries/{label}/resources':
-    $ref: ./paths-v2/policies/resources.yml
+    $ref: "./paths/policies/resources.yml"
   '/policies/{policyId}/entries/{label}/resources/{resourcePath}':
-    $ref: ./paths-v2/policies/resource.yml
+    $ref: "./paths/policies/resource.yml"
+
   ###
   ### Who Am I
   ###
   '/whoami':
-    $ref: ./paths-v2/whoami/index.yml
+    $ref: "./paths/whoami/index.yml"
+
   ###
   ### Things-Search
   ###
   /search/things:
-    $ref: ./paths-v2/search/things.yml
+    $ref: "./paths/search/things.yml"
   /search/things/count:
-    $ref: ./paths-v2/search/things-count.yml
+    $ref: "./paths/search/things-count.yml"
+
 components:
   schemas:
     Error:
-      properties:
-        status:
-          type: integer
-          description: The HTTP status of the error
-        message:
-          type: string
-          description: The message of the error - what went wrong
-        description:
-          type: string
-          description: A description how to fix the error or more details
-        href:
-          type: string
-          description: A link to further information about the error and how to fix it
-      required:
-        - status
-        - message
+      $ref: "./schemas/error.yml"
     AdvancedError:
-      properties:
-        status:
-          type: integer
-          description: The HTTP status of the error
-        error:
-          type: string
-          description: The error code of the occurred exception
-        message:
-          type: string
-          description: The message of the error - what went wrong
-        description:
-          type: string
-          description: A description how to fix the error or more details
-        href:
-          type: string
-          description: A link to further information about the error and how to fix it
-      required:
-        - status
-        - error
-        - message
+      $ref: "./schemas/advancedError.yml"
     Attributes:
-      type: object
-      description: An arbitrary JSON object describing the attributes of a thing.
+      $ref: "./schemas/attributes.yml"
     Definition:
-      type: string
-      description: "A single fully qualified identifier of a definition in the form 'namespace:name:version'"
-      pattern: ([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+)
+      $ref: "./schemas/definition.yml"
     FeatureDefinition:
-      type: array
-      description: The definitions of a feature.
-      items:
-        type: string
-        description: "A single fully qualified identifier of a feature definition in the form 'namespace:name:version'"
-        pattern: ([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+)
+      $ref: "./schemas/featureDefinition.yml"
     FeatureProperties:
-      type: object
-      description: An arbitrary JSON object describing the properties of a feature.
+      $ref: "./schemas/featureProperties.yml"
     Feature:
-      type: object
-      properties:
-        definition:
-          $ref: '#/components/schemas/FeatureDefinition'
-        properties:
-          $ref: '#/components/schemas/FeatureProperties'
+      $ref: "./schemas/feature.yml"
     SearchResultThings:
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/Thing'
-        cursor:
-          type: string
+      $ref: "./schemas/searchResultThings.yml"
     SearchResultThingsCount:
       type: integer
     NewThing:
-      type: object
-      properties:
-        _policy:
-          allOf:
-            - $ref: '#/components/schemas/Policy'
-          description: |-
-            The initial policy to create for this thing. This will create a separate policy entity managed by resource `/policies/{thingId}`.
-
-
-            Use the placeholder `{{ request:subjectId }}` in order to let the backend insert the authenticated subjectId of the HTTP request.
-        _copyPolicyFrom:
-          type: string
-          description: |-
-            This field may contain
-            * the policy ID of an existing policy.
-
-              The policy is copied and used for this newly created thing. The
-              caller needs to have READ and WRITE<sup>*</sup> access to the policy.
-            * a placeholder reference to a thing in the format {{ ref:things/[thingId]/policyId }} where you need to
-              replace [thingId] with a valid thing ID.
-
-              The newly created thing will then obtain a copy of the policy of
-              the referenced thing. The caller needs to have READ access to the thing and READ and WRITE<sup>*</sup>
-              access to the policy of the thing.
-
-
-            <sup>*</sup> The check for WRITE permission avoids locking yourself out of the newly created policy. You can
-            bypass this check by setting the header `allowPolicyLockout` to `true`. Be aware that the authorized
-            subject cannot modify the policy if you do not assign WRITE permission on the policy resource!
-
-            If you want to specify a policy ID for the copied policy, use the policyId field.
-
-            This field must not be used together with the field _policy. If you specify both _policy and _copyPolicyFrom
-            this will lead to an error response.
-        policyId:
-          type: string
-          description: |-
-            The policy ID used for controlling access to this thing. Managed by
-            resource `/policies/{policyId}`.
-        definition:
-          $ref: '#/components/schemas/Definition'
-        attributes:
-          $ref: '#/components/schemas/Attributes'
-        features:
-          $ref: '#/components/schemas/Features'
+      $ref: "./schemas/newThing.yml"
     Thing:
-      type: object
-      required:
-        - thingId
-        - policyId
-        - attributes
-        - definition
-        - features
-      properties:
-        thingId:
-          type: string
-          description: Unique identifier representing the thing
-        policyId:
-          type: string
-          description: The ID of the policy which controls the access to this thing. policies are managed by resource `/policies/{policyId}`
-        definition:
-          $ref: '#/components/schemas/Definition'
-        attributes:
-          $ref: '#/components/schemas/Attributes'
-        features:
-          $ref: '#/components/schemas/Features'
-        _revision:
-          type: string
-          description: |-
-            _(read-only)_ The revision is a counter which is incremented on each modification of a Thing. This field
-            is not returned by default but must be selected explicitly.
-        _created:
-          type: string
-          description: |-
-            _(read-only)_ The created timestamp of the Thing in ISO-8601 UTC format. The timestamp is set on creation
-            of a Thing. This field is not returned by default but must be selected explicitly.
-        _modified:
-          type: string
-          description: |-
-            _(read-only)_ The modified timestamp of the Thing in ISO-8601 UTC format. The timestamp is set on each
-            modification of a Thing. This field is not returned by default but must be selected explicitly.
-        _metadata:
-          type: object
-          description: |-
-            _(read-only)_ The Metadata of the Thing. This field is not returned by default but must be selected explicitly.
+      $ref: "./schemas/thing.yml"
     Policy:
-      type: object
-      description: policy consisting of policy entries
-      properties:
-        entries:
-          $ref: '#/components/schemas/PolicyEntries'
+      $ref: "./schemas/policy.yml"
     PolicyEntries:
-      type: object
-      description: Policy entries containing one policy entry for each arbitrary `label` key
-      properties:
-        label1:
-          $ref: '#/components/schemas/PolicyEntry'
-        labelN:
-          $ref: '#/components/schemas/PolicyEntry'
+      $ref: "./schemas/policyEntries.yml"
     PolicyEntry:
-      type: object
-      description: Single policy entry containing Subjects and Resources.
-      required:
-        - subjects
-        - resources
-      properties:
-        subjects:
-          $ref: '#/components/schemas/Subjects'
-        resources:
-          $ref: '#/components/schemas/Resources'
+      $ref: "./schemas/policyEntry.yml"
     Subjects:
-      type: object
-      description: |-
-        A SubjectEntry defines who is addressed.
-      properties:
-        'nginx:subjectId1':
-          $ref: '#/components/schemas/SubjectEntry'
-        'nginx:subjectIdN':
-          $ref: '#/components/schemas/SubjectEntry'
+      $ref: "./schemas/subjects.yml"
     SubjectEntry:
-      type: object
-      description: Single (Authorization) Subject entry holding its type.
-      required:
-        - type
-      properties:
-        type:
-          type: string
-          description: The type is offered only for documentation purposes. You are not restricted to any specific types, but we recommend to use it to specify the kind of the subject as shown in our examples.
+      $ref: "./schemas/subjectEntry.yml"
     Resources:
-      type: object
-      description: |-
-        (Authorization) Resources containing one ResourceEntry for each
-        `type:path` key, `type` being one of the following `thing`, `policy`, `message`.
-      properties:
-        'thing:/':
-          $ref: '#/components/schemas/ResourceEntry'
-        'thing:/attributes/some/path':
-          $ref: '#/components/schemas/ResourceEntryRestricted'
-        'policy:/':
-          $ref: '#/components/schemas/ResourceEntry'
-        'message:/':
-          $ref: '#/components/schemas/ResourceEntry'
+      $ref: "./schemas/resources.yml"
     ResourceEntry:
-      type: object
-      description: |-
-        Single (Authorization) Resource entry defining permissions per effect.
-        Allowed effects are `grant` and `revoke`.
-      properties:
-        grant:
-          type: array
-          items:
-            $ref: '#/components/schemas/Permission'
-        revoke:
-          type: array
-          items:
-            $ref: '#/components/schemas/Permission'
+      $ref: "./schemas/resourceEntry.yml"
     ResourceEntryRestricted:
-      type: object
-      description: |-
-        Single (Authorization) Resource entry defining permissions per effect.
-        Allowed effects are `grant` and `revoke`.
-      properties:
-        grant:
-          type: array
-          items:
-            $ref: '#/components/schemas/Permission'
-        revoke:
-          type: array
-          items:
-            $ref: '#/components/schemas/Permission'
+      $ref: "./schemas/resourceEntryRestricted.yml"
     Permission:
-      type: string
-      description: A Permission allows a certain action on an entity
-      enum:
-        - READ
-        - WRITE
+      $ref: "./schemas/permission.yml"
     Features:
-      type: object
-      description: |-
-        List of features where the key represents the `featureId` of each feature.
-        The `featureId` key must be unique in the list.
-      additionalProperties:
-        $ref: '#/components/schemas/Feature'
+      $ref: "./schemas/features.yml"
     WhoAmI:
-      type: object
-      description: |-
-        Contains information about the current user and the auth subjects available for the used authentication.
-      properties:
-        defaultSubject:
-          $ref: '#/components/schemas/WhoAmISubject'
-        subjects:
-          type: array
-          items:
-            $ref: '#/components/schemas/WhoAmISubject'
+      $ref: "./schemas/whoami.yml"
     WhoAmISubject:
-      type: string
-      description: An auth subject that can be used to provide access for a caller (e.g. in subject entries of policies).
+      $ref: "./schemas/whoamiSubject.yml"
 
   responses:
     entityTooLarge:
-      description: |-
-        The created or modified entity is larger than the accepted limit of 100 kB.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/AdvancedError'
+      $ref: "./responses/entityTooLarge.yml"
     messageTooLarge:
-      description: |-
-        The size of the send message is larger than the accepted limit of 250 kB.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/AdvancedError'
+      $ref: "./responses/messageTooLarge.yml"
     messageTimeout:
-      description: |-
-        The request could not be completed as there is no consumer for this message connected.
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/AdvancedError'
+      $ref: "./responses/messageTimeout.yml"
     notModified:
-      description: |-
-        The (sub-)resource has not been modified. This happens when you specified a If-None-Match header which
-         matches the current ETag of the (sub-)resource.
-      headers:
-        ETag:
-          description: |-
-            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-          schema:
-            type: string
+      $ref: "./responses/notModified.yml"
     preconditionFailed:
-      description: |-
-        A precondition for reading or writing the (sub-)resource failed. This will happen for write requests, if you
-        specified an If-Match or If-None-Match header, which fails the precondition check against the current ETag of
-        the (sub-)resource. For read requests, this error may only happen for a failing If-Match header. In case of a
-        failing If-None-Match header for a read request, status 304 will be returned instead.
-      headers:
-        ETag:
-          description: |-
-            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-          schema:
-            type: string
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/AdvancedError'
+      $ref: "./responses/preconditionFailed.yml"
 
   parameters:
     ifMatchHeaderParamHash:
-      name: If-Match
-      in: header
-      description:  >-
-        The `If-Match` header which has to conform to RFC-7232 (Conditional Requests). Common usages are:
-          * optimistic locking by specifying the `ETag` from a previous HTTP response, e.g. `If-Match: "hash:a75ece4e"`
-          * retrieving or modifying a resource only if it already exists, e.g. `If-Match: *`
-      required: false
-      schema:
-        type: string
+      $ref: "./parameters/ifMatchHeaderParamHash.yml"
     ifMatchHeaderParam:
-      name: If-Match
-      in: header
-      description:  >-
-        The `If-Match` header, which has to conform to RFC-7232 (Conditional Requests). Common usages are:
-          * optimistic locking by specifying the `ETag` from a previous GET response, e.g. `If-Match: "rev:4711"`
-          * retrieving or modifying a resource only if it already exists, e.g. `If-Match: *`
-      required: false
-      schema:
-        type: string
+      $ref: "./parameters/ifMatchHeaderParam.yml"
     ifNoneMatchHeaderParam:
-      name: If-None-Match
-      in: header
-      description:  >-
-        The `If-None-Match` header, which has to conform to RFC-7232 (Conditional Requests). A common usage scenario is to
-        modify a resource only if it does not yet exist, thus to create it, by specifying `If-None-Match: *`.
-      required: false
-      schema:
-        type: string
+      $ref: "./parameters/ifNoneMatchHeaderParam.yml"
     putMetadataParam:
-      name: put-metadata
-      in: header
-      description:  >-
-        The `put-metadata` header, which sets Metadata information in the Thing.
-      required: false
-      schema:
-        type: array
-        description: An array of objects containing metadata to apply.
-        items:
-          type: object
-          description: Object containing a `key` where to apply the metadata and a `value` with the metadata value to apply.
-          additionalProperties:
-            properties:
-              key:
-                type: string
-                description: The JsonPointer to set the metadata `value` to. May start with `*/<key>` in order to apply the metadata to all affected JSON leaves.
-              value:
-                description: The arbitrary JSON value to set as metadata.
+      $ref: "./parameters/putMetadataParam.yml"
     featureIdPathPathParam:
-      name: featureId
-      in: path
-      description: The ID of the feature - has to conform to RFC-3986 (URI)
-      required: true
-      schema:
-        type: string
+      $ref: "./parameters/featureIdPathPathParam.yml"
     attributePathPathParam:
-      name: attributePath
-      in: path
-      description: The path to the attribute, e.g. **manufacturer/name**
-      required: true
-      schema:
-        type: string
+      $ref: "./parameters/attributePathPathParam.yml"
     thingIdPathParam:
-      name: thingId
-      in: path
-      description: |-
-        The ID of a thing needs to follow the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
-      required: true
-      schema:
-        type: string
+      $ref: "./parameters/thingIdPathParam.yml"
     policyIdPathParam:
-      name: policyId
-      in: path
-      description: |-
-        The ID of the policy needs to follow the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
-
-        The namespace needs to:
-        * conform to the reverse domain name notation
-      required: true
-      schema:
-        type: string
+      $ref: "./parameters/policyIdPathParam.yml"
     messageSubjectPathParam:
-      name: messageSubject
-      in: path
-      description: The subject of the Message - has to conform to RFC-3986 (URI)
-      required: true
-      schema:
-        type: string
+      $ref: "./parameters/messageSubjectPathParam.yml"
     messageClaimTimeoutParam:
-      name: timeout
-      in: query
-      description: |-
-        Contains an optional timeout (in seconds) of how long to wait for the Claim response and therefore block the
-        HTTP request. Default value (if omitted): 60 seconds. Maximum value: 600 seconds. A value of 0 seconds applies
-        fire and forget semantics for the message.
-      required: false
-      schema:
-        type: integer
+      $ref: "./parameters/messageClaimTimeoutParam.yml"
     messageTimeoutParam:
-      name: timeout
-      in: query
-      description: |-
-        Contains an optional timeout (in seconds) of how long to wait for the message response and therefore block the
-        HTTP request. Default value (if omitted): 10 seconds. Maximum value: 60 seconds. A value of 0 seconds applies
-        fire and forget semantics for the message.
-      required: false
-      schema:
-        type: integer
+      $ref: "./parameters/messageTimeoutParam.yml"
     requestedAcksParam:
-      name: requested-acks
-      in: query
-      description: |-
-        Contains the "requested acknowledgements" for this modifying request as comma separated list. The HTTP call will
-        block until all requested acknowledgements were aggregated or will time out based on the specified `timeout`
-        parameter.
-
-        The default (if omitted) requested acks is `requested-acks=twin-persisted` which will block the
-        HTTP call until the change was persited to the twin.
-      required: false
-      schema:
-        type: string
+      $ref: "./parameters/requestedAcksParam.yml"
     liveMessageRequestedAcksParam:
-      name: requested-acks
-      in: query
-      description: |-
-        Contains the "requested acknowledgements" for this request as comma separated list. The HTTP call will
-        block until all requested acknowledgements were aggregated or will time out based on the specified `timeout`
-        parameter.
-
-        The default (if omitted) requested acks is `requested-acks=live-response` which will block the
-        HTTP call until a subscriber of the live message sends a response.
-      required: false
-      schema:
-        type: string
+      $ref: "./parameters/liveMessageRequestedAcksParam.yml"
     timeoutParam:
-      name: timeout
-      in: query
-      description: |-
-        Defines how long the backend should wait for completion of the request, e.g. applied when waiting for requested
-        acknowledgements via the `requested-acks` param. Can be specified without unit (then seconds are assumed) or
-        together with `s`, `ms` or `m` unit. Example: `42s`, `1m`.
-
-        The default (if omitted) timeout is `10s`. Maximum value: `60s`.
-
-        A value of `0` applies fire and forget semantics for the command resulting in setting `response-required=false`.
-      required: false
-      schema:
-        type: string
+      $ref: "./parameters/timeoutParam.yml"
     responseRequiredParam:
-      name: response-required
-      in: query
-      description: |-
-        Defines whether a response is required to the API call or not - if set to `false` the response will directly
-        sent back with a status code of `202` (Accepted).
-
-        The default (if ommited) response is `true`.
-      required: false
-      schema:
-        type: boolean
+      $ref: "./parameters/responseRequiredParam.yml"
     allowPolicyLockoutParam:
-      name: allow-policy-lockout
-      in: query
-      description: |-
-        Defines whether a subject is allowed to create a policy without having WRITE permission on the policy
-        resource of the created policy.
-
-        The default (if ommited) is `false`.
-      required: false
-      schema:
-        type: boolean
-
-
+      $ref: "./parameters/allowPolicyLockoutParam.yml"
     labelPathParam:
-      name: label
-      in: path
-      description: The label of a policy entry
-      required: true
-      schema:
-        type: string
+      $ref: "./parameters/labelPathParam.yml"
     subjectIdPathParam:
-      name: subjectId
-      in: path
-      description: The ID of an (Authorization) Subject
-      required: true
-      schema:
-        type: string
+      $ref: "./parameters/subjectIdPathParam.yml"
     resourcePathPathParam:
-      name: resourcePath
-      in: path
-      description: The path of an (Authorization) Resource
-      required: true
-      schema:
-        type: string
+      $ref: "./parameters/resourcePathPathParam.yml"
     propertyPathPathParam:
-      name: propertyPath
-      in: path
-      description: The path to the property
-      required: true
-      schema:
-        type: string
+      $ref: "./parameters/propertyPathPathParam.yml"
+    desiredPropertyPathPathParam:
+      $ref: "./parameters/desiredPropertyPathPathParam.yml"
     thingFieldsQueryParam:
-      name: fields
-      in: query
-      description: |-
-        Contains a comma-separated list of fields to be included in the returned
-        JSON. attributes can be selected in the same manner.
-
-        #### Selectable fields
-
-        * `thingId`
-        * `policyId`
-        * `definition`
-        * `attributes`
-
-           Supports selecting arbitrary sub-fields by using a comma-separated list:
-            * several attribute paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
-
-              For example:
-                * `?fields=attributes/model` would select only `model` attribute value (if present)
-                * `?fields=attributes/model,attributes/location` would select only `model` and
-                   `location` attribute values (if present)
-
-          Supports selecting arbitrary sub-fields of objects by wrapping sub-fields inside parentheses `( )`:
-            * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901)
-              separated with `/`) to select
-
-            * sub-selectors can be used to request only specific sub-fields by placing expressions
-              in parentheses `( )` after a selected subfield
-
-              For example:
-               * `?fields=attributes(model,location)` would select only `model`
-                  and `location` attribute values (if present)
-               * `?fields=attributes(coffeemaker/serialno)` would select the `serialno` value
-                  inside the `coffeemaker` object
-               * `?fields=attributes/address/postal(city,street)` would select the `city` and
-                  `street` values inside the `postal` object inside the `address` object
-
-        * `features`
-
-          Supports selecting arbitrary fields in features similar to `attributes` (see also features documentation for more details)
-
-        * `_namespace`
-
-          Specifically selects the namespace also contained in the `thingId`
-
-        * `_revision`
-
-          Specifically selects the revision of the thing. The revision is a counter, which is incremented on each modification of a thing.
-
-        * `_created`
-
-          Specifically selects the created timestamp of the thing in ISO-8601 UTC format. The timestamp is set on creation of a thing.
-
-        * `_modified`
-
-          Specifically selects the modified timestamp of the thing in ISO-8601 UTC format. The timestamp is set on each modification of a thing.
-
-        * `_metadata`
-
-          Specifically selects the Metadata of the thing. The content is a JSON object having the Thing's JSON structure with the difference that the JSON leaves of the Thing are JSON objects containing the metadata.
-
-        * `_policy`
-
-          Specifically selects the content of the policy associated to the thing. (By default, only the policyId is returned.)
-
-        #### Examples
-
-        * `?fields=thingId,attributes,features`
-        * `?fields=attributes(model,manufacturer),features`
-
-      required: false
-      schema:
-        type: string
+      $ref: "./parameters/thingFieldsQueryParam.yml"
     attributesFieldsQueryParam:
-      name: fields
-      in: query
-      description: |-
-        Contains a comma-separated list of fields from the attributes to be
-        included in the returned JSON.
-
-        #### Selectable fields
-
-        Supports selecting arbitrary sub-fields as defined in the attributes by
-        using a comma-separated list:
-          * several properties paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
-
-            For example:
-              * `?fields=model` would select only `model` attribute value (if present)
-              * `?fields=model,make` would select `model` and `make` attribute values (if present)
-
-        Supports selecting arbitrary sub-fields of objects by wrapping sub-fields
-        inside parentheses `( )`:
-          * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901) separated with `/`) to select
-          * sub-selectors can be used to request only specific sub-fields by placing expressions in parentheses `( )` after a selected subfield
-
-            For example:
-             * `?fields=location(longitude,latitude)` would select the `longitude` and `latitude` value inside the `location` attribute
-
-        #### Examples
-
-        * `?fields=model,make,location(longitude,latitude)`
-
-        * `?fields=listOfAddresses/postal(city,street))`
-      required: false
-      schema:
-        type: string
+      $ref: "./parameters/attributesFieldsQueryParam.yml"
     propertiesFieldsQueryParam:
-      name: fields
-      in: query
-      description: |-
-        Contains a comma-separated list of fields from the properties to be
-        included in the returned JSON.
-
-        #### Selectable fields
-
-        Supports selecting arbitrary sub-fields as defined in the properties by
-        using a comma-separated list:
-          * several properties paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
-
-            For example:
-              * `?fields=temperature` would select only `temperature` property value (if present)
-              * `?fields=temperature,humidity` would select only `temperature` and `humidity` property values (if present)
-
-        Supports selecting arbitrary sub-fields of objects by wrapping sub-fields
-        inside parentheses `( )`:
-          * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901) separated with `/`) to select
-          * sub-selectors can be used to request only specific sub-fields by placing expressions in parentheses `( )` after a selected subfield
-
-            For example:
-             * `?fields=location(longitude,latitude)` would select the `longitude` and `latitude` value inside the `location` property
-
-        #### Examples
-
-        * `?fields=temperature,humidity,location(longitude,latitude)`
-
-        * `?fields=configuration,status(powerConsumption/watts)`
-      required: false
-      schema:
-        type: string
+      $ref: "./parameters/propertiesFieldsQueryParam.yml"
     featuresFieldsQueryParam:
-      name: fields
-      in: query
-      description: |-
-        Contains a comma-separated list of fields from one or more features to be
-        included in the returned JSON.
-
-        #### Selectable fields
-
-        * `{featureId}` The ID of the feature to select properties in
-          * `properties`
-            Supports selecting arbitrary sub-fields by using a comma-separated list:
-              * several properties paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
-                For example:
-                  * `?fields={featureId}/properties/color` would select only `color` property value (if present) of the feature identified with `{featureId}`
-                  * `?fields={featureId}/properties/color,properties/brightness` would select only `color` and `brightness` property values (if present) of the feature identified with `{featureId}`
-            Supports selecting arbitrary sub-fields of objects by wrapping sub-fields inside parentheses `( )`:
-              * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901) separated with `/`) to select
-              * sub-selectors can be used to request only specific sub-fields by placing expressions in parentheses `( )` after a selected subfield
-                For example:
-                 * `?fields={featureId}/properties(color,brightness)` would select only `color` and `brightness` property values (if present) of the feature identified with `{featureId}`
-                 * `?fields={featureId}/properties(location/longitude)` would select the `longitude` value inside the `location` object of the feature identified with `{featureId}`
-
-
-        #### Examples
-        * `?fields=EnvironmentScanner/properties(temperature,humidity)`
-        * `?fields=EnvironmentScanner/properties(temperature,humidity),Vehicle/properties/configuration`
-      required: false
-      schema:
-        type: string
+      $ref: "./parameters/featuresFieldsQueryParam.yml"
     featureFieldsQueryParam:
-      name: fields
-      in: query
-      description: |-
-        Contains a comma-separated list of fields from the selected feature to be
-        included in the returned JSON.
-
-        #### Selectable fields
-
-        * `properties`
-
-          Supports selecting arbitrary sub-fields by using a comma-separated list:
-            * several properties paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
-
-              For example:
-                * `?fields=properties/color` would select only `color` property value (if present)
-                * `?fields=properties/color,properties/brightness` would select only `color` and `brightness` property values (if present)
-
-          Supports selecting arbitrary sub-fields of objects by wrapping sub-fields inside parentheses `( )`:
-            * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901) separated with `/`) to select
-            * sub-selectors can be used to request only specific sub-fields by placing expressions in parentheses `( )` after a selected subfield
-
-              For example:
-               * `?fields=properties(color,brightness)` would select only `color` and `brightness` property values (if present)
-               * `?fields=properties(location/longitude)` would select the `longitude` value inside the `location` object
-
-        #### Examples
-
-        * `?fields=properties(color,brightness)`
-      required: false
-      schema:
-        type: string
+      $ref: "./parameters/featureFieldsQueryParam.yml"
     searchFilter:
-      name: filter
-      in: query
-      description: |-
-
-        #### Filter predicates:
-
-        * ```eq({property},{value})```  (i.e. equal to the given value)
-
-        * ```ne({property},{value})```  (i.e. not equal to the given value)
-
-        * ```gt({property},{value})```  (i.e. greater than the given value)
-
-        * ```ge({property},{value})```  (i.e. equal to the given value or greater than it)
-
-        * ```lt({property},{value})```  (i.e. lower than the given value or equal to it)
-
-        * ```le({property},{value})```  (i.e. lower than the given value)
-
-        * ```in({property},{value},{value},...)```  (i.e. contains at least one of the values listed)
-
-        * ```like({property},{value})```  (i.e. contains values similar to the expressions listed)
-
-        * ```exists({property})```  (i.e. all things in which the given path exists)
-
-
-        Note: When using filter operations, only things with the specified properties are returned.
-        For example, the filter `ne(attributes/owner, "SID123")` will only return things that do have
-        the `owner` attribute.
-
-
-        #### Logical operations:
-
-
-        * ```and({query},{query},...)```
-
-        * ```or({query},{query},...)```
-
-        * ```not({query})```
-
-
-        #### Examples:
-
-        * ```eq(attributes/location,"kitchen")```
-
-        * ```ge(thingId,"myThing1")```
-
-        * ```gt(_created,"2020-08-05T12:17")```
-
-        * ```exists(features/featureId)```
-
-        * ```and(eq(attributes/location,"kitchen"),eq(attributes/color,"red"))```
-
-        * ```or(eq(attributes/location,"kitchen"),eq(attributes/location,"living-room"))```
-
-        * ```like(attributes/key1,"known-chars-at-start*")```
-
-        * ```like(attributes/key1,"*known-chars-at-end")```
-
-        * ```like(attributes/key1,"*known-chars-in-between*")```
-
-        * ```like(attributes/key1,"just-som?-char?-unkn?wn")```
-
-        The `like` filters with the wildcard `*` at the beginning can slow down your search request.
-      required: false
-      schema:
-        type: string
+      $ref: "./parameters/searchFilter.yml"
     namespacesFilter:
-      name: namespaces
-      in: query
-      description: |-
-        A comma-separated list of namespaces. This list is used to limit the query to things in the given namespaces
-        only.
-
-
-        #### Examples:
-
-        * `?namespaces=com.example.namespace`
-
-        * `?namespaces=com.example.namespace1,com.example.namespace2`
-      required: false
-      schema:
-        type: string
+      $ref: "./parameters/namespacesFilter.yml"
 
   requestBodies:
     Payload:
-      content:
-        application/json:
-          schema:
-            type: string
-            example: ''
-        application/octet-stream:
-          schema:
-            type: string
-            example: ''
-        text/plain:
-          schema:
-            type: string
-            example: ''
-      description: |-
-        Payload of the message with max size of 250 kB. It can be any HTTP
-        supported content, including binary content.
-
+      $ref: "./requests/payload.yml"
     Definition:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Definition'
-          example: '"example:test:definition"'
-      description: |-
-        JSON string of the definition to be modified. Consider that the
-        value has to be a JSON string or `null`, examples:
-
-          * an string: `{ ""value"}` -}. Currently the definition should follow the pattern: [_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]
-          * an empty string: `""`
-
+      $ref: "./requests/definition.yml"
     Attributes:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Attributes'
-          example: {
-            "manufacturer": {
-              "name": "ACME demo corp.",
-              "location": "Berlin, main floor"
-            },
-            "coffeemaker": {
-              "serialno": "42",
-              "model": "Speaking coffee machine"
-            }
-          }
-      description: |-
-        JSON object of all attributes to be modified at once. Consider that the
-        value has to be a JSON object or `null`.
-
-        Examples:
-         * an empty object: `{}` - would just delete all old attributes
-         * a simple object: `{ "key": "value"}` - We strongly recommend to use a restricted set of characters for the key (identifier), as the key might be needed for the (URL) path later.<br> Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
-         * a nested object as shown in the example value
-
-      required: true
+      $ref: "./requests/attributes.yml"
     Value:
-      content:
-        application/json:
-          schema:
-            type: object
-            example: {}
-      description: |-
-        JSON representation of the value to be created/updated. This may be as
-        well `null` or an empty object.
-
-        Consider that the value has to be a JSON value, examples:
-
-          * for a number, the JSON value is the number: `42`
-
-          * for a string, the JSON value must be quoted: `"aString"`
-
-          * for a boolean, the JSON value is the boolean: `true`
-
-          * for an object, the JSON value is the object: `{ "key": "value"}` -} We strongly recommend to use a restricted set of characters for the key (identifier). Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
-
-          * for an list, the JSON value is the list: `[ 1,2,3 ]`
-      required: true
+      $ref: "./requests/value.yml"
 
   securitySchemes:
     basicAuth:

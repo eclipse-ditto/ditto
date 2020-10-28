@@ -1,0 +1,2 @@
+type: string
+description: An auth subject that can be used to provide access for a caller (e.g. in subject entries of policies).

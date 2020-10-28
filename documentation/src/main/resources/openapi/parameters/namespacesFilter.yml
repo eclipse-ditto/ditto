@@ -1,0 +1,15 @@
+name: namespaces
+in: query
+description: |-
+  A comma-separated list of namespaces. This list is used to limit the query to things in the given namespaces
+  only.
+
+
+  #### Examples:
+
+  * `?namespaces=com.example.namespace`
+
+  * `?namespaces=com.example.namespace1,com.example.namespace2`
+required: false
+schema:
+  type: string

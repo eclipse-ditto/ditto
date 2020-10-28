@@ -1,0 +1,10 @@
+name: allow-policy-lockout
+in: query
+description: |-
+  Defines whether a subject is allowed to create a policy without having WRITE permission on the policy
+  resource of the created policy.
+
+  The default (if ommited) is `false`.
+required: false
+schema:
+  type: boolean

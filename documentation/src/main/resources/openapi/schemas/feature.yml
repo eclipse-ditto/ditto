@@ -1,0 +1,6 @@
+type: object
+properties:
+  definition:
+    $ref: '#/components/schemas/FeatureDefinition'
+  properties:
+    $ref: '#/components/schemas/FeatureProperties'

@@ -1,0 +1,7 @@
+properties:
+  items:
+    type: array
+    items:
+      $ref: '#/components/schemas/Thing'
+  cursor:
+    type: string

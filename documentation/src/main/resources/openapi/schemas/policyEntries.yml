@@ -1,0 +1,7 @@
+type: object
+description: Policy entries containing one policy entry for each arbitrary `label` key
+properties:
+  label1:
+    $ref: '#/components/schemas/PolicyEntry'
+  labelN:
+    $ref: '#/components/schemas/PolicyEntry'

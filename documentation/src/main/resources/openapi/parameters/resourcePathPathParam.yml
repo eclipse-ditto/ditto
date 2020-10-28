@@ -1,0 +1,6 @@
+name: resourcePath
+in: path
+description: The path of an (Authorization) Resource
+required: true
+schema:
+  type: string

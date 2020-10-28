@@ -1,0 +1,6 @@
+name: desiredPropertyPath
+in: path
+description: The path to the desired property
+required: true
+schema:
+  type: string

@@ -1,0 +1,10 @@
+name: response-required
+in: query
+description: |-
+  Defines whether a response is required to the API call or not - if set to `false` the response will directly
+  sent back with a status code of `202` (Accepted).
+
+  The default (if ommited) response is `true`.
+required: false
+schema:
+  type: boolean

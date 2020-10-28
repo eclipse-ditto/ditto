@@ -1,0 +1,6 @@
+name: propertyPath
+in: path
+description: The path to the property
+required: true
+schema:
+  type: string

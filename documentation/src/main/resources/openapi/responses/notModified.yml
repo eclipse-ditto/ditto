@@ -1,0 +1,10 @@
+description: |-
+  The (sub-)resource has not been modified. This happens when you specified a If-None-Match header which
+   matches the current ETag of the (sub-)resource.
+headers:
+  ETag:
+    description: |-
+      The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+      "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+    schema:
+      type: string

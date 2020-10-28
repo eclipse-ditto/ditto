@@ -1,0 +1,2 @@
+type: object
+description: An arbitrary JSON object describing the attributes of a thing.

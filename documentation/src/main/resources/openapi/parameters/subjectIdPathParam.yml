@@ -1,0 +1,6 @@
+name: subjectId
+in: path
+description: The ID of an (Authorization) Subject
+required: true
+schema:
+  type: string

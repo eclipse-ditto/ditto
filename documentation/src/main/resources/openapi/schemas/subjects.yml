@@ -1,0 +1,8 @@
+type: object
+description: |-
+  A SubjectEntry defines who is addressed.
+properties:
+  'nginx:subjectId1':
+    $ref: '#/components/schemas/SubjectEntry'
+  'nginx:subjectIdN':
+    $ref: '#/components/schemas/SubjectEntry'

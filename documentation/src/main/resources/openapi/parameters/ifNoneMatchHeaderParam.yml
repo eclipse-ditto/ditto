@@ -1,0 +1,8 @@
+name: If-None-Match
+in: header
+description: >-
+  The `If-None-Match` header, which has to conform to RFC-7232 (Conditional Requests). A common usage scenario is to
+  modify a resource only if it does not yet exist, thus to create it, by specifying `If-None-Match: *`.
+required: false
+schema:
+  type: string

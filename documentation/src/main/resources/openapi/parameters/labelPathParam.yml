@@ -1,0 +1,6 @@
+name: label
+in: path
+description: The label of a policy entry
+required: true
+schema:
+  type: string

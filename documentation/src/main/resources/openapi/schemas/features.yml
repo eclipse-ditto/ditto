@@ -1,0 +1,6 @@
+type: object
+description: |-
+  List of features where the key represents the `featureId` of each feature.
+  The `featureId` key must be unique in the list.
+additionalProperties:
+  $ref: '#/components/schemas/Feature'

@@ -1,0 +1,5 @@
+type: object
+description: policy consisting of policy entries
+properties:
+  entries:
+    $ref: '#/components/schemas/PolicyEntries'

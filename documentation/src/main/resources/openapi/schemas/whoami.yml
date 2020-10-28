@@ -1,0 +1,10 @@
+type: object
+description: |-
+  Contains information about the current user and the auth subjects available for the used authentication.
+properties:
+  defaultSubject:
+    $ref: '#/components/schemas/WhoAmISubject'
+  subjects:
+    type: array
+    items:
+      $ref: '#/components/schemas/WhoAmISubject'

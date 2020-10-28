@@ -1,0 +1,12 @@
+name: requested-acks
+in: query
+description: |-
+  Contains the "requested acknowledgements" for this request as comma separated list. The HTTP call will
+  block until all requested acknowledgements were aggregated or will time out based on the specified `timeout`
+  parameter.
+
+  The default (if omitted) requested acks is `requested-acks=live-response` which will block the
+  HTTP call until a subscriber of the live message sends a response.
+required: false
+schema:
+  type: string
