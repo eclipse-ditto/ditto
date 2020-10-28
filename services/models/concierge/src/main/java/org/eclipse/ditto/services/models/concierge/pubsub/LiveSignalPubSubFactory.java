@@ -17,6 +17,7 @@ import java.util.Collections;
 
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.pubsub.AbstractPubSubFactory;
+import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ReadSubjectExtractor;
 import org.eclipse.ditto.signals.base.Signal;
@@ -31,18 +32,20 @@ final class LiveSignalPubSubFactory extends AbstractPubSubFactory<Signal<?>> {
     private static final DDataProvider PROVIDER = DDataProvider.of("live-signal-aware");
 
     @SuppressWarnings("unchecked")
-    private LiveSignalPubSubFactory(final ActorContext context, final PubSubTopicExtractor<Signal<?>> topicExtractor) {
-        super(context, (Class<Signal<?>>) (Object) Signal.class, topicExtractor, PROVIDER, null);
+    private LiveSignalPubSubFactory(final ActorContext context, final PubSubTopicExtractor<Signal<?>> topicExtractor,
+            final DistributedAcks distributedAcks) {
+        super(context, (Class<Signal<?>>) (Object) Signal.class, topicExtractor, PROVIDER, distributedAcks);
     }
 
     /**
      * Create a pubsub factory for live signals from an actor system and its shard region extractor.
      *
      * @param context context of the actor under which the publisher and subscriber actors are started.
+     * @param distributedAcks the distributed acks interface.
      * @return the thing
      */
-    public static LiveSignalPubSubFactory of(final ActorContext context) {
-        return new LiveSignalPubSubFactory(context, topicExtractor());
+    public static LiveSignalPubSubFactory of(final ActorContext context, final DistributedAcks distributedAcks) {
+        return new LiveSignalPubSubFactory(context, topicExtractor(), distributedAcks);
     }
 
     private static Collection<String> getStreamingTypeTopic(final Signal<?> signal) {

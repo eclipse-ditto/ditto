@@ -34,6 +34,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonCommandListener;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
+import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.DistributedSub;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
@@ -121,7 +122,8 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         }
 
         final DistributedSub thingEventSub =
-                ThingEventPubSubFactory.shardIdOnly(getContext(), numberOfShards).startDistributedSub();
+                ThingEventPubSubFactory.shardIdOnly(getContext(), numberOfShards, DistributedAcks.empty())
+                        .startDistributedSub();
         final Props thingsUpdaterProps =
                 ThingsUpdater.props(thingEventSub, updaterShardRegion, updaterConfig, blockedNamespaces,
                         pubSubMediator);

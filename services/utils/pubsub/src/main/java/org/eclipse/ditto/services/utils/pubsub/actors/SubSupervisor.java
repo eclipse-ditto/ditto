@@ -15,14 +15,11 @@ package org.eclipse.ditto.services.utils.pubsub.actors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
-import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorRef;
-import akka.actor.Address;
 import akka.actor.Props;
 import akka.actor.Terminated;
-import akka.cluster.Cluster;
 import akka.cluster.ddata.Replicator;
 import akka.japi.pf.ReceiveBuilder;
 
@@ -34,27 +31,27 @@ import akka.japi.pf.ReceiveBuilder;
  *          +
  *          |
  *          |supervises one-for-many
- *          +---------------------------------+-----------------------+
- *          |                                 |                       |
- *          |                                 |                       |
- *          |                                 |                       |
- *          |                                 |                       |
- *          |                                 |                       |
- *          v                                 v                       v
- *       SubUpdater +-----------------> Subscriber               AcksUpdater
- *          +        update             (forwards                     +
- *          |        local               published                    |
- *          |        subscriptions       signals)                     |
- *          |                                                         |
- *          |                                                         |
- *          |                                                         |
- *          |                                              write-local|
- *          |                                            on clock tick|
- *          |                                                         |
- *          |                                                         |
- *          |write with highest requested consistency                 |
- *          |                                                         |
- *          +----------------->DDataReplicator<-----------------------+
+ *          +---------------------------------+
+ *          |                                 |
+ *          |                                 |
+ *          |                                 |
+ *          |                                 |
+ *          |                                 |
+ *          v                                 v
+ *       SubUpdater +-----------------> Subscriber
+ *          +        update             (forwards
+ *          |        local               published
+ *          |        subscriptions       signals)
+ *          |
+ *          |
+ *          |
+ *          |
+ *          |
+ *          |
+ *          |
+ *          |write with highest requested consistency
+ *          |
+ *          +----------------->DDataReplicator
  * }
  * </pre>
  *
@@ -65,55 +62,40 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
 
     private final Class<T> messageClass;
     private final PubSubTopicExtractor<T> topicExtractor;
-    private final Address selfAddress;
-
     private final DData<ActorRef, ?, U> topicsDData;
-    @Nullable private final DData<Address, String, LiteralUpdate> acksDData;
 
     @Nullable private ActorRef updater;
-    @Nullable private ActorRef acksUpdater;
 
     @SuppressWarnings("unused")
     private SubSupervisor(final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
-            final DData<ActorRef, ?, U> topicsDData,
-            @Nullable final DData<Address, String, LiteralUpdate> acksDData) {
+            final DData<ActorRef, ?, U> topicsDData) {
         super();
         this.messageClass = messageClass;
         this.topicExtractor = topicExtractor;
         this.topicsDData = topicsDData;
-        this.acksDData = acksDData;
-        selfAddress = Cluster.get(getContext().getSystem()).selfAddress();
     }
 
     /**
      * Create Props object for this actor.
      *
+     * @param <T> type of messages.
+     * @param <U> type of ddata updates.
      * @param messageClass class of messages.
      * @param topicExtractor extractor of topics from messages.
      * @param topicsDData access to the distributed data of topics.
-     * @param acksDData access to the distributed data of acknowledgement labels, or null if acknowledgement labels
-     * are not managed here.
-     * @param <T> type of messages.
-     * @param <U> type of ddata updates.
      * @return the Props object.
      */
     public static <T, U> Props props(final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
-            final DData<ActorRef, ?, U> topicsDData,
-            @Nullable final DData<Address, String, LiteralUpdate> acksDData) {
+            final DData<ActorRef, ?, U> topicsDData) {
 
-        return Props.create(SubSupervisor.class, messageClass, topicExtractor, topicsDData, acksDData);
+        return Props.create(SubSupervisor.class, messageClass, topicExtractor, topicsDData);
     }
 
     @Override
     protected Receive createPubSubBehavior() {
         return ReceiveBuilder.create()
-                .match(AbstractUpdater.DeclareAckLabels.class, this::isAcksUpdaterAvailable, this::declareAckLabels)
-                .match(AbstractUpdater.DeclareAckLabels.class, this::acksUpdaterUnavailable)
-                .match(AbstractUpdater.RemoveSubscriber.class,
-                        AbstractUpdater.RemoveSubscriber::isForAcknowledgementLabelDeclaration,
-                        this::removeAcknowledgementLabelDeclaration)
                 .match(AbstractUpdater.Request.class, this::isUpdaterAvailable, this::request)
                 .match(AbstractUpdater.Request.class, this::updaterUnavailable)
                 .match(Terminated.class, this::subscriberTerminated)
@@ -135,11 +117,6 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
 
         final Props updaterProps = SubUpdater.props(config, subscriber, topicsDData);
         updater = startChild(updaterProps, SubUpdater.ACTOR_NAME_PREFIX);
-
-        if (acksDData != null) {
-            final Props acksUpdaterProps = AcksUpdater.props(config, selfAddress, acksDData);
-            acksUpdater = startChild(acksUpdaterProps, AcksUpdater.ACTOR_NAME_PREFIX);
-        }
     }
 
     private void subscriberTerminated(final Terminated terminated) {
@@ -157,31 +134,9 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
         updater.tell(request, getSender());
     }
 
-    private boolean isAcksUpdaterAvailable() {
-        return acksUpdater != null;
-    }
-
-    @SuppressWarnings("ConstantConditions")
-    private void declareAckLabels(final AbstractUpdater.DeclareAckLabels request) {
-        acksUpdater.tell(request.toSubscribe(), getSender());
-    }
-
     private void updaterUnavailable(final SubUpdater.Request request) {
         log.error("SubUpdater unavailable. Dropping <{}>", request);
         getSender().tell(new IllegalStateException("AcksUpdater not available"), getSelf());
-    }
-
-    private void acksUpdaterUnavailable(final AbstractUpdater.DeclareAckLabels request) {
-        log.error("AcksUpdater unavailable. Failing <{}>", request);
-        getSender().tell(new IllegalStateException("AcksUpdater not available"), getSelf());
-    }
-
-    private void removeAcknowledgementLabelDeclaration(final AbstractUpdater.RemoveSubscriber removeSubscriber) {
-        if (isAcksUpdaterAvailable()) {
-            acksUpdater.tell(removeSubscriber, getSender());
-        } else {
-            updaterUnavailable(removeSubscriber);
-        }
     }
 
 }

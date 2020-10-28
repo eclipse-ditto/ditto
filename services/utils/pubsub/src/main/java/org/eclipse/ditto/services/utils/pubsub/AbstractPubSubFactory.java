@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.pubsub;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.pubsub.actors.PubSupervisor;
@@ -24,14 +22,12 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.compressed.CompressedDData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.compressed.CompressedDDataHandler;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDDataHandler;
-import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
-import akka.actor.Address;
 import akka.actor.ExtendedActorSystem;
 import akka.actor.Props;
 
@@ -49,7 +45,7 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
 
     protected final DistributedDataConfig ddataConfig;
     protected final DData<ActorRef, ?, ?> ddata;
-    @Nullable protected final DData<Address, String, LiteralUpdate> acksDdata;
+    protected final DistributedAcks distributedAcks;
 
     /**
      * Create a pub-sub factory.
@@ -58,13 +54,13 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
      * @param messageClass the class of messages to publish and subscribe for.
      * @param topicExtractor a function extracting from each message the topics it was published at.
      * @param provider provider of the underlying ddata extension.
-     * @param acksProvider provider of a second ddata extension for declared acknowledgement labels.
+     * @param distributedAcks a second ddata for declared acknowledgement labels.
      */
     protected AbstractPubSubFactory(final ActorContext context,
             final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
             final DDataProvider provider,
-            @Nullable final LiteralDDataProvider acksProvider) {
+            final DistributedAcks distributedAcks) {
 
         this.actorRefFactory = context;
         this.messageClass = messageClass;
@@ -72,11 +68,7 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
         this.topicExtractor = topicExtractor;
         ddataConfig = provider.getConfig(context.system());
         ddata = CompressedDData.of(context.system(), provider);
-        if (acksProvider != null) {
-            acksDdata = LiteralDData.of(context.system(), acksProvider);
-        } else {
-            acksDdata = null;
-        }
+        this.distributedAcks = distributedAcks;
     }
 
     @Override
@@ -90,9 +82,14 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
     @Override
     public DistributedSub startDistributedSub() {
         final String subSupervisorName = factoryId + "-sub-supervisor";
-        final Props subSupervisorProps = SubSupervisor.props(messageClass, topicExtractor, ddata, acksDdata);
+        final Props subSupervisorProps = SubSupervisor.props(messageClass, topicExtractor, ddata);
         final ActorRef subSupervisor = actorRefFactory.actorOf(subSupervisorProps, subSupervisorName);
         return DistributedSub.of(ddataConfig, subSupervisor);
+    }
+
+    @Override
+    public DistributedAcks getDistributedAcks() {
+        return distributedAcks;
     }
 
     /**

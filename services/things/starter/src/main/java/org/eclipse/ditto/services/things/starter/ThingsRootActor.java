@@ -34,6 +34,7 @@ import org.eclipse.ditto.services.utils.health.config.MetricsReporterConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
+import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
@@ -71,7 +72,9 @@ public final class ThingsRootActor extends DittoRootActor {
         final ClusterConfig clusterConfig = thingsConfig.getClusterConfig();
         final ShardRegionExtractor shardRegionExtractor =
                 ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem);
-        final ThingEventPubSubFactory pubSubFactory = ThingEventPubSubFactory.of(getContext(), shardRegionExtractor);
+        final DistributedAcks distributedAcks = DistributedAcks.create(getContext());
+        final ThingEventPubSubFactory pubSubFactory =
+                ThingEventPubSubFactory.of(getContext(), shardRegionExtractor, distributedAcks);
         final DistributedPub<ThingEvent<?>> distributedPub = pubSubFactory.startDistributedPub();
 
         final ActorRef thingsShardRegion = ClusterSharding.get(actorSystem)

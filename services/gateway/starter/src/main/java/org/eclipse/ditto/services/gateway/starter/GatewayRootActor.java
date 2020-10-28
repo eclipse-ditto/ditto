@@ -67,6 +67,7 @@ import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -125,7 +126,8 @@ final class GatewayRootActor extends DittoRootActor {
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
 
-        final DittoProtocolSub dittoProtocolSub = DittoProtocolSub.of(getContext());
+        final DittoProtocolSub dittoProtocolSub =
+                DittoProtocolSub.of(getContext(), DistributedAcks.create(getContext()));
 
         final AuthenticationConfig authenticationConfig = gatewayConfig.getAuthenticationConfig();
         final DefaultHttpClientFacade httpClient =

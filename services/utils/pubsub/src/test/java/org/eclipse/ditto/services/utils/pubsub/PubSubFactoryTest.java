@@ -28,9 +28,9 @@ import java.util.stream.IntStream;
 
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.services.utils.pubsub.actors.AbstractUpdater;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -253,18 +253,19 @@ public final class PubSubFactoryTest {
     public void failAckDeclarationDueToLocalConflict() {
         new TestKit(system1) {{
             // GIVEN: 2 subscribers exist in the same actor system
-            final DistributedSub sub = factory1.startDistributedSub();
             final TestProbe subscriber1 = TestProbe.apply(system1);
             final TestProbe subscriber2 = TestProbe.apply(system1);
 
             // WHEN: the first subscriber declares ack labels
             // THEN: the declaration should succeed
-            await(sub.declareAcknowledgementLabels(acks("lorem", "ipsum"), subscriber1.ref()));
+            await(factory1.getDistributedAcks()
+                    .declareAcknowledgementLabels(acks("lorem", "ipsum"), subscriber1.ref()));
 
             // WHEN: the second subscriber declares intersecting labels
             // THEN: the declaration should fail
             final CompletionStage<?> declareAckLabelFuture =
-                    sub.declareAcknowledgementLabels(acks("ipsum", "lorem"), subscriber2.ref());
+                    factory1.getDistributedAcks()
+                            .declareAcknowledgementLabels(acks("ipsum", "lorem"), subscriber2.ref());
             assertThat(awaitSilently(system1, declareAckLabelFuture))
                     .hasFailedWithThrowableThat()
                     .isInstanceOf(AcknowledgementLabelNotUniqueException.class);
@@ -275,33 +276,30 @@ public final class PubSubFactoryTest {
     public void removeAcknowledgementLabelDeclaration() {
         new TestKit(system1) {{
             // GIVEN: 2 subscribers exist in the same actor system
-            final DistributedSub sub = factory1.startDistributedSub();
             final TestProbe subscriber1 = TestProbe.apply(system1);
             final TestProbe subscriber2 = TestProbe.apply(system1);
 
             // WHEN: the first subscriber declares ack labels then relinquishes them
-            await(sub.declareAcknowledgementLabels(acks("lorem", "ipsum"), subscriber1.ref()));
-            sub.removeAcknowledgementLabelDeclaration(subscriber1.ref());
+            await(factory1.getDistributedAcks()
+                    .declareAcknowledgementLabels(acks("lorem", "ipsum"), subscriber1.ref()));
+            factory1.getDistributedAcks().removeAcknowledgementLabelDeclaration(subscriber1.ref());
 
             // THEN: another subscriber should be able to claim the ack labels right away
-            await(sub.declareAcknowledgementLabels(acks("ipsum", "lorem"), subscriber2.ref()));
+            await(factory1.getDistributedAcks()
+                    .declareAcknowledgementLabels(acks("ipsum", "lorem"), subscriber2.ref()));
         }};
     }
 
     @Test
     public void failAckDeclarationDueToRemoteConflict() throws Exception {
         new TestKit(system1) {{
-            // GIVEN: 2 subscribers exist in the same actor system and 1 exist in a remote system
-            final DistributedSub sub1 = factory1.startDistributedSub();
-            final DistributedSub sub2 = factory2.startDistributedSub();
-
+            // GIVEN: 2 subscribers exist in different actor systems
             final TestProbe subscriber1 = TestProbe.apply("subscriber1", system1);
             final TestProbe subscriber2 = TestProbe.apply("subscriber2", system2);
-            final TestProbe subscriber3 = TestProbe.apply("subscriber3", system1);
-            final TestProbe subscriber4 = TestProbe.apply("subscriber4", system1);
 
             // GIVEN: "sit" is declared by a subscriber on system2
-            await(sub2.declareAcknowledgementLabels(acks("dolor", "sit"), subscriber2.ref()));
+            await(factory2.getDistributedAcks().declareAcknowledgementLabels(acks("dolor", "sit"),
+                    subscriber2.ref()));
 
             // GIVEN: the update is replicated to system1 (sleep for 2 gossip intervals)
             Thread.sleep(dilated(java.time.Duration.ofSeconds(6L)).toMillis());
@@ -309,7 +307,8 @@ public final class PubSubFactoryTest {
             // WHEN: another subscriber from system1 declares conflicting labels with the subscriber from system2
             // THEN: the declaration should fail
             final CompletionStage<?> declareAckLabelFuture =
-                    sub1.declareAcknowledgementLabels(acks("sit", "amet"), subscriber3.ref());
+                    factory1.getDistributedAcks()
+                            .declareAcknowledgementLabels(acks("sit", "amet"), subscriber1.ref());
             assertThat(awaitSilently(system1, declareAckLabelFuture))
                     .hasFailedWithThrowableThat()
                     .isInstanceOf(AcknowledgementLabelNotUniqueException.class);
@@ -322,7 +321,6 @@ public final class PubSubFactoryTest {
             // comment-out the next line to get future failure logs
             disableLogging();
             // repeat the test to catch timing issues
-            final DistributedSub sub1 = factory1.startDistributedSub();
             for (int i = 0; i < 10; ++i) {
                 // GIVEN: 2 subscribers exist in the same actor system
                 final TestProbe subscriber1 = TestProbe.apply("subscriber1", system1);
@@ -330,9 +328,11 @@ public final class PubSubFactoryTest {
 
                 // WHEN: 2 subscribers declare intersecting labels simultaneously
                 final CompletionStage<?> future1 =
-                        sub1.declareAcknowledgementLabels(acks("lorem" + i, "ipsum" + i), subscriber1.ref());
+                        factory1.getDistributedAcks()
+                                .declareAcknowledgementLabels(acks("lorem" + i, "ipsum" + i), subscriber1.ref());
                 final CompletionStage<?> future2 =
-                        sub1.declareAcknowledgementLabels(acks("ipsum" + i, "dolor" + i), subscriber2.ref());
+                        factory1.getDistributedAcks()
+                                .declareAcknowledgementLabels(acks("ipsum" + i, "dolor" + i), subscriber2.ref());
 
                 // THEN: exactly one of them fails
                 await(future1.handle((result1, error1) -> await(future2.handle((result2, error2) -> {
@@ -352,8 +352,6 @@ public final class PubSubFactoryTest {
         new TestKit(system1) {{
             // comment-out the next line to get future failure logs
             disableLogging();
-            final DistributedSub sub1 = factory1.startDistributedSub();
-            final DistributedSub sub2 = factory2.startDistributedSub();
 
             // run the test many times to catch timing issues
             for (int i = 0; i < 10; ++i) {
@@ -375,9 +373,11 @@ public final class PubSubFactoryTest {
 
                 // WHEN: 2 subscribers declare intersecting labels simultaneously
                 final CompletionStage<?> future1 =
-                        sub1.declareAcknowledgementLabels(acks("lorem" + i, "ipsum" + i), subscriber1.ref());
+                        factory1.getDistributedAcks()
+                                .declareAcknowledgementLabels(acks("lorem" + i, "ipsum" + i), subscriber1.ref());
                 final CompletionStage<?> future2 =
-                        sub2.declareAcknowledgementLabels(acks("ipsum" + i, "dolor" + i), subscriber2.ref());
+                        factory2.getDistributedAcks()
+                                .declareAcknowledgementLabels(acks("ipsum" + i, "dolor" + i), subscriber2.ref());
 
                 // THEN: exactly one of them fails, or both succeeds and one subscriber gets an exception later.
                 await(future1.handle((result1, error1) -> await(future2.handle((result2, error2) -> {

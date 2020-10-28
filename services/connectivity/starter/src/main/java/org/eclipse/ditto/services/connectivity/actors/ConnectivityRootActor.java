@@ -44,6 +44,7 @@ import org.eclipse.ditto.services.utils.health.config.PersistenceConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 
@@ -86,7 +87,8 @@ public final class ConnectivityRootActor extends DittoRootActor {
         final ActorRef proxyActor =
                 startChildActor(ConnectivityProxyActor.ACTOR_NAME, ConnectivityProxyActor.props(conciergeForwarder));
 
-        final DittoProtocolSub dittoProtocolSub = DittoProtocolSub.of(getContext());
+        final DittoProtocolSub dittoProtocolSub =
+                DittoProtocolSub.of(getContext(), DistributedAcks.create(getContext()));
         final Props connectionSupervisorProps =
                 getConnectionSupervisorProps(dittoProtocolSub, proxyActor, commandValidator, pubSubMediator);
 
