@@ -232,6 +232,8 @@ components:
       $ref: "./parameters/attributesFieldsQueryParam.yml"
     propertiesFieldsQueryParam:
       $ref: "./parameters/propertiesFieldsQueryParam.yml"
+    desiredPropertiesFieldsQueryParam:
+      $ref: "./parameters/desiredPropertiesFieldsQueryParam.yml"
     featuresFieldsQueryParam:
       $ref: "./parameters/featuresFieldsQueryParam.yml"
     featureFieldsQueryParam:

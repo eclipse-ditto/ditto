@@ -4,3 +4,5 @@ properties:
     $ref: '#/components/schemas/FeatureDefinition'
   properties:
     $ref: '#/components/schemas/FeatureProperties'
+  desiredProperties:
+    $ref: '#/components/schemas/FeatureProperties'

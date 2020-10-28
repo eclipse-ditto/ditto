@@ -8,7 +8,7 @@ get:
   parameters:
     - $ref: '#/components/parameters/thingIdPathParam'
     - $ref: '#/components/parameters/featureIdPathPathParam'
-    - $ref: '#/components/parameters/propertiesFieldsQueryParam'
+    - $ref: '#/components/parameters/desiredPropertiesFieldsQueryParam'
     - $ref: '#/components/parameters/ifMatchHeaderParamHash'
     - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
     - $ref: '#/components/parameters/timeoutParam'

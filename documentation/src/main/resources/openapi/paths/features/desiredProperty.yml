@@ -80,7 +80,7 @@ put:
   parameters:
     - $ref: '#/components/parameters/thingIdPathParam'
     - $ref: '#/components/parameters/featureIdPathPathParam'
-    - $ref: '#/components/parameters/propertyPathPathParam'
+    - $ref: '#/components/parameters/desiredPropertyPathPathParam'
     - $ref: '#/components/parameters/ifMatchHeaderParamHash'
     - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
     - $ref: '#/components/parameters/requestedAcksParam'
@@ -164,7 +164,7 @@ delete:
   parameters:
     - $ref: '#/components/parameters/thingIdPathParam'
     - $ref: '#/components/parameters/featureIdPathPathParam'
-    - $ref: '#/components/parameters/propertyPathPathParam'
+    - $ref: '#/components/parameters/desiredPropertyPathPathParam'
     - $ref: '#/components/parameters/ifMatchHeaderParamHash'
     - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
     - $ref: '#/components/parameters/requestedAcksParam'
