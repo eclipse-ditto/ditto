@@ -55,95 +55,95 @@ get:
             $ref: '#/components/schemas/AdvancedError'
     '412':
       $ref: '#/components/responses/preconditionFailed'
-  put:
-    summary: Create or modify all Subjects for a specific Label of a specific policy
-    description: |-
-      Create or modify at once ALL subjects of the policy entry identified
-      by the `policyId` path parameter, and by the `label` path parameter.
+put:
+  summary: Create or modify all Subjects for a specific Label of a specific policy
+  description: |-
+    Create or modify at once ALL subjects of the policy entry identified
+    by the `policyId` path parameter, and by the `label` path parameter.
 
-      ### Example - delete all subjects
-      To delete all subjects set an empty body { }
+    ### Example - delete all subjects
+    To delete all subjects set an empty body { }
 
-      ### Example - entities authenticated by nginx
-      To add a user authenticated via pre-authentication at nginx:
+    ### Example - entities authenticated by nginx
+    To add a user authenticated via pre-authentication at nginx:
 
-      ```
-      {
-        "nginx:ID-user": {
-          "type": "pre authenticated user from nginx"
-        }
+    ```
+    {
+      "nginx:ID-user": {
+        "type": "pre authenticated user from nginx"
       }
-      ```
-    tags:
-      - Policies
-    parameters:
-      - $ref: '#/components/parameters/policyIdPathParam'
-      - $ref: '#/components/parameters/labelPathParam'
-      - $ref: '#/components/parameters/ifMatchHeaderParamHash'
-      - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
-      - $ref: '#/components/parameters/timeoutParam'
-      - $ref: '#/components/parameters/responseRequiredParam'
-    responses:
-      '204':
-        description: The Subjects were successfully created or updated.
-        headers:
-          ETag:
-            description: |-
-              The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-              "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-            schema:
-              type: string
-      '400':
-        description: |-
-          The request could not be completed. Possible reasons:
+    }
+    ```
+  tags:
+    - Policies
+  parameters:
+    - $ref: '#/components/parameters/policyIdPathParam'
+    - $ref: '#/components/parameters/labelPathParam'
+    - $ref: '#/components/parameters/ifMatchHeaderParamHash'
+    - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
+    - $ref: '#/components/parameters/timeoutParam'
+    - $ref: '#/components/parameters/responseRequiredParam'
+  responses:
+    '204':
+      description: The Subjects were successfully created or updated.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
 
-             * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
-           * the JSON body of the policy subjects to be created/modified is invalid
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdvancedError'
-      '401':
-        description: The request could not be completed due to missing authentication.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdvancedError'
-
-      '403':
-        description: |-
-          The request could not be completed. Possible reasons:
-
-          * the caller has insufficient permissions.
-            You need `WRITE` permission on the `policy:/entries/{label}/subjects` resource,
-            without any revoke in a deeper path of the policy resource.
-
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdvancedError'
-      '404':
-        description: |-
-          The request could not be completed. The policy with the given ID was
-          not found in the context of the authenticated user.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdvancedError'
-      '412':
-        $ref: '#/components/responses/preconditionFailed'
-      '413':
-        $ref: '#/components/responses/entityTooLarge'
-    requestBody:
+           * the `policyId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+         * the JSON body of the policy subjects to be created/modified is invalid
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Subjects'
-          example: {}
+            $ref: '#/components/schemas/AdvancedError'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+
+    '403':
       description: |-
-        JSON representation of the Subjects.
+        The request could not be completed. Possible reasons:
+
+        * the caller has insufficient permissions.
+          You need `WRITE` permission on the `policy:/entries/{label}/subjects` resource,
+          without any revoke in a deeper path of the policy resource.
+
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    '404':
+      description: |-
+        The request could not be completed. The policy with the given ID was
+        not found in the context of the authenticated user.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    '412':
+      $ref: '#/components/responses/preconditionFailed'
+    '413':
+      $ref: '#/components/responses/entityTooLarge'
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/Subjects'
+        example: {}
+    description: |-
+      JSON representation of the Subjects.
 
 
-        Use the placeholder `{{ request:subjectId }}` in order to let the
-        backend insert the authenticated subjectId of the HTTP request.
-      required: true
+      Use the placeholder `{{ request:subjectId }}` in order to let the
+      backend insert the authenticated subjectId of the HTTP request.
+    required: true

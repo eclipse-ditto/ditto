@@ -56,143 +56,143 @@ get:
             $ref: '#/components/schemas/AdvancedError'
     '412':
       $ref: '#/components/responses/preconditionFailed'
-  put:
-    summary: Create or update a specific attribute of a specific thing
-    description: |-
-      Create or update a specific attribute of the thing identified by the
-      `thingId` path parameter.
+put:
+  summary: Create or update a specific attribute of a specific thing
+  description: |-
+    Create or update a specific attribute of the thing identified by the
+    `thingId` path parameter.
 
-      * If you specify a new attribute path, this will be created
-      * If you specify an existing attribute path, this will be updated
+    * If you specify a new attribute path, this will be created
+    * If you specify an existing attribute path, this will be updated
 
-      The attribute (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
+    The attribute (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
 
-      Example: In order to put the `name` field of an `manufacturer` attribute, the full path would be
-      `/things/{thingId}/attributes/manufacturer/name`
-    tags:
-      - Things
-    parameters:
-      - $ref: '#/components/parameters/thingIdPathParam'
-      - $ref: '#/components/parameters/attributePathPathParam'
-      - $ref: '#/components/parameters/ifMatchHeaderParamHash'
-      - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
-      - $ref: '#/components/parameters/requestedAcksParam'
-      - $ref: '#/components/parameters/timeoutParam'
-      - $ref: '#/components/parameters/responseRequiredParam'
-    responses:
-      '201':
-        description: The attribute was successfully created.
-        headers:
-          ETag:
-            description: |-
-              The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-              "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-            schema:
-              type: string
-          Location:
-            description: The location of the created attribute resource
-            schema:
-              type: string
-      '204':
-        description: The attribute was successfully modified.
-        headers:
-          ETag:
-            description: |-
-              The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-              "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-            schema:
-              type: string
-      '400':
-        description: |-
-          The request could not be completed. Possible reasons:
-            * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdvancedError'
-      '401':
-        description: The request could not be completed due to missing authentication.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdvancedError'
+    Example: In order to put the `name` field of an `manufacturer` attribute, the full path would be
+    `/things/{thingId}/attributes/manufacturer/name`
+  tags:
+    - Things
+  parameters:
+    - $ref: '#/components/parameters/thingIdPathParam'
+    - $ref: '#/components/parameters/attributePathPathParam'
+    - $ref: '#/components/parameters/ifMatchHeaderParamHash'
+    - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
+    - $ref: '#/components/parameters/requestedAcksParam'
+    - $ref: '#/components/parameters/timeoutParam'
+    - $ref: '#/components/parameters/responseRequiredParam'
+  responses:
+    '201':
+      description: The attribute was successfully created.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+        Location:
+          description: The location of the created attribute resource
+          schema:
+            type: string
+    '204':
+      description: The attribute was successfully modified.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
 
-      '403':
-        description: |-
-          The request could not be completed. Possible reasons:
-            * the caller has insufficient permissions.
-              For modifying an attribute of an existing thing, `WRITE` permission is required.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdvancedError'
-      '404':
-        description: |-
-          The request could not be completed. The thing with the given ID was
-          not found.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdvancedError'
-      '412':
-        $ref: '#/components/responses/preconditionFailed'
-      '413':
-        $ref: '#/components/responses/entityTooLarge'
-    requestBody:
-      $ref: '#/components/requestBodies/Value'
-  delete:
-    summary: Delete a specific attribute of a specific thing
-    description: |-
-      Deletes a specific attribute of the thing identified by the `thingId`
-      path parameter.
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller has insufficient permissions.
+            For modifying an attribute of an existing thing, `WRITE` permission is required.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    '404':
+      description: |-
+        The request could not be completed. The thing with the given ID was
+        not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    '412':
+      $ref: '#/components/responses/preconditionFailed'
+    '413':
+      $ref: '#/components/responses/entityTooLarge'
+  requestBody:
+    $ref: '#/components/requestBodies/Value'
+delete:
+  summary: Delete a specific attribute of a specific thing
+  description: |-
+    Deletes a specific attribute of the thing identified by the `thingId`
+    path parameter.
 
-      The attribute (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
+    The attribute (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
 
-      Example: In order to delete the `name` field of an `manufacturer` attribute, the full path would be
-              `/things/{thingId}/attributes/manufacturer/name`
-    tags:
-      - Things
-    parameters:
-      - $ref: '#/components/parameters/thingIdPathParam'
-      - $ref: '#/components/parameters/attributePathPathParam'
-      - $ref: '#/components/parameters/ifMatchHeaderParamHash'
-      - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
-      - $ref: '#/components/parameters/requestedAcksParam'
-      - $ref: '#/components/parameters/timeoutParam'
-      - $ref: '#/components/parameters/responseRequiredParam'
-    responses:
-      '204':
-        description: The attribute was successfully deleted.
-      '400':
-        description: |-
-          The request could not be completed. Possible reasons:
-            * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdvancedError'
-      '401':
-        description: The request could not be completed due to missing authentication.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdvancedError'
-      '403':
-        description: |-
-          The request could not be completed. Possible reasons:
-            * the caller has insufficient permissions.
-              For deleting a single attribute of an existing thing, `WRITE` permission is required.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdvancedError'
-      '404':
-        description: |-
-          The request could not be completed. The thing with the given ID or
-          the attribute at the specified path was not found.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdvancedError'
-      '412':
-        $ref: '#/components/responses/preconditionFailed'
+    Example: In order to delete the `name` field of an `manufacturer` attribute, the full path would be
+            `/things/{thingId}/attributes/manufacturer/name`
+  tags:
+    - Things
+  parameters:
+    - $ref: '#/components/parameters/thingIdPathParam'
+    - $ref: '#/components/parameters/attributePathPathParam'
+    - $ref: '#/components/parameters/ifMatchHeaderParamHash'
+    - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
+    - $ref: '#/components/parameters/requestedAcksParam'
+    - $ref: '#/components/parameters/timeoutParam'
+    - $ref: '#/components/parameters/responseRequiredParam'
+  responses:
+    '204':
+      description: The attribute was successfully deleted.
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller has insufficient permissions.
+            For deleting a single attribute of an existing thing, `WRITE` permission is required.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    '404':
+      description: |-
+        The request could not be completed. The thing with the given ID or
+        the attribute at the specified path was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    '412':
+      $ref: '#/components/responses/preconditionFailed'

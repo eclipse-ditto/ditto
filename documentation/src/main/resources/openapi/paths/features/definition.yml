@@ -53,151 +53,151 @@ get:
             $ref: '#/components/schemas/AdvancedError'
     '412':
       $ref: '#/components/responses/preconditionFailed'
-  put:
-    summary: Create or update the definition of a feature
-    description: |-
-      Create or update the complete definition of a feature identified by the `thingId`
-      and `featureId` path parameter.
+put:
+  summary: Create or update the definition of a feature
+  description: |-
+    Create or update the complete definition of a feature identified by the `thingId`
+    and `featureId` path parameter.
 
-      The definition field will be overwritten with the JSON array set in the request body
-    tags:
-      - Features
-    parameters:
-      - $ref: '#/components/parameters/thingIdPathParam'
-      - $ref: '#/components/parameters/featureIdPathPathParam'
-      - $ref: '#/components/parameters/ifMatchHeaderParamHash'
-      - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
-      - $ref: '#/components/parameters/requestedAcksParam'
-      - $ref: '#/components/parameters/timeoutParam'
-      - $ref: '#/components/parameters/responseRequiredParam'
-    responses:
-      '201':
-        description: The definition was successfully created.
-        headers:
-          ETag:
-            description: |-
-              The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-              "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-            schema:
-              type: string
-          Location:
-            description: The location of the created definition resource
-            schema:
-              type: string
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FeatureDefinition'
-      '204':
-        description: The definition was successfully updated.
-        headers:
-          ETag:
-            description: |-
-              The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-              "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-            schema:
-              type: string
-      '400':
-        description: |-
-          The request could not be completed. Possible reasons:
-            * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
-            * the JSON body is invalid
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdvancedError'
-      '401':
-        description: The request could not be completed due to missing authentication.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdvancedError'
-
-      '403':
-        description: |-
-          The request could not be completed. Possible reasons:
-            * the caller has insufficient permissions.
-              For modifying the definition of an existing feature, `WRITE` permission is required.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdvancedError'
-      '404':
-        description: |-
-          The request could not be completed. The thing or the feature with
-          the given ID was not found.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdvancedError'
-      '412':
-        $ref: '#/components/responses/preconditionFailed'
-      '413':
-        $ref: '#/components/responses/entityTooLarge'
-    requestBody:
+    The definition field will be overwritten with the JSON array set in the request body
+  tags:
+    - Features
+  parameters:
+    - $ref: '#/components/parameters/thingIdPathParam'
+    - $ref: '#/components/parameters/featureIdPathPathParam'
+    - $ref: '#/components/parameters/ifMatchHeaderParamHash'
+    - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
+    - $ref: '#/components/parameters/requestedAcksParam'
+    - $ref: '#/components/parameters/timeoutParam'
+    - $ref: '#/components/parameters/responseRequiredParam'
+  responses:
+    '201':
+      description: The definition was successfully created.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+        Location:
+          description: The location of the created definition resource
+          schema:
+            type: string
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/FeatureDefinition'
-          example: [ "com.acme:coffeebrewer:0.1.0", "com.acme:coffeebrewer:1.0.0" ]
+    '204':
+      description: The definition was successfully updated.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+    '400':
       description: |-
-        JSON array of the complete definition to be updated. Consider that the
-        value has to be a JSON array or `null`.
+        The request could not be completed. Possible reasons:
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          * the JSON body is invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
 
-        The content of the JSON array
-        are strings in the format `"namespace:name:version"` which is
-        enforced.
-      required: true
-  delete:
-    summary: Delete the definition of a feature
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller has insufficient permissions.
+            For modifying the definition of an existing feature, `WRITE` permission is required.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    '404':
+      description: |-
+        The request could not be completed. The thing or the feature with
+        the given ID was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    '412':
+      $ref: '#/components/responses/preconditionFailed'
+    '413':
+      $ref: '#/components/responses/entityTooLarge'
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: '#/components/schemas/FeatureDefinition'
+        example: [ "com.acme:coffeebrewer:0.1.0", "com.acme:coffeebrewer:1.0.0" ]
     description: |-
-      Deletes the complete definition of the feature identified by the `thingId` and
-      `featureId` path parameter.
-    tags:
-      - Features
-    parameters:
-      - $ref: '#/components/parameters/thingIdPathParam'
-      - $ref: '#/components/parameters/featureIdPathPathParam'
-      - $ref: '#/components/parameters/ifMatchHeaderParamHash'
-      - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
-      - $ref: '#/components/parameters/requestedAcksParam'
-      - $ref: '#/components/parameters/timeoutParam'
-      - $ref: '#/components/parameters/responseRequiredParam'
-    responses:
-      '204':
-        description: The definition was successfully deleted.
-      '400':
-        description: |-
-          The request could not be completed. Possible reasons:
-            * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdvancedError'
-      '401':
-        description: The request could not be completed due to missing authentication.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdvancedError'
-      '403':
-        description: |-
-          The request could not be completed. Possible reasons:
+      JSON array of the complete definition to be updated. Consider that the
+      value has to be a JSON array or `null`.
 
-            * the caller has insufficient permissions.
-              For deleting the definition of an existing feature, `WRITE` permission is required.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdvancedError'
-      '404':
-        description: |-
-          The request could not be completed. The specified feature has no
-          definition or the thing with the specified `thingId` or the feature
-          with `featureId` was not found.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdvancedError'
-      '412':
-        $ref: '#/components/responses/preconditionFailed'
+      The content of the JSON array
+      are strings in the format `"namespace:name:version"` which is
+      enforced.
+    required: true
+delete:
+  summary: Delete the definition of a feature
+  description: |-
+    Deletes the complete definition of the feature identified by the `thingId` and
+    `featureId` path parameter.
+  tags:
+    - Features
+  parameters:
+    - $ref: '#/components/parameters/thingIdPathParam'
+    - $ref: '#/components/parameters/featureIdPathPathParam'
+    - $ref: '#/components/parameters/ifMatchHeaderParamHash'
+    - $ref: '#/components/parameters/ifNoneMatchHeaderParam'
+    - $ref: '#/components/parameters/requestedAcksParam'
+    - $ref: '#/components/parameters/timeoutParam'
+    - $ref: '#/components/parameters/responseRequiredParam'
+  responses:
+    '204':
+      description: The definition was successfully deleted.
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the caller has insufficient permissions.
+            For deleting the definition of an existing feature, `WRITE` permission is required.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    '404':
+      description: |-
+        The request could not be completed. The specified feature has no
+        definition or the thing with the specified `thingId` or the feature
+        with `featureId` was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    '412':
+      $ref: '#/components/responses/preconditionFailed'
