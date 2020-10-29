@@ -25,7 +25,9 @@ Creates a new Thing with ID ``com.acme:xdk_53`` that uses an existing Policy wit
           "z": 1,
           "unit": "g"
         },
-        "desiredProperties": {}
+        "desiredProperties": {
+          "x": 4
+        }
       }
     }
   }
