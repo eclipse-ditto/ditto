@@ -1,0 +1,13 @@
+{
+  "name": "sources",
+  "version": "1.0.0",
+  "description": "ditto openapi sources",
+  "scripts": {
+    "build": "npm run build-v1 && npm run build-v2",
+    "build-v1": "swagger-cli bundle ditto-api-1.yml --outfile ../ditto-api-1-bundle.yml --type yaml",
+    "build-v2": "swagger-cli bundle ditto-api-2.yml --outfile ../ditto-api-2-bundle.yml --type yaml"
+  },
+  "dependencies": {
+    "swagger-cli": "^4.0.4"
+  }
+}
