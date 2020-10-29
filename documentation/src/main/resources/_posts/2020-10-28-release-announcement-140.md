@@ -1,7 +1,7 @@
 ---
 title: "Announcing Eclipse Ditto Release 1.4.0"
 published: true
-permalink: 2020-09-30-release-announcement-140.html
+permalink: 2020-10-28-release-announcement-140.html
 layout: post
 author: yufei_cai
 tags: [blog]
