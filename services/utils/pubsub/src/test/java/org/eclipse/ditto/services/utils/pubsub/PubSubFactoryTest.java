@@ -52,7 +52,6 @@ import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.cluster.Cluster;
 import akka.cluster.ClusterEvent;
-import akka.cluster.ddata.Replicator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.Attributes;
 import akka.testkit.TestActor;
@@ -122,7 +121,7 @@ public final class PubSubFactoryTest {
             // THEN: subscription is acknowledged
             assertThat(subAck.getRequest()).isInstanceOf(SubUpdater.Subscribe.class);
             assertThat(subAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello");
-            waitForTopicPropagation(this, factory1);
+            waitForHeartBeats(system2, factory2);
 
             // WHEN: a message is published on the subscribed topic
             pub.publish("hello", publisher.ref());
@@ -138,7 +137,7 @@ public final class PubSubFactoryTest {
                     sub.unsubscribeWithAck(asList("hello", "world"), subscriber.ref()).toCompletableFuture().join();
             assertThat(unsubAck.getRequest()).isInstanceOf(SubUpdater.Unsubscribe.class);
             assertThat(unsubAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello", "world");
-            waitForTopicPropagation(this, factory1);
+            waitForHeartBeats(system2, factory2);
 
             // THEN: the subscriber does not receive published messages any more
             pub.publish("hello", publisher.ref());
@@ -164,7 +163,7 @@ public final class PubSubFactoryTest {
             await(sub2.subscribeWithAck(asList("hell", "a", "fury"), subscriber2.ref()));
             await(sub1.subscribeWithAck(asList("like", "a", "woman", "scorn'd"), subscriber3.ref()));
             await(sub2.subscribeWithAck(asList("exeunt", "omnes"), subscriber4.ref()).toCompletableFuture());
-            waitForTopicPropagation(this, factory1);
+            waitForHeartBeats(system2, factory2);
 
             // WHEN: many messages are published
             final int messages = 100;
@@ -193,7 +192,7 @@ public final class PubSubFactoryTest {
 
             // GIVEN: a pub-sub channel is set up
             sub.subscribeWithAck(singleton("hello"), subscriber.ref()).toCompletableFuture().join();
-            waitForTopicPropagation(this, factory1);
+            waitForHeartBeats(system2, factory2);
             pub.publish("hello", publisher.ref());
             subscriber.expectMsg("hello");
 
@@ -224,7 +223,7 @@ public final class PubSubFactoryTest {
 
             // GIVEN: a pub-sub channel is set up
             sub.subscribeWithAck(singleton("hello"), subscriber.ref()).toCompletableFuture().join();
-            waitForTopicPropagation(this, factory1);
+            waitForHeartBeats(system2, factory2);
             pub.publish("hello", publisher.ref());
             subscriber.expectMsg("hello");
 
@@ -263,7 +262,7 @@ public final class PubSubFactoryTest {
                     sub.subscribeWithAck(singleton("hello"), subscriber.ref()).toCompletableFuture().join();
             assertThat(subAck.getRequest()).isInstanceOf(SubUpdater.Subscribe.class);
             assertThat(subAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello");
-            waitForTopicPropagation(this, factory1);
+            waitForHeartBeats(system2, factory2);
 
             pub.publish("hello", publisher.ref());
             subscriber.expectMsg(Duration.create(5, TimeUnit.SECONDS), "hello");
@@ -339,8 +338,7 @@ public final class PubSubFactoryTest {
             await(sub.subscribeWithAck(List.of("subscriber-topic"), subscriber.ref()));
 
             // ensure ddata is replicated to publisher
-            waitForTopicPropagation(this, factory1);
-            waitForAckPropagation(this, factory1);
+            waitForHeartBeats(system2, factory2);
 
             // WHEN: message with the subscriber's declared ack and a different topic is published
             pub.publishWithAcks(
@@ -377,8 +375,7 @@ public final class PubSubFactoryTest {
                     subscriber2.ref()));
 
             // GIVEN: the update is replicated to system1
-            final AcksUpdater.DDataChanged ddataChanged = waitForAckPropagation(this, factory1);
-            assertThat(ddataChanged.getMultiMap()).containsKey(cluster2.selfAddress());
+            waitForHeartBeats(system2, factory2);
 
             // WHEN: another subscriber from system1 declares conflicting labels with the subscriber from system2
             // THEN: the declaration should fail
@@ -511,14 +508,13 @@ public final class PubSubFactoryTest {
         }
     }
 
-    private static void waitForTopicPropagation(final TestKit testKit, final TestPubSubFactory factory) {
-        factory.ddata.getReader().receiveChanges(testKit.getRef());
-        testKit.expectMsgClass(Replicator.Changed.class);
-    }
-
-    private static AcksUpdater.DDataChanged waitForAckPropagation(final TestKit testKit,
-            final TestPubSubFactory factory) {
-        factory.getDistributedAcks().receiveDistributedDeclaredAcks(testKit.getRef());
-        return testKit.expectMsgClass(java.time.Duration.ofSeconds(10L), AcksUpdater.DDataChanged.class);
+    private static void waitForHeartBeats(final ActorSystem system, final TestPubSubFactory factory) {
+        final int howManyHeartBeats = 5;
+        final TestProbe probe = TestProbe.apply(system);
+        factory.getDistributedAcks().receiveLocalDeclaredAcks(probe.ref());
+        for (int i = 0; i < howManyHeartBeats; ++i) {
+            probe.expectMsgClass(AcksUpdater.SubscriptionsChanged.class);
+        }
+        system.stop(probe.ref());
     }
 }
