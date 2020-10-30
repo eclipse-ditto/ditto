@@ -76,7 +76,6 @@ description: |-
 
   * `?fields=thingId,attributes,features`
   * `?fields=attributes(model,manufacturer),features`
-
 required: false
 schema:
   type: string

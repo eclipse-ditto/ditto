@@ -26,7 +26,6 @@ get:
 
     * The internal search index is "eventually consistent".  Consistency with the latest
       thing updates should recover within milliseconds.
-
   parameters:
     - $ref: '../../parameters/searchFilter.yml'
     - $ref: '../../parameters/namespacesFilter.yml'
@@ -72,7 +71,6 @@ get:
       required: false
       schema:
         type: string
-
   tags:
     - Things-Search
   responses:

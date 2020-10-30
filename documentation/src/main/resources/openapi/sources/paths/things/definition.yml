@@ -76,7 +76,6 @@ put:
   description: |-
     * If the thing does not have a definition yet, this request will create it.
     * If the thing already has a definition you can assign it to a new one by setting the new definition in the request body.
-
   tags:
     - Things
   parameters:

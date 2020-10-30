@@ -125,7 +125,6 @@ put:
         * the caller has insufficient permissions.
           You need `WRITE` permission on the `policy:/entries/{label}/subjects` resource,
           without any revoke in a deeper path of the policy resource.
-
       content:
         application/json:
           schema:

@@ -65,7 +65,6 @@ get:
         application/json:
           schema:
             $ref: '../../schemas/advancedError.yml'
-
     '404':
       description: |-
         The request could not be completed. The thing with the given ID was
@@ -170,7 +169,6 @@ put:
         application/json:
           schema:
             $ref: '../../schemas/advancedError.yml'
-
     '403':
       description: |-
         The request could not be completed. Possible reasons:

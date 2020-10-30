@@ -30,5 +30,4 @@ description: |-
    * an empty object: `{}` - would just delete all old attributes
    * a simple object: `{ "key": "value"}` - We strongly recommend to use a restricted set of characters for the key (identifier), as the key might be needed for the (URL) path later.<br> Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
    * a nested object as shown in the example value
-
 required: true

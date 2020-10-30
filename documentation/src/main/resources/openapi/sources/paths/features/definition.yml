@@ -122,7 +122,6 @@ put:
         application/json:
           schema:
             $ref: '../../schemas/advancedError.yml'
-
     '403':
       description: |-
         The request could not be completed. Possible reasons:

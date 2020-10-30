@@ -56,7 +56,6 @@ get:
         application/json:
           schema:
             $ref: '../../schemas/advancedError.yml'
-
     '404':
       description: |-
         The request could not be completed. The specified desired property or the
@@ -84,7 +83,6 @@ put:
     To set the value of the brewingTemp in the water-tank of our coffeemaker example the full path is:
 
     `/things/{thingId}/features/water-tank/desiredProperties/configuration/brewingTemp`
-
   tags:
     - Features
   parameters:
@@ -120,7 +118,6 @@ put:
         The request could not be completed. Possible reasons:
           * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
           * the JSON body is invalid
-
       content:
         application/json:
           schema:
@@ -131,7 +128,6 @@ put:
         application/json:
           schema:
             $ref: '../../schemas/advancedError.yml'
-
     '403':
       description: |-
         The request could not be completed. Possible reasons:
@@ -197,7 +193,6 @@ delete:
         application/json:
           schema:
             $ref: '../../schemas/advancedError.yml'
-
     '404':
       description: |-
         The request could not be completed. The specified desired property or the

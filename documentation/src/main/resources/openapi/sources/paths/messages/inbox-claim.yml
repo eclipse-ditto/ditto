@@ -50,7 +50,6 @@ post:
     - $ref: '../../parameters/thingIdPathParam.yml'
     - $ref: '../../parameters/messageClaimTimeoutParam.yml'
     - $ref: '../../parameters/liveMessageRequestedAcksParam.yml'
-
   responses:
     '200':
       description: |-
