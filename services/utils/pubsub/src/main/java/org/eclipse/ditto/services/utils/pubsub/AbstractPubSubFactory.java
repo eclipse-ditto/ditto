@@ -74,7 +74,7 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
     @Override
     public DistributedPub<T> startDistributedPub() {
         final String pubSupervisorName = factoryId + "-pub-supervisor";
-        final Props pubSupervisorProps = PubSupervisor.props(ddata);
+        final Props pubSupervisorProps = PubSupervisor.props(ddata, distributedAcks);
         final ActorRef pubSupervisor = actorRefFactory.actorOf(pubSupervisorProps, pubSupervisorName);
         return DistributedPub.of(pubSupervisor, topicExtractor);
     }

@@ -17,6 +17,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -24,10 +25,12 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
@@ -238,6 +241,14 @@ public abstract class PersistenceActorTestBase {
         @Override
         public Object wrapForPublication(final ThingEvent<?> message) {
             return message;
+        }
+
+        @Override
+        public Object wrapForPublicationWithAcks(final ThingEvent<?> message,
+                final Set<AcknowledgementRequest> ackRequests,
+                final EntityIdWithType entityId, final DittoHeaders dittoHeaders, final ActorRef sender) {
+            // ignore ack requests
+            return wrapForPublication(message);
         }
     }
 }

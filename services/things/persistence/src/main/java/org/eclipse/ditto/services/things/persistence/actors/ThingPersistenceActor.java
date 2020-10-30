@@ -174,7 +174,8 @@ public final class ThingPersistenceActor
 
     @Override
     protected void publishEvent(final ThingEvent event) {
-        distributedPub.publish(event, getSender());
+        distributedPub.publishWithAcks(event, event.getDittoHeaders().getAcknowledgementRequests(), event.getEntityId(),
+                event.getDittoHeaders(), getSender());
     }
 
     @Override

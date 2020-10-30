@@ -22,6 +22,7 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.AclEnforcer;
@@ -50,7 +51,6 @@ import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.EventSendNotAllowedException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
-import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.ActorRef;
@@ -225,10 +225,10 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
                 } else {
                     ThingCommandEnforcement.authorizeByPolicyOrThrow(enforcer, (ThingCommand<?>) liveSignal);
                 }
-                final Command<?> withReadSubjects =
-                        addEffectedReadSubjectsToThingSignal((Command<?>) liveSignal, enforcer);
+                final ThingCommand<?> withReadSubjects =
+                        addEffectedReadSubjectsToThingSignal((ThingCommand<?>) liveSignal, enforcer);
                 log(withReadSubjects).info("Live Command was authorized: <{}>", withReadSubjects);
-                return publishLiveSignal(withReadSubjects, liveSignalPub.command());
+                return publishLiveSignal(withReadSubjects, withReadSubjects.getEntityId(), liveSignalPub.command());
             default:
                 log(liveSignal).warning("Ignoring unsupported command signal: <{}>", liveSignal);
                 throw UnknownCommandException.newBuilder(liveSignal.getName())
@@ -250,8 +250,9 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
 
         if (authorized) {
             log(liveSignal).info("Live Event was authorized: <{}>", liveSignal);
-            final Event<?> withReadSubjects = addEffectedReadSubjectsToThingSignal((Event<?>) liveSignal, enforcer);
-            return publishLiveSignal(withReadSubjects, liveSignalPub.event());
+            final ThingEvent<?> withReadSubjects =
+                    addEffectedReadSubjectsToThingSignal((ThingEvent<?>) liveSignal, enforcer);
+            return publishLiveSignal(withReadSubjects, withReadSubjects.getEntityId(), liveSignalPub.event());
         } else {
             log(liveSignal).info("Live Event was NOT authorized: <{}>", liveSignal);
             throw EventSendNotAllowedException.newBuilder(((ThingEvent<?>) liveSignal).getThingEntityId())
@@ -291,8 +292,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
                 .readRevokedSubjects(effectedSubjects.getRevoked())
                 .build();
 
-        final MessageCommand<?, ?> commandWithReadSubjects = command.setDittoHeaders(headersWithReadSubjects);
-        return publishLiveSignal(commandWithReadSubjects, liveSignalPub.message());
+        final MessageCommand<?, ?> withReadSubjects = command.setDittoHeaders(headersWithReadSubjects);
+        return publishLiveSignal(withReadSubjects, withReadSubjects.getEntityId(), liveSignalPub.message());
     }
 
     private MessageSendNotAllowedException rejectMessageCommand(final MessageCommand<?, ?> command) {
@@ -310,12 +311,15 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
 
     @SuppressWarnings("unchecked")
     private <T extends Signal<?>> CompletionStage<Contextual<WithDittoHeaders>> publishLiveSignal(final T signal,
+            final EntityIdWithType entityId,
             final DistributedPub<T> pub) {
 
         // using pub/sub to publish the command to any interested parties (e.g. a Websocket):
         log(signal).debug("Publish message to pub-sub");
         return addToResponseReceiver(signal).thenApply(newSignal ->
-                withMessageToReceiver(newSignal, pub.getPublisher(), obj -> pub.wrapForPublication((T) obj))
+                withMessageToReceiver(newSignal, pub.getPublisher(), obj ->
+                        pub.wrapForPublicationWithAcks((T) obj, signal.getDittoHeaders().getAcknowledgementRequests(),
+                                entityId, signal.getDittoHeaders(), context.getSender()))
         );
     }
 

@@ -14,20 +14,33 @@ package org.eclipse.ditto.services.utils.pubsub.actors;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.Address;
 import akka.actor.Props;
+import akka.cluster.ddata.Replicator;
 import akka.japi.pf.ReceiveBuilder;
+import scala.collection.immutable.Set;
+import scala.collection.immutable.Set$;
+import scala.jdk.javaapi.CollectionConverters;
 
 /**
  * Publishes messages according to topic Bloom filters.
@@ -41,6 +54,10 @@ public final class Publisher<T> extends AbstractActor {
      */
     public static final String ACTOR_NAME_PREFIX = "publisher";
 
+    private static final List<AcknowledgementLabel> BUILT_IN_LABELS = List.of(DittoAcknowledgementLabel.values());
+
+    private static final Set<String> EMPTY_SET = Set$.MODULE$.empty();
+
     private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
     private final DDataReader<ActorRef, T> ddataReader;
@@ -48,95 +65,184 @@ public final class Publisher<T> extends AbstractActor {
     private final Counter messageCounter = DittoMetrics.counter("pubsub-published-messages");
     private final Counter topicCounter = DittoMetrics.counter("pubsub-published-topics");
 
-    private CompletionStage<Void> currentPublication = CompletableFuture.completedFuture(null);
+    private Map<ActorRef, Set<T>> topicSubscribers = Map.of();
+    private Map<Address, Set<String>> declaredAcks = Map.of();
+    private java.util.Set<String> allDeclaredAcks = java.util.Set.of();
 
     @SuppressWarnings("unused")
-    private Publisher(final DDataReader<ActorRef, T> ddataReader) {
+    private Publisher(final DDataReader<ActorRef, T> ddataReader, final DistributedAcks distributedAcks) {
         this.ddataReader = ddataReader;
+        ddataReader.receiveChanges(getSelf());
+        distributedAcks.receiveDistributedDeclaredAcks(getSelf());
     }
 
     /**
      * Create Props for this actor.
      *
-     * @param ddataReader reader of remote subscriptions.
      * @param <T> representation of topics in the distributed data.
+     * @param ddataReader reader of remote subscriptions.
+     * @param distributedAcks access to the declared ack labels ddata.
      * @return a Props object.
      */
-    public static <T> Props props(final DDataReader<ActorRef, T> ddataReader) {
+    public static <T> Props props(final DDataReader<ActorRef, T> ddataReader, final DistributedAcks distributedAcks) {
 
-        return Props.create(Publisher.class, ddataReader);
+        return Props.create(Publisher.class, ddataReader, distributedAcks);
+    }
+
+    /**
+     * Create a publish message for the publisher.
+     *
+     * @param topics the topics to publish at.
+     * @param message the message to publish.
+     * @return a publish message.
+     */
+    public static Request publish(final Collection<String> topics, final Object message) {
+        return new Publish(topics, message);
+    }
+
+    /**
+     * Create a publish message with requested acknowledgements.
+     *
+     * @param topics the topics to publish at.
+     * @param message the message to publish.
+     * @param ackRequests acknowledgement requests of the message.
+     * @param entityId entity ID of the message.
+     * @param dittoHeaders the Ditto headers of any weak acknowledgements to send back.
+     * @param sender the sender of the message and the receiver of acknowledgements.
+     * @return the request.
+     */
+    public static Request publishWithAck(final Collection<String> topics,
+            final Object message,
+            final java.util.Set<AcknowledgementRequest> ackRequests,
+            final EntityIdWithType entityId,
+            final DittoHeaders dittoHeaders,
+            final ActorRef sender) {
+
+        return new PublishWithAck(topics, message, ackRequests, entityId, dittoHeaders, sender);
     }
 
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(Publish.class, this::publish)
+                .match(PublishWithAck.class, this::publishWithAck)
+                .match(AcksUpdater.DDataChanged.class, this::declaredAcksChanged)
+                .match(Replicator.Changed.class, this::topicSubscribersChanged)
                 .matchAny(this::logUnhandled)
                 .build();
     }
 
     private void publish(final Publish publish) {
+        doPublish(publish.topics, publish.message);
+    }
+
+    private void publishWithAck(final PublishWithAck publishWithAck) {
+        final Collection<ActorRef> subscribers = doPublish(publishWithAck.topics, publishWithAck.message);
+        final java.util.Set<String> subscriberDeclaredAcks = subscribers.stream()
+                .map(subscriber -> declaredAcks.getOrDefault(subscriber.path().address(), EMPTY_SET))
+                .flatMap(set -> CollectionConverters.asJava(set).stream())
+                .collect(Collectors.toSet());
+
+        final Collection<AcknowledgementLabel> requestedCustomAcks =
+                getRequestedAndDeclaredCustomAcks(publishWithAck.ackRequests, allDeclaredAcks);
+
+        final List<AcknowledgementLabel> labelsWithoutAuthorizedSubscribers = requestedCustomAcks.stream()
+                .filter(label -> !subscriberDeclaredAcks.contains(label.toString()))
+                .collect(Collectors.toList());
+
+        if (!labelsWithoutAuthorizedSubscribers.isEmpty()) {
+            publishWithAck.sender.tell(publishWithAck.toAcks(labelsWithoutAuthorizedSubscribers), ActorRef.noSender());
+        }
+    }
+
+    private Collection<ActorRef> doPublish(final Collection<String> topics, final Object message) {
         messageCounter.increment();
-        topicCounter.increment(publish.getTopics().size());
-        final List<T> hashes = publish.getTopics().stream().map(ddataReader::approximate).collect(Collectors.toList());
-        final Object message = publish.getMessage();
+        topicCounter.increment(topics.size());
+        final List<T> hashes = topics.stream().map(ddataReader::approximate).collect(Collectors.toList());
         final ActorRef sender = getSender();
-        currentPublication = currentPublication.thenCompose(_void ->
-                ddataReader.getSubscribers(hashes)
-                        .thenAccept(subscribers -> subscribers.forEach(subscriber -> subscriber.tell(message, sender)))
-                        .exceptionally(e -> {
-                            log.error(e, "Failed: <{}>", publish);
-                            return null;
-                        })
-        );
+        final Collection<ActorRef> subscribers = ddataReader.getSubscribers(topicSubscribers, hashes);
+        subscribers.forEach(subscriber -> subscriber.tell(message, sender));
+        return subscribers;
+    }
+
+    private void declaredAcksChanged(final AcksUpdater.DDataChanged ddataChanged) {
+        declaredAcks = ddataChanged.getMultiMap();
+        allDeclaredAcks = declaredAcks.values().stream()
+                .flatMap(set -> CollectionConverters.asJava(set).stream())
+                .collect(Collectors.toSet());
+    }
+
+    private void topicSubscribersChanged(final Replicator.Changed<?> event) {
+        topicSubscribers = CollectionConverters.asJava(event.get(ddataReader.getKey()).entries());
     }
 
     private void logUnhandled(final Object message) {
         log.warning("Unhandled: <{}>", message);
     }
 
+    private static Collection<AcknowledgementLabel> getRequestedAndDeclaredCustomAcks(
+            final java.util.Set<AcknowledgementRequest> requestedAcks,
+            final java.util.Set<String> allDeclaredAcks) {
+        return requestedAcks.stream()
+                .map(AcknowledgementRequest::getLabel)
+                .filter(label -> !BUILT_IN_LABELS.contains(label) && allDeclaredAcks.contains(label.toString()))
+                .collect(Collectors.toList());
+    }
+
     /**
-     * Command for the publisher to publish a message.
+     * Requests to a publisher actor.
+     */
+    public interface Request {}
+
+    /**
+     * Request for the publisher to publish a message.
      * Only the message is sent across the cluster.
      */
-    public static final class Publish {
+    private static final class Publish implements Request {
 
         private final Collection<String> topics;
-
         private final Object message;
 
         private Publish(final Collection<String> topics, final Object message) {
             this.topics = topics;
             this.message = message;
         }
+    }
 
-        /**
-         * Create a publish message for the publisher.
-         *
-         * @param topics the topics to publish at.
-         * @param message the message to publish.
-         * @return a publish message.
-         */
-        public static Publish of(final Collection<String> topics, final Object message) {
-            return new Publish(topics, message);
+    /**
+     * Request for the publisher to publish a message with attention to acknowledgement requests.
+     */
+    private static final class PublishWithAck implements Request {
+
+        private static final JsonValue WEAK_ACK_PAYLOAD =
+                JsonValue.of("Acknowledgement was issued automatically, because the subscriber " +
+                        "is not authorized to receive the signal.");
+
+        private final Collection<String> topics;
+        private final Object message;
+        private final java.util.Set<AcknowledgementRequest> ackRequests;
+        private final EntityIdWithType entityId;
+        private final DittoHeaders dittoHeaders;
+        private final ActorRef sender;
+
+        private PublishWithAck(final Collection<String> topics, final Object message,
+                final java.util.Set<AcknowledgementRequest> ackRequests,
+                final EntityIdWithType entityId,
+                final DittoHeaders dittoHeaders, final ActorRef sender) {
+            this.topics = topics;
+            this.message = message;
+            this.ackRequests = ackRequests;
+            this.entityId = entityId;
+            this.dittoHeaders = dittoHeaders;
+            this.sender = sender;
         }
 
-        /**
-         * Get the collection of topics the message is published to.
-         *
-         * @return the collection of topics.
-         */
-        public Collection<String> getTopics() {
-            return topics;
-        }
-
-        /**
-         * Get the message to publish.
-         *
-         * @return the message.
-         */
-        public Object getMessage() {
-            return message;
+        private Acknowledgements toAcks(final Collection<AcknowledgementLabel> ackLabels) {
+            return Acknowledgements.of(ackLabels.stream()
+                            .map(ackLabel -> Acknowledgement.weak(ackLabel, entityId, dittoHeaders, WEAK_ACK_PAYLOAD))
+                            .collect(Collectors.toList()),
+                    dittoHeaders
+            );
         }
     }
 }

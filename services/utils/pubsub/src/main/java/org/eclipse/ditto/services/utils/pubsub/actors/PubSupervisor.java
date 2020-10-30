@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.utils.pubsub.actors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 
 import akka.actor.ActorRef;
@@ -51,30 +52,33 @@ public final class PubSupervisor extends AbstractPubSubSupervisor {
     private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     private final DData<ActorRef, ?, ?> ddata;
+    private final DistributedAcks distributedAcks;
 
     @Nullable private ActorRef publisher;
 
     @SuppressWarnings("unused")
-    private PubSupervisor(final DData<ActorRef, ?, ?> ddata) {
+    private PubSupervisor(final DData<ActorRef, ?, ?> ddata, final DistributedAcks distributedAcks) {
         super();
         this.ddata = ddata;
+        this.distributedAcks = distributedAcks;
     }
 
     /**
      * Create Props object for this actor.
      *
      * @param ddata read-write access to the distributed data.
+     * @param distributedAcks access to the declared ack labels ddata.
      * @return the Props object.
      */
-    public static Props props(final DData<ActorRef, ?, ?> ddata) {
-        return Props.create(PubSupervisor.class, ddata);
+    public static Props props(final DData<ActorRef, ?, ?> ddata, final DistributedAcks distributedAcks) {
+        return Props.create(PubSupervisor.class, ddata, distributedAcks);
     }
 
     @Override
     protected Receive createPubSubBehavior() {
         return ReceiveBuilder.create()
-                .match(Publisher.Publish.class, this::isPublisherAvailable, this::publish)
-                .match(Publisher.Publish.class, this::publisherUnavailable)
+                .match(Publisher.Request.class, this::isPublisherAvailable, this::publish)
+                .match(Publisher.Request.class, this::publisherUnavailable)
                 .build();
     }
 
@@ -86,7 +90,7 @@ public final class PubSupervisor extends AbstractPubSubSupervisor {
     @Override
     protected void startChildren() {
         startChild(PubUpdater.props(ddata.getWriter()), PubUpdater.ACTOR_NAME_PREFIX);
-        publisher = startChild(Publisher.props(ddata.getReader()), Publisher.ACTOR_NAME_PREFIX);
+        publisher = startChild(Publisher.props(ddata.getReader(), distributedAcks), Publisher.ACTOR_NAME_PREFIX);
     }
 
     private boolean isPublisherAvailable() {
@@ -94,11 +98,11 @@ public final class PubSupervisor extends AbstractPubSubSupervisor {
     }
 
     @SuppressWarnings("ConstantConditions")
-    private void publish(final Publisher.Publish publish) {
+    private void publish(final Publisher.Request publish) {
         publisher.tell(publish, getSender());
     }
 
-    private void publisherUnavailable(final Publisher.Publish publish) {
+    private void publisherUnavailable(final Publisher.Request publish) {
         log.error("Publisher unavailable. Dropping <{}>", publish);
     }
 }

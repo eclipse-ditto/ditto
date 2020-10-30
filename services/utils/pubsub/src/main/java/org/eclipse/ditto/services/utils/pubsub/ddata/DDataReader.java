@@ -32,6 +32,15 @@ public interface DDataReader<K, T> {
     /**
      * Get subscribers from a list of topic hashes.
      *
+     * @param multimap the state of the distributed data.
+     * @param topicHashes the hash codes of each topic.
+     * @return collection of subscribers with 1 or more topics.
+     */
+    Collection<K> getSubscribers(Map<K, Set<T>> multimap, Collection<T> topicHashes);
+
+    /**
+     * Get subscribers from a list of topic hashes.
+     *
      * @param topicHashes the hash codes of each topic.
      * @return future collection of subscribers whose Bloom filter contains all hashes of 1 or more topics.
      */

@@ -23,9 +23,11 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.enforcers.Enforcer;
@@ -241,6 +243,13 @@ public final class TestSetup {
                 public Object wrapForPublication(final Command message) {
                     return DistPubSubAccess.publish(StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic(), message);
                 }
+
+                @Override
+                public Object wrapForPublicationWithAcks(final Command message,
+                        final Set<AcknowledgementRequest> ackRequests,
+                        final EntityIdWithType entityId, final DittoHeaders dittoHeaders, final ActorRef sender) {
+                    return wrapForPublication(message);
+                }
             };
         }
 
@@ -256,12 +265,20 @@ public final class TestSetup {
                 public Object wrapForPublication(final Event message) {
                     return DistPubSubAccess.publish(StreamingType.LIVE_EVENTS.getDistributedPubSubTopic(), message);
                 }
+
+                @Override
+                public Object wrapForPublicationWithAcks(final Event message,
+                        final Set<AcknowledgementRequest> ackRequests,
+                        final EntityIdWithType entityId, final DittoHeaders dittoHeaders, final ActorRef sender) {
+                    return wrapForPublication(message);
+                }
             };
         }
 
         @Override
         public DistributedPub<Signal> message() {
             return new DistributedPub<>() {
+
                 @Override
                 public ActorRef getPublisher() {
                     return pubSubMediator;
@@ -270,6 +287,13 @@ public final class TestSetup {
                 @Override
                 public Object wrapForPublication(final Signal message) {
                     return DistPubSubAccess.publish(StreamingType.MESSAGES.getDistributedPubSubTopic(), message);
+                }
+
+                @Override
+                public Object wrapForPublicationWithAcks(final Signal message,
+                        final Set<AcknowledgementRequest> ackRequests,
+                        final EntityIdWithType entityId, final DittoHeaders dittoHeaders, final ActorRef sender) {
+                    return wrapForPublication(message);
                 }
             };
         }

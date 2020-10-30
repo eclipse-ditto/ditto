@@ -12,7 +12,11 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
+import java.util.Set;
+
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
@@ -111,6 +115,13 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
                             @Override
                             public Object wrapForPublication(final ThingEvent<?> message) {
                                 return message;
+                            }
+
+                            @Override
+                            public Object wrapForPublicationWithAcks(final ThingEvent<?> message,
+                                    final Set<AcknowledgementRequest> ackRequests, final EntityIdWithType entityId,
+                                    final DittoHeaders dittoHeaders, final ActorRef sender) {
+                                return wrapForPublication(message);
                             }
                         },
                         ThingPersistenceActor::props);

@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.services.utils.pubsub;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorRef;
@@ -39,6 +42,23 @@ public interface DistributedPub<T> {
     Object wrapForPublication(T message);
 
     /**
+     * Wrap the message in an envelope to send to the publisher.
+     *
+     * @param message the message to publish.
+     * @param ackRequests acknowledgement requests of the message.
+     * @param entityId entity ID of the message.
+     * @param dittoHeaders the Ditto headers of any weak acknowledgements to send back.
+     * @param sender the sender of the message and the receiver of acknowledgements.
+     * @return the wrapped message to send to the publisher.
+     */
+    Object wrapForPublicationWithAcks(
+            T message,
+            java.util.Set<AcknowledgementRequest> ackRequests,
+            EntityIdWithType entityId,
+            DittoHeaders dittoHeaders,
+            ActorRef sender);
+
+    /**
      * Publish a message.
      *
      * @param message the message to publish.
@@ -46,6 +66,31 @@ public interface DistributedPub<T> {
      */
     default void publish(final T message, final ActorRef sender) {
         getPublisher().tell(wrapForPublication(message), sender);
+    }
+
+    /**
+     * Publish a message with acknowledgement requests.
+     *
+     * @param message the message to publish.
+     * @param ackRequests acknowledgement requests of the message.
+     * @param entityId entity ID of the message.
+     * @param dittoHeaders the Ditto headers of any weak acknowledgements to send back.
+     * @param sender the sender of the message and the receiver of acknowledgements.
+     */
+    default void publishWithAcks(
+            T message,
+            java.util.Set<AcknowledgementRequest> ackRequests,
+            EntityIdWithType entityId,
+            DittoHeaders dittoHeaders,
+            ActorRef sender) {
+
+        if (ackRequests.isEmpty()) {
+            publish(message, sender);
+        } else {
+            final Object publishWithAcks =
+                    wrapForPublicationWithAcks(message, ackRequests, entityId, dittoHeaders, sender);
+            getPublisher().tell(publishWithAcks, sender);
+        }
     }
 
     /**

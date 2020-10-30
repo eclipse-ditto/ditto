@@ -37,15 +37,18 @@ public final class TestPubSubFactory extends AbstractPubSubFactory<String> imple
     private final Collection<Integer> seeds;
 
     private TestPubSubFactory(final ActorContext context, final Class<String> messageClass,
-            final PubSubTopicExtractor<String> topicExtractor) {
-        super(context, messageClass, topicExtractor, PROVIDER,
-                DistributedAcksImpl.create(context, "dc-default", ACKS_PROVIDER));
+            final PubSubTopicExtractor<String> topicExtractor, final DistributedAcks distributedAcks) {
+        super(context, messageClass, topicExtractor, PROVIDER, distributedAcks);
         final PubSubConfig config = PubSubConfig.of(context.system().settings().config().getConfig("ditto.pubsub"));
         seeds = Hashes.digestStringsToIntegers(config.getSeed(), config.getHashFamilySize());
     }
 
-    static TestPubSubFactory of(final ActorContext context) {
-        return new TestPubSubFactory(context, String.class, TestPubSubFactory::getPrefixes);
+    static DistributedAcks startDistributedAcks(final ActorContext context) {
+        return DistributedAcksImpl.create(context, "dc-default", ACKS_PROVIDER);
+    }
+
+    static TestPubSubFactory of(final ActorContext context, final DistributedAcks distributedAcks) {
+        return new TestPubSubFactory(context, String.class, TestPubSubFactory::getPrefixes,  distributedAcks);
     }
 
     /**

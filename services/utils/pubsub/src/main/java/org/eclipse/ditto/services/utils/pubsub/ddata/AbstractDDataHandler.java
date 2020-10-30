@@ -65,14 +65,18 @@ public abstract class AbstractDDataHandler<K, S, T extends IndelUpdate<S, T>>
     public abstract S approximate(final String topic);
 
     @Override
-    public CompletionStage<Collection<K>> getSubscribers(final Collection<S> topic) {
-
-        return read().thenApply(map -> map.entrySet()
+    public Collection<K> getSubscribers(final Map<K, scala.collection.immutable.Set<S>> mmap,
+            final Collection<S> topic) {
+        return mmap.entrySet()
                 .stream()
                 .filter(entry -> topic.stream().anyMatch(entry.getValue()::contains))
                 .map(Map.Entry::getKey)
-                .collect(Collectors.toList())
-        );
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public CompletionStage<Collection<K>> getSubscribers(final Collection<S> topic) {
+        return read().thenApply(mmap -> getSubscribers(mmap, topic));
     }
 
     @Override

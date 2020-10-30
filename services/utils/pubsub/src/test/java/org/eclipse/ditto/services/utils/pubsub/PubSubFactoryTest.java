@@ -30,9 +30,13 @@ import java.util.stream.IntStream;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.pubsub.actors.AbstractUpdater;
 import org.eclipse.ditto.services.utils.pubsub.actors.AcksUpdater;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,6 +52,7 @@ import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.cluster.Cluster;
 import akka.cluster.ClusterEvent;
+import akka.cluster.ddata.Replicator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.Attributes;
 import akka.testkit.TestActor;
@@ -67,6 +72,8 @@ public final class PubSubFactoryTest {
     private Cluster cluster2;
     private TestPubSubFactory factory1;
     private TestPubSubFactory factory2;
+    private DistributedAcks distributedAcks1;
+    private DistributedAcks distributedAcks2;
 
     private Config getTestConf() {
         return ConfigFactory.load("pubsub-factory-test.conf");
@@ -83,8 +90,12 @@ public final class PubSubFactoryTest {
         cluster2.registerOnMemberUp(latch::countDown);
         cluster1.join(cluster1.selfAddress());
         cluster2.join(cluster1.selfAddress());
-        factory1 = TestPubSubFactory.of(newContext(system1));
-        factory2 = TestPubSubFactory.of(newContext(system2));
+        final ActorContext context1 = newContext(system1);
+        final ActorContext context2 = newContext(system2);
+        distributedAcks1 = TestPubSubFactory.startDistributedAcks(context1);
+        distributedAcks2 = TestPubSubFactory.startDistributedAcks(context2);
+        factory1 = TestPubSubFactory.of(context1, distributedAcks1);
+        factory2 = TestPubSubFactory.of(context2, distributedAcks2);
         // wait for both members to be UP
         latch.await();
     }
@@ -111,6 +122,7 @@ public final class PubSubFactoryTest {
             // THEN: subscription is acknowledged
             assertThat(subAck.getRequest()).isInstanceOf(SubUpdater.Subscribe.class);
             assertThat(subAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello");
+            waitForTopicPropagation(this, factory1);
 
             // WHEN: a message is published on the subscribed topic
             pub.publish("hello", publisher.ref());
@@ -126,6 +138,7 @@ public final class PubSubFactoryTest {
                     sub.unsubscribeWithAck(asList("hello", "world"), subscriber.ref()).toCompletableFuture().join();
             assertThat(unsubAck.getRequest()).isInstanceOf(SubUpdater.Unsubscribe.class);
             assertThat(unsubAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello", "world");
+            waitForTopicPropagation(this, factory1);
 
             // THEN: the subscriber does not receive published messages any more
             pub.publish("hello", publisher.ref());
@@ -151,6 +164,7 @@ public final class PubSubFactoryTest {
             await(sub2.subscribeWithAck(asList("hell", "a", "fury"), subscriber2.ref()));
             await(sub1.subscribeWithAck(asList("like", "a", "woman", "scorn'd"), subscriber3.ref()));
             await(sub2.subscribeWithAck(asList("exeunt", "omnes"), subscriber4.ref()).toCompletableFuture());
+            waitForTopicPropagation(this, factory1);
 
             // WHEN: many messages are published
             final int messages = 100;
@@ -179,6 +193,7 @@ public final class PubSubFactoryTest {
 
             // GIVEN: a pub-sub channel is set up
             sub.subscribeWithAck(singleton("hello"), subscriber.ref()).toCompletableFuture().join();
+            waitForTopicPropagation(this, factory1);
             pub.publish("hello", publisher.ref());
             subscriber.expectMsg("hello");
 
@@ -209,6 +224,7 @@ public final class PubSubFactoryTest {
 
             // GIVEN: a pub-sub channel is set up
             sub.subscribeWithAck(singleton("hello"), subscriber.ref()).toCompletableFuture().join();
+            waitForTopicPropagation(this, factory1);
             pub.publish("hello", publisher.ref());
             subscriber.expectMsg("hello");
 
@@ -230,13 +246,15 @@ public final class PubSubFactoryTest {
         new TestKit(system2) {{
             // GIVEN: many pub- and sub-factories start under different actors.
             for (int i = 0; i < 10; ++i) {
-                TestPubSubFactory.of(newContext(system1));
-                TestPubSubFactory.of(newContext(system2));
+                TestPubSubFactory.of(newContext(system1), distributedAcks1);
+                TestPubSubFactory.of(newContext(system2), distributedAcks2);
             }
 
             // WHEN: another pair of pub-sub factories were created.
-            final DistributedPub<String> pub = TestPubSubFactory.of(newContext(system1)).startDistributedPub();
-            final DistributedSub sub = TestPubSubFactory.of(newContext(system2)).startDistributedSub();
+            final DistributedPub<String> pub =
+                    TestPubSubFactory.of(newContext(system1), distributedAcks1).startDistributedPub();
+            final DistributedSub sub =
+                    TestPubSubFactory.of(newContext(system2), distributedAcks2).startDistributedSub();
             final TestProbe publisher = TestProbe.apply(system1);
             final TestProbe subscriber = TestProbe.apply(system2);
 
@@ -245,6 +263,7 @@ public final class PubSubFactoryTest {
                     sub.subscribeWithAck(singleton("hello"), subscriber.ref()).toCompletableFuture().join();
             assertThat(subAck.getRequest()).isInstanceOf(SubUpdater.Subscribe.class);
             assertThat(subAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello");
+            waitForTopicPropagation(this, factory1);
 
             pub.publish("hello", publisher.ref());
             subscriber.expectMsg(Duration.create(5, TimeUnit.SECONDS), "hello");
@@ -307,21 +326,58 @@ public final class PubSubFactoryTest {
     }
 
     @Test
+    public void sendWeakAckToDeclaredAndUnauthorizedSubscriber() {
+        new TestKit(system1) {{
+            final TestProbe publisher = TestProbe.apply("publisher", system1);
+            final TestProbe subscriber = TestProbe.apply("subscriber", system2);
+
+            final DistributedPub<String> pub = factory1.startDistributedPub();
+            final DistributedSub sub = factory2.startDistributedSub();
+
+            // GIVEN: subscriber declares the requested acknowledgement
+            await(factory2.getDistributedAcks().declareAcknowledgementLabels(acks("ack"), subscriber.ref()));
+            await(sub.subscribeWithAck(List.of("subscriber-topic"), subscriber.ref()));
+
+            // ensure ddata is replicated to publisher
+            waitForTopicPropagation(this, factory1);
+            waitForAckPropagation(this, factory1);
+
+            // WHEN: message with the subscriber's declared ack and a different topic is published
+            pub.publishWithAcks(
+                    "publisher-topic",
+                    Set.of(AcknowledgementRequest.parseAcknowledgementRequest("ack"),
+                            AcknowledgementRequest.parseAcknowledgementRequest("no-declaration")),
+                    ThingId.of("thing:id"),
+                    DittoHeaders.empty(),
+                    publisher.ref()
+            );
+
+            // THEN: the publisher receives a weak acknowledgement for the ack request with a declared label
+            final Acknowledgements weakAcks = publisher.expectMsgClass(Acknowledgements.class);
+            assertThat(weakAcks.getAcknowledgement(AcknowledgementLabel.of("ack")))
+                    .isNotEmpty()
+                    .satisfies(optional -> assertThat(optional.orElseThrow().isWeak())
+                            .describedAs("Should be weak ack: " + optional.orElseThrow())
+                            .isTrue());
+
+            // THEN: the publisher does not receive a weak acknowledgement for the ack request without a declared label
+            assertThat(weakAcks.getAcknowledgement(AcknowledgementLabel.of("no-declaration"))).isEmpty();
+        }};
+    }
+
+    @Test
     public void failAckDeclarationDueToRemoteConflict() {
         new TestKit(system1) {{
             // GIVEN: 2 subscribers exist in different actor systems
             final TestProbe subscriber1 = TestProbe.apply("subscriber1", system1);
             final TestProbe subscriber2 = TestProbe.apply("subscriber2", system2);
 
-            factory1.getDistributedAcks().receiveDistributedDeclaredAcks(getRef());
-
             // GIVEN: "sit" is declared by a subscriber on system2
             await(factory2.getDistributedAcks().declareAcknowledgementLabels(acks("dolor", "sit"),
                     subscriber2.ref()));
 
             // GIVEN: the update is replicated to system1
-            final AcksUpdater.DDataChanged ddataChanged =
-                    expectMsgClass(java.time.Duration.ofSeconds(10L), AcksUpdater.DDataChanged.class);
+            final AcksUpdater.DDataChanged ddataChanged = waitForAckPropagation(this, factory1);
             assertThat(ddataChanged.getMultiMap()).containsKey(cluster2.selfAddress());
 
             // WHEN: another subscriber from system1 declares conflicting labels with the subscriber from system2
@@ -453,5 +509,16 @@ public final class PubSubFactoryTest {
         public Receive createReceive() {
             return ReceiveBuilder.create().build();
         }
+    }
+
+    private static void waitForTopicPropagation(final TestKit testKit, final TestPubSubFactory factory) {
+        factory.ddata.getReader().receiveChanges(testKit.getRef());
+        testKit.expectMsgClass(Replicator.Changed.class);
+    }
+
+    private static AcksUpdater.DDataChanged waitForAckPropagation(final TestKit testKit,
+            final TestPubSubFactory factory) {
+        factory.getDistributedAcks().receiveDistributedDeclaredAcks(testKit.getRef());
+        return testKit.expectMsgClass(java.time.Duration.ofSeconds(10L), AcksUpdater.DDataChanged.class);
     }
 }
