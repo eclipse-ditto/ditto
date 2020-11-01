@@ -17,6 +17,7 @@ import java.util.Arrays;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.pubsub.AbstractPubSubFactory;
 import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
+import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ConstantTopics;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ReadSubjectExtractor;
@@ -30,6 +31,9 @@ import akka.actor.ActorContext;
  */
 public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEvent<?>> {
 
+    private static final AckExtractor<ThingEvent<?>> ACK_EXTRACTOR =
+            AckExtractor.of(ThingEvent::getEntityId, ThingEvent::getDittoHeaders);
+
     private static final DDataProvider PROVIDER = DDataProvider.of("thing-event-aware");
 
     @SuppressWarnings({"unchecked"})
@@ -37,7 +41,8 @@ public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEv
             final PubSubTopicExtractor<ThingEvent<?>> topicExtractor,
             final DistributedAcks distributedAcks) {
 
-        super(context, (Class<ThingEvent<?>>) (Object) ThingEvent.class, topicExtractor, PROVIDER, distributedAcks);
+        super(context, (Class<ThingEvent<?>>) (Object) ThingEvent.class, topicExtractor, PROVIDER, ACK_EXTRACTOR,
+                distributedAcks);
     }
 
     /**

@@ -18,9 +18,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -36,6 +38,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.pubsub.actors.AbstractUpdater;
 import org.eclipse.ditto.services.utils.pubsub.actors.AcksUpdater;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
+import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.junit.After;
 import org.junit.Before;
@@ -73,6 +76,9 @@ public final class PubSubFactoryTest {
     private TestPubSubFactory factory2;
     private DistributedAcks distributedAcks1;
     private DistributedAcks distributedAcks2;
+    private AckExtractor<String> ackExtractor;
+    private Map<String, ThingId> thingIdMap;
+    private Map<String, DittoHeaders> dittoHeadersMap;
 
     private Config getTestConf() {
         return ConfigFactory.load("pubsub-factory-test.conf");
@@ -93,8 +99,14 @@ public final class PubSubFactoryTest {
         final ActorContext context2 = newContext(system2);
         distributedAcks1 = TestPubSubFactory.startDistributedAcks(context1);
         distributedAcks2 = TestPubSubFactory.startDistributedAcks(context2);
-        factory1 = TestPubSubFactory.of(context1, distributedAcks1);
-        factory2 = TestPubSubFactory.of(context2, distributedAcks2);
+        thingIdMap = new ConcurrentHashMap<>();
+        dittoHeadersMap = new ConcurrentHashMap<>();
+        ackExtractor = AckExtractor.of(
+                s -> thingIdMap.getOrDefault(s, ThingId.dummy()),
+                s -> dittoHeadersMap.getOrDefault(s, DittoHeaders.empty())
+        );
+        factory1 = TestPubSubFactory.of(context1, ackExtractor, distributedAcks1);
+        factory2 = TestPubSubFactory.of(context2, ackExtractor, distributedAcks2);
         // wait for both members to be UP
         latch.await();
     }
@@ -245,15 +257,15 @@ public final class PubSubFactoryTest {
         new TestKit(system2) {{
             // GIVEN: many pub- and sub-factories start under different actors.
             for (int i = 0; i < 10; ++i) {
-                TestPubSubFactory.of(newContext(system1), distributedAcks1);
-                TestPubSubFactory.of(newContext(system2), distributedAcks2);
+                TestPubSubFactory.of(newContext(system1), ackExtractor, distributedAcks1);
+                TestPubSubFactory.of(newContext(system2), ackExtractor, distributedAcks2);
             }
 
             // WHEN: another pair of pub-sub factories were created.
             final DistributedPub<String> pub =
-                    TestPubSubFactory.of(newContext(system1), distributedAcks1).startDistributedPub();
+                    TestPubSubFactory.of(newContext(system1), ackExtractor, distributedAcks1).startDistributedPub();
             final DistributedSub sub =
-                    TestPubSubFactory.of(newContext(system2), distributedAcks2).startDistributedSub();
+                    TestPubSubFactory.of(newContext(system2), ackExtractor, distributedAcks2).startDistributedSub();
             final TestProbe publisher = TestProbe.apply(system1);
             final TestProbe subscriber = TestProbe.apply(system2);
 
@@ -325,7 +337,7 @@ public final class PubSubFactoryTest {
     }
 
     @Test
-    public void sendWeakAckToDeclaredAndUnauthorizedSubscriber() {
+    public void publisherSendsWeakAckForDeclaredAndUnauthorizedLabels() {
         new TestKit(system1) {{
             final TestProbe publisher = TestProbe.apply("publisher", system1);
             final TestProbe subscriber = TestProbe.apply("subscriber", system2);
@@ -341,14 +353,56 @@ public final class PubSubFactoryTest {
             waitForHeartBeats(system2, factory2);
 
             // WHEN: message with the subscriber's declared ack and a different topic is published
-            pub.publishWithAcks(
-                    "publisher-topic",
-                    Set.of(AcknowledgementRequest.parseAcknowledgementRequest("ack"),
-                            AcknowledgementRequest.parseAcknowledgementRequest("no-declaration")),
-                    ThingId.of("thing:id"),
-                    DittoHeaders.empty(),
-                    publisher.ref()
+            final String publisherTopic = "publisher-topic";
+            thingIdMap.put(publisherTopic, ThingId.of("thing:id"));
+            dittoHeadersMap.put(publisherTopic,
+                    DittoHeaders.newBuilder().acknowledgementRequest(
+                            AcknowledgementRequest.parseAcknowledgementRequest("ack"),
+                            AcknowledgementRequest.parseAcknowledgementRequest("no-declaration")
+                    ).build()
             );
+            pub.publishWithAcks(publisherTopic, ackExtractor, publisher.ref());
+
+            // THEN: the publisher receives a weak acknowledgement for the ack request with a declared label
+            final Acknowledgements weakAcks = publisher.expectMsgClass(Acknowledgements.class);
+            assertThat(weakAcks.getAcknowledgement(AcknowledgementLabel.of("ack")))
+                    .isNotEmpty()
+                    .satisfies(optional -> assertThat(optional.orElseThrow().isWeak())
+                            .describedAs("Should be weak ack: " + optional.orElseThrow())
+                            .isTrue());
+
+            // THEN: the publisher does not receive a weak acknowledgement for the ack request without a declared label
+            assertThat(weakAcks.getAcknowledgement(AcknowledgementLabel.of("no-declaration"))).isEmpty();
+        }};
+    }
+
+    @Test
+    public void subscriberSendsWeakAckToDeclaredAndUnauthorizedLabels() {
+        new TestKit(system1) {{
+            final TestProbe publisher = TestProbe.apply("publisher", system1);
+            final TestProbe subscriber1 = TestProbe.apply("subscriber1", system2);
+            final TestProbe subscriber2 = TestProbe.apply("subscriber2", system2);
+
+            final DistributedPub<String> pub = factory1.startDistributedPub();
+            final DistributedSub sub = factory2.startDistributedSub();
+
+            // GIVEN: different subscribers declare the requested acknowledgement and subscribe for the publisher topic
+            final String publisherTopic = "publisher-topic";
+            await(factory2.getDistributedAcks().declareAcknowledgementLabels(acks("ack"), subscriber1.ref()));
+            await(sub.subscribeWithAck(List.of(publisherTopic), subscriber2.ref()));
+
+            // ensure ddata is replicated to publisher
+            waitForHeartBeats(system2, factory2);
+
+            // WHEN: message with the subscriber's declared ack and a different topic is published
+            final ThingId thingId = ThingId.of("thing:id");
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().acknowledgementRequest(
+                    AcknowledgementRequest.parseAcknowledgementRequest("ack"),
+                    AcknowledgementRequest.parseAcknowledgementRequest("no-declaration")
+            ).build();
+            thingIdMap.put(publisherTopic, thingId);
+            dittoHeadersMap.put(publisherTopic, dittoHeaders);
+            pub.publishWithAcks(publisherTopic, ackExtractor, publisher.ref());
 
             // THEN: the publisher receives a weak acknowledgement for the ack request with a declared label
             final Acknowledgements weakAcks = publisher.expectMsgClass(Acknowledgements.class);

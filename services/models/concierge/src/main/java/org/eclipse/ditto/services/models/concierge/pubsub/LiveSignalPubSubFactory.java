@@ -15,9 +15,11 @@ package org.eclipse.ditto.services.models.concierge.pubsub;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.pubsub.AbstractPubSubFactory;
 import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
+import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ReadSubjectExtractor;
 import org.eclipse.ditto.signals.base.Signal;
@@ -29,12 +31,16 @@ import akka.actor.ActorContext;
  */
 final class LiveSignalPubSubFactory extends AbstractPubSubFactory<Signal<?>> {
 
+    private static final AckExtractor<Signal<?>> ACK_EXTRACTOR =
+            AckExtractor.of(LiveSignalPubSubFactory::getThingId, Signal::getDittoHeaders);
+
     private static final DDataProvider PROVIDER = DDataProvider.of("live-signal-aware");
 
     @SuppressWarnings("unchecked")
     private LiveSignalPubSubFactory(final ActorContext context, final PubSubTopicExtractor<Signal<?>> topicExtractor,
             final DistributedAcks distributedAcks) {
-        super(context, (Class<Signal<?>>) (Object) Signal.class, topicExtractor, PROVIDER, distributedAcks);
+        super(context, (Class<Signal<?>>) (Object) Signal.class, topicExtractor, PROVIDER, ACK_EXTRACTOR,
+                distributedAcks);
     }
 
     /**
@@ -57,5 +63,10 @@ final class LiveSignalPubSubFactory extends AbstractPubSubFactory<Signal<?>> {
 
     private static PubSubTopicExtractor<Signal<?>> topicExtractor() {
         return ReadSubjectExtractor.<Signal<?>>of().with(LiveSignalPubSubFactory::getStreamingTypeTopic);
+    }
+
+    // precondition: all live signals are thing signals.
+    private static ThingId getThingId(final Signal<?> signal) {
+        return ThingId.of(signal.getEntityId());
     }
 }

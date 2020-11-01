@@ -23,11 +23,9 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.enforcers.Enforcer;
@@ -49,6 +47,7 @@ import org.eclipse.ditto.services.utils.cacheloaders.ThingEnforcementIdCacheLoad
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -245,9 +244,8 @@ public final class TestSetup {
                 }
 
                 @Override
-                public Object wrapForPublicationWithAcks(final Command message,
-                        final Set<AcknowledgementRequest> ackRequests,
-                        final EntityIdWithType entityId, final DittoHeaders dittoHeaders, final ActorRef sender) {
+                public <S extends Command> Object wrapForPublicationWithAcks(final S message,
+                        final AckExtractor<S> ackExtractor) {
                     return wrapForPublication(message);
                 }
             };
@@ -267,9 +265,8 @@ public final class TestSetup {
                 }
 
                 @Override
-                public Object wrapForPublicationWithAcks(final Event message,
-                        final Set<AcknowledgementRequest> ackRequests,
-                        final EntityIdWithType entityId, final DittoHeaders dittoHeaders, final ActorRef sender) {
+                public <S extends Event> Object wrapForPublicationWithAcks(final S message,
+                        final AckExtractor<S> ackExtractor) {
                     return wrapForPublication(message);
                 }
             };
@@ -290,9 +287,8 @@ public final class TestSetup {
                 }
 
                 @Override
-                public Object wrapForPublicationWithAcks(final Signal message,
-                        final Set<AcknowledgementRequest> ackRequests,
-                        final EntityIdWithType entityId, final DittoHeaders dittoHeaders, final ActorRef sender) {
+                public <S extends Signal> Object wrapForPublicationWithAcks(final S message,
+                        final AckExtractor<S> ackExtractor) {
                     return wrapForPublication(message);
                 }
             };

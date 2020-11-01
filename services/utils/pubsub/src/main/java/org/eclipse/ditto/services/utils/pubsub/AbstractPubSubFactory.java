@@ -22,6 +22,7 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.compressed.CompressedDData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.compressed.CompressedDDataHandler;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDDataHandler;
+import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorContext;
@@ -45,27 +46,30 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
 
     protected final DistributedDataConfig ddataConfig;
     protected final DData<ActorRef, ?, ?> ddata;
+    protected final AckExtractor<T> ackExtractor;
     protected final DistributedAcks distributedAcks;
 
     /**
      * Create a pub-sub factory.
-     *
-     * @param context context of the actor under which publisher and subscriber actors are created.
+     *  @param context context of the actor under which publisher and subscriber actors are created.
      * @param messageClass the class of messages to publish and subscribe for.
      * @param topicExtractor a function extracting from each message the topics it was published at.
      * @param provider provider of the underlying ddata extension.
+     * @param ackExtractor extractor of acknowledgement-related information from a message.
      * @param distributedAcks a second ddata for declared acknowledgement labels.
      */
     protected AbstractPubSubFactory(final ActorContext context,
             final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
             final DDataProvider provider,
+            final AckExtractor<T> ackExtractor,
             final DistributedAcks distributedAcks) {
 
         this.actorRefFactory = context;
         this.messageClass = messageClass;
         factoryId = provider.clusterRole;
         this.topicExtractor = topicExtractor;
+        this.ackExtractor = ackExtractor;
         ddataConfig = provider.getConfig(context.system());
         ddata = CompressedDData.of(context.system(), provider);
         this.distributedAcks = distributedAcks;
@@ -82,7 +86,8 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
     @Override
     public DistributedSub startDistributedSub() {
         final String subSupervisorName = factoryId + "-sub-supervisor";
-        final Props subSupervisorProps = SubSupervisor.props(messageClass, topicExtractor, ddata);
+        final Props subSupervisorProps = SubSupervisor.props(messageClass, topicExtractor, ddata, ackExtractor,
+                distributedAcks);
         final ActorRef subSupervisor = actorRefFactory.actorOf(subSupervisorProps, subSupervisorName);
         return DistributedSub.of(ddataConfig, subSupervisor);
     }

@@ -22,7 +22,6 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.AclEnforcer;
@@ -42,6 +41,7 @@ import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -60,6 +60,13 @@ import akka.japi.Pair;
  * Enforces live commands (including message commands) and live events.
  */
 public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> {
+
+    private static final AckExtractor<ThingCommand<?>> THING_COMMAND_ACK_EXTRACTOR =
+            AckExtractor.of(ThingCommand::getEntityId, ThingCommand::getDittoHeaders);
+    private static final AckExtractor<ThingEvent<?>> THING_EVENT_ACK_EXTRACTOR =
+            AckExtractor.of(ThingEvent::getEntityId, ThingEvent::getDittoHeaders);
+    private static final AckExtractor<MessageCommand<?, ?>> MESSAGE_COMMAND_ACK_EXTRACTOR =
+            AckExtractor.of(MessageCommand::getEntityId, MessageCommand::getDittoHeaders);
 
     private final EnforcerRetriever enforcerRetriever;
     private final LiveSignalPub liveSignalPub;
@@ -228,7 +235,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
                 final ThingCommand<?> withReadSubjects =
                         addEffectedReadSubjectsToThingSignal((ThingCommand<?>) liveSignal, enforcer);
                 log(withReadSubjects).info("Live Command was authorized: <{}>", withReadSubjects);
-                return publishLiveSignal(withReadSubjects, withReadSubjects.getEntityId(), liveSignalPub.command());
+                return publishLiveSignal(withReadSubjects, THING_COMMAND_ACK_EXTRACTOR, liveSignalPub.command());
             default:
                 log(liveSignal).warning("Ignoring unsupported command signal: <{}>", liveSignal);
                 throw UnknownCommandException.newBuilder(liveSignal.getName())
@@ -252,7 +259,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
             log(liveSignal).info("Live Event was authorized: <{}>", liveSignal);
             final ThingEvent<?> withReadSubjects =
                     addEffectedReadSubjectsToThingSignal((ThingEvent<?>) liveSignal, enforcer);
-            return publishLiveSignal(withReadSubjects, withReadSubjects.getEntityId(), liveSignalPub.event());
+            return publishLiveSignal(withReadSubjects, THING_EVENT_ACK_EXTRACTOR, liveSignalPub.event());
         } else {
             log(liveSignal).info("Live Event was NOT authorized: <{}>", liveSignal);
             throw EventSendNotAllowedException.newBuilder(((ThingEvent<?>) liveSignal).getThingEntityId())
@@ -293,7 +300,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
                 .build();
 
         final MessageCommand<?, ?> withReadSubjects = command.setDittoHeaders(headersWithReadSubjects);
-        return publishLiveSignal(withReadSubjects, withReadSubjects.getEntityId(), liveSignalPub.message());
+        return publishLiveSignal(withReadSubjects, MESSAGE_COMMAND_ACK_EXTRACTOR, liveSignalPub.message());
     }
 
     private MessageSendNotAllowedException rejectMessageCommand(final MessageCommand<?, ?> command) {
@@ -310,16 +317,16 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends Signal<?>> CompletionStage<Contextual<WithDittoHeaders>> publishLiveSignal(final T signal,
-            final EntityIdWithType entityId,
+    private <T extends Signal<?>, S extends T> CompletionStage<Contextual<WithDittoHeaders>> publishLiveSignal(
+            final S signal,
+            final AckExtractor<S> ackExtractor,
             final DistributedPub<T> pub) {
 
         // using pub/sub to publish the command to any interested parties (e.g. a Websocket):
         log(signal).debug("Publish message to pub-sub");
         return addToResponseReceiver(signal).thenApply(newSignal ->
-                withMessageToReceiver(newSignal, pub.getPublisher(), obj ->
-                        pub.wrapForPublicationWithAcks((T) obj, signal.getDittoHeaders().getAcknowledgementRequests(),
-                                entityId, signal.getDittoHeaders(), context.getSender()))
+                withMessageToReceiver(newSignal, pub.getPublisher(),
+                        obj -> pub.wrapForPublicationWithAcks((S) obj, ackExtractor))
         );
     }
 

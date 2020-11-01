@@ -34,6 +34,7 @@ import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
@@ -62,6 +63,9 @@ public final class ThingPersistenceActor
      * The ID of the snapshot plugin this persistence actor uses.
      */
     static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-snapshots";
+
+    private static AckExtractor<ThingEvent<?>> ACK_EXTRACTOR =
+            AckExtractor.of(ThingEvent::getEntityId, ThingEvent::getDittoHeaders);
 
     private final ThingConfig thingConfig;
     private final DistributedPub<ThingEvent<?>> distributedPub;
@@ -174,8 +178,7 @@ public final class ThingPersistenceActor
 
     @Override
     protected void publishEvent(final ThingEvent event) {
-        distributedPub.publishWithAcks(event, event.getDittoHeaders().getAcknowledgementRequests(), event.getEntityId(),
-                event.getDittoHeaders(), getSender());
+        distributedPub.publishWithAcks(event, ACK_EXTRACTOR, getSender());
     }
 
     @Override

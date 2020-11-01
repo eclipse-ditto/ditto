@@ -14,7 +14,9 @@ package org.eclipse.ditto.services.utils.pubsub.actors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
+import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorRef;
@@ -63,17 +65,23 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
     private final Class<T> messageClass;
     private final PubSubTopicExtractor<T> topicExtractor;
     private final DData<ActorRef, ?, U> topicsDData;
+    private final AckExtractor<T> ackExtractor;
+    private final DistributedAcks distributedAcks;
 
     @Nullable private ActorRef updater;
 
     @SuppressWarnings("unused")
     private SubSupervisor(final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
-            final DData<ActorRef, ?, U> topicsDData) {
+            final DData<ActorRef, ?, U> topicsDData,
+            final AckExtractor<T> ackExtractor,
+            final DistributedAcks distributedAcks) {
         super();
         this.messageClass = messageClass;
         this.topicExtractor = topicExtractor;
         this.topicsDData = topicsDData;
+        this.ackExtractor = ackExtractor;
+        this.distributedAcks = distributedAcks;
     }
 
     /**
@@ -84,13 +92,18 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
      * @param messageClass class of messages.
      * @param topicExtractor extractor of topics from messages.
      * @param topicsDData access to the distributed data of topics.
+     * @param ackExtractor extractor of acknowledgement-related information from a message.
+     * @param distributedAcks access to the distributed data of declared acknowledgement labels.
      * @return the Props object.
      */
     public static <T, U> Props props(final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
-            final DData<ActorRef, ?, U> topicsDData) {
+            final DData<ActorRef, ?, U> topicsDData,
+            final AckExtractor<T> ackExtractor,
+            final DistributedAcks distributedAcks) {
 
-        return Props.create(SubSupervisor.class, messageClass, topicExtractor, topicsDData);
+        return Props.create(SubSupervisor.class, messageClass, topicExtractor, topicsDData, ackExtractor,
+                distributedAcks);
     }
 
     @Override
@@ -112,7 +125,8 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
     @Override
     protected void startChildren() {
         final ActorRef subscriber =
-                startChild(Subscriber.props(messageClass, topicExtractor), Subscriber.ACTOR_NAME_PREFIX);
+                startChild(Subscriber.props(messageClass, topicExtractor, ackExtractor, distributedAcks),
+                        Subscriber.ACTOR_NAME_PREFIX);
         getContext().watch(subscriber);
 
         final Props updaterProps = SubUpdater.props(config, subscriber, topicsDData);

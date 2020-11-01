@@ -17,10 +17,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
@@ -29,7 +27,7 @@ import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 
 import akka.actor.AbstractActor;
@@ -53,8 +51,6 @@ public final class Publisher<T> extends AbstractActor {
      * Prefix of this actor's name.
      */
     public static final String ACTOR_NAME_PREFIX = "publisher";
-
-    private static final List<AcknowledgementLabel> BUILT_IN_LABELS = List.of(DittoAcknowledgementLabel.values());
 
     private static final Set<String> EMPTY_SET = Set$.MODULE$.empty();
 
@@ -108,17 +104,15 @@ public final class Publisher<T> extends AbstractActor {
      * @param ackRequests acknowledgement requests of the message.
      * @param entityId entity ID of the message.
      * @param dittoHeaders the Ditto headers of any weak acknowledgements to send back.
-     * @param sender the sender of the message and the receiver of acknowledgements.
      * @return the request.
      */
     public static Request publishWithAck(final Collection<String> topics,
             final Object message,
             final java.util.Set<AcknowledgementRequest> ackRequests,
             final EntityIdWithType entityId,
-            final DittoHeaders dittoHeaders,
-            final ActorRef sender) {
+            final DittoHeaders dittoHeaders) {
 
-        return new PublishWithAck(topics, message, ackRequests, entityId, dittoHeaders, sender);
+        return new PublishWithAck(topics, message, ackRequests, entityId, dittoHeaders);
     }
 
     @Override
@@ -144,14 +138,14 @@ public final class Publisher<T> extends AbstractActor {
                 .collect(Collectors.toSet());
 
         final Collection<AcknowledgementLabel> requestedCustomAcks =
-                getRequestedAndDeclaredCustomAcks(publishWithAck.ackRequests, allDeclaredAcks);
+                AckExtractor.getRequestedAndDeclaredCustomAcks(publishWithAck.ackRequests, allDeclaredAcks::contains);
 
         final List<AcknowledgementLabel> labelsWithoutAuthorizedSubscribers = requestedCustomAcks.stream()
                 .filter(label -> !subscriberDeclaredAcks.contains(label.toString()))
                 .collect(Collectors.toList());
 
         if (!labelsWithoutAuthorizedSubscribers.isEmpty()) {
-            publishWithAck.sender.tell(publishWithAck.toAcks(labelsWithoutAuthorizedSubscribers), ActorRef.noSender());
+            getSender().tell(publishWithAck.toWeakAcks(labelsWithoutAuthorizedSubscribers), ActorRef.noSender());
         }
     }
 
@@ -180,15 +174,6 @@ public final class Publisher<T> extends AbstractActor {
         log.warning("Unhandled: <{}>", message);
     }
 
-    private static Collection<AcknowledgementLabel> getRequestedAndDeclaredCustomAcks(
-            final java.util.Set<AcknowledgementRequest> requestedAcks,
-            final java.util.Set<String> allDeclaredAcks) {
-        return requestedAcks.stream()
-                .map(AcknowledgementRequest::getLabel)
-                .filter(label -> !BUILT_IN_LABELS.contains(label) && allDeclaredAcks.contains(label.toString()))
-                .collect(Collectors.toList());
-    }
-
     /**
      * Requests to a publisher actor.
      */
@@ -214,35 +199,28 @@ public final class Publisher<T> extends AbstractActor {
      */
     private static final class PublishWithAck implements Request {
 
-        private static final JsonValue WEAK_ACK_PAYLOAD =
-                JsonValue.of("Acknowledgement was issued automatically, because the subscriber " +
-                        "is not authorized to receive the signal.");
+        private static final AckExtractor<PublishWithAck> ACK_EXTRACTOR =
+                AckExtractor.of(p -> p.entityId, p -> p.dittoHeaders);
 
         private final Collection<String> topics;
         private final Object message;
         private final java.util.Set<AcknowledgementRequest> ackRequests;
         private final EntityIdWithType entityId;
         private final DittoHeaders dittoHeaders;
-        private final ActorRef sender;
 
         private PublishWithAck(final Collection<String> topics, final Object message,
                 final java.util.Set<AcknowledgementRequest> ackRequests,
                 final EntityIdWithType entityId,
-                final DittoHeaders dittoHeaders, final ActorRef sender) {
+                final DittoHeaders dittoHeaders) {
             this.topics = topics;
             this.message = message;
             this.ackRequests = ackRequests;
             this.entityId = entityId;
             this.dittoHeaders = dittoHeaders;
-            this.sender = sender;
         }
 
-        private Acknowledgements toAcks(final Collection<AcknowledgementLabel> ackLabels) {
-            return Acknowledgements.of(ackLabels.stream()
-                            .map(ackLabel -> Acknowledgement.weak(ackLabel, entityId, dittoHeaders, WEAK_ACK_PAYLOAD))
-                            .collect(Collectors.toList()),
-                    dittoHeaders
-            );
+        private Acknowledgements toWeakAcks(final Collection<AcknowledgementLabel> ackLabels) {
+            return ACK_EXTRACTOR.toWeakAcknowledgements(this, ackLabels);
         }
     }
 }

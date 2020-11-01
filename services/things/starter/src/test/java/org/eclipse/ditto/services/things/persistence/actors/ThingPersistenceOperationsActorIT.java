@@ -12,17 +12,14 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
-import java.util.Set;
-
-import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
@@ -107,6 +104,7 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
         final Props props =
                 ThingSupervisorActor.props(pubSubMediator,
                         new DistributedPub<>() {
+
                             @Override
                             public ActorRef getPublisher() {
                                 return pubSubMediator;
@@ -118,9 +116,8 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
                             }
 
                             @Override
-                            public Object wrapForPublicationWithAcks(final ThingEvent<?> message,
-                                    final Set<AcknowledgementRequest> ackRequests, final EntityIdWithType entityId,
-                                    final DittoHeaders dittoHeaders, final ActorRef sender) {
+                            public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
+                                    final AckExtractor<S> ackExtractor) {
                                 return wrapForPublication(message);
                             }
                         },
