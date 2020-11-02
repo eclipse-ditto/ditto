@@ -132,7 +132,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
             publisherCreated(this, publisherActor);
 
             final int queueSize = connectionConfig.getMaxQueueSize() + connectionConfig.getPublisherParallelism();
-            LOGGER.warn(connectionConfig.toString());
 
             //Act
             final OutboundSignal.MultiMapped multiMapped = newMultiMappedThingDeleted(dittoHeaders, ack, getRef());
