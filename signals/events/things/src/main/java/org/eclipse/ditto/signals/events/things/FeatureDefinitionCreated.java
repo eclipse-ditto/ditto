@@ -30,6 +30,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
@@ -70,9 +71,10 @@ public final class FeatureDefinitionCreated extends AbstractThingEvent<FeatureDe
             final FeatureDefinition definition,
             final long revision,
             @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
-        super(TYPE, thingId, revision, timestamp, dittoHeaders);
+        super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
         this.featureId = checkNotNull(featureId, "Feature ID");
         this.definition = checkNotNull(definition, "Definition");
     }
@@ -88,7 +90,7 @@ public final class FeatureDefinitionCreated extends AbstractThingEvent<FeatureDe
      * @return the {@code FeatureDefinitionCreated}
      * @throws NullPointerException if any argument is {@code null}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureDefinition, long, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureDefinition, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
      * instead.
      */
     @Deprecated
@@ -98,7 +100,7 @@ public final class FeatureDefinitionCreated extends AbstractThingEvent<FeatureDe
             final long revision,
             final DittoHeaders dittoHeaders) {
 
-        return of(ThingId.of(thingId), featureId, definition, revision, dittoHeaders);
+        return of(ThingId.of(thingId), featureId, definition, revision, null, dittoHeaders, null);
     }
 
     /**
@@ -111,14 +113,17 @@ public final class FeatureDefinitionCreated extends AbstractThingEvent<FeatureDe
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the {@code FeatureDefinitionCreated}
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureDefinition, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
+     * instead.
      */
+    @Deprecated
     public static FeatureDefinitionCreated of(final ThingId thingId,
             final String featureId,
             final FeatureDefinition definition,
             final long revision,
             final DittoHeaders dittoHeaders) {
 
-        return of(thingId, featureId, definition, revision, null, dittoHeaders);
+        return of(thingId, featureId, definition, revision, null, dittoHeaders, null);
     }
 
     /**
@@ -133,7 +138,7 @@ public final class FeatureDefinitionCreated extends AbstractThingEvent<FeatureDe
      * @return the {@code FeatureDefinitionCreated}
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureDefinition, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureDefinition, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
      * instead.
      */
     @Deprecated
@@ -144,7 +149,7 @@ public final class FeatureDefinitionCreated extends AbstractThingEvent<FeatureDe
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
-        return of(ThingId.of(thingId), featureId, definition, revision, timestamp, dittoHeaders);
+        return of(ThingId.of(thingId), featureId, definition, revision, timestamp, dittoHeaders, null);
     }
 
     /**
@@ -158,7 +163,10 @@ public final class FeatureDefinitionCreated extends AbstractThingEvent<FeatureDe
      * @param dittoHeaders the headers of the command which was the cause of this event.
      * @return the {@code FeatureDefinitionCreated}
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureDefinition, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
+     * instead.
      */
+    @Deprecated
     public static FeatureDefinitionCreated of(final ThingId thingId,
             final String featureId,
             final FeatureDefinition definition,
@@ -166,7 +174,33 @@ public final class FeatureDefinitionCreated extends AbstractThingEvent<FeatureDe
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
-        return new FeatureDefinitionCreated(thingId, featureId, definition, revision, timestamp, dittoHeaders);
+        return of(thingId, featureId, definition, revision, timestamp, dittoHeaders, null);
+    }
+
+    /**
+     * Constructs a new {@code FeatureDefinitionCreated} object.
+     *
+     * @param thingId the ID of the Thing whose Feature Definition was created.
+     * @param featureId the ID of the Feature whose Definition was created.
+     * @param definition the created {@link FeatureDefinition}.
+     * @param revision the revision of the Thing.
+     * @param timestamp the timestamp of this event.
+     * @param dittoHeaders the headers of the command which was the cause of this event.
+     * @param metadata the metadata to apply for the event.
+     * @return the {@code FeatureDefinitionCreated}
+     * @throws NullPointerException if any argument but {@code timestamp} and {@code metadata} is {@code null}.
+     * @since 1.3.0
+     */
+    public static FeatureDefinitionCreated of(final ThingId thingId,
+            final String featureId,
+            final FeatureDefinition definition,
+            final long revision,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
+
+        return new FeatureDefinitionCreated(thingId, featureId, definition, revision, timestamp, dittoHeaders,
+                metadata);
     }
 
     /**
@@ -196,7 +230,7 @@ public final class FeatureDefinitionCreated extends AbstractThingEvent<FeatureDe
      */
     public static FeatureDefinitionCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<FeatureDefinitionCreated>(TYPE, jsonObject)
-                .deserialize((revision, timestamp) -> {
+                .deserialize((revision, timestamp, metadata) -> {
                     final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
@@ -205,7 +239,8 @@ public final class FeatureDefinitionCreated extends AbstractThingEvent<FeatureDe
                     final FeatureDefinition extractedDefinition =
                             ThingsModelFactory.newFeatureDefinition(definitionJsonArray);
 
-                    return of(thingId, extractedFeatureId, extractedDefinition, revision, dittoHeaders);
+                    return of(thingId, extractedFeatureId, extractedDefinition, revision, timestamp, dittoHeaders,
+                            metadata);
                 });
     }
 
@@ -236,12 +271,14 @@ public final class FeatureDefinitionCreated extends AbstractThingEvent<FeatureDe
 
     @Override
     public FeatureDefinitionCreated setRevision(final long revision) {
-        return of(getThingEntityId(), featureId, definition, revision, getTimestamp().orElse(null), getDittoHeaders());
+        return of(getThingEntityId(), featureId, definition, revision, getTimestamp().orElse(null), getDittoHeaders(),
+                getMetadata().orElse(null));
     }
 
     @Override
     public FeatureDefinitionCreated setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), featureId, definition, getRevision(), getTimestamp().orElse(null), dittoHeaders);
+        return of(getThingEntityId(), featureId, definition, getRevision(), getTimestamp().orElse(null), dittoHeaders,
+                getMetadata().orElse(null));
     }
 
     @Override

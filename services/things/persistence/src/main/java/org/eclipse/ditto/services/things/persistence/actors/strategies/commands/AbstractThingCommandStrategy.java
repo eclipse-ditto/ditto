@@ -12,12 +12,19 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import java.util.Optional;
+
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
+import org.eclipse.ditto.services.utils.persistentactors.MetadataFromSignal;
 import org.eclipse.ditto.services.utils.persistentactors.etags.AbstractConditionHeaderCheckingCommandStrategy;
+import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
@@ -41,6 +48,24 @@ abstract class AbstractThingCommandStrategy<C extends Command<C>>
     @Override
     protected ConditionalHeadersValidator getValidator() {
         return VALIDATOR;
+    }
+
+    @Override
+    protected Optional<Metadata> calculateRelativeMetadata(@Nullable final Thing entity, final C command) {
+
+        if (command instanceof WithOptionalEntity) {
+            final Metadata existingRelativeMetadata = Optional.ofNullable(entity)
+                    .flatMap(Thing::getMetadata)
+                    .flatMap(m -> m.getValue(command.getResourcePath()))
+                    .filter(JsonValue::isObject)
+                    .map(JsonValue::asObject)
+                    .map(Metadata::newMetadata)
+                    .orElse(null);
+            final MetadataFromSignal relativeMetadata =
+                    MetadataFromSignal.of(command, (WithOptionalEntity) command, existingRelativeMetadata);
+            return Optional.ofNullable(relativeMetadata.get());
+        }
+        return Optional.empty();
     }
 
     @Override

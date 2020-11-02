@@ -178,7 +178,7 @@ public final class PolicyEntryDeleted extends AbstractPolicyEvent<PolicyEntryDel
      */
     public static PolicyEntryDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<PolicyEntryDeleted>(TYPE, jsonObject)
-                .deserialize((revision, timestamp) -> {
+                .deserialize((revision, timestamp, metadata) -> {
                     final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
                     final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final Label extractedLabel = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));

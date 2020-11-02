@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
@@ -35,8 +36,12 @@ final class SudoRetrievePolicyStrategy extends AbstractPolicyQueryCommandStrateg
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy entity,
-            final long nextRevision, final SudoRetrievePolicy command) {
+    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+            @Nullable final Policy entity,
+            final long nextRevision,
+            final SudoRetrievePolicy command,
+            @Nullable final Metadata metadata) {
+
         final SudoRetrievePolicyResponse rawResponse =
                 SudoRetrievePolicyResponse.of(context.getState(), entity, command.getDittoHeaders());
         return ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, rawResponse, entity));

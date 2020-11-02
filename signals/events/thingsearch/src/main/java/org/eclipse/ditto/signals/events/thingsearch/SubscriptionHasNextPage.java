@@ -48,7 +48,8 @@ public final class SubscriptionHasNextPage extends AbstractSubscriptionEvent<Sub
 
     private final JsonArray items;
 
-    private SubscriptionHasNextPage(final String subscriptionId, final JsonArray items, final DittoHeaders dittoHeaders) {
+    private SubscriptionHasNextPage(final String subscriptionId, final JsonArray items,
+            final DittoHeaders dittoHeaders) {
         super(TYPE, subscriptionId, dittoHeaders);
         this.items = items;
     }
@@ -79,12 +80,13 @@ public final class SubscriptionHasNextPage extends AbstractSubscriptionEvent<Sub
      * format.
      */
     public static SubscriptionHasNextPage fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<SubscriptionHasNextPage>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
-            final String subscriptionId =
-                    jsonObject.getValueOrThrow(AbstractSubscriptionEvent.JsonFields.SUBSCRIPTION_ID);
-            final JsonArray items = jsonObject.getValueOrThrow(JsonFields.ITEMS);
-            return new SubscriptionHasNextPage(subscriptionId, items, dittoHeaders);
-        });
+        return new EventJsonDeserializer<SubscriptionHasNextPage>(TYPE, jsonObject)
+                .deserialize((revision, timestamp, metadata) -> {
+                    final String subscriptionId =
+                            jsonObject.getValueOrThrow(AbstractSubscriptionEvent.JsonFields.SUBSCRIPTION_ID);
+                    final JsonArray items = jsonObject.getValueOrThrow(JsonFields.ITEMS);
+                    return new SubscriptionHasNextPage(subscriptionId, items, dittoHeaders);
+                });
     }
 
     /**

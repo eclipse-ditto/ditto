@@ -23,6 +23,7 @@ public final class TracingTags {
     public static final String COMMAND_TYPE_PREFIX = PREFIX + "command.typePrefix";
     public static final String COMMAND_CATEGORY = PREFIX + "command.category";
     public static final String CONNECTION_ID =  PREFIX + "connection.id";
+    public static final String CONNECTION_TYPE = PREFIX + "connection.type";
 
     //HTTP round trip tags
     public static final String STATUS_CODE = PREFIX + "statusCode";
@@ -36,4 +37,12 @@ public final class TracingTags {
 
     //Mapping tags
     public static final String MAPPING_SUCCESS = PREFIX + "mapping.success";
+
+    // Acknowledgement tags
+    public static final String ACK_SUCCESS = PREFIX + "ack.success";
+    public static final String ACK_REDELIVER = PREFIX + "ack.redeliver";
+
+    private TracingTags() {
+        throw new AssertionError();
+    }
 }

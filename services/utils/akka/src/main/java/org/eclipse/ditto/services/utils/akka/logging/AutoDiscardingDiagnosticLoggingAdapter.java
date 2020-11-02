@@ -19,9 +19,6 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import scala.collection.immutable.Seq;
-
-
 /**
  * This implementation of {@link AbstractDiagnosticLoggingAdapter} discards the correlation ID automatically after
  * each log operation.
@@ -64,7 +61,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.notifyError(message);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -73,7 +70,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.notifyError(cause, message);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -82,7 +79,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.notifyWarning(message);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -91,7 +88,7 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.notifyInfo(message);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
     }
 
@@ -100,289 +97,8 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
         try {
             loggingAdapter.notifyDebug(message);
         } finally {
-            discardCorrelationId();
+            discardMdcEntries();
         }
-    }
-
-    @Override
-    public void error(final Throwable cause, final String message) {
-        try {
-            loggingAdapter.error(cause, message);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void error(final Throwable cause, final String template, final Object arg1) {
-        try {
-            loggingAdapter.error(cause, template, arg1);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void error(final Throwable cause,
-            final String template,
-            final Object arg1,
-            final Object arg2) {
-
-        try {
-            loggingAdapter.error(cause, template, arg1, arg2);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void error(final Throwable cause,
-            final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3) {
-
-        try {
-            loggingAdapter.error(cause, template, arg1, arg2, arg3);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void error(final Throwable cause,
-            final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3,
-            final Object arg4) {
-
-        try {
-            loggingAdapter.error(cause, template, arg1, arg2, arg3, arg4);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void error(final String message) {
-        try {
-            loggingAdapter.error(message);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void error(final String template, final Object arg1) {
-        try {
-            loggingAdapter.error(template, arg1);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void error(final String template, final Object arg1, final Object arg2) {
-        try {
-            loggingAdapter.error(template, arg1, arg2);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void error(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3) {
-
-        try {
-            loggingAdapter.error(template, arg1, arg2, arg3);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void error(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3,
-            final Object arg4) {
-
-        try {
-            loggingAdapter.error(template, arg1, arg2, arg3, arg4);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void warning(final String message) {
-        try {
-            loggingAdapter.warning(message);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void warning(final String template, final Object arg1) {
-        try {
-            loggingAdapter.warning(template, arg1);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void warning(final String template, final Object arg1, final Object arg2) {
-        try {
-            loggingAdapter.warning(template, arg1, arg2);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void warning(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3) {
-
-        try {
-            loggingAdapter.warning(template, arg1, arg2, arg3);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void warning(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3,
-            final Object arg4) {
-
-        try {
-            loggingAdapter.warning(template, arg1, arg2, arg3, arg4);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void info(final String message) {
-        try {
-            loggingAdapter.info(message);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void info(final String template, final Object arg1) {
-        try {
-            loggingAdapter.info(template, arg1);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void info(final String template, final Object arg1, final Object arg2) {
-        try {
-            loggingAdapter.info(template, arg1, arg2);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void info(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3) {
-
-        try {
-            loggingAdapter.info(template, arg1, arg2, arg3);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void info(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3,
-            final Object arg4) {
-
-        try {
-            loggingAdapter.info(template, arg1, arg2, arg3, arg4);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void debug(final String message) {
-        try {
-            loggingAdapter.debug(message);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void debug(final String template, final Object arg1) {
-        try {
-            loggingAdapter.debug(template, arg1);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void debug(final String template, final Object arg1, final Object arg2) {
-        try {
-            loggingAdapter.debug(template, arg1, arg2);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void debug(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3) {
-
-        try {
-            loggingAdapter.debug(template, arg1, arg2, arg3);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public void debug(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3,
-            final Object arg4) {
-
-        try {
-            loggingAdapter.debug(template, arg1, arg2, arg3, arg4);
-        } finally {
-            discardCorrelationId();
-        }
-    }
-
-    @Override
-    public String format(final String t, final Seq<Object> arg) {
-        return loggingAdapter.format(t, arg);
     }
 
     @Override
@@ -411,14 +127,27 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
     }
 
     @Override
-    public AutoDiscardingDiagnosticLoggingAdapter setCorrelationId(@Nullable final CharSequence correlationId) {
-        loggingAdapter.setCorrelationId(correlationId);
+    public AutoDiscardingDiagnosticLoggingAdapter putMdcEntry(final CharSequence key,
+            @Nullable final CharSequence value) {
+        loggingAdapter.putMdcEntry(key, value);
         return this;
     }
 
     @Override
-    public void discardCorrelationId() {
-        loggingAdapter.discardCorrelationId();
+    public AutoDiscardingDiagnosticLoggingAdapter removeMdcEntry(final CharSequence key) {
+        loggingAdapter.removeMdcEntry(key);
+        return this;
+    }
+
+    @Override
+    public AutoDiscardingDiagnosticLoggingAdapter discardMdcEntries() {
+        loggingAdapter.discardMdcEntries();
+        return this;
+    }
+
+    @Override
+    public String getName() {
+        return loggingAdapter.getName();
     }
 
 }

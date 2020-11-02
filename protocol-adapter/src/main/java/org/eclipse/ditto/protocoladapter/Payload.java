@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
@@ -117,6 +118,14 @@ public interface Payload extends Jsonifiable<JsonObject> {
     Optional<Instant> getTimestamp();
 
     /**
+     * Returns the {@code metadata} of this {@code Payload} if present.
+     *
+     * @return the optional metadata.
+     * @since 1.3.0
+     */
+    Optional<Metadata> getMetadata();
+
+    /**
      * Returns the {@code fields} of this {@code Payload} if present.
      *
      * @return the optional fields.
@@ -155,9 +164,17 @@ public interface Payload extends Jsonifiable<JsonObject> {
         public static final JsonFieldDefinition<Long> REVISION = JsonFactory.newLongFieldDefinition("revision");
 
         /**
-         * JSON field containing the revision.
+         * JSON field containing the timestamp.
          */
         public static final JsonFieldDefinition<String> TIMESTAMP = JsonFactory.newStringFieldDefinition("timestamp");
+
+        /**
+         * JSON field containing the metadata.
+         *
+         * @since 1.3.0
+         */
+        public static final JsonFieldDefinition<JsonObject> METADATA =
+                JsonFactory.newJsonObjectFieldDefinition("metadata");
 
         /**
          * JSON field containing the fields.

@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -81,6 +82,11 @@ public abstract class AbstractConnectivityEvent<T extends AbstractConnectivityEv
     @Override
     public Optional<Instant> getTimestamp() {
         return Optional.ofNullable(timestamp);
+    }
+
+    @Override
+    public Optional<Metadata> getMetadata() {
+        return Optional.empty();
     }
 
     @Override

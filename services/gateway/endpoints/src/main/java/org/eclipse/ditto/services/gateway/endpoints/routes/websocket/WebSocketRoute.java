@@ -76,9 +76,8 @@ import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.akka.controlflow.LimitRateByRejection;
-import org.eclipse.ditto.services.utils.akka.logging.AutoCloseableSlf4jLogger;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.base.Signal;
@@ -88,6 +87,7 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessio
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.SearchErrorResponse;
+import org.slf4j.Logger;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
@@ -135,7 +135,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     private static final String BEARER = "Bearer";
 
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(WebSocketRoute.class);
+    private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory.getThreadSafeLogger(WebSocketRoute.class);
 
     /**
      * Ask timeout for the local streaming actor.
@@ -269,7 +269,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
     private CompletionStage<HttpResponse> createWebSocket(final UpgradeToWebSocket upgradeToWebSocket,
             final JsonSchemaVersion version,
-            final String connectionCorrelationId,
+            final CharSequence connectionCorrelationId,
             final DittoHeaders dittoHeaders,
             final ProtocolAdapter adapter,
             final HttpRequest request) {
@@ -278,19 +278,20 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 signalEnrichmentProvider == null ? null : signalEnrichmentProvider.getFacade(request);
 
         final AuthorizationContext authContext = dittoHeaders.getAuthorizationContext();
-        LOGGER.withCorrelationId(connectionCorrelationId)
-                .info("Creating WebSocket for connection authContext: <{}>", authContext);
+        final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(connectionCorrelationId);
+        logger.info("Creating WebSocket for connection authContext: <{}>", authContext);
 
         return retrieveWebsocketConfig()
                 .thenApply(overwriteWebSocketConfig(dittoHeaders))
                 .thenApply(websocketConfig -> {
                     final Pair<Connect, Flow<DittoRuntimeException, Message, NotUsed>> outgoing =
                             createOutgoing(version, connectionCorrelationId, dittoHeaders, adapter, request,
-                                    websocketConfig, signalEnrichmentFacade);
+                                    websocketConfig, signalEnrichmentFacade, logger);
 
                     final Flow<Message, DittoRuntimeException, NotUsed> incoming =
                             createIncoming(version, connectionCorrelationId, authContext, dittoHeaders, adapter,
-                                    request, websocketConfig, outgoing.first());
+                                    request,
+                                    websocketConfig, outgoing.first(), logger);
 
                     return upgradeToWebSocket.handleMessagesWith(incoming.via(outgoing.second()));
                 });
@@ -333,17 +334,18 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final ProtocolAdapter adapter,
             final HttpRequest request,
             final WebsocketConfig websocketConfig,
-            final Connect connect) {
+            final Connect connect,
+            final ThreadSafeDittoLogger logger) {
 
         return Flow.fromGraph(GraphDSL.create(builder -> {
 
             final FlowShape<Message, String> strictify =
-                    builder.add(getStrictifyFlow(request, connectionCorrelationId)
+                    builder.add(getStrictifyFlow(request, logger)
                             .via(AbstractRoute.throttleByConfig(websocketConfig.getThrottlingConfig())));
 
             final FanOutShape2<String, Either<StreamControlMessage, Signal<?>>, DittoRuntimeException> select =
                     builder.add(selectStreamControlOrSignal(version, connectionCorrelationId, connectionAuthContext,
-                            dittoHeaders, adapter));
+                            dittoHeaders, adapter, logger));
 
             final FanOutShape2<Either<StreamControlMessage, Signal<?>>, Either<StreamControlMessage, Signal<?>>,
                     DittoRuntimeException> rateLimiter = builder.add(getRateLimiter(websocketConfig));
@@ -389,8 +391,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
 
-    private Flow<Message, String, NotUsed> getStrictifyFlow(final HttpRequest request,
-            final CharSequence correlationId) {
+    private Flow<Message, String, NotUsed> getStrictifyFlow(final HttpRequest request, final Logger logger) {
         return Flow.<Message>create()
                 .via(Flow.fromFunction(msg -> {
                     IN_COUNTER.increment();
@@ -408,7 +409,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 .flatMapConcat(textMsg -> textMsg.fold("", (str1, str2) -> str1 + str2))
                 .via(incomingMessageSniffer.toAsyncFlow(request))
                 .via(Flow.fromFunction(result -> {
-                    LOGGER.withCorrelationId(correlationId).debug("Received incoming WebSocket message: {}", result);
+                    logger.debug("Received incoming WebSocket message: {}", result);
                     return result;
                 }))
                 .withAttributes(Attributes.createLogLevels(Logging.DebugLevel(), Logging.DebugLevel(),
@@ -422,12 +423,13 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final CharSequence connectionCorrelationId,
             final AuthorizationContext connectionAuthContext,
             final DittoHeaders additionalHeaders,
-            final ProtocolAdapter adapter) {
+            final ProtocolAdapter adapter,
+            final ThreadSafeDittoLogger logger) {
 
         final ProtocolMessageExtractor protocolMessageExtractor =
                 new ProtocolMessageExtractor(connectionAuthContext, connectionCorrelationId);
 
-        return Filter.<String, Either<StreamControlMessage, Signal<?>>, DittoRuntimeException>multiplexByEither(
+        return Filter.multiplexByEither(
                 cmdString -> {
                     final Optional<StreamControlMessage> streamControlMessage =
                             protocolMessageExtractor.apply(cmdString);
@@ -437,15 +439,15 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     } else {
                         try {
                             final Signal<?> signal = buildSignal(cmdString, version, connectionCorrelationId,
-                                    connectionAuthContext, additionalHeaders, adapter, headerTranslator);
+                                    connectionAuthContext, additionalHeaders, adapter, headerTranslator, logger);
                             result = Right.apply(Right.apply(signal));
                         } catch (final DittoRuntimeException dre) {
                             // This is a client error usually; log at level DEBUG without stack trace.
-                            LOGGER.withCorrelationId(dre)
+                            logger.withCorrelationId(dre)
                                     .debug("DittoRuntimeException building signal from <{}>: <{}>", cmdString, dre);
                             result = Left.apply(dre);
                         } catch (final Exception throwable) {
-                            LOGGER.warn("Error building signal from <{}>: {}: <{}>", cmdString,
+                            logger.warn("Error building signal from <{}>: {}: <{}>", cmdString,
                                     throwable.getClass().getSimpleName(), throwable.getMessage());
                             final DittoRuntimeException dittoRuntimeException =
                                     GatewayInternalErrorException.newBuilder()
@@ -465,7 +467,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final ProtocolAdapter adapter,
             final HttpRequest request,
             final WebsocketConfig websocketConfig,
-            @Nullable final SignalEnrichmentFacade signalEnrichmentFacade) {
+            @Nullable final SignalEnrichmentFacade signalEnrichmentFacade,
+            final ThreadSafeDittoLogger logger) {
 
         final Optional<JsonWebToken> optJsonWebToken = extractJwtFromRequestIfPresent(request);
 
@@ -482,14 +485,13 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<SessionedJsonifiable, NotUsed>>()
                         .match(GatewayWebsocketSessionExpiredException.class,
                                 ex -> {
-                                    LOGGER.withCorrelationId(connectionCorrelationId)
-                                            .info("WebSocket connection terminated because JWT expired!");
+                                    logger.info("WebSocket connection terminated because JWT expired!");
                                     return Source.empty();
                                 })
                         .match(GatewayWebsocketSessionClosedException.class,
                                 ex -> {
-                                    LOGGER.withCorrelationId(connectionCorrelationId).info("WebSocket connection" +
-                                            " terminated because authorization context changed!");
+                                    logger.info(
+                                            "WebSocket connection terminated because authorization context changed!");
                                     return Source.empty();
                                 })
                         .match(DittoRuntimeException.class, ex -> Source.single(SessionedJsonifiable.error(ex)))
@@ -506,11 +508,10 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         final int signalEnrichmentParallelism = streamingConfig.getParallelism();
         final Flow<SessionedJsonifiable, Message, NotUsed> messageFlow =
                 Flow.<SessionedJsonifiable>create()
-                        .mapAsync(signalEnrichmentParallelism, postprocess(adapter, signalEnrichmentFacade))
+                        .mapAsync(signalEnrichmentParallelism, postprocess(adapter, signalEnrichmentFacade, logger))
                         .mapConcat(x -> x)
                         .via(Flow.fromFunction(result -> {
-                            LOGGER.withCorrelationId(connectionCorrelationId)
-                                    .debug("Sending outgoing WebSocket message: {}", result);
+                            logger.debug("Sending outgoing WebSocket message: {}", result);
                             return result;
                         }))
                         .via(outgoingMessageSniffer.toAsyncFlow(request))
@@ -564,7 +565,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final AuthorizationContext connectionAuthContext,
             final DittoHeaders additionalHeaders,
             final ProtocolAdapter adapter,
-            final HeaderTranslator headerTranslator) {
+            final HeaderTranslator headerTranslator,
+            final ThreadSafeDittoLogger logger) {
 
         // initial internal header values
         final DittoHeaders initialInternalHeaders = DittoHeaders.newBuilder()
@@ -592,36 +594,34 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
         final DittoHeadersBuilder<?, ?> internalHeadersBuilder = DittoHeaders.newBuilder();
 
-        try (final AutoCloseableSlf4jLogger logger = LOGGER.setCorrelationId(connectionCorrelationId)) {
-            logger.debug("WebSocket message has been converted to signal <{}>.", signal);
-            final DittoHeaders signalHeaders = signal.getDittoHeaders();
+        logger.debug("WebSocket message has been converted to signal <{}>.", signal);
+        final DittoHeaders signalHeaders = signal.getDittoHeaders();
 
-            // add initial internal header values
-            logger.trace("Adding initialInternalHeaders: <{}>.", initialInternalHeaders);
-            internalHeadersBuilder.putHeaders(initialInternalHeaders);
-            // add headers given by parent route first so that protocol message may override them
-            final Map<String, String> wellKnownAdditionalHeaders =
-                    headerTranslator.retainKnownHeaders(additionalHeaders);
-            logger.trace("Adding wellKnownAdditionalHeaders: <{}>.", wellKnownAdditionalHeaders);
-            internalHeadersBuilder.putHeaders(wellKnownAdditionalHeaders);
-            // add any headers from protocol adapter to internal headers
-            logger.trace("Adding signalHeaders: <{}>.", signalHeaders);
-            internalHeadersBuilder.putHeaders(signalHeaders);
-            // generate correlation ID if it is not set in protocol message
-            if (signalHeaders.getCorrelationId().isEmpty()) {
-                final String correlationId = UUID.randomUUID().toString();
-                logger.trace("Adding generated correlationId: <{}>.", correlationId);
-                internalHeadersBuilder.correlationId(correlationId);
-            }
-            logger.debug("Generated internalHeaders are: <{}>.", internalHeadersBuilder);
+        // add initial internal header values
+        logger.trace("Adding initialInternalHeaders: <{}>.", initialInternalHeaders);
+        internalHeadersBuilder.putHeaders(initialInternalHeaders);
+        // add headers given by parent route first so that protocol message may override them
+        final Map<String, String> wellKnownAdditionalHeaders =
+                headerTranslator.retainKnownHeaders(additionalHeaders);
+        logger.trace("Adding wellKnownAdditionalHeaders: <{}>.", wellKnownAdditionalHeaders);
+        internalHeadersBuilder.putHeaders(wellKnownAdditionalHeaders);
+        // add any headers from protocol adapter to internal headers
+        logger.trace("Adding signalHeaders: <{}>.", signalHeaders);
+        internalHeadersBuilder.putHeaders(signalHeaders);
+        // generate correlation ID if it is not set in protocol message
+        if (signalHeaders.getCorrelationId().isEmpty()) {
+            final String correlationId = UUID.randomUUID().toString();
+            logger.trace("Adding generated correlationId: <{}>.", correlationId);
+            internalHeadersBuilder.correlationId(correlationId);
         }
+        logger.debug("Generated internalHeaders are: <{}>.", internalHeadersBuilder);
 
         return signal.setDittoHeaders(internalHeadersBuilder.build());
     }
 
     private static Function<SessionedJsonifiable, CompletionStage<Collection<String>>> postprocess(
-            final ProtocolAdapter adapter,
-            @Nullable final SignalEnrichmentFacade facade) {
+            final ProtocolAdapter adapter, @Nullable final SignalEnrichmentFacade facade,
+            final ThreadSafeDittoLogger logger) {
 
         return sessionedJsonifiable -> {
             final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable = sessionedJsonifiable.getJsonifiable();
@@ -637,23 +637,25 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     matchesFilter(sessionedJsonifiable, extra)
                             ? Collections.singletonList(toJsonStringWithExtra(adaptable, extra))
                             : Collections.emptyList())
-                    .exceptionally(error -> WebSocketRoute.reportEnrichmentError(error, adapter, adaptable));
+                    .exceptionally(error -> WebSocketRoute.reportEnrichmentError(error, adapter, adaptable, logger));
         };
     }
 
     private static Collection<String> reportEnrichmentError(final Throwable error,
             final ProtocolAdapter adapter,
-            final Adaptable adaptable) {
+            final Adaptable adaptable,
+            final ThreadSafeDittoLogger logger) {
+
         final DittoRuntimeException errorToReport;
         if (error instanceof DittoRuntimeException) {
-            errorToReport = ((DittoRuntimeException) error);
+            errorToReport = (DittoRuntimeException) error;
         } else {
             errorToReport = SignalEnrichmentFailedException.newBuilder()
                     .dittoHeaders(adaptable.getDittoHeaders())
                     .cause(error)
                     .build();
         }
-        LOGGER.withCorrelationId(adaptable.getDittoHeaders())
+        logger.withCorrelationId(adaptable.getDittoHeaders())
                 .error("Signal enrichment failed due to: {}", error.getMessage(), errorToReport);
 
         final JsonifiableAdaptable errorAdaptable =

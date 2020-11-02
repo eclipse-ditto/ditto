@@ -41,6 +41,7 @@ public final class AclModifiedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.ID, AclModified.NAME)
             .set(Event.JsonFields.REVISION, 2L)
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(AclModified.JSON_ACCESS_CONTROL_LIST, TestConstants.Thing.ACL.toJson(FieldType.regularOrSpecial()))
             .build();
@@ -89,7 +90,7 @@ public final class AclModifiedTest {
     public void toJsonReturnsExpected() {
         final AclModified underTest =
                 AclModified.of(TestConstants.Thing.THING_ID, TestConstants.Thing.ACL, 2, TestConstants.TIMESTAMP,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualToIgnoringFieldDefinitions(KNOWN_JSON

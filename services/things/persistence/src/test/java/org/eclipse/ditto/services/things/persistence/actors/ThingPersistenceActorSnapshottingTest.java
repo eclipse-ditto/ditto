@@ -86,7 +86,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                         .orElseThrow(IllegalStateException::new);
                 assertThingInResponse(thingCreated, thing, 1);
 
-                final Event expectedCreatedEvent = toEvent(createThing, 1);
+                final Event expectedCreatedEvent = toEvent(createThing, thingCreated);
                 assertJournal(thingId, Collections.singletonList(expectedCreatedEvent));
                 assertSnapshotsEmpty(thingId);
 
@@ -96,7 +96,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
                 final Thing expectedDeletedSnapshot = toDeletedThing(thingCreated, 2);
                 assertSnapshots(thingId, Collections.singletonList(expectedDeletedSnapshot));
-                final Event expectedDeletedEvent = toEvent(deleteThing, 2);
+                final Event expectedDeletedEvent = toEvent(deleteThing, expectedDeletedSnapshot);
                 // created-event has been deleted due to snapshot
                 assertJournal(thingId, Arrays.asList(expectedCreatedEvent, expectedDeletedEvent));
 
@@ -119,9 +119,10 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 underTest.tell(createThing, getRef());
 
                 final CreateThingResponse reCreateThingResponse = expectMsgClass(CreateThingResponse.class);
-                assertThingInResponse(reCreateThingResponse.getThingCreated().orElse(null), thing, 3);
+                final Thing actualThing = reCreateThingResponse.getThingCreated().orElse(null);
+                assertThingInResponse(actualThing, thing, 3);
 
-                final Event expectedReCreatedEvent = toEvent(createThing, 3);
+                final Event expectedReCreatedEvent = toEvent(createThing, actualThing);
                 assertJournal(thingId,
                         Arrays.asList(expectedCreatedEvent, expectedDeletedEvent, expectedReCreatedEvent));
                 assertSnapshots(thingId, Collections.singletonList(expectedDeletedSnapshot));
@@ -156,11 +157,12 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 LOGGER.info("Told CreateThing, expecting CreateThingResponse ...");
 
                 final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
-                assertThingInResponse(createThingResponse.getThingCreated().orElse(null), thing, 1);
+                final Thing actualThing = createThingResponse.getThingCreated().orElse(null);
+                assertThingInResponse(actualThing, thing, 1);
 
                 LOGGER.info("Expecting Event made it to Journal and snapshots are empty. ..");
 
-                final Event expectedCreatedEvent = toEvent(createThing, 1);
+                final Event expectedCreatedEvent = toEvent(createThing, actualThing);
                 assertJournal(thingId, Collections.singletonList(expectedCreatedEvent));
                 assertSnapshotsEmpty(thingId);
 
@@ -178,7 +180,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
                 LOGGER.info("Expecting Event made it to Journal and snapshots contain Thing..");
 
-                final Event expectedModifiedEvent = toEvent(modifyThing, 2);
+                final Event expectedModifiedEvent = toEvent(modifyThing, thingForModify);
                 assertJournal(thingId, Arrays.asList(expectedCreatedEvent, expectedModifiedEvent));
                 assertSnapshots(thingId, Collections.singletonList(thingForModify));
 

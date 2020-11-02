@@ -79,7 +79,10 @@ public final class ConnectivityMappingStrategies extends MappingStrategies {
                 .add("ImmutableConnection", jsonObject -> ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
                 .add(ResourceStatus.class, jsonObject -> ConnectivityModelFactory.resourceStatusFromJson(jsonObject)) // do not replace with lambda!
                 .add("ImmutableResourceStatus", jsonObject -> ConnectivityModelFactory.resourceStatusFromJson(jsonObject)) // do not replace with lambda!
-                .add(ConnectionTag.class, jsonObject -> ConnectionTag.fromJson(jsonObject))
+                .add(BaseClientState.class,
+                        jsonObject -> BaseClientState.fromJson(jsonObject)) // do not replace with lambda!
+                .add(ConnectionTag.class,
+                        jsonObject -> ConnectionTag.fromJson(jsonObject)) // do not replace with lambda!
                 .add(BatchedEntityIdWithRevisions.typeOf(ConnectionTag.class),
                         BatchedEntityIdWithRevisions.deserializer(jsonObject -> ConnectionTag.fromJson(jsonObject)))
                 .build();

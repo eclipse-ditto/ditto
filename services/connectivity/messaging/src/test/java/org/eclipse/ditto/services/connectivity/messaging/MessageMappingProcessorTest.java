@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
@@ -46,7 +47,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.protocol.DittoProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
@@ -83,16 +84,19 @@ public final class MessageMappingProcessorTest {
     private static ActorSystem actorSystem;
     private static ConnectivityConfig connectivityConfig;
     private static ProtocolAdapterProvider protocolAdapterProvider;
-    private static DittoDiagnosticLoggingAdapter logger;
+    private static ThreadSafeDittoLoggingAdapter logger;
 
     @BeforeClass
     public static void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
 
-        logger = Mockito.mock(DittoDiagnosticLoggingAdapter.class);
-        when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class))).thenReturn(logger);
-        when(logger.withCorrelationId(Mockito.any(DittoHeaders.class))).thenReturn(logger);
-        when(logger.withCorrelationId(Mockito.any(CharSequence.class))).thenReturn(logger);
+        logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
+        when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
+                .thenReturn(logger);
+        when(logger.withCorrelationId(Mockito.nullable(String.class))).thenReturn(logger);
+        when(logger.withCorrelationId(Mockito.nullable(WithDittoHeaders.class))).thenReturn(logger);
+        when(logger.withCorrelationId(Mockito.nullable(DittoHeaders.class))).thenReturn(logger);
+        when(logger.withCorrelationId(Mockito.nullable(CharSequence.class))).thenReturn(logger);
 
         connectivityConfig =
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(actorSystem.settings().config()));
@@ -110,15 +114,11 @@ public final class MessageMappingProcessorTest {
     public void init() {
         final Map<String, MappingContext> mappings = new HashMap<>();
         mappings.put(DITTO_MAPPER, DittoMessageMapper.CONTEXT);
-        mappings.put(DITTO_MAPPER_BY_ALIAS,
-                ConnectivityModelFactory.newMappingContext("Ditto", JsonObject.empty(),
-                        DITTO_MAPPER_CONDITIONS, Collections.emptyMap()));
+        mappings.put(DITTO_MAPPER_BY_ALIAS, ConnectivityModelFactory.newMappingContext("Ditto", JsonObject.empty(),
+                DITTO_MAPPER_CONDITIONS, Collections.emptyMap()));
 
         final Map<String, String> dittoCustomMapperHeaders = new HashMap<>();
-        dittoCustomMapperHeaders.put(
-                MessageMapperConfiguration.CONTENT_TYPE_BLOCKLIST,
-                "foo/bar"
-        );
+        dittoCustomMapperHeaders.put(MessageMapperConfiguration.CONTENT_TYPE_BLOCKLIST, "foo/bar");
         final MappingContext dittoCustomMappingContext =
                 ConnectivityModelFactory.newMappingContext("Ditto", dittoCustomMapperHeaders);
         mappings.put(DITTO_MAPPER_CUSTOM_HEADER_BLOCKLIST, dittoCustomMappingContext);
@@ -138,7 +138,8 @@ public final class MessageMappingProcessorTest {
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappings);
 
         underTest =
-                MessageMappingProcessor.of(ConnectionId.of("theConnection"), payloadMappingDefinition, actorSystem,
+                MessageMappingProcessor.of(ConnectionId.of("theConnection"), ConnectionType.AMQP_10,
+                        payloadMappingDefinition, actorSystem,
                         connectivityConfig, protocolAdapterProvider, logger);
     }
 
@@ -311,8 +312,13 @@ public final class MessageMappingProcessorTest {
                 targets);
     }
 
-    private void testOutbound(final ThingModifiedEvent<?> signal, final int mapped, final int dropped, final int failed,
-            final boolean assertTargets, final Target... targets) {
+    private void testOutbound(final ThingModifiedEvent<?> signal,
+            final int mapped,
+            final int dropped,
+            final int failed,
+            final boolean assertTargets,
+            final Target... targets) {
+
         new TestKit(actorSystem) {{
 
             // expect one message per mapper per target
@@ -353,7 +359,11 @@ public final class MessageMappingProcessorTest {
         testInbound(externalMessage, mapped, dropped, failed);
     }
 
-    private void testInboundWithCor(final int mapped, final int dropped, final int failed, final String... mappers) {
+    private void testInboundWithCor(final int mapped,
+            final int dropped,
+            final int failed,
+            final String... mappers) {
+
         final ExternalMessage externalMessage = ExternalMessageFactory
                 .newExternalMessageBuilder(Collections.emptyMap())
                 .withText(TestConstants.modifyThing())
@@ -363,8 +373,11 @@ public final class MessageMappingProcessorTest {
         testInbound(externalMessage, mapped, dropped, failed);
     }
 
-    private void testInbound(final ExternalMessage externalMessage, final int mapped, final int dropped,
+    private void testInbound(final ExternalMessage externalMessage,
+            final int mapped,
+            final int dropped,
             final int failed) {
+
         new TestKit(actorSystem) {{
             final MappingResultHandler<MappedInboundExternalMessage, Void> mock =
                     Mockito.mock(MappingResultHandler.class);
@@ -384,4 +397,5 @@ public final class MessageMappingProcessorTest {
             });
         }};
     }
+
 }

@@ -22,6 +22,7 @@ import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
@@ -179,6 +180,26 @@ public final class ImmutableAcknowledgementTest {
                 ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, statusCode, dittoHeaders, KNOWN_PAYLOAD);
 
         assertThat(underTest.isSuccess()).isTrue();
+    }
+
+    @Test
+    public void liveResponseAcknowledgementWithNonTimeoutIsSuccess() {
+        final HttpStatusCode statusCode = HttpStatusCode.NOT_FOUND;
+        final ImmutableAcknowledgement<ThingId> underTest =
+                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.LIVE_RESPONSE, KNOWN_ENTITY_ID, statusCode,
+                        dittoHeaders, KNOWN_PAYLOAD);
+
+        assertThat(underTest.isSuccess()).isTrue();
+    }
+
+    @Test
+    public void liveResponseAcknowledgementWithTimeoutIsFailed() {
+        final HttpStatusCode statusCode = HttpStatusCode.REQUEST_TIMEOUT;
+        final ImmutableAcknowledgement<ThingId> underTest =
+                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.LIVE_RESPONSE, KNOWN_ENTITY_ID, statusCode,
+                        dittoHeaders, KNOWN_PAYLOAD);
+
+        assertThat(underTest.isSuccess()).isFalse();
     }
 
     @Test

@@ -13,15 +13,15 @@
 package org.eclipse.ditto.services.gateway.endpoints.directives;
 
 import static akka.http.javadsl.server.Directives.complete;
-import static akka.http.javadsl.server.Directives.extractActorSystem;
+import static akka.http.javadsl.server.Directives.concat;
+import static akka.http.javadsl.server.Directives.extractRequest;
 import static akka.http.javadsl.server.Directives.options;
 import static akka.http.javadsl.server.Directives.respondWithHeaders;
-import static akka.http.javadsl.server.Directives.route;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
@@ -35,7 +35,10 @@ import akka.http.javadsl.model.headers.AccessControlAllowHeaders;
 import akka.http.javadsl.model.headers.AccessControlAllowMethods;
 import akka.http.javadsl.model.headers.AccessControlAllowOrigin;
 import akka.http.javadsl.model.headers.AccessControlRequestHeaders;
+import akka.http.javadsl.model.headers.HttpOrigin;
+import akka.http.javadsl.model.headers.HttpOriginRange;
 import akka.http.javadsl.model.headers.HttpOriginRanges;
+import akka.http.javadsl.model.headers.Origin;
 import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.Route;
 
@@ -44,10 +47,9 @@ import akka.http.javadsl.server.Route;
  */
 public final class CorsEnablingDirective {
 
-    private static final List<HttpHeader> CORS_HEADERS = Arrays.asList(
-            AccessControlAllowOrigin.create(HttpOriginRanges.ALL),
+    private static final AccessControlAllowMethods ACCESS_CONTROL_ALLOW_METHODS =
             AccessControlAllowMethods.create(HttpMethods.OPTIONS, HttpMethods.GET, HttpMethods.PUT,
-                    HttpMethods.POST, HttpMethods.HEAD, HttpMethods.DELETE));
+                    HttpMethods.POST, HttpMethods.HEAD, HttpMethods.DELETE);
 
     private final HttpConfig httpConfig;
 
@@ -73,20 +75,42 @@ public final class CorsEnablingDirective {
      * @return the new route wrapping {@code inner} with the CORS enabling.
      */
     public Route enableCors(final Supplier<Route> inner) {
-        return extractActorSystem(actorSystem -> {
+        return extractRequest(request -> {
             if (!httpConfig.isEnableCors()) {
                 return inner.get();
             }
+
+            final List<HttpHeader> corsHeaders = new ArrayList<>();
+
+            final Optional<Origin> originHeader = request.getHeader(Origin.class);
+            if (originHeader.isPresent()) {
+                // when the 'Origin' header was present:
+                //  set the 'Access-Control-Allow-Origin' to be of that exact passed 'Origin' header:
+                final Origin origin = originHeader.get();
+                corsHeaders.add(AccessControlAllowOrigin.create(
+                        HttpOriginRange.create(StreamSupport.stream(origin.getOrigins().spliterator(), false)
+                                .toArray(HttpOrigin[]::new))
+                ));
+            } else {
+                // otherwise, use 'Access-Control-Allow-Origin': *
+                corsHeaders.add(AccessControlAllowOrigin.create(HttpOriginRanges.ALL));
+            }
+
+            // allow all methods in 'Access-Control-Allow-Methods':
+            corsHeaders.add(ACCESS_CONTROL_ALLOW_METHODS);
+
+            // allow all headers which were requested with 'Access-Control-Request-Headers':
             return Directives.optionalHeaderValueByType(AccessControlRequestHeaders.class, corsRequestHeaders -> {
-                final ArrayList<HttpHeader> newHeaders = new ArrayList<>(CORS_HEADERS);
                 corsRequestHeaders.ifPresent(toAdd ->
-                        newHeaders.add(AccessControlAllowHeaders.create(
-                                StreamSupport.stream(toAdd.getHeaders().spliterator(), false).toArray(String[]::new))
+                        // add them as 'Access-Control-Allow-Headers':
+                        corsHeaders.add(AccessControlAllowHeaders.create(
+                                StreamSupport.stream(toAdd.getHeaders().spliterator(), false)
+                                        .toArray(String[]::new))
                         )
                 );
-                return route(options(() -> complete(
-                        HttpResponse.create().withStatus(StatusCodes.OK).addHeaders(newHeaders))),
-                        respondWithHeaders(newHeaders, inner)
+                return concat(options(() -> complete(
+                        HttpResponse.create().withStatus(StatusCodes.OK).addHeaders(corsHeaders))),
+                        respondWithHeaders(corsHeaders, inner)
                 );
             });
         });

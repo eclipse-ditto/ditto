@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
@@ -69,7 +70,7 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
     @SuppressWarnings("unused")
     private RabbitMQConsumerActor(final ConnectionId connectionId, final String sourceAddress,
             final ActorRef messageMappingProcessor, final Source source, final Channel channel) {
-        super(connectionId, sourceAddress, messageMappingProcessor, source);
+        super(connectionId, sourceAddress, messageMappingProcessor, source, ConnectionType.AMQP_091);
         headerEnforcementFilterFactory =
                 source.getEnforcement()
                         .map(value ->

@@ -20,13 +20,10 @@ import scala.collection.JavaConverters.asScalaBuffer
 import scala.collection.immutable
 import scala.reflect.ClassTag
 
-/**
-  * Java-friendly interface to load and instantiate classes inside an actor system.
-  */
+/** Java-friendly interface to load and instantiate classes inside an actor system. */
 object AkkaClassLoader {
 
-  /**
-    * Dynamically instantiate a class with its zero-argument public constructor.
+  /** Dynamically instantiate a class with its zero-argument public constructor.
     *
     * @param actorSystem   Actor system to create the object in.
     * @param superclass    A superclass of the instantiated class.
@@ -37,8 +34,7 @@ object AkkaClassLoader {
   def instantiate[T](actorSystem: ActorSystem, superclass: Class[T], canonicalName: String): T =
     instantiate(actorSystem, superclass, canonicalName, Collections.emptyList(), Collections.emptyList())
 
-  /**
-    * Dynamically instantiate a class with a public constructor.
+  /** Dynamically instantiate a class with a public constructor.
     *
     * @param actorSystem   Actor system to create the object in.
     * @param superclass    A superclass of the instantiated class.

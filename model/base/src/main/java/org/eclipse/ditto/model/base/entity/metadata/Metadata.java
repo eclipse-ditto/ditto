@@ -39,6 +39,18 @@ public interface Metadata extends JsonObject, Jsonifiable.WithFieldSelectorAndPr
     }
 
     /**
+     * Returns a new immutable {@link Metadata} which is initialised with the values of the given JSON object.
+     *
+     * @param jsonObject provides the initial values of the result.
+     * @return the new immutable initialised {@code Metadata}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @since 1.3.0
+     */
+    static Metadata newMetadata(final JsonObject jsonObject) {
+        return MetadataModelFactory.newMetadata(jsonObject);
+    }
+
+    /**
      * Returns a mutable builder with a fluent API for immutable {@code Metadata}. The builder is initialised with the
      * entries of this instance.
      *

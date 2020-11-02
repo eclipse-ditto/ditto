@@ -68,10 +68,11 @@ public final class SubscriptionCreated extends AbstractSubscriptionEvent<Subscri
      * format.
      */
     public static SubscriptionCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<SubscriptionCreated>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
-            final String subscriptionId = jsonObject.getValueOrThrow(JsonFields.SUBSCRIPTION_ID);
-            return new SubscriptionCreated(subscriptionId, dittoHeaders);
-        });
+        return new EventJsonDeserializer<SubscriptionCreated>(TYPE, jsonObject)
+                .deserialize((revision, timestamp, metadata) -> {
+                    final String subscriptionId = jsonObject.getValueOrThrow(JsonFields.SUBSCRIPTION_ID);
+                    return new SubscriptionCreated(subscriptionId, dittoHeaders);
+                });
     }
 
     @Override

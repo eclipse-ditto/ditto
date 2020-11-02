@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 
 import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient;
 import com.hivemq.client.mqtt.mqtt3.message.publish.Mqtt3Publish;
@@ -24,8 +25,6 @@ import com.hivemq.client.mqtt.mqtt3.message.subscribe.Mqtt3SubscribeBuilder;
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.Mqtt3Subscription;
 import com.hivemq.client.mqtt.mqtt3.message.subscribe.suback.Mqtt3SubAck;
 
-import akka.event.DiagnosticLoggingAdapter;
-
 /**
  * Handles subscriptions of MQTT connections.
  */
@@ -33,11 +32,12 @@ final class HiveMqtt3SubscriptionHandler
         extends AbstractMqttSubscriptionHandler<Mqtt3Subscribe, Mqtt3Publish, Mqtt3SubAck> {
 
     HiveMqtt3SubscriptionHandler(final Connection connection, final Mqtt3AsyncClient client,
-            final DiagnosticLoggingAdapter log) {
+            final ThreadSafeDittoLoggingAdapter logger) {
 
-        super(connection, client::subscribe, log);
+        super(connection, client::subscribe, logger);
     }
 
+    @Override
     Optional<Mqtt3Subscribe> toMqttSubscribe(final Source source) {
         final Mqtt3SubscribeBuilder.Start subscribeBuilder = Mqtt3Subscribe.builder();
         return source.getAddresses().stream().map(address -> asAddressQoSPair(source, address))
@@ -49,4 +49,5 @@ final class HiveMqtt3SubscriptionHandler
                 .reduce((b1, b2) -> b2)
                 .map(Mqtt3SubscribeBuilder.Complete::build);
     }
+
 }

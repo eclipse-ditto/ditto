@@ -37,6 +37,7 @@ public final class ThingModifiedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, ThingModified.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ThingEvent.JsonFields.THING, TestConstants.Thing.THING.toJson(FieldType.regularOrSpecial()))
             .build();
@@ -70,9 +71,11 @@ public final class ThingModifiedTest {
     @Test
     public void toJsonReturnsExpected() {
         final ThingModified underTest =
-                ThingModified.of(TestConstants.Thing.THING, TestConstants.Thing.REVISION_NUMBER,
+                ThingModified.of(TestConstants.Thing.THING,
+                        TestConstants.Thing.REVISION_NUMBER,
                         TestConstants.TIMESTAMP,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.EMPTY_DITTO_HEADERS,
+                        TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -86,6 +89,7 @@ public final class ThingModifiedTest {
 
         assertThat(underTest).isNotNull();
         assertThat(underTest.getThing()).isEqualTo(TestConstants.Thing.THING);
+        assertThat(underTest.getMetadata()).contains(TestConstants.METADATA);
     }
 
 }

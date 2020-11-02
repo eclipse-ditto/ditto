@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 
 /**
  * Immutable implementation of {@link Payload}.
@@ -40,6 +41,7 @@ final class ImmutablePayload implements Payload {
     @Nullable private final HttpStatusCode status;
     @Nullable private final Long revision;
     @Nullable private final Instant timestamp;
+    @Nullable private final Metadata metadata;
     @Nullable private final JsonFieldSelector fields;
 
     private ImmutablePayload(final ImmutablePayloadBuilder builder) {
@@ -49,6 +51,7 @@ final class ImmutablePayload implements Payload {
         status = builder.status;
         revision = builder.revision;
         timestamp = builder.timestamp;
+        metadata = builder.metadata;
         fields = builder.fields;
     }
 
@@ -77,6 +80,7 @@ final class ImmutablePayload implements Payload {
                 .withExtra(jsonObject.getValue(JsonFields.EXTRA).orElse(null))
                 .withStatus(jsonObject.getValue(JsonFields.STATUS).flatMap(HttpStatusCode::forInt).orElse(null))
                 .withTimestamp(jsonObject.getValue(JsonFields.TIMESTAMP).map(Instant::parse).orElse(null))
+                .withMetadata(jsonObject.getValue(JsonFields.METADATA).map(Metadata::newMetadata).orElse(null))
                 .withFields(jsonObject.getValue(JsonFields.FIELDS)
                         .map(JsonFactory::parseJsonFieldSelector)
                         .orElse(null));
@@ -117,6 +121,11 @@ final class ImmutablePayload implements Payload {
     }
 
     @Override
+    public Optional<Metadata> getMetadata() {
+        return Optional.ofNullable(metadata);
+    }
+
+    @Override
     public Optional<JsonFieldSelector> getFields() {
         return Optional.ofNullable(fields);
     }
@@ -141,6 +150,9 @@ final class ImmutablePayload implements Payload {
         if (null != timestamp) {
             jsonObjectBuilder.set(JsonFields.TIMESTAMP, timestamp.toString());
         }
+        if (null != metadata) {
+            jsonObjectBuilder.set(JsonFields.METADATA, metadata.toJson());
+        }
         if (null != fields) {
             jsonObjectBuilder.set(JsonFields.FIELDS, fields.toString());
         }
@@ -163,12 +175,13 @@ final class ImmutablePayload implements Payload {
                 && status == that.status
                 && Objects.equals(revision, that.revision)
                 && Objects.equals(timestamp, that.timestamp)
+                && Objects.equals(metadata, that.metadata)
                 && Objects.equals(fields, that.fields);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(path, value, extra, status, revision, timestamp, fields);
+        return Objects.hash(path, value, extra, status, revision, timestamp, metadata, fields);
     }
 
     @Override
@@ -180,6 +193,7 @@ final class ImmutablePayload implements Payload {
                 ", status=" + status +
                 ", revision=" + revision +
                 ", timestamp=" + timestamp +
+                ", metadata=" + metadata +
                 ", fields=" + fields +
                 "]";
     }
@@ -197,6 +211,7 @@ final class ImmutablePayload implements Payload {
         @Nullable private HttpStatusCode status;
         @Nullable private Long revision;
         @Nullable private Instant timestamp;
+        @Nullable private Metadata metadata;
         @Nullable private JsonFieldSelector fields;
 
         private ImmutablePayloadBuilder(@Nullable final JsonPointer path) {
@@ -211,6 +226,7 @@ final class ImmutablePayload implements Payload {
             extra = null;
             status = null;
             timestamp = null;
+            metadata = null;
             fields = null;
         }
 
@@ -248,6 +264,12 @@ final class ImmutablePayload implements Payload {
         @Override
         public ImmutablePayloadBuilder withTimestamp(@Nullable final Instant timestamp) {
             this.timestamp = timestamp;
+            return this;
+        }
+
+        @Override
+        public ImmutablePayloadBuilder withMetadata(@Nullable final Metadata metadata) {
+            this.metadata = metadata;
             return this;
         }
 

@@ -27,6 +27,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -52,7 +53,11 @@ final class CreateConnectionStrategy extends AbstractConnectivityCommandStrategy
 
     @Override
     protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
-            @Nullable final Connection entity, final long nextRevision, final CreateConnection command) {
+            @Nullable final Connection entity,
+            final long nextRevision,
+            final CreateConnection command,
+            @Nullable final Metadata metadata) {
+
         ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(context.getLog(), command,
                 context.getState().id());
         final Connection connection = command.getConnection().toBuilder().lifecycle(ACTIVE).build();

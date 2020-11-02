@@ -107,7 +107,7 @@ final class DeleteAttributeLiveCommandAnswerBuilderImpl
         @Override
         public AttributeDeleted deleted() {
             return AttributeDeleted.of(command.getThingEntityId(), command.getAttributePointer(), -1, Instant.now(),
-                    command.getDittoHeaders());
+                    command.getDittoHeaders(), null);
         }
     }
 

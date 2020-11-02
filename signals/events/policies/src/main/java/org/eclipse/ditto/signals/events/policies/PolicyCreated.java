@@ -123,7 +123,8 @@ public final class PolicyCreated extends AbstractPolicyEvent<PolicyCreated> impl
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected 'PolicyCreated' format.
      */
     public static PolicyCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<PolicyCreated>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+        return new EventJsonDeserializer<PolicyCreated>(TYPE, jsonObject).deserialize(
+                (revision, timestamp, metadata) -> {
             final JsonObject policyJsonObject = jsonObject.getValueOrThrow(JSON_POLICY);
             final Policy extractedModifiedPolicy = PoliciesModelFactory.newPolicy(policyJsonObject);
 

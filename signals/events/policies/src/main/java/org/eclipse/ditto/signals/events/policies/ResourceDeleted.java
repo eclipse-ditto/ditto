@@ -190,7 +190,8 @@ public final class ResourceDeleted extends AbstractPolicyEvent<ResourceDeleted>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected 'ResourceDeleted' format.
      */
     public static ResourceDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<ResourceDeleted>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+        return new EventJsonDeserializer<ResourceDeleted>(TYPE, jsonObject).deserialize(
+                (revision, timestamp, metadata) -> {
             final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));

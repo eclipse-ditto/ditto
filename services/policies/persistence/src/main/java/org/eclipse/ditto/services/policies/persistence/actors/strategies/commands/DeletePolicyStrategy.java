@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -38,8 +39,12 @@ final class DeletePolicyStrategy extends AbstractPolicyCommandStrategy<DeletePol
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy entity,
-            final long nextRevision, final DeletePolicy command) {
+    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+            @Nullable final Policy entity,
+            final long nextRevision,
+            final DeletePolicy command,
+            @Nullable final Metadata metadata) {
+
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final PolicyDeleted policyDeleted =
                 PolicyDeleted.of(context.getState(), nextRevision, getEventTimestamp(), dittoHeaders);

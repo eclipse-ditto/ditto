@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.persistentactors.events;
+package org.eclipse.ditto.services.utils.persistentactors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
@@ -33,8 +33,10 @@ import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.signals.events.base.Event;
-import org.eclipse.ditto.signals.events.things.FeatureModified;
+import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.WithOptionalEntity;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
+import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -44,17 +46,17 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 /**
- * Unit test for {@link MetadataFromEvent}.
+ * Unit test for {@link MetadataFromSignal}.
  */
 @RunWith(MockitoJUnitRunner.class)
-public final class MetadataFromEventTest {
+public final class MetadataFromSignalTest {
 
     private static FeatureProperties fluxCapacitorProperties;
     private static Feature fluxCapacitor;
     private static Thing thingWithoutMetadata;
 
-    @Mock private Event event;
-    @Mock private Entity entity;
+    @Mock private ThingModifyCommand command;
+    @Mock private Entity<?> entity;
 
     @BeforeClass
     public static void setUpClass() {
@@ -77,39 +79,42 @@ public final class MetadataFromEventTest {
 
     @Before
     public void setUp() {
-        Mockito.when(event.getImplementedSchemaVersion()).thenReturn(JsonSchemaVersion.LATEST);
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .schemaVersion(JsonSchemaVersion.LATEST)
+                .build();
+        Mockito.when(command.getDittoHeaders()).thenReturn(dittoHeaders);
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(MetadataFromEvent.class,
+        assertInstancesOf(MetadataFromSignal.class,
                 areImmutable(),
-                provided(Event.class, Metadata.class).areAlsoImmutable());
+                provided(Signal.class, WithOptionalEntity.class, Metadata.class).areAlsoImmutable());
     }
 
     @Test
-    public void tryToGetInstanceWithNullEvent() {
+    public void tryToGetInstanceWithNullCommand() {
         assertThatNullPointerException()
-                .isThrownBy(() -> MetadataFromEvent.of(null, entity))
-                .withMessage("The event must not be null!")
+                .isThrownBy(() -> MetadataFromSignal.of(null, null, entity.getMetadata().orElse(null)))
+                .withMessage("The signal must not be null!")
                 .withNoCause();
     }
 
     @Test
     public void getMetadataWhenEventHasNoEntityAndEntityHasNullExistingMetadata() {
-        Mockito.when(event.getEntity(Mockito.any())).thenReturn(Optional.empty());
+        Mockito.when(command.getEntity(Mockito.any())).thenReturn(Optional.empty());
         Mockito.when(entity.getMetadata()).thenReturn(Optional.empty());
-        final MetadataFromEvent underTest = MetadataFromEvent.of(event, entity);
+        final MetadataFromSignal underTest = MetadataFromSignal.of(command, command, entity.getMetadata().orElse(null));
 
         assertThat(underTest.get()).isNull();
     }
 
     @Test
     public void entityHasNoMetadataAndEventDittoHeadersHaveNoMetadata() {
-        Mockito.when(event.getEntity(Mockito.any())).thenReturn(Optional.of(thingWithoutMetadata.toJson()));
-        Mockito.when(event.getDittoHeaders()).thenReturn(DittoHeaders.empty());
+        Mockito.when(command.getEntity(Mockito.any())).thenReturn(Optional.of(thingWithoutMetadata.toJson()));
+        Mockito.when(command.getDittoHeaders()).thenReturn(DittoHeaders.empty());
         Mockito.when(entity.getMetadata()).thenReturn(Optional.empty());
-        final MetadataFromEvent underTest = MetadataFromEvent.of(event, entity);
+        final MetadataFromSignal underTest = MetadataFromSignal.of(command, command, entity.getMetadata().orElse(null));
 
         assertThat(underTest.get()).isNull();
     }
@@ -117,10 +122,10 @@ public final class MetadataFromEventTest {
     @Test
     public void entityMetadataButEventDittoHeadersHaveNoMetadata() {
         final Metadata existingMetadata = Metadata.newBuilder().set("/scruplusFine", JsonValue.of("^6,00.32")).build();
-        Mockito.when(event.getEntity(Mockito.any())).thenReturn(Optional.of(thingWithoutMetadata.toJson()));
-        Mockito.when(event.getDittoHeaders()).thenReturn(DittoHeaders.empty());
+        Mockito.when(command.getEntity(Mockito.any())).thenReturn(Optional.of(thingWithoutMetadata.toJson()));
+        Mockito.when(command.getDittoHeaders()).thenReturn(DittoHeaders.empty());
         Mockito.when(entity.getMetadata()).thenReturn(Optional.of(existingMetadata));
-        final MetadataFromEvent underTest = MetadataFromEvent.of(event, entity);
+        final MetadataFromSignal underTest = MetadataFromSignal.of(command, command, entity.getMetadata().orElse(null));
 
         assertThat(underTest.get()).isEqualTo(existingMetadata);
     }
@@ -138,20 +143,19 @@ public final class MetadataFromEventTest {
                 .putMetadata(MetadataHeaderKey.parse("/properties/grumbo/froodNoops"), JsonValue.of(5))
                 .putMetadata(MetadataHeaderKey.parse("/*/lastSeen"), JsonValue.of(1955))
                 .build();
-        final FeatureModified featureModified = FeatureModified.of(thingWithoutMetadata.getEntityId().orElseThrow(),
+        final ModifyFeature modifyFeature = ModifyFeature.of(thingWithoutMetadata.getEntityId().orElseThrow(),
                 modifiedFeature,
-                3,
                 dittoHeaders);
         final Metadata expected = Metadata.newBuilder()
-                .set(JsonPointer.of("features/flux-capacitor/scruplusFine"), "^6,00.32")
-                .set(JsonPointer.of("features/flux-capacitor/definition/lastSeen"), 1955)
-                .set(JsonPointer.of("features/flux-capacitor/properties/capacity/value/lastSeen"), 1955)
-                .set(JsonPointer.of("features/flux-capacitor/properties/capacity/unit/lastSeen"), 1955)
-                .set(JsonPointer.of("features/flux-capacitor/properties/grumbo/froodNoops"), 5)
-                .set(JsonPointer.of("features/flux-capacitor/properties/grumbo/lastSeen"), 1955)
+                .set(JsonPointer.of("scruplusFine"), "^6,00.32")
+                .set(JsonPointer.of("definition/lastSeen"), 1955)
+                .set(JsonPointer.of("properties/capacity/value/lastSeen"), 1955)
+                .set(JsonPointer.of("properties/capacity/unit/lastSeen"), 1955)
+                .set(JsonPointer.of("properties/grumbo/froodNoops"), 5)
+                .set(JsonPointer.of("properties/grumbo/lastSeen"), 1955)
                 .build();
 
-        final MetadataFromEvent underTest = MetadataFromEvent.of(featureModified, thingWithoutMetadata);
+        final MetadataFromSignal underTest = MetadataFromSignal.of(modifyFeature, modifyFeature, null);
 
         assertThat(underTest.get()).isEqualTo(expected);
     }
@@ -159,12 +163,8 @@ public final class MetadataFromEventTest {
     @Test
     public void modifyExistingMetadata() {
         final Metadata existingMetadata = Metadata.newBuilder()
-                .set("floobLength", "normal")
-                .set(JsonPointer.of("/features/flux-capacitor/airplaneMode"), "forbidden")
-                .set(JsonPointer.of("/features/flux-capacitor/definition/lastSeen"), 2023)
-                .build();
-        final Thing thingWithMetadata = thingWithoutMetadata.toBuilder()
-                .setMetadata(existingMetadata)
+                .set(JsonPointer.of("airplaneMode"), "forbidden")
+                .set(JsonPointer.of("definition/lastSeen"), 2023)
                 .build();
         final Feature modifiedFeature = fluxCapacitor.toBuilder()
                 .properties(fluxCapacitorProperties.toBuilder()
@@ -177,22 +177,20 @@ public final class MetadataFromEventTest {
                 .putMetadata(MetadataHeaderKey.parse("/properties/grumbo/froodNoops"), JsonValue.of(5))
                 .putMetadata(MetadataHeaderKey.parse("/*/lastSeen"), JsonValue.of(1955))
                 .build();
-        final FeatureModified featureModified = FeatureModified.of(thingWithMetadata.getEntityId().orElseThrow(),
+        final ModifyFeature modifyFeature = ModifyFeature.of(thingWithoutMetadata.getEntityId().orElseThrow(),
                 modifiedFeature,
-                4,
                 dittoHeaders);
         final Metadata expected = existingMetadata.toBuilder()
-                .set(JsonPointer.of("/floobLength"), "normal")
-                .set(JsonPointer.of("/features/flux-capacitor/airplaneMode"), "forbidden")
-                .set(JsonPointer.of("/features/flux-capacitor/scruplusFine"), "^6,00.32")
-                .set(JsonPointer.of("/features/flux-capacitor/definition/lastSeen"), 1955)
-                .set(JsonPointer.of("/features/flux-capacitor/properties/capacity/value/lastSeen"), 1955)
-                .set(JsonPointer.of("/features/flux-capacitor/properties/capacity/unit/lastSeen"), 1955)
-                .set(JsonPointer.of("/features/flux-capacitor/properties/grumbo/froodNoops"), 5)
-                .set(JsonPointer.of("/features/flux-capacitor/properties/grumbo/lastSeen"), 1955)
+                .set(JsonPointer.of("airplaneMode"), "forbidden")
+                .set(JsonPointer.of("scruplusFine"), "^6,00.32")
+                .set(JsonPointer.of("definition/lastSeen"), 1955)
+                .set(JsonPointer.of("properties/capacity/value/lastSeen"), 1955)
+                .set(JsonPointer.of("properties/capacity/unit/lastSeen"), 1955)
+                .set(JsonPointer.of("properties/grumbo/froodNoops"), 5)
+                .set(JsonPointer.of("properties/grumbo/lastSeen"), 1955)
                 .build();
 
-        final MetadataFromEvent underTest = MetadataFromEvent.of(featureModified, thingWithMetadata);
+        final MetadataFromSignal underTest = MetadataFromSignal.of(modifyFeature, modifyFeature, existingMetadata);
 
         assertThat(underTest.get()).isEqualTo(expected);
     }
@@ -211,18 +209,18 @@ public final class MetadataFromEventTest {
                         .build())
                 .definition(FeatureDefinition.fromIdentifier("foo:bar:1"))
                 .build();
-        final FeatureModified featureModified = FeatureModified.of(thingWithoutMetadata.getEntityId().orElseThrow(),
+        final ModifyFeature modifyFeature = ModifyFeature.of(thingWithoutMetadata.getEntityId().orElseThrow(),
                 modifiedFeature,
-                5,
                 dittoHeaders);
         final Metadata expected = Metadata.newBuilder()
-                .set(JsonPointer.of("features/flux-capacitor/definition/type"), metric)
-                .set(JsonPointer.of("features/flux-capacitor/properties/capacity/value/type"), metric)
-                .set(JsonPointer.of("features/flux-capacitor/properties/capacity/unit/type"), nonMetric)
-                .set(JsonPointer.of("features/flux-capacitor/properties/grumbo/type"), metric)
+                .set(JsonPointer.of("definition/type"), metric)
+                .set(JsonPointer.of("properties/capacity/value/type"), metric)
+                .set(JsonPointer.of("properties/capacity/unit/type"), nonMetric)
+                .set(JsonPointer.of("properties/grumbo/type"), metric)
                 .build();
 
-        final MetadataFromEvent underTest = MetadataFromEvent.of(featureModified, thingWithoutMetadata);
+        final MetadataFromSignal underTest = MetadataFromSignal.of(modifyFeature, modifyFeature,
+                thingWithoutMetadata.getMetadata().orElse(null));
 
         assertThat(underTest.get()).isEqualTo(expected);
     }

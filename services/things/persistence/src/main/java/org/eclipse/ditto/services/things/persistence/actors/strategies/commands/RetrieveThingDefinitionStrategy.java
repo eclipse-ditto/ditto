@@ -17,6 +17,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingDefinition;
@@ -46,7 +47,8 @@ final class RetrieveThingDefinitionStrategy extends AbstractThingCommandStrategy
     protected Result<ThingEvent> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
-            final RetrieveThingDefinition command) {
+            final RetrieveThingDefinition command,
+            @Nullable final Metadata metadata) {
 
         return extractDefinition(thing)
                 .map(definition -> RetrieveThingDefinitionResponse.of(context.getState(), definition,
