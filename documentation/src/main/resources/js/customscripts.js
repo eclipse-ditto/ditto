@@ -58,7 +58,7 @@ function changeSelectedDocVersionDropdownSelection(element) {
 
 function changeSelectedDocVersion() {
     var versionValue = $('#docVersion').val();
-    var remainingPath = window.location.pathname.replace("/ditto", "/");
+    var remainingPath = window.location.pathname.replace("/ditto/", "/");
     remainingPath = remainingPath.startsWith("/") ? remainingPath.substr(1) : remainingPath;
     var versionMatch = remainingPath.match("([0-9].[0-9])/(.*)");
     if (versionValue === "" && !versionMatch) {
