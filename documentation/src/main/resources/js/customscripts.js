@@ -34,4 +34,46 @@ $(function () {
         });
 
     });
+
+    $("#dev-warning").hide();
+    changeSelectedDocVersionDropdownSelection($("#docVersion")[0]);
+    $("#docVersion").change(changeSelectedDocVersion);
 });
+
+function changeSelectedDocVersionDropdownSelection(element) {
+    var pathName = window.location.pathname;
+
+    var versionOptions = element.options;
+    for (var i = 0; i < versionOptions.length; i++) {
+        var versionValue = versionOptions[i].value;
+        if ((versionValue !== "") && pathName.startsWith("/ditto/"+versionValue+"/")) {
+            $("#docVersion").val(versionValue).change();
+            return;
+        }
+    }
+    // fallback: dev with "empty" version value:
+    $("#docVersion").val("").change();
+    $("#dev-warning").show();
+}
+
+function changeSelectedDocVersion() {
+    var versionValue = $('#docVersion').val();
+    var remainingPath = window.location.pathname.replace("/ditto", "/");
+    remainingPath = remainingPath.startsWith("/") ? remainingPath.substr(1) : remainingPath;
+    var versionMatch = remainingPath.match("([0-9].[0-9])/(.*)");
+    if (versionValue === "" && !versionMatch) {
+        // do nothing, we're already on the correct "dev" version
+    } else if (versionMatch && (versionValue === versionMatch[1])) {
+        // do nothing, we're already on the correct version
+    } else {
+        if (versionValue === "" && versionMatch) {
+            window.location.pathname = "ditto/" + versionMatch[2];
+        } else if (versionValue === "") {
+            window.location.pathname = "ditto/" + remainingPath;
+        } else if (versionMatch) {
+            window.location.pathname = "ditto/" + versionValue + "/" + versionMatch[2];
+        } else {
+            window.location.pathname = "ditto/" + versionValue + "/" + remainingPath;
+        }
+    }
+}
