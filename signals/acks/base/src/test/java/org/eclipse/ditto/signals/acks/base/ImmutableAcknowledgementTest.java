@@ -333,7 +333,7 @@ public final class ImmutableAcknowledgementTest {
     @Test
     public void isWeakWhenHeaderIsTrue() {
         final DittoHeaders ackHeader = dittoHeaders.toBuilder()
-                .putHeader(DittoHeaderDefinition.IS_WEAK_ACK.getKey(), "true")
+                .putHeader(DittoHeaderDefinition.WEAK_ACK.getKey(), "true")
                 .build();
         final ImmutableAcknowledgement<ThingId> underTest = ImmutableAcknowledgement.of(KNOWN_ACK_LABEL,
                 KNOWN_ENTITY_ID, KNOWN_STATUS_CODE, ackHeader, KNOWN_PAYLOAD);
@@ -345,7 +345,7 @@ public final class ImmutableAcknowledgementTest {
     public void isNotWeakWhenHeaderIsFalse() {
         final DittoHeaders ackHeader = dittoHeaders
                 .toBuilder()
-                .putHeader(DittoHeaderDefinition.IS_WEAK_ACK.getKey(), "false")
+                .putHeader(DittoHeaderDefinition.WEAK_ACK.getKey(), "false")
                 .build();
         final ImmutableAcknowledgement<ThingId> underTest = ImmutableAcknowledgement.of(KNOWN_ACK_LABEL,
                 KNOWN_ENTITY_ID, KNOWN_STATUS_CODE, ackHeader, KNOWN_PAYLOAD);
@@ -356,7 +356,7 @@ public final class ImmutableAcknowledgementTest {
     @Test
     public void isNotWeakWhenHeaderIsNotPresent() {
         final DittoHeaders ackHeader = dittoHeaders.toBuilder()
-                .removeHeader(DittoHeaderDefinition.IS_WEAK_ACK.getKey())
+                .removeHeader(DittoHeaderDefinition.WEAK_ACK.getKey())
                 .build();
         final ImmutableAcknowledgement<ThingId> underTest = ImmutableAcknowledgement.of(KNOWN_ACK_LABEL,
                 KNOWN_ENTITY_ID, KNOWN_STATUS_CODE, ackHeader, KNOWN_PAYLOAD);

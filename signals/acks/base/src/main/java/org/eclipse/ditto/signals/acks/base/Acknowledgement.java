@@ -95,9 +95,8 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
             @Nullable final JsonValue payload) {
 
         final DittoHeaders weakAckHeaders = dittoHeaders.toBuilder()
-                .putHeader(DittoHeaderDefinition.IS_WEAK_ACK.getKey(), Boolean.TRUE.toString())
+                .putHeader(DittoHeaderDefinition.WEAK_ACK.getKey(), Boolean.TRUE.toString())
                 .build();
-        // TODO: Decide which status code to use for weak acks.
         return AcknowledgementFactory.newAcknowledgement(label, entityId, HttpStatusCode.OK, weakAckHeaders, payload);
     }
 

@@ -295,7 +295,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.5.0
      */
-    IS_WEAK_ACK("is-weak-ack", boolean.class, false, true, HeaderValueValidators.getBooleanValidator());
+    WEAK_ACK("ditto-weak-ack", boolean.class, false, true, HeaderValueValidators.getBooleanValidator());
 
     /**
      * Map to speed up lookup of header definition by key.

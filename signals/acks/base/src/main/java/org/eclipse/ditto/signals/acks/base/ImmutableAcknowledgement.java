@@ -68,7 +68,7 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
                 .responseRequired(false)
                 .build() : dittoHeaders;
         this.payload = payload;
-        this.isWeak = TRUE_STRING.equalsIgnoreCase(this.dittoHeaders.get(DittoHeaderDefinition.IS_WEAK_ACK.getKey()));
+        this.isWeak = TRUE_STRING.equalsIgnoreCase(this.dittoHeaders.get(DittoHeaderDefinition.WEAK_ACK.getKey()));
     }
 
     /**
