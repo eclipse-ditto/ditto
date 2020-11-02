@@ -36,6 +36,9 @@ import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevOpsBasicAuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
@@ -129,7 +132,8 @@ public final class RootRouteTest extends EndpointTestBase {
                 ProtocolAdapterProvider.load(protocolConfig, actorSystem);
         final HeaderTranslator headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
         final JwtAuthenticationFactory jwtAuthenticationFactory =
-                JwtAuthenticationFactory.newInstance(authConfig.getOAuthConfig(), cacheConfig, httpClientFacade);
+                JwtAuthenticationFactory.newInstance(authConfig.getOAuthConfig(), cacheConfig, httpClientFacade,
+                        authorizationSubjectsProviderFactory);
         final GatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
                 new DittoGatewayAuthenticationDirectiveFactory(authConfig, jwtAuthenticationFactory, messageDispatcher);
 
@@ -139,15 +143,21 @@ public final class RootRouteTest extends EndpointTestBase {
         final StatusAndHealthProvider statusAndHealthProvider =
                 DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStatusSupplier, healthCheckConfig);
         final DevOpsConfig devOpsConfig = authConfig.getDevOpsConfig();
+        final DevopsAuthenticationDirectiveFactory devopsAuthenticationDirectiveFactory =
+                DevopsAuthenticationDirectiveFactory.newInstance(jwtAuthenticationFactory, devOpsConfig);
+        final DevopsAuthenticationDirective devOpsAuthenticationDirective =
+                devopsAuthenticationDirectiveFactory.devops();
+        final DevopsAuthenticationDirective statusAuthenticationDirective =
+                devopsAuthenticationDirectiveFactory.status();
         final Route rootRoute = RootRoute.getBuilder(httpConfig)
-                .statsRoute(new StatsRoute(proxyActor, actorSystem, httpConfig, commandConfig, devOpsConfig,
-                        headerTranslator))
+                .statsRoute(new StatsRoute(proxyActor, actorSystem, httpConfig, commandConfig,
+                        headerTranslator, devOpsAuthenticationDirective))
                 .statusRoute(new StatusRoute(clusterStatusSupplier, createHealthCheckingActorMock(), actorSystem))
-                .overallStatusRoute(
-                        new OverallStatusRoute(clusterStatusSupplier, statusAndHealthProvider, devOpsConfig))
+                .overallStatusRoute(new OverallStatusRoute(clusterStatusSupplier, statusAndHealthProvider,
+                        statusAuthenticationDirective))
                 .cachingHealthRoute(new CachingHealthRoute(statusAndHealthProvider, publicHealthConfig))
-                .devopsRoute(new DevOpsRoute(proxyActor, actorSystem, httpConfig, commandConfig, devOpsConfig,
-                        headerTranslator))
+                .devopsRoute(new DevOpsRoute(proxyActor, actorSystem, httpConfig, commandConfig,
+                        headerTranslator, devOpsAuthenticationDirective))
                 .policiesRoute(new PoliciesRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
                 .sseThingsRoute(ThingsSseRouteBuilder.getInstance(proxyActor, streamingConfig, proxyActor))
                 .thingsRoute(new ThingsRoute(proxyActor, actorSystem, httpConfig, commandConfig, messageConfig,
@@ -183,7 +193,15 @@ public final class RootRouteTest extends EndpointTestBase {
     }
 
     @Test
-    public void getStatusWithAuth() {
+    public void getStatusWithStatusAuth() {
+        final TestRouteResult result =
+                rootTestRoute.run(withHttps(withStatusCredentials(HttpRequest.GET(OVERALL_STATUS_PATH))));
+
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+
+    @Test
+    public void getStatusWithDevopsAuth() {
         final TestRouteResult result =
                 rootTestRoute.run(withHttps(withDevopsCredentials(HttpRequest.GET(OVERALL_STATUS_PATH))));
 

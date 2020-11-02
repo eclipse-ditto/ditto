@@ -32,6 +32,12 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.base.config.http.DefaultHttpProxyConfig;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.DittoJwtAuthorizationSubjectsProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthorizationSubjectsProviderFactory;
+import org.eclipse.ditto.services.gateway.security.utils.DefaultHttpClientFacade;
+import org.eclipse.ditto.services.gateway.security.utils.HttpClientFacade;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultClaimMessageConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultCommandConfig;
@@ -64,6 +70,7 @@ import com.typesafe.config.ConfigFactory;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.StatusCodes;
@@ -91,9 +98,14 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
     protected static StreamingConfig streamingConfig;
     protected static PublicHealthConfig publicHealthConfig;
     protected static ProtocolConfig protocolConfig;
+    protected static JwtAuthenticationFactory jwtAuthenticationFactory;
+    protected static HttpClientFacade httpClientFacade;
+    protected static JwtAuthorizationSubjectsProviderFactory authorizationSubjectsProviderFactory;
+
 
     @BeforeClass
     public static void initTestFixture() {
+
         final DefaultScopedConfig dittoScopedConfig = DefaultScopedConfig.dittoScoped(createTestConfig());
         final DefaultScopedConfig gatewayScopedConfig = DefaultScopedConfig.newInstance(dittoScopedConfig, "gateway");
         httpConfig = GatewayHttpConfig.of(gatewayScopedConfig);
@@ -106,6 +118,11 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         streamingConfig = DefaultStreamingConfig.of(gatewayScopedConfig);
         publicHealthConfig = DefaultPublicHealthConfig.of(gatewayScopedConfig);
         protocolConfig = DefaultProtocolConfig.of(dittoScopedConfig);
+        httpClientFacade = DefaultHttpClientFacade.getInstance(ActorSystem.create(EndpointTestBase.class.getSimpleName()),
+                DefaultHttpProxyConfig.ofProxy(DefaultScopedConfig.empty("/")));
+        authorizationSubjectsProviderFactory = DittoJwtAuthorizationSubjectsProvider::of;
+        jwtAuthenticationFactory = JwtAuthenticationFactory.newInstance(authConfig.getOAuthConfig(), cacheConfig,
+                httpClientFacade, authorizationSubjectsProviderFactory);
     }
 
     @Override
@@ -151,6 +168,10 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
 
     protected HttpRequest withDevopsCredentials(final HttpRequest httpRequest) {
         return httpRequest.addCredentials(EndpointTestConstants.DEVOPS_CREDENTIALS);
+    }
+
+    protected HttpRequest withStatusCredentials(final HttpRequest httpRequest) {
+        return httpRequest.addCredentials(EndpointTestConstants.STATUS_CREDENTIALS);
     }
 
     protected static void assertWebsocketUpgradeExpectedResult(final TestRouteResult result) {

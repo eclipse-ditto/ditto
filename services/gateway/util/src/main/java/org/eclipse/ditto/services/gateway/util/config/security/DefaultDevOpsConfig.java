@@ -12,12 +12,16 @@
  */
 package org.eclipse.ditto.services.gateway.util.config.security;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.services.utils.config.DittoConfigError;
 
 import com.typesafe.config.Config;
 
@@ -30,13 +34,41 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
     private static final String CONFIG_PATH = "devops";
 
     private final boolean secureStatus;
+    private final DevopsAuthenticationMethod devopsAuthenticationMethod;
     private final String password;
+    private final Collection<String> devopsOauth2Subjects;
+    private final DevopsAuthenticationMethod statusAuthenticationMethod;
     private final String statusPassword;
+    private final Collection<String> statusOAuth2Subjects;
+    private final OAuthConfig oAuthConfig;
 
     private DefaultDevOpsConfig(final ConfigWithFallback configWithFallback) {
-        secureStatus = configWithFallback.getBoolean(DevOpsConfigValue.SECURE_STATUS.getConfigPath());
+        secureStatus = configWithFallback.getBoolean(DevOpsConfigValue.SECURED.getConfigPath());
+        devopsAuthenticationMethod =
+                getDevopsAuthenticationMethod(configWithFallback, DevOpsConfigValue.DEVOPS_AUTHENTICATION_METHOD);
         password = configWithFallback.getString(DevOpsConfigValue.PASSWORD.getConfigPath());
+        devopsOauth2Subjects =
+                Collections.unmodifiableList(new ArrayList<>(
+                        configWithFallback.getStringList(DevOpsConfigValue.DEVOPS_OAUTH2_SUBJECTS.getConfigPath())));
+        statusAuthenticationMethod =
+                getDevopsAuthenticationMethod(configWithFallback, DevOpsConfigValue.STATUS_AUTHENTICATION_METHOD);
         statusPassword = configWithFallback.getString(DevOpsConfigValue.STATUS_PASSWORD.getConfigPath());
+        statusOAuth2Subjects =
+                Collections.unmodifiableList(new ArrayList<>(
+                        configWithFallback.getStringList(DevOpsConfigValue.STATUS_OAUTH2_SUBJECTS.getConfigPath())));
+        oAuthConfig = DefaultOAuthConfig.of(configWithFallback);
+    }
+
+    private static DevopsAuthenticationMethod getDevopsAuthenticationMethod(final ConfigWithFallback configWithFallback,
+            final DevOpsConfigValue devOpsConfigValue) {
+
+        final String methodName = configWithFallback.getString(devOpsConfigValue.getConfigPath());
+        return DevopsAuthenticationMethod.fromMethodName(methodName)
+                .orElseThrow(() -> {
+                    final String message =
+                            String.format("Could not find devops authentication method with name <%s>", methodName);
+                    return new DittoConfigError(message);
+                });
     }
 
     /**
@@ -51,8 +83,13 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
     }
 
     @Override
-    public boolean isSecureStatus() {
+    public boolean isSecured() {
         return secureStatus;
+    }
+
+    @Override
+    public DevopsAuthenticationMethod getDevopsAuthenticationMethod() {
+        return devopsAuthenticationMethod;
     }
 
     @Override
@@ -61,8 +98,28 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
     }
 
     @Override
+    public Collection<String> getDevopsOAuth2Subjects() {
+        return devopsOauth2Subjects;
+    }
+
+    @Override
+    public DevopsAuthenticationMethod getStatusAuthenticationMethod() {
+        return statusAuthenticationMethod;
+    }
+
+    @Override
     public String getStatusPassword() {
         return statusPassword;
+    }
+
+    @Override
+    public Collection<String> getStatusOAuth2Subjects() {
+        return statusOAuth2Subjects;
+    }
+
+    @Override
+    public OAuthConfig getOauthConfig() {
+        return oAuthConfig;
     }
 
     @Override
@@ -74,22 +131,33 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
             return false;
         }
         final DefaultDevOpsConfig that = (DefaultDevOpsConfig) o;
-        return secureStatus == that.secureStatus &&
-                password.equals(that.password) &&
-                statusPassword.equals(that.statusPassword);
+        return Objects.equals(secureStatus, that.secureStatus) &&
+                Objects.equals(devopsAuthenticationMethod, that.devopsAuthenticationMethod) &&
+                Objects.equals(password, that.password) &&
+                Objects.equals(devopsOauth2Subjects, that.devopsOauth2Subjects) &&
+                Objects.equals(statusAuthenticationMethod, that.statusAuthenticationMethod) &&
+                Objects.equals(statusOAuth2Subjects, that.statusOAuth2Subjects) &&
+                Objects.equals(statusPassword, that.statusPassword) &&
+                Objects.equals(oAuthConfig, that.oAuthConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(secureStatus, password, statusPassword);
+        return Objects.hash(secureStatus, devopsAuthenticationMethod, password, devopsOauth2Subjects,
+                statusAuthenticationMethod, statusPassword, statusOAuth2Subjects, oAuthConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "secureStatus=" + secureStatus +
+                ", devopsAuthenticationMethod=" + devopsAuthenticationMethod +
                 ", password=*****" +
+                ", devopsOAuth2Subject=" + devopsOauth2Subjects +
+                ", statusAuthenticationMethod=" + statusAuthenticationMethod +
                 ", statusPassword=*****" +
+                ", statusOAuth2Subject=" + statusOAuth2Subjects +
+                ", oAuthConfig=" + oAuthConfig +
                 "]";
     }
 
