@@ -330,10 +330,10 @@ Since there are scenarios where the subscriber of events or live messages has de
 To avoid that a command fails because of a missing acknowledgement for those reasons, we introduced weak acknowledgements.
 
 These weak acknowledgements are issued automatically by ditto, in case a message or an event is filtered by a subscriber which declared to provide one or more of the requested acknowledgements for the command.
-A weak acknowledgement can be identified by checking the header with value `is-weak-ack`.
-Weak acknowledgements do have this header set to `true`.
+A weak acknowledgement can be identified by checking the header with value `ditto-weak-ack`.
+Weak acknowledgements have this header set to `true`.
 
-These weak acknowledgements do not cause negative settlement of messages consumed by a Connection.
+These weak acknowledgements do not cause redelivery of messages consumed by a Connection.
 
 ## Interaction between headers
 Three headers control how Ditto responds to a command: `response-required`, `requested-acks`, `timeout`.
