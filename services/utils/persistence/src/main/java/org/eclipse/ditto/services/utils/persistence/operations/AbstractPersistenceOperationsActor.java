@@ -26,8 +26,8 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.ShutdownReason;
@@ -55,7 +55,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
     /**
      * The actor's logger.
      */
-    protected final DittoDiagnosticLoggingAdapter logger;
+    protected final ThreadSafeDittoLoggingAdapter logger;
 
     private final ActorRef pubSubMediator;
     private final EntityType entityType;
@@ -83,7 +83,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
         this.toCloseWhenStopped = List.copyOf(toCloseWhenStopped);
         materializer = Materializer.createMaterializer(this::getContext);
         delayAfterPersistenceActorShutdown = persistenceOperationsConfig.getDelayAfterPersistenceActorShutdown();
-        logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+        logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
     }
 
     /**
@@ -207,12 +207,13 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
     }
 
     private void purgeNamespace(final PurgeNamespace purgeNamespace) {
+        final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(purgeNamespace);
         if (null == namespaceOps) {
-            logger.withCorrelationId(purgeNamespace).warning("Cannot handle namespace command: <{}>!", purgeNamespace);
+            l.warning("Cannot handle namespace command: <{}>!", purgeNamespace);
             return;
         }
 
-        logger.withCorrelationId(purgeNamespace).info("Running <{}>.", purgeNamespace);
+        l.info("Running <{}>.", purgeNamespace);
         final String namespace = purgeNamespace.getNamespace();
         final ActorRef sender = getSender();
 
@@ -224,32 +225,29 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
                         response = PurgeNamespaceResponse.successful(namespace, entityType,
                                 purgeNamespace.getDittoHeaders());
                     } else {
-                        logger.setCorrelationId(purgeNamespace);
-                        errors.forEach(error -> logger.error(error, "Error purging namespace <{}>!", namespace));
-                        logger.discardCorrelationId();
+                        errors.forEach(error -> l.error(error, "Error purging namespace <{}>!", namespace));
                         response = PurgeNamespaceResponse.failed(namespace, entityType,
                                 purgeNamespace.getDittoHeaders());
                     }
                     sender.tell(response, getSelf());
-                    logger.withCorrelationId(purgeNamespace).info("Successfully purged namespace <{}>.", namespace);
+                    l.info("Successfully purged namespace <{}>.", namespace);
                 })
                 .exceptionally(error -> {
                     // Reply nothing - Error should not occur (DB errors were converted to stream elements and handled)
-                    logger.withCorrelationId(purgeNamespace)
-                            .error(error, "Unexpected error when purging namespace <{}>!",
+                    l.error(error, "Unexpected error when purging namespace <{}>!",
                                     purgeNamespace.getNamespace());
                     return null;
                 });
     }
 
     private void purgeEntities(final PurgeEntities purgeEntities) {
+        final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(purgeEntities);
         if (null == entitiesOps) {
-            logger.withCorrelationId(purgeEntities).warning("Cannot handle entities command: <{}>.", purgeEntities);
+            l.warning("Cannot handle entities command: <{}>.", purgeEntities);
             return;
         }
         if (!entityType.equals(purgeEntities.getEntityType())) {
-            logger.withCorrelationId(purgeEntities)
-                    .warning("Expected command with entityType <{}>, but got: <{}>.", entityType, purgeEntities);
+            l.warning("Expected command with entityType <{}>, but got: <{}>.", entityType, purgeEntities);
             return;
         }
 
@@ -272,12 +270,13 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
     }
 
     private void doPurgeEntities(final PurgeEntities purgeEntities, final ActorRef initiator) {
+        final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(purgeEntities);
         if (null == entitiesOps) {
-            logger.withCorrelationId(purgeEntities).warning("Cannot handle entities command: <{}>", purgeEntities);
+            l.warning("Cannot handle entities command: <{}>", purgeEntities);
             return;
         }
 
-        logger.withCorrelationId(purgeEntities).info("Running <{}>.", purgeEntities);
+        l.info("Running <{}>.", purgeEntities);
         final EntityType purgeEntityType = purgeEntities.getEntityType();
         final List<EntityId> entityIds = purgeEntities.getEntityIds();
 
@@ -288,20 +287,16 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
                     if (errors.isEmpty()) {
                         response = PurgeEntitiesResponse.successful(purgeEntityType, purgeEntities.getDittoHeaders());
                     } else {
-                        logger.setCorrelationId(purgeEntities);
-                        errors.forEach(error -> logger.error(error, "Error purging entities of type <{}>: <{}>",
+                        errors.forEach(error -> l.error(error, "Error purging entities of type <{}>: <{}>",
                                 purgeEntityType, entityIds));
-                        logger.discardCorrelationId();
                         response = PurgeEntitiesResponse.failed(purgeEntityType, purgeEntities.getDittoHeaders());
                     }
                     initiator.tell(response, getSelf());
-                    logger.withCorrelationId(purgeEntities)
-                            .info("Successfully purged entities of type <{}>: <{}>", purgeEntityType, entityIds);
+                    l.info("Successfully purged entities of type <{}>: <{}>", purgeEntityType, entityIds);
                 })
                 .exceptionally(error -> {
                     // Reply nothing - Error should not occur (DB errors were converted to stream elements and handled)
-                    logger.withCorrelationId(purgeEntities)
-                            .error(error, "Unexpected error when purging entities <{}>!", purgeEntities.getEntityIds());
+                    l.error(error, "Unexpected error when purging entities <{}>!", purgeEntities.getEntityIds());
                     return null;
                 });
     }

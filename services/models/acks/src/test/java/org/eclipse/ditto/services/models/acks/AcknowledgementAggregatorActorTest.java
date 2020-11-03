@@ -20,6 +20,7 @@ import java.util.function.Consumer;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -179,7 +180,8 @@ public final class AcknowledgementAggregatorActorTest {
 
             // THEN
             final Acknowledgements acks = expectMsgClass(Acknowledgements.class);
-            assertThat(acks.getDittoHeaders()).isEqualTo(command.getDittoHeaders());
+            assertThat(acks.getDittoHeaders()).isEqualTo(
+                    command.getDittoHeaders().toBuilder().responseRequired(false).build());
             assertThat(acks.getSize()).isEqualTo(2);
         }};
     }
@@ -220,6 +222,36 @@ public final class AcknowledgementAggregatorActorTest {
             assertThat(acks.getSize()).isEqualTo(2);
             assertThat(acks.getAcknowledgement(label1)).contains(ack1);
             assertThat(acks.getAcknowledgement(label2)).contains(ack2);
+        }};
+    }
+
+    @Test
+    public void resetConnectivityHeadersForLive() {
+        new TestKit(actorSystem) {{
+            // GIVEN
+            final String correlationId = "singleResponseLive";
+            final ThingId thingId = ThingId.of("thing:id");
+            final AcknowledgementLabel label1 = AcknowledgementLabel.of("live-response");
+            final DeleteThing command = DeleteThing.of(thingId, DittoHeaders.newBuilder()
+                    .correlationId(correlationId)
+                    .acknowledgementRequest(AcknowledgementRequest.of(label1))
+                    .channel("live")
+                    .replyTarget(0)
+                    .build());
+            final ActorRef underTest = childActorOf(getAcknowledgementAggregatorProps(command, this));
+
+            // WHEN
+            final DeleteThingResponse response = DeleteThingResponse.of(thingId, command.getDittoHeaders()
+                    .toBuilder()
+                    .replyTarget(1)
+                    .expectedResponseTypes(ResponseType.RESPONSE)
+                    .build());
+            underTest.tell(response, ActorRef.noSender());
+
+            // THEN
+            final DeleteThingResponse processedResponse = expectMsgClass(DeleteThingResponse.class);
+            assertThat(processedResponse.getDittoHeaders().getReplyTarget()).contains(0);
+            assertThat(processedResponse.isOfExpectedResponseType()).isFalse();
         }};
     }
 

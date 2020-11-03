@@ -42,7 +42,7 @@ public final class AcknowledgementLabelInvalidException extends DittoRuntimeExce
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "label.invalid";
 
-    private static final String MESSAGE_TEMPLATE = "Acknowledgement label <{0}> is invalid!";
+    private static final String MESSAGE_TEMPLATE = "Acknowledgement label <{0}> is invalid.";
 
     private static final String DEFAULT_DESCRIPTION =
             "An acknowledgement label must conform to the regular expression of Ditto documentation.";
@@ -81,6 +81,25 @@ public final class AcknowledgementLabelInvalidException extends DittoRuntimeExce
     }
 
     /**
+     * Create an {@code AcknowledgementLabelInvalidException} with custom description, hyperlink and headers.
+     *
+     * @param label the invalid label.
+     * @param description the custom description.
+     * @param href hyperlink in the exception.
+     * @param dittoHeaders the headers of the exception.
+     * @return the exception.
+     * @since 1.4.0
+     */
+    public static AcknowledgementLabelInvalidException of(final CharSequence label,
+            @Nullable final String description,
+            @Nullable final URI href,
+            final DittoHeaders dittoHeaders) {
+
+        return new AcknowledgementLabelInvalidException(dittoHeaders, MessageFormat.format(MESSAGE_TEMPLATE, label),
+                description, null, href);
+    }
+
+    /**
      * Constructs a new {@code AcknowledgementLabelInvalidException} object with the exception message extracted from
      * the given JSON object.
      *
@@ -94,6 +113,17 @@ public final class AcknowledgementLabelInvalidException extends DittoRuntimeExce
     public static AcknowledgementLabelInvalidException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
+                .dittoHeaders(dittoHeaders)
+                .build();
     }
 
     @NotThreadSafe

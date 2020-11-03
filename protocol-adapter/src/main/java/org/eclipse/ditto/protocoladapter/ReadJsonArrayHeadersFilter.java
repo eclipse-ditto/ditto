@@ -71,7 +71,7 @@ final class ReadJsonArrayHeadersFilter extends AbstractHeaderEntryFilter {
     }
 
     private boolean isJsonArrayDefinition(final String headerKey) {
-        @Nullable final HeaderDefinition headerDefinition = headerDefinitions.get(headerKey);
+        @Nullable final HeaderDefinition headerDefinition = headerDefinitions.get(headerKey.toLowerCase());
         boolean result = false;
         if (null != headerDefinition) {
             result = JsonArray.class.equals(headerDefinition.getSerializationType());

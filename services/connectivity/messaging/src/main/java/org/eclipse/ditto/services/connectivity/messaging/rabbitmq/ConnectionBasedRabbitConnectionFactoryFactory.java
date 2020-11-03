@@ -24,6 +24,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,7 +58,7 @@ public final class ConnectionBasedRabbitConnectionFactoryFactory implements Rabb
 
     @Override
     public ConnectionFactory createConnectionFactory(final Connection connection,
-            final ExceptionHandler exceptionHandler) {
+            final ExceptionHandler exceptionHandler, final ConnectionLogger connectionLogger) {
         checkNotNull(connection, "Connection");
         checkNotNull(exceptionHandler, "Exception Handler");
 
@@ -66,7 +67,7 @@ public final class ConnectionBasedRabbitConnectionFactoryFactory implements Rabb
             if (SECURE_AMQP_SCHEME.equalsIgnoreCase(connection.getProtocol())) {
                 if (connection.isValidateCertificates()) {
                     final SSLContextCreator sslContextCreator =
-                            SSLContextCreator.fromConnection(connection, null);
+                            SSLContextCreator.fromConnection(connection, null, connectionLogger);
                     connectionFactory.useSslProtocol(sslContextCreator.withoutClientCertificate());
                 } else {
                     // attention: this accepts all certificates whether they are valid or not

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.signals.commands.base;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.Objects;
@@ -45,13 +45,33 @@ public abstract class AbstractCommand<T extends AbstractCommand<T>> implements C
      *
      * @param type the name of this command.
      * @param dittoHeaders the headers of the command.
+     * @param category used for validation of response required header.
      * @throws NullPointerException if any argument is {@code null}.
+     * @throws CommandHeaderInvalidException if category is {@link Category#QUERY} and response is not required.
+     */
+    protected AbstractCommand(final String type, final DittoHeaders dittoHeaders, final Category category) {
+        this.type = checkNotNull(type, "type");
+        this.dittoHeaders = checkNotNull(dittoHeaders, "dittoHeaders");
+        validateHeaders(category);
+    }
+
+    /**
+     * Constructs a new {@code AbstractCommand} object.
+     *
+     * @param type the name of this command.
+     * @param dittoHeaders the headers of the command.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws CommandHeaderInvalidException if {@link #getCategory()} is {@link Category#QUERY} and response is
+     * not required.
      */
     protected AbstractCommand(final String type, final DittoHeaders dittoHeaders) {
-        this.type = requireNonNull(type, "The type must not be null!");
-        this.dittoHeaders = requireNonNull(dittoHeaders, "The command headers must not be null!");
+        this.type = checkNotNull(type, "type");
+        this.dittoHeaders = checkNotNull(dittoHeaders, "dittoHeaders");
+        validateHeaders(getCategory());
+    }
 
-        if (Category.QUERY == getCategory() && !dittoHeaders.isResponseRequired()) {
+    private void validateHeaders(final Category category) {
+        if (Category.QUERY == category && !dittoHeaders.isResponseRequired()) {
             final String headerKey = DittoHeaderDefinition.RESPONSE_REQUIRED.getKey();
             throw CommandHeaderInvalidException.newBuilder(headerKey)
                     .message(MessageFormat.format(

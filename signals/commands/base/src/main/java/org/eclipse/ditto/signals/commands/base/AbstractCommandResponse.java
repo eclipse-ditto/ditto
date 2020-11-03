@@ -13,6 +13,7 @@
 package org.eclipse.ditto.signals.commands.base;
 
 import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -51,9 +52,12 @@ public abstract class AbstractCommandResponse<T extends AbstractCommandResponse<
      */
     protected AbstractCommandResponse(final String responseType, final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
-        this.responseType = requireNonNull(responseType, "The response type must not be null!");
-        this.statusCode = requireNonNull(statusCode, "The status code must not be null!");
-        this.dittoHeaders = requireNonNull(dittoHeaders, "The command headers must not be null!");
+        this.responseType = requireNonNull(responseType, "responseType");
+        this.statusCode = requireNonNull(statusCode, "statusCode");
+        this.dittoHeaders = checkNotNull(dittoHeaders, "dittoHeaders").isResponseRequired() ? dittoHeaders
+                .toBuilder()
+                .responseRequired(false)
+                .build() : dittoHeaders;
     }
 
     @Override

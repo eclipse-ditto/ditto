@@ -204,6 +204,16 @@
               "includes"
             ]
           },
+          "declaredAcks": {
+            "$id": "/properties/sources/items/properties/declaredAcks",
+            "type": "array",
+            "title": "Declared acknowledgement labels",
+            "description": "Contains labels of acknowledgements this source is allowed to send. Must be globally unique.",
+            "items": {
+              "title": "Acknowledgement label",
+              "type": "string"
+            }
+          },
           "payloadMapping": {
             "$id": "/properties/sources/items/properties/payloadMapping",
             "type": "array",

@@ -25,12 +25,12 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
-import org.eclipse.ditto.model.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
+import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
@@ -52,9 +52,9 @@ public final class HiveMqtt5ConsumerActor extends AbstractMqttConsumerActor<Mqtt
     @Nullable private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
 
     @SuppressWarnings("unused")
-    private HiveMqtt5ConsumerActor(final ConnectionId connectionId, final ActorRef messageMappingProcessor,
+    private HiveMqtt5ConsumerActor(final ConnectionId connectionId, final ActorRef inboundMessageProcessor,
             final Source source, final boolean dryRun, final boolean reconnectForRedelivery) {
-        super(connectionId, messageMappingProcessor, source, dryRun, reconnectForRedelivery, ConnectionType.MQTT_5);
+        super(connectionId, inboundMessageProcessor, source, dryRun, reconnectForRedelivery, ConnectionType.MQTT_5);
         final Enforcement enforcement = source.getEnforcement().orElse(null);
         if (enforcement != null &&
                 enforcement.getInput().contains(ConnectivityModelFactory.SOURCE_ADDRESS_ENFORCEMENT)) {
@@ -70,16 +70,16 @@ public final class HiveMqtt5ConsumerActor extends AbstractMqttConsumerActor<Mqtt
      * Creates Akka configuration object for this actor.
      *
      * @param connectionId ID of the connection this consumer is belongs to
-     * @param messageMappingProcessor the ActorRef to the {@code MessageMappingProcessor}
+     * @param inboundMessageProcessor the ActorRef to the {@code MessageMappingProcessor}
      * @param source the source from which this consumer is built
      * @param dryRun whether this is a dry-run/connection test or not
      * @param specificConfig the MQTT specific config.
      * @return the Akka configuration Props object.
      */
-    static Props props(final ConnectionId connectionId, final ActorRef messageMappingProcessor,
+    static Props props(final ConnectionId connectionId, final ActorRef inboundMessageProcessor,
             final Source source, final boolean dryRun,
             final MqttSpecificConfig specificConfig) {
-        return Props.create(HiveMqtt5ConsumerActor.class, connectionId, messageMappingProcessor, source, dryRun,
+        return Props.create(HiveMqtt5ConsumerActor.class, connectionId, inboundMessageProcessor, source, dryRun,
                 specificConfig.reconnectForRedelivery());
     }
 

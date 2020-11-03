@@ -122,11 +122,11 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
      *
      * @param dryRun whether this is a dry-run (consumed messages are discarded)
      * @param source source of the consumer actor.
-     * @param mappingActor the message mapping processor actor.
+     * @param inboundMessageProcessor the message mapping processor actor.
      * @param specificConfig the MQTT specific config.
      * @return reference of the created publisher actor.
      */
-    abstract ActorRef startConsumerActor(boolean dryRun, Source source, ActorRef mappingActor,
+    abstract ActorRef startConsumerActor(boolean dryRun, Source source, ActorRef inboundMessageProcessor,
             MqttSpecificConfig specificConfig);
 
     @Override
@@ -237,7 +237,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
             createSubscriberClientAndSubscriptionHandler();
             if (mqttSpecificConfig.separatePublisherClient()) {
                 final String publisherClientId = resolvePublisherClientId(connection, mqttSpecificConfig);
-                publisherClient = clientFactory.newClient(connection, publisherClientId, true);
+                publisherClient = clientFactory.newClient(connection, publisherClientId, true, connectionLogger);
             } else {
                 // use the same client for subscribers and publisher
                 publisherClient = client;
@@ -251,7 +251,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
 
     private void createSubscriberClientAndSubscriptionHandler() {
         final String mqttClientId = resolveMqttClientId(connection, mqttSpecificConfig);
-        client = clientFactory.newClient(connection, mqttClientId, true);
+        client = clientFactory.newClient(connection, mqttClientId, true, connectionLogger);
         subscriptionHandler = createSubscriptionHandler(connection, client, logger);
     }
 
@@ -269,7 +269,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
         // attention: do not use reconnect, otherwise the future never returns
         final Q testClient;
         try {
-            testClient = clientFactory.newClient(connectionToBeTested, mqttClientId, false);
+            testClient = clientFactory.newClient(connectionToBeTested, mqttClientId, false, connectionLogger);
         } catch (final Exception e) {
             return CompletableFuture.completedFuture(new Status.Failure(e.getCause()));
         }
@@ -463,7 +463,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
     private void startHiveMqConsumers(final Consumer<MqttConsumer> consumerListener) {
         connection().getSources().stream()
                 .map(source -> MqttConsumer.of(source,
-                        startConsumerActor(isDryRun(), source, getMessageMappingProcessorActor(), mqttSpecificConfig)))
+                        startConsumerActor(isDryRun(), source, getInboundMappingProcessorActor(), mqttSpecificConfig)))
                 .forEach(consumerListener);
     }
 

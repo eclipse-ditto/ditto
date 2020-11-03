@@ -1,6 +1,6 @@
 ---
 title: Authentication and authorization
-keywords: auth, authentication, authorization, policies, policy
+keywords: auth, authentication, authorization, policies, policy, sso, single sign on
 tags: [model]
 permalink: basic-auth.html
 ---
@@ -25,6 +25,20 @@ A user who calls the HTTP API can be authenticated using two mechanisms:
   username and password as [documented in the installation/operation guide](installation-operating.html#pre-authentication).
 * A <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> issued by Google or other
   OpenID Connect providers as [documented in the installation/operation guide](installation-operating.html#openid-connect).
+
+### Single sign-on (SSO)
+
+By configuring an arbitrary OpenID Connect provider (as mentioned above) it is possible for Ditto to participate in SSO
+for the following browser based requests:
+* [HTTP API](httpapi-overview.html) invocations
+   * sending along a JWT token as `Authorization` header with `Bearer` value
+* Establishing a [WebSocket](httpapi-protocol-bindings-websocket.html) connection for bidirectional communication with 
+  Ditto via [Ditto Protocol](protocol-overview.html) JSON messages
+   * open: sending along the `Authorization` header containing the `Bearer` JWT token is not possible in the plain 
+     WebSocket API in the browser - Watch issue [#661](https://github.com/eclipse/ditto/issues/667) for fixing that
+* Opening a [Server sent event](httpapi-sse.html) connection in order to receive change notifications of twins in the 
+  browser
+   * passing the `withCredentials: true` option when creating the SSE in the browser
 
 ## Authorization
 

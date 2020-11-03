@@ -62,6 +62,6 @@ public class ConnectivityServiceGlobalCommandRegistryTest extends GlobalCommandR
 
     @Override
     protected boolean isExcluded(final Class<?> clazz) {
-        return clazz == StagedCommand.class;
+        return clazz == StagedCommand.class || super.isExcluded(clazz);
     }
 }

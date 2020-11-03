@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.connectivity;
+package org.eclipse.ditto.services.models.connectivity;
 
 import java.util.Collections;
 import java.util.List;

@@ -25,15 +25,16 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
-import org.eclipse.ditto.model.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -70,8 +71,7 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
         this.reconnectForRedelivery = reconnectForRedelivery;
         topicEnforcementFilterFactory = source.getEnforcement()
                 .map(enforcement -> EnforcementFactoryFactory
-                        .newEnforcementFilterFactory(enforcement,
-                                ConnectivityModelFactory.newSourceAddressPlaceholder()))
+                        .newEnforcementFilterFactory(enforcement, PlaceholderFactory.newSourceAddressPlaceholder()))
                 .orElse(null);
     }
 
@@ -165,8 +165,8 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
         final ActorRef parent = getContext().getParent();
         externalMessageOptional.ifPresent(externalMessage ->
                 forwardToMappingActor(externalMessage,
-                        () -> acknowledge(message),
-                        redeliver -> reject(message, redeliver, parent))
+                        () -> acknowledge(externalMessage, message),
+                        redeliver -> reject(externalMessage, message, redeliver, parent))
         );
     }
 
@@ -235,26 +235,29 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
         return "{{ header:" + headerName + "}}";
     }
 
-    private void acknowledge(final P message) {
+    private void acknowledge(final ExternalMessage externalMessage, final P message) {
         try {
             sendPubAck(message);
+            inboundAcknowledgedMonitor.success(externalMessage, "Sending success acknowledgement");
         } catch (final IllegalStateException e) {
             // this message was acknowledged by another consumer actor due to overlapping topic
-            inboundAcknowledgedMonitor.exception("Acknowledgement of incoming message at topic <{0}> failed " +
+            inboundAcknowledgedMonitor.exception(externalMessage,
+                    "Acknowledgement of incoming message at topic <{0}> failed " +
                             "because it was acknowledged already by another source.",
                     getTopic(message));
         }
     }
 
-    private void reject(final P publish, final boolean redeliver, final ActorRef parent) {
+    private void reject(final ExternalMessage externalMessage, final P publish, final boolean redeliver,
+            final ActorRef parent) {
         if (redeliver && reconnectForRedelivery) {
             final String message = "Restarting connection for redeliveries due to unfulfilled acknowledgements.";
-            inboundAcknowledgedMonitor.exception(message);
+            inboundAcknowledgedMonitor.exception(externalMessage, message);
             parent.tell(AbstractMqttClientActor.Control.RECONNECT_CONSUMER_CLIENT, getSelf());
         } else {
             final String message = "Unfulfilled acknowledgements are present, but redelivery is not possible.";
-            inboundAcknowledgedMonitor.exception(message);
-            acknowledge(publish);
+            inboundAcknowledgedMonitor.exception(externalMessage, message);
+            acknowledge(externalMessage, publish);
         }
     }
 

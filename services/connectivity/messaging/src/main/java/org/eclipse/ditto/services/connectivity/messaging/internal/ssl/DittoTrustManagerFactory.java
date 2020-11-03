@@ -16,13 +16,14 @@ import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 
-import javax.annotation.Nullable;
 import javax.net.ssl.ManagerFactoryParameters;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.TrustManagerFactorySpi;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 
 /**
  * Simple wrapper around {@link TrustManagerFactory} that wraps the returned {@link TrustManager}s in
@@ -30,34 +31,43 @@ import org.eclipse.ditto.model.connectivity.Connection;
  */
 public final class DittoTrustManagerFactory extends TrustManagerFactory {
 
-    private static final TrustManagerFactoryFactory FACTORY = TrustManagerFactoryFactory.getInstance();
+    private static final TrustManagerFactoryFactory FACTORY =
+            TrustManagerFactoryFactory.getInstance(DittoHeaders.empty());
 
-    public static DittoTrustManagerFactory from(final Connection connection) {
+    public static DittoTrustManagerFactory from(final Connection connection, final ConnectionLogger connectionLogger) {
         final String hostname = connection.getHostname();
-        return new DittoTrustManagerFactory(FACTORY.newTrustManagerFactory(connection), hostname);
+        return new DittoTrustManagerFactory(FACTORY.newTrustManagerFactory(connection, true),
+                FACTORY.newTrustManagerFactory(connection, false),
+                hostname,
+                connectionLogger);
     }
 
-    static DittoTrustManagerFactory from(@Nullable final String trustedCertificates, final String hostname) {
-        return new DittoTrustManagerFactory(FACTORY.newTrustManagerFactory(trustedCertificates), hostname);
-    }
-
-    private DittoTrustManagerFactory(final TrustManagerFactory delegate, final String hostname) {
+    private DittoTrustManagerFactory(final TrustManagerFactory delegateWithRevocationCheck,
+            final TrustManagerFactory delegateWithoutRevocationCheck,
+            final String hostname,
+            final ConnectionLogger connectionLogger) {
         super(new TrustManagerFactorySpi() {
             @Override
             protected void engineInit(KeyStore keyStore) throws KeyStoreException {
-                delegate.init(keyStore);
+                delegateWithRevocationCheck.init(keyStore);
+                delegateWithoutRevocationCheck.init(keyStore);
             }
 
             @Override
             protected void engineInit(ManagerFactoryParameters managerFactoryParameters) throws
                     InvalidAlgorithmParameterException {
-                delegate.init(managerFactoryParameters);
+                delegateWithRevocationCheck.init(managerFactoryParameters);
+                delegateWithoutRevocationCheck.init(managerFactoryParameters);
             }
 
             @Override
             protected TrustManager[] engineGetTrustManagers() {
-                return DittoTrustManager.wrapTrustManagers(delegate.getTrustManagers(), hostname);
+                return DittoTrustManager.wrapTrustManagers(
+                        delegateWithRevocationCheck.getTrustManagers(),
+                        delegateWithoutRevocationCheck.getTrustManagers(),
+                        hostname,
+                        connectionLogger);
             }
-        }, delegate.getProvider(), delegate.getAlgorithm());
+        }, delegateWithRevocationCheck.getProvider(), delegateWithRevocationCheck.getAlgorithm());
     }
 }

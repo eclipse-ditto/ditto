@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging.validation;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Certificates;
@@ -27,12 +28,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
@@ -50,6 +54,7 @@ import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.connectivity.mapping.NormalizedMessageMapper;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
@@ -102,7 +107,8 @@ public class ConnectionValidatorTest {
                 areImmutable(),
                 // mutability-detector cannot detect that maps built from stream collectors are safely copied.
                 assumingFields("specMap").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
-                provided(QueryFilterCriteriaFactory.class, HostValidator.class).isAlsoImmutable());
+                provided(QueryFilterCriteriaFactory.class, HostValidator.class, MonitoringLoggerConfig.class)
+                        .isAlsoImmutable());
     }
 
     @Test
@@ -114,20 +120,50 @@ public class ConnectionValidatorTest {
 
     @Test
     public void rejectConnectionWithSourceWithoutAddresses() {
-        final Connection connection =
-                ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID,
-                        ConnectionType.AMQP_10, ConnectivityStatus.OPEN, "amqp://localhost:5671")
-                        .sources(singletonList(
-                                ConnectivityModelFactory.newSourceBuilder()
-                                        .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
-                                        .consumerCount(0)
-                                        .index(1)
-                                        .build()))
-                        .build();
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
+                .sources(singletonList(
+                        ConnectivityModelFactory.newSourceBuilder()
+                                .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                                .consumerCount(0)
+                                .index(1)
+                                .build()))
+                .build();
 
         final ConnectionValidator underTest = getConnectionValidator();
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
                 .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void rejectConnectionWithInvalidSourceDeclaredAcks() {
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
+                .sources(TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS.stream()
+                        .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
+                                .declaredAcknowledgementLabels(Set.of(AcknowledgementLabel.of("ack")))
+                                .build())
+                        .collect(Collectors.toList())
+                )
+                .build();
+
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(AcknowledgementLabelInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void acceptConnectionWithPlaceholderPrefixedSourceDeclaredAck() {
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
+                .sources(TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS.stream()
+                        .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
+                                .declaredAcknowledgementLabels(Set.of(AcknowledgementLabel.of("{{connection:id}}:ack")))
+                                .build())
+                        .collect(Collectors.toList())
+                )
+                .build();
+
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatCode(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem))
+                .doesNotThrowAnyException();
     }
 
     @Test
@@ -177,17 +213,15 @@ public class ConnectionValidatorTest {
 
     @Test
     public void rejectConnectionWithEmptySourceAddress() {
-        final Connection connection =
-                ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID,
-                        ConnectionType.AMQP_10, ConnectivityStatus.OPEN, "amqp://localhost:5671")
-                        .sources(singletonList(
-                                ConnectivityModelFactory.newSourceBuilder()
-                                        .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
-                                        .address("")
-                                        .consumerCount(1)
-                                        .index(0)
-                                        .build()))
-                        .build();
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
+                .sources(singletonList(
+                        ConnectivityModelFactory.newSourceBuilder()
+                                .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                                .address("")
+                                .consumerCount(1)
+                                .index(0)
+                                .build()))
+                .build();
 
         final ConnectionValidator underTest = getConnectionValidator();
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)
@@ -196,8 +230,7 @@ public class ConnectionValidatorTest {
 
     @Test
     public void rejectConnectionWithEmptyTargetAddress() {
-        final Connection connection = ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID,
-                ConnectionType.AMQP_10, ConnectivityStatus.OPEN, "amqp://localhost:5671")
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
                 .targets(Collections.singletonList(ConnectivityModelFactory.newTargetBuilder()
                         .address("")
                         .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
@@ -211,19 +244,81 @@ public class ConnectionValidatorTest {
     }
 
     @Test
+    public void rejectConnectionWithInvalidTargetIssuedAck() {
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
+                .targets(TestConstants.Targets.TARGETS.stream()
+                        .map(target -> ConnectivityModelFactory.newTargetBuilder(target)
+                                .issuedAcknowledgementLabel(AcknowledgementLabel.of("ack"))
+                                .build())
+                        .collect(Collectors.toList()))
+                .build();
+
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(AcknowledgementLabelInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void acceptConnectionWithValidSourceDeclaredAcksAndTargetIssuedAcks() {
+        final Target targetTemplate = TestConstants.Targets.TWIN_TARGET;
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
+                .sources(TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS.stream()
+                        .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
+                                .declaredAcknowledgementLabels(Set.of(AcknowledgementLabel.of(
+                                        CONNECTION_ID + ":ack")))
+                                .build())
+                        .collect(Collectors.toList())
+                )
+                .targets(List.of(
+                        ConnectivityModelFactory.newTargetBuilder(targetTemplate)
+                                .issuedAcknowledgementLabel(AcknowledgementLabel.of("live-response"))
+                                .build(),
+                        ConnectivityModelFactory.newTargetBuilder(targetTemplate)
+                                .issuedAcknowledgementLabel(AcknowledgementLabel.of(CONNECTION_ID + ":ack"))
+                                .build()
+                ))
+                .build();
+
+        final ConnectionValidator underTest = getConnectionValidator();
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
+    public void acceptConnectionWithValidSourceDeclaredAcksAndTargetIssuedAcksUsingPlaceholder() {
+        final Target targetTemplate = TestConstants.Targets.TWIN_TARGET;
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
+                .sources(TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS.stream()
+                        .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
+                                .declaredAcknowledgementLabels(Set.of(AcknowledgementLabel.of("{{connection:id}}:ack")))
+                                .build())
+                        .collect(Collectors.toList())
+                )
+                .targets(List.of(
+                        ConnectivityModelFactory.newTargetBuilder(targetTemplate)
+                                .issuedAcknowledgementLabel(AcknowledgementLabel.of("live-response"))
+                                .build(),
+                        ConnectivityModelFactory.newTargetBuilder(targetTemplate)
+                                .issuedAcknowledgementLabel(AcknowledgementLabel.of("{{connection:id}}:ack"))
+                                .build()
+                ))
+                .build();
+
+        final ConnectionValidator underTest = getConnectionValidator();
+        underTest.validate(connection, DittoHeaders.empty(), actorSystem);
+    }
+
+    @Test
     public void rejectConnectionWithInvalidNormalizerMapperJsonFieldSelector() {
         final Map<String, String> normalizerMessageMapperOptions = new HashMap<>();
         normalizerMessageMapperOptions.put(NormalizedMessageMapper.FIELDS, "foo(bar");
 
-        final Connection connection =
-                ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID,
-                        ConnectionType.AMQP_10, ConnectivityStatus.OPEN, "amqp://localhost:5671")
-                        .targets(TestConstants.Targets.TARGETS)
-                        .mappingContext(ConnectivityModelFactory.newMappingContext(
-                                NormalizedMessageMapper.class.getName(),
-                                normalizerMessageMapperOptions
-                        ))
-                        .build();
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
+                .targets(TestConstants.Targets.TARGETS)
+                .mappingContext(ConnectivityModelFactory.newMappingContext(
+                        NormalizedMessageMapper.class.getName(),
+                        normalizerMessageMapperOptions
+                ))
+                .build();
 
         final ConnectionValidator underTest = getConnectionValidator();
         assertThatExceptionOfType(ConnectionConfigurationInvalidException.class)

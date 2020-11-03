@@ -19,14 +19,13 @@ import java.util.Map;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 
-import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.ActorAttributes;
@@ -50,7 +49,7 @@ import akka.stream.javadsl.SourceQueueWithComplete;
  */
 public abstract class AbstractGraphActor<T, M> extends AbstractActor {
 
-    protected final DittoDiagnosticLoggingAdapter logger;
+    protected final ThreadSafeDittoLoggingAdapter logger;
     protected final Materializer materializer;
 
     private final Class<M> matchClass;
@@ -76,7 +75,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
         enqueueFailureCounter = DittoMetrics.counter("graph_actor_enqueue_failure", tags);
         dequeueCounter = DittoMetrics.counter("graph_actor_dequeue", tags);
 
-        logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+        logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
         materializer = Materializer.createMaterializer(this::getContext);
     }
 
@@ -89,7 +88,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
     protected abstract T mapMessage(M message);
 
     /**
-     * Called before handling the actual message via the {@link #processMessageFlow()} in order to being able to enhance
+     * Called before handling the actual message via the {@link #createSink()} in order to being able to enhance
      * the message.
      *
      * @param message the message to be handled.
@@ -100,14 +99,9 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
     }
 
     /**
-     * @return the Flow processing the messages of type {@code T} this graph actor handles.
+     * @return the Sink handling the messages of type {@code T} this graph actor handles.
      */
-    protected abstract Flow<T, T, NotUsed> processMessageFlow();
-
-    /**
-     * @return the Sink handling the processed messages of type {@code T} this graph actor handles.
-     */
-    protected abstract Sink<T, ?> processedMessageSink();
+    protected abstract Sink<T, ?> createSink();
 
     /**
      * @return the buffer size used for the Source queue.
@@ -155,9 +149,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
                 .log("graph-actor-stream-1-dequeued", logger)
                 .via(Flow.fromFunction(this::beforeProcessMessage))
                 .log("graph-actor-stream-2-preprocessed", logger)
-                .via(processMessageFlow())
-                .log("graph-actor-stream-3-processed", logger)
-                .to(processedMessageSink())
+                .to(createSink())
                 .withAttributes(streamLogLevels.and(getSupervisionStrategyAttribute()))
                 .run(materializer);
     }
@@ -172,7 +164,9 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
      *
      * @param receiveBuilder the ReceiveBuilder to add other matchers to.
      */
-    protected abstract void preEnhancement(ReceiveBuilder receiveBuilder);
+    protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
+        // do nothing by default
+    }
 
     /**
      * Handles DittoRuntimeExceptions by sending them back to the {@link #getSender() sender}.
@@ -186,16 +180,18 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
     }
 
     private void handleMatched(final SourceQueue<T> sourceQueue, final M match) {
+        final ThreadSafeDittoLoggingAdapter loggerWithCID;
         if (match instanceof WithDittoHeaders) {
-            logger.setCorrelationId((WithDittoHeaders<?>) match);
+            loggerWithCID = logger.withCorrelationId((WithDittoHeaders<?>) match);
+        } else {
+            loggerWithCID = logger;
         }
         if (match instanceof WithId) {
-            logger.debug("Received <{}> with ID <{}>.", match.getClass().getSimpleName(),
+            loggerWithCID.debug("Received <{}> with ID <{}>.", match.getClass().getSimpleName(),
                     ((WithId) match).getEntityId());
         } else {
-            logger.debug("Received match: <{}>.", match);
+            loggerWithCID.debug("Received match: <{}>.", match);
         }
-        logger.discardCorrelationId();
         receiveCounter.increment();
         sourceQueue.offer(mapMessage(match)).handle(this::incrementEnqueueCounters);
     }

@@ -50,7 +50,7 @@ public final class AbstractCommandTest {
 
     private final static class DummyQueryCommand extends AbstractCommand<DummyQueryCommand> {
 
-        protected DummyQueryCommand(final String type, final DittoHeaders dittoHeaders) {
+        private DummyQueryCommand(final String type, final DittoHeaders dittoHeaders) {
             super(type, dittoHeaders);
         }
 

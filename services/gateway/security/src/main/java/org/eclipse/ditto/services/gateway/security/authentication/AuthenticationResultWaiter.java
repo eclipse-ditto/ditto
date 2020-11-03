@@ -13,38 +13,35 @@
 package org.eclipse.ditto.services.gateway.security.authentication;
 
 import java.time.Duration;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationProviderUnavailableException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Waits for the future holding an {@link AuthenticationResult} and returns a failed authentication result with
  * {@link GatewayAuthenticationProviderUnavailableException} as reason if this takes longer than defined in
  * {@link AuthenticationResultWaiter#AWAIT_AUTH_TIMEOUT}.
+ * <p>
+ * TODO: rename this class to reflect that no actual waiting happens
  */
 @ThreadSafe
 public final class AuthenticationResultWaiter<R extends AuthenticationResult>
-        implements Supplier<AuthenticationResult> {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationResultWaiter.class);
+        implements Supplier<CompletableFuture<R>> {
 
     private static final Duration AWAIT_AUTH_TIMEOUT = Duration.ofSeconds(5L);
 
-    private final Future<R> authenticationResultFuture;
+    private final CompletableFuture<R> authenticationResultFuture;
     private final DittoHeaders dittoHeaders;
     private final Duration awaitAuthTimeout;
 
-    private AuthenticationResultWaiter(final Future<R> authenticationResultFuture, final DittoHeaders dittoHeaders,
-            final Duration awaitAuthTimeout) {
+    private AuthenticationResultWaiter(final CompletableFuture<R> authenticationResultFuture,
+            final DittoHeaders dittoHeaders, final Duration awaitAuthTimeout) {
 
         this.authenticationResultFuture = authenticationResultFuture;
         this.dittoHeaders = dittoHeaders;
@@ -60,7 +57,7 @@ public final class AuthenticationResultWaiter<R extends AuthenticationResult>
      * @return the created instance.
      */
     public static <R extends AuthenticationResult> AuthenticationResultWaiter<R> of(
-            final Future<R> authenticationResultFuture, final DittoHeaders dittoHeaders) {
+            final CompletableFuture<R> authenticationResultFuture, final DittoHeaders dittoHeaders) {
 
         return new AuthenticationResultWaiter<>(authenticationResultFuture, dittoHeaders, AWAIT_AUTH_TIMEOUT);
     }
@@ -73,26 +70,19 @@ public final class AuthenticationResultWaiter<R extends AuthenticationResult>
      * {@link AuthenticationResultWaiter#awaitAuthTimeout}.
      */
     @Override
-    public R get() {
-        return tryToGetResult();
+    public CompletableFuture<R> get() {
+        return authenticationResultFuture
+                .orTimeout(awaitAuthTimeout.toMillis(), TimeUnit.MILLISECONDS)
+                .exceptionally(ex -> {
+                    throw mapException(ex);
+                });
     }
 
-    @SuppressWarnings({"squid:S2142", "squid:S2139"})
-    private R tryToGetResult() {
-        try {
-            return getResult();
-        } catch (final InterruptedException | ExecutionException | TimeoutException e) {
-            LOGGER.warn("Error while waiting for authentication result!", e);
-            throw GatewayAuthenticationProviderUnavailableException.newBuilder()
-                    .dittoHeaders(dittoHeaders)
-                    .cause(e)
-                    .build();
-        }
-    }
-
-    private R getResult() throws InterruptedException, ExecutionException, TimeoutException {
-        LOGGER.debug("Waiting for authentication result ...");
-        return authenticationResultFuture.get(awaitAuthTimeout.getSeconds(), TimeUnit.SECONDS);
+    private GatewayAuthenticationProviderUnavailableException mapException(@Nullable final Throwable cause) {
+        return GatewayAuthenticationProviderUnavailableException.newBuilder()
+                .dittoHeaders(dittoHeaders)
+                .cause(cause)
+                .build();
     }
 
 }

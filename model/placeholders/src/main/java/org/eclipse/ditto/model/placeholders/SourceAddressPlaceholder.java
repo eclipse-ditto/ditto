@@ -10,10 +10,8 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.connectivity;
+package org.eclipse.ditto.model.placeholders;
 
-
-import org.eclipse.ditto.model.placeholders.Placeholder;
 
 /**
  * A {@link Placeholder} that requires a {@code String}

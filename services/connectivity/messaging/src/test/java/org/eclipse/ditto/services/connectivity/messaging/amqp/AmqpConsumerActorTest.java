@@ -54,10 +54,12 @@ import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.ReplyTarget;
 import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractConsumerActorTest;
-import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessor;
-import org.eclipse.ditto.services.connectivity.messaging.MessageMappingProcessorActor;
+import org.eclipse.ditto.services.connectivity.messaging.InboundDispatchingActor;
+import org.eclipse.ditto.services.connectivity.messaging.InboundMappingProcessor;
+import org.eclipse.ditto.services.connectivity.messaging.InboundMappingProcessorActor;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
@@ -265,14 +267,37 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
     }
 
     private ActorRef setupActor(final ActorRef testRef, @Nullable final MappingContext mappingContext) {
-        final MessageMappingProcessor mappingProcessor = getMessageMappingProcessor(mappingContext);
+        final Map<String, MappingContext> mappings = new HashMap<>();
+        if (mappingContext != null) {
+            mappings.put("test", mappingContext);
+        }
+        final ThreadSafeDittoLoggingAdapter logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
+        Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.nullable(CharSequence.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
+                .thenReturn(logger);
+        final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
+        final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(CONNECTION_ID,
+                CONNECTION.getConnectionType(),
+                ConnectivityModelFactory.newPayloadMappingDefinition(mappings),
+                actorSystem,
+                TestConstants.CONNECTIVITY_CONFIG,
+                protocolAdapter,
+                logger);
+        final Props inboundDispatchingActorProps = InboundDispatchingActor.props(CONNECTION,
+                protocolAdapter.headerTranslator(), testRef, connectionActorProbe.ref(), testRef);
+        final ActorRef inboundDispatchingActor = actorSystem.actorOf(inboundDispatchingActorProps);
 
         final Props messageMappingProcessorProps =
-                MessageMappingProcessorActor.props(testRef, testRef, mappingProcessor, CONNECTION,
-                        connectionActorProbe.ref(), 17);
+                InboundMappingProcessorActor.props(inboundMappingProcessor, protocolAdapter.headerTranslator(),
+                        CONNECTION, 99, inboundDispatchingActor);
 
         return actorSystem.actorOf(messageMappingProcessorProps,
-                MessageMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
+                InboundMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
     }
 
     @Test
@@ -321,26 +346,6 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
     private static ConsumerData consumerData(final String address, final MessageConsumer messageConsumer,
             final Source source) {
         return ConsumerData.of(source, address, address + "_with_index", messageConsumer);
-    }
-
-    private static MessageMappingProcessor getMessageMappingProcessor(@Nullable final MappingContext mappingContext) {
-        final Map<String, MappingContext> mappings = new HashMap<>();
-        if (mappingContext != null) {
-            mappings.put("test", mappingContext);
-        }
-        final ThreadSafeDittoLoggingAdapter logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
-        Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
-                .thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.nullable(CharSequence.class)))
-                .thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
-                .thenReturn(logger);
-        Mockito.when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
-                .thenReturn(logger);
-        return MessageMappingProcessor.of(CONNECTION_ID, CONNECTION.getConnectionType(),
-                ConnectivityModelFactory.newPayloadMappingDefinition(mappings),
-                actorSystem, TestConstants.CONNECTIVITY_CONFIG,
-                protocolAdapterProvider, logger);
     }
 
     // JMS acknowledgement methods are package-private and impossible to mock.

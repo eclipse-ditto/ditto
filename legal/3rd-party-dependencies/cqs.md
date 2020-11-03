@@ -26,7 +26,7 @@
 |com.lightbend.akka.management|akka-management-cluster-bootstrap_2.12|1.0.8| [19295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19295) |
 |com.lightbend.akka.management|akka-management-cluster-http_2.12|1.0.8| [19295](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=19295) |
 |com.newmotion|akka-rabbitmq_2.13|5.1.2| [22425](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=22425) |
-|com.rabbitmq|amqp-client|5.7.3| no CQ: [5.7.0 on clearlydefined.io](https://clearlydefined.io/definitions/maven/mavencentral/com.rabbitmq/amqp-client/5.7.0) |
+|com.rabbitmq|amqp-client|5.7.3| [22747](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=22747) |
 |com.typesafe.akka|akka-actor_2.13|2.6.9| [22426](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=22426) |
 |com.typesafe.akka|akka-cluster_2.13|2.6.9| [22426](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=22426) |
 |com.typesafe.akka|akka-cluster-sharding_2.13|2.6.9| [22426](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=22426) |
@@ -81,7 +81,7 @@
 |org.mongodb|mongo-java-driver|3.12.6| no CQ: [3.12.4 on clearlydefined.io](https://clearlydefined.io/definitions/maven/mavencentral/org.mongodb/mongo-java-driver/3.12.4) |
 |org.mongodb.scala|mongo-scala-bson_2.13|2.9.0| [22431](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=22431) |
 |org.mongodb.scala|mongo-scala-driver_2.13|2.9.0| [22432](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=22432) |
-|org.mozilla|rhino-runtime|1.7.12| [16320](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16320) |
+|org.mozilla|rhino-runtime|1.7.13| [22749](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=22749) |
 |org.ow2.asm|asm-analysis|7.2| not filed as no piggyback CQs required any longer |
 |org.ow2.asm|asm-commons|7.2| not filed as no piggyback CQs required any longer |
 |org.ow2.asm|asm|7.2| not filed as no piggyback CQs required any longer |
@@ -230,3 +230,4 @@ Manual step by sending mail to Eclipse IP team - this is a collection of depende
 |org.scala-lang|scala-reflect|2.12.10| [18676](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=18676) |
 |com.google.dagger|dagger|2.20| [20716](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=20716) |
 |org.apache.qpid|qpid-jms-client|0.45.0| [20862](http://dev.eclipse.org/ipzilla/show_bug.cgi?id=20862) |
+|org.mozilla|rhino-runtime|1.7.12| [16320](https://dev.eclipse.org/ipzilla/show_bug.cgi?id=16320) |

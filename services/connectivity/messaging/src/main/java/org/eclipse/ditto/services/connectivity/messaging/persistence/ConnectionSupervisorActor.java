@@ -18,7 +18,6 @@ import java.nio.charset.StandardCharsets;
 import javax.annotation.Nullable;
 import javax.jms.JMSRuntimeException;
 
-import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.base.actors.ShutdownBehaviour;
@@ -105,7 +104,8 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
 
     @Override
     protected Props getPersistenceActorProps(final ConnectionId entityId) {
-        return ConnectionPersistenceActor.props(entityId, dittoProtocolSub, proxyActor, propsFactory, commandInterceptor);
+        return ConnectionPersistenceActor.props(entityId, dittoProtocolSub, proxyActor, propsFactory,
+                commandInterceptor);
     }
 
     @Override
@@ -123,7 +123,7 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
 
     @Override
     protected DittoRuntimeExceptionBuilder<?> getUnavailableExceptionBuilder(@Nullable final ConnectionId entityId) {
-        final ConnectionId connectionId = entityId != null ? entityId : ConnectionId.of(DefaultEntityId.dummy());
+        final ConnectionId connectionId = entityId != null ? entityId : ConnectionId.dummy();
         return ConnectionUnavailableException.newBuilder(connectionId);
     }
 

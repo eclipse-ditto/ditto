@@ -18,15 +18,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -37,23 +31,20 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
-import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
+import org.eclipse.ditto.services.connectivity.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.protocol.DittoProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
-import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -65,11 +56,11 @@ import akka.actor.ActorSystem;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link MessageMappingProcessor}.
+ * Tests {@link InboundMappingProcessor}.
  */
-public final class MessageMappingProcessorTest {
+public final class InboundMappingProcessorTest {
 
-    private MessageMappingProcessor underTest;
+    private InboundMappingProcessor underTest;
 
     private static final String DITTO_MAPPER = "ditto";
     private static final Map<String, String> DITTO_MAPPER_CONDITIONS = Map.of(
@@ -137,81 +128,9 @@ public final class MessageMappingProcessorTest {
         final PayloadMappingDefinition payloadMappingDefinition =
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappings);
 
-        underTest =
-                MessageMappingProcessor.of(ConnectionId.of("theConnection"), ConnectionType.AMQP_10,
-                        payloadMappingDefinition, actorSystem,
-                        connectivityConfig, protocolAdapterProvider, logger);
-    }
-
-    @Test
-    public void testOutboundMessageMapped() {
-        testOutbound(1, 0, 0, targetWithMapping(DITTO_MAPPER));
-    }
-
-    @Test
-    public void testOutboundResponseMapped() {
-        testOutbound(1, 0, 0);
-    }
-
-    @Test
-    public void testGroupingOfTargets() {
-        /*
-          expect 6 mappings:
-           - 3 targets with 1 mapper  (can be grouped together, mapping is done once)  -> 1 message (with 3 targets)
-           - 2 targets with 2 mappers (can be grouped together, mapping is done twice) -> 2 messages (with 2 targets)
-           - 1 target  with 3 mappers (no grouping, mapping is done three times)       -> 3 messages (with 1 target)
-         */
-        testOutbound(6, 0, 0,
-                targetWithMapping(DITTO_MAPPER),
-                targetWithMapping(DITTO_MAPPER),
-                targetWithMapping(DITTO_MAPPER),
-                targetWithMapping(DITTO_MAPPER, DITTO_MAPPER),
-                targetWithMapping(DITTO_MAPPER, DITTO_MAPPER),
-                targetWithMapping(DITTO_MAPPER, DITTO_MAPPER, DITTO_MAPPER)
-        );
-    }
-
-    @Test
-    public void testOutboundMessageEnriched() {
-        new TestKit(actorSystem) {{
-            final ThingModifiedEvent signal = TestConstants.thingModified(Collections.emptyList());
-            final JsonObject extra = JsonObject.newBuilder().set("x", 5).build();
-            final OutboundSignal outboundSignal = Mockito.mock(OutboundSignal.class);
-            final MappingResultHandler<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingResultHandler.class);
-            when(outboundSignal.getExtra()).thenReturn(Optional.of(extra));
-            when(outboundSignal.getSource()).thenReturn(signal);
-            underTest.process(outboundSignal, mock);
-            final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
-            verify(mock, times(1)).onMessageMapped(captor.capture());
-            verify(mock, times(0)).onException(any(Exception.class));
-            verify(mock, times(0)).onMessageDropped();
-
-            assertThat(captor.getAllValues()).allSatisfy(em -> assertThat(em.getAdaptable().getPayload().getExtra())
-                    .contains(extra));
-        }};
-    }
-
-    @Test
-    public void testOutboundMessageDropped() {
-        testOutbound(0, 1, 0, targetWithMapping(DROPPING_MAPPER));
-    }
-
-    @Test
-    public void testOutboundMessageDuplicated() {
-        testOutbound(TestConstants.thingModifiedWithCor(Collections.emptyList()),
-                2, 0, 0, false, targetWithMapping(DUPLICATING_MAPPER));
-    }
-
-    @Test
-    public void testOutboundMappingFails() {
-        testOutbound(0, 0, 1, targetWithMapping(FAILING_MAPPER));
-    }
-
-    @Test
-    public void testOutboundMessageDroppedFailedMappedDuplicated() {
-        testOutbound(TestConstants.thingModifiedWithCor(Collections.emptyList()),
-                2 /* duplicated */ + 1 /* mapped */, 1, 1, false,
-                targetWithMapping(DROPPING_MAPPER, FAILING_MAPPER, DITTO_MAPPER, DUPLICATING_MAPPER));
+        underTest = InboundMappingProcessor.of(ConnectionId.of("theConnection"), ConnectionType.AMQP_10,
+                payloadMappingDefinition, actorSystem,
+                connectivityConfig, protocolAdapterProvider.getProtocolAdapter(null), logger);
     }
 
     @Test
@@ -296,60 +215,6 @@ public final class MessageMappingProcessorTest {
         testInbound(message, 0, 1, 0);
     }
 
-    private static Target targetWithMapping(final String... mappings) {
-        return ConnectivityModelFactory.newTargetBuilder(TestConstants.Targets.TWIN_TARGET)
-                .address(UUID.randomUUID().toString())
-                .payloadMapping(ConnectivityModelFactory.newPayloadMapping(mappings))
-                .build();
-    }
-
-    private void testOutbound(final int mapped, final int dropped, final int failed, final Target... targets) {
-        testOutbound(TestConstants.thingModified(Collections.emptyList()), mapped, dropped, failed, true, targets);
-    }
-
-    private void testOutboundWithCor(final int mapped, final int dropped, final int failed, final Target... targets) {
-        testOutbound(TestConstants.thingModifiedWithCor(Collections.emptyList()), mapped, dropped, failed, true,
-                targets);
-    }
-
-    private void testOutbound(final ThingModifiedEvent<?> signal,
-            final int mapped,
-            final int dropped,
-            final int failed,
-            final boolean assertTargets,
-            final Target... targets) {
-
-        new TestKit(actorSystem) {{
-
-            // expect one message per mapper per target
-            final List<Target> expectedTargets = Arrays.stream(targets)
-                    .flatMap(t -> Stream.generate(() -> t).limit(t.getPayloadMapping().getMappings().size()))
-                    .collect(Collectors.toList());
-
-            final OutboundSignal outboundSignal =
-                    OutboundSignalFactory.newOutboundSignal(signal, Arrays.asList(targets));
-            //noinspection unchecked
-            final MappingResultHandler<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingResultHandler.class);
-            underTest.process(outboundSignal, mock);
-            final ArgumentCaptor<OutboundSignal.Mapped> captor = ArgumentCaptor.forClass(OutboundSignal.Mapped.class);
-            verify(mock, times(mapped)).onMessageMapped(captor.capture());
-            verify(mock, times(failed)).onException(any(Exception.class));
-            verify(mock, times(dropped)).onMessageDropped();
-
-            assertThat(captor.getAllValues()).allSatisfy(em ->
-                    assertThat(em.getExternalMessage().getTextPayload())
-                            .contains(TestConstants.signalToDittoProtocolJsonString(signal)));
-
-            if (assertTargets && mapped > 0) {
-                assertThat(captor.getAllValues()
-                        .stream()
-                        .flatMap(mapped -> mapped.getTargets().stream())
-                        .collect(Collectors.toList()))
-                        .containsExactlyInAnyOrderElementsOf(expectedTargets);
-            }
-        }};
-    }
-
     private void testInbound(final int mapped, final int dropped, final int failed, final String... mappers) {
         final ExternalMessage externalMessage = ExternalMessageFactory
                 .newExternalMessageBuilder(Collections.emptyMap())
@@ -373,20 +238,21 @@ public final class MessageMappingProcessorTest {
         testInbound(externalMessage, mapped, dropped, failed);
     }
 
+    @SuppressWarnings("unchecked")
     private void testInbound(final ExternalMessage externalMessage,
             final int mapped,
             final int dropped,
             final int failed) {
 
         new TestKit(actorSystem) {{
-            final MappingResultHandler<MappedInboundExternalMessage, Void> mock =
-                    Mockito.mock(MappingResultHandler.class);
-            underTest.process(externalMessage, mock);
+            final MappingOutcome.Visitor<MappedInboundExternalMessage, Void> mock =
+                    Mockito.mock(MappingOutcome.Visitor.class);
+            underTest.process(externalMessage).forEach(x -> x.accept(mock));
             final ArgumentCaptor<MappedInboundExternalMessage> captor =
                     ArgumentCaptor.forClass(MappedInboundExternalMessage.class);
-            verify(mock, times(mapped)).onMessageMapped(captor.capture());
-            verify(mock, times(failed)).onException(any(Exception.class));
-            verify(mock, times(dropped)).onMessageDropped();
+            verify(mock, times(mapped)).onMapped(any(String.class), captor.capture());
+            verify(mock, times(failed)).onError(any(String.class), any(Exception.class), any(), any());
+            verify(mock, times(dropped)).onDropped(any(String.class), any());
 
             assertThat(captor.getAllValues()).allSatisfy(mapped -> {
                 assertThat(mapped.getSignal().getDittoHeaders()).containsEntry(

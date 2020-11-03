@@ -72,7 +72,10 @@ public abstract class AbstractThingEvent<T extends AbstractThingEvent<T>> implem
         this.thingId = checkNotNull(thingId, "Thing identifier");
         this.revision = revision;
         this.timestamp = timestamp;
-        this.dittoHeaders = checkNotNull(dittoHeaders, "command headers");
+        this.dittoHeaders = checkNotNull(dittoHeaders, "dittoHeaders").isResponseRequired() ? dittoHeaders
+                .toBuilder()
+                .responseRequired(false)
+                .build() : dittoHeaders;
         this.metadata = metadata;
     }
 

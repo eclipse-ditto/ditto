@@ -39,7 +39,7 @@ import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link MessageMappingProcessorActor}.
+ * Tests {@link InboundMappingProcessorActor}.
  */
 @RunWith(Parameterized.class)
 public final class MessageMappingProcessorActorHeaderInteractionTest extends AbstractMessageMappingProcessorActorTest {
@@ -80,13 +80,15 @@ public final class MessageMappingProcessorActorHeaderInteractionTest extends Abs
     public void run() {
         new TestKit(actorSystem) {{
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
-            final ActorRef underTest = createMessageMappingProcessorActor(this);
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
+            final ActorRef inboundMappingProcessorActor =
+                    createInboundMappingProcessorActor(this, outboundMappingProcessorActor);
             final ModifyThing modifyThing = getModifyThing();
             final Optional<HttpStatusCode> expectedStatusCode = getExpectedOutcome();
             final boolean isBadRequest = expectedStatusCode.filter(HttpStatusCode.BAD_REQUEST::equals).isPresent();
             final boolean settleImmediately = modifyThing.getDittoHeaders().getAcknowledgementRequests().isEmpty();
 
-            underTest.tell(toExternalMessage(modifyThing), collectorProbe.ref());
+            inboundMappingProcessorActor.tell(toExternalMessage(modifyThing), collectorProbe.ref());
 
             // transport-layer settlement based on requested-acks alone
             if (settleImmediately && !isBadRequest) {
@@ -160,4 +162,5 @@ public final class MessageMappingProcessorActorHeaderInteractionTest extends Abs
         }
         return status;
     }
+
 }

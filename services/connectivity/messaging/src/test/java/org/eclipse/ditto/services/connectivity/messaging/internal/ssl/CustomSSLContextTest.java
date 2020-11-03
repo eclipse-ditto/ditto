@@ -12,6 +12,9 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -20,6 +23,8 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Credentials;
 
 /**
@@ -32,8 +37,11 @@ public final class CustomSSLContextTest extends AbstractSSLContextTest {
     SSLContext createSSLContext(@Nullable final String trustedCertificates,
             final String hostname, final Credentials credentials) throws Exception {
 
-        final TrustManagerFactory trustManagerFactory =
-                DittoTrustManagerFactory.from(trustedCertificates, hostname);
+        final Connection connection = mock(Connection.class);
+        when(connection.getTrustedCertificates()).thenReturn(Optional.ofNullable(trustedCertificates));
+        when(connection.isValidateCertificates()).thenReturn(true);
+        when(connection.getHostname()).thenReturn(hostname);
+        final TrustManagerFactory trustManagerFactory = DittoTrustManagerFactory.from(connection, connectionLoggerMock);
 
         final KeyManager[] keyManagers = Optional.ofNullable(credentials)
                 .map(c -> c.accept(KeyManagerFactoryFactory.getInstance()))
@@ -49,7 +57,7 @@ public final class CustomSSLContextTest extends AbstractSSLContextTest {
     SSLContext createAcceptAnySSLContext() throws Exception {
         final SSLContext sslContext = SSLContext.getInstance(SSLContextCreator.TLS12);
         final TrustManagerFactory trustManagerFactory =
-                TrustManagerFactoryFactory.getInstance().newInsecureTrustManagerFactory();
+                TrustManagerFactoryFactory.getInstance(DittoHeaders.empty()).newInsecureTrustManagerFactory();
         sslContext.init(null, trustManagerFactory.getTrustManagers(), null);
         return sslContext;
     }

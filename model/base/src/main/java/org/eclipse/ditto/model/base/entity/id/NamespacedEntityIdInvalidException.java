@@ -104,6 +104,17 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
         return Optional.ofNullable(entityId);
     }
 
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new Builder(null)
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
+                .dittoHeaders(dittoHeaders)
+                .build();
+    }
+
     // TODO: equals and hashcode
     /**
      * A mutable builder with a fluent API for a {@link NamespacedEntityIdInvalidException}.

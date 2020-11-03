@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.ExceptionHandler;
@@ -30,6 +31,7 @@ public interface RabbitConnectionFactoryFactory {
      * @return the Rabbit ConnectionFactory.
      * @throws NullPointerException when any argument is null
      */
-    ConnectionFactory createConnectionFactory(Connection connection, ExceptionHandler exceptionHandler);
+    ConnectionFactory createConnectionFactory(Connection connection, ExceptionHandler exceptionHandler,
+            ConnectionLogger connectionLogger);
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -140,6 +140,10 @@ public final class DefaultConnectionConfigTest {
                 .satisfies(maxNumberOfTargets -> softly.assertThat(maxNumberOfTargets)
                         .as(ConnectionConfig.ConnectionConfigValue.MAX_TARGET_NUMBER.getConfigPath())
                         .isEqualTo(3));
+
+        softly.assertThat(underTest.getAckLabelDeclareInterval())
+                .as(ConnectionConfig.ConnectionConfigValue.ACK_LABEL_DECLARE_INTERVAL.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(99L));
     }
 
 }

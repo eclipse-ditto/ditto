@@ -104,6 +104,7 @@ public final class NormalizedMessageMapperTest {
                         "    \"topic\": \"thing/created/things/twin/events/created\",\n" +
                         "    \"path\": \"/\",\n" +
                         "    \"headers\": {\n" +
+                        "      \"response-required\": \"false\",\n" +
                         "      \"content-type\": \"application/vnd.eclipse.ditto+json\"\n" +
                         "    }\n" +
                         "  }\n" +
@@ -138,6 +139,7 @@ public final class NormalizedMessageMapperTest {
                         "    \"topic\": \"thing/id/things/twin/events/modified\",\n" +
                         "    \"path\": \"/features/featureId/properties/the/quick/brown/fox/jumps/over/the/lazy/dog\",\n" +
                         "    \"headers\": {\n" +
+                        "      \"response-required\": \"false\",\n" +
                         "      \"content-type\": \"application/vnd.eclipse.ditto+json\"\n" +
                         "    }\n" +
                         "  }\n" +

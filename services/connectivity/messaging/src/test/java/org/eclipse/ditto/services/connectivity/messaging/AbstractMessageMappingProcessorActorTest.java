@@ -22,9 +22,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -47,11 +49,13 @@ import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
+import org.eclipse.ditto.model.connectivity.SourceBuilder;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.connectivity.mapping.ConnectivityCachingSignalEnrichmentProvider;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
@@ -60,6 +64,8 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
@@ -177,7 +183,9 @@ public abstract class AbstractMessageMappingProcessorActorTest {
             @Nullable final String mapping, final Consumer<ThingErrorResponse> verifyErrorResponse) {
 
         new TestKit(actorSystem) {{
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
+            final ActorRef inboundMappingProcessorActor =
+                    createInboundMappingProcessorActor(this, outboundMappingProcessorActor);
             final ModifyAttribute modifyCommand = createModifyAttributeCommand();
             final PayloadMapping mappings = ConnectivityModelFactory.newPayloadMapping(mapping);
             final ExternalMessage externalMessage =
@@ -192,7 +200,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                             .build();
 
             TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
-            messageMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
+            inboundMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
 
             if (expectSuccess) {
                 final ModifyAttribute modifyAttribute = expectMsgClass(ModifyAttribute.class);
@@ -219,7 +227,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                         ModifyAttributeResponse.modified(KNOWN_THING_ID, modifyAttribute.getAttributePointer(),
                                 modifyAttribute.getDittoHeaders());
 
-                messageMappingProcessorActor.tell(commandResponse, getRef());
+                outboundMappingProcessorActor.tell(commandResponse, getRef());
                 final OutboundSignal.Mapped responseMessage =
                         expectMsgClass(PublishMappedMessage.class).getOutboundSignal().first();
 
@@ -242,7 +250,9 @@ public abstract class AbstractMessageMappingProcessorActorTest {
             final Consumer<T> verifyReceivedMessage) {
 
         new TestKit(actorSystem) {{
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
+            final ActorRef inboundMappingProcessorActor =
+                    createInboundMappingProcessorActor(this, outboundMappingProcessorActor);
             final Map<String, String> headers = new HashMap<>();
             headers.put("content-type", "application/json");
             final ModifyAttribute modifyCommand = ModifyAttribute.of(KNOWN_THING_ID, JsonPointer.of("foo"),
@@ -257,7 +267,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                     .build();
 
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
-            messageMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
+            inboundMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
 
             final T received = expectMsgClass(expectedMessageClass);
             verifyReceivedMessage.accept(received);
@@ -270,7 +280,9 @@ public abstract class AbstractMessageMappingProcessorActorTest {
             final Consumer<T> verifyReceivedMessage) {
 
         new TestKit(actorSystem) {{
-            final ActorRef messageMappingProcessorActor = createMessageMappingProcessorActor(this);
+            final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
+            final ActorRef inboundMappingProcessorActor =
+                    createInboundMappingProcessorActor(this, outboundMappingProcessorActor);
             final Map<String, String> headers = new HashMap<>();
             headers.put("correlation-id", correlationId);
             headers.put("content-type", "application/json");
@@ -287,21 +299,54 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                     .build();
 
             final TestProbe collectorProbe = TestProbe.apply("collector", actorSystem);
-            messageMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
+            inboundMappingProcessorActor.tell(externalMessage, collectorProbe.ref());
 
             final T received = expectMsgClass(expectedMessageClass);
             verifyReceivedMessage.accept(received);
         }};
     }
 
-    ActorRef createMessageMappingProcessorActor(final TestKit kit) {
-        final Props props =
-                MessageMappingProcessorActor.props(kit.getRef(), kit.getRef(), getMessageMappingProcessor(),
-                        CONNECTION, connectionActorProbe.ref(), 99);
-        return actorSystem.actorOf(props);
+    ActorRef createInboundMappingProcessorActor(final TestKit kit, final ActorRef outboundMappingProcessorActor) {
+        return createInboundMappingProcessorActor(kit.getRef(), outboundMappingProcessorActor);
     }
 
-    MessageMappingProcessor getMessageMappingProcessor() {
+    ActorRef createInboundMappingProcessorActor(final ActorRef proxyActor,
+            final ActorRef outboundMappingProcessorActor) {
+        final Map<String, MappingContext> mappingDefinitions = new HashMap<>();
+        mappingDefinitions.put(FAULTY_MAPPER, FaultyMessageMapper.CONTEXT);
+        mappingDefinitions.put(ADD_HEADER_MAPPER, AddHeaderMessageMapper.CONTEXT);
+        mappingDefinitions.put(DUPLICATING_MAPPER, DuplicatingMessageMapper.CONTEXT);
+        final PayloadMappingDefinition payloadMappingDefinition =
+                ConnectivityModelFactory.newPayloadMappingDefinition(mappingDefinitions);
+        final ThreadSafeDittoLoggingAdapter logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
+        Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.nullable(CharSequence.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
+                .thenReturn(logger);
+        final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
+        final InboundMappingProcessor inboundMappingProcessor = InboundMappingProcessor.of(CONNECTION_ID,
+                CONNECTION.getConnectionType(),
+                payloadMappingDefinition,
+                actorSystem,
+                TestConstants.CONNECTIVITY_CONFIG,
+                protocolAdapter,
+                logger);
+        final Props inboundDispatchingActorProps = InboundDispatchingActor.props(CONNECTION,
+                protocolAdapter.headerTranslator(), proxyActor, connectionActorProbe.ref(),
+                outboundMappingProcessorActor);
+        final ActorRef inboundDispatchingActor = actorSystem.actorOf(inboundDispatchingActorProps);
+
+        final Props inboundMappingProcessorProps =
+                InboundMappingProcessorActor.props(inboundMappingProcessor, protocolAdapter.headerTranslator(),
+                        CONNECTION, 99, inboundDispatchingActor);
+        return actorSystem.actorOf(inboundMappingProcessorProps);
+    }
+
+    ActorRef createOutboundMappingProcessorActor(final TestKit kit) {
         final Map<String, MappingContext> mappingDefinitions = new HashMap<>();
         mappingDefinitions.put(FAULTY_MAPPER, FaultyMessageMapper.CONTEXT);
         mappingDefinitions.put(ADD_HEADER_MAPPER, AddHeaderMessageMapper.CONTEXT);
@@ -317,10 +362,14 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 .thenReturn(logger);
         Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
                 .thenReturn(logger);
-        return MessageMappingProcessor.of(CONNECTION_ID, CONNECTION.getConnectionType(), payloadMappingDefinition,
-                actorSystem,
-                TestConstants.CONNECTIVITY_CONFIG,
-                protocolAdapterProvider, logger);
+        final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
+        final OutboundMappingProcessor outboundMappingProcessor =
+                OutboundMappingProcessor.of(CONNECTION_ID, CONNECTION.getConnectionType(), payloadMappingDefinition,
+                        actorSystem,
+                        TestConstants.CONNECTIVITY_CONFIG, protocolAdapter, logger);
+
+        final Props props = OutboundMappingProcessorActor.props(kit.getRef(), outboundMappingProcessor, CONNECTION, 99);
+        return actorSystem.actorOf(props);
     }
 
     void setUpProxyActor(final ActorRef recipient) {
@@ -331,19 +380,37 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 .join();
     }
 
-    ExternalMessage toExternalMessage(final Signal<?> signal) {
+    ExternalMessage toExternalMessage(final Signal<?> signal, Consumer<SourceBuilder<?>> sourceModifier) {
         final AuthorizationContext context =
                 AuthorizationModelFactory.newAuthContext(
                         DittoAuthorizationContextType.UNSPECIFIED,
                         AuthorizationModelFactory.newAuthSubject("ditto:ditto"));
         final JsonifiableAdaptable adaptable = ProtocolFactory
                 .wrapAsJsonifiableAdaptable(DITTO_PROTOCOL_ADAPTER.toAdaptable(signal));
+        final SourceBuilder<?> sourceBuilder = ConnectivityModelFactory.newSourceBuilder()
+                .address("address")
+                .authorizationContext(AUTHORIZATION_CONTEXT);
+        sourceModifier.accept(sourceBuilder);
         return ExternalMessageFactory.newExternalMessageBuilder(Map.of())
                 .withTopicPath(adaptable.getTopicPath())
                 .withText(adaptable.toJsonString())
                 .withAuthorizationContext(context)
                 .withInternalHeaders(signal.getDittoHeaders())
+                .withSource(sourceBuilder.build())
                 .build();
+    }
+
+    ExternalMessage toExternalMessage(final Signal<?> signal) {
+        return toExternalMessage(signal, sourceBuilder -> {
+            if (signal instanceof Acknowledgement) {
+                sourceBuilder.declaredAcknowledgementLabels(Set.of(((Acknowledgement) signal).getLabel()));
+            } else if (signal instanceof Acknowledgements) {
+                sourceBuilder.declaredAcknowledgementLabels(((Acknowledgements) signal).stream()
+                        .map(Acknowledgement::getLabel)
+                        .collect(Collectors.toSet())
+                );
+            }
+        });
     }
 
     static ModifyAttribute createModifyAttributeCommand() {

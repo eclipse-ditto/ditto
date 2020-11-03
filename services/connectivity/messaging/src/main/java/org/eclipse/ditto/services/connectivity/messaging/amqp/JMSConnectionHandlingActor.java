@@ -34,8 +34,13 @@ import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsQueue;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.services.connectivity.config.Amqp10Config;
+import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
 import akka.actor.AbstractActor;
@@ -83,16 +88,18 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     private final Connection connection;
     private final ExceptionListener exceptionListener;
     private final JmsConnectionFactory jmsConnectionFactory;
+    private final ConnectionLogger connectionLogger;
 
     @Nullable private Session currentSession = null;
 
     @SuppressWarnings("unused")
     private JMSConnectionHandlingActor(final Connection connection, final ExceptionListener exceptionListener,
-            final JmsConnectionFactory jmsConnectionFactory) {
+            final JmsConnectionFactory jmsConnectionFactory, final ConnectionLogger connectionLogger) {
 
         this.connection = checkNotNull(connection, "connection");
         this.exceptionListener = exceptionListener;
         this.jmsConnectionFactory = jmsConnectionFactory;
+        this.connectionLogger = connectionLogger;
     }
 
     /**
@@ -101,17 +108,19 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
      * @param connection the connection
      * @param exceptionListener the exception listener
      * @param jmsConnectionFactory the jms connection factory
+     * @param connectionLogger used to log failures during certificate validation.
      * @return the Akka configuration Props object.
      */
     static Props props(final Connection connection, final ExceptionListener exceptionListener,
-            final JmsConnectionFactory jmsConnectionFactory) {
+            final JmsConnectionFactory jmsConnectionFactory, final ConnectionLogger connectionLogger) {
 
-        return Props.create(JMSConnectionHandlingActor.class, connection, exceptionListener, jmsConnectionFactory);
+        return Props.create(JMSConnectionHandlingActor.class, connection, exceptionListener, jmsConnectionFactory,
+                connectionLogger);
     }
 
     static Props propsWithOwnDispatcher(final Connection connection, final ExceptionListener exceptionListener,
-            final JmsConnectionFactory jmsConnectionFactory) {
-        return props(connection, exceptionListener, jmsConnectionFactory)
+            final JmsConnectionFactory jmsConnectionFactory, final ConnectionLogger connectionLogger) {
+        return props(connection, exceptionListener, jmsConnectionFactory, connectionLogger)
                 .withDispatcher(DISPATCHER_NAME);
     }
 
@@ -349,10 +358,16 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     private JmsConnection createJmsConnection() {
         return safelyExecuteJmsOperation(null, "create JMS connection", () -> {
             if (log.isDebugEnabled()) {
+                final ConnectionConfig connectionConfig =
+                        DittoConnectivityConfig.of(
+                                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
+                                .getConnectionConfig();
+                final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
                 log.debug("Attempt to create connection {} for URI [{}]", connection.getId(),
-                        ConnectionBasedJmsConnectionFactory.buildAmqpConnectionUriFromConnection(connection));
+                        ConnectionBasedJmsConnectionFactory
+                                .buildAmqpConnectionUriFromConnection(connection, amqp10Config));
             }
-            return jmsConnectionFactory.createConnection(connection, exceptionListener);
+            return jmsConnectionFactory.createConnection(connection, exceptionListener, connectionLogger);
         });
     }
 

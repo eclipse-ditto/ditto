@@ -38,7 +38,8 @@ Maven coordinates:
 
 To configure your Ditto client instance, use the `org.eclipse.ditto.client.configuration` package in order to 
 * create instances of `AuthenticationProvider` and `MessagingProvider`
-* create a `DittoClient` instance
+* create a `DisconnectedDittoClient` instance
+* obtain a `DittoClient` instance asynchronously by calling `.connect()`
 
 For example:
 
@@ -71,7 +72,12 @@ MessagingProvider messagingProvider =
             .build())
         .build(), authenticationProvider);
 
-DittoClient client = DittoClients.newInstance(messagingProvider);
+DisconnectedDittoClient disconnectedDittoClient = DittoClients.newDisconnectedInstance(messagingProvider);
+
+disconnectedDittoClient.connect()
+    .thenAccept(this::startUsingDittoClient)
+    .exceptionally(error -> disconnectedDittoClient.destroy());
+
 ```
 
 ### Use the Ditto client
@@ -118,8 +124,6 @@ client.twin().registerForFeaturePropertyChanges("my-feature-changes", "temperatu
 ```
 
 ##### Subscribe to enriched change notifications
-
-{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
 
 In order to use [enrichment](basic-enrichment.html) in the Ditto Java client, the `startConsumption()` call can be
 enhanced with the additional extra fields:
@@ -174,8 +178,6 @@ client.live().forId("org.eclipse.ditto:new-thing")
 
 #### Manage policies
 
-{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
-
 Read a policy:
 ```java
 Policy retrievedPolicy = client.policies().retrieve(PolicyId.of("org.eclipse.ditto:new-policy"))
@@ -198,8 +200,6 @@ client.policies().create(newPolicy)
 Updating and deleting policies is also possible via the Java client API, please follow the API and the JavaDoc.
 
 #### Search for things
-
-{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
 
 Search for things using the Java 8 `java.util.Stream` API:
 ```java
@@ -228,8 +228,6 @@ akka.stream.javadsl.Source<Thing, NotUsed> things = akka.stream.javadsl.Source.f
 
 
 #### Request and issue acknowledgements
-
-{% include callout.html content="Available since Ditto **1.1.0**" type="primary" %}
 
 [Requesting acknowledgements](basic-acknowledgements.html#requesting-acks) is possible in the Ditto Java 
 client in the following way:

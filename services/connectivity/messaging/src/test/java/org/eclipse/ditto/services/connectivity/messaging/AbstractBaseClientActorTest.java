@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.signals.commands.connectivity.modify.EnableConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionLogs;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ResetConnectionMetrics;
@@ -49,9 +51,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.http.javadsl.ConnectionContext;
 import akka.http.javadsl.Http;
-import akka.http.javadsl.HttpsConnectionContext;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.model.Uri;
 import akka.stream.javadsl.Flow;
@@ -158,9 +158,10 @@ public abstract class AbstractBaseClientActorTest {
                 .clientKey(TestConstants.Certificates.CLIENT_SELF_SIGNED_KEY)
                 .clientCertificate(TestConstants.Certificates.CLIENT_SELF_SIGNED_CRT)
                 .build();
-        final SSLContext sslContext = SSLContextCreator.fromConnection(serverConnection, DittoHeaders.empty())
-                .clientCertificate(credentials);
-        final HttpsConnectionContext invalidHttpsContext = ConnectionContext.https(sslContext);
+        final ConnectionLogger connectionLogger = mock(ConnectionLogger.class);
+        final SSLContext sslContext =
+                SSLContextCreator.fromConnection(serverConnection, DittoHeaders.empty(), connectionLogger)
+                        .clientCertificate(credentials);
 
         final ActorSystem actorSystem = getActorSystem();
         final ServerBinding binding = Http.get(actorSystem)

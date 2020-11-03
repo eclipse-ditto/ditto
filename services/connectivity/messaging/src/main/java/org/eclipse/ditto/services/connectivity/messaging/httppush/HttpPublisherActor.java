@@ -49,13 +49,9 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.connectivity.config.HttpPushConfig;
-import org.eclipse.ditto.services.connectivity.config.MonitoringConfig;
-import org.eclipse.ditto.services.connectivity.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
@@ -115,7 +111,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     private final HttpPushFactory factory;
 
-    private final ConnectionLogger connectionLogger;
     private final Materializer materializer;
     private final SourceQueue<Pair<HttpRequest, HttpPushContext>> sourceQueue;
     private final KillSwitch killSwitch;
@@ -127,7 +122,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
         final HttpPushConfig config = connectionConfig.getHttpPushConfig();
 
-        connectionLogger = getConnectionLogger(connection);
         materializer = Materializer.createMaterializer(this::getContext);
         final Pair<Pair<SourceQueueWithComplete<Pair<HttpRequest, HttpPushContext>>, UniqueKillSwitch>,
                 CompletionStage<Done>> materialized =
@@ -147,13 +141,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     static Props props(final Connection connection, final HttpPushFactory factory) {
         return Props.create(HttpPublisherActor.class, connection, factory);
-    }
-
-    private ConnectionLogger getConnectionLogger(final Connection connection) {
-        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
-        final MonitoringLoggerConfig loggerConfig = monitoringConfig.logger();
-        final ConnectionLoggerRegistry connectionLoggerRegistry = ConnectionLoggerRegistry.fromConfig(loggerConfig);
-        return connectionLoggerRegistry.forConnection(connection.getId());
     }
 
     @Override
@@ -350,15 +337,24 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 }
 
                 if (result != null && isMessageCommand) {
-                    // Do only add command response for live commands with a correct response.
-                    return validateLiveResponse(result, (MessageCommand<?, ?>) signal);
+                    // Do only return command response for live commands with a correct response.
+                    validateLiveResponse(result, (MessageCommand<?, ?>) signal);
+                }
+                if (result == null) {
+                    connectionLogger.success(
+                            "No CommandResponse created from HTTP response with status <{0}> and body <{1}>.",
+                            response.status(), body);
+                } else {
+                    connectionLogger.success(
+                            "CommandResponse <{0}> created from HTTP response with Status <{1}> and body <{2}>.",
+                            result, response.status(), body);
                 }
                 return result;
             });
         }
     }
 
-    private CommandResponse<?> validateLiveResponse(final CommandResponse<?> commandResponse,
+    private void validateLiveResponse(final CommandResponse<?> commandResponse,
             final MessageCommand<?, ?> messageCommand) {
 
         final ThingId messageThingId = messageCommand.getEntityId();
@@ -413,7 +409,6 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             default:
                 handleInvalidResponse("Initial message command type <{}> is unknown.", commandResponse);
         }
-        return commandResponse;
     }
 
     private void handleInvalidResponse(final String message, final CommandResponse<?> commandResponse) {
@@ -552,3 +547,4 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
 }
+

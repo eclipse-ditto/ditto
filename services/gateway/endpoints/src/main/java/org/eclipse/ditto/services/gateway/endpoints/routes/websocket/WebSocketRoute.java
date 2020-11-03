@@ -28,16 +28,22 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -96,7 +102,7 @@ import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.ws.Message;
 import akka.http.javadsl.model.ws.TextMessage;
-import akka.http.javadsl.model.ws.UpgradeToWebSocket;
+import akka.http.javadsl.model.ws.WebSocketUpgrade;
 import akka.http.javadsl.server.Directives;
 import akka.http.javadsl.server.Route;
 import akka.japi.Pair;
@@ -252,14 +258,13 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final DittoHeaders dittoHeaders,
             final ProtocolAdapter chosenProtocolAdapter) {
 
-        return Directives.extractUpgradeToWebSocket(
-                upgradeToWebSocketHeader -> Directives.extractRequest(
-                        request -> {
-                            authorizationEnforcer.checkAuthorization(dittoHeaders);
-                            return Directives.completeWithFuture(
-                                    createWebSocket(upgradeToWebSocketHeader, version, correlationId.toString(),
-                                            dittoHeaders, chosenProtocolAdapter, request));
-                        }));
+        return Directives.extractWebSocketUpgrade(websocketUpgrade -> Directives.extractRequest(request -> {
+            final CompletionStage<DittoHeaders> checkAuthorization =
+                    authorizationEnforcer.checkAuthorization(dittoHeaders);
+            return Directives.completeWithFuture(checkAuthorization.thenCompose(authorizedHeaders ->
+                    createWebSocket(websocketUpgrade, version, correlationId.toString(),
+                            authorizedHeaders, chosenProtocolAdapter, request)));
+        }));
     }
 
     private CompletionStage<WebsocketConfig> retrieveWebsocketConfig() {
@@ -267,7 +272,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 .thenApply(reply -> (WebsocketConfig) reply); // fail future with ClassCastException on type error
     }
 
-    private CompletionStage<HttpResponse> createWebSocket(final UpgradeToWebSocket upgradeToWebSocket,
+    private CompletionStage<HttpResponse> createWebSocket(final WebSocketUpgrade upgradeToWebSocket,
             final JsonSchemaVersion version,
             final CharSequence connectionCorrelationId,
             final DittoHeaders dittoHeaders,
@@ -480,7 +485,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                     webSocketSupervisor.supervise(withQueue.getSupervisedStream(), connectionCorrelationId,
                             additionalHeaders);
                     return new Connect(withQueue.getSourceQueue(), connectionCorrelationId, STREAMING_TYPE_WS, version,
-                            optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null));
+                            optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null),
+                            readDeclaredAcknowledgementLabels(additionalHeaders));
                 })
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<SessionedJsonifiable, NotUsed>>()
                         .match(GatewayWebsocketSessionExpiredException.class,
@@ -522,6 +528,19 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                         }));
 
         return Pair.create(connect, joinOutgoingFlows(eventAndResponseSource, errorFlow, messageFlow));
+    }
+
+    private static Set<AcknowledgementLabel> readDeclaredAcknowledgementLabels(final DittoHeaders dittoHeaders) {
+        return Optional.ofNullable(dittoHeaders.get(DittoHeaderDefinition.DECLARED_ACKS.getKey()))
+                .map(JsonFactory::readFrom)
+                .filter(JsonValue::isArray)
+                .map(JsonValue::asArray)
+                .map(JsonArray::stream)
+                .orElseGet(Stream::empty)
+                .filter(JsonValue::isString)
+                .map(JsonValue::asString)
+                .map(AcknowledgementLabel::of)
+                .collect(Collectors.toSet());
     }
 
     @SuppressWarnings("unchecked")
@@ -773,11 +792,9 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private static final class NoOpAuthorizationEnforcer implements WebSocketAuthorizationEnforcer {
 
         @Override
-        public void checkAuthorization(final DittoHeaders dittoHeaders) {
-
-            // Does nothing.
+        public CompletionStage<DittoHeaders> checkAuthorization(final DittoHeaders dittoHeaders) {
+            return CompletableFuture.completedStage(dittoHeaders);
         }
-
     }
 
     /**

@@ -163,156 +163,79 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
         });
     }
 
-    /**
-     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#DISPATCHED} messages.
-     *
-     * @param connectionId connection id
-     * @param target the target address
-     * @return the counter
-     */
     @Override
     public ConnectionMetricsCounter forOutboundDispatched(final ConnectionId connectionId, final String target) {
         return getCounter(connectionId, MetricType.DISPATCHED, MetricDirection.OUTBOUND, target);
     }
 
-    /**
-     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#ACKNOWLEDGED} messages.
-     *
-     * @param connectionId connection id
-     * @param target the target address
-     * @return the counter
-     */
     @Override
     public ConnectionMetricsCounter forOutboundAcknowledged(final ConnectionId connectionId, final String target) {
         return getCounter(connectionId, MetricType.ACKNOWLEDGED, MetricDirection.OUTBOUND, target);
     }
 
-    /**
-     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#FILTERED} messages.
-     *
-     * @param connectionId connection id
-     * @param target the target
-     * @return the outbound filtered counter
-     */
     @Override
     public ConnectionMetricsCounter forOutboundFiltered(final ConnectionId connectionId, final String target) {
         return getCounter(connectionId, MetricType.FILTERED, MetricDirection.OUTBOUND, target);
     }
 
-    /**
-     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#PUBLISHED} messages.
-     *
-     * @param connectionId connection id
-     * @param target the target
-     * @return the outbound published counter
-     */
     @Override
     public ConnectionMetricsCounter forOutboundPublished(final ConnectionId connectionId, final String target) {
         return getCounter(connectionId, MetricType.PUBLISHED, MetricDirection.OUTBOUND, target);
     }
 
-    /**
-     * Gets counter for {@link MetricDirection#INBOUND}/{@link MetricType#CONSUMED} messages.
-     *
-     * @param connectionId connection id
-     * @param source the source
-     * @return the inbound counter
-     */
+    @Override
+    public ConnectionMetricsCounter forOutboundDropped(final ConnectionId connectionId, final String target) {
+        return getCounter(connectionId, MetricType.DROPPED, MetricDirection.OUTBOUND, target);
+    }
+
     @Override
     public ConnectionMetricsCounter forInboundConsumed(final ConnectionId connectionId, final String source) {
         return getCounter(connectionId, MetricType.CONSUMED, MetricDirection.INBOUND, source);
     }
 
-    /**
-     * Gets counter for {@link MetricDirection#INBOUND}/{@link MetricType#ACKNOWLEDGED} messages.
-     *
-     * @param connectionId connection id
-     * @param source the source
-     * @return the inbound counter
-     */
     @Override
     public ConnectionMetricsCounter forInboundAcknowledged(final ConnectionId connectionId, final String source) {
         return getCounter(connectionId, MetricType.ACKNOWLEDGED, MetricDirection.INBOUND, source);
     }
 
-    /**
-     * Gets counter for {@link MetricDirection#INBOUND}/{@link MetricType#MAPPED} messages.
-     *
-     * @param connectionId connection id
-     * @param source the source
-     * @return the inbound mapped counter
-     */
     @Override
     public ConnectionMetricsCounter forInboundMapped(final ConnectionId connectionId, final String source) {
         return getCounter(connectionId, MetricType.MAPPED, MetricDirection.INBOUND, source);
     }
 
-    /**
-     * Gets counter for {@link MetricDirection#INBOUND}/{@link MetricType#ENFORCED} messages.
-     *
-     * @param connectionId connection id
-     * @param source the source
-     * @return the inbound enforced counter
-     */
     @Override
     public ConnectionMetricsCounter forInboundEnforced(final ConnectionId connectionId, final String source) {
         return getCounter(connectionId, MetricType.ENFORCED, MetricDirection.INBOUND, source);
     }
 
-    /**
-     * Gets counter for {@link MetricDirection#INBOUND}/{@link MetricType#DROPPED} messages.
-     *
-     * @param connectionId connection id
-     * @param source the source
-     * @return the inbound dropped counter
-     */
     @Override
     public ConnectionMetricsCounter forInboundDropped(final ConnectionId connectionId, final String source) {
         return getCounter(connectionId, MetricType.DROPPED, MetricDirection.INBOUND, source);
     }
 
-    /**
-     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#DISPATCHED} messages for responses.
-     *
-     * @param connectionId connection id
-     * @return the response consumed counter
-     */
     @Override
     public ConnectionMetricsCounter forResponseDispatched(final ConnectionId connectionId) {
         return getCounter(connectionId, MetricType.DISPATCHED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
-    /**
-     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#DROPPED} messages for responses.
-     *
-     * @param connectionId connection id
-     * @return the response dropped counter
-     */
     @Override
     public ConnectionMetricsCounter forResponseDropped(final ConnectionId connectionId) {
         return getCounter(connectionId, MetricType.DROPPED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
-    /**
-     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#MAPPED} messages for responses.
-     *
-     * @param connectionId connection id
-     * @return the response mapped counter
-     */
     @Override
     public ConnectionMetricsCounter forResponseMapped(final ConnectionId connectionId) {
         return getCounter(connectionId, MetricType.MAPPED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
-    /**
-     * Gets counter for {@link MetricDirection#OUTBOUND}/{@link MetricType#PUBLISHED} messages for responses.
-     *
-     * @param connectionId connection id
-     * @return the response published counter
-     */
     @Override
     public ConnectionMetricsCounter forResponsePublished(final ConnectionId connectionId) {
         return getCounter(connectionId, MetricType.PUBLISHED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
+    }
+
+    @Override
+    public ConnectionMetricsCounter forResponseAcknowledged(final ConnectionId connectionId) {
+        return getCounter(connectionId, MetricType.ACKNOWLEDGED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
     private static Stream<DefaultConnectionMetricsCounter> streamFor(final ConnectionId connectionId,

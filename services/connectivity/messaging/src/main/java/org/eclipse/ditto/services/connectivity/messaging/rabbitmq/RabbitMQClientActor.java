@@ -225,13 +225,15 @@ public final class RabbitMQClientActor extends BaseClientActor {
         return rmqPublisherActor;
     }
 
-    private static Optional<ConnectionFactory> tryToCreateConnectionFactory(
+    private Optional<ConnectionFactory> tryToCreateConnectionFactory(
             final RabbitConnectionFactoryFactory factoryFactory,
             final Connection connection,
             final RabbitMQExceptionHandler rabbitMQExceptionHandler) {
 
         try {
-            return Optional.of(factoryFactory.createConnectionFactory(connection, rabbitMQExceptionHandler));
+            return Optional.of(
+                    factoryFactory.createConnectionFactory(connection, rabbitMQExceptionHandler, connectionLogger)
+            );
         } catch (final Throwable throwable) {
             // error creating factory; return early.)
             rabbitMQExceptionHandler.exceptionHandler.accept(throwable);
@@ -357,7 +359,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
                         final String addressWithIndex = sourceAddress + "-" + i;
                         final ActorRef consumer = startChildActorConflictFree(
                                 CONSUMER_ACTOR_PREFIX + addressWithIndex,
-                                RabbitMQConsumerActor.props(sourceAddress, getMessageMappingProcessorActor(), source,
+                                RabbitMQConsumerActor.props(sourceAddress, getInboundMappingProcessorActor(), source,
                                         channel, connectionId()));
                         consumerByAddressWithIndex.put(addressWithIndex, consumer);
                         try {

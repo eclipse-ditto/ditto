@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.config.HttpPushConfig;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
@@ -60,7 +61,8 @@ public interface HttpPushFactory {
      * @param httpPushConfig configuration of Http connections.
      * @return the HTTP-push-factory.
      */
-    static HttpPushFactory of(final Connection connection, final HttpPushConfig httpPushConfig) {
-        return DefaultHttpPushFactory.of(connection, httpPushConfig);
+    static HttpPushFactory of(final Connection connection, final HttpPushConfig httpPushConfig,
+            final ConnectionLogger connectionLogger) {
+        return DefaultHttpPushFactory.of(connection, httpPushConfig, connectionLogger);
     }
 }

@@ -27,7 +27,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
-import org.eclipse.ditto.model.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
@@ -35,6 +34,7 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
+import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
@@ -69,8 +69,8 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
 
     @SuppressWarnings("unused")
     private RabbitMQConsumerActor(final ConnectionId connectionId, final String sourceAddress,
-            final ActorRef messageMappingProcessor, final Source source, final Channel channel) {
-        super(connectionId, sourceAddress, messageMappingProcessor, source, ConnectionType.AMQP_091);
+            final ActorRef inboundMessageProcessor, final Source source, final Channel channel) {
+        super(connectionId, sourceAddress, inboundMessageProcessor, source, ConnectionType.AMQP_091);
         headerEnforcementFilterFactory =
                 source.getEnforcement()
                         .map(value ->
@@ -90,16 +90,16 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
      * Creates Akka configuration object {@link Props} for this {@code RabbitMQConsumerActor}.
      *
      * @param sourceAddress the source address.
-     * @param messageMappingProcessor the message mapping processor where received messages are forwarded to
+     * @param inboundMessageProcessor the message mapping processor where received messages are forwarded to
      * @param source the configured connection source for the consumer actor.
      * @param connectionId ID of the connection
      * @return the Akka configuration Props object.
      */
-    static Props props(final String sourceAddress, final ActorRef messageMappingProcessor, final Source source,
+    static Props props(final String sourceAddress, final ActorRef inboundMessageProcessor, final Source source,
             Channel channel,
             final ConnectionId connectionId) {
 
-        return Props.create(RabbitMQConsumerActor.class, connectionId, sourceAddress, messageMappingProcessor, source,
+        return Props.create(RabbitMQConsumerActor.class, connectionId, sourceAddress, inboundMessageProcessor, source,
                 channel);
     }
 
@@ -153,9 +153,9 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
                         try {
                             final long deliveryTag = delivery.getEnvelope().getDeliveryTag();
                             channel.basicAck(deliveryTag, false);
-                            inboundAcknowledgedMonitor.getLogger()
-                                    .success("Sending basic.ack: deliveryTag={0}", deliveryTag);
-                        } catch (IOException e) {
+                            inboundAcknowledgedMonitor.success(externalMessage,
+                                    "Sending success acknowledgement: basic.ack for deliveryTag={0}", deliveryTag);
+                        } catch (final IOException e) {
                             log.error("Acknowledging delivery {} failed: {}", envelope.getDeliveryTag(),
                                     e.getMessage());
                             inboundAcknowledgedMonitor.exception(e);
@@ -164,9 +164,10 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
                     requeue -> {
                         try {
                             channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, requeue);
-                            inboundAcknowledgedMonitor.exception("Sending basic.nack: deliveryTag={0}, requeue={0}",
+                            inboundAcknowledgedMonitor.exception("Sending negative acknowledgement: " +
+                                            "basic.nack for deliveryTag={0}, requeue={0}",
                                     delivery.getEnvelope().getDeliveryTag(), requeue);
-                        } catch (IOException e) {
+                        } catch (final IOException e) {
                             log.error("Delivery of basic.nack for deliveryTag={} failed: {}", envelope.getDeliveryTag(),
                                     e.getMessage());
                             inboundAcknowledgedMonitor.exception(e);

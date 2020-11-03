@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -116,6 +116,13 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
     HttpPushConfig getHttpPushConfig();
 
     /**
+     * Returns the acknowledgement label declaration interval.
+     *
+     * @return how often to declare acknowledgement labels for as long as it is not successful.
+     */
+    Duration getAckLabelDeclareInterval();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code ConnectionConfig}.
      */
@@ -144,7 +151,12 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
         /**
          * The limitation number of targets within a connection.
          */
-        MAX_TARGET_NUMBER("max-target-number", 4);
+        MAX_TARGET_NUMBER("max-target-number", 4),
+
+        /**
+         * How often to attempt acknowledgement label declaration for as long as it is not successful.
+         */
+        ACK_LABEL_DECLARE_INTERVAL("ack-label-declare-interval", Duration.ofSeconds(10L));
 
         private final String path;
         private final Object defaultValue;

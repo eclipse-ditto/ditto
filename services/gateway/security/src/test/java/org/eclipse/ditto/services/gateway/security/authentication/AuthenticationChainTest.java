@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -57,8 +58,8 @@ public final class AuthenticationChainTest {
     @Rule public final TestName testName = new TestName();
     @Rule public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
-    @Mock private AuthenticationProvider authenticationProviderA;
-    @Mock private AuthenticationProvider authenticationProviderB;
+    @Mock private AuthenticationProvider<AuthenticationResult> authenticationProviderA;
+    @Mock private AuthenticationProvider<AuthenticationResult> authenticationProviderB;
     @Mock private AuthenticationFailureAggregator authenticationFailureAggregator;
 
     private DittoHeaders dittoHeaders;
@@ -96,7 +97,7 @@ public final class AuthenticationChainTest {
         when(authenticationProviderA.isApplicable(requestContextMock)).thenReturn(false);
         when(authenticationProviderB.isApplicable(requestContextMock)).thenReturn(true);
         when(authenticationProviderB.authenticate(requestContextMock, dittoHeaders))
-                .thenReturn(expectedAuthenticationResult);
+                .thenReturn(completed(expectedAuthenticationResult));
         final AuthenticationChain underTest =
                 AuthenticationChain.getInstance(Arrays.asList(authenticationProviderA, authenticationProviderB),
                         authenticationFailureAggregator,
@@ -121,7 +122,7 @@ public final class AuthenticationChainTest {
                 DefaultAuthenticationResult.successful(dittoHeaders, knownAuthorizationContext);
         when(authenticationProviderA.isApplicable(requestContextMock)).thenReturn(true);
         when(authenticationProviderA.authenticate(requestContextMock, dittoHeaders))
-                .thenReturn(expectedAuthenticationResult);
+                .thenReturn(completed(expectedAuthenticationResult));
         final AuthenticationChain underTest =
                 AuthenticationChain.getInstance(Arrays.asList(authenticationProviderA, authenticationProviderB),
                         authenticationFailureAggregator, messageDispatcher);
@@ -171,7 +172,7 @@ public final class AuthenticationChainTest {
         when(authenticationProviderA.isApplicable(requestContextMock)).thenReturn(true);
         when(authenticationProviderB.isApplicable(requestContextMock)).thenReturn(false);
         when(authenticationProviderA.authenticate(requestContextMock, dittoHeaders))
-                .thenReturn(expectedAuthenticationResult);
+                .thenReturn(completed(expectedAuthenticationResult));
         final AuthenticationChain underTest =
                 AuthenticationChain.getInstance(Arrays.asList(authenticationProviderA, authenticationProviderB),
                         authenticationFailureAggregator,
@@ -199,9 +200,9 @@ public final class AuthenticationChainTest {
         when(authenticationProviderA.isApplicable(requestContextMock)).thenReturn(true);
         when(authenticationProviderB.isApplicable(requestContextMock)).thenReturn(true);
         when(authenticationProviderA.authenticate(requestContextMock, dittoHeaders))
-                .thenReturn(failedAuthenticationResult);
+                .thenReturn(completed(failedAuthenticationResult));
         when(authenticationProviderB.authenticate(requestContextMock, dittoHeaders))
-                .thenReturn(expectedAuthenticationResult);
+                .thenReturn(completed(expectedAuthenticationResult));
         final AuthenticationChain underTest =
                 AuthenticationChain.getInstance(Arrays.asList(authenticationProviderA, authenticationProviderB),
                         authenticationFailureAggregator,
@@ -229,15 +230,15 @@ public final class AuthenticationChainTest {
                 DefaultAuthenticationResult.failed(dittoHeaders, failureA);
         when(authenticationProviderA.isApplicable(requestContextMock)).thenReturn(true);
         when(authenticationProviderA.authenticate(requestContextMock, dittoHeaders))
-                .thenReturn(failedAuthenticationResultA);
+                .thenReturn(completed(failedAuthenticationResultA));
         // Failure B
         final DittoRuntimeException failureB = mock(DittoRuntimeException.class);
         final AuthenticationResult failedAuthenticationResultB =
                 DefaultAuthenticationResult.failed(dittoHeaders, failureB);
         when(authenticationProviderB.isApplicable(requestContextMock)).thenReturn(true);
 
-        when(authenticationProviderB.authenticate(requestContextMock, dittoHeaders)).thenReturn(
-                failedAuthenticationResultB);
+        when(authenticationProviderB.authenticate(requestContextMock, dittoHeaders))
+                .thenReturn(completed(failedAuthenticationResultB));
         final AuthenticationChain underTest =
                 AuthenticationChain.getInstance(Arrays.asList(authenticationProviderA, authenticationProviderB),
                         authenticationFailureAggregator, messageDispatcher);
@@ -266,6 +267,10 @@ public final class AuthenticationChainTest {
         when(requestContext.getRequest()).thenReturn(httpRequest);
 
         return requestContext;
+    }
+
+    private static <T> CompletableFuture<T> completed(final T value) {
+        return CompletableFuture.completedFuture(value);
     }
 
 }

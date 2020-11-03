@@ -104,6 +104,17 @@ public final class TopicParseException extends DittoRuntimeException implements 
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
+                .dittoHeaders(dittoHeaders)
+                .build();
+    }
+
     /**
      * A mutable builder with a fluent API for a {@link TopicParseException}.
      */

@@ -197,7 +197,20 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    REQUESTED_ACKS("requested-acks", JsonArray.class, true, true, HeaderValueValidators.getJsonArrayValidator()),
+    REQUESTED_ACKS("requested-acks", JsonArray.class, true, true,
+            HeaderValueValidators.getRequestedAcksValueValidator()),
+
+    /**
+     * Header definition for defining the acknowledgement labels a subscriber may send.
+     * Not defined as DittoHeaders accessor method or in the DittoHeadersBuilder as this header is specific for
+     * WebSocket sessions only and has also not a "Signal" scope which DittoHeaders normally have.
+     * <p>
+     * Key: {@code "declared-acks"}, Java type: {@link JsonArray}.
+     * </p>
+     *
+     * @since 1.4.0
+     */
+    DECLARED_ACKS("declared-acks", JsonArray.class, true, false, HeaderValueValidators.getJsonArrayValidator()),
 
     /**
      * Header definition for the timeout of a command or message.
@@ -241,7 +254,7 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    LOCATION("location", String.class, false, true,
+    LOCATION("location", String.class, true, true,
             HeaderValueValidators.getNoOpValidator()),
 
     /**

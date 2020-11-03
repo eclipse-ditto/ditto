@@ -20,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategies;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
@@ -79,6 +80,8 @@ public final class ConnectivityMappingStrategies extends MappingStrategies {
                 .add("ImmutableConnection", jsonObject -> ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
                 .add(ResourceStatus.class, jsonObject -> ConnectivityModelFactory.resourceStatusFromJson(jsonObject)) // do not replace with lambda!
                 .add("ImmutableResourceStatus", jsonObject -> ConnectivityModelFactory.resourceStatusFromJson(jsonObject)) // do not replace with lambda!
+                .add(ConnectivityStatus.class,
+                        jsonObject -> ConnectivityStatus.fromJson(jsonObject)) // do not replace with lambda!
                 .add(BaseClientState.class,
                         jsonObject -> BaseClientState.fromJson(jsonObject)) // do not replace with lambda!
                 .add(ConnectionTag.class,

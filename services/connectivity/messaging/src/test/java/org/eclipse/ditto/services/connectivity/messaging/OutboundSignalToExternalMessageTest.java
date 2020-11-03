@@ -23,6 +23,7 @@ import java.util.UUID;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -45,6 +46,7 @@ public final class OutboundSignalToExternalMessageTest {
             ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
                     .set("correlation-id", "{{ header:my-cor-id-important }}")
                     .set("thing-id", "{{ header:device_id }}")
+                    .set("connection-id", "{{ connection:id }}")
                     .set("eclipse", "ditto")
                     .build());
 
@@ -74,6 +76,7 @@ public final class OutboundSignalToExternalMessageTest {
                 .putHeader("foo", "bar")
                 .putHeader("reply-to", replyTo)
                 .build();
+        final ConnectionId connectionId = ConnectionId.generateRandom();
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(Map.of())
                 .withText("payload")
                 .build();
@@ -87,7 +90,8 @@ public final class OutboundSignalToExternalMessageTest {
                 OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
         final OutboundSignalToExternalMessage underTest =
                 OutboundSignalToExternalMessage.newInstance(mappedOutboundSignal,
-                        Resolvers.forOutbound(mappedOutboundSignal), target.getHeaderMapping().orElse(null));
+                        Resolvers.forOutbound(mappedOutboundSignal, connectionId),
+                        target.getHeaderMapping().orElse(null));
 
         // when
         final ExternalMessage headerMappedExternalMessage = underTest.get();
@@ -97,6 +101,7 @@ public final class OutboundSignalToExternalMessageTest {
 
         assertThat(actualHeaders).contains(entry("correlation-id", correlationIdImportant),
                 entry("thing-id", deviceId),
+                entry("connection-id", connectionId.toString()),
                 entry("eclipse", "ditto"));
     }
 

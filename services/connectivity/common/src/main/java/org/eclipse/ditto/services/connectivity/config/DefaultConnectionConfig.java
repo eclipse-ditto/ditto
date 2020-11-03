@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -52,6 +52,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final ActivityCheckConfig activityCheckConfig;
     private final Integer maxNumberOfTargets;
     private final Integer maxNumberOfSources;
+    private final Duration ackLabelDeclareInterval;
 
     private DefaultConnectionConfig(final ConfigWithFallback config) {
         clientActorAskTimeout = config.getDuration(ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT.getConfigPath());
@@ -68,6 +69,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         activityCheckConfig = DefaultActivityCheckConfig.of(config);
         maxNumberOfTargets = config.getInt(ConnectionConfigValue.MAX_TARGET_NUMBER.getConfigPath());
         maxNumberOfSources = config.getInt(ConnectionConfigValue.MAX_SOURCE_NUMBER.getConfigPath());
+        ackLabelDeclareInterval = config.getDuration(ConnectionConfigValue.ACK_LABEL_DECLARE_INTERVAL.getConfigPath());
     }
 
     /**
@@ -154,6 +156,11 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     }
 
     @Override
+    public Duration getAckLabelDeclareInterval() {
+        return ackLabelDeclareInterval;
+    }
+
+    @Override
     public ActivityCheckConfig getActivityCheckConfig() {
         return activityCheckConfig;
     }
@@ -180,14 +187,16 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 Objects.equals(httpPushConfig, that.httpPushConfig) &&
                 Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
                 Objects.equals(maxNumberOfTargets, that.maxNumberOfTargets) &&
-                Objects.equals(maxNumberOfSources, that.maxNumberOfSources);
+                Objects.equals(maxNumberOfSources, that.maxNumberOfSources) &&
+                Objects.equals(ackLabelDeclareInterval, that.ackLabelDeclareInterval);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(clientActorAskTimeout, allowedHostnames, blockedHostnames, supervisorConfig, snapshotConfig,
-                acknowledgementConfig, amqp10Config, amqp091Config, mqttConfig, kafkaConfig, httpPushConfig,
-                activityCheckConfig, maxNumberOfTargets, maxNumberOfSources);
+                acknowledgementConfig, maxNumberOfTargets, maxNumberOfSources,
+                activityCheckConfig, amqp10Config, amqp091Config, mqttConfig, kafkaConfig,
+                httpPushConfig, ackLabelDeclareInterval);
     }
 
     @Override
@@ -207,6 +216,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 ", activityCheckConfig=" + activityCheckConfig +
                 ", maxNumberOfTargets=" + maxNumberOfTargets +
                 ", maxNumberOfSources=" + maxNumberOfSources +
-                '}';
+                ", ackLabelDeclareInterval=" + ackLabelDeclareInterval +
+                "]";
     }
+
 }

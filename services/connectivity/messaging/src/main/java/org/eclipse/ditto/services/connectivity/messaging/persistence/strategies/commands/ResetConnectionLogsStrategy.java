@@ -12,8 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.persistence.strategies.commands;
 
-import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.SEND_RESPONSE;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.BROADCAST_TO_CLIENT_ACTORS_IF_STARTED;
+import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.SEND_RESPONSE;
 
 import java.util.Arrays;
 import java.util.List;

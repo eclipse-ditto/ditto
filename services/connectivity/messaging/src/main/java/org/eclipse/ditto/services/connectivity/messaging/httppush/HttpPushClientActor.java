@@ -34,10 +34,12 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.base.config.http.HttpProxyConfig;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.HttpPushConfig;
+import org.eclipse.ditto.services.connectivity.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 
@@ -54,6 +56,7 @@ public final class HttpPushClientActor extends BaseClientActor {
     private static final int PROXY_CONNECT_TIMEOUT_SECONDS = 15;
 
     private final HttpPushFactory factory;
+    private final ConnectionLogger connectionLogger;
 
     @Nullable
     private ActorRef httpPublisherActor;
@@ -63,12 +66,15 @@ public final class HttpPushClientActor extends BaseClientActor {
     private HttpPushClientActor(final Connection connection, final ActorRef connectionActor) {
         super(connection, ActorRef.noSender(), connectionActor);
 
-        httpPushConfig = DittoConnectivityConfig.of(
+        final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        )
+        );
+        httpPushConfig = connectivityConfig
                 .getConnectionConfig()
                 .getHttpPushConfig();
-        factory = HttpPushFactory.of(connection, httpPushConfig);
+        final MonitoringLoggerConfig loggerConfig = connectivityConfig.getMonitoringConfig().logger();
+        connectionLogger = ConnectionLogger.getInstance(connection.getId(), loggerConfig);
+        factory = HttpPushFactory.of(connection, httpPushConfig, connectionLogger);
     }
 
     /**
@@ -153,7 +159,7 @@ public final class HttpPushClientActor extends BaseClientActor {
         } else {
             // check without HTTP proxy
             final SSLContextCreator sslContextCreator =
-                    SSLContextCreator.fromConnection(connection, DittoHeaders.empty());
+                    SSLContextCreator.fromConnection(connection, DittoHeaders.empty(), connectionLogger);
             final SSLSocketFactory socketFactory = connection.getCredentials()
                     .map(credentials -> credentials.accept(sslContextCreator))
                     .orElse(sslContextCreator.withoutClientCertificate()).getSocketFactory();

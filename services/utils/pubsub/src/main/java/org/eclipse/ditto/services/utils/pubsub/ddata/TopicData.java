@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -97,13 +96,13 @@ public final class TopicData<H> {
      * @return an unmodifiable copy of the set of subscribers.
      */
     public Set<ActorRef> exportSubscribers() {
-        return Collections.unmodifiableSet(new HashSet<>(subscribers));
+        return Set.copyOf(subscribers);
     }
 
     @Override
     public boolean equals(final Object other) {
         if (other instanceof TopicData) {
-            final TopicData that = (TopicData) other;
+            final TopicData<?> that = (TopicData<?>) other;
             return subscribers.equals(that.subscribers) && hashes.equals(that.hashes);
         } else {
             return false;

@@ -251,6 +251,17 @@ public class DittoRuntimeException extends RuntimeException
         return dittoHeaders;
     }
 
+    /**
+     * Each DittoRuntimeException inheriting from DittoRuntimeException must implement its custom
+     * {@link #setDittoHeaders(DittoHeaders)}. If this is not done, the concrete type of the DittoRuntimeException is
+     * erased when this method is invoked.
+     * Unfortunately this can't be enforced without API breakage.
+     * TODO Ditto 2.0: fix that
+     *
+     * @param dittoHeaders the DittoHeaders to set.
+     * @return the newly created object with the set DittoHeaders.
+     * @throws NullPointerException if the passed {@code dittoHeaders} is null.
+     */
     @Override
     public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return newBuilder(this).dittoHeaders(dittoHeaders).build();

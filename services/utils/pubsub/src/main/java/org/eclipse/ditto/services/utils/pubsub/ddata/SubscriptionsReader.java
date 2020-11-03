@@ -14,28 +14,24 @@ package org.eclipse.ditto.services.utils.pubsub.ddata;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import javax.annotation.concurrent.Immutable;
-
 import akka.actor.ActorRef;
 
 /**
  * Reader of local subscriptions.
  */
-@Immutable
 public final class SubscriptionsReader {
 
     /**
      * Constant-true predicate as the default filter.
      */
     private static final Predicate<Collection<String>> CONSTANT_TRUE = topics -> true;
-    
+
     private final Map<String, Set<ActorRef>> topicToSubscriber;
     private final Map<ActorRef, Predicate<Collection<String>>> subscriberToFilter;
 
@@ -43,8 +39,9 @@ public final class SubscriptionsReader {
             final Map<String, Set<ActorRef>> topicToSubscriber,
             final Map<ActorRef, Predicate<Collection<String>>> subscriberToFilter) {
 
-        this.topicToSubscriber = Collections.unmodifiableMap(new HashMap<>(topicToSubscriber));
-        this.subscriberToFilter = Collections.unmodifiableMap(new HashMap<>(subscriberToFilter));
+        // Don't Map.copyOf the arguments. They are always unmodifiable maps constructed on the fly.
+        this.topicToSubscriber = topicToSubscriber;
+        this.subscriberToFilter = subscriberToFilter;
     }
 
     /**
@@ -61,7 +58,7 @@ public final class SubscriptionsReader {
      * @param subscriberToFilter relation between subscribers and their filters.
      * @return a subscription-reader.
      */
-    public static SubscriptionsReader of(final Map<String, Set<ActorRef>> topicToData,
+    public static SubscriptionsReader fromImmutableMaps(final Map<String, Set<ActorRef>> topicToData,
             final Map<ActorRef, Predicate<Collection<String>>> subscriberToFilter) {
 
         return new SubscriptionsReader(topicToData, subscriberToFilter);
@@ -82,6 +79,16 @@ public final class SubscriptionsReader {
                 .stream()
                 .filter(subscriber -> subscriberToFilter.getOrDefault(subscriber, CONSTANT_TRUE).test(topics))
                 .collect(Collectors.toSet());
+    }
+
+    /**
+     * Check if a topic is subscribed for.
+     *
+     * @param topic the topic.
+     * @return whether it has any subscribers.
+     */
+    public boolean containsTopic(final String topic) {
+        return topicToSubscriber.containsKey(topic);
     }
 
     @Override

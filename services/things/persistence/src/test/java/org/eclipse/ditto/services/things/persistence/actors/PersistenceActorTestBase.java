@@ -184,7 +184,7 @@ public abstract class PersistenceActorTestBase {
         return actorSystem.actorOf(getPropsOfThingPersistenceActor(thingId, getDistributedPub()));
     }
 
-    private Props getPropsOfThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent> pub) {
+    private Props getPropsOfThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent<?>> pub) {
 
         return ThingPersistenceActor.props(thingId, pub);
     }
@@ -221,12 +221,12 @@ public abstract class PersistenceActorTestBase {
         actorSystem.eventStream().setLogLevel(akka.stream.Attributes.logLevelOff());
     }
 
-    protected DistributedPub<ThingEvent> getDistributedPub() {
+    protected DistributedPub<ThingEvent<?>> getDistributedPub() {
         return new TestPub();
     }
 
     @AllParametersAndReturnValuesAreNonnullByDefault
-    private final class TestPub implements DistributedPub<ThingEvent> {
+    private final class TestPub implements DistributedPub<ThingEvent<?>> {
 
         private TestPub() {}
 
@@ -236,7 +236,7 @@ public abstract class PersistenceActorTestBase {
         }
 
         @Override
-        public Object wrapForPublication(final ThingEvent message) {
+        public Object wrapForPublication(final ThingEvent<?> message) {
             return message;
         }
     }
