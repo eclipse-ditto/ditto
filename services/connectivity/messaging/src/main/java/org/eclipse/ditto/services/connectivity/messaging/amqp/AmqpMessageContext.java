@@ -12,6 +12,8 @@
   */
  package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
+ import java.util.concurrent.CompletionStage;
+
  import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 
  /**
@@ -21,5 +23,5 @@
  @FunctionalInterface
  interface AmqpMessageContext {
 
-     void onPublishMessage(final ExternalMessage message);
+     CompletionStage<?> onPublishMessage(final ExternalMessage message);
  }
