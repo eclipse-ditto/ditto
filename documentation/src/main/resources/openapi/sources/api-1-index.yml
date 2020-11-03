@@ -1,7 +1,17 @@
+# Copyright (c) 2017 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
 openapi: 3.0.0
 info:
   title: Eclipse Ditto HTTP API - Deprecated
-  version: '1'
+  version: "1"
   description: |-
     JSON-based, REST-like API for Eclipse Ditto
 
@@ -10,10 +20,10 @@ info:
 
     However, the descriptions we provide additionally to the status code (e.g. in our API docs, or error codes like. "things.entitiy.tooLarge") might change without advance notice. These are not be considered as official API, and must therefore not be applied in your applications or tests.
 servers:
-  - url: 'https://ditto.eclipse.org/api/1'
-    description: online Ditto Sandbox
+  - url: https://ditto.eclipse.org/api/1
+    description: "online Ditto Sandbox"
   - url: /api/1
-    description: local Ditto
+    description: "local Ditto"
 tags:
   - name: Things
     description: Manage every Thing
@@ -24,6 +34,8 @@ tags:
   - name: Messages
     description: Talk with your Things
 security:
+#  - Google:
+#    - openid
   - basicAuth: []
   - bearerAuth: []
 paths:
@@ -137,7 +149,7 @@ paths:
 
 
           Use the placeholder `{{ request:subjectId }}` in order to let the backend insert the authenticated subjectId of the HTTP request.
-  '/things/{thingId}':
+  /things/{thingId}:
     get:
       summary: Retrieve a specific Thing
       description: |-
@@ -356,7 +368,8 @@ paths:
           Use the placeholder `{{ request:subjectId }}` in order to let the backend insert the authenticated subjectId of the HTTP request.
     delete:
       summary: Delete a specific Thing
-      description: Deletes the Thing identified by the `thingId` path parameter.
+      description: |-
+        Deletes the Thing identified by the `thingId` path parameter.
       deprecated: true
       tags:
         - Things
@@ -395,7 +408,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
-  '/things/{thingId}/acl':
+  /things/{thingId}/acl:
     get:
       summary: Retrieve the complete ACL of a Thing
       description: |-
@@ -423,14 +436,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/Acl'
               example:
-                authorizationSubject1:
-                  READ: true
-                  WRITE: true
-                  ADMINISTRATE: true
-                authorizationSubjectN:
-                  READ: true
-                  WRITE: true
-                  ADMINISTRATE: true
+                {
+                  "authorizationSubject1": {
+                    "READ": true,
+                    "WRITE": true,
+                    "ADMINISTRATE": true
+                  },
+                  "authorizationSubjectN": {
+                    "READ": true,
+                    "WRITE": true,
+                    "ADMINISTRATE": true
+                  }
+                }
         '304':
           $ref: '#/components/responses/notModified'
         '400':
@@ -447,6 +464,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+
         '404':
           description: The request could not be completed. The Thing with the given ID was not found in the context of the authenticated user.
           content:
@@ -517,17 +535,20 @@ paths:
             schema:
               $ref: '#/components/schemas/Acl'
             example:
-              '{{ request:subjectId }}':
-                READ: true
-                WRITE: true
-                ADMINISTRATE: true
+              {
+                "{{ request:subjectId }}":{
+                  "READ": true,
+                  "WRITE": true,
+                  "ADMINISTRATE": true
+                }
+              }
         description: |-
           JSON representation of the Access Control List (ACL).
 
 
           Use the placeholder `{{ request:subjectId }}` in order to let the backend insert the authenticated subjectId of the HTTP request.
         required: true
-  '/things/{thingId}/acl/{authorizationSubject}':
+  /things/{thingId}/acl/{authorizationSubject}:
     get:
       summary: Retrieve one ACL entry of a Thing for a specific subject
       description: |-
@@ -708,7 +729,8 @@ paths:
   '/things/{thingId}/attributes':
     get:
       summary: List all Attributes of a specific Thing
-      description: Returns all Attributes of the Thing identified by the `thingId` path parameter.
+      description: |-
+        Returns all Attributes of the Thing identified by the `thingId` path parameter.
       deprecated: true
       tags:
         - Things
@@ -831,7 +853,8 @@ paths:
         $ref: '#/components/requestBodies/Attributes'
     delete:
       summary: Delete all Attributes of a specific Thing at once
-      description: Deletes all Attributes of the Thing identified by the `thingId` path parameter at once.
+      description: |-
+        Deletes all Attributes of the Thing identified by the `thingId` path parameter at once.
       deprecated: true
       tags:
         - Things
@@ -972,7 +995,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '403':
-          description: The request could not be completed as the caller had insufficient permissions. For modifying a single Attribute of an existing Thing `WRITE` permission is required.
+          description: |-
+            The request could not be completed as the caller had insufficient permissions. For modifying a single Attribute of an existing Thing `WRITE` permission is required.
           content:
             application/json:
               schema:
@@ -1020,7 +1044,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '403':
-          description: The request could not be completed as the caller had insufficient permissions. For deleting a single Attribute of an existing Thing `WRITE` permission is required.
+          description: |-
+            The request could not be completed as the caller had insufficient permissions. For deleting a single Attribute of an existing Thing `WRITE` permission is required.
           content:
             application/json:
               schema:
@@ -1033,10 +1058,11 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
-  '/things/{thingId}/features':
+  /things/{thingId}/features:
     get:
       summary: List all Features of a specific Thing
-      description: Returns all Features of the Thing identified by the `thingId` path parameter.
+      description: |-
+        Returns all Features of the Thing identified by the `thingId` path parameter.
       deprecated: true
       tags:
         - Features
@@ -1060,16 +1086,16 @@ paths:
               schema:
                 $ref: '#/components/schemas/Features'
               example:
-                featureId1:
-                  definition:
-                    - 'namespace:definition1:v1.0'
-                  properties:
-                    property1: value1
-                featureId2:
-                  definition:
-                    - 'namespace:definition2:v1.0'
-                  properties:
-                    property2: value2
+                {
+                  "featureId1": {
+                    "definition": [ "namespace:definition1:v1.0" ],
+                    "properties": { "property1": "value1" }
+                  },
+                  "featureId2": {
+                    "definition": [ "namespace:definition2:v1.0" ],
+                    "properties": { "property2": "value2" }
+                  }
+                }
         '304':
           $ref: '#/components/responses/notModified'
         '400':
@@ -1097,7 +1123,8 @@ paths:
           $ref: '#/components/responses/preconditionFailed'
     put:
       summary: Create or modify all Features of a specific Thing at once
-      description: Create or modify the Features of a Thing identified by the `thingId` path parameter at once. The list of Features will be replaced by the request body's JSON.
+      description: |-
+        Create or modify the Features of a Thing identified by the `thingId` path parameter at once. The list of Features will be replaced by the request body's JSON.
       deprecated: true
       tags:
         - Features
@@ -1123,7 +1150,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Features'
-              example: {}
+              example:
+                {}
         '204':
           description: The Features were successfully modified.
           headers:
@@ -1172,11 +1200,13 @@ paths:
             schema:
               $ref: '#/components/schemas/Features'
             example: {}
-        description: 'JSON object of the Features to be modified at once. It can be also `null` or an empty object `{}` (all features cleared).'
+        description: |-
+          JSON object of the Features to be modified at once. It can be also `null` or an empty object `{}` (all features cleared).
         required: true
     delete:
       summary: Delete all Features of a specific Thing
-      description: Deletes all features of the Thing identified by the `thingId` path parameter.
+      description: |-
+        Deletes all features of the Thing identified by the `thingId` path parameter.
       deprecated: true
       tags:
         - Features
@@ -1202,7 +1232,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '403':
-          description: The request could not be completed as the caller had insufficient permissions. For deleting all features of an existing Thing `WRITE` permission is required.
+          description: |-
+            The request could not be completed as the caller had insufficient permissions. For deleting all features of an existing Thing `WRITE` permission is required.
           content:
             application/json:
               schema:
@@ -1218,7 +1249,8 @@ paths:
   '/things/{thingId}/features/{featureId}':
     get:
       summary: Retrieve a specific Feature of a specific Thing
-      description: Returns a specific Feature identified by the `featureId` path parameter of the Thing identified by the `thingId` path parameter.
+      description: |-
+        Returns a specific Feature identified by the `featureId` path parameter of the Thing identified by the `thingId` path parameter.
       deprecated: true
       tags:
         - Features
@@ -1269,7 +1301,8 @@ paths:
           $ref: '#/components/responses/preconditionFailed'
     put:
       summary: Create or modify a specific Feature of a specific Thing
-      description: Create or modify a specific Feature identified by the `featureId` path parameter of the Thing identified by the `thingId` path parameter.
+      description: |-
+        Create or modify a specific Feature identified by the `featureId` path parameter of the Thing identified by the `thingId` path parameter.
       deprecated: true
       tags:
         - Features
@@ -1344,11 +1377,13 @@ paths:
             schema:
               $ref: '#/components/schemas/Feature'
             example: {}
-        description: 'JSON representation of the Feature to be created/modified. It can also be `null` or an empty object `{}`.'
+        description: |-
+          JSON representation of the Feature to be created/modified. It can also be `null` or an empty object `{}`.
         required: true
     delete:
       summary: Delete a specific Feature of a specific Thing
-      description: Deletes a specific Feature identified by the `featureId` path parameter of the Thing identified by the `thingId` path parameter.
+      description: |-
+        Deletes a specific Feature identified by the `featureId` path parameter of the Thing identified by the `thingId` path parameter.
       deprecated: true
       tags:
         - Features
@@ -1585,7 +1620,8 @@ paths:
   '/things/{thingId}/features/{featureId}/properties':
     get:
       summary: List all Properties of a Feature.
-      description: Returns all Properties of the Feature identified by the `thingId` and `featureId` path parameter.
+      description: |-
+        Returns all Properties of the Feature identified by the `thingId` and `featureId` path parameter.
       deprecated: true
       tags:
         - Features
@@ -1709,11 +1745,13 @@ paths:
             schema:
               $ref: '#/components/schemas/FeatureProperties'
             example: {}
-        description: 'JSON object of all Properties to be updated at once. Consider that the value has to be a JSON object or `null`. We strongly recommend to use a restricted set of characters for the key (identifier). Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*'
+        description: |-
+          JSON object of all Properties to be updated at once. Consider that the value has to be a JSON object or `null`. We strongly recommend to use a restricted set of characters for the key (identifier). Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
         required: true
     delete:
       summary: Delete all Properties of a Feature.
-      description: Deletes all Properties of the Feature identified by the `thingId` and `featureId` path parameter.
+      description: |-
+        Deletes all Properties of the Feature identified by the `thingId` and `featureId` path parameter.
       deprecated: true
       tags:
         - Features
@@ -1755,7 +1793,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
-  '/things/{thingId}/features/{featureId}/properties/{propertyPath}':
+  /things/{thingId}/features/{featureId}/properties/{propertyPath}:
     get:
       summary: Retrieve a specific Property of a Feature.
       description: |-
@@ -1912,7 +1950,7 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/preconditionFailed'
-  '/things/{thingId}/inbox/claim':
+  /things/{thingId}/inbox/claim:
     post:
       summary: Initiates claiming a specific Thing in order to gain access.
       description: |-
@@ -1987,7 +2025,7 @@ paths:
           $ref: '#/components/responses/messageTimeout'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
-  '/things/{thingId}/inbox/messages/{messageSubject}':
+  /things/{thingId}/inbox/messages/{messageSubject}:
     post:
       summary: Send a message TO a specific Thing.
       description: |-
@@ -2034,7 +2072,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '403':
-          description: The request could not be completed as the caller does not have `WRITE` permission at the Thing level.
+          description: |-
+            The request could not be completed as the caller does not have `WRITE` permission at the Thing level.
           content:
             application/json:
               schema:
@@ -2060,7 +2099,7 @@ paths:
           $ref: '#/components/responses/messageTimeout'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
-  '/things/{thingId}/outbox/messages/{messageSubject}':
+  /things/{thingId}/outbox/messages/{messageSubject}:
     post:
       summary: Send a message FROM a specific Thing.
       description: |-
@@ -2106,7 +2145,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '403':
-          description: The request could not be completed as the caller does not have `WRITE` permission at the Thing level.
+          description: |-
+            The request could not be completed as the caller does not have `WRITE` permission at the Thing level.
           content:
             application/json:
               schema:
@@ -2132,7 +2172,7 @@ paths:
           $ref: '#/components/responses/messageTimeout'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
-  '/things/{thingId}/features/{featureId}/inbox/messages/{messageSubject}':
+  /things/{thingId}/features/{featureId}/inbox/messages/{messageSubject}:
     post:
       summary: Send a message TO a specific Feature of a specific Thing.
       description: |-
@@ -2179,7 +2219,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '403':
-          description: The request could not be completed as the caller does not have `WRITE` permission at the Thing level.
+          description: |-
+            The request could not be completed as the caller does not have `WRITE` permission at the Thing level.
           content:
             application/json:
               schema:
@@ -2205,7 +2246,7 @@ paths:
           $ref: '#/components/responses/messageTimeout'
       requestBody:
         $ref: '#/components/requestBodies/Payload'
-  '/things/{thingId}/features/{featureId}/outbox/messages/{messageSubject}':
+  /things/{thingId}/features/{featureId}/outbox/messages/{messageSubject}:
     post:
       summary: Send a message FROM a specific Feature of a specific Thing.
       description: |-
@@ -2252,7 +2293,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '403':
-          description: The request could not be completed as the caller does not have `WRITE` permission at the Thing level.
+          description: |-
+            The request could not be completed as the caller does not have `WRITE` permission at the Thing level.
           content:
             application/json:
               schema:
@@ -2339,6 +2381,7 @@ paths:
           required: false
           schema:
             type: string
+
       tags:
         - Things-Search
       responses:
@@ -2372,6 +2415,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+
   /search/things/count:
     get:
       summary: Count Things
@@ -2390,6 +2434,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/searchFilter'
         - $ref: '#/components/parameters/namespacesFilter'
+
       tags:
         - Things-Search
       responses:
@@ -2423,6 +2468,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
+
 components:
   requestBodies:
     Attributes:
@@ -2444,9 +2490,11 @@ components:
           schema:
             $ref: '#/components/schemas/AclEntry'
           example:
-            READ: true
-            WRITE: true
-            ADMINISTRATE: true
+            {
+              "READ": true,
+              "WRITE": true,
+              "ADMINISTRATE": true
+            }
       description: |-
         JSON representation of the Access Control List (ACL) entry for a single
         authorization subject
@@ -2493,13 +2541,15 @@ components:
   securitySchemes:
     basicAuth:
       type: http
-      description: Eclipse Ditto sandbox demo user (demo1 ... demo9) + password (demo)
+      description: |-
+        Eclipse Ditto sandbox demo user (demo1 ... demo9) + password (demo)
       scheme: basic
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: 'A JSON Web Token issued by a supported OAuth 2.0 Identity Provider, e.g. a Google "id_token"'
+      description: |-
+        A JSON Web Token issued by a supported OAuth 2.0 Identity Provider, e.g. a Google "id_token"
   schemas:
     Error:
       properties:
@@ -2541,18 +2591,18 @@ components:
         - message
     Attributes:
       type: object
-      description: 'Attributes of a Thing: an arbitrary JSON object.'
+      description: "Attributes of a Thing: an arbitrary JSON object."
     FeatureDefinition:
       type: array
       items:
         $ref: '#/components/schemas/FeatureDefinitionString'
     FeatureDefinitionString:
       type: string
-      description: 'A single fully qualified identifier of a Feature Definition in the form ''namespace:name:version'''
-      pattern: '([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+)'
+      description: "A single fully qualified identifier of a Feature Definition in the form 'namespace:name:version'"
+      pattern: ([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+):([_a-zA-Z0-9\-.]+)
     FeatureProperties:
       type: object
-      description: 'Properties of a Feature: an arbitrary JSON object.'
+      description: "Properties of a Feature: an arbitrary JSON object."
     Feature:
       type: object
       properties:
@@ -2620,7 +2670,7 @@ components:
         $ref: '#/components/schemas/AclEntry'
     AclEntry:
       type: object
-      description: 'Single Access Control List entry containing the permissions (READ, WRITE, ADMINISTRATE) for the Authorization Subject.'
+      description: Single Access Control List entry containing the permissions (READ, WRITE, ADMINISTRATE) for the Authorization Subject.
       required:
         - READ
         - WRITE
@@ -2642,19 +2692,22 @@ components:
         $ref: '#/components/schemas/Feature'
   responses:
     entityTooLarge:
-      description: The created or modified entity is larger than the accepted limit of 100 kB.
+      description: |-
+        The created or modified entity is larger than the accepted limit of 100 kB.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/AdvancedError'
     messageTooLarge:
-      description: The size of the send message is larger than the accepted limit of 250 kB.
+      description: |-
+        The size of the send message is larger than the accepted limit of 250 kB.
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/AdvancedError'
     messageTimeout:
-      description: The request could not be completed as there is no consumer for this message connected.
+      description: |-
+        The request could not be completed as there is no consumer for this message connected.
       content:
         application/json:
           schema:
@@ -2691,7 +2744,7 @@ components:
     ifMatchHeaderParamHash:
       name: If-Match
       in: header
-      description: |-
+      description:  >-
         The `If-Match` header which has to conform to RFC-7232 (Conditional Requests). Common usages are:
           * optimistic locking by specifying the `ETag` from a previous HTTP response, e.g. `If-Match: "hash:a75ece4e"`
           * retrieving or modifying a resource only if it already exists, e.g. `If-Match: *`
@@ -2701,7 +2754,7 @@ components:
     ifMatchHeaderParam:
       name: If-Match
       in: header
-      description: |-
+      description:  >-
         The `If-Match` header which has to conform to RFC-7232 (Conditional Requests). Common usages are:
           * optimistic locking by specifying the `ETag` from a previous HTTP response, e.g. `If-Match: "rev:4711"`
           * retrieving or modifying a resource only if it already exists, e.g. `If-Match: *`
@@ -2711,7 +2764,9 @@ components:
     ifNoneMatchHeaderParam:
       name: If-None-Match
       in: header
-      description: 'The `If-None-Match` header which has to conform to RFC-7232 (Conditional Requests). A common usage scenario is to modify a resource only if it does not yet exist, thus to create it, by specifying `If-None-Match: *`.'
+      description:  >-
+        The `If-None-Match` header which has to conform to RFC-7232 (Conditional Requests). A common usage scenario is to
+        modify a resource only if it does not yet exist, thus to create it, by specifying `If-None-Match: *`.
       required: false
       schema:
         type: string
@@ -2837,6 +2892,7 @@ components:
         * `?fields=attributes(model,make),features`
 
         * `?fields=thingId,attributes/location/longitude,attributes/address(city,street)`
+
       required: false
       schema:
         type: string
@@ -2867,6 +2923,7 @@ components:
         * `?fields=model,make,location(longitude,latitude)`
 
         * `?fields=listOfAddresses/postal(city,street))`
+
       required: false
       schema:
         type: string
@@ -2897,6 +2954,7 @@ components:
         * `?fields=temperature,humidity,location(longitude,latitude)`
 
         * `?fields=configuration,status(powerConsumption/watts)`
+
       required: false
       schema:
         type: string
@@ -2933,6 +2991,7 @@ components:
         * `?fields=EnvironmentScanner/properties(temperature,humidity)`
 
         * `?fields=EnvironmentScanner/properties(temperature,humidity),Vehicle/properties/configuration`
+
       required: false
       schema:
         type: string
@@ -2964,6 +3023,7 @@ components:
         #### Examples
 
         * `?fields=properties(color,brightness)`
+
       required: false
       schema:
         type: string
