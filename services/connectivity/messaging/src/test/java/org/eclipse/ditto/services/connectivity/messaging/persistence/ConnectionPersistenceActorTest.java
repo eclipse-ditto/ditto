@@ -134,6 +134,7 @@ import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Unit test for {@link org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceActor}.
@@ -685,7 +686,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
             // create connection
             underTest.tell(createConnection, commandSender.ref());
-            mockClientProbe.expectMsg(openConnection);
+            mockClientProbe.expectMsg(FiniteDuration.create(5, TimeUnit.SECONDS), openConnection);
             commandSender.expectMsg(createConnectionResponse);
 
             final ActorRef clientActor = watch(mockClientProbe.sender());
