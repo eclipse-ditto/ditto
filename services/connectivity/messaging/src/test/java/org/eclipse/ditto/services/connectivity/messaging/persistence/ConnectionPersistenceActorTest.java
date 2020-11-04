@@ -1581,7 +1581,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         return CreateConnection.of(
                 createConnection.getConnection()
                         .toBuilder()
-                        .targets(createConnection.getConnection().getTargets().stream()
+                        .setTargets(createConnection.getConnection().getTargets().stream()
                                 .map(target -> ConnectivityModelFactory.newTargetBuilder(target)
                                         .issuedAcknowledgementLabel(getTestAck())
                                         .build())
