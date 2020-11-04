@@ -56,7 +56,8 @@ public class ConnectionDeletedStrategies
             final long nextRevision,
             final ConnectivityCommand command) {
 
-        context.getLog().warning("Received command for deleted connection, rejecting: <{}>", command);
+        context.getLog().withCorrelationId(command)
+                .warning("Received command for deleted connection, rejecting: <{}>", command);
         return ResultFactory.newErrorResult(ConnectionNotAccessibleException.newBuilder(context.getState().id())
                 .dittoHeaders(command.getDittoHeaders())
                 .build(), command);

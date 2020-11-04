@@ -89,13 +89,15 @@ import org.eclipse.ditto.services.connectivity.messaging.rabbitmq.RabbitMQValida
 import org.eclipse.ditto.services.connectivity.messaging.validation.CompoundConnectivityCommandInterceptor;
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
-import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.acks.AcknowledgementForwarderActor;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
@@ -254,14 +256,18 @@ public final class ConnectionPersistenceActor
                 ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
         connectionLogger = loggerRegistry.forConnection(connectionId);
 
-        ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
-
         this.loggingEnabledDuration = monitoringConfig.logger().logDuration();
         this.checkLoggingActiveInterval = monitoringConfig.logger().loggingActiveCheckInterval();
         this.clientActorsPerNode = clientActorsPerNode;
 
         connectionIdResolver = PlaceholderFactory.newExpressionResolver(PlaceholderFactory.newConnectionIdPlaceholder(),
                 connectionId);
+    }
+
+    @Override
+    protected DittoDiagnosticLoggingAdapter createLogger() {
+        return DittoLoggerFactory.getDiagnosticLoggingAdapter(this)
+                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), entityId);
     }
 
     /**
@@ -545,21 +551,21 @@ public final class ConnectionPersistenceActor
 
     private void handleSignal(final Signal<?> signal) {
         if (clientActorRouter == null) {
-            logDroppedSignal(signal.getType(), "Client actor not ready.");
+            logDroppedSignal(signal, signal.getType(), "Client actor not ready.");
             return;
         }
         if (entity == null || signalFilter == null) {
-            logDroppedSignal(signal.getType(), "No Connection or signalFilter configuration available.");
+            logDroppedSignal(signal, signal.getType(), "No Connection or signalFilter configuration available.");
             return;
         }
         if (entityId.toString().equals(signal.getDittoHeaders().getOrigin().orElse(null))) {
-            logDroppedSignal(signal.getType(), "Was sent by myself.");
+            logDroppedSignal(signal, signal.getType(), "Was sent by myself.");
             return;
         }
         final List<Target> subscribedAndAuthorizedTargets =
                 signalFilter.filter(signal, target -> issuePotentialWeakAcknowledgements(target, signal));
         if (subscribedAndAuthorizedTargets.isEmpty()) {
-            logDroppedSignal(signal.getType(), "No subscribed and authorized targets present");
+            logDroppedSignal(signal, signal.getType(), "No subscribed and authorized targets present");
             return;
         }
 
@@ -684,13 +690,12 @@ public final class ConnectionPersistenceActor
      * @param command the command to route.
      */
     private void forwardThingSearchCommandToClientActors(final ThingSearchCommand<?> command) {
-        enhanceLogUtil(command);
         if (clientActorRouter == null) {
-            logDroppedSignal(command.getType(), "Client actor not ready.");
+            logDroppedSignal(command, command.getType(), "Client actor not ready.");
             return;
         }
         if (entity == null) {
-            logDroppedSignal(command.getType(), "No Connection configuration available.");
+            logDroppedSignal(command, command.getType(), "No Connection configuration available.");
             return;
         }
         log.debug("Forwarding <{}> to client actors.", command);
@@ -707,7 +712,8 @@ public final class ConnectionPersistenceActor
             computeEnvelopeAndForward(clientActorRouter, ((CancelSubscription) command).getSubscriptionId(), command);
         } else {
             // should not happen
-            log.error("Unknown search command, dropping: <{}>", command);
+            log.withCorrelationId(command)
+                    .error("Unknown search command, dropping: <{}>", command);
         }
     }
 
@@ -724,7 +730,7 @@ public final class ConnectionPersistenceActor
         final int prefixLength = getSubscriptionPrefixLength();
         if (subscriptionId.length() <= prefixLength) {
             // command is invalid or outdated, dropping.
-            logDroppedSignal(command.getType(), "Invalid subscription ID");
+            logDroppedSignal(command, command.getType(), "Invalid subscription ID");
             return;
         }
         final String prefix = subscriptionId.substring(0, prefixLength);
@@ -843,13 +849,8 @@ public final class ConnectionPersistenceActor
                 });
     }
 
-    private void enhanceLogUtil(final WithDittoHeaders<?> createConnection) {
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log, createConnection, entityId);
-    }
-
-
-    private void logDroppedSignal(final String type, final String reason) {
-        log.debug("Signal ({}) dropped: {}", type, reason);
+    private void logDroppedSignal(final WithDittoHeaders<?> withDittoHeaders, final String type, final String reason) {
+        log.withCorrelationId(withDittoHeaders).debug("Signal ({}) dropped: {}", type, reason);
     }
 
     private void retrieveConnectionLogs(final RetrieveConnectionLogs command, final ActorRef sender) {

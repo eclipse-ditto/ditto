@@ -420,7 +420,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
             return Props.create(DevOpsCommandResponseCorrelationActor.class, devOpsCommandSender, devOpsCommand);
         }
 
-        private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+        private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
         private final ActorRef devOpsCommandSender;
         private final DevOpsCommand<?> devOpsCommand;
@@ -459,14 +459,14 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
                     .match(CommandResponse.class, this::handleCommandResponse)
                     .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                     .match(ReceiveTimeout.class, receiveTimeout -> {
-                        LogUtil.enhanceLogWithCorrelationId(log, getSelf().path().name());
-                        log.info("Got ReceiveTimeout, answering with all aggregated DevOpsCommandResponses and " +
-                                "stopping ourselves ...");
+                        log.withCorrelationId(getSelf().path().name())
+                                .info("Got ReceiveTimeout, answering with all aggregated DevOpsCommandResponses and " +
+                                        "stopping ourselves ...");
                         sendCommandResponsesAndStop();
                     })
                     .matchAny(m -> {
-                        LogUtil.enhanceLogWithCorrelationId(log, getSelf().path().name());
-                        log.warning(UNKNOWN_MESSAGE_TEMPLATE, m);
+                        log.withCorrelationId(getSelf().path().name())
+                                .warning(UNKNOWN_MESSAGE_TEMPLATE, m);
                         unhandled(m);
                     }).build();
         }
@@ -481,23 +481,22 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
         }
 
         private void handleCommandResponse(final CommandResponse<?> commandResponse) {
-            LogUtil.enhanceLogWithCorrelationId(log, commandResponse);
             if (commandResponse instanceof DevOpsCommandResponse) {
                 log.debug("Received DevOpsCommandResponse from service/instance <{}/{}>: {}",
                         ((DevOpsCommandResponse<?>) commandResponse).getServiceName().orElse("?"),
                         ((DevOpsCommandResponse<?>) commandResponse).getInstance().orElse("?"),
                         commandResponse.getType());
             } else {
-                log.debug("Received DevOpsCommandResponse from service/instance <?/?>: {}", commandResponse.getType());
+                log.withCorrelationId(commandResponse)
+                        .debug("Received DevOpsCommandResponse from service/instance <?/?>: {}", commandResponse.getType());
             }
             addCommandResponse(commandResponse);
         }
 
         private void handleDittoRuntimeException(final DittoRuntimeException dittoRuntimeException) {
-            LogUtil.enhanceLogWithCorrelationId(log, dittoRuntimeException);
-
-            log.warning("Received DittoRuntimeException <{}> from <{}>: <{}>!",
-                    dittoRuntimeException.getClass().getName(), getSender(), dittoRuntimeException);
+            log.withCorrelationId(dittoRuntimeException)
+                    .warning("Received DittoRuntimeException <{}> from <{}>: <{}>!",
+                            dittoRuntimeException.getClass().getName(), getSender(), dittoRuntimeException);
 
             addCommandResponse(DevOpsErrorResponse.of(null, null, dittoRuntimeException.toJson(),
                     dittoRuntimeException.getDittoHeaders()));

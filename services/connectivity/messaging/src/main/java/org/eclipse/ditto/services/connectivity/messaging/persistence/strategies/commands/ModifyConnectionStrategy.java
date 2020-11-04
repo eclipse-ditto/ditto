@@ -85,11 +85,13 @@ final class ModifyConnectionStrategy extends AbstractConnectivityCommandStrategy
         } else if (isNextConnectionOpen || isCurrentConnectionOpen) {
             final List<ConnectionAction> actions;
             if (isNextConnectionOpen) {
-                context.getLog().debug("Desired connection state is OPEN");
+                context.getLog().withCorrelationId(command)
+                        .debug("Desired connection state is OPEN");
                 actions = Arrays.asList(PERSIST_AND_APPLY_EVENT, CLOSE_CONNECTION, STOP_CLIENT_ACTORS,
                         OPEN_CONNECTION, UPDATE_SUBSCRIPTIONS, SEND_RESPONSE);
             } else {
-                context.getLog().debug("Desired connection state is not OPEN");
+                context.getLog().withCorrelationId(command)
+                        .debug("Desired connection state is not OPEN");
                 actions = Arrays.asList(PERSIST_AND_APPLY_EVENT, UPDATE_SUBSCRIPTIONS, CLOSE_CONNECTION,
                         STOP_CLIENT_ACTORS, SEND_RESPONSE);
             }

@@ -53,7 +53,11 @@ public abstract class AbstractPersistentActorWithTimersAndCleanup extends Abstra
     private long lastCleanupExecutedAtSequenceNumber = 0;
 
     protected AbstractPersistentActorWithTimersAndCleanup() {
-        this.log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+        this.log = createLogger();
+    }
+
+    protected DittoDiagnosticLoggingAdapter createLogger() {
+        return DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     }
 
     /**

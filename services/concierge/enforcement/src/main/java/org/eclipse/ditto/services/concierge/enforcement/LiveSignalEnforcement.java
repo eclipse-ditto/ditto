@@ -36,7 +36,6 @@ import org.eclipse.ditto.protocoladapter.UnknownCommandException;
 import org.eclipse.ditto.services.models.concierge.pubsub.LiveSignalPub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.policies.Permission;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
@@ -137,7 +136,6 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
     @Override
     public CompletionStage<Contextual<WithDittoHeaders>> enforce() {
         final Signal<?> liveSignal = signal();
-        LogUtil.enhanceLogWithCorrelationIdOrRandom(liveSignal);
         return enforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             try {
                 return doEnforce(liveSignal, enforcerEntry)

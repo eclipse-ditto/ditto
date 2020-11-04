@@ -24,9 +24,9 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.LogEntry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 
 /**
  * Default implementation of {@link org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.MuteableConnectionLogger}.
@@ -35,8 +35,7 @@ import org.slf4j.LoggerFactory;
 @NotThreadSafe
 final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultMuteableConnectionLogger.class);
-
+    private final ThreadSafeDittoLogger logger;
     private final ConnectionId connectionId;
     private final ConnectionLogger delegate;
     private boolean active;
@@ -48,6 +47,8 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
      */
     DefaultMuteableConnectionLogger(final ConnectionId connectionId, final ConnectionLogger delegate) {
         this.connectionId = connectionId;
+        this.logger = DittoLoggerFactory.getThreadSafeLogger(DefaultMuteableConnectionLogger.class)
+                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connectionId);
         this.delegate = delegate;
         this.active = false;
     }
@@ -136,21 +137,19 @@ final class DefaultMuteableConnectionLogger implements MuteableConnectionLogger 
         if (active) {
             return delegate.getLogs();
         }
-        LOGGER.trace("Returning empty logs since logger is muted.");
+        logger.trace("Returning empty logs since logger is muted.");
         return Collections.emptyList();
     }
 
     private void logTrace(final String message) {
-        if (LOGGER.isTraceEnabled()) {
-            ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
-            LOGGER.trace(message);
+        if (logger.isTraceEnabled()) {
+            logger.trace(message);
         }
     }
 
     private void logTraceWithCorrelationId(final String message, final ConnectionMonitor.InfoProvider infoProvider, final Object... messageArguments) {
-        if (LOGGER.isTraceEnabled()) {
-            ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(infoProvider.getCorrelationId(), connectionId);
-            LOGGER.trace(message, messageArguments);
+        if (logger.isTraceEnabled()) {
+            logger.withCorrelationId(infoProvider.getCorrelationId()).trace(message, messageArguments);
         }
     }
 
