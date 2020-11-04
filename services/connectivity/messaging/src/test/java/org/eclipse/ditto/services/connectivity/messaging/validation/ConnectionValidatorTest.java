@@ -246,7 +246,7 @@ public class ConnectionValidatorTest {
     @Test
     public void rejectConnectionWithInvalidTargetIssuedAck() {
         final Connection connection = createConnection(CONNECTION_ID).toBuilder()
-                .targets(TestConstants.Targets.TARGETS.stream()
+                .setTargets(TestConstants.Targets.TARGETS.stream()
                         .map(target -> ConnectivityModelFactory.newTargetBuilder(target)
                                 .issuedAcknowledgementLabel(AcknowledgementLabel.of("ack"))
                                 .build())
@@ -262,14 +262,14 @@ public class ConnectionValidatorTest {
     public void acceptConnectionWithValidSourceDeclaredAcksAndTargetIssuedAcks() {
         final Target targetTemplate = TestConstants.Targets.TWIN_TARGET;
         final Connection connection = createConnection(CONNECTION_ID).toBuilder()
-                .sources(TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS.stream()
+                .setSources(TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS.stream()
                         .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
                                 .declaredAcknowledgementLabels(Set.of(AcknowledgementLabel.of(
                                         CONNECTION_ID + ":ack")))
                                 .build())
                         .collect(Collectors.toList())
                 )
-                .targets(List.of(
+                .setTargets(List.of(
                         ConnectivityModelFactory.newTargetBuilder(targetTemplate)
                                 .issuedAcknowledgementLabel(AcknowledgementLabel.of("live-response"))
                                 .build(),
@@ -287,13 +287,13 @@ public class ConnectionValidatorTest {
     public void acceptConnectionWithValidSourceDeclaredAcksAndTargetIssuedAcksUsingPlaceholder() {
         final Target targetTemplate = TestConstants.Targets.TWIN_TARGET;
         final Connection connection = createConnection(CONNECTION_ID).toBuilder()
-                .sources(TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS.stream()
+                .setSources(TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS.stream()
                         .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
                                 .declaredAcknowledgementLabels(Set.of(AcknowledgementLabel.of("{{connection:id}}:ack")))
                                 .build())
                         .collect(Collectors.toList())
                 )
-                .targets(List.of(
+                .setTargets(List.of(
                         ConnectivityModelFactory.newTargetBuilder(targetTemplate)
                                 .issuedAcknowledgementLabel(AcknowledgementLabel.of("live-response"))
                                 .build(),
