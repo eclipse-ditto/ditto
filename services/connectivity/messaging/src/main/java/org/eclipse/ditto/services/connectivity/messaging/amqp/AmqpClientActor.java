@@ -274,7 +274,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
             jmsConnection.addConnectionListener(connectionListener);
             jmsSession = c.session;
         } else {
-            logger.info("ClientConnected was not JmsConnected as expected, ignoring as this probably was a reconnection");
+            logger.info(
+                    "ClientConnected was not JmsConnected as expected, ignoring as this probably was a reconnection");
         }
     }
 
@@ -419,7 +420,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         final String namePrefix =
                 JMSConnectionHandlingActor.ACTOR_NAME_PREFIX + escapeActorName(connectionId() + "-" + suffix);
         final Props props =
-                JMSConnectionHandlingActor.propsWithOwnDispatcher(connection, this, jmsConnectionFactory);
+                JMSConnectionHandlingActor.propsWithOwnDispatcher(connection, this, jmsConnectionFactory,
+                        connectionLogger);
         return startChildActorConflictFree(namePrefix, props);
     }
 

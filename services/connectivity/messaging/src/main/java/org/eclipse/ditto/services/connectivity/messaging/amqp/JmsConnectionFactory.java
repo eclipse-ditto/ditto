@@ -18,6 +18,7 @@ import javax.naming.NamingException;
 
 import org.apache.qpid.jms.JmsConnection;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 
 /**
  * Creates a new {@link javax.jms.Connection}.
@@ -29,11 +30,12 @@ public interface JmsConnectionFactory {
      *
      * @param connection the connection to use for the returned JMS Connection.
      * @param exceptionListener the ExceptionListener to configure for the returned JMS Connection.
+     * @param connectionLogger used to log failures during certificate validation.
      * @return the JMS Connection.
      * @throws javax.jms.JMSException if the context could not be created.
      * @throws javax.naming.NamingException if the identifier of {@code connection} could not be found in the Context.
      */
-    JmsConnection createConnection(Connection connection, ExceptionListener exceptionListener)
-            throws JMSException, NamingException;
+    JmsConnection createConnection(Connection connection, ExceptionListener exceptionListener,
+            ConnectionLogger connectionLogger) throws JMSException, NamingException;
 
 }

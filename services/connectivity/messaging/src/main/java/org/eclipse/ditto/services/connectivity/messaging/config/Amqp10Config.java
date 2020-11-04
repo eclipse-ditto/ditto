@@ -89,6 +89,16 @@ public interface Amqp10Config {
     BackOffConfig getBackOffConfig();
 
     /**
+     * @return maximum number of messages buffered at the publisher actor before dropping them.
+     */
+    int getMaxQueueSize();
+
+    /**
+     * @return the number of possible parallel message publications per publisher actor.
+     */
+    int getPublisherParallelism();
+
+    /**
      * Connect timeout for the AMQP 1.0 client.
      * <p>
      * Used as {@code "jms.connectTimeout"} value.
@@ -166,6 +176,16 @@ public interface Amqp10Config {
          * How many message producers to cache per client actor.
          */
         PRODUCER_CACHE_SIZE("producer-cache-size", 10),
+
+        /**
+         * How many messages to buffer in the publisher actor before dropping them.
+         */
+        MAX_QUEUE_SIZE("publisher.max-queue-size", 10),
+
+        /**
+         * How many messages will be published in parallel
+         */
+        MESSAGE_PUBLISHING_PARALLELISM("publisher.parallelism", 3),
 
         /**
          * Connect timeout for the AMQP 1.0 client.

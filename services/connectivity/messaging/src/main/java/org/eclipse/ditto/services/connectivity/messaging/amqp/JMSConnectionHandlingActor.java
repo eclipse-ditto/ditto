@@ -39,6 +39,7 @@ import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
@@ -87,16 +88,18 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     private final Connection connection;
     private final ExceptionListener exceptionListener;
     private final JmsConnectionFactory jmsConnectionFactory;
+    private final ConnectionLogger connectionLogger;
 
     @Nullable private Session currentSession = null;
 
     @SuppressWarnings("unused")
     private JMSConnectionHandlingActor(final Connection connection, final ExceptionListener exceptionListener,
-            final JmsConnectionFactory jmsConnectionFactory) {
+            final JmsConnectionFactory jmsConnectionFactory, final ConnectionLogger connectionLogger) {
 
         this.connection = checkNotNull(connection, "connection");
         this.exceptionListener = exceptionListener;
         this.jmsConnectionFactory = jmsConnectionFactory;
+        this.connectionLogger = connectionLogger;
     }
 
     /**
@@ -105,17 +108,19 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
      * @param connection the connection
      * @param exceptionListener the exception listener
      * @param jmsConnectionFactory the jms connection factory
+     * @param connectionLogger used to log failures during certificate validation.
      * @return the Akka configuration Props object.
      */
     static Props props(final Connection connection, final ExceptionListener exceptionListener,
-            final JmsConnectionFactory jmsConnectionFactory) {
+            final JmsConnectionFactory jmsConnectionFactory, final ConnectionLogger connectionLogger) {
 
-        return Props.create(JMSConnectionHandlingActor.class, connection, exceptionListener, jmsConnectionFactory);
+        return Props.create(JMSConnectionHandlingActor.class, connection, exceptionListener, jmsConnectionFactory,
+                connectionLogger);
     }
 
     static Props propsWithOwnDispatcher(final Connection connection, final ExceptionListener exceptionListener,
-            final JmsConnectionFactory jmsConnectionFactory) {
-        return props(connection, exceptionListener, jmsConnectionFactory)
+            final JmsConnectionFactory jmsConnectionFactory, final ConnectionLogger connectionLogger) {
+        return props(connection, exceptionListener, jmsConnectionFactory, connectionLogger)
                 .withDispatcher(DISPATCHER_NAME);
     }
 
@@ -362,7 +367,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
                         ConnectionBasedJmsConnectionFactory
                                 .buildAmqpConnectionUriFromConnection(connection, amqp10Config));
             }
-            return jmsConnectionFactory.createConnection(connection, exceptionListener);
+            return jmsConnectionFactory.createConnection(connection, exceptionListener, connectionLogger);
         });
     }
 

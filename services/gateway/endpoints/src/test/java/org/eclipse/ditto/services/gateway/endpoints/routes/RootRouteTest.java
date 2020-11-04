@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.gateway.endpoints.routes;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.KNOWN_DOMAIN;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.UNKNOWN_PATH;
+import static org.mockito.Mockito.doAnswer;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
@@ -128,6 +129,7 @@ public final class RootRouteTest extends EndpointTestBase {
         final ProtocolAdapterProvider protocolAdapterProvider =
                 ProtocolAdapterProvider.load(protocolConfig, actorSystem);
         final HeaderTranslator headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
+        doAnswer(invocation -> system()).when(httpClientFacade).getActorSystem();
         final JwtAuthenticationFactory jwtAuthenticationFactory =
                 JwtAuthenticationFactory.newInstance(authConfig.getOAuthConfig(), cacheConfig, httpClientFacade);
         final GatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =

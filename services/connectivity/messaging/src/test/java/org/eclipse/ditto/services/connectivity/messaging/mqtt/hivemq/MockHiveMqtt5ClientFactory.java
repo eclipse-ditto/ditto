@@ -32,6 +32,7 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.mockito.Mockito;
 
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
@@ -104,7 +105,8 @@ class MockHiveMqtt5ClientFactory implements HiveMqtt5ClientFactory {
     @Override
     public Mqtt5AsyncClient newClient(final Connection connection, final String identifier, final boolean reconnect,
             @Nullable final MqttClientConnectedListener connectedListener,
-            @Nullable final MqttClientDisconnectedListener disconnectedListener) {
+            @Nullable final MqttClientDisconnectedListener disconnectedListener,
+            final ConnectionLogger connectionLogger) {
 
         final Mqtt5AsyncClient client = mock(Mqtt5AsyncClient.class);
         doReturn(client).when(client).toAsync();
@@ -171,9 +173,10 @@ class MockHiveMqtt5ClientFactory implements HiveMqtt5ClientFactory {
     public Mqtt5ClientBuilder newClientBuilder(final Connection connection, final String identifier,
             final boolean allowReconnect,
             @Nullable final MqttClientConnectedListener connectedListener,
-            @Nullable final MqttClientDisconnectedListener disconnectedListener) {
-        final Mqtt5Client client =
-                newClient(connection, identifier, allowReconnect, connectedListener, disconnectedListener);
+            @Nullable final MqttClientDisconnectedListener disconnectedListener,
+            final ConnectionLogger connectionLogger) {
+        final Mqtt5Client client = newClient(connection, identifier, allowReconnect, connectedListener,
+                disconnectedListener, connectionLogger);
         final Mqtt5ClientBuilder builder = Mockito.mock(Mqtt5ClientBuilder.class);
         final Mqtt5ClientAdvancedConfigBuilder.Nested<Mqtt5ClientBuilder> advancedConfig =
                 Mockito.mock(Mqtt5ClientAdvancedConfigBuilder.Nested.class);

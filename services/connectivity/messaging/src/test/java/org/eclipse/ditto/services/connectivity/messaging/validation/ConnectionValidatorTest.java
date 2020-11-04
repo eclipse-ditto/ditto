@@ -51,6 +51,7 @@ import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -100,7 +101,8 @@ public class ConnectionValidatorTest {
                 areImmutable(),
                 // mutability-detector cannot detect that maps built from stream collectors are safely copied.
                 assumingFields("specMap").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
-                provided(QueryFilterCriteriaFactory.class, HostValidator.class).isAlsoImmutable());
+                provided(QueryFilterCriteriaFactory.class, HostValidator.class, MonitoringLoggerConfig.class)
+                        .isAlsoImmutable());
     }
 
     @Test

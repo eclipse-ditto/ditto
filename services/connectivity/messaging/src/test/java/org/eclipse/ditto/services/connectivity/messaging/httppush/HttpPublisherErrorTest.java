@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -38,6 +39,7 @@ import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActor
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.config.DefaultConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -107,7 +109,8 @@ public final class HttpPublisherErrorTest {
         // GIVEN: HTTP publisher actor created with extremely short connection pool timeout
         createActorSystem(ConfigFactory.load("test-timeout"));
         new TestKit(actorSystem) {{
-            final HttpPushFactory factory = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig());
+            final HttpPushFactory factory = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
+                    mock(ConnectionLogger.class));
             final Props props = HttpPublisherActor.props(connection, factory);
             final ActorRef underTest = watch(childActorOf(props));
 
@@ -137,7 +140,8 @@ public final class HttpPublisherErrorTest {
         createActorSystem(TestConstants.CONFIG);
         new TestKit(actorSystem) {{
             // GIVEN: An HTTP-push connection is established against localhost.
-            final HttpPushFactory factory = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig());
+            final HttpPushFactory factory = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
+                    mock(ConnectionLogger.class));
             final Props props = HttpPublisherActor.props(connection, factory);
             final ActorRef underTest = watch(childActorOf(props));
 
