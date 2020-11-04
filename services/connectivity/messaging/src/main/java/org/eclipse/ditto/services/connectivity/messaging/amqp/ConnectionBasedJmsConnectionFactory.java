@@ -39,6 +39,7 @@ import org.apache.qpid.jms.JmsConnection;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.config.Amqp10Config;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -70,8 +71,9 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
     }
 
     @Override
-    public JmsConnection createConnection(final Connection connection, final ExceptionListener exceptionListener)
-            throws JMSException, NamingException {
+    public JmsConnection createConnection(final Connection connection, final ExceptionListener exceptionListener,
+            final ConnectionLogger connectionLogger) throws JMSException, NamingException {
+
         checkNotNull(connection, "Connection");
         checkNotNull(exceptionListener, "Exception Listener");
 
@@ -80,7 +82,8 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
                 (org.apache.qpid.jms.JmsConnectionFactory) ctx.lookup(connection.getId().toString());
 
         if (isSecuredConnection(connection) && connection.isValidateCertificates()) {
-            cf.setSslContext(SSLContextCreator.fromConnection(connection, null).withoutClientCertificate());
+            cf.setSslContext(SSLContextCreator.fromConnection(connection, null, connectionLogger)
+                    .withoutClientCertificate());
         }
 
         @SuppressWarnings("squid:S2095") final JmsConnection jmsConnection = (JmsConnection) cf.createConnection();

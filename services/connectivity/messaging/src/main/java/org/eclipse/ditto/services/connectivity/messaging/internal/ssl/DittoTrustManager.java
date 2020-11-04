@@ -17,9 +17,11 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nullable;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
 
 import sun.security.util.HostnameChecker;
 
@@ -32,45 +34,66 @@ final class DittoTrustManager implements X509TrustManager {
     private static final HostnameChecker HOSTNAME_CHECKER = HostnameChecker.getInstance(HostnameChecker.TYPE_TLS);
     private static final Pattern IPV6_URI_PATTERN = Pattern.compile("^\\[[A-Fa-f0-9.:\\s]++]$");
 
-    private final X509TrustManager delegate;
+    private final X509TrustManager delegateWithRevocationCheck;
+    private final X509TrustManager delegateWithoutRevocationCheck;
     private final String hostnameOrIp;
+    private final ConnectionLogger connectionLogger;
 
-    private DittoTrustManager(final X509TrustManager delegate, final String hostnameOrIp) {
-        this.delegate = delegate;
+    private DittoTrustManager(final X509TrustManager delegateWithRevocationCheck,
+            final X509TrustManager delegateWithoutRevocationCheck,
+            final String hostnameOrIp,
+            final ConnectionLogger connectionLogger) {
+        this.delegateWithRevocationCheck = delegateWithRevocationCheck;
+        this.delegateWithoutRevocationCheck = delegateWithoutRevocationCheck;
         this.hostnameOrIp = stripIpv6Brackets(hostnameOrIp);
+        this.connectionLogger = connectionLogger;
     }
 
     /**
      * Create an array of {@code DittoTrustManager} from other trust managers.
      *
-     * @param trustManagers trust managers to convert.
-     * @param hostnameOrIp expected hostname or IP address in URI-embedded format.
+     * @param trustManagerWithRevocationCheck singleton array containing an X509 trust manager that performs revocation
+     * checks.
+     * @param trustManagerWithoutRevocationCheck singleton array containing an X509 trust manager that does not perform
+     * revocation checks.
+     * @param hostnameOrIP expected hostname or IP address in URI-embedded format.
      * @return array of trust managers such that all X509 trust managers are converted to Ditto trust managers.
+     * @throws java.lang.IllegalArgumentException when the array arguments are not singletons.
+     * @throws java.lang.ClassCastException when the trust managers are not X509 trust managers.
      */
-    static TrustManager[] wrapTrustManagers(final TrustManager[] trustManagers,
-            @Nullable final String hostnameOrIp) {
+    static TrustManager[] wrapTrustManagers(final TrustManager[] trustManagerWithRevocationCheck,
+            final TrustManager[] trustManagerWithoutRevocationCheck,
+            final String hostnameOrIP,
+            final ConnectionLogger connectionLogger) {
 
-        if (hostnameOrIp != null) {
-            return Arrays.stream(trustManagers)
-                    .map(trustManager -> trustManager instanceof X509TrustManager
-                            ? new DittoTrustManager((X509TrustManager) trustManager, hostnameOrIp)
-                            : trustManager)
-                    .toArray(TrustManager[]::new);
-        } else {
-            return trustManagers;
+        if (trustManagerWithRevocationCheck.length != 1 || trustManagerWithoutRevocationCheck.length != 1) {
+            throw new IllegalArgumentException("Expect 1 trust manager with and without revocation check, got " +
+                    trustManagerWithRevocationCheck.length + " and " + trustManagerWithoutRevocationCheck.length);
         }
+        return new TrustManager[]{
+                new DittoTrustManager((X509TrustManager) trustManagerWithRevocationCheck[0],
+                        (X509TrustManager) trustManagerWithoutRevocationCheck[0],
+                        hostnameOrIP,
+                        connectionLogger)
+        };
     }
 
     @Override
     public void checkClientTrusted(final X509Certificate[] chain, final String s) throws CertificateException {
-        delegate.checkClientTrusted(chain, s);
+        delegateWithRevocationCheck.checkClientTrusted(chain, s);
     }
 
     @Override
     public void checkServerTrusted(final X509Certificate[] chain, final String authType) throws CertificateException {
 
         // verify certificate chain
-        delegate.checkServerTrusted(chain, authType);
+        try {
+            delegateWithRevocationCheck.checkServerTrusted(chain, authType);
+        } catch (final CertificateException e) {
+            // check again without revocation to detect any masked errors
+            delegateWithoutRevocationCheck.checkServerTrusted(chain, authType);
+            connectionLogger.exception(InfoProviderFactory.empty(), e);
+        }
 
         // verify hostname
         if (chain.length <= 0) {
@@ -87,16 +110,15 @@ final class DittoTrustManager implements X509TrustManager {
 
     @Override
     public X509Certificate[] getAcceptedIssuers() {
-        return delegate.getAcceptedIssuers();
+        return delegateWithRevocationCheck.getAcceptedIssuers();
     }
 
     private boolean isServerCertificateInTrustStore(final X509Certificate serverCertificate) {
-        return Arrays.asList(delegate.getAcceptedIssuers()).contains(serverCertificate);
+        return Arrays.asList(delegateWithRevocationCheck.getAcceptedIssuers()).contains(serverCertificate);
     }
 
-    @Nullable
-    private static String stripIpv6Brackets(@Nullable final String hostnameOrIp) {
-        if (hostnameOrIp != null && IPV6_URI_PATTERN.matcher(hostnameOrIp).matches()) {
+    private static String stripIpv6Brackets(final String hostnameOrIp) {
+        if (IPV6_URI_PATTERN.matcher(hostnameOrIp).matches()) {
             return hostnameOrIp.substring(1, hostnameOrIp.length() - 1);
         } else {
             return hostnameOrIp;

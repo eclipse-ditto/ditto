@@ -63,18 +63,22 @@ public final class TrustManagerFactoryFactory {
         keyStoreFactory = new KeyStoreFactory(exceptionMapper);
     }
 
-    public static TrustManagerFactoryFactory getInstance() {
-        return new TrustManagerFactoryFactory(new ExceptionMapper(DittoHeaders.empty()));
+    public static TrustManagerFactoryFactory getInstance(final DittoHeaders dittoHeaders) {
+        return new TrustManagerFactoryFactory(new ExceptionMapper(dittoHeaders));
     }
 
-    public TrustManagerFactory newTrustManagerFactory(@Nullable final String trustedCertificates) {
-        return exceptionMapper.handleExceptions(() -> createTrustManagerFactory(trustedCertificates));
+    public static TrustManagerFactoryFactory getInstance(final ExceptionMapper exceptionMapper) {
+        return new TrustManagerFactoryFactory(exceptionMapper);
     }
 
-    public TrustManagerFactory newTrustManagerFactory(final Connection connection) {
+    public TrustManagerFactory newTrustManagerFactory(@Nullable final String trustedCertificates,
+            final boolean checkRevocation) {
+        return exceptionMapper.handleExceptions(() -> createTrustManagerFactory(trustedCertificates, checkRevocation));
+    }
+
+    public TrustManagerFactory newTrustManagerFactory(final Connection connection, final boolean checkRevocation) {
         final String trustedCertificates = connection.getTrustedCertificates().orElse(null);
-        final TrustManagerFactory factory =
-                exceptionMapper.handleExceptions(() -> createTrustManagerFactory(trustedCertificates));
+        final TrustManagerFactory factory = newTrustManagerFactory(trustedCertificates, checkRevocation);
         if (connection.isValidateCertificates()) {
             return factory;
         } else {
@@ -86,7 +90,9 @@ public final class TrustManagerFactoryFactory {
         return InsecureTrustManagerFactory.INSTANCE;
     }
 
-    private TrustManagerFactory createTrustManagerFactory(@Nullable final String trustedCertificates)
+    private TrustManagerFactory createTrustManagerFactory(
+            @Nullable final String trustedCertificates,
+            final boolean checkForRevocation)
             throws NoSuchAlgorithmException, CertificateException, KeyStoreException,
             InvalidAlgorithmParameterException {
         final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(PKIX);
@@ -102,16 +108,19 @@ public final class TrustManagerFactoryFactory {
             trustManagerFactory.init(keystore);
         } else {
             // standard CAs; add revocation check
-            final PKIXRevocationChecker revocationChecker =
-                    (PKIXRevocationChecker) CertPathBuilder.getInstance(PKIX).getRevocationChecker();
             final PKIXBuilderParameters parameters =
                     new PKIXBuilderParameters(DEFAULT_CA_KEYSTORE, new X509CertSelector());
-            parameters.addCertPathChecker(revocationChecker);
+            if (checkForRevocation) {
+                parameters.addCertPathChecker(
+                        (PKIXRevocationChecker) CertPathBuilder.getInstance(PKIX).getRevocationChecker()
+                );
+            } else {
+                parameters.addCertPathChecker(NoRevocationChecker.getInstance());
+            }
             trustManagerFactory.init(new CertPathTrustManagerParameters(parameters));
         }
         return trustManagerFactory;
     }
-
 
     private static KeyStore loadDefaultCAKeystore() {
         try {

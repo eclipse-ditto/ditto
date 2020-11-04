@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 
 import com.hivemq.client.mqtt.lifecycle.MqttClientConnectedListener;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
@@ -40,7 +41,8 @@ interface HiveMqttClientFactory<Q, B> {
      */
     Q newClient(Connection connection, String identifier, boolean allowReconnect,
             @Nullable MqttClientConnectedListener connectedListener,
-            @Nullable MqttClientDisconnectedListener disconnectedListener);
+            @Nullable MqttClientDisconnectedListener disconnectedListener,
+            ConnectionLogger connectionLogger);
 
     /**
      * Creates a new MQTT client builder.
@@ -55,7 +57,8 @@ interface HiveMqttClientFactory<Q, B> {
      */
     B newClientBuilder(Connection connection, String identifier, boolean allowReconnect,
             @Nullable MqttClientConnectedListener connectedListener,
-            @Nullable MqttClientDisconnectedListener disconnectedListener);
+            @Nullable MqttClientDisconnectedListener disconnectedListener,
+            ConnectionLogger connectionLogger);
 
     /**
      * Creates a new client.
@@ -65,8 +68,9 @@ interface HiveMqttClientFactory<Q, B> {
      * @param allowReconnect whether client can be configured with automatic reconnect enabled
      * @return the new client.
      */
-    default Q newClient(final Connection connection, final String identifier, final boolean allowReconnect) {
-        return newClient(connection, identifier, allowReconnect, null, null);
+    default Q newClient(final Connection connection, final String identifier, final boolean allowReconnect,
+            final ConnectionLogger connectionLogger) {
+        return newClient(connection, identifier, allowReconnect, null, null, connectionLogger);
     }
 
 }
