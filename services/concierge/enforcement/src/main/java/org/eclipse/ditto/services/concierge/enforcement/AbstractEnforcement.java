@@ -345,26 +345,4 @@ public abstract class AbstractEnforcement<T extends Signal<?>> {
         return context.getConciergeForwarder();
     }
 
-    /**
-     * Handle the passed {@code throwable} by sending it to the {@link #context}'s sender.
-     *
-     * @param throwable the occurred throwable (most likely a {@link DittoRuntimeException}) to send to the sender.
-     * @return the built contextual including the DittoRuntimeException.
-     */
-    protected Contextual<WithDittoHeaders> handleExceptionally(final Throwable throwable) {
-        final Contextual<T> newContext = context.withReceiver(context.getSender());
-
-        final DittoRuntimeException dittoRuntimeException =
-                DittoRuntimeException.asDittoRuntimeException(throwable,
-                        cause -> {
-                            log().error(cause, "Unexpected non-DittoRuntimeException");
-                            return GatewayInternalErrorException.newBuilder()
-                                    .cause(cause)
-                                    .dittoHeaders(context.getDittoHeaders())
-                                    .build();
-                        });
-
-        return newContext.withMessage(dittoRuntimeException);
-    }
-
 }

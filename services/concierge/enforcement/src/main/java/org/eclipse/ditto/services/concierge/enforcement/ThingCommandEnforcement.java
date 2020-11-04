@@ -174,9 +174,9 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
         return thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             try {
-                return doEnforce(enforcerKeyEntry, enforcerEntry).exceptionally(this::handleExceptionally);
+                return doEnforce(enforcerKeyEntry, enforcerEntry);
             } catch (final RuntimeException e) {
-                return CompletableFuture.completedFuture(handleExceptionally(e));
+                return CompletableFuture.failedStage(e);
             }
         });
     }

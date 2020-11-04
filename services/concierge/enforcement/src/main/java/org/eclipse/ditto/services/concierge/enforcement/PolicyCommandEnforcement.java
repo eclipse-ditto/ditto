@@ -183,7 +183,7 @@ public final class PolicyCommandEnforcement extends AbstractEnforcement<PolicyCo
             try {
                 return CompletableFuture.completedFuture(doEnforce(enforcerEntry));
             } catch (final RuntimeException e) {
-                return CompletableFuture.completedFuture(handleExceptionally(e));
+                return CompletableFuture.failedStage(e);
             }
         });
     }
