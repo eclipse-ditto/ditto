@@ -36,7 +36,7 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
     private final boolean secureStatus;
     private final DevopsAuthenticationMethod devopsAuthenticationMethod;
     private final String password;
-    private final Collection<String> devopsOauth2Subjects;
+    private final Collection<String> devopsOAuth2Subjects;
     private final DevopsAuthenticationMethod statusAuthenticationMethod;
     private final String statusPassword;
     private final Collection<String> statusOAuth2Subjects;
@@ -47,7 +47,7 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
         devopsAuthenticationMethod =
                 getDevopsAuthenticationMethod(configWithFallback, DevOpsConfigValue.DEVOPS_AUTHENTICATION_METHOD);
         password = configWithFallback.getString(DevOpsConfigValue.PASSWORD.getConfigPath());
-        devopsOauth2Subjects =
+        devopsOAuth2Subjects =
                 Collections.unmodifiableList(new ArrayList<>(
                         configWithFallback.getStringList(DevOpsConfigValue.DEVOPS_OAUTH2_SUBJECTS.getConfigPath())));
         statusAuthenticationMethod =
@@ -99,7 +99,7 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
 
     @Override
     public Collection<String> getDevopsOAuth2Subjects() {
-        return devopsOauth2Subjects;
+        return devopsOAuth2Subjects;
     }
 
     @Override
@@ -118,7 +118,7 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
     }
 
     @Override
-    public OAuthConfig getOauthConfig() {
+    public OAuthConfig getOAuthConfig() {
         return oAuthConfig;
     }
 
@@ -134,7 +134,7 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
         return Objects.equals(secureStatus, that.secureStatus) &&
                 Objects.equals(devopsAuthenticationMethod, that.devopsAuthenticationMethod) &&
                 Objects.equals(password, that.password) &&
-                Objects.equals(devopsOauth2Subjects, that.devopsOauth2Subjects) &&
+                Objects.equals(devopsOAuth2Subjects, that.devopsOAuth2Subjects) &&
                 Objects.equals(statusAuthenticationMethod, that.statusAuthenticationMethod) &&
                 Objects.equals(statusOAuth2Subjects, that.statusOAuth2Subjects) &&
                 Objects.equals(statusPassword, that.statusPassword) &&
@@ -143,7 +143,7 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(secureStatus, devopsAuthenticationMethod, password, devopsOauth2Subjects,
+        return Objects.hash(secureStatus, devopsAuthenticationMethod, password, devopsOAuth2Subjects,
                 statusAuthenticationMethod, statusPassword, statusOAuth2Subjects, oAuthConfig);
     }
 
@@ -153,7 +153,7 @@ public final class DefaultDevOpsConfig implements DevOpsConfig {
                 "secureStatus=" + secureStatus +
                 ", devopsAuthenticationMethod=" + devopsAuthenticationMethod +
                 ", password=*****" +
-                ", devopsOAuth2Subject=" + devopsOauth2Subjects +
+                ", devopsOAuth2Subject=" + devopsOAuth2Subjects +
                 ", statusAuthenticationMethod=" + statusAuthenticationMethod +
                 ", statusPassword=*****" +
                 ", statusOAuth2Subject=" + statusOAuth2Subjects +

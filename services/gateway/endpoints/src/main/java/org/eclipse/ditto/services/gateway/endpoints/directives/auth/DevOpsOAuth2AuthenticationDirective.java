@@ -57,6 +57,7 @@ public final class DevOpsOAuth2AuthenticationDirective implements DevopsAuthenti
 
     private DevOpsOAuth2AuthenticationDirective(final JwtAuthenticationProvider jwtAuthenticationProvider,
             final Collection<String> expectedSubjects) {
+
         this.jwtAuthenticationProvider = checkNotNull(jwtAuthenticationProvider, "jwtAuthenticationProvider");
         this.expectedSubjects = expectedSubjects;
     }
@@ -71,6 +72,7 @@ public final class DevOpsOAuth2AuthenticationDirective implements DevopsAuthenti
      */
     public static DevOpsOAuth2AuthenticationDirective status(final DevOpsConfig devOpsConfig,
             final JwtAuthenticationProvider jwtAuthenticationProvider) {
+
         final Collection<String> expectedSubjects = devOpsConfig.getStatusOAuth2Subjects();
         return new DevOpsOAuth2AuthenticationDirective(jwtAuthenticationProvider, expectedSubjects);
     }
@@ -85,6 +87,7 @@ public final class DevOpsOAuth2AuthenticationDirective implements DevopsAuthenti
      */
     public static DevOpsOAuth2AuthenticationDirective devops(final DevOpsConfig devOpsConfig,
             final JwtAuthenticationProvider jwtAuthenticationProvider) {
+
         final Collection<String> expectedSubjects = devOpsConfig.getDevopsOAuth2Subjects();
         return new DevOpsOAuth2AuthenticationDirective(jwtAuthenticationProvider, expectedSubjects);
     }
@@ -116,6 +119,7 @@ public final class DevOpsOAuth2AuthenticationDirective implements DevopsAuthenti
 
     private Route handleAuthenticationTry(final Try<AuthenticationResult> authenticationResultTry, final Route inner,
             final RequestContext requestContext) {
+
         if (authenticationResultTry.isSuccess()) {
             final AuthenticationResult authenticationResult = authenticationResultTry.get();
             if (!authenticationResult.isSuccess()) {

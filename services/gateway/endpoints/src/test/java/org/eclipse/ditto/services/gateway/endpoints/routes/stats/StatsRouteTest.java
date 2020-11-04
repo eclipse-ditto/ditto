@@ -57,7 +57,7 @@ public final class StatsRouteTest extends EndpointTestBase {
         final ActorSystem actorSystem = system();
         final ProtocolAdapterProvider adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
         final JwtAuthenticationFactory devopsJwtAuthenticationFactory =
-                JwtAuthenticationFactory.newInstance(devOpsConfig.getOauthConfig(), cacheConfig, httpClientFacade,
+                JwtAuthenticationFactory.newInstance(devOpsConfig.getOAuthConfig(), cacheConfig, httpClientFacade,
                         authorizationSubjectsProviderFactory);
         final JwtAuthenticationProvider jwtAuthenticationProvider = JwtAuthenticationProvider.newInstance(
                 devopsJwtAuthenticationFactory.newJwtAuthenticationResultProvider(),

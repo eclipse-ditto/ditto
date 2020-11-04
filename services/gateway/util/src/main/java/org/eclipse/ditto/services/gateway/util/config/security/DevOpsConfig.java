@@ -72,7 +72,7 @@ public interface DevOpsConfig {
      *
      * @return the oauth config.
      */
-    OAuthConfig getOauthConfig();
+    OAuthConfig getOAuthConfig();
 
     /**
      * Returns the OAuth2 JWT token subject required for accessing status resources.

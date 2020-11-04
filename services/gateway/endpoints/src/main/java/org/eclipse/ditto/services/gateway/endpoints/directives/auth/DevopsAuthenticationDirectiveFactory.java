@@ -23,6 +23,7 @@ public final class DevopsAuthenticationDirectiveFactory {
 
     private DevopsAuthenticationDirectiveFactory(final JwtAuthenticationProvider jwtAuthenticationProvider,
             final DevOpsConfig devOpsConfig) {
+
         this.jwtAuthenticationProvider = jwtAuthenticationProvider;
         this.devOpsConfig = devOpsConfig;
     }

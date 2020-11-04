@@ -40,6 +40,7 @@ public final class JwtAuthenticationFactory {
             final CacheConfig publicKeyCacheConfig,
             final HttpClientFacade httpClientFacade,
             final JwtAuthorizationSubjectsProviderFactory jwtAuthorizationSubjectsProviderFactory) {
+
         this.oAuthConfig = checkNotNull(oAuthConfig, "authenticationConfig");
         this.publicKeyCacheConfig = checkNotNull(publicKeyCacheConfig, "publicKeyCacheConfig");
         this.httpClientFacade = checkNotNull(httpClientFacade, "httpClientFacade");
@@ -60,6 +61,7 @@ public final class JwtAuthenticationFactory {
             final CacheConfig publicKeyCacheConfig,
             final HttpClientFacade httpClientFacade,
             final JwtAuthorizationSubjectsProviderFactory jwtAuthorizationSubjectsProviderFactory) {
+
         return new JwtAuthenticationFactory(oAuthConfig, publicKeyCacheConfig, httpClientFacade,
                 jwtAuthorizationSubjectsProviderFactory);
     }

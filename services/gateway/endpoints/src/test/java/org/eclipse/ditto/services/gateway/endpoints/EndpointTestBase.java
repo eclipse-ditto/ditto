@@ -102,7 +102,6 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
     protected static HttpClientFacade httpClientFacade;
     protected static JwtAuthorizationSubjectsProviderFactory authorizationSubjectsProviderFactory;
 
-
     @BeforeClass
     public static void initTestFixture() {
 

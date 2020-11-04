@@ -45,7 +45,6 @@ import org.eclipse.ditto.services.gateway.proxy.actors.ProxyActor;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.DittoJwtAuthorizationSubjectsProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthorizationSubjectsProviderFactory;
-import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtSubjectIssuersConfig;
 import org.eclipse.ditto.services.gateway.security.utils.DefaultHttpClientFacade;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.gateway.util.config.GatewayConfig;
@@ -73,8 +72,6 @@ import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
-
-import com.github.benmanes.caffeine.cache.CacheLoader;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -147,7 +144,7 @@ final class GatewayRootActor extends DittoRootActor {
                 JwtAuthenticationFactory.newInstance(oAuthConfig, publicKeysConfig, httpClient,
                         authorizationSubjectsProviderFactory);
 
-        final OAuthConfig devopsOauthConfig = authenticationConfig.getDevOpsConfig().getOauthConfig();
+        final OAuthConfig devopsOauthConfig = authenticationConfig.getDevOpsConfig().getOAuthConfig();
         final JwtAuthenticationFactory devopsJwtAuthenticationFactory =
                 JwtAuthenticationFactory.newInstance(devopsOauthConfig, publicKeysConfig, httpClient,
                         authorizationSubjectsProviderFactory);
