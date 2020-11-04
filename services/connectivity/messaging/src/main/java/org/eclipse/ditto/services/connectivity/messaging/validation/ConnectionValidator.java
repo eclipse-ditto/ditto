@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.validation;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -30,9 +31,11 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.Credentials;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
+import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
@@ -101,23 +104,53 @@ public final class ConnectionValidator {
      * @return the set of acknowledgement labels to declare.
      */
     public static Stream<AcknowledgementLabel> getAcknowledgementLabelsToDeclare(final Connection connection) {
-        final ExpressionResolver connectionIdResolver = PlaceholderFactory.newExpressionResolver(
-                PlaceholderFactory.newConnectionIdPlaceholder(), connection.getId());
 
-        final Stream<AcknowledgementLabel> sourceDeclaredAcks = connection.getSources().stream()
+        final Stream<AcknowledgementLabel> sourceDeclaredAcks =
+                getSourceDeclaredAcknowledgementLabels(connection.getId(), connection.getSources());
+        final Stream<AcknowledgementLabel> targetIssuedAcks =
+                getTargetIssuedAcknowledgementLabels(connection.getId(), connection.getTargets())
+                        // live-response is permitted as issued acknowledgement without declaration
+                        .filter(label -> !DittoAcknowledgementLabel.LIVE_RESPONSE.equals(label));
+        return Stream.concat(sourceDeclaredAcks, targetIssuedAcks);
+    }
+
+    /**
+     * Read the declared acknowledgement labels of sources after placeholder resolution.
+     *
+     * @param connectionId the connection ID.
+     * @param sources the sources.
+     * @return the source declared acknowledgement labels.
+     */
+    public static Stream<AcknowledgementLabel> getSourceDeclaredAcknowledgementLabels(
+            final ConnectionId connectionId,
+            final Collection<Source> sources) {
+        final ExpressionResolver connectionIdResolver = PlaceholderFactory.newExpressionResolver(
+                PlaceholderFactory.newConnectionIdPlaceholder(), connectionId);
+        return sources.stream()
                 .flatMap(source -> source.getDeclaredAcknowledgementLabels().stream())
                 .map(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
                 .filter(Optional::isPresent)
                 .map(Optional::get);
-        final Stream<AcknowledgementLabel> targetIssuedAcks =
-                connection.getTargets().stream()
-                        .map(Target::getIssuedAcknowledgementLabel)
-                        .flatMap(Optional::stream)
-                        .map(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
-                        .flatMap(Optional::stream)
-                        // live-response is permitted as issued acknowledgement without declaration
-                        .filter(label -> !DittoAcknowledgementLabel.LIVE_RESPONSE.equals(label));
-        return Stream.concat(sourceDeclaredAcks, targetIssuedAcks);
+    }
+
+    /**
+     * Read the issued acknowledgement labels of targets after placeholder resolution.
+     *
+     * @param connectionId the connection ID.
+     * @param targets the targets.
+     * @return the target issued acknowledgement labels.
+     */
+    public static Stream<AcknowledgementLabel> getTargetIssuedAcknowledgementLabels(
+            final ConnectionId connectionId,
+            final Collection<Target> targets) {
+
+        final ExpressionResolver connectionIdResolver = PlaceholderFactory.newExpressionResolver(
+                PlaceholderFactory.newConnectionIdPlaceholder(), connectionId);
+        return targets.stream()
+                .map(Target::getIssuedAcknowledgementLabel)
+                .flatMap(Optional::stream)
+                .map(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
+                .flatMap(Optional::stream);
     }
 
     /**

@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction.UPDATE_SUBSCRIPTIONS;
-import static org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator.resolveConnectionIdPlaceholder;
 import static org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants.CLUSTER_ROLE;
 
 import java.time.Duration;
@@ -23,7 +22,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -31,18 +29,14 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -58,11 +52,10 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.FilteredTopic;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
-import org.eclipse.ditto.model.placeholders.ExpressionResolver;
-import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
+import org.eclipse.ditto.services.connectivity.messaging.OutboundMappingProcessorActor;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
@@ -192,7 +185,6 @@ public final class ConnectionPersistenceActor
     private final Duration loggingEnabledDuration;
     private final ConnectionConfig config;
     private final MonitoringConfig monitoringConfig;
-    private final ExpressionResolver connectionIdResolver;
 
     private int subscriptionCounter = 0;
     private ConnectivityStatus pubSubStatus = ConnectivityStatus.UNKNOWN;
@@ -259,9 +251,6 @@ public final class ConnectionPersistenceActor
         this.loggingEnabledDuration = monitoringConfig.logger().logDuration();
         this.checkLoggingActiveInterval = monitoringConfig.logger().loggingActiveCheckInterval();
         this.clientActorsPerNode = clientActorsPerNode;
-
-        connectionIdResolver = PlaceholderFactory.newExpressionResolver(PlaceholderFactory.newConnectionIdPlaceholder(),
-                connectionId);
     }
 
     @Override
@@ -562,10 +551,13 @@ public final class ConnectionPersistenceActor
             logDroppedSignal(signal, signal.getType(), "Was sent by myself.");
             return;
         }
-        final List<Target> subscribedAndAuthorizedTargets =
-                signalFilter.filter(signal, target -> issuePotentialWeakAcknowledgements(target, signal));
+        // TODO: second argument of SignalFilter#filter always the empty consumer?
+        final List<Target> subscribedAndAuthorizedTargets = signalFilter.filter(signal, target -> {});
+
         if (subscribedAndAuthorizedTargets.isEmpty()) {
             logDroppedSignal(signal, signal.getType(), "No subscribed and authorized targets present");
+            // issue weak acks here as the signal will not reach OutboundMappingProcessorActor
+            issueWeakAcknowledgements(signal, getSender());
             return;
         }
 
@@ -586,23 +578,10 @@ public final class ConnectionPersistenceActor
         clientActorRouter.tell(msg, getSender());
     }
 
-    private void issuePotentialWeakAcknowledgements(final Target filteringTarget, final Signal<?> signal) {
-        final EntityId entityId = signal.getEntityId();
-        if (entityId instanceof EntityIdWithType) {
-            final ActorRef sender = getSender();
-            final JsonValue ackBody = JsonValue.of("Acknowledgement was issued automatically, " +
-                    "because the event was filtered due to a configured RQL filter.");
-            final Set<AcknowledgementLabel> sourceDeclaredAcks = getSourceDeclaredAcks();
-            final Optional<AcknowledgementLabel> optionalIssuedAck = filteringTarget.getIssuedAcknowledgementLabel();
-            final Set<AcknowledgementLabel> ackLabelsToAcknowledgeWeakly =
-                    Stream.concat(sourceDeclaredAcks.stream(), optionalIssuedAck.stream()).collect(Collectors.toSet());
-            final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-            dittoHeaders.getAcknowledgementRequests().stream()
-                    .map(AcknowledgementRequest::getLabel)
-                    .filter(ackLabelsToAcknowledgeWeakly::contains)
-                    .map(label -> Acknowledgement.weak(label, (EntityIdWithType) entityId, dittoHeaders, ackBody))
-                    .forEach(weakAck -> sender.tell(weakAck, ActorRef.noSender()));
-        }
+    private void issueWeakAcknowledgements(final Signal<?> signal, final ActorRef sender) {
+        OutboundMappingProcessorActor.issueWeakAcknowledgements(signal,
+                getAckLabelsToDeclare()::contains,
+                sender);
     }
 
     private Signal<?> adjustSignalAndStartAckForwarder(final Signal<?> signal, final ThingId thingId) {
@@ -641,12 +620,7 @@ public final class ConnectionPersistenceActor
     private Set<AcknowledgementLabel> getSourceDeclaredAcks() {
 
         if (entity != null && ackLabelsDeclared) {
-            return entity.getSources()
-                    .stream()
-                    .flatMap(source -> source.getDeclaredAcknowledgementLabels().stream())
-                    .map(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
+            return ConnectionValidator.getSourceDeclaredAcknowledgementLabels(entityId, entity.getSources())
                     .collect(Collectors.toSet());
         } else {
             return Set.of();
@@ -656,13 +630,7 @@ public final class ConnectionPersistenceActor
     private Set<AcknowledgementLabel> getTargetIssuedAcks() {
 
         if (entity != null && ackLabelsDeclared) {
-            return entity.getTargets()
-                    .stream()
-                    .map(Target::getIssuedAcknowledgementLabel)
-                    .flatMap(Optional::stream)
-                    .map(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
-                    .filter(Optional::isPresent)
-                    .flatMap(Optional::stream)
+            return ConnectionValidator.getTargetIssuedAcknowledgementLabels(entityId, entity.getTargets())
                     .collect(Collectors.toSet());
         } else {
             return Set.of();
