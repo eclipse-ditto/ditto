@@ -347,7 +347,6 @@ public abstract class AbstractMessageMappingProcessorActorTest {
     }
 
     ActorRef createOutboundMappingProcessorActor(final TestKit kit) {
-        final TestProbe connectionActorProbe = TestProbe.apply(actorSystem);
         final Map<String, MappingContext> mappingDefinitions = new HashMap<>();
         mappingDefinitions.put(FAULTY_MAPPER, FaultyMessageMapper.CONTEXT);
         mappingDefinitions.put(ADD_HEADER_MAPPER, AddHeaderMessageMapper.CONTEXT);
@@ -361,8 +360,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                         actorSystem,
                         TestConstants.CONNECTIVITY_CONFIG, protocolAdapter, logger);
 
-        final Props props = OutboundMappingProcessorActor.props(kit.getRef(), outboundMappingProcessor, CONNECTION,
-                connectionActorProbe.ref(), 99);
+        final Props props = OutboundMappingProcessorActor.props(kit.getRef(), outboundMappingProcessor, CONNECTION, 99);
         return actorSystem.actorOf(props);
     }
 

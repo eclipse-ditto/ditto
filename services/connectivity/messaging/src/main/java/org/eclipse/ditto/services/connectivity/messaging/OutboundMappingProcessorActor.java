@@ -126,7 +126,6 @@ public final class OutboundMappingProcessorActor
     private final ActorRef clientActor;
     private final OutboundMappingProcessor outboundMappingProcessor;
     private final ConnectionId connectionId;
-    private final ActorRef connectionActor; // TODO: remove field
     private final MappingConfig mappingConfig;
     private final DefaultConnectionMonitorRegistry connectionMonitorRegistry;
     private final ConnectionMonitor responseDispatchedMonitor;
@@ -142,7 +141,6 @@ public final class OutboundMappingProcessorActor
     private OutboundMappingProcessorActor(final ActorRef clientActor,
             final OutboundMappingProcessor outboundMappingProcessor,
             final Connection connection,
-            final ActorRef connectionActor,
             final int processorPoolSize) {
 
         super(OutboundSignal.class);
@@ -150,7 +148,6 @@ public final class OutboundMappingProcessorActor
         this.clientActor = clientActor;
         this.outboundMappingProcessor = outboundMappingProcessor;
         this.connectionId = connection.getId();
-        this.connectionActor = connectionActor;
 
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
@@ -236,14 +233,12 @@ public final class OutboundMappingProcessorActor
     public static Props props(final ActorRef clientActor,
             final OutboundMappingProcessor outboundMappingProcessor,
             final Connection connection,
-            final ActorRef connectionActor,
             final int processorPoolSize) {
 
         return Props.create(OutboundMappingProcessorActor.class,
                 clientActor,
                 outboundMappingProcessor,
                 connection,
-                connectionActor,
                 processorPoolSize
         ).withDispatcher(MESSAGE_MAPPING_PROCESSOR_DISPATCHER);
     }

@@ -1199,7 +1199,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         logger.debug("Starting mapping processor actors with pool size of <{}>.", connection.getProcessorPoolSize());
 
         final Props outboundMappingProcessorActorProps =
-                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, connection, connectionActor,
+                OutboundMappingProcessorActor.props(getSelf(), outboundMappingProcessor, connection,
                         connection.getProcessorPoolSize());
         return getContext().actorOf(outboundMappingProcessorActorProps, OutboundMappingProcessorActor.ACTOR_NAME);
     }

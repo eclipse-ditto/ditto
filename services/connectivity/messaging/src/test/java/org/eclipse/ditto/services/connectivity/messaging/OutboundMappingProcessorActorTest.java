@@ -94,9 +94,8 @@ public final class OutboundMappingProcessorActorTest {
     @Test
     public void sendWeakAckForAllSourcesAndTargetsWhenDroppedByAllTargets() {
         new TestKit(actorSystem) {{
-            final TestProbe connectionActorProbe = TestProbe.apply(actorSystem);
-            final Props props = OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(),
-                    CONNECTION, connectionActorProbe.ref(), 3);
+            final Props props =
+                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(), CONNECTION, 3);
             final ActorRef underTest = actorSystem.actorOf(props);
 
             // WHEN: mapping processor actor receives outbound signal whose every authorized target is filtered out
@@ -123,9 +122,8 @@ public final class OutboundMappingProcessorActorTest {
     @Test
     public void sendWeakAckWhenDroppedBySomeTarget() {
         new TestKit(actorSystem) {{
-            final TestProbe connectionActorProbe = TestProbe.apply(actorSystem);
-            final Props props = OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(),
-                    CONNECTION, connectionActorProbe.ref(), 3);
+            final Props props =
+                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(), CONNECTION, 3);
             final ActorRef underTest = actorSystem.actorOf(props);
 
             // WHEN: mapping processor actor receives outbound signal with 2 authorized targets,
@@ -153,9 +151,8 @@ public final class OutboundMappingProcessorActorTest {
     @Test
     public void sendWeakAckWhenDroppedByMapper() {
         new TestKit(actorSystem) {{
-            final TestProbe connectionActorProbe = TestProbe.apply(actorSystem);
-            final Props props = OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(),
-                    CONNECTION, connectionActorProbe.ref(), 3);
+            final Props props =
+                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(), CONNECTION, 3);
             final ActorRef underTest = actorSystem.actorOf(props);
 
             // WHEN: mapping processor actor receives outbound signal with 2 authorized targets,
@@ -181,9 +178,8 @@ public final class OutboundMappingProcessorActorTest {
     @Test
     public void doNotSendWeakAckForLiveResponse() {
         new TestKit(actorSystem) {{
-            final TestProbe connectionActorProbe = TestProbe.apply(actorSystem);
-            final Props props = OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(),
-                    CONNECTION, connectionActorProbe.ref(), 3);
+            final Props props =
+                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(), CONNECTION, 3);
             final ActorRef underTest = actorSystem.actorOf(props);
 
             // WHEN: mapping processor actor receives outbound signal with 3 authorized targets,

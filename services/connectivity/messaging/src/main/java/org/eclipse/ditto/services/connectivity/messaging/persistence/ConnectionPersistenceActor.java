@@ -551,8 +551,7 @@ public final class ConnectionPersistenceActor
             logDroppedSignal(signal, signal.getType(), "Was sent by myself.");
             return;
         }
-        // TODO: second argument of SignalFilter#filter always the empty consumer?
-        final List<Target> subscribedAndAuthorizedTargets = signalFilter.filter(signal, target -> {});
+        final List<Target> subscribedAndAuthorizedTargets = signalFilter.filter(signal);
 
         if (subscribedAndAuthorizedTargets.isEmpty()) {
             logDroppedSignal(signal, signal.getType(), "No subscribed and authorized targets present");
