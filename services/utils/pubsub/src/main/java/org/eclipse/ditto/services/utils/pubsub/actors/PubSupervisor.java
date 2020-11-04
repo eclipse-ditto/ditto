@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.utils.pubsub.actors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 
@@ -49,7 +49,7 @@ import akka.japi.pf.ReceiveBuilder;
  */
 public final class PubSupervisor extends AbstractPubSubSupervisor {
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final DData<ActorRef, ?, ?> ddata;
     private final DistributedAcks distributedAcks;

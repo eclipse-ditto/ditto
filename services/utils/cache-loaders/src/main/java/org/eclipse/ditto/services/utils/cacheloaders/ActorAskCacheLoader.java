@@ -19,7 +19,6 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
@@ -29,7 +28,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
@@ -159,15 +157,12 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityI
     @Override
     public final CompletableFuture<Entry<V>> asyncLoad(final EntityIdWithResourceType key, final Executor executor) {
         final String resourceType = key.getResourceType();
-        // provide correlation id to inner thread
-        final Optional<String> correlationId = LogUtil.getCorrelationId();
         return CompletableFuture.supplyAsync(() -> {
             final EntityId entityId = key.getId();
             return getCommand(resourceType, entityId, key.getCacheLookupContext().orElse(null));
         }, executor).thenCompose(command -> {
             final ActorRef entityRegion = getEntityRegion(key.getResourceType());
-            LOGGER.withCorrelationId(correlationId.orElse(null))
-                    .debug("Going to retrieve cache entry for key <{}> with command <{}>: ", key, command);
+            LOGGER.debug("Going to retrieve cache entry for key <{}> with command <{}>: ", key, command);
             return Patterns.ask(entityRegion, command, askTimeout)
                     .thenApply(response -> transformResponse(
                             resourceType, response, key.getCacheLookupContext().orElse(null)))

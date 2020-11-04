@@ -24,7 +24,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
 
 import akka.actor.AbstractActor;
@@ -40,7 +40,7 @@ import akka.event.DiagnosticLoggingAdapter;
  */
 public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor {
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final Duration timeout;
     private final Map<ResourceStatus.ResourceType, Integer> expectedResponses;
@@ -122,7 +122,7 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
     }
 
     private void handleResourceStatus(final ResourceStatus resourceStatus) {
-        expectedResponses.compute(resourceStatus.getResourceType(), (type, count)-> count == null ? 0 : count-1);
+        expectedResponses.compute(resourceStatus.getResourceType(), (type, count) -> count == null ? 0 : count - 1);
         log.debug("Received resource status from {}: {}", getSender(), resourceStatus);
         // aggregate status...
         theResponse.withAddressStatus(resourceStatus);
@@ -135,7 +135,7 @@ public final class RetrieveConnectionStatusAggregatorActor extends AbstractActor
 
     private int getRemainingResponses() {
         return expectedResponses.values().stream()
-                .mapToInt(i->i)
+                .mapToInt(i -> i)
                 .sum();
     }
 

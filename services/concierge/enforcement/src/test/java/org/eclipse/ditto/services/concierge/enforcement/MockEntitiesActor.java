@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithResource;
 
@@ -38,7 +38,7 @@ public final class MockEntitiesActor extends AbstractActor {
         return Props.create(MockEntitiesActor.class);
     }
 
-    final LoggingAdapter log = LogUtil.obtain(this);
+    final LoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     @Override
     public Receive createReceive() {

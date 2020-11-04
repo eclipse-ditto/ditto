@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.utils.akka.streaming;
 import java.time.Duration;
 import java.util.List;
 
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
 import akka.NotUsed;
 import akka.actor.AbstractActor;
@@ -37,7 +37,7 @@ public abstract class AbstractStreamingActor<C, E> extends AbstractActor {
     /**
      * Logger for this actor.
      */
-    protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    protected final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     /**
      * Actor materializer of this actor's system.

@@ -34,7 +34,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.devops.LoggerConfig;
 import org.eclipse.ditto.model.devops.LoggingFacade;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.actors.RetrieveConfigBehavior;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
@@ -341,7 +340,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
      */
     private static final class PubSubSubscriberActor extends AbstractActor {
 
-        private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+        private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
         @SuppressWarnings("unused")
         private PubSubSubscriberActor(final ActorRef pubSubMediator, final String serviceName, final String instance,
@@ -371,8 +370,10 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
             pubSubMediator.tell(DistPubSubAccess.subscribe(topic, getSelf()), getSelf());
             pubSubMediator.tell(DistPubSubAccess.subscribe(String.join(":", topic, serviceName), getSelf()), getSelf());
             pubSubMediator.tell(
-                    DistPubSubAccess.subscribeViaGroup(String.join(":", topic, serviceName), serviceName, getSelf()), getSelf());
-            pubSubMediator.tell(DistPubSubAccess.subscribe(String.join(":", topic, serviceName, instance), getSelf()), getSelf());
+                    DistPubSubAccess.subscribeViaGroup(String.join(":", topic, serviceName), serviceName, getSelf()),
+                    getSelf());
+            pubSubMediator.tell(DistPubSubAccess.subscribe(String.join(":", topic, serviceName, instance), getSelf()),
+                    getSelf());
         }
 
         @Override
@@ -488,7 +489,8 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
                         commandResponse.getType());
             } else {
                 log.withCorrelationId(commandResponse)
-                        .debug("Received DevOpsCommandResponse from service/instance <?/?>: {}", commandResponse.getType());
+                        .debug("Received DevOpsCommandResponse from service/instance <?/?>: {}",
+                                commandResponse.getType());
             }
             addCommandResponse(commandResponse);
         }

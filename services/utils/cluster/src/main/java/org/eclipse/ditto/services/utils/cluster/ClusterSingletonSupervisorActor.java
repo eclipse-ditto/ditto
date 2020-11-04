@@ -18,7 +18,7 @@ import java.net.ConnectException;
 import java.util.NoSuchElementException;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorKilledException;
@@ -37,7 +37,7 @@ import akka.pattern.AskTimeoutException;
  */
 final class ClusterSingletonSupervisorActor extends AbstractActor {
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final SupervisorStrategy supervisorStrategy;
     private final ActorRef child;

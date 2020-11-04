@@ -17,7 +17,7 @@ import java.util.Collection;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.namespaces.NamespaceReader;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
@@ -50,7 +50,7 @@ public final class CachedNamespaceInvalidator extends AbstractActorWithTimers {
      */
     private static final Duration INVALIDATION_DELAY = Duration.ofSeconds(5L);
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final Collection<Cache<EntityIdWithResourceType, ?>> cachesToMaintain;
 
@@ -69,7 +69,8 @@ public final class CachedNamespaceInvalidator extends AbstractActorWithTimers {
      * @param caches caches to invalidate.
      * @return the Props object.
      */
-    public static Props props(final BlockedNamespaces blocked, final Collection<Cache<EntityIdWithResourceType, ?>> caches) {
+    public static Props props(final BlockedNamespaces blocked,
+            final Collection<Cache<EntityIdWithResourceType, ?>> caches) {
         return Props.create(CachedNamespaceInvalidator.class, blocked, caches)
                 .withDispatcher(DISPATCHER_NAME);
     }
@@ -127,7 +128,8 @@ public final class CachedNamespaceInvalidator extends AbstractActorWithTimers {
         }
     }
 
-    private static boolean containsNamespaceOfEntityId(final ORSet<String> namespaces, final EntityIdWithResourceType entityId) {
+    private static boolean containsNamespaceOfEntityId(final ORSet<String> namespaces,
+            final EntityIdWithResourceType entityId) {
         return NamespaceReader.fromEntityId(entityId.getId())
                 .map(namespaces::contains)
                 .orElse(false);
