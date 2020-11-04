@@ -133,7 +133,6 @@ public final class PubSubFactoryTest {
             // THEN: subscription is acknowledged
             assertThat(subAck.getRequest()).isInstanceOf(SubUpdater.Subscribe.class);
             assertThat(subAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello");
-            waitForHeartBeats(system2, factory2);
 
             // WHEN: a message is published on the subscribed topic
             pub.publish("hello", publisher.ref());
@@ -149,7 +148,6 @@ public final class PubSubFactoryTest {
                     sub.unsubscribeWithAck(asList("hello", "world"), subscriber.ref()).toCompletableFuture().join();
             assertThat(unsubAck.getRequest()).isInstanceOf(SubUpdater.Unsubscribe.class);
             assertThat(unsubAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello", "world");
-            waitForHeartBeats(system2, factory2);
 
             // THEN: the subscriber does not receive published messages any more
             pub.publish("hello", publisher.ref());
@@ -175,7 +173,6 @@ public final class PubSubFactoryTest {
             await(sub2.subscribeWithAck(asList("hell", "a", "fury"), subscriber2.ref()));
             await(sub1.subscribeWithAck(asList("like", "a", "woman", "scorn'd"), subscriber3.ref()));
             await(sub2.subscribeWithAck(asList("exeunt", "omnes"), subscriber4.ref()).toCompletableFuture());
-            waitForHeartBeats(system2, factory2);
 
             // WHEN: many messages are published
             final int messages = 100;
@@ -204,7 +201,6 @@ public final class PubSubFactoryTest {
 
             // GIVEN: a pub-sub channel is set up
             sub.subscribeWithAck(singleton("hello"), subscriber.ref()).toCompletableFuture().join();
-            waitForHeartBeats(system2, factory2);
             pub.publish("hello", publisher.ref());
             subscriber.expectMsg("hello");
 
@@ -235,7 +231,6 @@ public final class PubSubFactoryTest {
 
             // GIVEN: a pub-sub channel is set up
             sub.subscribeWithAck(singleton("hello"), subscriber.ref()).toCompletableFuture().join();
-            waitForHeartBeats(system2, factory2);
             pub.publish("hello", publisher.ref());
             subscriber.expectMsg("hello");
 
@@ -274,7 +269,6 @@ public final class PubSubFactoryTest {
                     sub.subscribeWithAck(singleton("hello"), subscriber.ref()).toCompletableFuture().join();
             assertThat(subAck.getRequest()).isInstanceOf(SubUpdater.Subscribe.class);
             assertThat(subAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello");
-            waitForHeartBeats(system2, factory2);
 
             pub.publish("hello", publisher.ref());
             subscriber.expectMsg(Duration.create(5, TimeUnit.SECONDS), "hello");
