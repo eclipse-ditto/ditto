@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
@@ -31,14 +32,19 @@ import akka.pattern.Patterns;
  */
 final class DistributedSubImpl implements DistributedSub {
 
+    private static final long ACK_DELAY_OFFSET_MILLIS = 250;
+
     private final DistributedDataConfig config;
     private final ActorRef subSupervisor;
     private final Replicator.WriteConsistency writeAll;
+    private final long ackDelayInMillis;
 
     DistributedSubImpl(final DistributedDataConfig config, final ActorRef subSupervisor) {
         this.config = config;
         this.subSupervisor = subSupervisor;
         this.writeAll = new Replicator.WriteAll(config.getWriteTimeout());
+        ackDelayInMillis =
+                config.getAkkaReplicatorConfig().getNotifySubscribersInterval().toMillis() + ACK_DELAY_OFFSET_MILLIS;
     }
 
     @Override
@@ -63,7 +69,12 @@ final class DistributedSubImpl implements DistributedSub {
 
     private CompletionStage<AbstractUpdater.SubAck> askSubSupervisor(final SubUpdater.Request request) {
         return Patterns.ask(subSupervisor, request, config.getWriteTimeout())
-                .thenCompose(DistributedSubImpl::processAskResponse);
+                .thenCompose(DistributedSubImpl::processAskResponse)
+                .thenCompose(result -> {
+                    final CompletableFuture<AbstractUpdater.SubAck> resultFuture = new CompletableFuture<>();
+                    resultFuture.completeOnTimeout(result, ackDelayInMillis, TimeUnit.MILLISECONDS);
+                    return resultFuture;
+                });
     }
 
     @Override

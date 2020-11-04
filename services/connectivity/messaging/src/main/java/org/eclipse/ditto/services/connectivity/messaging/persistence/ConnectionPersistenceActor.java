@@ -590,8 +590,8 @@ public final class ConnectionPersistenceActor
         final EntityId entityId = signal.getEntityId();
         if (entityId instanceof EntityIdWithType) {
             final ActorRef sender = getSender();
-            final JsonValue ackBody = JsonValue.of("\"Acknowledgement was issued automatically, " +
-                    "because the event was filtered due to a configured RQL filter.\"");
+            final JsonValue ackBody = JsonValue.of("Acknowledgement was issued automatically, " +
+                    "because the event was filtered due to a configured RQL filter.");
             final Set<AcknowledgementLabel> sourceDeclaredAcks = getSourceDeclaredAcks();
             final Optional<AcknowledgementLabel> optionalIssuedAck = filteringTarget.getIssuedAcknowledgementLabel();
             final Set<AcknowledgementLabel> ackLabelsToAcknowledgeWeakly =

@@ -590,8 +590,8 @@ public final class OutboundMappingProcessorActor
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         final EntityId entityId = signal.getEntityId();
         if (entityId instanceof EntityIdWithType) {
-            final JsonValue ackBody = JsonValue.of("\"Acknowledgement was issued automatically, " +
-                    "because the event was filtered due to a configured RQL filter.\"");
+            final JsonValue ackBody = JsonValue.of("Acknowledgement was issued automatically, " +
+                    "because the event was filtered due to a configured RQL filter.");
             dittoHeaders.getAcknowledgementRequests()
                     .stream()
                     .map(AcknowledgementRequest::getLabel)
