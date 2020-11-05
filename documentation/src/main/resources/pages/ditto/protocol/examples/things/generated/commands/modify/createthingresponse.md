@@ -23,7 +23,9 @@
           "z": 1,
           "unit": "g"
         },
-        "desiredProperties": {}
+        "desiredProperties": {
+          "x": 4
+        }
       }
     }
   },
