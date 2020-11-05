@@ -43,3 +43,6 @@ Attributes
 
 Feature
 : {{site.data.glossary.feature}}
+
+Feature properties and desiredProperties
+: {{site.data.glossary.properties}}
