@@ -100,6 +100,8 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
 
         if (error != null) {
             return reportError(hint, error);
+        } else if(response instanceof Throwable){
+          return reportError(hint, (Throwable) response);
         } else if (response != null) {
             return reportUnknownResponse(hint, response);
         } else {
