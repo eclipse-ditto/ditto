@@ -659,7 +659,9 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 final EntityId entityId = ((Signal<?>) jsonifiable).getEntityId();
                 if (entityId instanceof EntityIdWithType) {
                     final JsonValue ackBody = JsonValue.of("Acknowledgement was issued automatically, " +
-                            "because the event was filtered due to a configured RQL filter.");
+                            "because the designated subscriber did not receive the signal. Possible reasons are: " +
+                            "the subscriber did not subscribe for the signal type, " +
+                            "or the signal was dropped by a configured RQL filter.");
                     dittoHeaders.getAcknowledgementRequests()
                             .stream()
                             .map(acknowledgementRequest -> Acknowledgement.weak(

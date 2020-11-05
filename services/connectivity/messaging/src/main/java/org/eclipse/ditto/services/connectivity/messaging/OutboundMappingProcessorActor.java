@@ -201,8 +201,11 @@ public final class OutboundMappingProcessorActor
             if (!weakAckLabels.isEmpty()) {
                 final DittoHeaders dittoHeaders = signal.getDittoHeaders();
                 final JsonValue ackBody = JsonValue.of("Acknowledgement was issued automatically, " +
-                        "because the connection targets are unauthorized, " +
-                        "or because signal was dropped by a configured RQL filter or by the payload mapper.");
+                        "because the designated subscriber did not receive the signal. Possible reasons are: " +
+                        "the subscriber was not authorized, "+
+                        "the subscriber did not subscribe for the signal type, " +
+                        "the signal was dropped by a configured RQL filter, " +
+                        "or the signal was dropped by all payload mappers.");
                 final List<Acknowledgement> ackList = weakAckLabels.stream()
                         .map(label -> Acknowledgement.weak(label, (EntityIdWithType) entityId, dittoHeaders, ackBody))
                         .collect(Collectors.toList());
