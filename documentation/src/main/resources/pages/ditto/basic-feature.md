@@ -35,6 +35,8 @@ Feature desired properties are represented as one JSON object.
 
 Each desired property itself can be either a simple/scalar value or a complex object; allowed is any JSON value.
 
+Please note however, that besides persisting the desired properties, and indexing the fields for search requests, filtering etc. for the time being, Ditto does not implement their further processing. Such functionality will come with future releases.
+
 ### Feature definition
 
 Ditto supports specifying a definition for a feature in order to document how a feature's state is structured
@@ -54,7 +56,8 @@ described in the `lamp` type of namespace `org.eclipse.ditto` semantically versi
 Ditto aims to support contract-based development - by using feature definitions  - to ensure validity and 
 integrity of **digital twins**.
 
-{% include warning.html content="Currently Ditto **does not** ensure that the properties of a feature or its supported
+{% include warning.html content="Currently Ditto **does not** ensure that the `properties` or 
+ `desiredProperties` of a feature or its supported
    messages follow the type defined in the definition." %}
 
 ## Example
