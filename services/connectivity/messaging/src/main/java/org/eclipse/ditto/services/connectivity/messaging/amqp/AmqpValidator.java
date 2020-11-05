@@ -58,7 +58,8 @@ public final class AmqpValidator extends AbstractProtocolValidator {
             enforcement.getFilters().forEach(filterTemplate ->
                     validateTemplate(filterTemplate, dittoHeaders, PlaceholderFactory.newThingPlaceholder(),
                             PlaceholderFactory.newPolicyPlaceholder(),
-                            PlaceholderFactory.newEntityPlaceholder()));
+                            PlaceholderFactory.newEntityPlaceholder(),
+                            PlaceholderFactory.newFeaturePlaceholder()));
         });
         source.getHeaderMapping().ifPresent(mapping -> validateHeaderMapping(mapping, dittoHeaders));
     }

@@ -48,6 +48,14 @@ public final class PlaceholderFactory {
     }
 
     /**
+     * @return new instance of the {@link FeaturePlaceholder}
+     * @since 1.5.0
+     */
+    public static FeaturePlaceholder newFeaturePlaceholder() {
+        return ImmutableFeaturePlaceholder.INSTANCE;
+    }
+
+    /**
      * @return new instance of the {@link EntityPlaceholder}
      */
     public static EntityPlaceholder newEntityPlaceholder() {

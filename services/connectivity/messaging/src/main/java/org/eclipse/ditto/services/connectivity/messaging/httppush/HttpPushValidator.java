@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 
 import akka.actor.ActorSystem;
@@ -91,7 +92,7 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
             final Supplier<String> targetDescription) {
         target.getHeaderMapping().ifPresent(mapping -> validateHeaderMapping(mapping, dittoHeaders));
         validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder(),
-                newHeadersPlaceholder());
+                newHeadersPlaceholder(), PlaceholderFactory.newFeaturePlaceholder());
         validateTargetAddress(target.getAddress(), dittoHeaders, targetDescription);
     }
 

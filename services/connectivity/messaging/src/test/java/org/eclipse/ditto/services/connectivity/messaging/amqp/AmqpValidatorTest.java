@@ -114,7 +114,7 @@ public final class AmqpValidatorTest {
     @Test
     public void testValidPlaceholdersInTargetAddress() {
         final Target target = newTargetBuilder()
-                .address("some.address.{{ topic:action-subject }}.{{ thing:id }}.{{ header:correlation-id }}")
+                .address("some.address.{{ topic:action-subject }}.{{ thing:id }}.{{ feature:id }}.{{ header:correlation-id }}")
                 .authorizationContext(AUTHORIZATION_CONTEXT)
                 .topics(Topic.LIVE_COMMANDS)
                 .build();
