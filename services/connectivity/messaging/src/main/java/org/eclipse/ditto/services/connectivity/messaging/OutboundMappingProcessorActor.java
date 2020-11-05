@@ -335,7 +335,7 @@ public final class OutboundMappingProcessorActor
 
                     final boolean shouldSendSignalWithoutExtraFields =
                             !splitTargets.first().isEmpty() ||
-                                    isTwinCommandResponseWithReplyTarget(outboundSignal.getSource()) ||
+                                    isCommandResponseWithReplyTarget(outboundSignal.getSource()) ||
                                     outboundSignal.getTargets().isEmpty(); // no target - this is an error response
                     final Stream<Pair<OutboundSignalWithId, FilteredTopic>> outboundSignalWithoutExtraFields =
                             shouldSendSignalWithoutExtraFields
@@ -689,11 +689,9 @@ public final class OutboundMappingProcessorActor
         }
     }
 
-    private static boolean isTwinCommandResponseWithReplyTarget(final Signal<?> signal) {
+    private static boolean isCommandResponseWithReplyTarget(final Signal<?> signal) {
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-        return signal instanceof CommandResponse &&
-                // !ProtocolAdapter.isLiveSignal(signal) && // TODO: confirm live signal check not needed; rename method
-                dittoHeaders.getReplyTarget().isPresent();
+        return signal instanceof CommandResponse && dittoHeaders.getReplyTarget().isPresent();
     }
 
     static final class OutboundSignalWithId implements OutboundSignal, WithId {
