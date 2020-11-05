@@ -27,7 +27,16 @@ public interface FieldExpressionVisitor<T>
     T visitFeature(final String featureId);
 
     @Override
+    T visitFeatureProperties(final String featureId);
+
+    @Override
+    T visitFeatureDesiredProperties(final String featureId);
+
+    @Override
     T visitFeatureIdProperty(final String featureId, final String property);
+
+    @Override
+    T visitFeatureIdDesiredProperty(final String featureId, final String desiredProperty);
 
     @Override
     T visitSimple(final String fieldName);

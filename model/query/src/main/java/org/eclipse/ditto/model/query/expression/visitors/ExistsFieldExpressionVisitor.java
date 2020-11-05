@@ -24,6 +24,10 @@ public interface ExistsFieldExpressionVisitor<T> extends SortFieldExpressionVisi
 
     T visitFeature(final String featureId);
 
+    T visitFeatureProperties(final String featureId);
+
+    T visitFeatureDesiredProperties(final String featureId);
+
     @Override
     T visitFeatureIdProperty(final String featureId, final String property);
 

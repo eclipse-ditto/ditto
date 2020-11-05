@@ -82,13 +82,25 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
                 .flatMap(f -> f.getFeatureId()
                         .map(id ->
                                 f.getProperty().<ExistsFieldExpression>map(
+                                        // property
                                         property -> new FeatureIdPropertyExpressionImpl(id, property))
                                         // desiredProperty
                                         .orElse(f.getDesiredProperty().<ExistsFieldExpression>map(
                                                 desiredProperty -> new FeatureIdDesiredPropertyExpressionImpl(id,
                                                         desiredProperty))
-                                                // we have a feature id but no property path
-                                                .orElseGet(() -> new FeatureExpressionImpl(id)))
+                                                .orElseGet(() -> {if (f.isProperties()) {
+                                                    // we have a feature id and the properties path,
+                                                    // but no property
+                                                    return new FeatureIdPropertiesExpressionImpl(id);
+                                                } else if (f.isDesiredProperties()) {
+                                                    // we have a feature id and the desired properties path,
+                                                    // but no desired property
+                                                    return new FeatureIdDesiredPropertiesExpressionImpl(id);
+                                                } else {
+                                                    // we have a feature id but no property path
+                                                    return new FeatureExpressionImpl(id);
+                                                }
+                                                }))
                         )
                 )
                 // we have no feature at all, continue with the other possibilities

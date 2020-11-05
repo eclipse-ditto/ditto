@@ -47,6 +47,16 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
     }
 
     /**
+     * Return a exist field expression for the given feature id and its properties.
+     *
+     * @param featureId the feature id
+     * @return the exist field expression
+     */
+    default ExistsFieldExpression existsByFeatureProperties(final String featureId) {
+        return existsBy(String.format("features/%s/properties", featureId));
+    }
+
+    /**
      * Return a exist field expression for the given feature id and property key.
      *
      * @param featureId the feature id
@@ -79,6 +89,15 @@ public interface ThingsFieldExpressionFactory extends FieldExpressionFactory {
         return filterBy(String.format("features/%s/desiredProperties/%s", featureId, desiredProperty));
     }
 
+    /**
+     * Return a exist field expression for the given feature id and its desired properties.
+     *
+     * @param featureId the feature id
+     * @return the exist field expression
+     */
+    default ExistsFieldExpression existsByFeatureDesiredProperties(final String featureId) {
+        return existsBy(String.format("features/%s/desiredProperties", featureId));
+    }
     /**
      * Return a exist field expression for the given feature id and desired property key.
      *

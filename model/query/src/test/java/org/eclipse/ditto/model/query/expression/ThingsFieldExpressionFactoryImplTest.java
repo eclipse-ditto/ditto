@@ -29,6 +29,10 @@ public final class ThingsFieldExpressionFactoryImplTest {
 
     private static final String KNOWN_FEATURE = "features/" + KNOWN_FEATURE_ID;
 
+    private static final String KNOWN_FEATURE_PROPERTIES = "features/" + KNOWN_FEATURE_ID + "/properties";
+
+    private static final String KNOWN_FEATURE_DESIRED_PROPERTIES = "features/" + KNOWN_FEATURE_ID + "/desiredProperties/";
+
     private static final String KNOWN_FEATURE_PROPERTY_WITH_ID =
             "features/" + KNOWN_FEATURE_ID + "/properties/" + KNOWN_STRING;
 
@@ -94,6 +98,22 @@ public final class ThingsFieldExpressionFactoryImplTest {
         final FieldExpression fieldExpression = ef.existsBy(KNOWN_FEATURE);
 
         final ExistsFieldExpression expected = new FeatureExpressionImpl(KNOWN_FEATURE_ID);
+        assertThat(fieldExpression).isEqualTo(expected);
+    }
+
+    @Test
+    public void existsByWithFeatureProperties() {
+        final FieldExpression fieldExpression = ef.existsBy(KNOWN_FEATURE_PROPERTIES);
+
+        final ExistsFieldExpression expected = new FeatureIdPropertiesExpressionImpl(KNOWN_FEATURE_ID);
+        assertThat(fieldExpression).isEqualTo(expected);
+    }
+
+    @Test
+    public void existsByWithFeatureDesiredProperties() {
+        final FieldExpression fieldExpression = ef.existsBy(KNOWN_FEATURE_DESIRED_PROPERTIES);
+
+        final ExistsFieldExpression expected = new FeatureIdDesiredPropertiesExpressionImpl(KNOWN_FEATURE_ID);
         assertThat(fieldExpression).isEqualTo(expected);
     }
 

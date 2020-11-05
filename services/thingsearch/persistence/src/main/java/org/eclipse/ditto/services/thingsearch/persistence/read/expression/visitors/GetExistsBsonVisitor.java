@@ -14,11 +14,14 @@ package org.eclipse.ditto.services.thingsearch.persistence.read.expression.visit
 
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.DESIRED_PROPERTIES;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ATTRIBUTES_PATH;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_DESIRED_PROPERTIES;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_FEATURES_PATH;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL_KEY;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_PATH_KEY;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_PROPERTIES;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.PROPERTIES;
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.SLASH;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -73,6 +76,16 @@ public class GetExistsBsonVisitor extends AbstractFieldBsonCreator implements Ex
     @Override
     public Bson visitFeature(final String featureId) {
         return matchKey(escapeAndWrapExistsRegex(FIELD_FEATURES_PATH + featureId));
+    }
+
+    @Override
+    public Bson visitFeatureProperties(final String featureId) {
+        return matchKey(escapeAndWrapExistsRegex(FIELD_FEATURES_PATH + featureId + SLASH + FIELD_PROPERTIES));
+    }
+
+    @Override
+    public Bson visitFeatureDesiredProperties(final String featureId) {
+        return matchKey(escapeAndWrapExistsRegex(FIELD_FEATURES_PATH + featureId + SLASH + FIELD_DESIRED_PROPERTIES));
     }
 
     @Override

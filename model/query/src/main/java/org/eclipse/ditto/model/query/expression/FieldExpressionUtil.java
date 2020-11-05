@@ -119,6 +119,12 @@ public final class FieldExpressionUtil {
      */
     public static final class FeatureField {
 
+        private static final Pattern FIELD_NAME_PROPERTIES_PATTERN =
+                Pattern.compile("^features/(?<featureId>[^/]++)/properties/?");
+
+        private static final Pattern FIELD_NAME_DESIRED_PROPERTIES_PATTERN =
+                Pattern.compile("^features/(?<featureId>[^/]++)/desiredProperties/?");
+
         private static final Pattern FIELD_NAME_FEATURE_PATTERN1 =
                 Pattern.compile("^features/(?<featureId>[^/]++)/properties/(?<property>.+)");
 
@@ -131,15 +137,18 @@ public final class FieldExpressionUtil {
         private final boolean matches;
         private final String featureId;
         private final String property;
+        private final boolean isProperties;
         private final String desiredProperty;
+        private final boolean isDesiredProperties;
 
         private FeatureField(final String fieldName) {
             Matcher matcher = FIELD_NAME_FEATURE_PATTERN1.matcher(fieldName);
-
             if (matcher.matches()) {
                 this.matches = true;
                 this.featureId = matcher.group("featureId");
+                this.isProperties = false;
                 this.property = matcher.group("property");
+                this.isDesiredProperties = false;
                 this.desiredProperty = null;
             } else {
 
@@ -147,21 +156,50 @@ public final class FieldExpressionUtil {
                 if (matcher.matches()) {
                     this.matches = true;
                     this.featureId = matcher.group("featureId");
-                    this.desiredProperty = matcher.group("desiredProperty");
+                    this.isProperties = false;
                     this.property = null;
+                    this.isDesiredProperties = false;
+                    this.desiredProperty = matcher.group("desiredProperty");
                 } else {
-                    matcher = FIELD_NAME_FEATURE_PATTERN2.matcher(fieldName);
 
+                    matcher = FIELD_NAME_PROPERTIES_PATTERN.matcher(fieldName);
                     if (matcher.matches()) {
                         this.matches = true;
                         this.featureId = matcher.group("featureId");
+                        this.isProperties = true;
                         this.property = null;
+                        this.isDesiredProperties = false;
                         this.desiredProperty = null;
                     } else {
-                        this.matches = false;
-                        this.featureId = null;
-                        this.property = null;
-                        this.desiredProperty = null;
+
+                        matcher = FIELD_NAME_DESIRED_PROPERTIES_PATTERN.matcher(fieldName);
+                        if (matcher.matches()) {
+                            this.matches = true;
+                            this.featureId = matcher.group("featureId");
+                            this.isProperties = false;
+                            this.property = null;
+                            this.isDesiredProperties = true;
+                            this.desiredProperty = null;
+                        } else {
+
+                            matcher = FIELD_NAME_FEATURE_PATTERN2.matcher(fieldName);
+                            if (matcher.matches()) {
+                                this.matches = true;
+                                this.featureId = matcher.group("featureId");
+                                this.isProperties = false;
+                                this.property = null;
+                                this.isDesiredProperties = false;
+                                this.desiredProperty = null;
+                            } else {
+
+                                this.matches = false;
+                                this.featureId = null;
+                                this.isProperties = false;
+                                this.property = null;
+                                this.isDesiredProperties = false;
+                                this.desiredProperty = null;
+                            }
+                        }
                     }
                 }
             }
@@ -192,5 +230,18 @@ public final class FieldExpressionUtil {
             return Optional.ofNullable(desiredProperty);
         }
 
+        /**
+         * @return whether the field matches the properties.
+         */
+        public boolean isProperties() {
+            return isProperties;
+        }
+
+        /**
+         * @return whether the field matches the desired properties.
+         */
+        public boolean isDesiredProperties() {
+            return isDesiredProperties;
+        }
     }
 }
