@@ -40,11 +40,11 @@ final class ImmutableFeaturePlaceholder implements FeaturePlaceholder {
     static final ImmutableFeaturePlaceholder INSTANCE = new ImmutableFeaturePlaceholder();
 
     @Override
-    public Optional<String> resolve(final String featureId, final String placeholder) {
+    public Optional<String> resolve(final CharSequence featureId, final String placeholder) {
         checkNotNull(featureId, "featureId");
         argumentNotEmpty(placeholder, "placeholder");
         if (ID_PLACEHOLDER.equals(placeholder)) {
-            return Optional.of(featureId);
+            return Optional.of(featureId.toString());
         }
         return Optional.empty();
     }

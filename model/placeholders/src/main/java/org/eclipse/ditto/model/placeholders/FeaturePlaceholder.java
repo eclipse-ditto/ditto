@@ -13,9 +13,9 @@
 package org.eclipse.ditto.model.placeholders;
 
 /**
- * A {@link Placeholder} that requires a {@code String} (a valid Feature ID) to resolve it's placeholders.
+ * A {@link Placeholder} that requires a {@code String} (a valid Feature ID) to resolve its placeholders.
  *
  * @since 1.5.0
  */
-public interface FeaturePlaceholder extends Placeholder<String> {
+public interface FeaturePlaceholder extends Placeholder<CharSequence> {
 }
