@@ -77,7 +77,7 @@ paths:
     $ref: "./paths/features/property.yml"
   '/things/{thingId}/features/{featureId}/desiredProperties':
     $ref: "./paths/features/desiredProperties.yml"
-  '/things/{thingId}/features/{featureId}/desiredProperties/{desiredPropertyPath}':
+  '/things/{thingId}/features/{featureId}/desiredProperties/{propertyPath}':
     $ref: "./paths/features/desiredProperty.yml"
 
   ###
@@ -140,6 +140,8 @@ components:
       $ref: "./schemas/featureDefinition.yml"
     FeatureProperties:
       $ref: "./schemas/featureProperties.yml"
+    FeatureDesiredProperties:
+        $ref: "./schemas/featureDesiredProperties.yml"
     Feature:
       $ref: "./schemas/feature.yml"
     SearchResultThings:
