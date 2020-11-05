@@ -1,6 +1,6 @@
 ---
 title: Feature
-keywords: definition, properties, entity, feature, functionblock, informationmodel, model, vorto
+keywords: definition, properties, desiredProperties, entity, feature, functionblock, informationmodel, model, vorto
 tags: [model]
 permalink: basic-feature.html
 ---
