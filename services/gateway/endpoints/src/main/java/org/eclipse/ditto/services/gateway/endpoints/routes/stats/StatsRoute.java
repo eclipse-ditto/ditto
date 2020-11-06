@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.stats;
 
-import static org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective.REALM_DEVOPS;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective.REALM_DEVOPS;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -23,11 +23,11 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.actors.AbstractHttpRequestActor;
-import org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.services.gateway.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatistics;
@@ -60,7 +60,7 @@ public final class StatsRoute extends AbstractRoute {
     private static final String ENTITY_PARAM = "entity";
     private static final String NAMESPACE_PARAM = "namespace";
 
-    private final DevOpsConfig devOpsConfig;
+    private final DevopsAuthenticationDirective devOpsAuthenticationDirective;
 
     /**
      * Constructs the {@code /stats} route builder.
@@ -69,19 +69,19 @@ public final class StatsRoute extends AbstractRoute {
      * @param actorSystem the akka actor system.
      * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
      * @param commandConfig the configuration settings of the Gateway service's incoming command processing.
-     * @param devOpsConfig the configuration settings of the Gateway service's DevOps endpoint.
      * @param headerTranslator translates headers from external sources or to external sources.
+     * @param devOpsAuthenticationDirective the authentication handler for the Devops directive.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public StatsRoute(final ActorRef proxyActor,
             final ActorSystem actorSystem,
             final HttpConfig httpConfig,
             final CommandConfig commandConfig,
-            final DevOpsConfig devOpsConfig,
-            final HeaderTranslator headerTranslator) {
+            final HeaderTranslator headerTranslator,
+            final DevopsAuthenticationDirective devOpsAuthenticationDirective) {
 
         super(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
-        this.devOpsConfig = devOpsConfig;
+        this.devOpsAuthenticationDirective = devOpsAuthenticationDirective;
     }
 
     /*
@@ -122,9 +122,7 @@ public final class StatsRoute extends AbstractRoute {
     }
 
     private Route buildDetailsRoute(final RequestContext ctx, final CharSequence correlationId) {
-        final DevOpsBasicAuthenticationDirective devOpsBasicAuthenticationDirective =
-                DevOpsBasicAuthenticationDirective.getInstance(devOpsConfig);
-        return devOpsBasicAuthenticationDirective.authenticateDevOpsBasic(REALM_DEVOPS,
+        return devOpsAuthenticationDirective.authenticateDevOps(REALM_DEVOPS,
                 parameterList(ENTITY_PARAM, shardRegions ->
                         parameterList(NAMESPACE_PARAM, namespaces ->
                                 handleDevOpsPerRequest(ctx, RetrieveStatisticsDetails.of(shardRegions, namespaces,

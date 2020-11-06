@@ -12,14 +12,14 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.status;
 
-import static org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective.REALM_STATUS;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective.REALM_STATUS;
 
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
-import org.eclipse.ditto.services.gateway.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 
 import akka.http.javadsl.model.ContentTypes;
@@ -45,21 +45,22 @@ public final class OverallStatusRoute extends RouteDirectives {
 
     private final Supplier<ClusterStatus> clusterStateSupplier;
     private final StatusAndHealthProvider statusHealthProvider;
-    private final DevOpsConfig devOpsConfig;
+    private final DevopsAuthenticationDirective devOpsAuthenticationDirective;
 
     /**
      * Constructs the {@code /status} route builder.
      *
      * @param clusterStateSupplier the supplier to get the cluster state.
      * @param statusHealthProvider the provider for retrieving health status of the cluster.
-     * @param devOpsConfig the configuration settings of the Gateway service's DevOps endpoint.
+     * @param devOpsAuthenticationDirective the authentication handler for the Devops directive.
      */
     public OverallStatusRoute(final Supplier<ClusterStatus> clusterStateSupplier,
-            final StatusAndHealthProvider statusHealthProvider, final DevOpsConfig devOpsConfig) {
+            final StatusAndHealthProvider statusHealthProvider,
+            final DevopsAuthenticationDirective devOpsAuthenticationDirective) {
 
         this.clusterStateSupplier = clusterStateSupplier;
         this.statusHealthProvider = statusHealthProvider;
-        this.devOpsConfig = devOpsConfig;
+        this.devOpsAuthenticationDirective = devOpsAuthenticationDirective;
     }
 
     /**
@@ -69,9 +70,7 @@ public final class OverallStatusRoute extends RouteDirectives {
      */
     public Route buildOverallStatusRoute() {
         return rawPathPrefix(PathMatchers.slash().concat(PATH_OVERALL), () -> {// /overall/*
-            final DevOpsBasicAuthenticationDirective devOpsBasicAuthenticationDirective =
-                    DevOpsBasicAuthenticationDirective.getInstance(devOpsConfig);
-            return devOpsBasicAuthenticationDirective.authenticateDevOpsBasic(REALM_STATUS, get(() -> // GET
+            return devOpsAuthenticationDirective.authenticateDevOps(REALM_STATUS, get(() -> // GET
                     // /overall/status
                     // /overall/status/health
                     // /overall/status/cluster
