@@ -66,8 +66,6 @@ public final class InboundMappingProcessorActor
 
     // not final because it may change when the underlying config changed
     private InboundMappingProcessor inboundMappingProcessor;
-//    private AbstractMappingProcessor inboundMappingProcessor;
-
 
     @SuppressWarnings("unused")
     private InboundMappingProcessorActor(final InboundMappingProcessor inboundMappingProcessor,
@@ -137,8 +135,8 @@ public final class InboundMappingProcessorActor
                 .match(Status.Failure.class, f ->
                         logger.warning("Got failure with cause {}: {}",
                                 f.cause().getClass().getSimpleName(), f.cause().getMessage()))
-                .match(BaseClientActor.ReplaceInboundMessageMappingProcessor.class, replaceProcessor -> {
-                    logger.info("Replacing the MessageMappingProcessor with a modified one.");
+                .match(BaseClientActor.ReplaceInboundMappingProcessor.class, replaceProcessor -> {
+                    logger.info("Replacing the InboundMappingProcessor with a modified one.");
                     this.inboundMappingProcessor = replaceProcessor.getInboundMappingProcessor();
                 });
     }

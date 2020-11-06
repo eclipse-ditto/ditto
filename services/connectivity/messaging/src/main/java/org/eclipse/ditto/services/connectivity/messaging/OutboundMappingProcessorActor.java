@@ -131,7 +131,6 @@ public final class OutboundMappingProcessorActor
 
     // not final because it may change when the underlying config changed
     private OutboundMappingProcessor outboundMappingProcessor;
-//    private AbstractMappingProcessor outboundMappingProcessor;
 
     @SuppressWarnings("unused")
     private OutboundMappingProcessorActor(final ActorRef clientActor,
@@ -229,8 +228,8 @@ public final class OutboundMappingProcessorActor
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder
-                .match(BaseClientActor.ReplaceOutboundMessageMappingProcessor.class, replaceProcessor -> {
-                    logger.info("Replacing the MessageMappingProcessor with a modified one.");
+                .match(BaseClientActor.ReplaceOutboundMappingProcessor.class, replaceProcessor -> {
+                    logger.info("Replacing the OutboundMappingProcessor with a modified one.");
                     this.outboundMappingProcessor = replaceProcessor.getOutboundMappingProcessor();
                 });
     }

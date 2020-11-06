@@ -61,6 +61,7 @@ import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProvider
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProviderFactory;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.MonitoringConfig;
+import org.eclipse.ditto.services.connectivity.config.mapping.MapperLimitsConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
@@ -132,7 +133,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private static final int SOCKET_CHECK_TIMEOUT_MS = 2000;
 
     protected final ConnectionLogger connectionLogger;
-    protected final ConnectivityConfig connectivityConfig;
+    protected ConnectivityConfig connectivityConfig;
     protected final ClientConfig clientConfig;
 
     /**
@@ -142,7 +143,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private final Connection connection;
     private final ActorRef connectionActor;
-    private final ProtocolAdapterProvider protocolAdapterProvider;
     private final ActorRef proxyActor;
     private final Gauge clientGauge;
     private final Gauge clientConnectingGauge;
@@ -153,6 +153,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ActorRef subscriptionManager;
     private final ReconnectTimeoutStrategy reconnectTimeoutStrategy;
     private final SupervisorStrategy supervisorStrategy;
+    private final ProtocolAdapter protocolAdapter;
 
     private final ConnectivityConfigProvider connectivityConfigProvider;
 
@@ -177,9 +178,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         connectivityConfigProvider = ConnectivityConfigProviderFactory.getInstance(getContext().getSystem());
 
         clientConfig = connectivityConfig.getClientConfig();
-        this.proxyActor =
-                Optional.ofNullable(proxyActor).orElse(getContext().getSystem().deadLetters());
-        protocolAdapterProvider =
+        this.proxyActor = Optional.ofNullable(proxyActor).orElse(getContext().getSystem().deadLetters());
+        final ProtocolAdapterProvider protocolAdapterProvider =
                 ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
 
         clientGauge = DittoMetrics.gauge("connection_client")
@@ -201,7 +201,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         reconnectTimeoutStrategy = DuplicationReconnectTimeoutStrategy.fromConfig(clientConfig);
         outboundMappingProcessorActor = startOutboundMappingProcessorActor(connection);
 
-        final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
+        protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         final ActorRef inboundDispatcher =
                 startInboundDispatchingActor(connection, protocolAdapter, outboundMappingProcessorActor);
         inboundMappingProcessorActor =
@@ -262,26 +262,40 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     @Override
-    public void onConnectivityConfigModified(final ConnectivityConfig connectivityConfig) {
-        // recreate MessageMappingProcessor if mapper limits changed
-        if (!connectivityConfig.getMappingConfig().getMapperLimitsConfig()
-                .equals(this.connectivityConfig.getMappingConfig().getMapperLimitsConfig())) {
-            logger.debug("MapperLimitsConfig changed, creating a new MessageMappingProcessor with modified config.,");
+    public void onConnectivityConfigModified(final ConnectivityConfig modifiedConfig) {
+        if (hasInboundMapperConfigChanged(modifiedConfig)) {
+            logger.debug("Config changed for InboundMappingProcessor, recreating it.");
             final InboundMappingProcessor inboundMappingProcessor =
                     InboundMappingProcessor.of(connection.getId(), connection.getConnectionType(),
                             connection.getPayloadMappingDefinition(),
-                            getContext().getSystem(), connectivityConfig,
-                            protocolAdapterProvider.getProtocolAdapter(null), logger);
-
+                            getContext().getSystem(), modifiedConfig,
+                            protocolAdapter, logger);
+            inboundMappingProcessorActor.tell(new ReplaceInboundMappingProcessor(inboundMappingProcessor), getSelf());
+        }
+        if (hasOutboundMapperConfigChanged(modifiedConfig)) {
+            logger.debug("Config changed for OutboundMappingProcessor, recreating it.");
             final OutboundMappingProcessor outboundMappingProcessor =
                     OutboundMappingProcessor.of(connection.getId(), connection.getConnectionType(),
-                            connection.getPayloadMappingDefinition(), getContext().getSystem(), connectivityConfig,
-                            protocolAdapterProvider.getProtocolAdapter(null), logger);
-            inboundMappingProcessorActor.tell(new ReplaceInboundMessageMappingProcessor(inboundMappingProcessor),
-                    getSelf());
-            outboundMappingProcessorActor.tell(new ReplaceOutboundMessageMappingProcessor(outboundMappingProcessor),
+                            connection.getPayloadMappingDefinition(), getContext().getSystem(), modifiedConfig,
+                            protocolAdapter, logger);
+            outboundMappingProcessorActor.tell(new ReplaceOutboundMappingProcessor(outboundMappingProcessor),
                     getSelf());
         }
+        this.connectivityConfig = modifiedConfig;
+    }
+
+    private boolean hasInboundMapperConfigChanged(final ConnectivityConfig connectivityConfig) {
+        final MapperLimitsConfig currentConfig = this.connectivityConfig.getMappingConfig().getMapperLimitsConfig();
+        final MapperLimitsConfig modifiedConfig = connectivityConfig.getMappingConfig().getMapperLimitsConfig();
+        return currentConfig.getMaxMappedInboundMessages() != modifiedConfig.getMaxMappedInboundMessages()
+                || currentConfig.getMaxSourceMappers() != modifiedConfig.getMaxSourceMappers();
+    }
+
+    private boolean hasOutboundMapperConfigChanged(final ConnectivityConfig connectivityConfig) {
+        final MapperLimitsConfig currentConfig = this.connectivityConfig.getMappingConfig().getMapperLimitsConfig();
+        final MapperLimitsConfig modifiedConfig = connectivityConfig.getMappingConfig().getMapperLimitsConfig();
+        return currentConfig.getMaxMappedOutboundMessages() != modifiedConfig.getMaxMappedOutboundMessages()
+                || currentConfig.getMaxTargetMappers() != modifiedConfig.getMaxTargetMappers();
     }
 
     private FSM.State<BaseClientState, BaseClientData> init() {
@@ -1202,14 +1216,14 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 connection.getPayloadMappingDefinition(),
                 actorSystem,
                 connectivityConfig,
-                protocolAdapterProvider.getProtocolAdapter(null),
+                protocolAdapter,
                 logger);
         OutboundMappingProcessor.of(connectionId(),
                 connection.getConnectionType(),
                 connection.getPayloadMappingDefinition(),
                 actorSystem,
                 connectivityConfig,
-                protocolAdapterProvider.getProtocolAdapter(null),
+                protocolAdapter,
                 logger);
         return CompletableFuture.completedFuture(new Status.Success("mapping"));
     }
@@ -1221,9 +1235,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * @throws DittoRuntimeException when mapping processor could not get started.
      */
     private ActorRef startOutboundMappingProcessorActor(final Connection connection) {
-
         final OutboundMappingProcessor outboundMappingProcessor;
-        final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         try {
             ConnectivityConfig retrievedConnectivityConfig =
                     connectivityConfigProvider.getConnectivityConfig(connection.getId());
@@ -1631,12 +1643,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * Message sent to {@link InboundMappingProcessorActor} instructing it to replace the current
      * {@link InboundMappingProcessor}.
      */
-    static class ReplaceInboundMessageMappingProcessor {
+    static class ReplaceInboundMappingProcessor {
 
-        private InboundMappingProcessor inboundMappingProcessor;
+        private final InboundMappingProcessor inboundMappingProcessor;
 
-        private ReplaceInboundMessageMappingProcessor(
-                final InboundMappingProcessor inboundMappingProcessor) {
+        private ReplaceInboundMappingProcessor(final InboundMappingProcessor inboundMappingProcessor) {
             this.inboundMappingProcessor = inboundMappingProcessor;
         }
 
@@ -1649,11 +1660,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * Message sent to {@link OutboundMappingProcessorActor} instructing it to replace the current
      * {@link OutboundMappingProcessor}.
      */
-    static class ReplaceOutboundMessageMappingProcessor {
+    static class ReplaceOutboundMappingProcessor {
 
-        private OutboundMappingProcessor outboundMappingProcessor;
+        private final OutboundMappingProcessor outboundMappingProcessor;
 
-        private ReplaceOutboundMessageMappingProcessor(
+        private ReplaceOutboundMappingProcessor(
                 final OutboundMappingProcessor outboundMappingProcessor) {
             this.outboundMappingProcessor = outboundMappingProcessor;
         }
