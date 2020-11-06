@@ -150,10 +150,6 @@ public final class ConnectionValidator {
         final ConnectivityConfig connectivityConfig =
                 connectivityConfigProvider.getConnectivityConfig(connection.getId());
 
-        System.out.println("Current config: " + connectivityConfig);
-
-        loggingAdapter.debug("Current config: {}", connectivityConfig);
-
         // validate sources and targets
         validateSourcesAndTargets(connection, dittoHeaders, connectivityConfig);
 
