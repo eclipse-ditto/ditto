@@ -177,10 +177,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         );
         connectivityConfigProvider = ConnectivityConfigProviderFactory.getInstance(getContext().getSystem());
 
-        clientConfig = connectivityConfig.getClientConfig();
-        this.proxyActor = Optional.ofNullable(proxyActor).orElse(getContext().getSystem().deadLetters());
         final ProtocolAdapterProvider protocolAdapterProvider =
                 ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
+        protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
+
+        clientConfig = connectivityConfig.getClientConfig();
+        this.proxyActor = Optional.ofNullable(proxyActor).orElse(getContext().getSystem().deadLetters());
 
         clientGauge = DittoMetrics.gauge("connection_client")
                 .tag("id", connectionId.toString())
@@ -199,9 +201,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         connectionLogger = connectionLoggerRegistry.forConnection(connectionId);
 
         reconnectTimeoutStrategy = DuplicationReconnectTimeoutStrategy.fromConfig(clientConfig);
-        outboundMappingProcessorActor = startOutboundMappingProcessorActor(connection);
+        outboundMappingProcessorActor = startOutboundMappingProcessorActor(connection, protocolAdapter);
 
-        protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         final ActorRef inboundDispatcher =
                 startInboundDispatchingActor(connection, protocolAdapter, outboundMappingProcessorActor);
         inboundMappingProcessorActor =
@@ -1231,10 +1232,13 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     /**
      * Starts the {@link OutboundMappingProcessorActor} responsible for payload transformation/mapping as child actor.
      *
+     * @param connection the connection.
+     * @param protocolAdapter the protocol adapter.
      * @return the ref to the started {@link OutboundMappingProcessorActor}
      * @throws DittoRuntimeException when mapping processor could not get started.
      */
-    private ActorRef startOutboundMappingProcessorActor(final Connection connection) {
+    private ActorRef startOutboundMappingProcessorActor(final Connection connection,
+            final ProtocolAdapter protocolAdapter) {
         final OutboundMappingProcessor outboundMappingProcessor;
         try {
             ConnectivityConfig retrievedConnectivityConfig =
