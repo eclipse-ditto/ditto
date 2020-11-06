@@ -111,7 +111,6 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
      * @throws Exception should not be thrown
      */
     @Test
-    @Ignore("TODO: fix this")
     public void testMsgPublishedOntoFullQueueShallBeDropped() throws Exception {
 
         new TestKit(actorSystem) {{
@@ -153,7 +152,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                     assertThat(msg).contains("AMQP message dropped")
             );
 
-            verify(messageProducer, times(queueSize)).send(any(JmsMessage.class), any(CompletionListener.class));
+            verify(messageProducer, times(connectionConfig.getPublisherParallelism()))
+                    .send(any(JmsMessage.class), any(CompletionListener.class));
         }};
 
     }

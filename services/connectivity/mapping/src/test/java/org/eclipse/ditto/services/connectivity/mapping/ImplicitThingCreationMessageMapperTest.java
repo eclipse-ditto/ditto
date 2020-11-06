@@ -172,9 +172,7 @@ public final class ImplicitThingCreationMessageMapperTest {
         assertThat(firstMappedSignal).isInstanceOf(CreateThing.class);
         final CreateThing createThing = (CreateThing) firstMappedSignal;
 
-        final Thing expectedThing =
-                createExpectedThing(DEVICE_ID, DEVICE_ID,
-                        GATEWAY_ID);
+        final Thing expectedThing = createExpectedThing(DEVICE_ID, DEVICE_ID, GATEWAY_ID);
         assertThat(createThing.getThing().getEntityId()).isEqualTo(expectedThing.getEntityId());
         assertThat(createThing.getThing().getPolicyEntityId()).isEqualTo(expectedThing.getPolicyEntityId());
         assertThat(createThing.getThing().getAttributes()).isEqualTo(expectedThing.getAttributes());

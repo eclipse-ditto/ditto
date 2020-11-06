@@ -57,7 +57,8 @@ public final class RabbitMQValidator extends AbstractProtocolValidator {
             validateTemplate(enforcement.getInput(), dittoHeaders, PlaceholderFactory.newHeadersPlaceholder());
             enforcement.getFilters().forEach(filterTemplate ->
                     validateTemplate(filterTemplate, dittoHeaders, PlaceholderFactory.newThingPlaceholder(),
-                            PlaceholderFactory.newPolicyPlaceholder(), PlaceholderFactory.newEntityPlaceholder()));
+                            PlaceholderFactory.newPolicyPlaceholder(), PlaceholderFactory.newEntityPlaceholder(),
+                            PlaceholderFactory.newFeaturePlaceholder()));
         });
         source.getHeaderMapping().ifPresent(mapping -> validateHeaderMapping(mapping, dittoHeaders));
     }

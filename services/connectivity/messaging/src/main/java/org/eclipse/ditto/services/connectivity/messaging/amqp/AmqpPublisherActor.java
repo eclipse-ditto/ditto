@@ -26,6 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -60,7 +61,6 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
-import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.Pair;
@@ -143,9 +143,9 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             final Executor jmsDispatcher) {
         final ExternalMessage message = messageToPublish.first();
         final AmqpMessageContext context = messageToPublish.second();
-        return CompletableFuture
-                .runAsync(() -> context.onPublishMessage(message), jmsDispatcher)
-                .thenApply(aVoid -> Done.done());
+        return CompletableFuture.supplyAsync(() -> context.onPublishMessage(message), jmsDispatcher)
+                .thenCompose(Function.identity())
+                .thenApply(x -> x);
     }
 
     /**
@@ -329,6 +329,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
             } catch (final JMSException e) {
                 resultFuture.completeExceptionally(getMessageSendingException(message, e));
             }
+            return resultFuture;
         };
     }
 
@@ -346,6 +347,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                             .dittoHeaders(message.getInternalHeaders())
                             .build();
             resultFuture.completeExceptionally(sendFailedException);
+            return resultFuture;
         };
     }
 
@@ -361,7 +363,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                 escalate(error, errorDescription);
             } else if (Objects.equals(queueOfferResult, QueueOfferResult.dropped())) {
                 resultFuture.completeExceptionally(MessageSendingFailedException.newBuilder()
-                        .message("Outgoing AMQP message dropped: There are too many unsettled messages.")
+                        .message("Outgoing AMQP message dropped: There are too many unsettled messages " +
+                                "or too few credits.")
                         .description("Please improve the performance of the AMQP consumer, " +
                                 "reduce the rate of outgoing signals or make sure the messages are correctly consumed.")
                         .dittoHeaders(message.getInternalHeaders())

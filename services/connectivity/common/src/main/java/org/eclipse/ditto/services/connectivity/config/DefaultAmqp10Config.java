@@ -154,7 +154,6 @@ public final class DefaultAmqp10Config implements Amqp10Config {
                 globalPrefetchPolicyAllCount == that.globalPrefetchPolicyAllCount &&
                 Objects.equals(consumerRedeliveryExpectationTimeout, that.consumerRedeliveryExpectationTimeout) &&
                 Objects.equals(backOffConfig, that.backOffConfig) &&
-                Objects.equals(consumerThrottlingConfig, that.consumerThrottlingConfig) &&
                 maxQueueSize == that.maxQueueSize &&
                 messagePublishingParallelism == that.messagePublishingParallelism &&
                 Objects.equals(consumerThrottlingConfig, that.consumerThrottlingConfig) &&

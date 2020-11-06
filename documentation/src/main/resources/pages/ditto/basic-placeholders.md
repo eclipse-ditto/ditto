@@ -30,8 +30,9 @@ In [connections](basic-connections.html), the following placeholders are availab
 | `{%raw%}{{ entity:namespace }}{%endraw%}` | Namespace (i.e. first part of an ID) for things and policies |
 | `{%raw%}{{ entity:name }}{%endraw%}` | Name (i.e. second part of an ID ) for things and policies |
 | `{%raw%}{{ thing:id }}{%endraw%}` | full ID composed of ''namespace'' + '':'' as a separator + ''name''  | 
-| `{%raw%}{{ thing:namespace }}{%endraw%}` | Namespace (i.e. first part of an ID) |
-| `{%raw%}{{ thing:name }}{%endraw%}` | Name (i.e. second part of an ID ) |
+| `{%raw%}{{ thing:namespace }}{%endraw%}` | the namespace (i.e. first part of an ID) of the related thing |
+| `{%raw%}{{ thing:name }}{%endraw%}` | the name (i.e. second part of an ID ) of the related thing |
+| `{%raw%}{{ feature:id }}{%endraw%}` | the ID of the feature (only available if the processed signal was related to a feature) |
 | `{%raw%}{{ header:<header-name> }}{%endraw%}` | external header value for connection sources, or Ditto protocol header value for targets and reply-targets |
 | `{%raw%}{{ request:subjectId }}{%endraw%}` | primary authorization subject of a command, or primary authorization subject that caused an event |
 | `{%raw%}{{ topic:full }}{%endraw%}` | full [Ditto Protocol topic path](protocol-specification-topic.html)<br/>in the form `{namespace}/{entityId}/{group}/`<br/>`{channel}/{criterion}/{action-subject}` |

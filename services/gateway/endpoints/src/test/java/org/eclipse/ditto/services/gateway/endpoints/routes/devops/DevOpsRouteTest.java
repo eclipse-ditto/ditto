@@ -17,6 +17,11 @@ import java.util.Collections;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationProvider;
 import org.eclipse.ditto.services.gateway.util.config.security.DefaultDevOpsConfig;
 import org.eclipse.ditto.services.gateway.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
@@ -51,8 +56,11 @@ public final class DevOpsRouteTest extends EndpointTestBase {
         final ActorSystem actorSystem = system();
         final ProtocolAdapterProvider adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
 
+        final DevopsAuthenticationDirectiveFactory devopsAuthenticationDirectiveFactory =
+                DevopsAuthenticationDirectiveFactory.newInstance(jwtAuthenticationFactory, getInsecureDevopsConfig());
+        final DevopsAuthenticationDirective authenticationDirective = devopsAuthenticationDirectiveFactory.devops();
         devOpsRoute = new DevOpsRoute(createDummyResponseActor(), actorSystem, httpConfig, commandConfig,
-                getInsecureDevopsConfig(), adapterProvider.getHttpHeaderTranslator());
+                adapterProvider.getHttpHeaderTranslator(), authenticationDirective);
 
         final Route route = extractRequestContext(ctx -> devOpsRoute.buildDevOpsRoute(ctx, Collections.emptyMap()));
         underTest = testRoute(route);
@@ -90,7 +98,7 @@ public final class DevOpsRouteTest extends EndpointTestBase {
     }
 
     private static DevOpsConfig getInsecureDevopsConfig() {
-        return DefaultDevOpsConfig.of(ConfigFactory.parseString("devops.securestatus=false"));
+        return DefaultDevOpsConfig.of(ConfigFactory.parseString("devops.secured=false"));
     }
 
 }

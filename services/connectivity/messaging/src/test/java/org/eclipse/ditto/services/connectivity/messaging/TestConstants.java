@@ -198,6 +198,7 @@ public final class TestConstants {
         final Map<String, String> map = new HashMap<>();
         map.put("eclipse", "ditto");
         map.put("thing_id", "{{ thing:id }}");
+        map.put("feature_id", "{{ feature:id }}");
         map.put("device_id", "{{ header:device_id }}");
         map.put("prefixed_thing_id", "some.prefix.{{ thing:id }}");
         map.put("suffixed_thing_id", "{{ header:device_id }}.some.suffix");

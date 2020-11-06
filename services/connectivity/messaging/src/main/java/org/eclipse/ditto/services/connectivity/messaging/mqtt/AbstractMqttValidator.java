@@ -103,7 +103,7 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
 
         validateTargetQoS(qos.get(), dittoHeaders, targetDescription);
         validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder(),
-                newHeadersPlaceholder());
+                newHeadersPlaceholder(), PlaceholderFactory.newFeaturePlaceholder());
     }
 
     /**
