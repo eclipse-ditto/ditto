@@ -60,6 +60,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProvider;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProviderFactory;
 import org.eclipse.ditto.services.connectivity.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
@@ -216,13 +217,13 @@ public final class ConnectionPersistenceActor
         ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId);
 
         final ActorSystem actorSystem = getContext().getSystem();
-        final ConnectivityConfig connectivityConfig =
-                ConnectivityConfigProviderFactory.getInstance(actorSystem).getConnectivityConfig(connectionId);
+        final ConnectivityConfigProvider configProvider = ConnectivityConfigProviderFactory.getInstance(actorSystem);
+        final ConnectivityConfig connectivityConfig = configProvider.getConnectivityConfig(connectionId);
         config = connectivityConfig.getConnectionConfig();
 
         final ConnectionValidator connectionValidator =
                 ConnectionValidator.of(
-                        connectivityConfig,
+                        configProvider,
                         actorSystem.log(),
                         RabbitMQValidator.newInstance(),
                         AmqpValidator.newInstance(),

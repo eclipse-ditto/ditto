@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.connectivity.config;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.signals.events.base.Event;
 
 import akka.actor.AbstractActor;
 import akka.actor.Actor;
@@ -30,14 +31,18 @@ public interface ConnectivityConfigModifiedBehavior extends Actor {
      */
     default AbstractActor.Receive connectivityConfigModifiedBehavior() {
         return ReceiveBuilder.create()
-                .match(ConnectivityConfigBuildable.class, this::handleConnectivityConfigBuildable)
+                .match(Event.class, event -> getConnectivityConfigProvider().canHandle(event), this::handleEvent)
                 .build();
     }
 
-    default void handleConnectivityConfigBuildable(final ConnectivityConfigBuildable connectivityConfigBuildable) {
-        final ConnectivityConfig modifiedConnectivityConfig =
-                connectivityConfigBuildable.buildWith(getCurrentConnectivityConfig());
-        configModified(modifiedConnectivityConfig);
+    /**
+     * Handles the received event by converting it to a {@link ConnectivityConfig} and passing it to
+     * {@link #onConnectivityConfigModified(ConnectivityConfig)}.
+     *
+     * @param event the received event
+     */
+    default void handleEvent(final Event<?> event) {
+        getConnectivityConfigProvider().handleEvent(event).ifPresent(this::onConnectivityConfigModified);
     }
 
     /**
@@ -50,20 +55,17 @@ public interface ConnectivityConfigModifiedBehavior extends Actor {
     }
 
     /**
-     * @return the actor's current {@link ConnectivityConfig} required to merge with the received modifications
-     */
-    ConnectivityConfig getCurrentConnectivityConfig();
-
-    /**
      * @return a {@link ConnectivityConfigProvider} required to register this actor for config changes
      */
-    ConnectivityConfigProvider getConnectivityConfigProvider();
+    default ConnectivityConfigProvider getConnectivityConfigProvider() {
+        return ConnectivityConfigProviderFactory.getInstance(context().system());
+    }
 
     /**
-     * This method is called when a config modification is received.
+     * This method is called when a config modification is received. Implementations must handle the modified config
+     * appropriately i.e. check if any relevant config has changed and re-initialize state if necessary.
      *
      * @param connectivityConfig the modified config
      */
-    void configModified(ConnectivityConfig connectivityConfig);
-
+    void onConnectivityConfigModified(ConnectivityConfig connectivityConfig);
 }

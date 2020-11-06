@@ -56,7 +56,6 @@ import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.config.ClientConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
-import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigBuildable;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigModifiedBehavior;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProvider;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProviderFactory;
@@ -263,22 +262,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     @Override
-    public ConnectivityConfig getCurrentConnectivityConfig() {
-        return connectivityConfig;
-    }
-
-    @Override
-    public ConnectivityConfigProvider getConnectivityConfigProvider() {
-        return connectivityConfigProvider;
-    }
-
-    @Override
-    public void configModified(final ConnectivityConfig connectivityConfig) {
+    public void onConnectivityConfigModified(final ConnectivityConfig connectivityConfig) {
         // recreate MessageMappingProcessor if mapper limits changed
         if (!connectivityConfig.getMappingConfig().getMapperLimitsConfig()
                 .equals(this.connectivityConfig.getMappingConfig().getMapperLimitsConfig())) {
             logger.debug("MapperLimitsConfig changed, creating a new MessageMappingProcessor with modified config.,");
-//            final MessageMappingProcessor messageMappingProcessor =
             final InboundMappingProcessor inboundMappingProcessor =
                     InboundMappingProcessor.of(connection.getId(), connection.getConnectionType(),
                             connection.getPayloadMappingDefinition(),
@@ -405,10 +393,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                         (command, data) -> checkLoggingActive(command))
                 .event(OutboundSignal.class, BaseClientData.class, this::handleOutboundSignal)
                 .event(PublishMappedMessage.class, BaseClientData.class, this::publishMappedMessage)
-                .event(ConnectivityConfigBuildable.class, BaseClientData.class, (ccb, data) -> {
-                    handleConnectivityConfigBuildable(ccb);
-                    return stay();
-                });
+                .event(org.eclipse.ditto.signals.events.base.Event.class,
+                        (event, data) -> connectivityConfigProvider.canHandle(event),
+                        (ccb, data) -> {
+                            handleEvent(ccb);
+                            return stay();
+                        });
     }
 
     /**

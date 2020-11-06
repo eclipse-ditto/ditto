@@ -12,11 +12,11 @@
  */
 package org.eclipse.ditto.services.connectivity.config;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
+import java.util.Optional;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.signals.events.base.Event;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -40,12 +40,17 @@ public class DittoConnectivityConfigProvider implements ConnectivityConfigProvid
     }
 
     @Override
-    public CompletionStage<ConnectivityConfig> getConnectivityConfigAsync(final ConnectionId connectionId) {
-        return CompletableFuture.completedFuture(connectivityConfig);
+    public void registerForConnectivityConfigChanges(final ConnectionId connectionId, final ActorRef subscriber) {
+        // nothing to do, config changes are not supported by the default implementation
     }
 
     @Override
-    public void registerForConnectivityConfigChanges(final ConnectionId connectionId, final ActorRef subscriber) {
-        // nothing to do, config changes are not supported by the default implementation
+    public boolean canHandle(final Event<?> event) {
+        return false;
+    }
+
+    @Override
+    public Optional<ConnectivityConfig> handleEvent(final Event<?> event) {
+        return Optional.empty();
     }
 }

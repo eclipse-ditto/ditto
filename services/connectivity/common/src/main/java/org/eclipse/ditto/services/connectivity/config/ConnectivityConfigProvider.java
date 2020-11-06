@@ -13,10 +13,11 @@
 
 package org.eclipse.ditto.services.connectivity.config;
 
-import java.util.concurrent.CompletionStage;
+import java.util.Optional;
 
 import org.atteo.classindex.IndexSubclasses;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.signals.events.base.Event;
 
 import akka.actor.ActorRef;
 
@@ -35,20 +36,29 @@ public interface ConnectivityConfigProvider {
     ConnectivityConfig getConnectivityConfig(ConnectionId connectionId);
 
     /**
-     * Asynchronously loads a {@link ConnectivityConfig} by a connection ID.
-     *
-     * @param connectionId the connection id for which to load the {@link ConnectivityConfig}
-     * @return the connectivity config
-     */
-    CompletionStage<ConnectivityConfig> getConnectivityConfigAsync(ConnectionId connectionId);
-
-    /**
      * Register the given {@code subscriber} for changes to the {@link ConnectivityConfig} of the given {@code
-     * connectionId}. The given {@link ActorRef} will receive {@link ConnectivityConfigBuildable} to build the final
-     * {@link ConnectivityConfig} given a default/fallback {@link ConnectivityConfig}.
+     * connectionId}. The given {@link ActorRef} will receive {@link Event}s to build the modified {@link
+     * ConnectivityConfig}.
      *
      * @param connectionId the connection id
-     * @param subscriber the subscriber that will receive {@link ConnectivityConfigBuildable} messages
+     * @param subscriber the subscriber that will receive {@link Event}s
      */
-    void registerForConnectivityConfigChanges(final ConnectionId connectionId, final ActorRef subscriber);
+    void registerForConnectivityConfigChanges(ConnectionId connectionId, ActorRef subscriber);
+
+    /**
+     * Returns {@code true} if the implementation can handle the given {@code event} to generate a modified {@link
+     * ConnectivityConfig} when passed to {@link #handleEvent(Event)}.
+     *
+     * @param event the event that may be used to generate modified config
+     * @return {@code true} if the event is compatible
+     */
+    boolean canHandle(Event<?> event);
+
+    /**
+     * Uses the given {@code event} to create a modified {@link ConnectivityConfig}.
+     *
+     * @param event the event used to create a new {@link ConnectivityConfig}
+     * @return Optional of the modified {@link ConnectivityConfig} or an empty Optional.
+     */
+    Optional<ConnectivityConfig> handleEvent(Event<?> event);
 }

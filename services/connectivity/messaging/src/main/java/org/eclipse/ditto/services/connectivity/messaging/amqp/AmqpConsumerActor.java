@@ -98,7 +98,6 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     @Nullable
     private MessageConsumer messageConsumer;
     private ConnectivityConfig connectivityConfig;
-    private final ConnectivityConfigProvider connectivityConfigProvider;
 
     @SuppressWarnings("unused")
     private AmqpConsumerActor(final ConnectionId connectionId, final ConsumerData consumerData,
@@ -108,7 +107,9 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 inboundMappingProcessor,
                 consumerData.getSource(),
                 ConnectionType.AMQP_10);
-        connectivityConfigProvider = ConnectivityConfigProviderFactory.getInstance(getContext().getSystem());
+
+        final ConnectivityConfigProvider connectivityConfigProvider =
+                ConnectivityConfigProviderFactory.getInstance(getContext().getSystem());
         connectivityConfig = connectivityConfigProvider.getConnectivityConfig(connectionId);
         final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
         final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
@@ -425,32 +426,23 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     }
 
     @Override
-    public ConnectivityConfig getCurrentConnectivityConfig() {
-        return connectivityConfig;
-    }
-
-    @Override
-    public ConnectivityConfigProvider getConnectivityConfigProvider() {
-        return connectivityConfigProvider;
-    }
-
-    @Override
-    public void configModified(final ConnectivityConfig connectivityConfig) {
+    public void onConnectivityConfigModified(final ConnectivityConfig connectivityConfig) {
         this.connectivityConfig = connectivityConfig;
         final Amqp10Config amqp10Config = connectivityConfig.getConnectionConfig().getAmqp10Config();
+        if (hasMessageRateLimiterConfigChanged(amqp10Config)) {
+            this.messageRateLimiter = MessageRateLimiter.of(amqp10Config, messageRateLimiter);
+            log.info("Built new rate limiter from existing one with modified config: {}", amqp10Config);
+        } else {
+            log.debug("Relevant config for MessageRateLimiter unchanged, do nothing.");
+        }
+    }
 
-        if (messageRateLimiter != null
+    private boolean hasMessageRateLimiterConfigChanged(final Amqp10Config amqp10Config) {
+        return messageRateLimiter != null
                 && (messageRateLimiter.getMaxPerPeriod() != amqp10Config.getConsumerThrottlingLimit()
                 || messageRateLimiter.getMaxInFlight() != amqp10Config.getConsumerMaxInFlight()
                 || messageRateLimiter.getRedeliveryExpectationTimeout() !=
-                amqp10Config.getConsumerRedeliveryExpectationTimeout())
-        ) {
-            // relevant config changed -> build new message rate limiter
-            this.messageRateLimiter = MessageRateLimiter.of(amqp10Config, messageRateLimiter);
-            log.info("built new rate limiter from existing one with new config...");
-        } else {
-            log.info("relevant config unchanged, do nothing.");
-        }
+                amqp10Config.getConsumerRedeliveryExpectationTimeout());
     }
 
     /**

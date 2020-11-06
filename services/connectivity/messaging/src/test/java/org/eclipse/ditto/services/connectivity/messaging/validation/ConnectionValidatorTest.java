@@ -53,22 +53,25 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProvider;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
-import org.eclipse.ditto.services.connectivity.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.connectivity.mapping.NormalizedMessageMapper;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorSystem;
+import akka.event.LoggingAdapter;
 import akka.http.javadsl.model.Uri;
 import akka.testkit.javadsl.TestKit;
 
@@ -84,6 +87,7 @@ public class ConnectionValidatorTest {
     private static final ConnectivityConfig CONNECTIVITY_CONFIG_WITH_ENABLED_BLOCKLIST =
             DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(CONFIG));
     private static ActorSystem actorSystem;
+    private ConnectivityConfigProvider connectivityConfigProvider;
 
     @BeforeClass
     public static void setUp() {
@@ -101,14 +105,23 @@ public class ConnectionValidatorTest {
     @Rule
     public final ExpectedException exception = ExpectedException.none();
 
+    @Before
+    public void before() {
+        connectivityConfigProvider = Mockito.mock(ConnectivityConfigProvider.class);
+        Mockito.when(connectivityConfigProvider.getConnectivityConfig(CONNECTION_ID))
+                .thenReturn(CONNECTIVITY_CONFIG_WITH_ENABLED_BLOCKLIST);
+    }
+
     @Test
     public void testImmutability() {
         assertInstancesOf(ConnectionValidator.class,
                 areImmutable(),
                 // mutability-detector cannot detect that maps built from stream collectors are safely copied.
                 assumingFields("specMap").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
-                provided(QueryFilterCriteriaFactory.class, HostValidator.class, MonitoringLoggerConfig.class)
-                        .isAlsoImmutable());
+                provided(QueryFilterCriteriaFactory.class,
+                        LoggingAdapter.class,
+                        HostValidator.class,
+                        ConnectivityConfigProvider.class).areAlsoImmutable());
     }
 
     @Test
@@ -493,7 +506,6 @@ public class ConnectionValidatorTest {
     }
 
     private ConnectionValidator getConnectionValidator() {
-        return ConnectionValidator.of(CONNECTIVITY_CONFIG_WITH_ENABLED_BLOCKLIST, actorSystem.log(),
-                AmqpValidator.newInstance());
+        return ConnectionValidator.of(connectivityConfigProvider, actorSystem.log(), AmqpValidator.newInstance());
     }
 }
