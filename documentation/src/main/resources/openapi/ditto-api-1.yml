@@ -2024,7 +2024,9 @@ paths:
         '503':
           $ref: '#/components/responses/messageTimeout'
       requestBody:
-        $ref: '#/components/requestBodies/Payload'
+        allOf:
+          - $ref: '#/components/requestBodies/Payload'
+          - $ref: '#/components/requestBodies/EmptyPayload'
   /things/{thingId}/inbox/messages/{messageSubject}:
     post:
       summary: Send a message TO a specific Thing.
@@ -2098,7 +2100,9 @@ paths:
         '503':
           $ref: '#/components/responses/messageTimeout'
       requestBody:
-        $ref: '#/components/requestBodies/Payload'
+        allOf:
+          - $ref: '#/components/requestBodies/Payload'
+          - $ref: '#/components/requestBodies/EmptyPayload'
   /things/{thingId}/outbox/messages/{messageSubject}:
     post:
       summary: Send a message FROM a specific Thing.
@@ -2171,7 +2175,9 @@ paths:
         '503':
           $ref: '#/components/responses/messageTimeout'
       requestBody:
-        $ref: '#/components/requestBodies/Payload'
+        allOf:
+          - $ref: '#/components/requestBodies/Payload'
+          - $ref: '#/components/requestBodies/EmptyPayload'
   /things/{thingId}/features/{featureId}/inbox/messages/{messageSubject}:
     post:
       summary: Send a message TO a specific Feature of a specific Thing.
@@ -2245,7 +2251,9 @@ paths:
         '503':
           $ref: '#/components/responses/messageTimeout'
       requestBody:
-        $ref: '#/components/requestBodies/Payload'
+        allOf:
+          - $ref: '#/components/requestBodies/Payload'
+          - $ref: '#/components/requestBodies/EmptyPayload'
   /things/{thingId}/features/{featureId}/outbox/messages/{messageSubject}:
     post:
       summary: Send a message FROM a specific Feature of a specific Thing.
@@ -2319,7 +2327,9 @@ paths:
         '503':
           $ref: '#/components/responses/messageTimeout'
       requestBody:
-        $ref: '#/components/requestBodies/Payload'
+        allOf:
+          - $ref: '#/components/requestBodies/Payload'
+          - $ref: '#/components/requestBodies/EmptyPayload'
   /search/things:
     get:
       summary: Search for Things
@@ -2516,6 +2526,9 @@ components:
       description: |-
         Payload of the message with max size of 250 kB. It can be any HTTP
         supported content, including binary content.
+    EmptyPayload:
+      content:
+        none/none: {}
     Value:
       content:
         application/json:
