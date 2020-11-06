@@ -115,7 +115,8 @@ import akka.pattern.Patterns;
 /**
  * Authorize {@code ThingCommand}.
  */
-public final class ThingCommandEnforcement extends AbstractEnforcement<ThingCommand<?>> {
+public final class ThingCommandEnforcement
+        extends AbstractEnforcementWithAsk<ThingCommand<?>, ThingQueryCommandResponse> {
 
     private static final ThreadSafeDittoLogger LOGGER =
             DittoLoggerFactory.getThreadSafeLogger(ThingCommandEnforcement.class);
@@ -151,7 +152,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
             final PreEnforcer preEnforcer,
             final List<SubjectIssuer> subjectIssuersForPolicyMigration) {
 
-        super(data);
+        super(data, ThingQueryCommandResponse.class);
         this.thingsShardRegion = requireNonNull(thingsShardRegion);
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
         this.subjectIssuersForPolicyMigration = requireNonNull(subjectIssuersForPolicyMigration);
@@ -174,9 +175,9 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
         return thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             try {
-                return doEnforce(enforcerKeyEntry, enforcerEntry).exceptionally(this::handleExceptionally);
+                return doEnforce(enforcerKeyEntry, enforcerEntry);
             } catch (final RuntimeException e) {
-                return CompletableFuture.completedFuture(handleExceptionally(e));
+                return CompletableFuture.failedStage(e);
             }
         });
     }
@@ -309,7 +310,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                             } else if (isAskTimeoutException(response, error)) {
                                 throw reportThingUnavailable();
                             } else {
-                                throw reportUnexpectedErrorOrResponse("retrieving thing for ACL migration", response,
+                                throw reportErrorOrResponse("retrieving thing for ACL migration", response,
                                         error);
                             }
                         });
@@ -340,41 +341,12 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                         () -> retrieveThingAndPolicy(retrieveThing, policyId, enforcer));
             } else {
                 result = withMessageToReceiverViaAskFuture(thingQueryCommand, sender(),
-                        () -> askThingsShardRegionAndBuildJsonView(thingQueryCommand, enforcer));
+                        () -> askAndBuildJsonView(thingsShardRegion, thingQueryCommand, enforcer));
             }
         } else {
             result = forwardToThingsShardRegion(commandWithReadSubjects);
         }
         return result;
-    }
-
-    /**
-     * Retrieve for response of a query command and limit the response according to a policy enforcer.
-     *
-     * @param commandWithReadSubjects the command to ask.
-     * @param enforcer enforcer to build JsonView with.
-     * @return always {@code true}.
-     */
-    private CompletionStage<WithDittoHeaders> askThingsShardRegionAndBuildJsonView(
-            final ThingQueryCommand commandWithReadSubjects, final Enforcer enforcer) {
-
-        return Patterns.ask(thingsShardRegion, commandWithReadSubjects, getAskTimeout())
-                .handle((response, error) -> {
-                    if (response instanceof ThingQueryCommandResponse) {
-                        return reportJsonViewForThingQuery((ThingQueryCommandResponse) response, enforcer);
-                    } else if (response instanceof DittoRuntimeException) {
-                        return (DittoRuntimeException) response;
-                    } else if (isAskTimeoutException(response, error)) {
-                        final AskTimeoutException askTimeoutException = error instanceof AskTimeoutException
-                                ? (AskTimeoutException) error
-                                : (AskTimeoutException) response;
-                        return reportTimeoutForThingQuery(commandWithReadSubjects, askTimeoutException);
-                    } else if (error != null) {
-                        return reportUnexpectedError("before building JsonView", error);
-                    } else {
-                        return reportUnknownResponse("before building JsonView", response);
-                    }
-                });
     }
 
     /**
@@ -385,13 +357,13 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      * @param enforcer the enforcer for the command.
      * @return always {@code true}.
      */
-    private CompletionStage<WithDittoHeaders> retrieveThingAndPolicy(final RetrieveThing retrieveThing,
+    private CompletionStage<ThingQueryCommandResponse> retrieveThingAndPolicy(final RetrieveThing retrieveThing,
             final PolicyId policyId, final Enforcer enforcer) {
 
         final DittoHeaders dittoHeadersWithoutPreconditionHeaders =
                 DittoHeaders.newBuilder(retrieveThing.getDittoHeaders())
-                .removePreconditionHeaders()
-                .build();
+                        .removePreconditionHeaders()
+                        .build();
 
         final Optional<RetrievePolicy> retrievePolicyOptional = PolicyCommandEnforcement.authorizePolicyCommand(
                 RetrievePolicy.of(policyId, dittoHeadersWithoutPreconditionHeaders), enforcer);
@@ -420,7 +392,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                     });
         } else {
             // sender is not authorized to view the policy, ignore the request to embed policy.
-            return askThingsShardRegionAndBuildJsonView(retrieveThing, enforcer);
+            return askAndBuildJsonView(thingsShardRegion, retrieveThing, enforcer);
         }
     }
 
@@ -430,18 +402,8 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      * @param command the command.
      * @return future response from things-shard-region.
      */
-    private CompletionStage<WithDittoHeaders> retrieveThingBeforePolicy(final RetrieveThing command) {
-        return Patterns.ask(thingsShardRegion, command, getAskTimeout())
-                .handle((response, error) -> {
-                    if (response instanceof WithDittoHeaders) {
-                        return (WithDittoHeaders) response;
-                    } else if (isAskTimeoutException(response, error)) {
-                        return reportThingUnavailable();
-                    } else {
-                        return reportUnexpectedErrorOrResponse("retrieving thing before inlined policy", response,
-                                error);
-                    }
-                });
+    private CompletionStage<ThingQueryCommandResponse> retrieveThingBeforePolicy(final RetrieveThing command) {
+        return ask(thingsShardRegion, command, "retrieving thing before inlined policy");
     }
 
     private ThingUnavailableException reportThingUnavailable() {
@@ -530,12 +492,12 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
      * Report timeout of {@code ThingQueryCommand}.
      *
      * @param command the original command.
-     * @param askTimeoutException the timeout exception.
+     * @param askTimeout the timeout exception.
      */
-    private ThingUnavailableException reportTimeoutForThingQuery(final ThingQueryCommand command,
-            final AskTimeoutException askTimeoutException) {
-
-        LOGGER.withCorrelationId(dittoHeaders()).error("Timeout before building JsonView", askTimeoutException);
+    @Override
+    protected DittoRuntimeException handleAskTimeoutForCommand(final ThingCommand<?> command,
+            final AskTimeoutException askTimeout) {
+        LOGGER.withCorrelationId(dittoHeaders()).error("Timeout before building JsonView", askTimeout);
         return ThingUnavailableException.newBuilder(command.getThingEntityId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
@@ -544,14 +506,14 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
     /**
      * Mixin-private: report thing query response with view on entity restricted by enforcer.
      *
-     * @param thingQueryCommandResponse response of query.
+     * @param commandResponse response of query.
      * @param enforcer the enforcer.
      */
-    private ThingQueryCommandResponse reportJsonViewForThingQuery(
-            final ThingQueryCommandResponse<?> thingQueryCommandResponse, final Enforcer enforcer) {
-
+    @Override
+    protected ThingQueryCommandResponse filterJsonView(final ThingQueryCommandResponse commandResponse,
+            final Enforcer enforcer) {
         try {
-            return buildJsonViewForThingQueryCommandResponse(thingQueryCommandResponse, enforcer);
+            return buildJsonViewForThingQueryCommandResponse(commandResponse, enforcer);
         } catch (final RuntimeException e) {
             throw reportError("Error after building JsonView", e);
         }
@@ -1112,7 +1074,7 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
                 final String hint =
                         String.format("creating initial policy during creation of Thing <%s>",
                                 createThing.getThingEntityId());
-                throw reportUnexpectedErrorOrResponse(hint, policyResponse, null);
+                throw reportErrorOrResponse(hint, policyResponse, null);
             }
         }
     }
@@ -1128,8 +1090,8 @@ public final class ThingCommandEnforcement extends AbstractEnforcement<ThingComm
 
         LOGGER.withCorrelationId(command)
                 .info("Failed to create Policy with ID <{}> because it already exists." +
-                                " The CreateThing command which would have created a Policy for the Thing with ID <{}>" +
-                                " is therefore not handled.", policyId, command.getThingEntityId());
+                        " The CreateThing command which would have created a Policy for the Thing with ID <{}>" +
+                        " is therefore not handled.", policyId, command.getThingEntityId());
         return ThingNotCreatableException.newBuilderForPolicyExisting(command.getThingEntityId(), policyId)
                 .dittoHeaders(command.getDittoHeaders())
                 .build();

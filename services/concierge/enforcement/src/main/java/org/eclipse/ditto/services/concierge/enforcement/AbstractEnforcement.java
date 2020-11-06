@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.concierge.enforcement;
 
 import java.time.Duration;
 import java.util.Objects;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -45,19 +44,19 @@ import akka.pattern.AskTimeoutException;
  * check if the passed in {@code signal} is authorized and forward it accordingly or respond with an error to the passed
  * in {@code sender}.
  */
-public abstract class AbstractEnforcement<T extends Signal<?>> {
+public abstract class AbstractEnforcement<C extends Signal<?>> {
 
     /**
      * Context of the enforcement step: sender, self, signal and so forth.
      */
-    protected final Contextual<T> context;
+    protected final Contextual<C> context;
 
     /**
      * Create an enforcement step from its context.
      *
      * @param context the context of the enforcement step.
      */
-    protected AbstractEnforcement(final Contextual<T> context) {
+    protected AbstractEnforcement(final Contextual<C> context) {
         this.context = context;
     }
 
@@ -83,70 +82,64 @@ public abstract class AbstractEnforcement<T extends Signal<?>> {
         return enforce().handle(handleEnforcementCompletion());
     }
 
-    /**
-     * Handle error for a future message such that failed futures become a completed future with DittoRuntimeException.
-     *
-     * @param throwable error of the future on failure.
-     * @return the DittoRuntimeException.
-     */
-    private DittoRuntimeException convertError(@Nullable final Throwable throwable) {
-        final Throwable error = throwable instanceof CompletionException
-                ? throwable.getCause()
-                : throwable != null
-                ? throwable
-                : new NullPointerException("Result and error are both null");
-        return reportError("Error thrown during enforcement", error);
-    }
-
     private BiFunction<Contextual<WithDittoHeaders>, Throwable, Contextual<WithDittoHeaders>> handleEnforcementCompletion() {
         return (result, throwable) -> {
             context.getStartedTimer()
                     .map(startedTimer -> startedTimer.tag("outcome", throwable != null ? "fail" : "success"))
                     .ifPresent(StartedTimer::stop);
             return Objects.requireNonNullElseGet(result,
-                    () -> withMessageToReceiver(convertError(throwable), sender()));
+                    () -> withMessageToReceiver(reportError("Error thrown during enforcement", throwable), sender()));
         };
     }
 
     /**
      * Report unexpected error or unknown response.
      */
-    protected DittoRuntimeException reportUnexpectedErrorOrResponse(final String hint, final Object response,
+    protected DittoRuntimeException reportErrorOrResponse(final String hint, @Nullable final Object response,
             @Nullable final Throwable error) {
 
         if (error != null) {
-            return reportUnexpectedError(hint, error);
-        } else {
+            return reportError(hint, error);
+        } else if(response instanceof Throwable){
+          return reportError(hint, (Throwable) response);
+        } else if (response != null) {
             return reportUnknownResponse(hint, response);
+        } else {
+            return reportError(hint, new NullPointerException("Response and error were null."));
         }
     }
 
     /**
      * Reports an error differently based on type of the error. If the error is of type
-     * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}, it is send to the {@code sender}
-     * without modification, otherwise it is wrapped inside a {@link GatewayInternalErrorException}.
+     * {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException}, it is returned as is
+     * (without modification), otherwise it is wrapped inside a {@link GatewayInternalErrorException}.
      *
      * @param hint hint about the nature of the error.
-     * @param error the error.
+     * @param throwable the error.
      * @return DittoRuntimeException suitable for transmission of the error.
      */
-    protected DittoRuntimeException reportError(final String hint, final Throwable error) {
-        if (error instanceof DittoRuntimeException) {
-            log().info("{} - {}: {}", hint, error.getClass().getSimpleName(), error.getMessage());
-            return (DittoRuntimeException) error;
-        } else {
-            return reportUnexpectedError(hint, error);
-        }
+    protected DittoRuntimeException reportError(final String hint, @Nullable final Throwable throwable) {
+        final Throwable error = throwable == null
+                ? new NullPointerException("Result and error are both null")
+                : throwable;
+        final DittoRuntimeException dre = DittoRuntimeException
+                .asDittoRuntimeException(error, cause -> reportUnexpectedError(hint, cause));
+        log().info("{} - {}: {}", hint, dre.getClass().getSimpleName(), dre.getMessage());
+        return dre;
     }
+
 
     /**
      * Report unexpected error.
      */
-    protected DittoRuntimeException reportUnexpectedError(final String hint, final Throwable error) {
+    private DittoRuntimeException reportUnexpectedError(final String hint, final Throwable error) {
         log().error(error, "Unexpected error {} - {}: {}", hint, error.getClass().getSimpleName(),
                 error.getMessage());
 
-        return mapToExternalException(error);
+        return GatewayInternalErrorException.newBuilder()
+                .cause(error)
+                .dittoHeaders(dittoHeaders())
+                .build();
     }
 
     /**
@@ -156,19 +149,6 @@ public abstract class AbstractEnforcement<T extends Signal<?>> {
         log().error("Unexpected response {}: <{}>", hint, response);
 
         return GatewayInternalErrorException.newBuilder().dittoHeaders(dittoHeaders()).build();
-    }
-
-    private DittoRuntimeException mapToExternalException(final Throwable error) {
-        if (error instanceof GatewayInternalErrorException) {
-            return (GatewayInternalErrorException) error;
-        } else {
-            log().error(error, "Unexpected non-DittoRuntimeException error - responding with " +
-                    "GatewayInternalErrorException - {} :{}", error.getClass().getSimpleName(), error.getMessage());
-            return GatewayInternalErrorException.newBuilder()
-                    .cause(error)
-                    .dittoHeaders(dittoHeaders())
-                    .build();
-        }
     }
 
     /**
@@ -263,7 +243,7 @@ public abstract class AbstractEnforcement<T extends Signal<?>> {
     /**
      * @return the sent Signal of subtype {@code <T>}
      */
-    protected T signal() {
+    protected C signal() {
         return context.getMessage();
     }
 
@@ -300,7 +280,7 @@ public abstract class AbstractEnforcement<T extends Signal<?>> {
         return withMessageToReceiver(message, receiver)
                 .withAskFuture(() -> askFutureWithoutErrorHandling.get()
                         .<Object>thenApply(x -> x)
-                        .exceptionally(this::convertError)
+                        .exceptionally(error -> this.reportError("Error thrown during enforcement", error))
                 );
     }
 
@@ -322,16 +302,6 @@ public abstract class AbstractEnforcement<T extends Signal<?>> {
     }
 
     /**
-     * Sets the {@code null} receiver to the {@link #context} meaning that no message at all is emitted. Therefore
-     * the {@code message} may also stay {@code null}.
-     *
-     * @return the adjusted context.
-     */
-    protected <S extends WithDittoHeaders> Contextual<S> withoutReceiver(final S message) {
-        return context.withMessage(message).withReceiver(null);
-    }
-
-    /**
      * @return the DittoHeaders of the sent {@link #signal()}
      */
     protected DittoHeaders dittoHeaders() {
@@ -343,28 +313,6 @@ public abstract class AbstractEnforcement<T extends Signal<?>> {
      */
     protected ActorRef conciergeForwarder() {
         return context.getConciergeForwarder();
-    }
-
-    /**
-     * Handle the passed {@code throwable} by sending it to the {@link #context}'s sender.
-     *
-     * @param throwable the occurred throwable (most likely a {@link DittoRuntimeException}) to send to the sender.
-     * @return the built contextual including the DittoRuntimeException.
-     */
-    protected Contextual<WithDittoHeaders> handleExceptionally(final Throwable throwable) {
-        final Contextual<T> newContext = context.withReceiver(context.getSender());
-
-        final DittoRuntimeException dittoRuntimeException =
-                DittoRuntimeException.asDittoRuntimeException(throwable,
-                        cause -> {
-                            log().error(cause, "Unexpected non-DittoRuntimeException");
-                            return GatewayInternalErrorException.newBuilder()
-                                    .cause(cause)
-                                    .dittoHeaders(context.getDittoHeaders())
-                                    .build();
-                        });
-
-        return newContext.withMessage(dittoRuntimeException);
     }
 
 }
