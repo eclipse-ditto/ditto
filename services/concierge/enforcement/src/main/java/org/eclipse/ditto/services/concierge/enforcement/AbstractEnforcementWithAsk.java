@@ -24,6 +24,13 @@ import akka.actor.ActorRef;
 import akka.pattern.AskTimeoutException;
 import akka.pattern.Patterns;
 
+/**
+ * Adds a common handling to ask an actor for a response and automatically filter the responses JSON view by an
+ * enforcer.
+ *
+ * @param <C> The command type.
+ * @param <R> The response type.
+ */
 public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends CommandResponse>
         extends AbstractEnforcement<C> {
 
@@ -39,20 +46,34 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
         this.responseClass = responseClass;
     }
 
-
+    /**
+     * Asks the given {@code actorToAsk} for a response by telling {@code commandWithReadSubjects}.
+     * The response is then be filtered by using the {@code enforcer}.
+     *
+     * @param actorToAsk the actor that should be asked.
+     * @param commandWithReadSubjects the command that is used to ask.
+     * @param enforcer the enforced used to filter the JSON view.
+     * @return A completion stage which either completes with a filtered response of type {@link R} or fails with a
+     * {@link DittoRuntimeException}.
+     */
     protected CompletionStage<R> askAndBuildJsonView(
             final ActorRef actorToAsk,
             final C commandWithReadSubjects,
             final Enforcer enforcer) {
 
         return ask(actorToAsk, commandWithReadSubjects, "before building JsonView")
-                .thenApply(response -> reportJsonViewForQueryResponse(response, enforcer));
+                .thenApply(response -> filterJsonView(response, enforcer));
     }
 
-    protected Object wrapBeforeAsk(final C command) {
-        return command;
-    }
-
+    /**
+     * Asks the given {@code actorToAsk} for a response by telling {@code commandWithReadSubjects}.
+     *
+     * @param actorToAsk the actor that should be asked.
+     * @param commandWithReadSubjects the command that is used to ask.
+     * @param hint used for logging purposes.
+     * @return A completion stage which either completes with a filtered response of type {@link R} or fails with a
+     * {@link DittoRuntimeException}.
+     */
     @SuppressWarnings("unchecked") // We can ignore this warning since it is tested that response class is assignable
     protected CompletionStage<R> ask(
             final ActorRef actorToAsk,
@@ -65,9 +86,9 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
                     if (response != null && responseClass.isAssignableFrom(response.getClass())) {
                         return (R) response;
                     } else if (response instanceof AskTimeoutException) {
-                        throw reportTimeoutException(commandWithReadSubjects, (AskTimeoutException) response);
+                        throw handleAskTimeoutForCommand(commandWithReadSubjects, (AskTimeoutException) response);
                     } else if (error instanceof AskTimeoutException) {
-                        throw reportTimeoutException(commandWithReadSubjects, (AskTimeoutException) error);
+                        throw handleAskTimeoutForCommand(commandWithReadSubjects, (AskTimeoutException) error);
                     } else if (response instanceof ErrorResponse) {
                         throw ((ErrorResponse<?>) response).getDittoRuntimeException();
                     } else {
@@ -76,7 +97,35 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
                 });
     }
 
-    protected abstract DittoRuntimeException reportTimeoutException(C command, AskTimeoutException askTimeoutException);
+    /**
+     * Allows to wrap an command into something different before {@link #ask(ActorRef, Signal, String) asking}.
+     * Useful if the {@link ActorRef actor} that should be asked is the pubsub mediator and the command therefore needs
+     * to be wrapped into {@link akka.cluster.pubsub.DistributedPubSubMediator.Send }.
+     *
+     * @param command command to wrap.
+     * @return the wrapped command.
+     */
+    protected Object wrapBeforeAsk(final C command) {
+        return command;
+    }
 
-    protected abstract R reportJsonViewForQueryResponse(R commandResponse, Enforcer enforcer);
+    /**
+     * Handles the {@link AskTimeoutException} when {@link #ask(ActorRef, Signal, String) asking} the given
+     * {@code command} by transforming it into a individual {@link DittoRuntimeException}.
+     *
+     * @param command The command that was used to ask.
+     * @param askTimeout the ask timeout exception.
+     * @return the ditto runtime exception.
+     */
+    protected abstract DittoRuntimeException handleAskTimeoutForCommand(C command, AskTimeoutException askTimeout);
+
+    /**
+     * Filters the given {@code commandResponse} by using the given {@code enforcer}.
+     *
+     * @param commandResponse the command response that needs  to be filtered.
+     * @param enforcer the enforcer that should be used for filtering.
+     * @return the filtered command response.
+     */
+    protected abstract R filterJsonView(R commandResponse, Enforcer enforcer);
+
 }

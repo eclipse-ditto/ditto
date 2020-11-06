@@ -267,16 +267,16 @@ public final class PolicyCommandEnforcement
     }
 
     @Override
-    protected DittoRuntimeException reportTimeoutException(final PolicyCommand<?> command,
-            final AskTimeoutException askTimeoutException) {
-        log(command).error(askTimeoutException, "Timeout before building JsonView");
+    protected DittoRuntimeException handleAskTimeoutForCommand(final PolicyCommand<?> command,
+            final AskTimeoutException askTimeout) {
+        log(command).error(askTimeout, "Timeout before building JsonView");
         return PolicyUnavailableException.newBuilder(command.getEntityId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
     }
 
     @Override
-    protected PolicyQueryCommandResponse reportJsonViewForQueryResponse(
+    protected PolicyQueryCommandResponse filterJsonView(
             final PolicyQueryCommandResponse policyQueryCommandResponse,
             final Enforcer enforcer) {
         try {

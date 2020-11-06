@@ -492,12 +492,12 @@ public final class ThingCommandEnforcement
      * Report timeout of {@code ThingQueryCommand}.
      *
      * @param command the original command.
-     * @param askTimeoutException the timeout exception.
+     * @param askTimeout the timeout exception.
      */
     @Override
-    protected DittoRuntimeException reportTimeoutException(final ThingCommand<?> command,
-            final AskTimeoutException askTimeoutException) {
-        LOGGER.withCorrelationId(dittoHeaders()).error("Timeout before building JsonView", askTimeoutException);
+    protected DittoRuntimeException handleAskTimeoutForCommand(final ThingCommand<?> command,
+            final AskTimeoutException askTimeout) {
+        LOGGER.withCorrelationId(dittoHeaders()).error("Timeout before building JsonView", askTimeout);
         return ThingUnavailableException.newBuilder(command.getThingEntityId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
@@ -510,7 +510,7 @@ public final class ThingCommandEnforcement
      * @param enforcer the enforcer.
      */
     @Override
-    protected ThingQueryCommandResponse reportJsonViewForQueryResponse(final ThingQueryCommandResponse commandResponse,
+    protected ThingQueryCommandResponse filterJsonView(final ThingQueryCommandResponse commandResponse,
             final Enforcer enforcer) {
         try {
             return buildJsonViewForThingQueryCommandResponse(commandResponse, enforcer);
