@@ -179,6 +179,6 @@ put:
       application/json:
         schema:
           $ref: '../../schemas/resources.yml'
-    example: {}
+        example: {}
     description: JSON representation of the Resources
     required: true

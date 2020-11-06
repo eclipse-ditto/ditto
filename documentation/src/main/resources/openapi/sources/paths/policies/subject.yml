@@ -154,7 +154,7 @@ put:
       application/json:
         schema:
           $ref: '../../schemas/subjectEntry.yml'
-    example: {}
+        example: {}
     description: JSON representation of the Subject
     required: true
 delete:

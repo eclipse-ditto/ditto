@@ -127,6 +127,77 @@ paths:
     $ref: "./paths/search/things-count.yml"
 
 components:
+
+  responses:
+    EntityTooLarge:
+      $ref: "./responses/entityTooLarge.yml"
+    MessageTimeout:
+      $ref: "./responses/messageTimeout.yml"
+    MessageTooLarge:
+      $ref: "./responses/messageTooLarge.yml"
+    NotModified:
+      $ref: "./responses/notModified.yml"
+    PreconditionFailed:
+      $ref: "./responses/preconditionFailed.yml"
+
+  parameters:
+    AllowPolicyLockoutParam:
+      $ref: "./parameters/allowPolicyLockoutParam.yml"
+    AttributesPathPathParam:
+      $ref: "./parameters/attributePathPathParam.yml"
+    AttributesFieldsQueryParam:
+      $ref: "./parameters/attributesFieldsQueryParam.yml"
+    DesiredPropertiesFieldsQueryParam:
+      $ref: "./parameters/desiredPropertiesFieldsQueryParam.yml"
+    FeatureFieldsQueryParam:
+      $ref: "./parameters/featureFieldsQueryParam.yml"
+    FeatureIdPathPathParam:
+      $ref: "./parameters/featureIdPathPathParam.yml"
+    FeaturesFieldsQueryParam:
+      $ref: "./parameters/featuresFieldsQueryParam.yml"
+    IfMatchHeaderParam:
+      $ref: "./parameters/ifMatchHeaderParam.yml"
+    IfMatchHeaderParamHash:
+      $ref: "./parameters/ifMatchHeaderParamHash.yml"
+    IfNoneMatchHeaderParam:
+      $ref: "./parameters/ifNoneMatchHeaderParam.yml"
+    LabelPathParam:
+      $ref: "./parameters/labelPathParam.yml"
+    LiveMessageRequestedAcksParam:
+      $ref: "./parameters/liveMessageRequestedAcksParam.yml"
+    MessageClaimTimeoutParam:
+      $ref: "./parameters/messageClaimTimeoutParam.yml"
+    MessageSubjectPathParam:
+      $ref: "./parameters/messageSubjectPathParam.yml"
+    MessageTimeoutParam:
+      $ref: "./parameters/messageTimeoutParam.yml"
+    NamespacesFilter:
+      $ref: "./parameters/namespacesFilter.yml"
+    PolicyIdPathParam:
+      $ref: "./parameters/policyIdPathParam.yml"
+    PropertiesFieldsQueryParam:
+      $ref: "./parameters/propertiesFieldsQueryParam.yml"
+    PropertyPathPathParam:
+      $ref: "./parameters/propertyPathPathParam.yml"
+    PutMetadataParam:
+      $ref: "./parameters/putMetadataParam.yml"
+    RequestedAcksParam:
+      $ref: "./parameters/requestedAcksParam.yml"
+    ResourcePathPathParam:
+      $ref: "./parameters/resourcePathPathParam.yml"
+    ResponseRequiredParam:
+      $ref: "./parameters/responseRequiredParam.yml"
+    SearchFilter:
+      $ref: "./parameters/searchFilter.yml"
+    SubjectIdPathParam:
+      $ref: "./parameters/subjectIdPathParam.yml"
+    ThingFieldsQueryParam:
+      $ref: "./parameters/thingFieldsQueryParam.yml"
+    ThingIdPathParam:
+      $ref: "./parameters/thingIdPathParam.yml"
+    TimeoutParam:
+      $ref: "./parameters/timeoutParam.yml"
+
   schemas:
     Error:
       $ref: "./schemas/error.yml"
@@ -141,7 +212,7 @@ components:
     FeatureProperties:
       $ref: "./schemas/featureProperties.yml"
     FeatureDesiredProperties:
-        $ref: "./schemas/featureDesiredProperties.yml"
+      $ref: "./schemas/featureDesiredProperties.yml"
     Feature:
       $ref: "./schemas/feature.yml"
     SearchResultThings:

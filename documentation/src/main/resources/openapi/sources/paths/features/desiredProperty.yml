@@ -26,7 +26,7 @@ get:
   parameters:
     - $ref: '../../parameters/thingIdPathParam.yml'
     - $ref: '../../parameters/featureIdPathPathParam.yml'
-    - $ref: '../../parameters/desiredPropertyPathPathParam.yml'
+    - $ref: '../../parameters/propertyPathPathParam.yml'
     - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
     - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
     - $ref: '../../parameters/timeoutParam.yml'
@@ -88,7 +88,7 @@ put:
   parameters:
     - $ref: '../../parameters/thingIdPathParam.yml'
     - $ref: '../../parameters/featureIdPathPathParam.yml'
-    - $ref: '../../parameters/desiredPropertyPathPathParam.yml'
+    - $ref: '../../parameters/propertyPathPathParam.yml'
     - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
     - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
     - $ref: '../../parameters/requestedAcksParam.yml'
@@ -170,7 +170,7 @@ delete:
   parameters:
     - $ref: '../../parameters/thingIdPathParam.yml'
     - $ref: '../../parameters/featureIdPathPathParam.yml'
-    - $ref: '../../parameters/desiredPropertyPathPathParam.yml'
+    - $ref: '../../parameters/propertyPathPathParam.yml'
     - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
     - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
     - $ref: '../../parameters/requestedAcksParam.yml'

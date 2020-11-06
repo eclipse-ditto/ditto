@@ -157,7 +157,7 @@ put:
       application/json:
         schema:
           $ref: '../../schemas/resourceEntry.yml'
-    example: {}
+        example: {}
     description: JSON representation of the Resource
     required: true
 delete:

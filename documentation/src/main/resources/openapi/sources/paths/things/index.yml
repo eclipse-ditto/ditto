@@ -144,35 +144,35 @@ post:
       application/json:
         schema:
           $ref: '../../schemas/newThing.yml'
-    example: {
-          "definition": "com.acme:coffeebrewer:0.1.0",
-          "attributes": {
-            "manufacturer": "ACME demo corp.",
-            "location": "Berlin, main floor",
-            "serialno": "42",
-            "model": "Speaking coffee machine"
-          },
-          "features": {
-            "coffee-brewer": {
-              "definition": [ "com.acme:coffeebrewer:0.1.0" ],
-              "properties": {
-                "brewed-coffees": 0
-              }
-            },
-            "water-tank": {
-              "properties": {
-                "configuration": {
-                  "smartMode": true,
-                  "brewingTemp": 87,
-                  "tempToHold": 44,
-                  "timeoutSeconds": 6000
+        example: {
+              "definition": "com.acme:coffeebrewer:0.1.0",
+              "attributes": {
+                "manufacturer": "ACME demo corp.",
+                "location": "Berlin, main floor",
+                "serialno": "42",
+                "model": "Speaking coffee machine"
+              },
+              "features": {
+                "coffee-brewer": {
+                  "definition": [ "com.acme:coffeebrewer:0.1.0" ],
+                  "properties": {
+                    "brewed-coffees": 0
+                  }
                 },
-                "status": {
-                  "waterAmount": 731,
-                  "temperature": 44
+                "water-tank": {
+                  "properties": {
+                    "configuration": {
+                      "smartMode": true,
+                      "brewingTemp": 87,
+                      "tempToHold": 44,
+                      "timeoutSeconds": 6000
+                    },
+                    "status": {
+                      "waterAmount": 731,
+                      "temperature": 44
+                    }
+                  }
                 }
               }
             }
-          }
-        }
     description: JSON representation of the thing to be created. Use { } to create an empty thing with a default policy.

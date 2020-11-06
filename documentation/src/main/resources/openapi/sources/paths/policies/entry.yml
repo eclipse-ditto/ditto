@@ -149,78 +149,76 @@ put:
       $ref: '../../responses/preconditionFailed.yml'
     '413':
       $ref: '../../responses/entityTooLarge.yml'
-    requestBody:
-      content:
-        application/json:
-          schema:
-            $ref: '../../schemas/policyEntry.yml'
-      example: {
-                "subjects": {
-                  "{{ request:subjectId }}": {
-                    "type": "the creator"
-                  }
-                },
-                "resources": {
-                  "policy:/": {
-                    "grant": [
-                        "READ",
-                        "WRITE"
-                    ],
-                    "revoke": []
-                  },
-                  "thing:/": {
-                    "grant": [
-                        "READ",
-                        "WRITE"
-                    ],
-                    "revoke": []
-                  },
-                  "message:/": {
-                    "grant": [
-                        "READ",
-                        "WRITE"
-                    ],
-                    "revoke": []
-                  }
-                }
-              }
-      description: |-
-        JSON representation of the policy entry.
-        Use the placeholder `{{ request:subjectId }}` in order to let the
-        backend insert the authenticated subjectId of the HTTP request.
-
-        ### Example
-        Given your policy "com.acme.coffeemaker:policy-01" only has the
-        DEFAULT entry, and you want to add a "Consumer" section which additionally allows USER-01
-        (managed within a Nginx reverse proxy) to
-        *read* the thing and to trigger a "makeCoffee" operation (i.e. POST such a message - see
-        POST /things/{thingId}/inbox/messages/{messageSubject}).
-
-        Set the label value to **Consumer** and the following request body:
-        ```
-        {
-           "subjects": {
-             "nginx:USER-01": {
-               "type": "pre authenticated user from nginx"
-             },
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: '../../schemas/policyEntry.yml'
+        example: {
+          "subjects": {
+            "{{ request:subjectId }}": {
+              "type": "the creator"
+            }
+          },
+          "resources": {
+            "policy:/": {
+              "grant": [
+                  "READ",
+                  "WRITE"
+              ],
+              "revoke": []
+            },
+            "thing:/": {
+              "grant": [
+                  "READ",
+                  "WRITE"
+              ],
+              "revoke": []
+            },
+            "message:/": {
+              "grant": [
+                  "READ",
+                  "WRITE"
+              ],
+              "revoke": []
+            }
+          }
+        }
+    description: |-
+      JSON representation of the policy entry.
+      Use the placeholder `{{ request:subjectId }}` in order to let the
+      backend insert the authenticated subjectId of the HTTP request.
+      ### Example
+      Given your policy "com.acme.coffeemaker:policy-01" only has the
+      DEFAULT entry, and you want to add a "Consumer" section which additionally allows USER-01
+      (managed within a Nginx reverse proxy) to
+      *read* the thing and to trigger a "makeCoffee" operation (i.e. POST such a message - see
+      POST /things/{thingId}/inbox/messages/{messageSubject}).
+      Set the label value to **Consumer** and the following request body:
+      ```
+      {
+         "subjects": {
+           "nginx:USER-01": {
+             "type": "pre authenticated user from nginx"
            },
-           "resources": {
-             "thing:/": {
-               "grant": [
-                 "READ"
-               ],
-               "revoke": []
-             },
-             "message:/": {
-               "grant": [
-                 "WRITE"
-               ],
-               "revoke": []
-             }
+         },
+         "resources": {
+           "thing:/": {
+             "grant": [
+               "READ"
+             ],
+             "revoke": []
+           },
+           "message:/": {
+             "grant": [
+               "WRITE"
+             ],
+             "revoke": []
            }
          }
-        ```
-      required: true
+       }
+      ```
+    required: true
 delete:
   summary: Delete the entries of a specific Label of a specific policy
   description: |-

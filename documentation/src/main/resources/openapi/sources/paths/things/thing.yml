@@ -274,7 +274,7 @@ put:
       application/json:
         schema:
           $ref: '../../schemas/newThing.yml'
-    example: {
+        example: {
           "definition": "com.acme:coffeebrewer:0.1.0",
           "attributes": {
             "manufacturer": "ACME demo corp.",

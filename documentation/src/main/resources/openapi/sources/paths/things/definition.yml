@@ -152,7 +152,7 @@ put:
       $ref: '../../responses/preconditionFailed.yml'
     '413':
       $ref: '../../responses/entityTooLarge.yml'
-    requestBody:
+  requestBody:
     $ref: '../../requests/definition.yml'
 delete:
   summary: Delete the definition of a specific thing

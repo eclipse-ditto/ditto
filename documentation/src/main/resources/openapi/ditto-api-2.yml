@@ -49,90 +49,8 @@ paths:
           required: true
           schema:
             type: string
-        - name: fields
-          in: query
-          description: |-
-            Contains a comma-separated list of fields to be included in the returned
-            JSON. attributes can be selected in the same manner.
-
-            #### Selectable fields
-
-            * `thingId`
-            * `policyId`
-            * `definition`
-            * `attributes`
-
-               Supports selecting arbitrary sub-fields by using a comma-separated list:
-                * several attribute paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
-
-                  For example:
-                    * `?fields=attributes/model` would select only `model` attribute value (if present)
-                    * `?fields=attributes/model,attributes/location` would select only `model` and
-                       `location` attribute values (if present)
-
-              Supports selecting arbitrary sub-fields of objects by wrapping sub-fields inside parentheses `( )`:
-                * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901)
-                  separated with `/`) to select
-
-                * sub-selectors can be used to request only specific sub-fields by placing expressions
-                  in parentheses `( )` after a selected subfield
-
-                  For example:
-                   * `?fields=attributes(model,location)` would select only `model`
-                      and `location` attribute values (if present)
-                   * `?fields=attributes(coffeemaker/serialno)` would select the `serialno` value
-                      inside the `coffeemaker` object
-                   * `?fields=attributes/address/postal(city,street)` would select the `city` and
-                      `street` values inside the `postal` object inside the `address` object
-
-            * `features`
-
-              Supports selecting arbitrary fields in features similar to `attributes` (see also features documentation for more details)
-
-            * `_namespace`
-
-              Specifically selects the namespace also contained in the `thingId`
-
-            * `_revision`
-
-              Specifically selects the revision of the thing. The revision is a counter, which is incremented on each modification of a thing.
-
-            * `_created`
-
-              Specifically selects the created timestamp of the thing in ISO-8601 UTC format. The timestamp is set on creation of a thing.
-
-            * `_modified`
-
-              Specifically selects the modified timestamp of the thing in ISO-8601 UTC format. The timestamp is set on each modification of a thing.
-
-            * `_metadata`
-
-              Specifically selects the Metadata of the thing. The content is a JSON object having the Thing's JSON structure with the difference that the JSON leaves of the Thing are JSON objects containing the metadata.
-
-            * `_policy`
-
-              Specifically selects the content of the policy associated to the thing. (By default, only the policyId is returned.)
-
-            #### Examples
-
-            * `?fields=thingId,attributes,features`
-            * `?fields=attributes(model,manufacturer),features`
-          required: false
-          schema:
-            type: string
-        - name: timeout
-          in: query
-          description: |-
-            Defines how long the backend should wait for completion of the request, e.g. applied when waiting for requested
-            acknowledgements via the `requested-acks` param. Can be specified without unit (then seconds are assumed) or
-            together with `s`, `ms` or `m` unit. Example: `42s`, `1m`.
-
-            The default (if omitted) timeout is `10s`. Maximum value: `60s`.
-
-            A value of `0` applies fire and forget semantics for the command resulting in setting `response-required=false`.
-          required: false
-          schema:
-            type: string
+        - $ref: '#/components/parameters/ThingFieldsQueryParam'
+        - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
           description: |-
@@ -180,39 +98,10 @@ paths:
       tags:
         - Things
       parameters:
-        - name: requested-acks
-          in: query
-          description: |-
-            Contains the "requested acknowledgements" for this modifying request as comma separated list. The HTTP call will
-            block until all requested acknowledgements were aggregated or will time out based on the specified `timeout`
-            parameter.
-
-            The default (if omitted) requested acks is `requested-acks=twin-persisted` which will block the
-            HTTP call until the change was persited to the twin.
-          required: false
-          schema:
-            type: string
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - name: response-required
-          in: query
-          description: |-
-            Defines whether a response is required to the API call or not - if set to `false` the response will directly
-            sent back with a status code of `202` (Accepted).
-
-            The default (if ommited) response is `true`.
-          required: false
-          schema:
-            type: boolean
-        - name: allow-policy-lockout
-          in: query
-          description: |-
-            Defines whether a subject is allowed to create a policy without having WRITE permission on the policy
-            resource of the created policy.
-
-            The default (if ommited) is `false`.
-          required: false
-          schema:
-            type: boolean
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/components/parameters/AllowPolicyLockoutParam'
       responses:
         '201':
           description: The thing was successfully created.
@@ -269,56 +158,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          description: |-
-            A precondition for reading or writing the (sub-)resource failed. This will happen for write requests, if you
-            specified an If-Match or If-None-Match header, which fails the precondition check against the current ETag of
-            the (sub-)resource. For read requests, this error may only happen for a failing If-Match header. In case of a
-            failing If-None-Match header for a read request, status 304 will be returned instead.
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
-          description: The created or modified entity is larger than the accepted limit of 100 kB.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
+          $ref: '#/components/responses/EntityTooLarge'
       requestBody:
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/NewThing'
-        example:
-          definition: 'com.acme:coffeebrewer:0.1.0'
-          attributes:
-            manufacturer: ACME demo corp.
-            location: 'Berlin, main floor'
-            serialno: '42'
-            model: Speaking coffee machine
-          features:
-            coffee-brewer:
-              definition:
-                - 'com.acme:coffeebrewer:0.1.0'
-              properties:
-                brewed-coffees: 0
-            water-tank:
-              properties:
-                configuration:
-                  smartMode: true
-                  brewingTemp: 87
-                  tempToHold: 44
-                  timeoutSeconds: 6000
-                status:
-                  waterAmount: 731
-                  temperature: 44
+            example:
+              definition: 'com.acme:coffeebrewer:0.1.0'
+              attributes:
+                manufacturer: ACME demo corp.
+                location: 'Berlin, main floor'
+                serialno: '42'
+                model: Speaking coffee machine
+              features:
+                coffee-brewer:
+                  definition:
+                    - 'com.acme:coffeebrewer:0.1.0'
+                  properties:
+                    brewed-coffees: 0
+                water-tank:
+                  properties:
+                    configuration:
+                      smartMode: true
+                      brewingTemp: 87
+                      tempToHold: 44
+                      timeoutSeconds: 6000
+                    status:
+                      waterAmount: 731
+                      temperature: 44
         description: 'JSON representation of the thing to be created. Use { } to create an empty thing with a default policy.'
   '/things/{thingId}':
     get:
@@ -334,16 +204,11 @@ paths:
       tags:
         - Things
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/1'
-        - name: If-None-Match
-          in: header
-          description: 'The `If-None-Match` header, which has to conform to RFC-7232 (Conditional Requests). A common usage scenario is to modify a resource only if it does not yet exist, thus to create it, by specifying `If-None-Match: *`.'
-          required: false
-          schema:
-            type: string
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/ThingFieldsQueryParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParam'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
           description: The request successfully returned the specific thing.
@@ -359,16 +224,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Thing'
         '304':
-          description: |-
-            The (sub-)resource has not been modified. This happens when you specified a If-None-Match header which
-             matches the current ETag of the (sub-)resource.
-          headers:
-            ETag:
-              description: |-
-                The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
-                "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
-              schema:
-                type: string
+          $ref: '#/components/responses/NotModified'
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -394,7 +250,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
     put:
       summary: Create or update a thing with a specified ID
       description: |-
@@ -519,42 +375,13 @@ paths:
       tags:
         - Things
       parameters:
-        - name: thingId
-          in: path
-          description: 'The ID of a thing needs to follow the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).'
-          required: true
-          schema:
-            type: string
-        - name: If-Match
-          in: header
-          description: |-
-            The `If-Match` header, which has to conform to RFC-7232 (Conditional Requests). Common usages are:
-              * optimistic locking by specifying the `ETag` from a previous GET response, e.g. `If-Match: "rev:4711"`
-              * retrieving or modifying a resource only if it already exists, e.g. `If-Match: *`
-          required: false
-          schema:
-            type: string
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - name: put-metadata
-          in: header
-          description: 'The `put-metadata` header, which sets Metadata information in the Thing.'
-          required: false
-          schema:
-            type: array
-            description: An array of objects containing metadata to apply.
-            items:
-              type: object
-              description: Object containing a `key` where to apply the metadata and a `value` with the metadata value to apply.
-              additionalProperties:
-                properties:
-                  key:
-                    type: string
-                    description: The JsonPointer to set the metadata `value` to. May start with `*/<key>` in order to apply the metadata to all affected JSON leaves.
-                  value:
-                    description: The arbitrary JSON value to set as metadata.
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParam'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/PutMetadataParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '201':
           description: The thing was successfully created.
@@ -622,37 +449,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
-          $ref: '#/paths/~1things/post/responses/413'
+          $ref: '#/components/responses/EntityTooLarge'
       requestBody:
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/NewThing'
-        example:
-          definition: 'com.acme:coffeebrewer:0.1.0'
-          attributes:
-            manufacturer: ACME demo corp.
-            location: 'Berlin, main floor'
-            serialno: '42'
-            model: Speaking coffee machine
-          features:
-            coffee-brewer:
-              definition:
-                - 'com.acme:coffeebrewer:0.1.0'
-              properties:
-                brewed-coffees: 0
-            water-tank:
-              properties:
-                configuration:
-                  smartMode: true
-                  brewingTemp: 87
-                  tempToHold: 44
-                  timeoutSeconds: 6000
-                status:
-                  waterAmount: 731
-                  temperature: 44
+            example:
+              definition: 'com.acme:coffeebrewer:0.1.0'
+              attributes:
+                manufacturer: ACME demo corp.
+                location: 'Berlin, main floor'
+                serialno: '42'
+                model: Speaking coffee machine
+              features:
+                coffee-brewer:
+                  definition:
+                    - 'com.acme:coffeebrewer:0.1.0'
+                  properties:
+                    brewed-coffees: 0
+                water-tank:
+                  properties:
+                    configuration:
+                      smartMode: true
+                      brewingTemp: 87
+                      tempToHold: 44
+                      timeoutSeconds: 6000
+                    status:
+                      waterAmount: 731
+                      temperature: 44
         description: JSON representation of the thing to be modified.
     delete:
       summary: Delete a specific thing
@@ -665,12 +492,12 @@ paths:
       tags:
         - Things
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParam'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
           description: The thing was successfully deleted.
@@ -706,7 +533,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
   '/things/{thingId}/definition':
     get:
       summary: Retrieve the definition of a specific thing
@@ -714,10 +541,10 @@ paths:
       tags:
         - Things
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
           description: The request successfully returned the definition of the specific thing.
@@ -733,7 +560,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Definition'
         '304':
-          $ref: '#/paths/~1things~1%7BthingId%7D/get/responses/304'
+          $ref: '#/components/responses/NotModified'
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -769,7 +596,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
     put:
       summary: Create or update the definition of a specific thing
       description: |-
@@ -778,12 +605,12 @@ paths:
       tags:
         - Things
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '201':
           description: The definition was successfully created.
@@ -801,7 +628,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: ../../schemas/definition.yml
+                $ref: '#/components/schemas/Definition'
         '204':
           description: The definition was successfully updated.
           headers:
@@ -822,13 +649,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: ../../schemas/advancedError.yml
+                $ref: '#/components/schemas/AdvancedError'
         '401':
           description: The request could not be completed due to missing authentication.
           content:
             application/json:
               schema:
-                $ref: ../../schemas/advancedError.yml
+                $ref: '#/components/schemas/AdvancedError'
         '403':
           description: |-
             The request could not be completed. Possible reasons:
@@ -838,7 +665,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: ../../schemas/advancedError.yml
+                $ref: '#/components/schemas/AdvancedError'
         '404':
           description: |-
             The request could not be completed. The thing with the given ID was
@@ -846,12 +673,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: ../../schemas/advancedError.yml
+                $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: ../../responses/preconditionFailed.yml
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
-          $ref: ../../responses/entityTooLarge.yml
-        requestBody: null
+          $ref: '#/components/responses/EntityTooLarge'
+      requestBody:
         content:
           application/json:
             schema:
@@ -869,12 +696,12 @@ paths:
       tags:
         - Things
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
           description: The definition was successfully deleted.
@@ -911,7 +738,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
   '/things/{thingId}/policyId':
     get:
       summary: Retrieve the policy ID of a thing
@@ -919,18 +746,10 @@ paths:
       tags:
         - Things
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - name: If-Match
-          in: header
-          description: |-
-            The `If-Match` header which has to conform to RFC-7232 (Conditional Requests). Common usages are:
-              * optimistic locking by specifying the `ETag` from a previous HTTP response, e.g. `If-Match: "hash:a75ece4e"`
-              * retrieving or modifying a resource only if it already exists, e.g. `If-Match: *`
-          required: false
-          schema:
-            type: string
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
           description: The request successfully returned the policy ID.
@@ -946,7 +765,7 @@ paths:
               schema:
                 type: string
         '304':
-          $ref: '#/paths/~1things~1%7BthingId%7D/get/responses/304'
+          $ref: '#/components/responses/NotModified'
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -968,7 +787,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
     put:
       summary: Create or update the policy ID of a thing
       description: |-
@@ -988,12 +807,12 @@ paths:
       tags:
         - Things
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '201':
           description: 'The policy ID was successfully created. Note: You will need to create the policy content separately.'
@@ -1041,9 +860,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
-          $ref: '#/paths/~1things/post/responses/413'
+          $ref: '#/components/responses/EntityTooLarge'
       requestBody:
         content:
           application/json:
@@ -1063,42 +882,11 @@ paths:
       tags:
         - Things
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - name: fields
-          in: query
-          description: |-
-            Contains a comma-separated list of fields from the attributes to be
-            included in the returned JSON.
-
-            #### Selectable fields
-
-            Supports selecting arbitrary sub-fields as defined in the attributes by
-            using a comma-separated list:
-              * several properties paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
-
-                For example:
-                  * `?fields=model` would select only `model` attribute value (if present)
-                  * `?fields=model,make` would select `model` and `make` attribute values (if present)
-
-            Supports selecting arbitrary sub-fields of objects by wrapping sub-fields
-            inside parentheses `( )`:
-              * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901) separated with `/`) to select
-              * sub-selectors can be used to request only specific sub-fields by placing expressions in parentheses `( )` after a selected subfield
-
-                For example:
-                 * `?fields=location(longitude,latitude)` would select the `longitude` and `latitude` value inside the `location` attribute
-
-            #### Examples
-
-            * `?fields=model,make,location(longitude,latitude)`
-
-            * `?fields=listOfAddresses/postal(city,street))`
-          required: false
-          schema:
-            type: string
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/AttributesFieldsQueryParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
           description: The attributes of the specific thing were successfully retrieved.
@@ -1114,7 +902,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Attributes'
         '304':
-          $ref: '#/paths/~1things~1%7BthingId%7D/get/responses/304'
+          $ref: '#/components/responses/NotModified'
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -1137,7 +925,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
     put:
       summary: Create or update all attributes of a specific thing at once
       description: |-
@@ -1147,12 +935,12 @@ paths:
       tags:
         - Things
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '201':
           description: The attributes were successfully created.
@@ -1213,9 +1001,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
-          $ref: '#/paths/~1things/post/responses/413'
+          $ref: '#/components/responses/EntityTooLarge'
       requestBody:
         content:
           application/json:
@@ -1245,12 +1033,12 @@ paths:
       tags:
         - Things
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
           description: The attributes were successfully deleted.
@@ -1286,7 +1074,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
   '/things/{thingId}/attributes/{attributePath}':
     get:
       summary: Retrieve a specific attribute of a specific thing
@@ -1304,16 +1092,11 @@ paths:
       tags:
         - Things
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - name: attributePath
-          in: path
-          description: 'The path to the attribute, e.g. **manufacturer/name**'
-          required: true
-          schema:
-            type: string
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/AttributesPathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
           description: The attribute was successfully retrieved.
@@ -1325,7 +1108,7 @@ paths:
               schema:
                 type: string
         '304':
-          $ref: '#/paths/~1things~1%7BthingId%7D/get/responses/304'
+          $ref: '#/components/responses/NotModified'
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -1349,7 +1132,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
     put:
       summary: Create or update a specific attribute of a specific thing
       description: |-
@@ -1366,13 +1149,13 @@ paths:
       tags:
         - Things
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1attributes~1%7BattributePath%7D/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/AttributesPathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '201':
           description: The attribute was successfully created.
@@ -1428,9 +1211,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
-          $ref: '#/paths/~1things/post/responses/413'
+          $ref: '#/components/responses/EntityTooLarge'
       requestBody:
         content:
           application/json:
@@ -1466,13 +1249,13 @@ paths:
       tags:
         - Things
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1attributes~1%7BattributePath%7D/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/AttributesPathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
           description: The attribute was successfully deleted.
@@ -1508,7 +1291,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
   '/things/{thingId}/features':
     get:
       summary: List all features of a specific thing
@@ -1518,39 +1301,11 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - name: fields
-          in: query
-          description: |-
-            Contains a comma-separated list of fields from one or more features to be
-            included in the returned JSON.
-
-            #### Selectable fields
-
-            * `{featureId}` The ID of the feature to select properties in
-              * `properties`
-                Supports selecting arbitrary sub-fields by using a comma-separated list:
-                  * several properties paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
-                    For example:
-                      * `?fields={featureId}/properties/color` would select only `color` property value (if present) of the feature identified with `{featureId}`
-                      * `?fields={featureId}/properties/color,properties/brightness` would select only `color` and `brightness` property values (if present) of the feature identified with `{featureId}`
-                Supports selecting arbitrary sub-fields of objects by wrapping sub-fields inside parentheses `( )`:
-                  * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901) separated with `/`) to select
-                  * sub-selectors can be used to request only specific sub-fields by placing expressions in parentheses `( )` after a selected subfield
-                    For example:
-                     * `?fields={featureId}/properties(color,brightness)` would select only `color` and `brightness` property values (if present) of the feature identified with `{featureId}`
-                     * `?fields={featureId}/properties(location/longitude)` would select the `longitude` value inside the `location` object of the feature identified with `{featureId}`
-
-
-            #### Examples
-            * `?fields=EnvironmentScanner/properties(temperature,humidity)`
-            * `?fields=EnvironmentScanner/properties(temperature,humidity),Vehicle/properties/configuration`
-          required: false
-          schema:
-            type: string
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeaturesFieldsQueryParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
           description: |-
@@ -1579,7 +1334,7 @@ paths:
                   properties:
                     property2: value2
         '304':
-          $ref: '#/paths/~1things~1%7BthingId%7D/get/responses/304'
+          $ref: '#/components/responses/NotModified'
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -1604,7 +1359,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
     put:
       summary: Create or modify all features of a specific thing at once
       description: |-
@@ -1649,12 +1404,12 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '201':
           description: The features were successfully created.
@@ -1717,9 +1472,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
-          $ref: '#/paths/~1things/post/responses/413'
+          $ref: '#/components/responses/EntityTooLarge'
       requestBody:
         content:
           application/json:
@@ -1761,12 +1516,12 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
           description: The features were successfully deleted.
@@ -1802,7 +1557,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
   '/things/{thingId}/features/{featureId}':
     get:
       summary: Retrieve a specific feature of a specific thing
@@ -1812,42 +1567,12 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D/put/parameters/1'
-        - name: fields
-          in: query
-          description: |-
-            Contains a comma-separated list of fields from the selected feature to be
-            included in the returned JSON.
-
-            #### Selectable fields
-
-            * `properties`
-
-              Supports selecting arbitrary sub-fields by using a comma-separated list:
-                * several properties paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
-
-                  For example:
-                    * `?fields=properties/color` would select only `color` property value (if present)
-                    * `?fields=properties/color,properties/brightness` would select only `color` and `brightness` property values (if present)
-
-              Supports selecting arbitrary sub-fields of objects by wrapping sub-fields inside parentheses `( )`:
-                * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901) separated with `/`) to select
-                * sub-selectors can be used to request only specific sub-fields by placing expressions in parentheses `( )` after a selected subfield
-
-                  For example:
-                   * `?fields=properties(color,brightness)` would select only `color` and `brightness` property values (if present)
-                   * `?fields=properties(location/longitude)` would select the `longitude` value inside the `location` object
-
-            #### Examples
-
-            * `?fields=properties(color,brightness)`
-          required: false
-          schema:
-            type: string
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/FeatureFieldsQueryParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
           description: The feature was successfully retrieved.
@@ -1863,7 +1588,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Feature'
         '304':
-          $ref: '#/paths/~1things~1%7BthingId%7D/get/responses/304'
+          $ref: '#/components/responses/NotModified'
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -1888,7 +1613,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
     put:
       summary: Create or modify a specific feature of a specific thing
       description: |-
@@ -1915,18 +1640,13 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - name: featureId
-          in: path
-          description: The ID of the feature - has to conform to RFC-3986 (URI)
-          required: true
-          schema:
-            type: string
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '201':
           description: The feature was successfully created.
@@ -1988,9 +1708,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
-          $ref: '#/paths/~1things/post/responses/413'
+          $ref: '#/components/responses/EntityTooLarge'
       requestBody:
         content:
           application/json:
@@ -2019,13 +1739,13 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D/put/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
           description: The feature was successfully deleted.
@@ -2062,7 +1782,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
   '/things/{thingId}/features/{featureId}/definition':
     get:
       summary: List the definition of a feature
@@ -2072,11 +1792,11 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D/put/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
           description: The definition was successfully retrieved.
@@ -2092,7 +1812,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/FeatureDefinition'
         '304':
-          $ref: '#/paths/~1things~1%7BthingId%7D/get/responses/304'
+          $ref: '#/components/responses/NotModified'
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -2118,7 +1838,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
     put:
       summary: Create or update the definition of a feature
       description: |-
@@ -2129,13 +1849,13 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D/put/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '201':
           description: The definition was successfully created.
@@ -2196,9 +1916,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
-          $ref: '#/paths/~1things/post/responses/413'
+          $ref: '#/components/responses/EntityTooLarge'
       requestBody:
         content:
           application/json:
@@ -2223,13 +1943,13 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D/put/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
           description: The definition was successfully deleted.
@@ -2267,7 +1987,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
   '/things/{thingId}/features/{featureId}/properties':
     get:
       summary: List all properties of a feature
@@ -2277,43 +1997,12 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D/put/parameters/1'
-        - name: fields
-          in: query
-          description: |-
-            Contains a comma-separated list of fields from the properties to be
-            included in the returned JSON.
-
-            #### Selectable fields
-
-            Supports selecting arbitrary sub-fields as defined in the properties by
-            using a comma-separated list:
-              * several properties paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
-
-                For example:
-                  * `?fields=temperature` would select only `temperature` property value (if present)
-                  * `?fields=temperature,humidity` would select only `temperature` and `humidity` property values (if present)
-
-            Supports selecting arbitrary sub-fields of objects by wrapping sub-fields
-            inside parentheses `( )`:
-              * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901) separated with `/`) to select
-              * sub-selectors can be used to request only specific sub-fields by placing expressions in parentheses `( )` after a selected subfield
-
-                For example:
-                 * `?fields=location(longitude,latitude)` would select the `longitude` and `latitude` value inside the `location` property
-
-            #### Examples
-
-            * `?fields=temperature,humidity,location(longitude,latitude)`
-
-            * `?fields=configuration,status(powerConsumption/watts)`
-          required: false
-          schema:
-            type: string
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/PropertiesFieldsQueryParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
           description: The properties were successfully retrieved.
@@ -2329,7 +2018,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/FeatureProperties'
         '304':
-          $ref: '#/paths/~1things~1%7BthingId%7D/get/responses/304'
+          $ref: '#/components/responses/NotModified'
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -2355,7 +2044,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
     put:
       summary: Create or update all properties of a feature at once
       description: |-
@@ -2366,13 +2055,13 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D/put/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '201':
           description: The properties were successfully created.
@@ -2430,9 +2119,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
-          $ref: '#/paths/~1things/post/responses/413'
+          $ref: '#/components/responses/EntityTooLarge'
       requestBody:
         content:
           application/json:
@@ -2463,13 +2152,13 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D/put/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
           description: The properties were successfully deleted.
@@ -2507,7 +2196,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
   '/things/{thingId}/features/{featureId}/properties/{propertyPath}':
     get:
       summary: Retrieve a specific property of a feature
@@ -2525,12 +2214,12 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D/put/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D~1properties~1%7BpropertyPath%7D/put/parameters/2'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/PropertyPathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
           description: The property was successfully retrieved.
@@ -2542,7 +2231,7 @@ paths:
               schema:
                 type: string
         '304':
-          $ref: '#/paths/~1things~1%7BthingId%7D/get/responses/304'
+          $ref: '#/components/responses/NotModified'
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -2567,7 +2256,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
     put:
       summary: Create or update a specific property of a feature
       description: |-
@@ -2587,19 +2276,14 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D/put/parameters/1'
-        - name: propertyPath
-          in: path
-          description: The path to the property
-          required: true
-          schema:
-            type: string
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/PropertyPathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '201':
           description: The property was successfully created.
@@ -2653,9 +2337,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
-          $ref: '#/paths/~1things/post/responses/413'
+          $ref: '#/components/responses/EntityTooLarge'
       requestBody:
         $ref: '#/paths/~1things~1%7BthingId%7D~1attributes~1%7BattributePath%7D/put/requestBody'
     delete:
@@ -2674,14 +2358,14 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D/put/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D~1properties~1%7BpropertyPath%7D/put/parameters/2'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/PropertyPathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
           description: The property was successfully deleted.
@@ -2709,7 +2393,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
   '/things/{thingId}/features/{featureId}/desiredProperties':
     get:
       summary: List all desired properties of a feature
@@ -2719,43 +2403,12 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D/put/parameters/1'
-        - name: fields
-          in: query
-          description: |-
-            Contains a comma-separated list of fields from the desiredProperties to be
-            included in the returned JSON.
-
-            #### Selectable fields
-
-            Supports selecting arbitrary sub-fields as defined in the desiredProperties by
-            using a comma-separated list:
-              * several desiredProperties paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
-
-                For example:
-                  * `?fields=temperature` would select only `temperature` property value of desiredProperties (if present)
-                  * `?fields=temperature,humidity` would select only `temperature` and `humidity` property values of desiredProperties (if present)
-
-            Supports selecting arbitrary sub-fields of objects by wrapping sub-fields
-            inside parentheses `( )`:
-              * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901) separated with `/`) to select
-              * sub-selectors can be used to request only specific sub-fields by placing expressions in parentheses `( )` after a selected subfield
-
-                For example:
-                 * `?fields=location(longitude,latitude)` would select the `longitude` and `latitude` value inside the `location` property of desiredProperties
-
-            #### Examples
-
-            * `?fields=temperature,humidity,location(longitude,latitude)`
-
-            * `?fields=configuration,status(powerConsumption/watts)`
-          required: false
-          schema:
-            type: string
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/DesiredPropertiesFieldsQueryParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
           description: The desired properties were successfully retrieved.
@@ -2771,7 +2424,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/FeatureProperties'
         '304':
-          $ref: '#/paths/~1things~1%7BthingId%7D/get/responses/304'
+          $ref: '#/components/responses/NotModified'
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -2797,7 +2450,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
     put:
       summary: Create or update all desired properties of a feature at once
       description: |-
@@ -2808,13 +2461,13 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D/put/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '201':
           description: The desired properties were successfully created.
@@ -2872,9 +2525,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
-          $ref: '#/paths/~1things/post/responses/413'
+          $ref: '#/components/responses/EntityTooLarge'
       requestBody:
         content:
           application/json:
@@ -2905,13 +2558,13 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D/put/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
           description: The desired properties were successfully deleted.
@@ -2949,8 +2602,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
-  '/things/{thingId}/features/{featureId}/desiredProperties/{desiredPropertyPath}':
+          $ref: '#/components/responses/PreconditionFailed'
+  '/things/{thingId}/features/{featureId}/desiredProperties/{propertyPath}':
     get:
       summary: Retrieve a specific desired property of a feature
       description: |-
@@ -2967,17 +2620,12 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D/put/parameters/1'
-        - name: desiredPropertyPath
-          in: path
-          description: The path to the desired property
-          required: true
-          schema:
-            type: string
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/PropertyPathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
           description: The desired property was successfully retrieved.
@@ -2989,7 +2637,7 @@ paths:
               schema:
                 type: string
         '304':
-          $ref: '#/paths/~1things~1%7BthingId%7D/get/responses/304'
+          $ref: '#/components/responses/NotModified'
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -3014,7 +2662,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
     put:
       summary: Create or update a specific desired property of a feature
       description: |-
@@ -3034,14 +2682,14 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D/put/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D~1desiredProperties~1%7BdesiredPropertyPath%7D/get/parameters/2'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/PropertyPathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '201':
           description: The desired property was successfully created.
@@ -3095,9 +2743,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
-          $ref: '#/paths/~1things/post/responses/413'
+          $ref: '#/components/responses/EntityTooLarge'
       requestBody:
         $ref: '#/paths/~1things~1%7BthingId%7D~1attributes~1%7BattributePath%7D/put/requestBody'
     delete:
@@ -3116,14 +2764,14 @@ paths:
       tags:
         - Features
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D/put/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D~1desiredProperties~1%7BdesiredPropertyPath%7D/get/parameters/2'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/post/parameters/0'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/PropertyPathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/RequestedAcksParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
           description: The desired property was successfully deleted.
@@ -3151,7 +2799,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
   '/things/{thingId}/inbox/claim':
     post:
       summary: Initiates claiming a specific thing in order to gain access
@@ -3191,28 +2839,9 @@ paths:
       tags:
         - Messages
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - name: timeout
-          in: query
-          description: |-
-            Contains an optional timeout (in seconds) of how long to wait for the Claim response and therefore block the
-            HTTP request. Default value (if omitted): 60 seconds. Maximum value: 600 seconds. A value of 0 seconds applies
-            fire and forget semantics for the message.
-          required: false
-          schema:
-            type: integer
-        - name: requested-acks
-          in: query
-          description: |-
-            Contains the "requested acknowledgements" for this request as comma separated list. The HTTP call will
-            block until all requested acknowledgements were aggregated or will time out based on the specified `timeout`
-            parameter.
-
-            The default (if omitted) requested acks is `requested-acks=live-response` which will block the
-            HTTP call until a subscriber of the live message sends a response.
-          required: false
-          schema:
-            type: string
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/MessageClaimTimeoutParam'
+        - $ref: '#/components/parameters/LiveMessageRequestedAcksParam'
       responses:
         '200':
           description: |-
@@ -3255,11 +2884,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '413':
-          description: The size of the send message is larger than the accepted limit of 250 kB.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
+          $ref: '#/components/responses/MessageTooLarge'
         '429':
           description: |-
             The user has sent too many requests in a given amount of time ("rate
@@ -3269,11 +2894,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '503':
-          description: The request could not be completed as there is no consumer for this message connected.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
+          $ref: '#/components/responses/MessageTimeout'
       requestBody:
         content:
           application/json:
@@ -3331,23 +2952,10 @@ paths:
       tags:
         - Messages
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - name: messageSubject
-          in: path
-          description: The subject of the Message - has to conform to RFC-3986 (URI)
-          required: true
-          schema:
-            type: string
-        - name: timeout
-          in: query
-          description: |-
-            Contains an optional timeout (in seconds) of how long to wait for the message response and therefore block the
-            HTTP request. Default value (if omitted): 10 seconds. Maximum value: 60 seconds. A value of 0 seconds applies
-            fire and forget semantics for the message.
-          required: false
-          schema:
-            type: integer
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/MessageSubjectPathParam'
+        - $ref: '#/components/parameters/MessageTimeoutParam'
+        - $ref: '#/components/parameters/LiveMessageRequestedAcksParam'
       responses:
         '202':
           description: The message was sent but not necessarily received by the thing (fire and forget).
@@ -3392,9 +3000,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '413':
-          $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/responses/413'
+          $ref: '#/components/responses/MessageTooLarge'
         '503':
-          $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/responses/503'
+          $ref: '#/components/responses/MessageTimeout'
       requestBody:
         $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/requestBody'
   '/things/{thingId}/outbox/messages/{messageSubject}':
@@ -3424,10 +3032,10 @@ paths:
       tags:
         - Messages
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1messages~1%7BmessageSubject%7D/post/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1messages~1%7BmessageSubject%7D/post/parameters/2'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/MessageSubjectPathParam'
+        - $ref: '#/components/parameters/MessageTimeoutParam'
+        - $ref: '#/components/parameters/LiveMessageRequestedAcksParam'
       responses:
         '202':
           description: The message was sent (fire and forget).
@@ -3472,9 +3080,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '413':
-          $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/responses/413'
+          $ref: '#/components/responses/MessageTooLarge'
         '503':
-          $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/responses/503'
+          $ref: '#/components/responses/MessageTimeout'
       requestBody:
         $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/requestBody'
   '/things/{thingId}/features/{featureId}/inbox/messages/{messageSubject}':
@@ -3505,11 +3113,11 @@ paths:
       tags:
         - Messages
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D/put/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1messages~1%7BmessageSubject%7D/post/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1messages~1%7BmessageSubject%7D/post/parameters/2'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/MessageSubjectPathParam'
+        - $ref: '#/components/parameters/MessageTimeoutParam'
+        - $ref: '#/components/parameters/LiveMessageRequestedAcksParam'
       responses:
         '202':
           description: |-
@@ -3556,9 +3164,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '413':
-          $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/responses/413'
+          $ref: '#/components/responses/MessageTooLarge'
         '503':
-          $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/responses/503'
+          $ref: '#/components/responses/MessageTimeout'
       requestBody:
         $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/requestBody'
   '/things/{thingId}/features/{featureId}/outbox/messages/{messageSubject}':
@@ -3589,11 +3197,11 @@ paths:
       tags:
         - Messages
       parameters:
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1features~1%7BfeatureId%7D/put/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1messages~1%7BmessageSubject%7D/post/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1messages~1%7BmessageSubject%7D/post/parameters/2'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/parameters/2'
+        - $ref: '#/components/parameters/ThingIdPathParam'
+        - $ref: '#/components/parameters/FeatureIdPathPathParam'
+        - $ref: '#/components/parameters/MessageSubjectPathParam'
+        - $ref: '#/components/parameters/MessageTimeoutParam'
+        - $ref: '#/components/parameters/LiveMessageRequestedAcksParam'
       responses:
         '202':
           description: The message was sent (fire and forget).
@@ -3638,9 +3246,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '413':
-          $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/responses/413'
+          $ref: '#/components/responses/MessageTooLarge'
         '503':
-          $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/responses/503'
+          $ref: '#/components/responses/MessageTimeout'
       requestBody:
         $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/requestBody'
   '/policies/{policyId}':
@@ -3654,19 +3262,10 @@ paths:
       tags:
         - Policies
       parameters:
-        - name: policyId
-          in: path
-          description: |-
-            The ID of the policy needs to follow the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
-
-            The namespace needs to:
-            * conform to the reverse domain name notation
-          required: true
-          schema:
-            type: string
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParam'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
           description: |-
@@ -3684,7 +3283,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Policy'
         '304':
-          $ref: '#/paths/~1things~1%7BthingId%7D/get/responses/304'
+          $ref: '#/components/responses/NotModified'
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -3709,7 +3308,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
     put:
       summary: Create or update a policy with a specified ID
       description: |-
@@ -3776,12 +3375,12 @@ paths:
       tags:
         - Policies
       parameters:
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D/get/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/3'
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParam'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
+        - $ref: '#/components/parameters/AllowPolicyLockoutParam'
       responses:
         '201':
           description: The policy was successfully created.
@@ -3846,36 +3445,36 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
-          $ref: '#/paths/~1things/post/responses/413'
+          $ref: '#/components/responses/EntityTooLarge'
       requestBody:
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/Policy'
-        example:
-          entries:
-            DEFAULT:
-              subjects:
-                '{{ request:subjectId }}':
-                  type: the creator
-              resources:
-                'policy:/':
-                  grant:
-                    - READ
-                    - WRITE
-                  revoke: []
-                'thing:/':
-                  grant:
-                    - READ
-                    - WRITE
-                  revoke: []
-                'message:/':
-                  grant:
-                    - READ
-                    - WRITE
-                  revoke: []
+            example:
+              entries:
+                DEFAULT:
+                  subjects:
+                    '{{ request:subjectId }}':
+                      type: the creator
+                  resources:
+                    'policy:/':
+                      grant:
+                        - READ
+                        - WRITE
+                      revoke: []
+                    'thing:/':
+                      grant:
+                        - READ
+                        - WRITE
+                      revoke: []
+                    'message:/':
+                      grant:
+                        - READ
+                        - WRITE
+                      revoke: []
         description: |-
           JSON representation of the policy.
           Use the placeholder `{{ request:subjectId }}` in order to let the
@@ -3895,11 +3494,11 @@ paths:
       tags:
         - Policies
       parameters:
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D/get/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/put/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParam'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
           description: The policy was successfully deleted.
@@ -3937,7 +3536,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
   '/policies/{policyId}/entries':
     get:
       summary: Retrieve the entries of a specific policy
@@ -3947,10 +3546,10 @@ paths:
       tags:
         - Policies
       parameters:
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D/get/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
           description: |-
@@ -3968,7 +3567,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PolicyEntries'
         '304':
-          $ref: '#/paths/~1things~1%7BthingId%7D/get/responses/304'
+          $ref: '#/components/responses/NotModified'
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -3993,7 +3592,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
     put:
       summary: Modify the entries of a specific policy
       description: |-
@@ -4005,11 +3604,11 @@ paths:
       tags:
         - Policies
       parameters:
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D/get/parameters/0'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
           description: The policy entries were successfully updated.
@@ -4056,35 +3655,35 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
-          $ref: '#/paths/~1things/post/responses/413'
+          $ref: '#/components/responses/EntityTooLarge'
       requestBody:
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/PolicyEntries'
-        example:
-          DEFAULT:
-            subjects:
-              '{{ request:subjectId }}':
-                type: the creator
-            resources:
-              'policy:/':
-                grant:
-                  - READ
-                  - WRITE
-                revoke: []
-              'thing:/':
-                grant:
-                  - READ
-                  - WRITE
-                revoke: []
-              'message:/':
-                grant:
-                  - READ
-                  - WRITE
-                revoke: []
+            example:
+              DEFAULT:
+                subjects:
+                  '{{ request:subjectId }}':
+                    type: the creator
+                resources:
+                  'policy:/':
+                    grant:
+                      - READ
+                      - WRITE
+                    revoke: []
+                  'thing:/':
+                    grant:
+                      - READ
+                      - WRITE
+                    revoke: []
+                  'message:/':
+                    grant:
+                      - READ
+                      - WRITE
+                    revoke: []
         description: |-
           JSON representation of the policy entries.
           Use the placeholder `{{ request:subjectId }}` in order to let the
@@ -4100,16 +3699,11 @@ paths:
       tags:
         - Policies
       parameters:
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D/get/parameters/0'
-        - name: label
-          in: path
-          description: The label of a policy entry
-          required: true
-          schema:
-            type: string
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/LabelPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
           description: |-
@@ -4127,7 +3721,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PolicyEntry'
         '304':
-          $ref: '#/paths/~1things~1%7BthingId%7D/get/responses/304'
+          $ref: '#/components/responses/NotModified'
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -4153,7 +3747,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
     put:
       summary: Create or modify the entries of a specific Label of a specific policy
       description: |-
@@ -4165,12 +3759,12 @@ paths:
       tags:
         - Policies
       parameters:
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D/get/parameters/0'
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D~1entries~1%7Blabel%7D/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/LabelPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '201':
           description: The policy entry was successfully created.
@@ -4234,71 +3828,69 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
-          $ref: '#/paths/~1things/post/responses/413'
-        requestBody:
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PolicyEntry'
-          example:
-            subjects:
-              '{{ request:subjectId }}':
-                type: the creator
-            resources:
-              'policy:/':
-                grant:
-                  - READ
-                  - WRITE
-                revoke: []
-              'thing:/':
-                grant:
-                  - READ
-                  - WRITE
-                revoke: []
-              'message:/':
-                grant:
-                  - READ
-                  - WRITE
-                revoke: []
-          description: |-
-            JSON representation of the policy entry.
-            Use the placeholder `{{ request:subjectId }}` in order to let the
-            backend insert the authenticated subjectId of the HTTP request.
-
-            ### Example
-            Given your policy "com.acme.coffeemaker:policy-01" only has the
-            DEFAULT entry, and you want to add a "Consumer" section which additionally allows USER-01
-            (managed within a Nginx reverse proxy) to
-            *read* the thing and to trigger a "makeCoffee" operation (i.e. POST such a message - see
-            POST /things/{thingId}/inbox/messages/{messageSubject}).
-
-            Set the label value to **Consumer** and the following request body:
-            ```
-            {
-               "subjects": {
-                 "nginx:USER-01": {
-                   "type": "pre authenticated user from nginx"
-                 },
+          $ref: '#/components/responses/EntityTooLarge'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyEntry'
+            example:
+              subjects:
+                '{{ request:subjectId }}':
+                  type: the creator
+              resources:
+                'policy:/':
+                  grant:
+                    - READ
+                    - WRITE
+                  revoke: []
+                'thing:/':
+                  grant:
+                    - READ
+                    - WRITE
+                  revoke: []
+                'message:/':
+                  grant:
+                    - READ
+                    - WRITE
+                  revoke: []
+        description: |-
+          JSON representation of the policy entry.
+          Use the placeholder `{{ request:subjectId }}` in order to let the
+          backend insert the authenticated subjectId of the HTTP request.
+          ### Example
+          Given your policy "com.acme.coffeemaker:policy-01" only has the
+          DEFAULT entry, and you want to add a "Consumer" section which additionally allows USER-01
+          (managed within a Nginx reverse proxy) to
+          *read* the thing and to trigger a "makeCoffee" operation (i.e. POST such a message - see
+          POST /things/{thingId}/inbox/messages/{messageSubject}).
+          Set the label value to **Consumer** and the following request body:
+          ```
+          {
+             "subjects": {
+               "nginx:USER-01": {
+                 "type": "pre authenticated user from nginx"
                },
-               "resources": {
-                 "thing:/": {
-                   "grant": [
-                     "READ"
-                   ],
-                   "revoke": []
-                 },
-                 "message:/": {
-                   "grant": [
-                     "WRITE"
-                   ],
-                   "revoke": []
-                 }
+             },
+             "resources": {
+               "thing:/": {
+                 "grant": [
+                   "READ"
+                 ],
+                 "revoke": []
+               },
+               "message:/": {
+                 "grant": [
+                   "WRITE"
+                 ],
+                 "revoke": []
                }
              }
-            ```
-          required: true
+           }
+          ```
+        required: true
     delete:
       summary: Delete the entries of a specific Label of a specific policy
       description: |-
@@ -4307,12 +3899,12 @@ paths:
       tags:
         - Policies
       parameters:
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D/get/parameters/0'
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D~1entries~1%7Blabel%7D/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/LabelPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
           description: The policy entry was successfully deleted.
@@ -4351,7 +3943,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
   '/policies/{policyId}/entries/{label}/subjects':
     get:
       summary: Retrieve all Subjects for a specific Label of a specific policy
@@ -4362,11 +3954,11 @@ paths:
       tags:
         - Policies
       parameters:
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D/get/parameters/0'
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D~1entries~1%7Blabel%7D/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/LabelPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
           description: The request successfully returned. The subjects are returned.
@@ -4382,7 +3974,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Subjects'
         '304':
-          $ref: '#/paths/~1things~1%7BthingId%7D/get/responses/304'
+          $ref: '#/components/responses/NotModified'
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -4408,7 +4000,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
     put:
       summary: Create or modify all Subjects for a specific Label of a specific policy
       description: |-
@@ -4431,12 +4023,12 @@ paths:
       tags:
         - Policies
       parameters:
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D/get/parameters/0'
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D~1entries~1%7Blabel%7D/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/LabelPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
           description: The Subjects were successfully created or updated.
@@ -4483,15 +4075,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
-          $ref: '#/paths/~1things/post/responses/413'
+          $ref: '#/components/responses/EntityTooLarge'
       requestBody:
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/Subjects'
-        example: {}
+            example: {}
         description: |-
           JSON representation of the Subjects.
 
@@ -4508,12 +4100,12 @@ paths:
       tags:
         - Policies
       parameters:
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D/get/parameters/0'
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D~1entries~1%7Blabel%7D/get/parameters/1'
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D~1entries~1%7Blabel%7D~1subjects~1%7BsubjectId%7D/put/parameters/2'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/LabelPathParam'
+        - $ref: '#/components/parameters/SubjectIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
           description: |-
@@ -4531,7 +4123,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/SubjectEntry'
         '304':
-          $ref: '#/paths/~1things~1%7BthingId%7D/get/responses/304'
+          $ref: '#/components/responses/NotModified'
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -4557,7 +4149,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
     put:
       summary: Create or modify one specific Subject for a specific Label of a specific policy
       description: |-
@@ -4567,18 +4159,13 @@ paths:
       tags:
         - Policies
       parameters:
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D/get/parameters/0'
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D~1entries~1%7Blabel%7D/get/parameters/1'
-        - name: subjectId
-          in: path
-          description: The ID of an (Authorization) Subject
-          required: true
-          schema:
-            type: string
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/LabelPathParam'
+        - $ref: '#/components/parameters/SubjectIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '201':
           description: The Subject was successfully created.
@@ -4643,15 +4230,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
-          $ref: '#/paths/~1things/post/responses/413'
+          $ref: '#/components/responses/EntityTooLarge'
       requestBody:
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/SubjectEntry'
-        example: {}
+            example: {}
         description: JSON representation of the Subject
         required: true
     delete:
@@ -4667,13 +4254,13 @@ paths:
       tags:
         - Policies
       parameters:
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D/get/parameters/0'
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D~1entries~1%7Blabel%7D/get/parameters/1'
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D~1entries~1%7Blabel%7D~1subjects~1%7BsubjectId%7D/put/parameters/2'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/LabelPathParam'
+        - $ref: '#/components/parameters/SubjectIdPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
           description: The Subject was successfully deleted.
@@ -4713,7 +4300,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
   '/policies/{policyId}/entries/{label}/resources':
     get:
       summary: Retrieve all Resources for a specific Label of a specific policy
@@ -4724,11 +4311,11 @@ paths:
       tags:
         - Policies
       parameters:
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D/get/parameters/0'
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D~1entries~1%7Blabel%7D/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/LabelPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
           description: The request successfully returned. The resources are returned.
@@ -4744,7 +4331,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Resources'
         '304':
-          $ref: '#/paths/~1things~1%7BthingId%7D/get/responses/304'
+          $ref: '#/components/responses/NotModified'
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -4770,7 +4357,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
     put:
       summary: Create or modify all Resources for a specific Label of a specific policy
       description: |-
@@ -4825,12 +4412,12 @@ paths:
       tags:
         - Policies
       parameters:
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D/get/parameters/0'
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D~1entries~1%7Blabel%7D/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/LabelPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
           description: The Resources were successfully created or updated.
@@ -4878,15 +4465,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
-          $ref: '#/paths/~1things/post/responses/413'
+          $ref: '#/components/responses/EntityTooLarge'
       requestBody:
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/Resources'
-        example: {}
+            example: {}
         description: JSON representation of the Resources
         required: true
   '/policies/{policyId}/entries/{label}/resources/{resourcePath}':
@@ -4899,17 +4486,12 @@ paths:
       tags:
         - Policies
       parameters:
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D/get/parameters/0'
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D~1entries~1%7Blabel%7D/get/parameters/1'
-        - name: resourcePath
-          in: path
-          description: The path of an (Authorization) Resource
-          required: true
-          schema:
-            type: string
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/LabelPathParam'
+        - $ref: '#/components/parameters/ResourcePathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
       responses:
         '200':
           description: |-
@@ -4927,7 +4509,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ResourceEntry'
         '304':
-          $ref: '#/paths/~1things~1%7BthingId%7D/get/responses/304'
+          $ref: '#/components/responses/NotModified'
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -4953,7 +4535,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
     put:
       summary: Create or modify one specific Resource for a specific Label of a specific policy
       description: |-
@@ -4963,13 +4545,13 @@ paths:
       tags:
         - Policies
       parameters:
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D/get/parameters/0'
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D~1entries~1%7Blabel%7D/get/parameters/1'
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D~1entries~1%7Blabel%7D~1resources~1%7BresourcePath%7D/get/parameters/2'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/LabelPathParam'
+        - $ref: '#/components/parameters/ResourcePathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '201':
           description: The Resource was successfully created.
@@ -4998,7 +4580,7 @@ paths:
               schema:
                 type: string
         '304':
-          $ref: '#/paths/~1things~1%7BthingId%7D/get/responses/304'
+          $ref: '#/components/responses/NotModified'
         '400':
           description: |-
             The request could not be completed. Possible reasons:
@@ -5036,15 +4618,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
         '413':
-          $ref: '#/paths/~1things/post/responses/413'
+          $ref: '#/components/responses/EntityTooLarge'
       requestBody:
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/ResourceEntry'
-        example: {}
+            example: {}
         description: JSON representation of the Resource
         required: true
     delete:
@@ -5056,13 +4638,13 @@ paths:
       tags:
         - Policies
       parameters:
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D/get/parameters/0'
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D~1entries~1%7Blabel%7D/get/parameters/1'
-        - $ref: '#/paths/~1policies~1%7BpolicyId%7D~1entries~1%7Blabel%7D~1resources~1%7BresourcePath%7D/get/parameters/2'
-        - $ref: '#/paths/~1things~1%7BthingId%7D~1policyId/get/parameters/1'
-        - $ref: '#/paths/~1things~1%7BthingId%7D/get/parameters/3'
-        - $ref: '#/paths/~1things/get/parameters/2'
-        - $ref: '#/paths/~1things/post/parameters/2'
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/LabelPathParam'
+        - $ref: '#/components/parameters/ResourcePathPathParam'
+        - $ref: '#/components/parameters/IfMatchHeaderParamHash'
+        - $ref: '#/components/parameters/IfNoneMatchHeaderParam'
+        - $ref: '#/components/parameters/TimeoutParam'
+        - $ref: '#/components/parameters/ResponseRequiredParam'
       responses:
         '204':
           description: The Resource was successfully deleted.
@@ -5102,7 +4684,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
-          $ref: '#/paths/~1things/post/responses/412'
+          $ref: '#/components/responses/PreconditionFailed'
   /whoami:
     get:
       summary: Retrieve information about the current caller
@@ -5142,89 +4724,10 @@ paths:
         * The internal search index is "eventually consistent".  Consistency with the latest
           thing updates should recover within milliseconds.
       parameters:
-        - name: filter
-          in: query
-          description: |-
-
-            #### Filter predicates:
-
-            * ```eq({property},{value})```  (i.e. equal to the given value)
-
-            * ```ne({property},{value})```  (i.e. not equal to the given value)
-
-            * ```gt({property},{value})```  (i.e. greater than the given value)
-
-            * ```ge({property},{value})```  (i.e. equal to the given value or greater than it)
-
-            * ```lt({property},{value})```  (i.e. lower than the given value or equal to it)
-
-            * ```le({property},{value})```  (i.e. lower than the given value)
-
-            * ```in({property},{value},{value},...)```  (i.e. contains at least one of the values listed)
-
-            * ```like({property},{value})```  (i.e. contains values similar to the expressions listed)
-
-            * ```exists({property})```  (i.e. all things in which the given path exists)
-
-
-            Note: When using filter operations, only things with the specified properties are returned.
-            For example, the filter `ne(attributes/owner, "SID123")` will only return things that do have
-            the `owner` attribute.
-
-
-            #### Logical operations:
-
-
-            * ```and({query},{query},...)```
-
-            * ```or({query},{query},...)```
-
-            * ```not({query})```
-
-
-            #### Examples:
-
-            * ```eq(attributes/location,"kitchen")```
-
-            * ```ge(thingId,"myThing1")```
-
-            * ```gt(_created,"2020-08-05T12:17")```
-
-            * ```exists(features/featureId)```
-
-            * ```and(eq(attributes/location,"kitchen"),eq(attributes/color,"red"))```
-
-            * ```or(eq(attributes/location,"kitchen"),eq(attributes/location,"living-room"))```
-
-            * ```like(attributes/key1,"known-chars-at-start*")```
-
-            * ```like(attributes/key1,"*known-chars-at-end")```
-
-            * ```like(attributes/key1,"*known-chars-in-between*")```
-
-            * ```like(attributes/key1,"just-som?-char?-unkn?wn")```
-
-            The `like` filters with the wildcard `*` at the beginning can slow down your search request.
-          required: false
-          schema:
-            type: string
-        - name: namespaces
-          in: query
-          description: |-
-            A comma-separated list of namespaces. This list is used to limit the query to things in the given namespaces
-            only.
-
-
-            #### Examples:
-
-            * `?namespaces=com.example.namespace`
-
-            * `?namespaces=com.example.namespace1,com.example.namespace2`
-          required: false
-          schema:
-            type: string
-        - $ref: '#/paths/~1things/get/parameters/1'
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/SearchFilter'
+        - $ref: '#/components/parameters/NamespacesFilter'
+        - $ref: '#/components/parameters/ThingFieldsQueryParam'
+        - $ref: '#/components/parameters/TimeoutParam'
         - name: option
           in: query
           description: |-
@@ -5317,9 +4820,9 @@ paths:
 
         ```eq(attributes/location,"kitchen")```
       parameters:
-        - $ref: '#/paths/~1search~1things/get/parameters/0'
-        - $ref: '#/paths/~1search~1things/get/parameters/1'
-        - $ref: '#/paths/~1things/get/parameters/2'
+        - $ref: '#/components/parameters/SearchFilter'
+        - $ref: '#/components/parameters/NamespacesFilter'
+        - $ref: '#/components/parameters/TimeoutParam'
       tags:
         - Things-Search
       responses:
@@ -5356,6 +4859,564 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
 components:
+  responses:
+    EntityTooLarge:
+      description: The created or modified entity is larger than the accepted limit of 100 kB.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    MessageTimeout:
+      description: The request could not be completed as there is no consumer for this message connected.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    MessageTooLarge:
+      description: The size of the send message is larger than the accepted limit of 250 kB.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    NotModified:
+      description: |-
+        The (sub-)resource has not been modified. This happens when you specified a If-None-Match header which
+         matches the current ETag of the (sub-)resource.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+    PreconditionFailed:
+      description: |-
+        A precondition for reading or writing the (sub-)resource failed. This will happen for write requests, if you
+        specified an If-Match or If-None-Match header, which fails the precondition check against the current ETag of
+        the (sub-)resource. For read requests, this error may only happen for a failing If-Match header. In case of a
+        failing If-None-Match header for a read request, status 304 will be returned instead.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+  parameters:
+    AllowPolicyLockoutParam:
+      name: allow-policy-lockout
+      in: query
+      description: |-
+        Defines whether a subject is allowed to create a policy without having WRITE permission on the policy
+        resource of the created policy.
+
+        The default (if ommited) is `false`.
+      required: false
+      schema:
+        type: boolean
+    AttributesPathPathParam:
+      name: attributePath
+      in: path
+      description: 'The path to the attribute, e.g. **manufacturer/name**'
+      required: true
+      schema:
+        type: string
+    AttributesFieldsQueryParam:
+      name: fields
+      in: query
+      description: |-
+        Contains a comma-separated list of fields from the attributes to be
+        included in the returned JSON.
+
+        #### Selectable fields
+
+        Supports selecting arbitrary sub-fields as defined in the attributes by
+        using a comma-separated list:
+          * several properties paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
+
+            For example:
+              * `?fields=model` would select only `model` attribute value (if present)
+              * `?fields=model,make` would select `model` and `make` attribute values (if present)
+
+        Supports selecting arbitrary sub-fields of objects by wrapping sub-fields
+        inside parentheses `( )`:
+          * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901) separated with `/`) to select
+          * sub-selectors can be used to request only specific sub-fields by placing expressions in parentheses `( )` after a selected subfield
+
+            For example:
+             * `?fields=location(longitude,latitude)` would select the `longitude` and `latitude` value inside the `location` attribute
+
+        #### Examples
+
+        * `?fields=model,make,location(longitude,latitude)`
+
+        * `?fields=listOfAddresses/postal(city,street))`
+      required: false
+      schema:
+        type: string
+    DesiredPropertiesFieldsQueryParam:
+      name: fields
+      in: query
+      description: |-
+        Contains a comma-separated list of fields from the desiredProperties to be
+        included in the returned JSON.
+
+        #### Selectable fields
+
+        Supports selecting arbitrary sub-fields as defined in the desiredProperties by
+        using a comma-separated list:
+          * several desiredProperties paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
+
+            For example:
+              * `?fields=temperature` would select only `temperature` property value of desiredProperties (if present)
+              * `?fields=temperature,humidity` would select only `temperature` and `humidity` property values of desiredProperties (if present)
+
+        Supports selecting arbitrary sub-fields of objects by wrapping sub-fields
+        inside parentheses `( )`:
+          * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901) separated with `/`) to select
+          * sub-selectors can be used to request only specific sub-fields by placing expressions in parentheses `( )` after a selected subfield
+
+            For example:
+             * `?fields=location(longitude,latitude)` would select the `longitude` and `latitude` value inside the `location` property of desiredProperties
+
+        #### Examples
+
+        * `?fields=temperature,humidity,location(longitude,latitude)`
+
+        * `?fields=configuration,status(powerConsumption/watts)`
+      required: false
+      schema:
+        type: string
+    FeatureFieldsQueryParam:
+      name: fields
+      in: query
+      description: |-
+        Contains a comma-separated list of fields from the selected feature to be
+        included in the returned JSON.
+
+        #### Selectable fields
+
+        * `properties`
+
+          Supports selecting arbitrary sub-fields by using a comma-separated list:
+            * several properties paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
+
+              For example:
+                * `?fields=properties/color` would select only `color` property value (if present)
+                * `?fields=properties/color,properties/brightness` would select only `color` and `brightness` property values (if present)
+
+          Supports selecting arbitrary sub-fields of objects by wrapping sub-fields inside parentheses `( )`:
+            * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901) separated with `/`) to select
+            * sub-selectors can be used to request only specific sub-fields by placing expressions in parentheses `( )` after a selected subfield
+
+              For example:
+               * `?fields=properties(color,brightness)` would select only `color` and `brightness` property values (if present)
+               * `?fields=properties(location/longitude)` would select the `longitude` value inside the `location` object
+
+        #### Examples
+
+        * `?fields=properties(color,brightness)`
+      required: false
+      schema:
+        type: string
+    FeatureIdPathPathParam:
+      name: featureId
+      in: path
+      description: The ID of the feature - has to conform to RFC-3986 (URI)
+      required: true
+      schema:
+        type: string
+    FeaturesFieldsQueryParam:
+      name: fields
+      in: query
+      description: |-
+        Contains a comma-separated list of fields from one or more features to be
+        included in the returned JSON.
+
+        #### Selectable fields
+
+        * `{featureId}` The ID of the feature to select properties in
+          * `properties`
+            Supports selecting arbitrary sub-fields by using a comma-separated list:
+              * several properties paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
+                For example:
+                  * `?fields={featureId}/properties/color` would select only `color` property value (if present) of the feature identified with `{featureId}`
+                  * `?fields={featureId}/properties/color,properties/brightness` would select only `color` and `brightness` property values (if present) of the feature identified with `{featureId}`
+            Supports selecting arbitrary sub-fields of objects by wrapping sub-fields inside parentheses `( )`:
+              * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901) separated with `/`) to select
+              * sub-selectors can be used to request only specific sub-fields by placing expressions in parentheses `( )` after a selected subfield
+                For example:
+                 * `?fields={featureId}/properties(color,brightness)` would select only `color` and `brightness` property values (if present) of the feature identified with `{featureId}`
+                 * `?fields={featureId}/properties(location/longitude)` would select the `longitude` value inside the `location` object of the feature identified with `{featureId}`
+
+
+        #### Examples
+        * `?fields=EnvironmentScanner/properties(temperature,humidity)`
+        * `?fields=EnvironmentScanner/properties(temperature,humidity),Vehicle/properties/configuration`
+      required: false
+      schema:
+        type: string
+    IfMatchHeaderParam:
+      name: If-Match
+      in: header
+      description: |-
+        The `If-Match` header, which has to conform to RFC-7232 (Conditional Requests). Common usages are:
+          * optimistic locking by specifying the `ETag` from a previous GET response, e.g. `If-Match: "rev:4711"`
+          * retrieving or modifying a resource only if it already exists, e.g. `If-Match: *`
+      required: false
+      schema:
+        type: string
+    IfMatchHeaderParamHash:
+      name: If-Match
+      in: header
+      description: |-
+        The `If-Match` header which has to conform to RFC-7232 (Conditional Requests). Common usages are:
+          * optimistic locking by specifying the `ETag` from a previous HTTP response, e.g. `If-Match: "hash:a75ece4e"`
+          * retrieving or modifying a resource only if it already exists, e.g. `If-Match: *`
+      required: false
+      schema:
+        type: string
+    IfNoneMatchHeaderParam:
+      name: If-None-Match
+      in: header
+      description: 'The `If-None-Match` header, which has to conform to RFC-7232 (Conditional Requests). A common usage scenario is to modify a resource only if it does not yet exist, thus to create it, by specifying `If-None-Match: *`.'
+      required: false
+      schema:
+        type: string
+    LabelPathParam:
+      name: label
+      in: path
+      description: The label of a policy entry
+      required: true
+      schema:
+        type: string
+    LiveMessageRequestedAcksParam:
+      name: requested-acks
+      in: query
+      description: |-
+        Contains the "requested acknowledgements" for this request as comma separated list. The HTTP call will
+        block until all requested acknowledgements were aggregated or will time out based on the specified `timeout`
+        parameter.
+
+        The default (if omitted) requested acks is `requested-acks=live-response` which will block the
+        HTTP call until a subscriber of the live message sends a response.
+      required: false
+      schema:
+        type: string
+    MessageClaimTimeoutParam:
+      name: timeout
+      in: query
+      description: |-
+        Contains an optional timeout (in seconds) of how long to wait for the Claim response and therefore block the
+        HTTP request. Default value (if omitted): 60 seconds. Maximum value: 600 seconds. A value of 0 seconds applies
+        fire and forget semantics for the message.
+      required: false
+      schema:
+        type: integer
+    MessageSubjectPathParam:
+      name: messageSubject
+      in: path
+      description: The subject of the Message - has to conform to RFC-3986 (URI)
+      required: true
+      schema:
+        type: string
+    MessageTimeoutParam:
+      name: timeout
+      in: query
+      description: |-
+        Contains an optional timeout (in seconds) of how long to wait for the message response and therefore block the
+        HTTP request. Default value (if omitted): 10 seconds. Maximum value: 60 seconds. A value of 0 seconds applies
+        fire and forget semantics for the message.
+      required: false
+      schema:
+        type: integer
+    NamespacesFilter:
+      name: namespaces
+      in: query
+      description: |-
+        A comma-separated list of namespaces. This list is used to limit the query to things in the given namespaces
+        only.
+
+
+        #### Examples:
+
+        * `?namespaces=com.example.namespace`
+
+        * `?namespaces=com.example.namespace1,com.example.namespace2`
+      required: false
+      schema:
+        type: string
+    PolicyIdPathParam:
+      name: policyId
+      in: path
+      description: |-
+        The ID of the policy needs to follow the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+
+        The namespace needs to:
+        * conform to the reverse domain name notation
+      required: true
+      schema:
+        type: string
+    PropertiesFieldsQueryParam:
+      name: fields
+      in: query
+      description: |-
+        Contains a comma-separated list of fields from the properties to be
+        included in the returned JSON.
+
+        #### Selectable fields
+
+        Supports selecting arbitrary sub-fields as defined in the properties by
+        using a comma-separated list:
+          * several properties paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
+
+            For example:
+              * `?fields=temperature` would select only `temperature` property value (if present)
+              * `?fields=temperature,humidity` would select only `temperature` and `humidity` property values (if present)
+
+        Supports selecting arbitrary sub-fields of objects by wrapping sub-fields
+        inside parentheses `( )`:
+          * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901) separated with `/`) to select
+          * sub-selectors can be used to request only specific sub-fields by placing expressions in parentheses `( )` after a selected subfield
+
+            For example:
+             * `?fields=location(longitude,latitude)` would select the `longitude` and `latitude` value inside the `location` property
+
+        #### Examples
+
+        * `?fields=temperature,humidity,location(longitude,latitude)`
+
+        * `?fields=configuration,status(powerConsumption/watts)`
+      required: false
+      schema:
+        type: string
+    PropertyPathPathParam:
+      name: propertyPath
+      in: path
+      description: The path to the property
+      required: true
+      schema:
+        type: string
+    PutMetadataParam:
+      name: put-metadata
+      in: header
+      description: 'The `put-metadata` header, which sets Metadata information in the Thing.'
+      required: false
+      schema:
+        type: array
+        description: An array of objects containing metadata to apply.
+        items:
+          type: object
+          description: Object containing a `key` where to apply the metadata and a `value` with the metadata value to apply.
+          additionalProperties:
+            properties:
+              key:
+                type: string
+                description: The JsonPointer to set the metadata `value` to. May start with `*/<key>` in order to apply the metadata to all affected JSON leaves.
+              value:
+                description: The arbitrary JSON value to set as metadata.
+    RequestedAcksParam:
+      name: requested-acks
+      in: query
+      description: |-
+        Contains the "requested acknowledgements" for this modifying request as comma separated list. The HTTP call will
+        block until all requested acknowledgements were aggregated or will time out based on the specified `timeout`
+        parameter.
+
+        The default (if omitted) requested acks is `requested-acks=twin-persisted` which will block the
+        HTTP call until the change was persited to the twin.
+      required: false
+      schema:
+        type: string
+    ResourcePathPathParam:
+      name: resourcePath
+      in: path
+      description: The path of an (Authorization) Resource
+      required: true
+      schema:
+        type: string
+    ResponseRequiredParam:
+      name: response-required
+      in: query
+      description: |-
+        Defines whether a response is required to the API call or not - if set to `false` the response will directly
+        sent back with a status code of `202` (Accepted).
+
+        The default (if ommited) response is `true`.
+      required: false
+      schema:
+        type: boolean
+    SearchFilter:
+      name: filter
+      in: query
+      description: |-
+
+        #### Filter predicates:
+
+        * ```eq({property},{value})```  (i.e. equal to the given value)
+
+        * ```ne({property},{value})```  (i.e. not equal to the given value)
+
+        * ```gt({property},{value})```  (i.e. greater than the given value)
+
+        * ```ge({property},{value})```  (i.e. equal to the given value or greater than it)
+
+        * ```lt({property},{value})```  (i.e. lower than the given value or equal to it)
+
+        * ```le({property},{value})```  (i.e. lower than the given value)
+
+        * ```in({property},{value},{value},...)```  (i.e. contains at least one of the values listed)
+
+        * ```like({property},{value})```  (i.e. contains values similar to the expressions listed)
+
+        * ```exists({property})```  (i.e. all things in which the given path exists)
+
+
+        Note: When using filter operations, only things with the specified properties are returned.
+        For example, the filter `ne(attributes/owner, "SID123")` will only return things that do have
+        the `owner` attribute.
+
+
+        #### Logical operations:
+
+
+        * ```and({query},{query},...)```
+
+        * ```or({query},{query},...)```
+
+        * ```not({query})```
+
+
+        #### Examples:
+
+        * ```eq(attributes/location,"kitchen")```
+
+        * ```ge(thingId,"myThing1")```
+
+        * ```gt(_created,"2020-08-05T12:17")```
+
+        * ```exists(features/featureId)```
+
+        * ```and(eq(attributes/location,"kitchen"),eq(attributes/color,"red"))```
+
+        * ```or(eq(attributes/location,"kitchen"),eq(attributes/location,"living-room"))```
+
+        * ```like(attributes/key1,"known-chars-at-start*")```
+
+        * ```like(attributes/key1,"*known-chars-at-end")```
+
+        * ```like(attributes/key1,"*known-chars-in-between*")```
+
+        * ```like(attributes/key1,"just-som?-char?-unkn?wn")```
+
+        The `like` filters with the wildcard `*` at the beginning can slow down your search request.
+      required: false
+      schema:
+        type: string
+    SubjectIdPathParam:
+      name: subjectId
+      in: path
+      description: The ID of an (Authorization) Subject
+      required: true
+      schema:
+        type: string
+    ThingFieldsQueryParam:
+      name: fields
+      in: query
+      description: |-
+        Contains a comma-separated list of fields to be included in the returned
+        JSON. attributes can be selected in the same manner.
+
+        #### Selectable fields
+
+        * `thingId`
+        * `policyId`
+        * `definition`
+        * `attributes`
+
+           Supports selecting arbitrary sub-fields by using a comma-separated list:
+            * several attribute paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
+
+              For example:
+                * `?fields=attributes/model` would select only `model` attribute value (if present)
+                * `?fields=attributes/model,attributes/location` would select only `model` and
+                   `location` attribute values (if present)
+
+          Supports selecting arbitrary sub-fields of objects by wrapping sub-fields inside parentheses `( )`:
+            * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901)
+              separated with `/`) to select
+
+            * sub-selectors can be used to request only specific sub-fields by placing expressions
+              in parentheses `( )` after a selected subfield
+
+              For example:
+               * `?fields=attributes(model,location)` would select only `model`
+                  and `location` attribute values (if present)
+               * `?fields=attributes(coffeemaker/serialno)` would select the `serialno` value
+                  inside the `coffeemaker` object
+               * `?fields=attributes/address/postal(city,street)` would select the `city` and
+                  `street` values inside the `postal` object inside the `address` object
+
+        * `features`
+
+          Supports selecting arbitrary fields in features similar to `attributes` (see also features documentation for more details)
+
+        * `_namespace`
+
+          Specifically selects the namespace also contained in the `thingId`
+
+        * `_revision`
+
+          Specifically selects the revision of the thing. The revision is a counter, which is incremented on each modification of a thing.
+
+        * `_created`
+
+          Specifically selects the created timestamp of the thing in ISO-8601 UTC format. The timestamp is set on creation of a thing.
+
+        * `_modified`
+
+          Specifically selects the modified timestamp of the thing in ISO-8601 UTC format. The timestamp is set on each modification of a thing.
+
+        * `_metadata`
+
+          Specifically selects the Metadata of the thing. The content is a JSON object having the Thing's JSON structure with the difference that the JSON leaves of the Thing are JSON objects containing the metadata.
+
+        * `_policy`
+
+          Specifically selects the content of the policy associated to the thing. (By default, only the policyId is returned.)
+
+        #### Examples
+
+        * `?fields=thingId,attributes,features`
+        * `?fields=attributes(model,manufacturer),features`
+      required: false
+      schema:
+        type: string
+    ThingIdPathParam:
+      name: thingId
+      in: path
+      description: 'The ID of a thing needs to follow the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).'
+      required: true
+      schema:
+        type: string
+    TimeoutParam:
+      name: timeout
+      in: query
+      description: |-
+        Defines how long the backend should wait for completion of the request, e.g. applied when waiting for requested
+        acknowledgements via the `requested-acks` param. Can be specified without unit (then seconds are assumed) or
+        together with `s`, `ms` or `m` unit. Example: `42s`, `1m`.
+
+        The default (if omitted) timeout is `10s`. Maximum value: `60s`.
+
+        A value of `0` applies fire and forget semantics for the command resulting in setting `response-required=false`.
+      required: false
+      schema:
+        type: string
   schemas:
     Error:
       properties:
@@ -5412,15 +5473,18 @@ components:
     FeatureProperties:
       type: object
       description: An arbitrary JSON object describing the properties of a feature.
+    FeatureDesiredProperties:
+      type: object
+      description: An arbitrary JSON object describing the desired properties of a feature.
     Feature:
       type: object
       properties:
         definition:
-          $ref: '#/components/schemas/FeatureProperties'
+          $ref: '#/components/schemas/FeatureDefinition'
         properties:
           $ref: '#/components/schemas/FeatureProperties'
         desiredProperties:
-          $ref: '#/components/schemas/FeatureProperties'
+          $ref: '#/components/schemas/FeatureDesiredProperties'
     SearchResultThings:
       properties:
         items:
@@ -5624,7 +5688,8 @@ components:
           items:
             $ref: '#/components/schemas/WhoAmISubject'
     WhoAmISubject:
-      $ref: "./schemas/whoamiSubject.yml"
+      type: string
+      description: An auth subject that can be used to provide access for a caller (e.g. in subject entries of policies).
   securitySchemes:
     basicAuth:
       type: http

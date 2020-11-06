@@ -133,38 +133,38 @@ put:
       application/json:
         schema:
           $ref: '../../schemas/policyEntries.yml'
-    example: {
-      "DEFAULT": {
-        "subjects": {
-          "{{ request:subjectId }}": {
-            "type": "the creator"
-          }
-        },
-        "resources": {
-          "policy:/": {
-            "grant": [
-                "READ",
-                "WRITE"
-            ],
-            "revoke": [ ]
-          },
-          "thing:/": {
-            "grant": [
-                "READ",
-                "WRITE"
-            ],
-            "revoke": [ ]
-          },
-          "message:/": {
-            "grant": [
-                "READ",
-                "WRITE"
-            ],
-            "revoke": [ ]
+        example: {
+          "DEFAULT": {
+            "subjects": {
+              "{{ request:subjectId }}": {
+                "type": "the creator"
+              }
+            },
+            "resources": {
+              "policy:/": {
+                "grant": [
+                    "READ",
+                    "WRITE"
+                ],
+                "revoke": [ ]
+              },
+              "thing:/": {
+                "grant": [
+                    "READ",
+                    "WRITE"
+                ],
+                "revoke": [ ]
+              },
+              "message:/": {
+                "grant": [
+                    "READ",
+                    "WRITE"
+                ],
+                "revoke": [ ]
+              }
+            }
           }
         }
-      }
-    }
     description: |-
       JSON representation of the policy entries.
       Use the placeholder `{{ request:subjectId }}` in order to let the

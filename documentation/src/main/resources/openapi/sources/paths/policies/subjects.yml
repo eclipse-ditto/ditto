@@ -146,7 +146,7 @@ put:
       application/json:
         schema:
           $ref: '../../schemas/subjects.yml'
-    example: {}
+        example: {}
     description: |-
       JSON representation of the Subjects.
 
