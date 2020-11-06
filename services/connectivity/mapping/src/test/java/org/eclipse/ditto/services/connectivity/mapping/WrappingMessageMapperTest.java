@@ -71,6 +71,8 @@ public class WrappingMessageMapperTest {
         when(mockAdaptable.getTopicPath()).thenReturn(ProtocolFactory.emptyTopicPath());
         when(mockAdaptable.getDittoHeaders()).thenReturn(DittoHeaders.empty());
         when(mockAdaptable.getPayload()).thenReturn(ProtocolFactory.newPayload("{\"path\":\"/\"}"));
+        when(mockMessage.getInternalHeaders()).thenReturn(DittoHeaders.empty());
+
         mapperLimitsConfig = DefaultMappingConfig.of(ConfigFactory.load("mapping-test"));
         underTest = WrappingMessageMapper.wrap(mockMapper);
     }
