@@ -12,10 +12,9 @@
  */
 package org.eclipse.ditto.model.query.expression;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.Objects;
 
+import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.query.expression.visitors.ExistsFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
 
@@ -24,17 +23,18 @@ import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
  *
  * @since 1.5.0
  */
-public class FeatureIdPropertiesExpressionImpl implements ExistsFieldExpression {
+public final class FeatureIdPropertiesExpressionImpl implements ExistsFieldExpression {
 
     private final String featureId;
 
     /**
      * Constructor.
      *
-     * @param featureId the feature id
+     * @param featureId the feature ID.
+     * @throws NullPointerException if {@code featureId} is {@code null}.
      */
     public FeatureIdPropertiesExpressionImpl(final String featureId) {
-        this.featureId = requireNonNull(featureId);
+        this.featureId = ConditionChecker.checkNotNull(featureId, "featureId");
     }
 
     @Override
@@ -48,7 +48,7 @@ public class FeatureIdPropertiesExpressionImpl implements ExistsFieldExpression 
     }
 
     /**
-     * @return the feature id.
+     * @return the feature ID.
      */
     public String getFeatureId() {
         return featureId;
@@ -59,7 +59,7 @@ public class FeatureIdPropertiesExpressionImpl implements ExistsFieldExpression 
         if (this == o) {
             return true;
         }
-        if ((o == null) || (getClass() != o.getClass())) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
         final FeatureIdPropertiesExpressionImpl that = (FeatureIdPropertiesExpressionImpl) o;
@@ -75,4 +75,5 @@ public class FeatureIdPropertiesExpressionImpl implements ExistsFieldExpression 
     public String toString() {
         return "FeatureIdPropertiesExpression [featureId=" + featureId + "]";
     }
+
 }

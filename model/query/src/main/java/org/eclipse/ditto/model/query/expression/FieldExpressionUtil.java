@@ -141,63 +141,63 @@ public final class FieldExpressionUtil {
         private final String desiredProperty;
         private final boolean isDesiredProperties;
 
-        private FeatureField(final String fieldName) {
+        private FeatureField(final CharSequence fieldName) {
             Matcher matcher = FIELD_NAME_FEATURE_PATTERN1.matcher(fieldName);
             if (matcher.matches()) {
-                this.matches = true;
-                this.featureId = matcher.group("featureId");
-                this.isProperties = false;
-                this.property = matcher.group("property");
-                this.isDesiredProperties = false;
-                this.desiredProperty = null;
+                matches = true;
+                featureId = matcher.group("featureId");
+                isProperties = false;
+                property = matcher.group("property");
+                isDesiredProperties = false;
+                desiredProperty = null;
             } else {
 
                 matcher = FIELD_NAME_DESIRED_FEATURE_PATTERN.matcher(fieldName);
                 if (matcher.matches()) {
-                    this.matches = true;
-                    this.featureId = matcher.group("featureId");
-                    this.isProperties = false;
-                    this.property = null;
-                    this.isDesiredProperties = false;
-                    this.desiredProperty = matcher.group("desiredProperty");
+                    matches = true;
+                    featureId = matcher.group("featureId");
+                    isProperties = false;
+                    property = null;
+                    isDesiredProperties = false;
+                    desiredProperty = matcher.group("desiredProperty");
                 } else {
 
                     matcher = FIELD_NAME_PROPERTIES_PATTERN.matcher(fieldName);
                     if (matcher.matches()) {
-                        this.matches = true;
-                        this.featureId = matcher.group("featureId");
-                        this.isProperties = true;
-                        this.property = null;
-                        this.isDesiredProperties = false;
-                        this.desiredProperty = null;
+                        matches = true;
+                        featureId = matcher.group("featureId");
+                        isProperties = true;
+                        property = null;
+                        isDesiredProperties = false;
+                        desiredProperty = null;
                     } else {
 
                         matcher = FIELD_NAME_DESIRED_PROPERTIES_PATTERN.matcher(fieldName);
                         if (matcher.matches()) {
-                            this.matches = true;
-                            this.featureId = matcher.group("featureId");
-                            this.isProperties = false;
-                            this.property = null;
-                            this.isDesiredProperties = true;
-                            this.desiredProperty = null;
+                            matches = true;
+                            featureId = matcher.group("featureId");
+                            isProperties = false;
+                            property = null;
+                            isDesiredProperties = true;
+                            desiredProperty = null;
                         } else {
 
                             matcher = FIELD_NAME_FEATURE_PATTERN2.matcher(fieldName);
                             if (matcher.matches()) {
-                                this.matches = true;
-                                this.featureId = matcher.group("featureId");
-                                this.isProperties = false;
-                                this.property = null;
-                                this.isDesiredProperties = false;
-                                this.desiredProperty = null;
+                                matches = true;
+                                featureId = matcher.group("featureId");
+                                isProperties = false;
+                                property = null;
+                                isDesiredProperties = false;
+                                desiredProperty = null;
                             } else {
 
-                                this.matches = false;
-                                this.featureId = null;
-                                this.isProperties = false;
-                                this.property = null;
-                                this.isDesiredProperties = false;
-                                this.desiredProperty = null;
+                                matches = false;
+                                featureId = null;
+                                isProperties = false;
+                                property = null;
+                                isDesiredProperties = false;
+                                desiredProperty = null;
                             }
                         }
                     }
@@ -243,5 +243,7 @@ public final class FieldExpressionUtil {
         public boolean isDesiredProperties() {
             return isDesiredProperties;
         }
+
     }
+
 }

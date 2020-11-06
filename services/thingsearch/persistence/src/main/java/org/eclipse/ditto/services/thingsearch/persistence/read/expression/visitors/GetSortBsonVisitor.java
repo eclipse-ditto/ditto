@@ -108,8 +108,10 @@ public final class GetSortBsonVisitor implements SortFieldExpressionVisitor<Stri
         return mapSortKey(FIELD_SORTING, FIELD_FEATURES, featureId, FIELD_PROPERTIES, property);
     }
 
-    public String visitFeatureIdDesiredProperty(final String featureId, final String desiredProperty) {
-        return mapSortKey(FIELD_SORTING, FIELD_FEATURES, featureId, FIELD_DESIRED_PROPERTIES, desiredProperty);
+    @Override
+    public String visitFeatureIdDesiredProperty(final CharSequence featureId, final CharSequence desiredProperty) {
+        return mapSortKey(FIELD_SORTING, FIELD_FEATURES, featureId.toString(), FIELD_DESIRED_PROPERTIES,
+                desiredProperty.toString());
     }
 
     @Override

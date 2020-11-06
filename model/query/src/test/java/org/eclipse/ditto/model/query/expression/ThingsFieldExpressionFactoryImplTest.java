@@ -31,7 +31,8 @@ public final class ThingsFieldExpressionFactoryImplTest {
 
     private static final String KNOWN_FEATURE_PROPERTIES = "features/" + KNOWN_FEATURE_ID + "/properties";
 
-    private static final String KNOWN_FEATURE_DESIRED_PROPERTIES = "features/" + KNOWN_FEATURE_ID + "/desiredProperties/";
+    private static final String KNOWN_FEATURE_DESIRED_PROPERTIES =
+            "features/" + KNOWN_FEATURE_ID + "/desiredProperties/";
 
     private static final String KNOWN_FEATURE_PROPERTY_WITH_ID =
             "features/" + KNOWN_FEATURE_ID + "/properties/" + KNOWN_STRING;

@@ -79,12 +79,12 @@ public class GetExistsBsonVisitor extends AbstractFieldBsonCreator implements Ex
     }
 
     @Override
-    public Bson visitFeatureProperties(final String featureId) {
+    public Bson visitFeatureProperties(final CharSequence featureId) {
         return matchKey(escapeAndWrapExistsRegex(FIELD_FEATURES_PATH + featureId + SLASH + FIELD_PROPERTIES));
     }
 
     @Override
-    public Bson visitFeatureDesiredProperties(final String featureId) {
+    public Bson visitFeatureDesiredProperties(final CharSequence featureId) {
         return matchKey(escapeAndWrapExistsRegex(FIELD_FEATURES_PATH + featureId + SLASH + FIELD_DESIRED_PROPERTIES));
     }
 
@@ -94,7 +94,7 @@ public class GetExistsBsonVisitor extends AbstractFieldBsonCreator implements Ex
     }
 
     @Override
-    public Bson visitFeatureIdDesiredProperty(final String featureId, final String property) {
+    public Bson visitFeatureIdDesiredProperty(final CharSequence featureId, final CharSequence property) {
         return matchKey(escapeAndWrapExistsRegex(FIELD_FEATURES_PATH + featureId + DESIRED_PROPERTIES + property));
     }
 

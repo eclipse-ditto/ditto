@@ -41,17 +41,17 @@ public final class ExistsThingPredicateVisitor implements ExistsFieldExpressionV
     }
 
     @Override
-    public Predicate<Thing> visitFeatureProperties(final String featureId) {
+    public Predicate<Thing> visitFeatureProperties(final CharSequence featureId) {
         return thing -> thing.getFeatures()
-                .flatMap(features -> features.getFeature(featureId))
+                .flatMap(features -> features.getFeature(featureId.toString()))
                 .map(feature -> feature.getProperties().isPresent())
                 .orElse(false);
     }
 
     @Override
-    public Predicate<Thing> visitFeatureDesiredProperties(final String featureId) {
+    public Predicate<Thing> visitFeatureDesiredProperties(final CharSequence featureId) {
         return thing -> thing.getFeatures()
-                .flatMap(features -> features.getFeature(featureId))
+                .flatMap(features -> features.getFeature(featureId.toString()))
                 .map(feature -> feature.getProperties().isPresent())
                 .orElse(false);
     }
@@ -65,9 +65,9 @@ public final class ExistsThingPredicateVisitor implements ExistsFieldExpressionV
     }
 
     @Override
-    public Predicate<Thing> visitFeatureIdDesiredProperty(final String featureId, final String property) {
+    public Predicate<Thing> visitFeatureIdDesiredProperty(final CharSequence featureId, final CharSequence property) {
         return thing -> thing.getFeatures()
-                .flatMap(features -> features.getFeature(featureId))
+                .flatMap(features -> features.getFeature(featureId.toString()))
                 .map(feature -> feature.getDesiredProperty(property).isPresent())
                 .orElse(false);
     }
@@ -76,4 +76,5 @@ public final class ExistsThingPredicateVisitor implements ExistsFieldExpressionV
     public Predicate<Thing> visitSimple(final String fieldName) {
         return thing -> thing.toJson().getValue(fieldName).isPresent();
     }
+
 }

@@ -13,6 +13,7 @@
 package org.eclipse.ditto.model.query.expression;
 
 import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -74,35 +75,41 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
 
     @Override
     public ExistsFieldExpression existsBy(final String propertyNameWithOptionalLeadingSlash) {
-
-        requireNonNull(propertyNameWithOptionalLeadingSlash);
+        checkNotNull(propertyNameWithOptionalLeadingSlash, "propertyNameWithOptionalLeadingSlash");
         final String propertyName = stripLeadingSlash(propertyNameWithOptionalLeadingSlash);
 
-        return FieldExpressionUtil.parseFeatureField(requireNonNull(propertyName))
+        return FieldExpressionUtil.parseFeatureField(propertyName)
                 .flatMap(f -> f.getFeatureId()
                         .map(id ->
                                 f.getProperty().<ExistsFieldExpression>map(
+
                                         // property
                                         property -> new FeatureIdPropertyExpressionImpl(id, property))
+
                                         // desiredProperty
                                         .orElse(f.getDesiredProperty().<ExistsFieldExpression>map(
                                                 desiredProperty -> new FeatureIdDesiredPropertyExpressionImpl(id,
                                                         desiredProperty))
-                                                .orElseGet(() -> {if (f.isProperties()) {
-                                                    // we have a feature id and the properties path,
-                                                    // but no property
-                                                    return new FeatureIdPropertiesExpressionImpl(id);
-                                                } else if (f.isDesiredProperties()) {
-                                                    // we have a feature id and the desired properties path,
-                                                    // but no desired property
-                                                    return new FeatureIdDesiredPropertiesExpressionImpl(id);
-                                                } else {
-                                                    // we have a feature id but no property path
-                                                    return new FeatureExpressionImpl(id);
-                                                }
+                                                .orElseGet(() -> {
+                                                    if (f.isProperties()) {
+
+                                                        // we have a feature ID and the properties path,
+                                                        // but no property
+                                                        return new FeatureIdPropertiesExpressionImpl(id);
+                                                    } else if (f.isDesiredProperties()) {
+
+                                                        // we have a feature ID and the desired properties path,
+                                                        // but no desired property
+                                                        return new FeatureIdDesiredPropertiesExpressionImpl(id);
+                                                    } else {
+
+                                                        // we have a feature ID but no property path
+                                                        return new FeatureExpressionImpl(id);
+                                                    }
                                                 }))
                         )
                 )
+
                 // we have no feature at all, continue with the other possibilities
                 .orElseGet(() -> (ExistsFieldExpression) common(propertyName));
     }
@@ -120,12 +127,10 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
                                 f.getProperty().isPresent()
                                         ? f.getProperty()
                                         .flatMap(property -> Optional.of(
-                                                (SortFieldExpression) new FeatureIdPropertyExpressionImpl(id,
-                                                        property)))
+                                                new FeatureIdPropertyExpressionImpl(id, property)))
                                         : f.getDesiredProperty()
                                         .flatMap(desiredProperty -> Optional.of(
-                                                (SortFieldExpression) new FeatureIdDesiredPropertyExpressionImpl(id,
-                                                        desiredProperty)))
+                                                new FeatureIdDesiredPropertyExpressionImpl(id, desiredProperty)))
                         )
                 )
                 .orElseGet(() -> (SortFieldExpression) common(propertyName));

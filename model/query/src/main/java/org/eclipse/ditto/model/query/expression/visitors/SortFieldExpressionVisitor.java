@@ -17,11 +17,12 @@ package org.eclipse.ditto.model.query.expression.visitors;
  */
 public interface SortFieldExpressionVisitor<T> {
 
-    T visitAttribute(final String key);
+    T visitAttribute(String key);
 
-    T visitFeatureIdProperty(final String featureId, final String property);
+    T visitFeatureIdProperty(String featureId, String property);
 
-    T visitFeatureIdDesiredProperty(final String featureId, final String desiredProperty);
+    T visitFeatureIdDesiredProperty(CharSequence featureId, CharSequence desiredProperty);
 
-    T visitSimple(final String fieldName);
+    T visitSimple(String fieldName);
+
 }

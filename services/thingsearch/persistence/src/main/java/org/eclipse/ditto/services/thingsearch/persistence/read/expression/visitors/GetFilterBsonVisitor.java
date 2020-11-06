@@ -90,7 +90,7 @@ public class GetFilterBsonVisitor extends AbstractFieldBsonCreator implements Fi
     }
 
     @Override
-    public Bson visitFeatureIdDesiredProperty(final String featureId, final String desiredProperty) {
+    public Bson visitFeatureIdDesiredProperty(final CharSequence featureId, final CharSequence desiredProperty) {
         return matchKeyValue(FIELD_FEATURES_PATH + featureId + DESIRED_PROPERTIES + desiredProperty);
     }
 

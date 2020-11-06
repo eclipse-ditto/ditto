@@ -12,10 +12,9 @@
  */
 package org.eclipse.ditto.model.query.expression;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.Objects;
 
+import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.query.expression.visitors.ExistsFieldExpressionVisitor;
 import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
 
@@ -24,17 +23,17 @@ import org.eclipse.ditto.model.query.expression.visitors.FieldExpressionVisitor;
  *
  * @since 1.5.0
  */
-public class FeatureIdDesiredPropertiesExpressionImpl implements ExistsFieldExpression {
+public final class FeatureIdDesiredPropertiesExpressionImpl implements ExistsFieldExpression {
 
     private final String featureId;
 
     /**
      * Constructor.
      *
-     * @param featureId the feature id
+     * @param featureId the feature ID.
      */
     public FeatureIdDesiredPropertiesExpressionImpl(final String featureId) {
-        this.featureId = requireNonNull(featureId);
+        this.featureId = ConditionChecker.checkNotNull(featureId, "featureId");
     }
 
     @Override
@@ -48,7 +47,7 @@ public class FeatureIdDesiredPropertiesExpressionImpl implements ExistsFieldExpr
     }
 
     /**
-     * @return the feature id.
+     * @return the feature ID.
      */
     public String getFeatureId() {
         return featureId;
@@ -59,7 +58,7 @@ public class FeatureIdDesiredPropertiesExpressionImpl implements ExistsFieldExpr
         if (this == o) {
             return true;
         }
-        if ((o == null) || (getClass() != o.getClass())) {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
         final FeatureIdDesiredPropertiesExpressionImpl that = (FeatureIdDesiredPropertiesExpressionImpl) o;
@@ -75,4 +74,5 @@ public class FeatureIdDesiredPropertiesExpressionImpl implements ExistsFieldExpr
     public String toString() {
         return "FeatureIdDesiredPropertiesExpression [featureId=" + featureId + "]";
     }
+
 }
