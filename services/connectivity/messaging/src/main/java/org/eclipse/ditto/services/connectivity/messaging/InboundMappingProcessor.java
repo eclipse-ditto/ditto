@@ -47,6 +47,7 @@ import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConf
 import org.eclipse.ditto.services.connectivity.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.base.Signal;
@@ -158,8 +159,15 @@ public final class InboundMappingProcessor
                             final DittoHeaders headersWithMapper =
                                     dittoHeaders.toBuilder().inboundPayloadMapper(mapper.getId()).build();
                             final Signal<?> signalWithMapperHeader = signal.setDittoHeaders(headersWithMapper);
+                            // TODO
+                            final ExternalMessage messageWithMappingInfo =
+                                    message;
+//                                    ExternalMessageFactory.newExternalMessageBuilder(message)
+//                                            .withTopicPath(adaptable.getTopicPath())
+//                                            .withAuthorizationContext(dittoHeaders.getAuthorizationContext())
+//                                            .build();
                             final MappedInboundExternalMessage mappedMessage =
-                                    MappedInboundExternalMessage.of(message, adaptable.getTopicPath(),
+                                    MappedInboundExternalMessage.of(messageWithMappingInfo, adaptable.getTopicPath(),
                                             signalWithMapperHeader);
                             mappedMessages.add(mappedMessage);
                         } catch (final Exception e) {
