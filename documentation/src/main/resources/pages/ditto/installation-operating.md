@@ -398,7 +398,7 @@ Response example:
           "authentication": {
             "devops": {
               "password": "foobar",
-              "securestatus": false
+              "secured": false
             }
           }
         }

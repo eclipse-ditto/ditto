@@ -138,10 +138,9 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         final Signal<?> liveSignal = signal();
         return enforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             try {
-                return doEnforce(liveSignal, enforcerEntry)
-                        .exceptionally(this::handleExceptionally);
+                return doEnforce(liveSignal, enforcerEntry);
             } catch (final RuntimeException e) {
-                return CompletableFuture.completedFuture(handleExceptionally(e));
+                return CompletableFuture.failedStage(e);
             }
         });
     }

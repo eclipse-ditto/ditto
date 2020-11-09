@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.read.expression.visitors;
 
+import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.DESIRED_PROPERTIES;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_ATTRIBUTES_PATH;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_FEATURES_PATH;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_INTERNAL;
@@ -88,6 +89,10 @@ public class GetFilterBsonVisitor extends AbstractFieldBsonCreator implements Fi
         return matchKeyValue(FIELD_FEATURES_PATH + featureId + PROPERTIES + property);
     }
 
+    @Override
+    public Bson visitFeatureIdDesiredProperty(final CharSequence featureId, final CharSequence desiredProperty) {
+        return matchKeyValue(FIELD_FEATURES_PATH + featureId + DESIRED_PROPERTIES + desiredProperty);
+    }
 
     @Override
     Bson visitPointer(final String pointer) {

@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.gateway.endpoints.routes.devops;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective.REALM_DEVOPS;
+import static org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective.REALM_DEVOPS;
 
 import java.util.Map;
 
@@ -28,12 +28,11 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.devops.ImmutableLoggerConfig;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.services.gateway.endpoints.directives.DevOpsBasicAuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.QueryParametersToHeadersMap;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.services.gateway.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
 import org.eclipse.ditto.signals.commands.common.RetrieveConfig;
 import org.eclipse.ditto.signals.commands.devops.ChangeLogLevel;
@@ -74,7 +73,7 @@ public final class DevOpsRoute extends AbstractRoute {
     private static final String DEVOPS_COMMANDS_ACTOR_SELECTION = "/user/devOpsCommandsActor";
 
     private final HttpConfig httpConfig;
-    private final DevOpsConfig devOpsConfig;
+    private final DevopsAuthenticationDirective devOpsAuthenticationDirective;
 
     /**
      * Constructs the {@code /devops} route builder.
@@ -82,20 +81,20 @@ public final class DevOpsRoute extends AbstractRoute {
      * @param actorSystem the Actor System.
      * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
      * @param commandConfig the configuration settings of the Gateway service's incoming command processing.
-     * @param devOpsConfig the configuration settings of the Gateway service's DevOps endpoint.
      * @param headerTranslator translates headers from external sources or to external sources.
+     * @param devOpsAuthenticationDirective the authentication handler for the Devops directive.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public DevOpsRoute(final ActorRef proxyActor,
             final ActorSystem actorSystem,
             final HttpConfig httpConfig,
             final CommandConfig commandConfig,
-            final DevOpsConfig devOpsConfig,
-            final HeaderTranslator headerTranslator) {
+            final HeaderTranslator headerTranslator,
+            final DevopsAuthenticationDirective devOpsAuthenticationDirective) {
 
         super(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
         this.httpConfig = httpConfig;
-        this.devOpsConfig = checkNotNull(devOpsConfig, "DevOpsConfig");
+        this.devOpsAuthenticationDirective = devOpsAuthenticationDirective;
     }
 
     /**
@@ -107,9 +106,7 @@ public final class DevOpsRoute extends AbstractRoute {
         checkNotNull(queryParameters, "queryParameters");
 
         return rawPathPrefix(PathMatchers.slash().concat(PATH_DEVOPS), () -> {// /devops
-            final DevOpsBasicAuthenticationDirective devOpsBasicAuthenticationDirective =
-                    DevOpsBasicAuthenticationDirective.getInstance(devOpsConfig);
-            return devOpsBasicAuthenticationDirective.authenticateDevOpsBasic(REALM_DEVOPS,
+            return devOpsAuthenticationDirective.authenticateDevOps(REALM_DEVOPS,
                     concat(
                             rawPathPrefix(PathMatchers.slash().concat(PATH_LOGGING),
                                     () -> // /devops/logging

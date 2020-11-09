@@ -133,9 +133,8 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
         final String keyId = publicKeyIdWithIssuer.getKeyId();
         LOGGER.debug("Loading public key with id <{}> from issuer <{}>.", keyId, issuer);
 
-        final JwtSubjectIssuerConfig subjectIssuerConfig =
-                jwtSubjectIssuersConfig.getConfigItem(issuer)
-                        .orElseThrow(() -> GatewayJwtIssuerNotSupportedException.newBuilder(issuer).build());
+        final JwtSubjectIssuerConfig subjectIssuerConfig = jwtSubjectIssuersConfig.getConfigItem(issuer)
+                .orElseThrow(() -> GatewayJwtIssuerNotSupportedException.newBuilder(issuer).build());
 
         final String discoveryEndpoint = getDiscoveryEndpoint(subjectIssuerConfig.getIssuer());
         final CompletionStage<HttpResponse> responseFuture = getPublicKeysFromDiscoveryEndpoint(discoveryEndpoint);

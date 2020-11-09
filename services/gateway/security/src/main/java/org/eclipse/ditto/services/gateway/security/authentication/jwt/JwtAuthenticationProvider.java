@@ -132,7 +132,9 @@ public final class JwtAuthenticationProvider extends TimeMeasuringAuthentication
                     if (!validationResult.isValid()) {
                         final Throwable reasonForInvalidity = validationResult.getReasonForInvalidity();
                         LOGGER.withCorrelationId(dittoHeaders).debug("The JWT is invalid.", reasonForInvalidity);
-                        throw buildJwtUnauthorizedException(dittoHeaders, reasonForInvalidity);
+                        final DittoRuntimeException reasonForFailure =
+                                buildJwtUnauthorizedException(dittoHeaders, reasonForInvalidity);
+                        return DefaultAuthenticationResult.failed(dittoHeaders, reasonForFailure);
                     }
 
                     final AuthenticationResult authenticationResult = tryToGetAuthenticationResult(jwt, dittoHeaders);

@@ -106,6 +106,8 @@ public final class RabbitMQValidatorTest {
         UNDER_TEST.validate(connectionWithTarget("ditto/rabbit"), DittoHeaders.empty(), actorSystem);
         UNDER_TEST.validate(connectionWithTarget("ditto"), DittoHeaders.empty(), actorSystem);
         UNDER_TEST.validate(connectionWithTarget("ditto/{{thing:id}}"), DittoHeaders.empty(), actorSystem);
+        UNDER_TEST.validate(connectionWithTarget("ditto/{{thing:id}}/{{feature:id}}"), DittoHeaders.empty(),
+                actorSystem);
         UNDER_TEST.validate(connectionWithTarget("ditto/{{topic:full}}"), DittoHeaders.empty(), actorSystem);
         UNDER_TEST.validate(connectionWithTarget("ditto/{{header:x}}"), DittoHeaders.empty(), actorSystem);
     }

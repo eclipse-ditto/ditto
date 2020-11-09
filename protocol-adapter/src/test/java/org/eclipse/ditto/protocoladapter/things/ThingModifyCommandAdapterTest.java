@@ -24,8 +24,8 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.LiveTwinTest;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.LiveTwinTest;
 import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.TestConstants;
@@ -37,6 +37,8 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeature;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinition;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDesiredProperties;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDesiredProperty;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
@@ -48,6 +50,8 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinition;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDesiredProperties;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDesiredProperty;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatures;
@@ -951,6 +955,84 @@ public final class ThingModifyCommandAdapterTest extends LiveTwinTest implements
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }
 
+
+    @Test
+    public void modifyFeatureDesiredPropertiesFromAdaptable() {
+        final ModifyFeatureDesiredProperties expected = ModifyFeatureDesiredProperties.of(TestConstants.THING_ID,
+                TestConstants.FEATURE_ID, TestConstants.FEATURE_DESIRED_PROPERTIES, TestConstants.DITTO_HEADERS_V_2);
+
+        final TopicPath topicPath = topicPath(TopicPath.Action.MODIFY);
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/desiredProperties");
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.FEATURE_DESIRED_PROPERTIES_JSON)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingModifyCommand<?> actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void modifyFeatureDesiredPropertiesToAdaptable() {
+        final TopicPath topicPath = topicPath(TopicPath.Action.MODIFY);
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/desiredProperties");
+
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.FEATURE_DESIRED_PROPERTIES_JSON)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final ModifyFeatureDesiredProperties modifyFeatureDesiredProperties =
+                ModifyFeatureDesiredProperties.of(TestConstants.THING_ID,
+                        TestConstants.FEATURE_ID, TestConstants.FEATURE_DESIRED_PROPERTIES,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
+        final Adaptable actual = underTest.toAdaptable(modifyFeatureDesiredProperties, channel);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void deleteFeatureDesiredPropertiesFromAdaptable() {
+        final DeleteFeatureDesiredProperties expected = DeleteFeatureDesiredProperties.of(TestConstants.THING_ID,
+                TestConstants.FEATURE_ID, TestConstants.DITTO_HEADERS_V_2);
+
+        final TopicPath topicPath = topicPath(TopicPath.Action.DELETE);
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/desiredProperties");
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingModifyCommand<?> actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void deleteFeatureDesiredPropertiesToAdaptable() {
+        final TopicPath topicPath = topicPath(TopicPath.Action.DELETE);
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/desiredProperties");
+
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final DeleteFeatureDesiredProperties deleteFeatureDesiredProperties =
+                DeleteFeatureDesiredProperties.of(TestConstants.THING_ID,
+                        TestConstants.FEATURE_ID, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
+        final Adaptable actual = underTest.toAdaptable(deleteFeatureDesiredProperties, channel);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
     @Test
     public void modifyFeaturePropertyFromAdaptable() {
         final ModifyFeatureProperty expected =
@@ -1034,6 +1116,96 @@ public final class ThingModifyCommandAdapterTest extends LiveTwinTest implements
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER,
                 TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(deleteFeatureProperty, channel);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void modifyFeatureDesiredPropertyFromAdaptable() {
+        final ModifyFeatureDesiredProperty expected =
+                ModifyFeatureDesiredProperty.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
+                        TestConstants.FEATURE_DESIRED_PROPERTY_POINTER, TestConstants.FEATURE_DESIRED_PROPERTY_VALUE,
+                        TestConstants.DITTO_HEADERS_V_2);
+
+        final TopicPath topicPath = topicPath(TopicPath.Action.MODIFY);
+        final JsonPointer path = JsonPointer
+                .of("/features/" + TestConstants.FEATURE_ID + "/desiredProperties" +
+                        TestConstants.FEATURE_DESIRED_PROPERTY_POINTER);
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.FEATURE_DESIRED_PROPERTY_VALUE)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingModifyCommand<?> actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void modifyFeatureDesiredPropertyToAdaptable() {
+        final TopicPath topicPath = topicPath(TopicPath.Action.MODIFY);
+        final JsonPointer path = JsonPointer
+                .of("/features/" + TestConstants.FEATURE_ID + "/desiredProperties" +
+                        TestConstants.FEATURE_DESIRED_PROPERTY_POINTER);
+
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.FEATURE_DESIRED_PROPERTY_VALUE)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final ModifyFeatureDesiredProperty modifyFeatureDesiredProperty =
+                ModifyFeatureDesiredProperty.of(TestConstants.THING_ID,
+                        TestConstants.FEATURE_ID, TestConstants.FEATURE_DESIRED_PROPERTY_POINTER,
+                        TestConstants.FEATURE_DESIRED_PROPERTY_VALUE,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
+        final Adaptable actual = underTest.toAdaptable(modifyFeatureDesiredProperty, channel);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void deleteFeatureDesiredPropertyFromAdaptable() {
+        final DeleteFeatureDesiredProperty expected =
+                DeleteFeatureDesiredProperty.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
+                        TestConstants.FEATURE_DESIRED_PROPERTY_POINTER, TestConstants.DITTO_HEADERS_V_2);
+
+        final TopicPath topicPath = topicPath(TopicPath.Action.DELETE);
+        final JsonPointer path = JsonPointer
+                .of("/features/" + TestConstants.FEATURE_ID + "/desiredProperties" +
+                        TestConstants.FEATURE_DESIRED_PROPERTY_POINTER);
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingModifyCommand<?> actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void deleteFeatureDesiredPropertyToAdaptable() {
+        final TopicPath topicPath = topicPath(TopicPath.Action.DELETE);
+        final JsonPointer path = JsonPointer
+                .of("/features/" + TestConstants.FEATURE_ID + "/desiredProperties" +
+                        TestConstants.FEATURE_DESIRED_PROPERTY_POINTER);
+
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final DeleteFeatureDesiredProperty deleteFeatureDesiredProperty =
+                DeleteFeatureDesiredProperty.of(TestConstants.THING_ID,
+                        TestConstants.FEATURE_ID, TestConstants.FEATURE_DESIRED_PROPERTY_POINTER,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
+        final Adaptable actual = underTest.toAdaptable(deleteFeatureDesiredProperty, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }

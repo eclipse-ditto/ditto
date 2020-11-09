@@ -29,6 +29,8 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinition;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDesiredProperties;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDesiredProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatures;
@@ -96,6 +98,14 @@ final class ThingQueryCommandMappingStrategies extends AbstractThingMappingStrat
 
         mappingStrategies.put(RetrieveFeatureProperty.TYPE, adaptable ->
                 RetrieveFeatureProperty.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
+                        featurePropertyPointerFrom(adaptable), dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(RetrieveFeatureDesiredProperties.TYPE, adaptable ->
+                RetrieveFeatureDesiredProperties.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
+                        selectedFieldsFrom(adaptable), dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(RetrieveFeatureDesiredProperty.TYPE, adaptable ->
+                RetrieveFeatureDesiredProperty.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
                         featurePropertyPointerFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         return mappingStrategies;

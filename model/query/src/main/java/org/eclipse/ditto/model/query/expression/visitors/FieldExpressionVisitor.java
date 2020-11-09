@@ -20,15 +20,4 @@ import org.eclipse.ditto.model.query.expression.FieldExpression;
 public interface FieldExpressionVisitor<T>
         extends ExistsFieldExpressionVisitor<T>, FilterFieldExpressionVisitor<T>, SortFieldExpressionVisitor<T> {
 
-    @Override
-    T visitAttribute(final String key);
-
-    @Override
-    T visitFeature(final String featureId);
-
-    @Override
-    T visitFeatureIdProperty(final String featureId, final String property);
-
-    @Override
-    T visitSimple(final String fieldName);
 }

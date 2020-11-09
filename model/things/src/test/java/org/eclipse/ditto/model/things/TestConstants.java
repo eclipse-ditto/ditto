@@ -93,6 +93,17 @@ public final class TestConstants {
         /**
          * A known Feature which is required for time travel.
          */
+        public static final org.eclipse.ditto.model.things.Feature FLUX_CAPACITOR_V2 =
+                org.eclipse.ditto.model.things.Feature.newBuilder()
+                        .properties(FLUX_CAPACITOR_PROPERTIES)
+                        .desiredProperties(FLUX_CAPACITOR_PROPERTIES)
+                        .definition(FLUX_CAPACITOR_DEFINITION)
+                        .withId(FLUX_CAPACITOR_ID)
+                        .build();
+
+        /**
+         * A known Feature for API V1.
+         */
         public static final org.eclipse.ditto.model.things.Feature FLUX_CAPACITOR =
                 org.eclipse.ditto.model.things.Feature.newBuilder()
                         .properties(FLUX_CAPACITOR_PROPERTIES)
@@ -104,6 +115,11 @@ public final class TestConstants {
          * Known features of a Thing.
          */
         public static final Features FEATURES = ThingsModelFactory.newFeatures(Feature.FLUX_CAPACITOR);
+
+        /**
+         * Known features of a Thing for API v!.
+         */
+        public static final Features FEATURES_V2 = ThingsModelFactory.newFeatures(Feature.FLUX_CAPACITOR_V2);
 
         private Feature() {
             throw new AssertionError();
@@ -197,7 +213,7 @@ public final class TestConstants {
         public static final org.eclipse.ditto.model.things.Thing THING_V2 = ThingsModelFactory.newThingBuilder()
                 .setAttributes(ATTRIBUTES)
                 .setDefinition(DEFINITION)
-                .setFeatures(Feature.FEATURES)
+                .setFeatures(Feature.FEATURES_V2)
                 .setLifecycle(LIFECYCLE)
                 .setPolicyId(POLICY_ID)
                 .setId(THING_ID)

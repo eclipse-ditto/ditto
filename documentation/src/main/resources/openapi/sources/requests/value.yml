@@ -1,0 +1,31 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+content:
+  application/json:
+    schema:
+      type: object
+      example: { }
+description: |-
+  JSON representation of the value to be created/updated. This may be as
+  well `null` or an empty object.
+
+  Consider that the value has to be a JSON value, examples:
+
+    * for a number, the JSON value is the number: `42`
+
+    * for a string, the JSON value must be quoted: `"aString"`
+
+    * for a boolean, the JSON value is the boolean: `true`
+
+    * for an object, the JSON value is the object: `{ "key": "value"}` -} We strongly recommend to use a restricted set of characters for the key (identifier). Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
+
+    * for an list, the JSON value is the list: `[ 1,2,3 ]`
+required: true

@@ -37,7 +37,7 @@ public final class DeleteFeaturePropertiesResponseTest {
             .set(ThingCommandResponse.JsonFields.TYPE, DeleteFeaturePropertiesResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.NO_CONTENT.toInt())
             .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
-            .set(DeleteFeatureProperties.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
+            .set(DeleteFeatureProperties.JSON_FEATURE_ID, TestConstants.Feature.HOVER_BOARD_ID)
             .build();
 
 
@@ -59,7 +59,7 @@ public final class DeleteFeaturePropertiesResponseTest {
     @Test
     public void toJsonReturnsExpected() {
         final DeleteFeaturePropertiesResponse underTest = DeleteFeaturePropertiesResponse
-                .of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                .of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
                         TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 

@@ -53,6 +53,18 @@ permalink: protocol-examples-errorresponses.html
 {% capture things_feature_property_notmodifiable %}{% include_relative generated/exceptions/things_feature_property_notmodifiable.md %}{% endcapture %}
 {{ things_feature_property_notmodifiable | markdownify }}
 
+{% capture things_feature_desired_properties_notfound %}{% include_relative generated/exceptions/things_feature_desired_properties_notfound.md %}{% endcapture %}
+{{ things_feature_desired_properties_notfound | markdownify }}
+
+{% capture things_feature_desired_properties_notmodifiable %}{% include_relative generated/exceptions/things_feature_desired_properties_notmodifiable.md %}{% endcapture %}
+{{ things_feature_desired_properties_notmodifiable | markdownify }}
+
+{% capture things_feature_desired_property_notfound %}{% include_relative generated/exceptions/things_feature_desired_property_notfound.md %}{% endcapture %}
+{{ things_feature_desired_property_notfound | markdownify }}
+
+{% capture things_feature_desired_property_notmodifiable %}{% include_relative generated/exceptions/things_feature_desired_property_notmodifiable.md %}{% endcapture %}
+{{ things_feature_desired_property_notmodifiable | markdownify }}
+
 {% capture things_features_notfound %}{% include_relative generated/exceptions/things_features_notfound.md %}{% endcapture %}
 {{ things_features_notfound | markdownify }}
 

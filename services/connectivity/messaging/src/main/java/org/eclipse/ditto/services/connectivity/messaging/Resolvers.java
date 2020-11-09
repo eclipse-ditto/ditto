@@ -31,6 +31,7 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.WithFeatureId;
 
 /**
  * Creator of expression resolvers for incoming and outgoing messages.
@@ -50,6 +51,13 @@ public final class Resolvers {
             ResolverCreator.of(PlaceholderFactory.newThingPlaceholder(), (e, s, t, a, c) -> {
                 if (s != null) {
                     return s.getEntityId();
+                } else {
+                    return null;
+                }
+            }),
+            ResolverCreator.of(PlaceholderFactory.newFeaturePlaceholder(), (e, s, t, a, c) -> {
+                if (s instanceof WithFeatureId) {
+                    return ((WithFeatureId) s).getFeatureId();
                 } else {
                     return null;
                 }
