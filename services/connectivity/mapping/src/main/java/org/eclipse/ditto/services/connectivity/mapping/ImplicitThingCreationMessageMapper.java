@@ -227,11 +227,15 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
         if (TopicPath.Criterion.ERRORS.equals(adaptable.getTopicPath().getCriterion())) {
-            adaptable.getPayload().getValue().filter(JsonValue::isObject).map(JsonValue::asObject)
-                    .ifPresent(jsonObject -> {
+            adaptable.getPayload().getValue()
+                    .filter(JsonValue::isObject)
+                    .map(JsonValue::asObject)
+                    .ifPresentOrElse(jsonObject -> {
                         throw GlobalErrorRegistry.getInstance().parse(jsonObject,
                                 adaptable.getDittoHeaders());
-                    });
+                    }, () -> LOGGER.withCorrelationId(adaptable.getDittoHeaders())
+                            .warn("Unexpected error adaptable. Expected value of type JsonObject in payload but got " +
+                                    "<{}>.", adaptable.getPayload()));
         }
         return Collections.emptyList();
     }
