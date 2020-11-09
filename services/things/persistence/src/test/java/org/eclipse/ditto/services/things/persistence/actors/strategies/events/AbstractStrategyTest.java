@@ -119,15 +119,32 @@ abstract class AbstractStrategyTest {
     static final JsonPointer FEATURE_PROPERTY_POINTER = JsonPointer.of("bumlux");
 
     /**
+     * An feature desired property pointer for testing.
+     */
+    static final JsonPointer FEATURE_DESIRED_PROPERTY_POINTER = JsonPointer.of("luxbum");
+
+    /**
      * An feature property value for testing.
      */
     static final JsonValue FEATURE_PROPERTY_VALUE = JsonValue.of(42);
+
+    /**
+     * An feature desired property value for testing.
+     */
+    static final JsonValue FEATURE_DESIRED_PROPERTY_VALUE = JsonValue.of(24);
 
     /**
      * Feature properties for testing.
      */
     static final FeatureProperties FEATURE_PROPERTIES = FeatureProperties.newBuilder()
             .set(FEATURE_PROPERTY_POINTER, FEATURE_PROPERTY_VALUE)
+            .build();
+
+    /**
+     * Feature desired properties for testing.
+     */
+    static final FeatureProperties FEATURE_DESIRED_PROPERTIES = FeatureProperties.newBuilder()
+            .set(FEATURE_DESIRED_PROPERTY_POINTER, FEATURE_DESIRED_PROPERTY_VALUE)
             .build();
 
     /**

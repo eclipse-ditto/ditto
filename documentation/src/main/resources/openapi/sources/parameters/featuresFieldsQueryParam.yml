@@ -1,0 +1,39 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+name: fields
+in: query
+description: |-
+  Contains a comma-separated list of fields from one or more features to be
+  included in the returned JSON.
+
+  #### Selectable fields
+
+  * `{featureId}` The ID of the feature to select properties in
+    * `properties`
+      Supports selecting arbitrary sub-fields by using a comma-separated list:
+        * several properties paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
+          For example:
+            * `?fields={featureId}/properties/color` would select only `color` property value (if present) of the feature identified with `{featureId}`
+            * `?fields={featureId}/properties/color,properties/brightness` would select only `color` and `brightness` property values (if present) of the feature identified with `{featureId}`
+      Supports selecting arbitrary sub-fields of objects by wrapping sub-fields inside parentheses `( )`:
+        * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901) separated with `/`) to select
+        * sub-selectors can be used to request only specific sub-fields by placing expressions in parentheses `( )` after a selected subfield
+          For example:
+           * `?fields={featureId}/properties(color,brightness)` would select only `color` and `brightness` property values (if present) of the feature identified with `{featureId}`
+           * `?fields={featureId}/properties(location/longitude)` would select the `longitude` value inside the `location` object of the feature identified with `{featureId}`
+
+
+  #### Examples
+  * `?fields=EnvironmentScanner/properties(temperature,humidity)`
+  * `?fields=EnvironmentScanner/properties(temperature,humidity),Vehicle/properties/configuration`
+required: false
+schema:
+  type: string

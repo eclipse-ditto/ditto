@@ -55,6 +55,7 @@ public final class ExistsIT extends AbstractReadPersistenceITBase {
     private static final String THING2_KNOWN_FEATURE_ID = "feature2";
     private static final String THING2_KNOWN_PROPERTY = "property/a/b/d";
     private static final long THING2_KNOWN_PROPERTY_VALUE = 2;
+    private static final ThingId THING3_ID = TestConstants.thingId(TestConstants.Thing.NAMESPACE, "thing3");
 
     private static final String THINGS_KNOWN_ATTR = "attr1/a/b";
     private static final String THINGS_UNKNOWN_ATTR = "attr2";
@@ -77,7 +78,7 @@ public final class ExistsIT extends AbstractReadPersistenceITBase {
     public void existsByKnownFeatureId() {
         final Criteria crit = cf.existsCriteria(ef.existsByFeatureId(THING2_KNOWN_FEATURE_ID));
         final Collection<ThingId> result = findForCriteria(crit);
-        assertThat(result).containsOnly(THING2_ID);
+        assertThat(result).containsOnly(THING2_ID, THING3_ID);
     }
 
     @Test
@@ -86,6 +87,28 @@ public final class ExistsIT extends AbstractReadPersistenceITBase {
                 cf.existsCriteria(ef.existsByFeatureProperty(THING1_KNOWN_FEATURE_ID, THING1_KNOWN_PROPERTY));
         final Collection<ThingId> result = findForCriteria(crit);
         assertThat(result).containsOnly(THING1_ID);
+    }
+
+    @Test
+    public void existsByKnownFeatureIdAndDesiredProperty() {
+        final Criteria crit =
+                cf.existsCriteria(ef.existsByFeatureDesiredProperty(THING1_KNOWN_FEATURE_ID, THING1_KNOWN_PROPERTY));
+        final Collection<ThingId> result = findForCriteria(crit);
+        assertThat(result).containsOnly(THING1_ID);
+    }
+
+    @Test
+    public void existsByProperties() {
+        final Criteria crit = cf.existsCriteria(ef.existsByFeatureProperties(THING1_KNOWN_FEATURE_ID));
+        final Collection<ThingId> result = findForCriteria(crit);
+        assertThat(result).containsOnly(THING1_ID);
+    }
+
+    @Test
+    public void existsByDesiredProperties() {
+        final Criteria crit = cf.existsCriteria(ef.existsByFeatureDesiredProperties(THING2_KNOWN_FEATURE_ID));
+        final Collection<ThingId> result = findForCriteria(crit);
+        assertThat(result).containsOnly(THING2_ID, THING3_ID);
     }
 
     @Test
@@ -138,6 +161,7 @@ public final class ExistsIT extends AbstractReadPersistenceITBase {
 
         persistThing(createThing(THING1_ID).setAttributes(attributes1).setFeatures(features1));
         persistThing(createThing(THING2_ID).setAttributes(attributes2).setFeatures(features2));
+        persistThing(createThing(THING3_ID).setFeatures(features2));
     }
 
     private static Attributes createAttributes(final String attributeKey, final String attributeValue) {
@@ -149,7 +173,11 @@ public final class ExistsIT extends AbstractReadPersistenceITBase {
     private static Features createFeatures(final String featureId, final CharSequence propertyKey,
             final long propertyValue) {
 
-        final Feature feature = Feature.newBuilder().withId(featureId).build().setProperty(propertyKey, propertyValue);
+        final Feature feature = Feature.newBuilder()
+                .withId(featureId)
+                .build()
+                .setProperty(propertyKey, propertyValue)
+                .setDesiredProperty(propertyKey, propertyValue);
         return Features.newBuilder().set(feature).build();
     }
 

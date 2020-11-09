@@ -1,0 +1,361 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+get:
+  summary: Retrieve a specific thing
+  description: |-
+    Returns the thing identified by the `thingId` path parameter. The
+    response includes details about the thing, including the `policyId`, attributes, definition and features.
+
+    Optionally, you can use the field selectors (see parameter `fields`) to only get specific
+    fields, which you are interested in.
+
+    Example: Use the field selector `_policy` to retrieve the content of the policy.
+  tags:
+    - Things
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/thingFieldsQueryParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParam.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+  responses:
+    '200':
+      description: The request successfully returned the specific thing.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/thing.yml'
+    '304':
+      $ref: '../../responses/notModified.yml'
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+          * at least one of the defined query parameters is invalid
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The thing with the given ID was
+        not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+put:
+  summary: Create or update a thing with a specified ID
+  description: |-
+    Create or update the thing specified by the `thingId` path parameter and
+    the optional JSON body.
+
+    * If you set a new `thingId` in the path, a thing will be created.
+    * If you set an existing `thingId` in the path, the thing will be updated.
+
+
+    ### Create a new thing
+    At the initial creation of a thing, only a valid `thingId` is required.
+    However, you can create a full-fledged thing all at once.
+
+    Example:
+    To create a coffee maker thing, set the `thingId` in the path, e.g. to "com.acme.coffeemaker:BE-42"
+    and the body part, like in the following snippet.
+
+    ```
+     {
+       "definition": "com.acme:coffeebrewer:0.1.0",
+       "attributes": {
+         "manufacturer": "ACME demo corp.",
+         "location": "Berlin, main floor",
+         "serialno": "42",
+         "model": "Speaking coffee machine"
+       },
+       "features": {
+         "coffee-brewer": {
+           "definition": [ "com.acme:coffeebrewer:0.1.0" ],
+           "properties": {
+             "brewed-coffees": 0
+           }
+         },
+         "water-tank": {
+           "properties": {
+             "configuration": {
+               "smartMode": true,
+               "brewingTemp": 87,
+               "tempToHold": 44,
+               "timeoutSeconds": 6000
+             },
+             "status": {
+               "waterAmount": 731,
+               "temperature": 44
+             }
+           }
+         }
+       }
+      }
+     ```
+    As the example does not set a policy in the request body, but the thing concept requires one,
+    the service will create a default policy. The default policy, has the exactly same id
+    as the thing, and grants ALL permissions to the authorized subject.
+
+    In case you need to associate the new thing to an already existing policy you can additionally
+    set a policy e.g. "policyId": "com.acme.coffeemaker:policy-1" as the first element in the body part.
+    Keep in mind, that you can also change the assignment to another policy anytime,
+    with a request on the sub-resource "PUT /things/{thingId}/policyId"
+
+    The field `_created` is filled automatically with the timestamp of the creation. The field is read-only and can
+    be retrieved later by explicitly selecting it or used in search filters.
+
+    ### Update an existing thing
+
+    For updating an existing thing, the authorized subject needs **WRITE** permission on the thing's root resource.
+
+    The ID of a thing cannot be changed after creation. Any `thingId`
+    specified in the request body is therefore ignored.
+
+    ### Partially update an existing thing
+
+    When updating an existing thing, which already contains `attributes`, `definition` `policyId` or `features`,
+    the existing fields must not explicitly be provided again.
+    For this "PUT thing" request - and only for this top-level update on the thing -
+    the top-level field to update is **merged** with the existing top-level fields of the thing.
+
+    ### Example for a partial update
+
+    Given, a thing already exists with this content:
+
+    ```
+    {
+      "thingId": "namespace:thing-name",
+      "policyId": "namespace:policy-name",
+      "definition": "namespace:model:version",
+      "attributes": {
+        "foo": 1
+      },
+      "features": {...}
+    }
+    ```
+
+    The thing's `attributes` may be modified without having to pass the `policyId` or
+    the `features` in again.
+    For updating the `attributes`, following request body would be sufficient :
+
+    ```
+    {
+      "attributes": {
+        "foo": 2,
+        "bar": false
+      }
+    }
+    ```
+
+    The `policyId` and `features` of the thing will not be overwritten.
+    The thing will be merged into:
+
+    ```
+    {
+      "thingId": "namespace:thing-name",
+      "policyId": "namespace:policy-name",
+      "definition": "namespace:model:version",
+      "attributes": {
+        "foo": 2,
+        "bar": false
+      },
+      "features": {...}
+    }
+    ```
+  tags:
+    - Things
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParam.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/putMetadataParam.yml'
+    - $ref: '../../parameters/requestedAcksParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '201':
+      description: The thing was successfully created.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+        Location:
+          description: The location of the created thing resource
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/thing.yml'
+    '204':
+      description: The thing was successfully modified.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+          * the JSON body of the thing to be created/modified is invalid
+          * the JSON body of the thing to be created/modified contains a `thingId`
+          which does not match the ID in the path
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller would not have access to the thing after creating it with the given policy
+          * the caller has insufficient permissions.
+            For modifying an existing thing, an unrestricted `WRITE` permission on the thing's root resource is required.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the referenced thing does not exist.
+          * the caller has insufficient permissions to read the referenced thing.
+          * the policy that should be copied does not exist.
+          * the caller has insufficient permissions to read the policy that should be copied.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+    '413':
+      $ref: '../../responses/entityTooLarge.yml'
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: '../../schemas/newThing.yml'
+        example: {
+          "definition": "com.acme:coffeebrewer:0.1.0",
+          "attributes": {
+            "manufacturer": "ACME demo corp.",
+            "location": "Berlin, main floor",
+            "serialno": "42",
+            "model": "Speaking coffee machine"
+          },
+          "features": {
+            "coffee-brewer": {
+              "definition": [ "com.acme:coffeebrewer:0.1.0" ],
+              "properties": {
+                "brewed-coffees": 0
+              }
+            },
+            "water-tank": {
+              "properties": {
+                "configuration": {
+                  "smartMode": true,
+                  "brewingTemp": 87,
+                  "tempToHold": 44,
+                  "timeoutSeconds": 6000
+                },
+                "status": {
+                  "waterAmount": 731,
+                  "temperature": 44
+                }
+              }
+            }
+          }
+        }
+    description: JSON representation of the thing to be modified.
+delete:
+  summary: Delete a specific thing
+  description: |-
+    Deletes the thing identified by the `thingId` path parameter.
+
+    This will not delete the policy, which is used for controlling access to this thing.
+
+    You can delete the policy afterwards via DELETE `/policies/{policyId}` if you don't need it for other things.
+  tags:
+    - Things
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParam.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/requestedAcksParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '204':
+      description: The thing was successfully deleted.
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller had insufficient permissions.
+            For deleting an existing thing, an unrestricted `WRITE` permission on the thing's root resource is required.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The thing with the given ID was
+        not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'

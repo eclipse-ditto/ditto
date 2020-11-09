@@ -40,13 +40,13 @@ public final class RetrieveFeatureTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, RetrieveFeature.TYPE)
             .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
-            .set(RetrieveFeature.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
+            .set(RetrieveFeature.JSON_FEATURE_ID, TestConstants.Feature.HOVER_BOARD_ID)
             .build();
 
     private static final JsonObject KNOWN_JSON_WITH_FIELD_SELECTION = JsonFactory.newObjectBuilder()
             .set(ThingCommand.JsonFields.TYPE, RetrieveFeature.TYPE)
             .set(ThingCommand.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
-            .set(RetrieveFeature.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
+            .set(RetrieveFeature.JSON_FEATURE_ID, TestConstants.Feature.HOVER_BOARD_ID)
             .set(RetrieveFeature.JSON_SELECTED_FIELDS, SELECTED_FIELDS)
             .build();
 
@@ -57,13 +57,11 @@ public final class RetrieveFeatureTest {
         return JsonFactory.newFieldSelector(SELECTED_FIELDS, JSON_PARSE_OPTIONS);
     }
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(RetrieveFeature.class, areImmutable(),
                 provided(JsonFieldSelector.class, ThingId.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -72,17 +70,15 @@ public final class RetrieveFeatureTest {
                 .verify();
     }
 
-
     @Test
     public void toJsonReturnsExpected() {
         final RetrieveFeature underTest =
-                RetrieveFeature.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                RetrieveFeature.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
                         TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {
@@ -91,21 +87,19 @@ public final class RetrieveFeatureTest {
 
         assertThat(underTest).isNotNull();
         assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
+        assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.HOVER_BOARD_ID);
         assertThat(underTest.getSelectedFields()).isEmpty();
     }
-
 
     @Test
     public void jsonSerializationWorksAsExpectedWithSelectedFields() {
         final RetrieveFeature underTest =
-                RetrieveFeature.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FLUX_CAPACITOR_ID,
+                RetrieveFeature.of(TestConstants.Thing.THING_ID, TestConstants.Feature.HOVER_BOARD_ID,
                         getJsonFieldSelector(), TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON_WITH_FIELD_SELECTION);
     }
-
 
     @Test
     public void createInstanceFromValidJsonWithSelectedFields() {
@@ -115,7 +109,7 @@ public final class RetrieveFeatureTest {
 
         assertThat(underTest).isNotNull();
         assertThat((CharSequence) underTest.getEntityId()).isEqualTo(TestConstants.Thing.THING_ID);
-        assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
+        assertThat(underTest.getFeatureId()).isEqualTo(TestConstants.Feature.HOVER_BOARD_ID);
         assertThat(underTest.getSelectedFields()).contains(getJsonFieldSelector());
     }
 

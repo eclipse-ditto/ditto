@@ -51,6 +51,11 @@
               "title": "Properties",
               "type": "object",
               "description": "The data related to a Feature is managed in form of a list of properties. Each property itself can be either a simple/scalar value or a complex object. Allowed is any JSON object."
+            },
+            "desiredProperties": {
+              "title": "Desired Properties",
+              "type": "object",
+              "description": "The desired data related to a Feature is managed in form of a list of desired properties. Each desired property itself can be either a simple/scalar value or a complex object. Allowed is any JSON object."
             }
           }
         }

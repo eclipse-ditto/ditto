@@ -20,16 +20,15 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.services.thingsearch.common.util.KeyEscapeUtil;
 
-
 /**
- * <pre>
  * This function does (in this order)
- *  * encode each element of the array (real . and $ with Unicode chanracter)
- *  * replace / (slash) with . (dot, the real one)
- *  * join the elements using a . (dot, the real one)
- *  </pre>
+ * <ol>
+ * <li>encode each element of the array (real {@code .} and {@code $} with Unicode character),</li>
+ * <li>replace {@code /} (slash) with {@code .} (dot, the real one),</li>
+ * <li>join the elements using a {@code .} (dot, the real one).</li>
+ * </ol>
  */
-public class MongoSortKeyMappingFunction implements Function<String[], String> {
+public final class MongoSortKeyMappingFunction implements Function<String[], String> {
 
     private static final MongoSortKeyMappingFunction INSTANCE = new MongoSortKeyMappingFunction();
 
@@ -41,7 +40,7 @@ public class MongoSortKeyMappingFunction implements Function<String[], String> {
                 .collect(Collectors.joining(DOT));
     }
 
-    public static String mapSortKey(String... values) {
+    public static String mapSortKey(final String... values) {
         return INSTANCE.apply(values);
     }
 

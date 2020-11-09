@@ -13,6 +13,7 @@
 package org.eclipse.ditto.model.query.expression;
 
 import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -58,10 +59,15 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
 
         final Supplier<FilterFieldExpression> defaultSupplier = () -> (FilterFieldExpression) common(propertyName);
         return FieldExpressionUtil.parseFeatureField(requireNonNull(propertyName))
-                .<FilterFieldExpression>flatMap(f -> f.getProperty()
-                        .flatMap(property ->
+                .<FilterFieldExpression>flatMap(f ->
+                        f.getProperty().isPresent()
+                                ? f.getProperty().flatMap(property ->
                                 // we have a feature id and a property path
                                 f.getFeatureId().map(id -> new FeatureIdPropertyExpressionImpl(id, property))
+                        )
+                                : f.getDesiredProperty().flatMap(desiredProperty ->
+                                f.getFeatureId()
+                                        .map(id -> new FeatureIdDesiredPropertyExpressionImpl(id, desiredProperty))
                         )
                 )
                 .orElseGet(defaultSupplier);
@@ -69,19 +75,41 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
 
     @Override
     public ExistsFieldExpression existsBy(final String propertyNameWithOptionalLeadingSlash) {
-
-        requireNonNull(propertyNameWithOptionalLeadingSlash);
+        checkNotNull(propertyNameWithOptionalLeadingSlash, "propertyNameWithOptionalLeadingSlash");
         final String propertyName = stripLeadingSlash(propertyNameWithOptionalLeadingSlash);
 
-        return FieldExpressionUtil.parseFeatureField(requireNonNull(propertyName))
+        return FieldExpressionUtil.parseFeatureField(propertyName)
                 .flatMap(f -> f.getFeatureId()
-                        .map(id -> f.getProperty()
-                                .<ExistsFieldExpression>map(property ->
-                                        new FeatureIdPropertyExpressionImpl(id, property))
-                                // we have a feature id but no property path
-                                .orElseGet(() -> new FeatureExpressionImpl(id))
+                        .map(id ->
+                                f.getProperty().<ExistsFieldExpression>map(
+
+                                        // property
+                                        property -> new FeatureIdPropertyExpressionImpl(id, property))
+
+                                        // desiredProperty
+                                        .orElse(f.getDesiredProperty().<ExistsFieldExpression>map(
+                                                desiredProperty -> new FeatureIdDesiredPropertyExpressionImpl(id,
+                                                        desiredProperty))
+                                                .orElseGet(() -> {
+                                                    if (f.isProperties()) {
+
+                                                        // we have a feature ID and the properties path,
+                                                        // but no property
+                                                        return new FeatureIdPropertiesExpressionImpl(id);
+                                                    } else if (f.isDesiredProperties()) {
+
+                                                        // we have a feature ID and the desired properties path,
+                                                        // but no desired property
+                                                        return new FeatureIdDesiredPropertiesExpressionImpl(id);
+                                                    } else {
+
+                                                        // we have a feature ID but no property path
+                                                        return new FeatureExpressionImpl(id);
+                                                    }
+                                                }))
                         )
                 )
+
                 // we have no feature at all, continue with the other possibilities
                 .orElseGet(() -> (ExistsFieldExpression) common(propertyName));
     }
@@ -95,10 +123,14 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
 
         return FieldExpressionUtil.parseFeatureField(requireNonNull(propertyName))
                 .flatMap(f -> f.getFeatureId()
-                        .flatMap(id -> f.getProperty()
-                                .flatMap(property -> Optional
-                                        .of((SortFieldExpression) new FeatureIdPropertyExpressionImpl(id, property))
-                                )
+                        .flatMap(id ->
+                                f.getProperty().isPresent()
+                                        ? f.getProperty()
+                                        .flatMap(property -> Optional.of(
+                                                new FeatureIdPropertyExpressionImpl(id, property)))
+                                        : f.getDesiredProperty()
+                                        .flatMap(desiredProperty -> Optional.of(
+                                                new FeatureIdDesiredPropertyExpressionImpl(id, desiredProperty)))
                         )
                 )
                 .orElseGet(() -> (SortFieldExpression) common(propertyName));
@@ -129,7 +161,7 @@ public final class ThingsFieldExpressionFactoryImpl implements ThingsFieldExpres
         if (FieldExpressionUtil.isAttributeFieldName(propertyName)) {
             return new AttributeExpressionImpl(FieldExpressionUtil.stripAttributesPrefix(propertyName));
         }
-        if (FieldExpressionUtil.isDefinitionFieldName(propertyName)){
+        if (FieldExpressionUtil.isDefinitionFieldName(propertyName)) {
             return new SimpleFieldExpressionImpl(propertyName);
         }
 

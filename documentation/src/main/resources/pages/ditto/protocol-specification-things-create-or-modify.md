@@ -444,6 +444,53 @@ If the Feature did not yet contain Properties before the command was applied, a 
 
 **Example:** [Create Feature Properties](protocol-examples-createproperties.html)
 
+## Modify all desired Properties of a Feature
+
+Create or modify the desired Properties of a Feature (identified by the Feature ID in the `path`) of the Thing (identified by the `<namespace>` and the `<thingId>` in the `topic`).
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/modify`     |
+| **path**  | `/features/<featureId>/desiredProperties`     |
+| **value** | The desired Properties of the Feature as JSON, see property `desiredProperties` of Things JSON schema. See [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/modify` |
+| **path**   |        | `/features/<featureId>/desiredProperties`                      |
+| **value**  |        | The created desired Properties of the Feature as JSON object, see property `desiredProperties` of Things JSON schema at [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). This field is not available, if Feature already contained desired Properties. |
+| **status** | *code* |                          | 
+|            | `201`  | Success - the desired Properties were created successfully.       |
+|            | `204`  | Success - the desired Properties were modified successfully.       |
+|            | `403`  | Not Modifiable - The desired Properties could not be modified as the requester had insufficient permissions ('WRITE' is required).  |
+|            | `404`  | Not Found - The desired Properties were not found or requester had insufficient permissions.  |
+|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
+
+### Event
+
+If the Feature already contained desired Properties before the command was applied and they were thus overwritten by the command, a `modified` event will be emitted.
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/modified`     |
+| **path**  | `/features/<featureId>/desiredProperties`     |
+| **value** | The modified desired Properties of the Feature as JSON, see property `desiredProperties` of the Things JSON schema. See [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
+
+**Example:** [Modify Feature Desired Properties](protocol-examples-modifydesiredproperties.html)
+
+If the Feature did not yet contain desired Properties before the command was applied, a `created` event will be emitted.
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/created`     |
+| **path**  | `/features/<featureId>/desiredProperties`     |
+| **value** | The created desired Properties of the Feature as JSON object, see property `desiredProperties` of the Things JSON schema at [Ditto protocol payload (JSON)](protocol-specification.html#dittoProtocolPayload). |
+
+**Example:** [Create Feature Desired Properties](protocol-examples-createdesiredproperties.html)
 
 ## Create or modify a single Property of a Feature
 
@@ -496,3 +543,52 @@ If the Feature Property did not yet exist before the command was applied, a `cre
 
 **Example:** [Create a single Feature Property](protocol-examples-createproperty.html)
 
+## Create or modify a single desired Property of a Feature
+
+Create or modify a specific desired Property (identified by `<desiredPropertyPath>`) of a Feature (identified by the `<featureId>` in the `path`). 
+The desired Property will be created if it doesn't exist or else updated.
+The Property (JSON) can be referenced hierarchically by applying [JSON Pointer notation (RFC-6901)](https://tools.ietf.org/html/rfc6901).
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/modify`     |
+| **path**  | `/features/<featureId>/desiredProperties/<desiredPropertyPath>`     |
+| **value** | The specific desired Property of the Feature as JSON. |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/modify` |
+| **path**   |        | `/features/<featureId>/desiredProperties/<desiredPropertyPath>`                      |
+| **value**  |        | The created desired Property of the Feature as JSON. This field is not available, if the Property already existed. |
+| **status** | *code* |                          | 
+|            | `201`  | Success - the desired Property was created successfully.       |               | 
+|            | `204`  | Success - the desired Property was modified successfully.       |
+|            | `403`  | Not Modifiable - The desired Property could not be modified as the requester had insufficient permissions ('WRITE' is required).   |
+|            | `404`  | Not Found - The Thing or desired Property was not found or requester had insufficient permissions.  |
+|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
+
+### Event
+
+If the Feature desired Property already existed before the command was applied and it was thus overwritten by the command, a `modified` event will be emitted.
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/modified`     |
+| **path**  | `/features/<featureId>/desiredProperties/<desiredPropertyPath>`     |
+| **value** | The modified desired Property of the Thing as JSON. |
+
+**Example:** [Modify a single Feature desired Property](protocol-examples-modifydesiredproperty.html)
+
+If the Feature desired Property did not yet exist before the command was applied, a `created` event will be emitted.
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/created`     |
+| **path**  | `/features/<featureId>/desiredProperties/<desiredPropertyPath>`     |
+| **value** | The created Property of the Thing as JSON. |
+
+**Example:** [Create a single Feature desired Property](protocol-examples-createdesiredproperty.html)
