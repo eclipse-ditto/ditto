@@ -499,6 +499,30 @@ entries:
                   - title: Retrieve a single Property
                     url: /protocol-examples-retrieveproperty.html
                     output: web
+                  - title: Create desired Feature Properties
+                    url: /protocol-examples-createdesiredproperties.html
+                    output: web
+                  - title: Delete desired Feature Properties
+                    url: /protocol-examples-deletedesiredproperties.html
+                    output: web
+                  - title: Modify desired Feature Properties
+                    url: /protocol-examples-modifydesiredproperties.html
+                    output: web
+                  - title: Retrieve desired Feature Properties
+                    url: /protocol-examples-retrievedesiredproperties.html
+                    output: web
+                  - title: Create a single desired Property
+                    url: /protocol-examples-createdesiredproperty.html
+                    output: web
+                  - title: Delete a single desired Property
+                    url: /protocol-examples-deletedesiredproperty.html
+                    output: web
+                  - title: Modify a single desired Property
+                    url: /protocol-examples-modifydesiredproperty.html
+                    output: web
+                  - title: Retrieve a single desired Property
+                    url: /protocol-examples-retrievedesiredproperty.html
+                    output: web
                   - title: Error responses
                     url: /protocol-examples-errorresponses.html
                     output: web

@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FEATURES;
+import static org.eclipse.ditto.model.things.TestConstants.Feature.FEATURES_V2;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.retrieveFeaturesResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -50,8 +51,8 @@ public final class RetrieveFeaturesStrategyTest extends AbstractCommandStrategyT
     public void retrieveFeaturesWithoutSelectedFields() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatures command = RetrieveFeatures.of(context.getState(), DittoHeaders.empty());
-        final RetrieveFeaturesResponse expectedResponse = retrieveFeaturesResponse(command.getThingEntityId(), FEATURES,
-                FEATURES.toJson(command.getImplementedSchemaVersion()), command.getDittoHeaders());
+        final RetrieveFeaturesResponse expectedResponse = retrieveFeaturesResponse(command.getThingEntityId(), FEATURES_V2,
+                FEATURES_V2.toJson(command.getImplementedSchemaVersion()), command.getDittoHeaders());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }
@@ -62,8 +63,8 @@ public final class RetrieveFeaturesStrategyTest extends AbstractCommandStrategyT
         final JsonFieldSelector selectedFields = JsonFactory.newFieldSelector("maker");
         final RetrieveFeatures command =
                 RetrieveFeatures.of(context.getState(), selectedFields, DittoHeaders.empty());
-        final RetrieveFeaturesResponse expectedResponse = retrieveFeaturesResponse(command.getThingEntityId(), FEATURES,
-                FEATURES.toJson(command.getImplementedSchemaVersion(), selectedFields), command.getDittoHeaders());
+        final RetrieveFeaturesResponse expectedResponse = retrieveFeaturesResponse(command.getThingEntityId(), FEATURES_V2,
+                FEATURES_V2.toJson(command.getImplementedSchemaVersion(), selectedFields), command.getDittoHeaders());
 
         assertQueryResult(underTest, THING_V2, command, expectedResponse);
     }

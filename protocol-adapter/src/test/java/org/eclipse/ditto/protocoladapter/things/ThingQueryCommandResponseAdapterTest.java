@@ -13,6 +13,7 @@
 package org.eclipse.ditto.protocoladapter.things;
 
 import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_1;
+import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_2;
 import static org.eclipse.ditto.protocoladapter.TestConstants.FEATURE_ID;
 import static org.eclipse.ditto.protocoladapter.TestConstants.THING_ID;
 
@@ -31,8 +32,8 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.LiveTwinTest;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.LiveTwinTest;
 import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.TestConstants;
@@ -45,6 +46,8 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinitionResponse;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDesiredPropertiesResponse;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDesiredPropertyResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
@@ -394,6 +397,28 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
                         .withStatus(HttpStatusCode.OK)
                         .withValue(TestConstants.FEATURES.toJson())
                         .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final RetrieveFeaturesResponse retrieveFeatures =
+                RetrieveFeaturesResponse.of(THING_ID, TestConstants.FEATURES,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
+        final Adaptable actual = underTest.toAdaptable(retrieveFeatures, channel);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void retrieveFeaturesResponseToAdaptableWithoutDesiredPropertiesDueToJsonSchemaV1() {
+        final JsonPointer path = JsonPointer.of("/features");
+
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
+
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.FEATURES.toJson(JsonSchemaVersion.V_1))
+                        .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
 
@@ -436,12 +461,36 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
                         .withStatus(HttpStatusCode.OK)
                         .withValue(TestConstants.FEATURE.toJson())
                         .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final RetrieveFeatureResponse retrieveFeature =
+                RetrieveFeatureResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE.toJson(),
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
+
+        final Adaptable actual = underTest.toAdaptable(retrieveFeature, channel);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void retrieveFeatureResponseToAdaptableWithoutDesiredPropertiesDueToJsonSchemaV1() {
+        final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID);
+
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
+
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.FEATURE.toJson(JsonSchemaVersion.V_1))
+                        .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
 
         final RetrieveFeatureResponse retrieveFeature =
                 RetrieveFeatureResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE.toJson(),
                         TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
+
         final Adaptable actual = underTest.toAdaptable(retrieveFeature, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
@@ -534,6 +583,51 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
     }
 
     @Test
+    public void retrieveFeatureDesiredPropertiesResponseFromAdaptable() {
+        final RetrieveFeatureDesiredPropertiesResponse expected =
+                RetrieveFeatureDesiredPropertiesResponse.of(THING_ID, FEATURE_ID,
+                        TestConstants.FEATURE_DESIRED_PROPERTIES,
+                        DITTO_HEADERS_V_2);
+
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
+        final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID + "/desiredProperties");
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.FEATURE_DESIRED_PROPERTIES)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingQueryCommandResponse<?> actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void retrieveFeatureDesiredPropertiesResponseToAdaptable() {
+        final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID + "/desiredProperties");
+
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
+
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.FEATURE_DESIRED_PROPERTIES_JSON)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final RetrieveFeatureDesiredPropertiesResponse retrieveFeatureDesiredPropertiesResponse =
+                RetrieveFeatureDesiredPropertiesResponse.of(THING_ID, FEATURE_ID,
+                        TestConstants.FEATURE_DESIRED_PROPERTIES,
+                        TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
+        final Adaptable actual = underTest.toAdaptable(retrieveFeatureDesiredPropertiesResponse, channel);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
     public void retrieveFeaturePropertyResponseFromAdaptable() {
         final RetrieveFeaturePropertyResponse expected =
                 RetrieveFeaturePropertyResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER,
@@ -574,6 +668,53 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
                 RetrieveFeaturePropertyResponse.of(THING_ID, FEATURE_ID, TestConstants.FEATURE_PROPERTY_POINTER,
                         TestConstants.FEATURE_PROPERTY_VALUE, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
         final Adaptable actual = underTest.toAdaptable(retrieveFeatureProperty, channel);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void retrieveFeatureDesiredPropertyResponseFromAdaptable() {
+        final RetrieveFeatureDesiredPropertyResponse expected =
+                RetrieveFeatureDesiredPropertyResponse.of(THING_ID, FEATURE_ID,
+                        TestConstants.FEATURE_DESIRED_PROPERTY_POINTER,
+                        TestConstants.FEATURE_DESIRED_PROPERTY_VALUE, DITTO_HEADERS_V_2);
+
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
+        final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID + "/desiredProperties" +
+                TestConstants.FEATURE_DESIRED_PROPERTY_POINTER);
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.FEATURE_DESIRED_PROPERTY_VALUE)
+                        .build())
+                .withHeaders(DITTO_HEADERS_V_2)
+                .build();
+        final ThingQueryCommandResponse<?> actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void retrieveFeatureDesiredPropertyResponseToAdaptable() {
+        final JsonPointer path = JsonPointer.of("/features/" + FEATURE_ID + "/desiredProperties" +
+                TestConstants.FEATURE_DESIRED_PROPERTY_POINTER);
+
+        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
+
+        final Adaptable expected = Adaptable.newBuilder(topicPath)
+                .withPayload(Payload.newBuilder(path)
+                        .withStatus(HttpStatusCode.OK)
+                        .withValue(TestConstants.FEATURE_DESIRED_PROPERTY_VALUE)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final RetrieveFeatureDesiredPropertyResponse retrieveFeatureDesiredPropertyResponse =
+                RetrieveFeatureDesiredPropertyResponse.of(THING_ID, FEATURE_ID,
+                        TestConstants.FEATURE_DESIRED_PROPERTY_POINTER,
+                        TestConstants.FEATURE_DESIRED_PROPERTY_VALUE, TestConstants.HEADERS_V_2_NO_CONTENT_TYPE);
+        final Adaptable actual = underTest.toAdaptable(retrieveFeatureDesiredPropertyResponse, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }

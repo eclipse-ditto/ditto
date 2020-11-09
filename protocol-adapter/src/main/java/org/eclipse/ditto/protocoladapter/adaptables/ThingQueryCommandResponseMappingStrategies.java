@@ -25,6 +25,8 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveAclResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDefinitionResponse;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDesiredPropertiesResponse;
+import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureDesiredPropertyResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeatureResponse;
@@ -98,12 +100,22 @@ final class ThingQueryCommandResponseMappingStrategies
                 .of(thingIdFrom(adaptable), featureIdFrom(adaptable), featurePropertiesFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
 
-        mappingStrategies
-                .put(RetrieveFeaturePropertyResponse.TYPE,
-                        adaptable -> RetrieveFeaturePropertyResponse.of(thingIdFrom(adaptable),
-                                featureIdFrom(adaptable),
-                                featurePropertyPointerFrom(adaptable), featurePropertyValueFrom(adaptable),
+        mappingStrategies.put(RetrieveFeatureDesiredPropertiesResponse.TYPE,
+                adaptable -> RetrieveFeatureDesiredPropertiesResponse
+                        .of(thingIdFrom(adaptable), featureIdFrom(adaptable), featurePropertiesFrom(adaptable),
                                 dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(RetrieveFeaturePropertyResponse.TYPE,
+                adaptable -> RetrieveFeaturePropertyResponse.of(thingIdFrom(adaptable),
+                        featureIdFrom(adaptable),
+                        featurePropertyPointerFrom(adaptable), featurePropertyValueFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(RetrieveFeatureDesiredPropertyResponse.TYPE,
+                adaptable -> RetrieveFeatureDesiredPropertyResponse.of(thingIdFrom(adaptable),
+                        featureIdFrom(adaptable),
+                        featurePropertyPointerFrom(adaptable), featurePropertyValueFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
 
         return mappingStrategies;
     }

@@ -53,6 +53,7 @@ public final class NullFeatureTest {
 
         assertThat(feature.toJsonString()).isEqualTo("null");
         assertThat(feature.getProperties()).isEmpty();
+        assertThat(feature.getDesiredProperties()).isEmpty();
     }
 
 }

@@ -115,14 +115,32 @@ final class Thing3ValuePredicateVisitor
         }
 
         @Override
+        public JsonPointer visitFeatureProperties(final CharSequence featureId) {
+            return visitFeature(featureId.toString()).append(JsonPointer.of("properties"));
+        }
+
+        @Override
+        public JsonPointer visitFeatureDesiredProperties(final CharSequence featureId) {
+            return visitFeature(featureId.toString()).append(JsonPointer.of("desiredProperties"));
+        }
+
+        @Override
         public JsonPointer visitFeatureIdProperty(final String featureId, final String property) {
             return visitFeature(featureId).append(JsonPointer.of(property));
+        }
+
+        @Override
+        public JsonPointer visitFeatureIdDesiredProperty(final CharSequence featureId,
+                final CharSequence desiredProperty) {
+
+            return visitFeature(featureId.toString()).append(JsonPointer.of(desiredProperty));
         }
 
         @Override
         public JsonPointer visitSimple(final String fieldName) {
             return JsonPointer.empty().addLeaf(JsonKey.of(fieldName));
         }
+
     }
 
     /**

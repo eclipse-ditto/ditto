@@ -1,0 +1,26 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+content:
+  application/json:
+    schema:
+      type: string
+      example: ''
+  application/octet-stream:
+    schema:
+      type: string
+      example: ''
+  text/plain:
+    schema:
+      type: string
+      example: ''
+description: |-
+  Payload of the message with max size of 250 kB. It can be any HTTP
+  supported content, including binary content.

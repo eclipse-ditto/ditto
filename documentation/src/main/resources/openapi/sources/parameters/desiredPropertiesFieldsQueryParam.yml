@@ -1,0 +1,42 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+name: fields
+in: query
+description: |-
+  Contains a comma-separated list of fields from the desiredProperties to be
+  included in the returned JSON.
+
+  #### Selectable fields
+
+  Supports selecting arbitrary sub-fields as defined in the desiredProperties by
+  using a comma-separated list:
+    * several desiredProperties paths can be passed as a comma-separated list of JSON pointers (RFC-6901)
+
+      For example:
+        * `?fields=temperature` would select only `temperature` property value of desiredProperties (if present)
+        * `?fields=temperature,humidity` would select only `temperature` and `humidity` property values of desiredProperties (if present)
+
+  Supports selecting arbitrary sub-fields of objects by wrapping sub-fields
+  inside parentheses `( )`:
+    * a comma-separated list of sub-fields (a sub-field is a JSON pointer (RFC-6901) separated with `/`) to select
+    * sub-selectors can be used to request only specific sub-fields by placing expressions in parentheses `( )` after a selected subfield
+
+      For example:
+       * `?fields=location(longitude,latitude)` would select the `longitude` and `latitude` value inside the `location` property of desiredProperties
+
+  #### Examples
+
+  * `?fields=temperature,humidity,location(longitude,latitude)`
+
+  * `?fields=configuration,status(powerConsumption/watts)`
+required: false
+schema:
+  type: string

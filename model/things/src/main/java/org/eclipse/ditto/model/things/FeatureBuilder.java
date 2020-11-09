@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.things;
 
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -28,7 +29,6 @@ public interface FeatureBuilder {
 
     /**
      * This interface eventually allows create a new {@link Feature} object.
-     *
      */
     interface FeatureBuildable {
 
@@ -42,7 +42,6 @@ public interface FeatureBuilder {
 
     /**
      * This interface enables the creation of a {@link Feature} object from JSON.
-     *
      */
     interface FromJsonBuildable {
 
@@ -59,7 +58,6 @@ public interface FeatureBuilder {
 
     /**
      * This interface enables the creation of a {@link Feature} object from scratch.
-     *
      */
     interface FromScratchBuildable {
 
@@ -88,6 +86,24 @@ public interface FeatureBuilder {
         FromScratchBuildable properties(@Nullable JsonObject properties);
 
         /**
+         * Sets the desired properties of the Feature.
+         *
+         * @param desiredProperties the desired properties of the Feature to be created or {@code null}
+         * @return this builder to allow method chaining.
+         * @since 1.5.0
+         */
+        FromScratchBuildable desiredProperties(@Nullable FeatureProperties desiredProperties);
+
+        /**
+         * Sets the desired properties of the Feature.
+         *
+         * @param desiredProperties the desired properties of the Feature to be created or {@code null}.
+         * @return this builder to allow method chaining.
+         * @since 1.5.0
+         */
+        FromScratchBuildable desiredProperties(@Nullable JsonObject desiredProperties);
+
+        /**
          * Sets the provided ID instead of the one which was possibly contained in the Feature's JSON.
          *
          * @param featureId the ID to use in the Feature to be created.
@@ -101,7 +117,6 @@ public interface FeatureBuilder {
     /**
      * A mutable builder with a fluent API for an immutable {@link Feature}. This builder is initialised with the
      * properties of an existing Feature.
-     *
      */
     @NotThreadSafe
     interface FromCopyBuildable {
@@ -140,6 +155,36 @@ public interface FeatureBuilder {
          * @throws NullPointerException if {@code transform} is {@code null}.
          */
         FromCopyBuildable properties(Function<FeatureProperties, FeatureProperties> transform);
+
+        /**
+         * Sets the desired properties of the Feature.
+         *
+         * @param desiredProperties the desired properties of the Feature to be created or {@code null}.
+         * @return this builder to allow method chaining.
+         * @since 1.5.0
+         */
+        FromCopyBuildable desiredProperties(@Nullable FeatureProperties desiredProperties);
+
+        /**
+         * Sets the desired properties of the Feature.
+         *
+         * @param desiredProperties the desired properties of the Feature to be created or {@code null}.
+         * @return this builder to allow method chaining.
+         * @since 1.5.0
+         */
+        FromCopyBuildable desiredProperties(@Nullable JsonObject desiredProperties);
+
+        /**
+         * Calls the given {@code transform} function with the currently set desired properties of this builder.
+         * The result of the {@code transform} function is set as new desired properties of the Feature to be built.
+         *
+         * @param transform the function to transform the current desired properties of the Feature to be created.
+         * If there are no desired properties set yet, the function is called with empty desired properties.
+         * @return this builder to allow method chaining.
+         * @throws NullPointerException if {@code transform} is {@code null}.
+         * @since 1.5.0
+         */
+        FromCopyBuildable desiredProperties(UnaryOperator<FeatureProperties> transform);
 
         /**
          * Sets the given Feature ID to this builder.

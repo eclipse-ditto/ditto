@@ -1,0 +1,19 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+name: timeout
+in: query
+description: |-
+  Contains an optional timeout (in seconds) of how long to wait for the message response and therefore block the
+  HTTP request. Default value (if omitted): 10 seconds. Maximum value: 60 seconds. A value of 0 seconds applies
+  fire and forget semantics for the message.
+required: false
+schema:
+  type: integer

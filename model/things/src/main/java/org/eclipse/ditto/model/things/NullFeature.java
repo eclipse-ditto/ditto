@@ -111,6 +111,36 @@ final class NullFeature implements Feature {
     }
 
     @Override
+    public Optional<FeatureProperties> getDesiredProperties() {
+        return Optional.empty();
+    }
+
+    @Override
+    public Feature setDesiredProperties(final FeatureProperties desiredProperties) {
+        return this;
+    }
+
+    @Override
+    public Feature removeDesiredProperties() {
+        return this;
+    }
+
+    @Override
+    public Optional<JsonValue> getDesiredProperty(final JsonPointer pointer) {
+        return Optional.empty();
+    }
+
+    @Override
+    public Feature setDesiredProperty(final JsonPointer pointer, final JsonValue desiredPropertyValue) {
+        return this;
+    }
+
+    @Override
+    public Feature removeDesiredProperty(final JsonPointer pointer) {
+        return this;
+    }
+
+    @Override
     public JsonObject toJson() {
         return JsonFactory.nullObject();
     }

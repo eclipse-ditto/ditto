@@ -96,6 +96,9 @@ semantics of the data or adding other useful information about the data points o
                   "street": "my street",
                   "house no": 42
               }
+          },
+          "desiredProperties": {
+              "connected": false
           }
       },
       "switchable": {

@@ -42,7 +42,8 @@ public final class ThingCommandStrategies
         addDefinitionStrategies();
         addFeaturesStrategies();
         addFeatureDefinitionStrategies();
-        addFeatureStrategies();
+        addFeaturePropertiesStrategies();
+        addFeatureDesiredPropertiesStrategies();
         addSudoStrategies();
     }
 
@@ -114,13 +115,22 @@ public final class ThingCommandStrategies
         addStrategy(new DeleteFeatureDefinitionStrategy());
     }
 
-    private void addFeatureStrategies() {
+    private void addFeaturePropertiesStrategies() {
         addStrategy(new ModifyFeaturePropertiesStrategy());
         addStrategy(new ModifyFeaturePropertyStrategy());
         addStrategy(new RetrieveFeaturePropertiesStrategy());
         addStrategy(new RetrieveFeaturePropertyStrategy());
         addStrategy(new DeleteFeaturePropertiesStrategy());
         addStrategy(new DeleteFeaturePropertyStrategy());
+    }
+
+    private void addFeatureDesiredPropertiesStrategies() {
+        addStrategy(new ModifyFeatureDesiredPropertiesStrategy());
+        addStrategy(new ModifyFeatureDesiredPropertyStrategy());
+        addStrategy(new RetrieveFeatureDesiredPropertiesStrategy());
+        addStrategy(new RetrieveFeatureDesiredPropertyStrategy());
+        addStrategy(new DeleteFeatureDesiredPropertiesStrategy());
+        addStrategy(new DeleteFeatureDesiredPropertyStrategy());
     }
 
     private void addSudoStrategies() {

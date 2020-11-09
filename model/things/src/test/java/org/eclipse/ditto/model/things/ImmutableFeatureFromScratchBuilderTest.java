@@ -27,6 +27,7 @@ public final class ImmutableFeatureFromScratchBuilderTest {
     public void buildFeatureFromJsonWithIdSpecified() {
         final JsonObject featureJson = JsonFactory.newObjectBuilder()
                 .set(Feature.JsonFields.PROPERTIES, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES)
+                .set(Feature.JsonFields.DESIRED_PROPERTIES, TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES)
                 .set(Feature.JsonFields.DEFINITION, TestConstants.Feature.FLUX_CAPACITOR_DEFINITION.toJson())
                 .build();
 
@@ -36,6 +37,7 @@ public final class ImmutableFeatureFromScratchBuilderTest {
 
         assertThat(feature.getId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(feature.getProperties()).contains(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+        assertThat(feature.getDesiredProperties()).contains(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
     }
 
     @Test
@@ -47,6 +49,7 @@ public final class ImmutableFeatureFromScratchBuilderTest {
         assertThat(feature.getId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(feature.toJsonString()).isEqualTo("{}");
         assertThat(feature.getProperties()).isEmpty();
+        assertThat(feature.getDesiredProperties()).isEmpty();
         assertThat(feature.getDefinition()).isEmpty();
     }
 
@@ -59,6 +62,7 @@ public final class ImmutableFeatureFromScratchBuilderTest {
         assertThat(feature.getId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(feature.toJsonString()).isEqualTo("null");
         assertThat(feature.getProperties()).isEmpty();
+        assertThat(feature.getDesiredProperties()).isEmpty();
         assertThat(feature.getDefinition()).isEmpty();
     }
 
@@ -72,17 +76,30 @@ public final class ImmutableFeatureFromScratchBuilderTest {
         assertThat(actual.getProperties()).contains(ThingsModelFactory.nullFeatureProperties());
         assertThat(actual.toJsonString()).isEqualTo(jsonObject.toString());
     }
+    @Test
+    public void buildInstanceWithDesiredPropertiesNull() {
+        final JsonObject jsonObject = JsonFactory.newObject("{\"desiredProperties\":null}");
+        final Feature actual = ImmutableFeatureFromScratchBuilder.newFeatureFromJson(jsonObject)
+                .useId(TestConstants.Feature.FLUX_CAPACITOR_ID)
+                .build();
+
+        assertThat(actual.getDesiredProperties()).contains(ThingsModelFactory.nullFeatureProperties());
+        assertThat(actual.toJsonString()).isEqualTo(jsonObject.toString());
+    }
+
 
     @Test
     public void buildInstanceFromScratch() {
         final Feature underTest = ImmutableFeatureFromScratchBuilder.newFeatureFromScratch()
                 .properties(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES)
+                .desiredProperties(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES)
                 .definition(TestConstants.Feature.FLUX_CAPACITOR_DEFINITION)
                 .withId(TestConstants.Feature.FLUX_CAPACITOR_ID)
                 .build();
 
         assertThat(underTest.getId()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_ID);
         assertThat(underTest.getProperties()).contains(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
+        assertThat(underTest.getDesiredProperties()).contains(TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES);
         assertThat(underTest.getDefinition()).contains(TestConstants.Feature.FLUX_CAPACITOR_DEFINITION);
     }
 
