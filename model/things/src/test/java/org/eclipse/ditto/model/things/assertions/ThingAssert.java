@@ -443,6 +443,73 @@ public final class ThingAssert extends AbstractJsonifiableAssert<ThingAssert, Th
         return this;
     }
 
+    public ThingAssert hasFeatureDesiredProperties(final String featureId, final FeatureProperties expectedDesiredProperties) {
+        isNotNull();
+
+        final FeatureProperties actualDesiredProperties = actual.getFeatures()
+                .flatMap(features -> features.getFeature(featureId))
+                .flatMap(Feature::getDesiredProperties)
+                .orElse(null);
+
+        assertThat(actualDesiredProperties)
+                .overridingErrorMessage("Expected Thing Feature <%s> to have the desired properties \n<%s> but it had \n<%s>",
+                        featureId, expectedDesiredProperties, actualDesiredProperties)
+                .isEqualTo(expectedDesiredProperties);
+
+        return this;
+    }
+
+    public ThingAssert featureHasNoDesiredProperties(final String featureId) {
+        isNotNull();
+
+        final boolean isFeatureHasDesiredProperties = actual.getFeatures()
+                .flatMap(features -> features.getFeature(featureId))
+                .flatMap(Feature::getDesiredProperties)
+                .isPresent();
+
+        assertThat(isFeatureHasDesiredProperties)
+                .overridingErrorMessage("Expected Thing Feature <%s> not to have any desired properties but it did",
+                        featureId)
+                .isFalse();
+
+        return this;
+    }
+
+    public ThingAssert hasFeatureDesiredProperty(final String featureId, final JsonPointer propertyPath,
+            final JsonValue expectedValue) {
+        isNotNull();
+
+        final JsonValue actualDesiredPropertyValue = actual.getFeatures()
+                .flatMap(features -> features.getFeature(featureId))
+                .flatMap(feature -> feature.getDesiredProperty(propertyPath))
+                .orElse(null);
+
+        assertThat(actualDesiredPropertyValue)
+                .overridingErrorMessage("Expected Thing Feature desired property at <%s> to be \n<%s> but " +
+                                "it was \n<%s>",
+                        propertyPath,
+                        expectedValue, actualDesiredPropertyValue)
+                .isEqualTo(expectedValue);
+
+        return this;
+    }
+
+    public ThingAssert hasNotFeatureDesiredProperty(final String featureId, final JsonPointer propertyPath) {
+        isNotNull();
+
+        final boolean isHasDesiredFeatureProperty = actual.getFeatures()
+                .flatMap(features -> features.getFeature(featureId))
+                .flatMap(feature -> feature.getDesiredProperty(propertyPath))
+                .isPresent();
+
+        assertThat(isHasDesiredFeatureProperty)
+                .overridingErrorMessage("Expected Thing Feature not to have a desired property at <%s> but it had.",
+                        propertyPath)
+                .isFalse();
+
+        return this;
+    }
+
     public ThingAssert hasLifecycle(final ThingLifecycle expectedLifecycle) {
         isNotNull();
 

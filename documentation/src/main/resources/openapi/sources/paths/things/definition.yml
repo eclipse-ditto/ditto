@@ -1,0 +1,206 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+get:
+  summary: Retrieve the definition of a specific thing
+  description: |-
+    Returns the definition of the thing identified by the `thingId` path parameter.
+  tags:
+    - Things
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+  responses:
+    '200':
+      description: The request successfully returned the definition of the specific thing.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/definition.yml'
+    '304':
+      $ref: '../../responses/notModified.yml'
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+        * the `thingId` does not conform to the namespaced entity ID notation
+        (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the caller has insufficient permissions.
+            For modifying the definition of an existing thing, `WRITE` permission is required.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The thing with the given ID was
+        not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+put:
+  summary: Create or update the definition of a specific thing
+  description: |-
+    * If the thing does not have a definition yet, this request will create it.
+    * If the thing already has a definition you can assign it to a new one by setting the new definition in the request body.
+  tags:
+    - Things
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/requestedAcksParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '201':
+      description: The definition was successfully created.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+        Location:
+          description: The location of the created definition resource
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/definition.yml'
+    '204':
+      description: The definition was successfully updated.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the `thingId` does not conform to the namespaced entity ID notation
+            (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+          * the JSON was invalid
+          * the request body was not a JSON object.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the caller has insufficient permissions.
+            For modifying a definition of an existing thing, `WRITE` permission is required.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The thing with the given ID was
+        not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+    '413':
+      $ref: '../../responses/entityTooLarge.yml'
+  requestBody:
+    $ref: '../../requests/definition.yml'
+delete:
+  summary: Delete the definition of a specific thing
+  description: |-
+    Deletes the definition of the thing identified by the `thingId`.
+  tags:
+    - Things
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/requestedAcksParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '204':
+      description: The definition was successfully deleted.
+    '400':
+      description: |-
+        The request could not be completed. The `thingId` does not conform to the namespaced entity ID notation
+        (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the caller has insufficient permissions.
+            For modifying a definition of an existing thing, `WRITE` permission is required.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The thing with the given ID or
+        its definition was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'

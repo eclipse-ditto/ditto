@@ -16,6 +16,12 @@ cqrs: "Command-Query Responsibility Segregation. A pattern Ditto applies in orde
 
 feature: "A Feature clusters a set of coherent Properties and has an optional Feature definition."
 
+properties: "A feature may consist of a distinct set of properties, which are functional or logically coherent.
+            The feature properties can represent: _properties_ (e.g. values as reported by a physical device)
+            or _desiredProperties_ (e.g. values set via a remote management UI, aiming to trigger
+            the device integration layer to change the device configuration).
+            Each property itself can be either a simple scalar value or a complex object. Allowed is any JSON object."
+
 iiot: "Industrial Internet of Things - also known as 'Industry 4.0'"
 
 iot: "Internet of Things"

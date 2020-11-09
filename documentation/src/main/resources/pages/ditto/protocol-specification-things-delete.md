@@ -260,7 +260,6 @@ The event emitted by Ditto after the Feature Definition of a Thing was deleted.
 **Example:** 
 [Delete Feature Definition](protocol-examples-deletedefinition.html)
 
-
 ## Delete all Properties of a Feature
 
 Delete all Properties of a Feature (identified by the `<featureId>` in the `path`) of the Thing 
@@ -298,6 +297,42 @@ The event emitted by Ditto after the Feature Properties of a Thing were deleted.
 **Example:** 
 [Delete Feature Properties](protocol-examples-deleteproperties.html)
 
+## Delete all desired Properties of a Feature
+
+Delete all desired Properties of a Feature (identified by the `<featureId>` in the `path`) of the Thing 
+(identified by the `<namespace>` and the `<thingId>` in the `topic`).
+
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/delete`     |
+| **path**  | `/features/<featureId>/desiredProperties`     |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/delete` |
+| **path**   |        | `/features/<featureId>/desiredProperties`                      |
+| **status** | _code_ |                          | 
+|            | `204`  | Success - the desired Properties were deleted successfully.       |
+|            | `403`  | Not Modifiable - The desired Properties could not be deleted as the requester had insufficient permissions ('WRITE' is required).  |
+|            | `404`  | Not Found - The desired Properties were not found or requester had insufficient permissions.  |
+|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
+
+### Event
+
+The event emitted by Ditto after the Feature desired Properties of a Thing were deleted.
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/deleted`     |
+| **path**  | `/features/<featureId>/desiredProperties`     |
+
+**Example:** 
+[Delete Feature Desired Properties](protocol-examples-deletedesiredproperties.html)
 
 ## Delete a single Property of a Feature
 
@@ -333,3 +368,38 @@ The event emitted by Ditto after a Feature Property of a Thing was deleted.
 
 **Example:** 
 [Delete a single Feature Property](protocol-examples-deleteproperty.html)
+
+## Delete a single desired Property of a Feature
+
+Delete a specific Property (identified by `<desiredPropertyPath>`) of a Feature (identified by the `<featureId>` in the `path`). 
+
+### Command
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingName>/things/<channel>/commands/delete`     |
+| **path**  | `/features/<featureId>/desiredProperties/<desiredPropertyPath>`     |
+
+### Response
+
+| Field      |        | Value                    |
+|------------|--------|--------------------------|
+| **topic**  |        | `<namespace>/<thingName>/things/<channel>/commands/delete` |
+| **path**   |        | `/features/<featureId>/desiredProperties/<desiredPropertyPath>`                      |
+| **status** | _code_ |                          | 
+|            | `204`  | Success - the desired Property was deleted successfully.       |
+|            | `403`  | Not Modifiable - The desired Property could not be deleted as the requester had insufficient permissions ('WRITE' is required).   |
+|            | `404`  | Not Found - The Thing or desired Property was not found or requester had insufficient permissions.  |
+|            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
+
+### Event
+
+The event emitted by Ditto after a Feature desired Property of a Thing was deleted.
+
+| Field     | Value                   |
+|-----------|-------------------------|
+| **topic** | `<namespace>/<thingName>/things/<channel>/events/deleted`     |
+| **path**  | `/features/<featureId>/desiredProperties/<desiredPropertyPath>`     |
+
+**Example:** 
+[Delete a single Feature Desired Property](protocol-examples-deletedesiredproperty.html)

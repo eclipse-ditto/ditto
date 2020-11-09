@@ -40,6 +40,7 @@ import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDesiredProperty;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingResponse;
@@ -405,6 +406,22 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         final Jsonifiable<JsonObject> jsonifiable = underTest.fromAdaptable(adaptable);
 
         assertThat(jsonifiable).isInstanceOf(ModifyFeatureProperty.class);
+    }
+
+    @Test
+    public void modifyFeatureDesiredPropertyFromAdaptable() {
+        final String topicPathString =
+                "org.eclipse.ditto.client.test/7a96e7a4-b20c-43eb-b669-f75514af30d0/things/twin/commands/modify";
+        final TopicPath topicPath = ProtocolFactory.newTopicPath(topicPathString);
+
+        final String jsonString = "{\"path\":\"/features/feature_id_2/desiredProperties/complex/bum\",\"value\":\"bar\"}";
+        final Payload payload = ProtocolFactory.newPayload(jsonString);
+
+        final Adaptable adaptable = ProtocolFactory.newAdaptableBuilder(topicPath).withPayload(payload).build();
+
+        final Jsonifiable<JsonObject> jsonifiable = underTest.fromAdaptable(adaptable);
+
+        assertThat(jsonifiable).isInstanceOf(ModifyFeatureDesiredProperty.class);
     }
 
     @Test

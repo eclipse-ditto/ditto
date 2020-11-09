@@ -23,6 +23,8 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDefinitionResponse;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDesiredPropertiesResponse;
+import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureDesiredPropertyResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureResponse;
@@ -34,6 +36,8 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyAclResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDefinitionResponse;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDesiredPropertiesResponse;
+import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureDesiredPropertyResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertiesResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeaturePropertyResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureResponse;
@@ -185,6 +189,17 @@ final class ThingModifyCommandResponseMappingStrategies
                 adaptable -> DeleteFeaturePropertiesResponse.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
 
+        mappingStrategies.put(ModifyFeatureDesiredPropertiesResponse.TYPE,
+                adaptable -> isCreated(adaptable)
+                        ? ModifyFeatureDesiredPropertiesResponse.created(thingIdFrom(adaptable), featureIdFrom(adaptable),
+                        featurePropertiesFrom(adaptable),
+                        dittoHeadersFrom(adaptable))
+                        : ModifyFeatureDesiredPropertiesResponse.modified(thingIdFrom(adaptable), featureIdFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(DeleteFeatureDesiredPropertiesResponse.TYPE,
+                adaptable -> DeleteFeatureDesiredPropertiesResponse.of(thingIdFrom(adaptable), featureIdFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+
         mappingStrategies.put(ModifyFeaturePropertyResponse.TYPE,
                 adaptable -> isCreated(adaptable)
                         ? ModifyFeaturePropertyResponse.created(thingIdFrom(adaptable), featureIdFrom(adaptable),
@@ -194,6 +209,18 @@ final class ThingModifyCommandResponseMappingStrategies
                         featurePropertyPointerFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
         mappingStrategies.put(DeleteFeaturePropertyResponse.TYPE, adaptable -> DeleteFeaturePropertyResponse
+                .of(thingIdFrom(adaptable), featureIdFrom(adaptable), featurePropertyPointerFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+
+        mappingStrategies.put(ModifyFeatureDesiredPropertyResponse.TYPE,
+                adaptable -> isCreated(adaptable)
+                        ? ModifyFeatureDesiredPropertyResponse.created(thingIdFrom(adaptable), featureIdFrom(adaptable),
+                        featurePropertyPointerFrom(adaptable),
+                        featurePropertyValueFrom(adaptable), dittoHeadersFrom(adaptable))
+                        : ModifyFeatureDesiredPropertyResponse.modified(thingIdFrom(adaptable), featureIdFrom(adaptable),
+                        featurePropertyPointerFrom(adaptable),
+                        dittoHeadersFrom(adaptable)));
+        mappingStrategies.put(DeleteFeatureDesiredPropertyResponse.TYPE, adaptable -> DeleteFeatureDesiredPropertyResponse
                 .of(thingIdFrom(adaptable), featureIdFrom(adaptable), featurePropertyPointerFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
     }

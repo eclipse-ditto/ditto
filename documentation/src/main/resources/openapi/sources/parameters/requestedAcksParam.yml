@@ -1,0 +1,22 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+name: requested-acks
+in: query
+description: |-
+  Contains the "requested acknowledgements" for this modifying request as comma separated list. The HTTP call will
+  block until all requested acknowledgements were aggregated or will time out based on the specified `timeout`
+  parameter.
+
+  The default (if omitted) requested acks is `requested-acks=twin-persisted` which will block the
+  HTTP call until the change was persited to the twin.
+required: false
+schema:
+  type: string

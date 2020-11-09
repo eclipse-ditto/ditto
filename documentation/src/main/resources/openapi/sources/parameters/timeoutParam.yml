@@ -1,0 +1,23 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+name: timeout
+in: query
+description: |-
+  Defines how long the backend should wait for completion of the request, e.g. applied when waiting for requested
+  acknowledgements via the `requested-acks` param. Can be specified without unit (then seconds are assumed) or
+  together with `s`, `ms` or `m` unit. Example: `42s`, `1m`.
+
+  The default (if omitted) timeout is `10s`. Maximum value: `60s`.
+
+  A value of `0` applies fire and forget semantics for the command resulting in setting `response-required=false`.
+required: false
+schema:
+  type: string

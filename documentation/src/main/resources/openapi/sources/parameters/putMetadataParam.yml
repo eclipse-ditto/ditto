@@ -1,0 +1,28 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+name: put-metadata
+in: header
+description: >-
+  The `put-metadata` header, which sets Metadata information in the Thing.
+required: false
+schema:
+  type: array
+  description: An array of objects containing metadata to apply.
+  items:
+    type: object
+    description: Object containing a `key` where to apply the metadata and a `value` with the metadata value to apply.
+    additionalProperties:
+      properties:
+        key:
+          type: string
+          description: The JsonPointer to set the metadata `value` to. May start with `*/<key>` in order to apply the metadata to all affected JSON leaves.
+        value:
+          description: The arbitrary JSON value to set as metadata.
