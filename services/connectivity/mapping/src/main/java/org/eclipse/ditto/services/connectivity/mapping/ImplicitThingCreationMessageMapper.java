@@ -227,9 +227,12 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
         if (TopicPath.Criterion.ERRORS.equals(adaptable.getTopicPath().getCriterion())) {
-            throw GlobalErrorRegistry.getInstance().parse(adaptable.getPayload().toJson(), adaptable.getDittoHeaders());
+            adaptable.getPayload().getValue().filter(JsonValue::isObject).map(JsonValue::asObject)
+                    .ifPresent(jsonObject -> {
+                        throw GlobalErrorRegistry.getInstance().parse(jsonObject,
+                                adaptable.getDittoHeaders());
+                    });
         }
-
         return Collections.emptyList();
     }
 
