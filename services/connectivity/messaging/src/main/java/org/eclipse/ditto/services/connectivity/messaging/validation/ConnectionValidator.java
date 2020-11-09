@@ -196,14 +196,13 @@ public final class ConnectionValidator {
      * @throws ConnectionConfigurationInvalidException if number is over predefined limit
      */
     private void checkNumberOfSourcesAndTargets(final Connection connection,
-            final DittoHeaders dittoHeaders, final double maxNumberOfSources, final double maxNumberOfTargets) {
+            final DittoHeaders dittoHeaders, final int maxNumberOfSources, final int maxNumberOfTargets) {
         final String errorMessage = "The number of configured sources or targets within a connection exceeded.";
         if (connection.getSources().size() > maxNumberOfSources) {
             throw ConnectionConfigurationInvalidException.newBuilder(errorMessage)
                     .description(
                             "The number of configured sources for connection: " + connection.getId() +
-                                    " is above the " +
-                                    "limit of " + maxNumberOfSources + ".")
+                                    " is above the limit of " + maxNumberOfSources + ".")
                     .dittoHeaders(dittoHeaders)
                     .build();
         } else if (connection.getTargets().size() > maxNumberOfTargets) {
