@@ -47,7 +47,6 @@ import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConf
 import org.eclipse.ditto.services.connectivity.messaging.mappingoutcome.MappingOutcome;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.base.Signal;
@@ -159,15 +158,8 @@ public final class InboundMappingProcessor
                             final DittoHeaders headersWithMapper =
                                     dittoHeaders.toBuilder().inboundPayloadMapper(mapper.getId()).build();
                             final Signal<?> signalWithMapperHeader = signal.setDittoHeaders(headersWithMapper);
-                            // TODO
-                            final ExternalMessage messageWithMappingInfo =
-                                    message;
-//                                    ExternalMessageFactory.newExternalMessageBuilder(message)
-//                                            .withTopicPath(adaptable.getTopicPath())
-//                                            .withAuthorizationContext(dittoHeaders.getAuthorizationContext())
-//                                            .build();
                             final MappedInboundExternalMessage mappedMessage =
-                                    MappedInboundExternalMessage.of(messageWithMappingInfo, adaptable.getTopicPath(),
+                                    MappedInboundExternalMessage.of(message, adaptable.getTopicPath(),
                                             signalWithMapperHeader);
                             mappedMessages.add(mappedMessage);
                         } catch (final Exception e) {
@@ -179,7 +171,8 @@ public final class InboundMappingProcessor
                         }
                     }
                     return mappedMessages.stream()
-                            .map(mapped -> MappingOutcome.mapped(mapper.getId(), mapped, mapped.getTopicPath(), message));
+                            .map(mapped -> MappingOutcome.mapped(mapper.getId(), mapped, mapped.getTopicPath(),
+                                    message));
                 }
             } else {
                 logger.withCorrelationId(message.getInternalHeaders())
@@ -220,7 +213,7 @@ public final class InboundMappingProcessor
                 .ifPresent(obj -> obj.forEach(field -> {
                     try {
                         final JsonValue value = field.getValue();
-                        headersBuilder.putHeader(field.getKey(), value.isString() ? value.asString() : value.toString());
+                        headersBuilder.putHeader(field.getKey(), value.formatAsString());
                     } catch (final Exception e) {
                         // ignore this single invalid header
                         logger.info("Putting a (payload) header resulted in an exception: {} - {}",
