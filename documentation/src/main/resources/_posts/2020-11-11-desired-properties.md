@@ -11,12 +11,13 @@ toc: true
 ---
 
 ## Desired feature properties added to things model
-With the release of Eclipse Ditto <b>version 1.5.0</b>
-[desired feature properties](basic-feature.htlm#feature-desired-properties) are introduced to the things model for 
-<b>API versions later than 1</b>. The <i>desired properties</i> for features are added on the same level of the model as
+With the release of Eclipse Ditto **version 1.5.0**
+[desired feature properties](basic-feature.html#feature-desired-properties) are introduced to the things model for 
+**API versions later than 1**. The _desired properties_ for features are added on the same level of the model as
 the feature properties and can reflect for example feature property updates ,which are intended, but not yet applied.
 
-<i>Further logics for desired feature properties might be implemented in future Ditto versions.</i>
+{% include note.html content="Further logics for desired feature properties might be implemented in future Ditto 
+                              versions." %}
 
 A fully-fledged JSON representation of a feature with desired properties is shown below:
 
@@ -52,25 +53,25 @@ A fully-fledged JSON representation of a feature with desired properties is show
 
 ## Operations on desired feature properties
 
-* <b>CRUD operations</b>
+* **CRUD operations**
     - You can create multiple desired properties of a feature or just single ones.
     - You can retrieve all desired properties of a feature or just single ones.
     - You can modify all desired properties of a feature or just single ones.
     - You can delete all desired properties of a feature or just single ones.
-* <b>Search</b>
+* **Search**
     - You can [search](httpapi-search.html) for things with specific desired properties with [RQL-functions](basic-rql.html).
     - You can search for things, which have [existent](basic-rql.html#exists) desired properties for a feature.
-* <b>Get notified on changes</b>
+* **Get notified on changes**
     - You can [receive events](basic-signals-event.html) for changes done to the desired properties of things
       you're authorized to read.
     - You can [enrich](basic-enrichment.html) and [filter](basic-changenotifications.html#filtering) the
     events you want to receive, for changes done to the desired properties.
     
 ### Executing CRUD operations on desired feature properties
-CRUD operations can be executed either via the [Ditto HTTP API](httpapi-concepts.html) <b>versions later than 1</b> or via
+CRUD operations can be executed either via the [Ditto HTTP API](httpapi-concepts.html) **versions later than 1** or via
 [ditto-protocol](protocol-overview.html) messages.
 
-<i>Possible CRUD operations for desired feature properties via ditto-protocol</i>:
+_Possible CRUD operations for desired feature properties via ditto-protocol_:
 
 - [Retrieve all desired properties of a feature via ditto-protocol](protocol-examples-retrievedesiredproperties.html)
 - [Retrieve a single desired property of a feature via ditto-protocol](protocol-examples-retrievedesiredproperty.html)
@@ -81,9 +82,9 @@ CRUD operations can be executed either via the [Ditto HTTP API](httpapi-concepts
 
 ### Using the ditto-client to manage desired feature properties
 The desired feature properties can also be retrieved, modified and deleted via the [Ditto Java Client](client-sdk-java.html).
-At the time of publishing of this blog post (<b>Ditto Java Client version 1.5.0</b>), no special CRUD operations for
+At the time of publishing of this blog post (**Ditto Java Client version 1.5.0**), no special CRUD operations for
 desired feature properties are implemented in the client. Thus, the operations have to be executed via creating
-<b>ditto-protocol messages</b> manually in the client.
+**ditto-protocol messages** manually in the client.
 
 Example for creating/modifying desired feature properties of a thing via the ditto-client:
 
@@ -110,6 +111,12 @@ final Adaptable modifyFeatureDesiredProperties =
         }));
 ```
 
+## Feedback?
+
+Please [get in touch](feedback.html) if you have feedback or questions towards this new concept of desired properties.
+
+<br/>
+<br/>
 {% include image.html file="ditto.svg" alt="Ditto" max-width=500 %}
 --<br/>
 The Eclipse Ditto team
