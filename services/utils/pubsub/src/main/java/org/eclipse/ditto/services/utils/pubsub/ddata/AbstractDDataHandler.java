@@ -38,7 +38,7 @@ import scala.jdk.javaapi.CollectionConverters;
 /**
  * A distributed collection of approximations of strings indexed by keys like ActorRef.
  */
-public abstract class AbstractDDataHandler<K, S, T extends IndelUpdate<S, T>>
+public abstract class AbstractDDataHandler<K, S, T extends DDataUpdate<S>>
         extends DistributedData<ORMultiMap<K, S>>
         implements DDataReader<K, S>, DDataWriter<K, T> {
 

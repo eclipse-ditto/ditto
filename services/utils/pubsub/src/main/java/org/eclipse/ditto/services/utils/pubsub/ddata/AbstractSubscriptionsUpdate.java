@@ -22,7 +22,8 @@ import javax.annotation.concurrent.NotThreadSafe;
  * A generic implementation of IndelUpdate.
  */
 @NotThreadSafe
-public abstract class AbstractIndelUpdate<S, T extends AbstractIndelUpdate<S, T>> implements IndelUpdate<S, T> {
+public abstract class AbstractSubscriptionsUpdate<S, T extends AbstractSubscriptionsUpdate<S, T>> implements
+        DDataUpdate<S> {
 
     private Set<S> inserts;
     private Set<S> deletes;
@@ -35,18 +36,15 @@ public abstract class AbstractIndelUpdate<S, T extends AbstractIndelUpdate<S, T>
      * @param deletes what to delete.
      * @param replaceAll whether it is a replacement update.
      */
-    protected AbstractIndelUpdate(final Set<S> inserts, final Set<S> deletes, final boolean replaceAll) {
+    protected AbstractSubscriptionsUpdate(final Set<S> inserts, final Set<S> deletes, final boolean replaceAll) {
         this.inserts = inserts;
         this.deletes = deletes;
         this.replaceAll = replaceAll;
     }
 
-    @Override
-    public void reset() {
-        inserts = new HashSet<>();
-        deletes = new HashSet<>();
-        replaceAll = false;
-    }
+    // TODO: javadoc
+
+    public abstract T snapshot();
 
     @Override
     public Set<S> getInserts() {
@@ -63,22 +61,32 @@ public abstract class AbstractIndelUpdate<S, T extends AbstractIndelUpdate<S, T>
         return replaceAll;
     }
 
-    @Override
+    protected void reset() {
+        inserts = new HashSet<>();
+        deletes = new HashSet<>();
+        replaceAll = false;
+    }
+
     public void insert(final S newInserts) {
         inserts.add(newInserts);
         deletes.remove(newInserts);
     }
 
-    @Override
     public void delete(final S newDeletes) {
         inserts.remove(newDeletes);
         deletes.add(newDeletes);
     }
 
+    public T exportAndReset() {
+        final T snapshot = snapshot();
+        this.reset();
+        return snapshot;
+    }
+
     @Override
     public boolean equals(final Object other) {
         if (getClass().isInstance(other)) {
-            final AbstractIndelUpdate<?, ?> that = getClass().cast(other);
+            final AbstractSubscriptionsUpdate<?, ?> that = getClass().cast(other);
             return replaceAll == that.replaceAll && inserts.equals(that.inserts) && deletes.equals(that.deletes);
         } else {
             return false;

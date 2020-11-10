@@ -32,7 +32,7 @@ import akka.actor.ActorRef;
  * @param <T> type of distributed updates.
  * @param <S> type of subscriptions objects.
  */
-public abstract class AbstractSubscriptionsTest<H, T extends IndelUpdate<H, T>, S extends AbstractSubscriptions<H, T>> {
+public abstract class AbstractSubscriptionsTest<H, T extends DDataUpdate<H>, S extends AbstractSubscriptions<H, T>> {
 
     protected static final ActorRef ACTOR1 = new MockActorRef("actor1");
     protected static final ActorRef ACTOR2 = new MockActorRef("actor2");

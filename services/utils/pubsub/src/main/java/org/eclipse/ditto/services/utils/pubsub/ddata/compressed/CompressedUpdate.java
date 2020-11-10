@@ -18,7 +18,7 @@ import java.util.Set;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.services.utils.pubsub.ddata.AbstractIndelUpdate;
+import org.eclipse.ditto.services.utils.pubsub.ddata.AbstractSubscriptionsUpdate;
 
 import akka.util.ByteString;
 
@@ -26,7 +26,7 @@ import akka.util.ByteString;
  * Updates of compressed DData.
  */
 @NotThreadSafe
-public final class CompressedUpdate extends AbstractIndelUpdate<ByteString, CompressedUpdate> {
+public final class CompressedUpdate extends AbstractSubscriptionsUpdate<ByteString, CompressedUpdate> {
 
     private CompressedUpdate(final Set<ByteString> inserts, final Set<ByteString> deletes, final boolean replaceAll) {
         super(inserts, deletes, replaceAll);

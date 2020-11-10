@@ -19,13 +19,13 @@ import java.util.Set;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.services.utils.pubsub.ddata.AbstractIndelUpdate;
+import org.eclipse.ditto.services.utils.pubsub.ddata.AbstractSubscriptionsUpdate;
 
 /**
  * Updates of uncompressed DData.
  */
 @NotThreadSafe
-public final class LiteralUpdate extends AbstractIndelUpdate<String, LiteralUpdate> {
+public final class LiteralUpdate extends AbstractSubscriptionsUpdate<String, LiteralUpdate> {
 
     private LiteralUpdate(final Set<String> inserts, final Set<String> deletes, final boolean replaceAll) {
         super(inserts, deletes, replaceAll);

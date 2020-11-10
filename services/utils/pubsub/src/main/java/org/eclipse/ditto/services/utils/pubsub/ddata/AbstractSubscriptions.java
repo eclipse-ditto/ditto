@@ -35,7 +35,7 @@ import akka.actor.ActorRef;
  * @param <T> type of approximations of subscriptions for distributed update.
  */
 @NotThreadSafe
-public abstract class AbstractSubscriptions<S, T extends IndelUpdate<S, T>> implements Subscriptions<T> {
+public abstract class AbstractSubscriptions<S, T extends DDataUpdate<S>> implements Subscriptions<T> {
 
     /**
      * Map from local subscribers to topics they subscribe to.

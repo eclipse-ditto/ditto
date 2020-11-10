@@ -20,34 +20,9 @@ import javax.annotation.concurrent.NotThreadSafe;
  * Updates consisting of insertions and deletions.
  *
  * @param <S> type of insertions and deletions.
- * @param <T> concrete type of this object.
  */
 @NotThreadSafe
-public interface IndelUpdate<S, T extends IndelUpdate<S, T>> {
-
-    /**
-     * Remove all data. Destroy immutability.
-     */
-    void reset();
-
-    /**
-     * Export an unmodifiable copy of this object.
-     *
-     * @return an unmodifiable copy.
-     */
-    T snapshot();
-
-    /**
-     * Export an unmodifiable copy of this object, then remove all data.
-     * The result is thread-safe if no user stores references to this object's fields.
-     *
-     * @return An unmodifiable copy of this object for asynchronous reads.
-     */
-    default T exportAndReset() {
-        final T snapshot = snapshot();
-        reset();
-        return snapshot;
-    }
+public interface DDataUpdate<S> {
 
     /**
      * @return Inserted elements.
@@ -63,18 +38,4 @@ public interface IndelUpdate<S, T extends IndelUpdate<S, T>> {
      * @return Whether the distributed data should clear all associations and replace them by inserts.
      */
     boolean shouldReplaceAll();
-
-    /**
-     * Add an element to be inserted.
-     *
-     * @param newInsert element to insert.
-     */
-    void insert(S newInsert);
-
-    /**
-     * Remove an element.
-     *
-     * @param newDelete element to delete.
-     */
-    void delete(S newDelete);
 }
