@@ -38,6 +38,12 @@ import org.eclipse.ditto.signals.events.things.FeatureDefinitionCreated;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionDeleted;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionModified;
 import org.eclipse.ditto.signals.events.things.FeatureDeleted;
+import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertiesCreated;
+import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertiesDeleted;
+import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertiesModified;
+import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertyCreated;
+import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertyDeleted;
+import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertyModified;
 import org.eclipse.ditto.signals.events.things.FeatureModified;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesCreated;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesDeleted;
@@ -82,6 +88,7 @@ final class ThingEventMappingStrategies extends AbstractThingMappingStrategies<T
         addFeatureEvents(mappingStrategies);
         addFeatureDefinitionEvents(mappingStrategies);
         addFeaturePropertyEvents(mappingStrategies);
+        addFeatureDesiredPropertyEvents(mappingStrategies);
         addPolicyIdEvents(mappingStrategies);
         return mappingStrategies;
     }
@@ -179,6 +186,62 @@ final class ThingEventMappingStrategies extends AbstractThingMappingStrategies<T
                         dittoHeadersFrom(adaptable),
                         metadataFrom(adaptable)));
     }
+
+    private static void addFeatureDesiredPropertyEvents(
+            final Map<String, JsonifiableMapper<ThingEvent<?>>> mappingStrategies) {
+        mappingStrategies.put(FeatureDesiredPropertiesCreated.TYPE,
+                adaptable -> FeatureDesiredPropertiesCreated.of(thingIdFrom(adaptable),
+                        featureIdFrom(adaptable),
+                        featurePropertiesFrom(adaptable),
+                        revisionFrom(adaptable),
+                        timestampFrom(adaptable),
+                        dittoHeadersFrom(adaptable),
+                        metadataFrom(adaptable)));
+        mappingStrategies.put(FeatureDesiredPropertiesModified.TYPE,
+                adaptable -> FeatureDesiredPropertiesModified.of(thingIdFrom(adaptable),
+                        featureIdFrom(adaptable),
+                        featurePropertiesFrom(adaptable),
+                        revisionFrom(adaptable),
+                        timestampFrom(adaptable),
+                        dittoHeadersFrom(adaptable),
+                        metadataFrom(adaptable)));
+        mappingStrategies.put(FeatureDesiredPropertiesDeleted.TYPE,
+                adaptable -> FeatureDesiredPropertiesDeleted.of(thingIdFrom(adaptable),
+                        featureIdFrom(adaptable),
+                        revisionFrom(adaptable),
+                        timestampFrom(adaptable),
+                        dittoHeadersFrom(adaptable),
+                        metadataFrom(adaptable)));
+
+        mappingStrategies.put(FeatureDesiredPropertyCreated.TYPE,
+                adaptable -> FeatureDesiredPropertyCreated.of(thingIdFrom(adaptable),
+                        featureIdFrom(adaptable),
+                        featurePropertyPointerFrom(adaptable),
+                        featurePropertyValueFrom(adaptable),
+                        revisionFrom(adaptable),
+                        timestampFrom(adaptable),
+                        dittoHeadersFrom(adaptable),
+                        metadataFrom(adaptable)));
+        mappingStrategies.put(FeatureDesiredPropertyModified.TYPE,
+                adaptable -> FeatureDesiredPropertyModified.of(thingIdFrom(adaptable),
+                        featureIdFrom(adaptable),
+                        featurePropertyPointerFrom(adaptable),
+                        featurePropertyValueFrom(adaptable),
+                        revisionFrom(adaptable),
+                        timestampFrom(adaptable),
+                        dittoHeadersFrom(adaptable),
+                        metadataFrom(adaptable)));
+        mappingStrategies.put(FeatureDesiredPropertyDeleted.TYPE,
+                adaptable -> FeatureDesiredPropertyDeleted.of(thingIdFrom(adaptable),
+                        featureIdFrom(adaptable),
+                        featurePropertyPointerFrom(adaptable),
+                        revisionFrom(adaptable),
+                        timestampFrom(adaptable),
+                        dittoHeadersFrom(adaptable),
+                        metadataFrom(adaptable)));
+    }
+
+
 
     private static void addFeatureDefinitionEvents(
             final Map<String, JsonifiableMapper<ThingEvent<?>>> mappingStrategies) {

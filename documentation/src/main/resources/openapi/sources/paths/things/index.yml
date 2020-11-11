@@ -1,0 +1,178 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+get:
+  summary: Retrieve multiple things with specified IDs
+  description: |-
+    Returns all things passed in by the required parameter `ids`, which you (the authorized subject) are allowed to read.
+
+    Optionally, if you want to retrieve only some of the thing's fields, you can use the specific field selectors (see parameter `fields`) .
+
+    Tip: If you don't know the thing IDs, start with the search resource.
+  tags:
+    - Things
+  parameters:
+    - name: ids
+      in: query
+      description: |-
+        Contains a comma-separated list of `thingId`s to retrieve in one
+        single request.
+      required: true
+      schema:
+        type: string
+    - $ref: '../../parameters/thingFieldsQueryParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+  responses:
+    '200':
+      description: |-
+        The successfully completed request contains as its result the first 200 for the user available Things.
+        The Things are sorted in the same order as the Thing IDs were provided in the `ids` parameter.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '../../schemas/thing.yml'
+    '400':
+      description: |-
+        The request could not be completed. At least one of the defined
+        query parameters was invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '414':
+      description: |-
+        The request could not be completed due to an URI length exceeding 8k
+        characters.
+post:
+  summary: Create a new thing
+  description: |-
+    Creates a thing with a default `thingId` and a default `policyId`.
+
+    The thing will be empty, i.e. no features, definition, attributes etc. by default.
+
+    The default `thingId` consists of your default namespace and a UUID.
+
+    The default `policyId` is identical with the default `thingId`, and allows the currently authorized subject all permissions.
+
+    In case you need to create a thing with a specific ID, use a *PUT* request instead, as any `thingId` specified in the request body will be ignored.
+
+    The field `_created` is filled automatically with the timestamp of the creation. The field is read-only and can
+    be retrieved later by explicitly selecting it or used in search filters.
+  tags:
+    - Things
+  parameters:
+    - $ref: '../../parameters/requestedAcksParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+    - $ref: '../../parameters/allowPolicyLockoutParam.yml'
+  responses:
+    '201':
+      description: The thing was successfully created.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+        Location:
+          description: The location of the created thing resource
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/thing.yml'
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the `thingId` must not be set in the request body
+          * the JSON body of the thing to be created is invalid
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed.
+        Possible reasons:
+          * the caller would not have access to the thing after creating it with the given policy.
+          * the caller has insufficient permissions.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the referenced thing does not exist.
+          * the caller had insufficient permissions to read the referenced thing.
+          * the policy that should be copied does not exist.
+          * the caller had insufficient permissions to read the policy that should be copied.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+    '413':
+      $ref: '../../responses/entityTooLarge.yml'
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: '../../schemas/newThing.yml'
+        example: {
+              "definition": "com.acme:coffeebrewer:0.1.0",
+              "attributes": {
+                "manufacturer": "ACME demo corp.",
+                "location": "Berlin, main floor",
+                "serialno": "42",
+                "model": "Speaking coffee machine"
+              },
+              "features": {
+                "coffee-brewer": {
+                  "definition": [ "com.acme:coffeebrewer:0.1.0" ],
+                  "properties": {
+                    "brewed-coffees": 0
+                  }
+                },
+                "water-tank": {
+                  "properties": {
+                    "configuration": {
+                      "smartMode": true,
+                      "brewingTemp": 87,
+                      "tempToHold": 44,
+                      "timeoutSeconds": 6000
+                    },
+                    "status": {
+                      "waterAmount": 731,
+                      "temperature": 44
+                    }
+                  }
+                }
+              }
+            }
+    description: JSON representation of the thing to be created. Use { } to create an empty thing with a default policy.
