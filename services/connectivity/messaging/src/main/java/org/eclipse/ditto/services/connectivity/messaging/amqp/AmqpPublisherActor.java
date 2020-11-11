@@ -61,9 +61,11 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
+import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.Pair;
+import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.KillSwitch;
 import akka.stream.KillSwitches;
@@ -115,6 +117,10 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                 Source.<Pair<ExternalMessage, AmqpMessageContext>>queue(config.getMaxQueueSize(),
                         OverflowStrategy.dropNew())
                         .mapAsync(config.getPublisherParallelism(), msg -> triggerPublishAsync(msg, jmsDispatcher))
+                        .recover(new PFBuilder<Throwable, Object>()
+                                .matchAny(x -> Done.getInstance()) // the "Done" instance is not used, this just means to not fail the stream for any Throwables
+                                .build()
+                        )
                         .viaMat(KillSwitches.single(), Keep.both())
                         .toMat(Sink.ignore(), Keep.left())
                         .run(materializer);
