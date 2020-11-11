@@ -145,6 +145,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         final AmqpMessageContext context = messageToPublish.second();
         return CompletableFuture.supplyAsync(() -> context.onPublishMessage(message), jmsDispatcher)
                 .thenCompose(Function.identity())
+                .exceptionally(t -> null)
                 .thenApply(x -> x);
     }
 
