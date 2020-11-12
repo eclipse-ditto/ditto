@@ -29,11 +29,19 @@ import org.eclipse.ditto.signals.base.Signal;
  */
 final class RequestedAcksFilter {
 
+    private static final String REQUESTED_ACKS_KEY = DittoHeaderDefinition.REQUESTED_ACKS.getKey();
+
+    private RequestedAcksFilter() {
+        throw new AssertionError();
+    }
+
     /**
      * Apply the configured requested-acks filter to a signal mapped from an external message.
-     * - If the filter is tripped, set requested-acks to []
-     * - If the filter is not tripped and requested-acks is defined, leave it
-     * - If the filter is not tripped, requested-acks is not defined, fallback to the resolved value of the filter.
+     * <ul>
+     * <li>If the filter is tripped, set requested-acks to []</li>
+     * <li>If the filter is not tripped and requested-acks is defined, leave it</li>
+     * <li>If the filter is not tripped, requested-acks is not defined, fallback to the resolved value of the filter.</li>
+     * </ul>
      *
      * @param signal signal to filter requested acknowledges for
      * @param externalMessage incoming external message that mapped to the signal
@@ -43,11 +51,10 @@ final class RequestedAcksFilter {
      */
     static Signal<?> filterAcknowledgements(final Signal<?> signal,
             final ExternalMessage externalMessage,
-            final @Nullable String filter,
+            @Nullable final String filter,
             final ConnectionId connectionId) {
         if (filter != null) {
-            final String requestedAcks = DittoHeaderDefinition.REQUESTED_ACKS.getKey();
-            final boolean headerDefined = signal.getDittoHeaders().containsKey(requestedAcks);
+            final boolean headerDefined = signal.getDittoHeaders().containsKey(REQUESTED_ACKS_KEY);
             final String requestedAcksValue = getDefaultRequestedAcks(headerDefined, signal);
             final String fullFilter = "fn:default('" + requestedAcksValue + "')|" + filter;
             final ExpressionResolver resolver = Resolvers.forExternalMessage(externalMessage, connectionId);
@@ -60,7 +67,7 @@ final class RequestedAcksFilter {
             } else if (headerDefined) {
                 // filter not tripped, header defined
                 return signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
-                        .putHeader(requestedAcks, resolverResult.orElseThrow())
+                        .putHeader(REQUESTED_ACKS_KEY, resolverResult.orElseThrow())
                         .build());
             } else {
                 // filter not tripped, header not defined:
@@ -70,7 +77,7 @@ final class RequestedAcksFilter {
                         resolver.resolveAsPipelineElement(filter).toOptional();
                 return unsetFilterResult.<Signal<?>>map(newAckRequests ->
                         signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
-                                .putHeader(requestedAcks, newAckRequests)
+                                .putHeader(REQUESTED_ACKS_KEY, newAckRequests)
                                 .build()))
                         .orElse(signal);
             }
@@ -80,7 +87,7 @@ final class RequestedAcksFilter {
 
     private static String getDefaultRequestedAcks(final boolean headerDefined, final Signal<?> signal) {
         if (headerDefined) {
-            final String headerValue = signal.getDittoHeaders().get(DittoHeaderDefinition.REQUESTED_ACKS.getKey());
+            final String headerValue = signal.getDittoHeaders().get(REQUESTED_ACKS_KEY);
             if (!headerValue.contains("'")) {
                 return headerValue;
             }

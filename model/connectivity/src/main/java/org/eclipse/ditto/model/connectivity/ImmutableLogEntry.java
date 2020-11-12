@@ -207,7 +207,7 @@ public final class ImmutableLogEntry implements LogEntry {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", correlationId=" + correlationId +
+                "correlationId=" + correlationId +
                 ", timestamp=" + timestamp +
                 ", logCategory=" + logCategory +
                 ", logType=" + logType +

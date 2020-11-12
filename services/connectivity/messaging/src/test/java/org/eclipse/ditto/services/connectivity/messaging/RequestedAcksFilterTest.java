@@ -32,7 +32,7 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.junit.Test;
 
 /**
- * Tests {@link org.eclipse.ditto.services.connectivity.messaging.RequestedAcksFilter}.
+ * Tests {@link RequestedAcksFilter}.
  */
 public final class RequestedAcksFilterTest {
 

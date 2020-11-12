@@ -547,12 +547,14 @@ public final class InboundDispatchingActor extends AbstractActor
                     new HashSet<>(signal.getDittoHeaders().getAcknowledgementRequests());
             combinedRequestedAcks.addAll(additionalAcknowledgementRequests);
 
-            return RequestedAcksFilter.filterAcknowledgements(signal.setDittoHeaders(
-                    signal.getDittoHeaders()
-                            .toBuilder()
-                            .acknowledgementRequests(combinedRequestedAcks)
-                            .build()),
-                    message, filter,
+            final Signal<?> signalWithCombinedAckRequests = signal.setDittoHeaders(signal.getDittoHeaders()
+                    .toBuilder()
+                    .acknowledgementRequests(combinedRequestedAcks)
+                    .build()
+            );
+            return RequestedAcksFilter.filterAcknowledgements(signalWithCombinedAckRequests,
+                    message,
+                    filter,
                     connectionId);
         }
     }
