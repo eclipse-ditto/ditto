@@ -200,14 +200,8 @@ public final class OutboundMappingProcessorActor
                     .collect(Collectors.toList());
             if (!weakAckLabels.isEmpty()) {
                 final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-                final JsonValue ackBody = JsonValue.of("Acknowledgement was issued automatically, " +
-                        "because the designated subscriber did not receive the signal. Possible reasons are: " +
-                        "the subscriber was not authorized, "+
-                        "the subscriber did not subscribe for the signal type, " +
-                        "the signal was dropped by a configured RQL filter, " +
-                        "or the signal was dropped by all payload mappers.");
                 final List<Acknowledgement> ackList = weakAckLabels.stream()
-                        .map(label -> Acknowledgement.weak(label, (EntityIdWithType) entityId, dittoHeaders, ackBody))
+                        .map(label -> weakAck(label, (EntityIdWithType) entityId, dittoHeaders))
                         .collect(Collectors.toList());
                 final Acknowledgements weakAcks = Acknowledgements.of(ackList, dittoHeaders);
                 sender.tell(weakAcks, ActorRef.noSender());
@@ -695,6 +689,18 @@ public final class OutboundMappingProcessorActor
     private static boolean isCommandResponseWithReplyTarget(final Signal<?> signal) {
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         return signal instanceof CommandResponse && dittoHeaders.getReplyTarget().isPresent();
+    }
+
+    private static Acknowledgement weakAck(final AcknowledgementLabel label,
+            final EntityIdWithType entityId,
+            final DittoHeaders dittoHeaders) {
+        final JsonValue payload = JsonValue.of("Acknowledgement was issued automatically as weak ack, " +
+                "because the signal is not relevant for the subscriber. Possible reasons are: " +
+                "the subscriber was not authorized, " +
+                "the subscriber did not subscribe for the signal type, " +
+                "the signal was dropped by a configured RQL filter, " +
+                "or the signal was dropped by all payload mappers.");
+        return Acknowledgement.weak(label, entityId, dittoHeaders, payload);
     }
 
     static final class OutboundSignalWithId implements OutboundSignal, WithId {

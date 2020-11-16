@@ -86,7 +86,7 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      * @param entityId the ID of the affected entity being acknowledged.
      * @param dittoHeaders the DittoHeaders.
      * @param payload the optional payload of the Acknowledgement.
-     * @return the ImmutableAcknowledgement.
+     * @return the Acknowledgement.
      * @throws NullPointerException if one of the required parameters was {@code null}.
      */
     static Acknowledgement weak(final AcknowledgementLabel label,

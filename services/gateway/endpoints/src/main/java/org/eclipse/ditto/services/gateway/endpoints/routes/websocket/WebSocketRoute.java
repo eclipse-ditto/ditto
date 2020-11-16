@@ -658,20 +658,24 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             if (jsonifiable instanceof Signal<?>) {
                 final EntityId entityId = ((Signal<?>) jsonifiable).getEntityId();
                 if (entityId instanceof EntityIdWithType) {
-                    final JsonValue ackBody = JsonValue.of("Acknowledgement was issued automatically, " +
-                            "because the designated subscriber did not receive the signal. Possible reasons are: " +
-                            "the subscriber did not subscribe for the signal type, " +
-                            "or the signal was dropped by a configured RQL filter.");
                     dittoHeaders.getAcknowledgementRequests()
                             .stream()
-                            .map(acknowledgementRequest -> Acknowledgement.weak(
-                                    acknowledgementRequest.getLabel(),
-                                    (EntityIdWithType) entityId, dittoHeaders, ackBody))
+                            .map(request -> weakAck(request.getLabel(), (EntityIdWithType) entityId, dittoHeaders))
                             .map(IncomingSignal::of)
                             .forEach(weakAck -> streamingSessionActor.tell(weakAck, ActorRef.noSender()));
                 }
             }
         });
+    }
+
+    private static Acknowledgement weakAck(final AcknowledgementLabel label,
+            final EntityIdWithType entityId,
+            final DittoHeaders dittoHeaders) {
+        final JsonValue payload = JsonValue.of("Acknowledgement was issued automatically as weak ack, " +
+                "because the signal is not relevant for the subscriber. Possible reasons are: " +
+                "the subscriber did not subscribe for the signal type, " +
+                "or the signal was dropped by a configured RQL filter.");
+        return Acknowledgement.weak(label, entityId, dittoHeaders, payload);
     }
 
     private static Collection<String> reportEnrichmentError(final Throwable error,
