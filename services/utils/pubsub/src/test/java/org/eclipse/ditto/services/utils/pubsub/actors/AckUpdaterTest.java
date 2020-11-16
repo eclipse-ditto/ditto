@@ -1,0 +1,139 @@
+/*
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+package org.eclipse.ditto.services.utils.pubsub.actors;
+
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
+import org.eclipse.ditto.services.utils.pubsub.ddata.ack.AckDData;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.cluster.Cluster;
+import akka.cluster.ddata.Replicator;
+import akka.testkit.TestProbe;
+import akka.testkit.javadsl.TestKit;
+
+/**
+ * Tests {@link org.eclipse.ditto.services.utils.pubsub.actors.AckUpdater}.
+ */
+public final class AckUpdaterTest {
+
+    private ActorSystem system1;
+    private ActorSystem system2;
+    private AckDData ddata1;
+    private AckDData ddata2;
+
+    @Before
+    public void setUpCluster() throws Exception {
+        final CountDownLatch latch = new CountDownLatch(2);
+        system1 = ActorSystem.create("actorSystem", getTestConf());
+        system2 = ActorSystem.create("actorSystem", getTestConf());
+        final Cluster cluster1 = Cluster.get(system1);
+        final Cluster cluster2 = Cluster.get(system2);
+        cluster1.registerOnMemberUp(latch::countDown);
+        cluster2.registerOnMemberUp(latch::countDown);
+        cluster1.join(cluster1.selfAddress());
+        cluster2.join(cluster1.selfAddress());
+        ddata1 = AckDData.of(system1, AckDData.Provider.of("dc-default", "ack"));
+        ddata2 = AckDData.of(system2, AckDData.Provider.of("dc-default", "ack"));
+        // wait for both members to be UP
+        latch.await();
+    }
+
+    @After
+    public void shutdownCluster() {
+        TestKit.shutdownActorSystem(system1);
+        TestKit.shutdownActorSystem(system2);
+    }
+
+    @Test
+    public void localGroupConflict() {
+        new TestKit(system1) {{
+            final ActorRef underTest = system1.actorOf(AckSupervisor.props(ddata1));
+            final TestProbe s1 = TestProbe.apply("s1", system1);
+            final TestProbe s2 = TestProbe.apply("s2", system1);
+
+            // GIVEN: a group of ack labels are declared
+            underTest.tell(AckUpdater.declareAckLabels(s1.ref(), "g1", Set.of("a1", "a2")), getRef());
+            expectMsgClass(AckUpdater.SubAck.class);
+
+            // WHEN: a different group of ack labels are declared with the same group name
+            underTest.tell(AckUpdater.declareAckLabels(s2.ref(), "g1", Set.of("a2", "a3")), getRef());
+            // TODO: switch to the right exception
+            expectMsgClass(AcknowledgementLabelNotUniqueException.class);
+        }};
+    }
+
+    @Test
+    public void localNonGroupConflict() {
+        new TestKit(system1) {{
+            final ActorRef underTest = system1.actorOf(AckSupervisor.props(ddata1));
+            final TestProbe s1 = TestProbe.apply("s1", system1);
+            final TestProbe s2 = TestProbe.apply("s2", system1);
+
+            // GIVEN: a group of ack labels are declared
+            underTest.tell(AckUpdater.declareAckLabels(s1.ref(), "g1", Set.of("a1", "a2")), getRef());
+            expectMsgClass(AckUpdater.SubAck.class);
+
+            // WHEN: intersecting ack labels are declared without any group
+            underTest.tell(AckUpdater.declareAckLabels(s2.ref(), null, Set.of("a2", "a3")), getRef());
+            expectMsgClass(AcknowledgementLabelNotUniqueException.class);
+        }};
+    }
+
+    @Ignore("TODO: turns out akka.japi.Pair is not serializable.")
+    public void remoteGroupConflict() {
+        new TestKit(system1) {{
+            final ActorRef underTest = system1.actorOf(AckSupervisor.props(ddata1));
+            final ActorRef ackUpdter2 = system2.actorOf(AckSupervisor.props(ddata2));
+            final TestProbe s1 = TestProbe.apply("s1", system1);
+            final TestProbe s2 = TestProbe.apply("s2", system2);
+
+            // GIVEN: a group of ack labels are declared on a remote node
+            ackUpdter2.tell(AckUpdater.declareAckLabels(s2.ref(), "g1", Set.of("a1", "a2")), s2.ref());
+            s2.expectMsgClass(AckUpdater.SubAck.class);
+
+            // WHEN: ddata is replicated
+            waitForHeartBeats(system1, ddata1);
+
+            // THEN: it is an error to declare different ack labels under the same name.
+            underTest.tell(AckUpdater.declareAckLabels(s1.ref(), "g1", Set.of("a2", "a3")), getRef());
+            // TODO: switch to the right exception
+            expectMsgClass(AcknowledgementLabelNotUniqueException.class);
+        }};
+    }
+
+    private Config getTestConf() {
+        return ConfigFactory.load("pubsub-factory-test.conf");
+    }
+
+    private static void waitForHeartBeats(final ActorSystem system, final AckDData ackDData) {
+        final int howManyHeartBeats = 5;
+        final TestProbe probe = TestProbe.apply(system);
+        ackDData.getReader().receiveChanges(probe.ref());
+        for (int i = 0; i < howManyHeartBeats; ++i) {
+            probe.expectMsgClass(Replicator.Changed.class);
+        }
+        system.stop(probe.ref());
+    }
+
+}

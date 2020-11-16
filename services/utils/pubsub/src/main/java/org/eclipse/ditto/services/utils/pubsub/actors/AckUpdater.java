@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.actors;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
+
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -34,6 +36,7 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.ack.GroupedRelation;
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
 import akka.actor.Address;
+import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.cluster.ddata.Replicator;
 import akka.event.LoggingAdapter;
@@ -70,6 +73,22 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
         subscribeForClusterMemberRemovedAware();
         ackDData.getReader().receiveChanges(getSelf());
         getTimers().startTimerAtFixedRate(Clock.TICK, Clock.TICK, config.getUpdateInterval());
+    }
+
+    // TODO: javadoc
+    public static Props props(final PubSubConfig config, final Address ownAddress, final AckDData ackDData) {
+        return Props.create(AckUpdater.class, config, ownAddress, ackDData);
+    }
+
+    // TODO: javadoc
+    public static Request declareAckLabels(final ActorRef subscriber,
+            @Nullable final String group,
+            final Set<String> ackLabels) {
+        return new DeclareAckLabels(subscriber, group, ackLabels);
+    }
+
+    public static Request removeSubscriber(final ActorRef subscriber) {
+        return new RemoveSubscriber(subscriber);
     }
 
     @Override
@@ -216,7 +235,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
     public interface Request {
     }
 
-    private abstract static class DeclareAckLabels implements Request {
+    private static final class DeclareAckLabels implements Request {
 
         private final ActorRef subscriber;
         @Nullable private final String group;
@@ -227,7 +246,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
                 final Set<String> ackLabels) {
             this.subscriber = subscriber;
             this.group = group;
-            this.ackLabels = ackLabels;
+            this.ackLabels = checkNotEmpty(ackLabels, "ackLabels");
         }
 
         @Override
