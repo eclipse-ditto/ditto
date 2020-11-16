@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -63,10 +64,13 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
         this.label = checkNotNull(label, "label");
         this.entityId = checkNotNull(entityId, "entityId");
         this.statusCode = checkNotNull(statusCode, "statusCode");
-        this.dittoHeaders = checkNotNull(dittoHeaders, "dittoHeaders").isResponseRequired() ? dittoHeaders
-                .toBuilder()
-                .responseRequired(false)
-                .build() : dittoHeaders;
+        final DittoHeadersBuilder<?, ?> dittoHeadersBuilder =
+                checkNotNull(dittoHeaders, "dittoHeaders").isResponseRequired() ? dittoHeaders
+                        .toBuilder()
+                        .responseRequired(false) : dittoHeaders.toBuilder();
+        this.dittoHeaders = dittoHeadersBuilder
+                .removeHeader(DittoHeaderDefinition.REQUESTED_ACKS.getKey())
+                .build();
         this.payload = payload;
         this.isWeak = TRUE_STRING.equalsIgnoreCase(this.dittoHeaders.get(DittoHeaderDefinition.WEAK_ACK.getKey()));
     }
