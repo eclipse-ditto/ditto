@@ -88,6 +88,7 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      * @param payload the optional payload of the Acknowledgement.
      * @return the Acknowledgement.
      * @throws NullPointerException if one of the required parameters was {@code null}.
+     * @since 1.5.0
      */
     static Acknowledgement weak(final AcknowledgementLabel label,
             final EntityIdWithType entityId,
@@ -139,6 +140,7 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      * acknowledgement with this  {@link #getLabel()}, but was for some reason not allowed to receive the signal.
      *
      * @return true if this is a weak acknowledgement, false otherwise.
+     * @since 1.5.0
      */
     boolean isWeak();
 

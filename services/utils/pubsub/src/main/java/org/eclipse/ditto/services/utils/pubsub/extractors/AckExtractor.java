@@ -135,7 +135,7 @@ public interface AckExtractor<T> {
         final JsonValue payload = JsonValue.of("Acknowledgement was issued automatically as weak ack, " +
                 "because the signal is not relevant for the subscriber. Possible reasons are: " +
                 "the subscriber was not authorized, " +
-                "or the subscriber did not subscribe for the signal type");
+                "or the subscriber did not subscribe for the signal type.");
         return Acknowledgement.weak(label, entityId, dittoHeaders, payload);
     }
 
