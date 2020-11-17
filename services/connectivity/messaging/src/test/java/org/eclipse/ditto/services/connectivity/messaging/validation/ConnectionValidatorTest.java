@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -67,7 +68,7 @@ import akka.http.javadsl.model.Uri;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator}.
+ * Tests {@link ConnectionValidator}.
  */
 public class ConnectionValidatorTest {
 
@@ -204,6 +205,21 @@ public class ConnectionValidatorTest {
 
         final ConnectionValidator underTest = getConnectionValidator();
         assertThatExceptionOfType(AcknowledgementLabelInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void rejectConnectionWithDuplicatedTargetIssuedAck() {
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
+                .targets(TestConstants.Targets.TARGETS.stream()
+                        .map(target -> ConnectivityModelFactory.newTargetBuilder(target)
+                                .issuedAcknowledgementLabel(AcknowledgementLabel.of("{{connection:id}}:ack"))
+                                .build())
+                        .collect(Collectors.toList()))
+                .build();
+
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(AcknowledgementLabelNotUniqueException.class)
                 .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
     }
 

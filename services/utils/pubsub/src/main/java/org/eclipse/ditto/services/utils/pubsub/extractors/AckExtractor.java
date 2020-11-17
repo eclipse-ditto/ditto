@@ -99,9 +99,7 @@ public interface AckExtractor<T> {
         final EntityIdWithType entityId = getEntityId(message);
         final DittoHeaders dittoHeaders = getDittoHeaders(message);
         return Acknowledgements.of(ackLabels.stream()
-                        .map(ackLabel -> Acknowledgement.weak(ackLabel, entityId, dittoHeaders,
-                                JsonValue.of("Acknowledgement was issued automatically, because the subscriber " +
-                                        "is not authorized to receive the signal.")))
+                        .map(ackLabel -> weakAck(ackLabel, entityId, dittoHeaders))
                         .collect(Collectors.toList()),
                 dittoHeaders
         );
@@ -119,6 +117,26 @@ public interface AckExtractor<T> {
             final Function<T, DittoHeaders> getDittoHeaders) {
 
         return new AckExtractorImpl<>(getEntityId, getDittoHeaders);
+    }
+
+    /**
+     * Returns a new weak {@code Acknowledgement} to be issued by Ditto pubsub,
+     * including an explanation why Ditto pubsub issued it.
+     *
+     * @param label the label of the new Acknowledgement.
+     * @param entityId the ID of the affected entity being acknowledged.
+     * @param dittoHeaders the DittoHeaders.
+     * @return the Acknowledgement.
+     * @throws NullPointerException if one of the required parameters was {@code null}.
+     */
+    static Acknowledgement weakAck(final AcknowledgementLabel label,
+            final EntityIdWithType entityId,
+            final DittoHeaders dittoHeaders) {
+        final JsonValue payload = JsonValue.of("Acknowledgement was issued automatically as weak ack, " +
+                "because the signal is not relevant for the subscriber. Possible reasons are: " +
+                "the subscriber was not authorized, " +
+                "or the subscriber did not subscribe for the signal type.");
+        return Acknowledgement.weak(label, entityId, dittoHeaders, payload);
     }
 
 }

@@ -15,8 +15,11 @@ package org.eclipse.ditto.services.connectivity.messaging.validation;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -25,6 +28,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -112,11 +116,14 @@ public final class ConnectionValidator {
 
         final Stream<AcknowledgementLabel> sourceDeclaredAcks =
                 getSourceDeclaredAcknowledgementLabels(connection.getId(), connection.getSources());
-        final Stream<AcknowledgementLabel> targetIssuedAcks =
-                getTargetIssuedAcknowledgementLabels(connection.getId(), connection.getTargets())
-                        // live-response is permitted as issued acknowledgement without declaration
-                        .filter(label -> !DittoAcknowledgementLabel.LIVE_RESPONSE.equals(label));
+        final Stream<AcknowledgementLabel> targetIssuedAcks = getTargetIssuedAcknowledgementLabels(connection);
         return Stream.concat(sourceDeclaredAcks, targetIssuedAcks);
+    }
+
+    private static Stream<AcknowledgementLabel> getTargetIssuedAcknowledgementLabels(final Connection connection) {
+        return getTargetIssuedAcknowledgementLabels(connection.getId(), connection.getTargets())
+                // live-response is permitted as issued acknowledgement without declaration
+                .filter(label -> !DittoAcknowledgementLabel.LIVE_RESPONSE.equals(label));
     }
 
     /**
@@ -255,6 +262,7 @@ public final class ConnectionValidator {
 
     private void validateDeclaredAndIssuedAcknowledgements(final Connection connection) {
         final String idPrefix = connection.getId() + ":";
+
         getAcknowledgementLabelsToDeclare(connection)
                 .map(Object::toString)
                 .forEach(label -> {
@@ -269,6 +277,19 @@ public final class ConnectionValidator {
                         );
                     }
                 });
+
+        // check uniqueness of target issued acks inside one connection after checking for the validity of the ack
+        // labels in order to give the AcknowledgementLabelInvalidException priority
+        final List<String> targetAckLabels = getTargetIssuedAcknowledgementLabels(connection)
+                .map(Object::toString)
+                .collect(Collectors.toList());
+        final Set<String> distinctTargetAckLabels = new HashSet<>(targetAckLabels);
+        if (targetAckLabels.size() > distinctTargetAckLabels.size()) {
+            throw AcknowledgementLabelNotUniqueException.newBuilder()
+                    .message("An issued acknowledgement label may only be used for one target of the connection.")
+                    .description("Please choose unique suffixes for your configured issued acknowledgement labels.")
+                    .build();
+        }
     }
 
     private static void validateFormatOfCertificates(final Connection connection, final DittoHeaders dittoHeaders,

@@ -13,8 +13,6 @@
 package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.eclipse.ditto.services.connectivity.messaging.InboundDispatchingActor.filterAcknowledgements;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
 
 import java.time.Duration;
@@ -37,7 +35,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
@@ -47,7 +44,6 @@ import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
@@ -56,7 +52,6 @@ import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
-import org.eclipse.ditto.model.placeholders.PlaceholderFunctionSignatureInvalidException;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -74,7 +69,6 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
-import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
@@ -92,46 +86,6 @@ import akka.testkit.javadsl.TestKit;
  * Tests {@link InboundMappingProcessorActor} and {@link OutboundMappingProcessorActor}.
  */
 public final class MessageMappingProcessorActorTest extends AbstractMessageMappingProcessorActorTest {
-
-    private static final ConnectionId connectionId = ConnectionId.generateRandom();
-
-    @Test
-    public void testRequestedAcknowledgementFilter() {
-        // GIVEN
-        final String requestedAcks = DittoHeaderDefinition.REQUESTED_ACKS.getKey();
-        final AcknowledgementRequest twinPersistedAckRequest =
-                AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED);
-        final Signal<?> signal = DeleteThing.of(ThingId.of("thing:id"), DittoHeaders.empty());
-        final Signal<?> signalWithRequestedAcks = DeleteThing.of(ThingId.of("thing:id"), DittoHeaders.newBuilder()
-                .acknowledgementRequest(twinPersistedAckRequest)
-                .build());
-
-        // WHEN/THEN
-
-        final Signal<?> notFilteredSignal =
-                filterAcknowledgements(signal, "fn:filter('2+2','ne','5')", connectionId);
-        assertThat(notFilteredSignal.getDittoHeaders()).doesNotContainKey(requestedAcks);
-
-        final Signal<?> filteredSignal =
-                filterAcknowledgements(signal, "fn:filter('2+2','eq','5')", connectionId);
-        assertThat(filteredSignal.getDittoHeaders()).contains(Map.entry(requestedAcks, "[]"));
-
-        assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class).isThrownBy(() ->
-                filterAcknowledgements(signal, "fn:filter('2','+','2','eq','5')", connectionId)
-        );
-
-        final Signal<?> defaultValueSetSignal =
-                filterAcknowledgements(signal, "fn:default('[\"twin-persisted\"]')", connectionId);
-        assertThat(defaultValueSetSignal.getDittoHeaders().getAcknowledgementRequests())
-                .containsExactly(twinPersistedAckRequest);
-
-        final Signal<?> transformedSignal =
-                filterAcknowledgements(signalWithRequestedAcks, "fn:filter('2+2','eq','5')|fn:default('[\"custom\"]')",
-                        connectionId);
-        assertThat(transformedSignal.getDittoHeaders().getAcknowledgementRequests())
-                .containsExactly(AcknowledgementRequest.parseAcknowledgementRequest("custom"));
-    }
-
 
     @Test
     public void testExternalMessageInDittoProtocolIsProcessedWithDefaultMapper() {

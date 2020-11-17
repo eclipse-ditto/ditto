@@ -66,6 +66,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.MockClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -1583,9 +1584,16 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 createConnection.getConnection()
                         .toBuilder()
                         .targets(createConnection.getConnection().getTargets().stream()
-                                .map(target -> ConnectivityModelFactory.newTargetBuilder(target)
-                                        .issuedAcknowledgementLabel(getTestAck())
-                                        .build())
+                                .map(target -> {
+                                    if (target.getTopics().stream()
+                                            .anyMatch(ft -> ft.getTopic().equals(Topic.LIVE_EVENTS))) {
+                                        return ConnectivityModelFactory.newTargetBuilder(target)
+                                                .issuedAcknowledgementLabel(getTestAck())
+                                                .build();
+                                    } else {
+                                        return target;
+                                    }
+                                })
                                 .collect(Collectors.toList()))
                         .build(),
                 createConnection.getDittoHeaders()

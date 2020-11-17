@@ -171,7 +171,8 @@ public final class InboundMappingProcessor
                         }
                     }
                     return mappedMessages.stream()
-                            .map(mapped -> MappingOutcome.mapped(mapper.getId(), mapped, mapped.getTopicPath(), message));
+                            .map(mapped -> MappingOutcome.mapped(mapper.getId(), mapped, mapped.getTopicPath(),
+                                    message));
                 }
             } else {
                 logger.withCorrelationId(message.getInternalHeaders())
@@ -212,7 +213,7 @@ public final class InboundMappingProcessor
                 .ifPresent(obj -> obj.forEach(field -> {
                     try {
                         final JsonValue value = field.getValue();
-                        headersBuilder.putHeader(field.getKey(), value.isString() ? value.asString() : value.toString());
+                        headersBuilder.putHeader(field.getKey(), value.formatAsString());
                     } catch (final Exception e) {
                         // ignore this single invalid header
                         logger.info("Putting a (payload) header resulted in an exception: {} - {}",

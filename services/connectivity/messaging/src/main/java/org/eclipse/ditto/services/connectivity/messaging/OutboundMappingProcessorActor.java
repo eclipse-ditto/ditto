@@ -134,8 +134,6 @@ public final class OutboundMappingProcessorActor
     private final SignalEnrichmentFacade signalEnrichmentFacade;
     private final int processorPoolSize;
     private final DittoRuntimeExceptionToErrorResponseFunction toErrorResponseFunction;
-    private final Predicate<AcknowledgementLabel> isSourceDeclaredAck;
-    private final Predicate<AcknowledgementLabel> isTargetIssuedAck;
 
     @SuppressWarnings("unused")
     private OutboundMappingProcessorActor(final ActorRef clientActor,
@@ -168,15 +166,6 @@ public final class OutboundMappingProcessorActor
                 ConnectivitySignalEnrichmentProvider.get(getContext().getSystem()).getFacade(connectionId);
         this.processorPoolSize = determinePoolSize(processorPoolSize, mappingConfig.getMaxPoolSize());
         toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(limitsConfig.getHeadersMaxSize());
-
-        isSourceDeclaredAck =
-                ConnectionValidator.getSourceDeclaredAcknowledgementLabels(connectionId, connection.getSources())
-                        .collect(Collectors.toSet())::contains;
-        isTargetIssuedAck =
-                ConnectionValidator.getTargetIssuedAcknowledgementLabels(connectionId, connection.getTargets())
-                        // live response does not require a weak ack
-                        .filter(ackLabel -> !DittoAcknowledgementLabel.LIVE_RESPONSE.equals(ackLabel))
-                        .collect(Collectors.toSet())::contains;
     }
 
     /**
@@ -200,14 +189,8 @@ public final class OutboundMappingProcessorActor
                     .collect(Collectors.toList());
             if (!weakAckLabels.isEmpty()) {
                 final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-                final JsonValue ackBody = JsonValue.of("Acknowledgement was issued automatically, " +
-                        "because the designated subscriber did not receive the signal. Possible reasons are: " +
-                        "the subscriber was not authorized, "+
-                        "the subscriber did not subscribe for the signal type, " +
-                        "the signal was dropped by a configured RQL filter, " +
-                        "or the signal was dropped by all payload mappers.");
                 final List<Acknowledgement> ackList = weakAckLabels.stream()
-                        .map(label -> Acknowledgement.weak(label, (EntityIdWithType) entityId, dittoHeaders, ackBody))
+                        .map(label -> weakAck(label, (EntityIdWithType) entityId, dittoHeaders))
                         .collect(Collectors.toList());
                 final Acknowledgements weakAcks = Acknowledgements.of(ackList, dittoHeaders);
                 sender.tell(weakAcks, ActorRef.noSender());
@@ -598,7 +581,7 @@ public final class OutboundMappingProcessorActor
                     if (outboundSignals.isEmpty()) {
                         // signal dropped; issue weak acks for all requested acks belonging to this connection
                         issueWeakAcknowledgements(outbound.getSource(),
-                                isSourceDeclaredAck.or(isTargetIssuedAck),
+                                outboundMappingProcessor::isSourceDeclaredOrTargetIssuedAck,
                                 outbound.sender);
                         return List.of();
                     } else {
@@ -615,7 +598,7 @@ public final class OutboundMappingProcessorActor
                                         targetsToPublishAt)
                                         .collect(Collectors.toSet())::contains;
                         issueWeakAcknowledgements(outbound.getSource(),
-                                isTargetIssuedAck.and(willPublish.negate()),
+                                willPublish.negate().and(outboundMappingProcessor::isTargetIssuedAck),
                                 sender);
                         return List.of(OutboundSignalFactory.newMultiMappedOutboundSignal(mappedSignals, sender));
                     }
@@ -695,6 +678,18 @@ public final class OutboundMappingProcessorActor
     private static boolean isCommandResponseWithReplyTarget(final Signal<?> signal) {
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         return signal instanceof CommandResponse && dittoHeaders.getReplyTarget().isPresent();
+    }
+
+    private static Acknowledgement weakAck(final AcknowledgementLabel label,
+            final EntityIdWithType entityId,
+            final DittoHeaders dittoHeaders) {
+        final JsonValue payload = JsonValue.of("Acknowledgement was issued automatically as weak ack, " +
+                "because the signal is not relevant for the subscriber. Possible reasons are: " +
+                "the subscriber was not authorized, " +
+                "the subscriber did not subscribe for the signal type, " +
+                "the signal was dropped by a configured RQL filter, " +
+                "or the signal was dropped by all payload mappers.");
+        return Acknowledgement.weak(label, entityId, dittoHeaders, payload);
     }
 
     static final class OutboundSignalWithId implements OutboundSignal, WithId {

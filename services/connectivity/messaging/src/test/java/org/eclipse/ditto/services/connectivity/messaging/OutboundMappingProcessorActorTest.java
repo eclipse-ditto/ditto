@@ -68,10 +68,10 @@ public final class OutboundMappingProcessorActorTest {
 
     private static final Connection CONNECTION = createTestConnection();
 
-    ActorSystem actorSystem;
-    ProtocolAdapterProvider protocolAdapterProvider;
-    TestProbe clientActorProbe;
-    TestProbe proxyActorProbe;
+    private ActorSystem actorSystem;
+    private ProtocolAdapterProvider protocolAdapterProvider;
+    private TestProbe clientActorProbe;
+    private TestProbe proxyActorProbe;
 
     @Before
     public void setUp() {
@@ -201,9 +201,34 @@ public final class OutboundMappingProcessorActorTest {
         }};
     }
 
+    @Test
+    public void expectNoTargetIssuedAckRequestInPublishedSignals() {
+        new TestKit(actorSystem) {{
+            final Props props =
+                    OutboundMappingProcessorActor.props(clientActorProbe.ref(), getProcessor(), CONNECTION, 3);
+            final ActorRef underTest = actorSystem.actorOf(props);
+
+            // WHEN: mapping processor actor receives outbound signal
+            // with requests for source-declared and target-issued acks
+            final OutboundSignal outboundSignal = outboundTwinEvent(
+                    Attributes.newBuilder().build(),
+                    List.of("source1", "target1", "target2"),
+                    List.of(target1())
+            );
+            underTest.tell(outboundSignal, getRef());
+
+            // THEN: only the source-declared ack is present in the published signal
+            final BaseClientActor.PublishMappedMessage publish =
+                    clientActorProbe.expectMsgClass(BaseClientActor.PublishMappedMessage.class);
+
+            assertThat(publish.getOutboundSignal().first().getAdaptable().getDittoHeaders()
+                    .getAcknowledgementRequests())
+                    .containsExactly(AcknowledgementRequest.parseAcknowledgementRequest("source1"));
+        }};
+    }
+
     private OutboundMappingProcessor getProcessor() {
-        return OutboundMappingProcessor.of(CONNECTION.getId(), CONNECTION.getConnectionType(),
-                CONNECTION.getPayloadMappingDefinition(), actorSystem, TestConstants.CONNECTIVITY_CONFIG,
+        return OutboundMappingProcessor.of(CONNECTION, actorSystem, TestConstants.CONNECTIVITY_CONFIG,
                 protocolAdapterProvider.getProtocolAdapter("test"),
                 AbstractMessageMappingProcessorActorTest.mockLoggingAdapter());
     }

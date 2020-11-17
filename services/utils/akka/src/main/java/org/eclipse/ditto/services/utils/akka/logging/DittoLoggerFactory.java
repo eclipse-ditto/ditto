@@ -31,7 +31,7 @@ import akka.event.Logging;
 import akka.event.LoggingFilter;
 
 /**
- * Factory for obtaining instances of {@link DittoLogger} and {@link DittoDiagnosticLoggingAdapter}.
+ * Factory for obtaining instances of {@link DittoLogger} and {@link akka.event.LoggingAdapter}.
  */
 @Immutable
 public final class DittoLoggerFactory {
@@ -128,7 +128,7 @@ public final class DittoLoggerFactory {
     }
 
     /**
-     * Returns a {@link ThreadSafeDittoLoggingAdapter} with MDC support for the given actor.
+     * Returns a thread-safe {@link akka.event.LoggingAdapter} with MDC support for the given actor.
      *
      * @param actor the Actor used as logSource
      * @return the thread-safe logging adapter.

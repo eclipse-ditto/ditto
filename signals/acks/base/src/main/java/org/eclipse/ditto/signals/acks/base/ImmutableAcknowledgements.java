@@ -46,6 +46,7 @@ import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -69,10 +70,13 @@ final class ImmutableAcknowledgements implements Acknowledgements {
         this.entityId = entityId;
         this.acknowledgements = Collections.unmodifiableList(new ArrayList<>(acknowledgements));
         this.statusCode = checkNotNull(statusCode, "statusCode");
-        this.dittoHeaders = checkNotNull(dittoHeaders, "dittoHeaders").isResponseRequired() ? dittoHeaders
-                .toBuilder()
-                .responseRequired(false)
-                .build() : dittoHeaders;
+        final DittoHeadersBuilder<?, ?> dittoHeadersBuilder =
+                checkNotNull(dittoHeaders, "dittoHeaders").isResponseRequired() ? dittoHeaders
+                        .toBuilder()
+                        .responseRequired(false) : dittoHeaders.toBuilder();
+        this.dittoHeaders = dittoHeadersBuilder
+                .removeHeader(DittoHeaderDefinition.REQUESTED_ACKS.getKey())
+                .build();
     }
 
     /**
