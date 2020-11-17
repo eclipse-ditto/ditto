@@ -31,7 +31,7 @@ import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClust
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
@@ -44,6 +44,7 @@ import org.eclipse.ditto.services.utils.health.config.PersistenceConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 
@@ -69,7 +70,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
 
     private static final String CLUSTER_ROLE = "connectivity";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     @SuppressWarnings("unused")
     private ConnectivityRootActor(final ConnectivityConfig connectivityConfig,
@@ -86,7 +87,8 @@ public final class ConnectivityRootActor extends DittoRootActor {
         final ActorRef proxyActor =
                 startChildActor(ConnectivityProxyActor.ACTOR_NAME, ConnectivityProxyActor.props(conciergeForwarder));
 
-        final DittoProtocolSub dittoProtocolSub = DittoProtocolSub.of(getContext());
+        final DittoProtocolSub dittoProtocolSub =
+                DittoProtocolSub.of(getContext(), DistributedAcks.create(getContext()));
         final Props connectionSupervisorProps =
                 getConnectionSupervisorProps(dittoProtocolSub, proxyActor, commandValidator, pubSubMediator);
 

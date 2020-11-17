@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.pubsub;
 
+import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorRef;
@@ -39,6 +40,15 @@ public interface DistributedPub<T> {
     Object wrapForPublication(T message);
 
     /**
+     * Wrap the message in an envelope to send to the publisher.
+     *
+     * @param message the message to publish.
+     * @param ackExtractor extractor of ack-related information from the message.
+     * @return the wrapped message to send to the publisher.
+     */
+    <S extends T> Object wrapForPublicationWithAcks(S message, AckExtractor<S> ackExtractor);
+
+    /**
      * Publish a message.
      *
      * @param message the message to publish.
@@ -46,6 +56,17 @@ public interface DistributedPub<T> {
      */
     default void publish(final T message, final ActorRef sender) {
         getPublisher().tell(wrapForPublication(message), sender);
+    }
+
+    /**
+     * Publish a message with acknowledgement requests.
+     *
+     * @param message the message to publish.
+     * @param ackExtractor extractor of ack-related information from the message.
+     * @param sender the sender of the message and the receiver of acknowledgements.
+     */
+    default void publishWithAcks(final T message, final AckExtractor<T> ackExtractor, final ActorRef sender) {
+        getPublisher().tell(wrapForPublicationWithAcks(message, ackExtractor), sender);
     }
 
     /**

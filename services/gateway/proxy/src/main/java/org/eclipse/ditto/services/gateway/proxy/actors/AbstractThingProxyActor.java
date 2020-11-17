@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.gateway.proxy.actors;
 
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.utils.aggregator.ThingsAggregatorProxyActor;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
@@ -52,9 +51,9 @@ public abstract class AbstractThingProxyActor extends AbstractProxyActor {
         receiveBuilder
                 /* DevOps Commands */
                 .match(DevOpsCommand.class, command -> {
-                    LogUtil.enhanceLogWithCorrelationId(getLogger(), command);
-                    getLogger().debug("Got 'DevOpsCommand' message <{}>, forwarding to local devOpsCommandsActor",
-                            command.getType());
+                    getLogger().withCorrelationId(command)
+                            .debug("Got 'DevOpsCommand' message <{}>, forwarding to local devOpsCommandsActor",
+                                    command.getType());
                     devOpsCommandsActor.forward(command, getContext());
                 })
                 /* handle RetrieveThings in a special way */

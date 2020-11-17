@@ -1,7 +1,7 @@
 thomas_jaeckle:
     name: Thomas Jäckle
     email: thomas.jaeckle@bosch.io
-    web: http://twitter.com/thjaeckle
+    web: https://github.com/thjaeckle
 
 florian_fendt:
     name: Florian Fendt
@@ -38,7 +38,7 @@ yannic_klem:
     email: yannic.klem@bosch.io
     web: https://github.com/Yannic92
 
-joos_david:
+david_joos:
     name: David Joos
     email: david.joos@bosch.io
     web: https://github.com/joosdavid

@@ -19,14 +19,14 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Subscriptions;
 
-import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.Address;
 import akka.cluster.ddata.ORMultiMap;
 
 /**
  * Access to distributed data of literal topics.
  */
-public final class LiteralDData implements DData<String, LiteralUpdate> {
+public final class LiteralDData implements DData<Address, String, LiteralUpdate> {
 
     private final LiteralDDataHandler handler;
 
@@ -57,12 +57,12 @@ public final class LiteralDData implements DData<String, LiteralUpdate> {
     }
 
     @Override
-    public DDataReader<String> getReader() {
+    public DDataReader<Address, String> getReader() {
         return handler;
     }
 
     @Override
-    public DDataWriter<LiteralUpdate> getWriter() {
+    public DDataWriter<Address, LiteralUpdate> getWriter() {
         return handler;
     }
 
@@ -75,7 +75,7 @@ public final class LiteralDData implements DData<String, LiteralUpdate> {
      * Abstract class of distributed data extension provider to be instantiated at user site.
      */
     public abstract static class Provider
-            extends DistributedData.AbstractDDataProvider<ORMultiMap<ActorRef, String>, LiteralDDataHandler> {
+            extends DistributedData.AbstractDDataProvider<ORMultiMap<Address, String>, LiteralDDataHandler> {
 
         /**
          * Get the ddata extension's config from an actor system.

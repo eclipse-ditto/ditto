@@ -17,6 +17,7 @@ import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
 
 import akka.actor.AbstractActorWithTimers;
+import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
@@ -33,10 +34,10 @@ public final class PubUpdater extends AbstractActorWithTimers implements Cluster
 
     private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
-    private final DDataWriter<?> ddataWriter;
+    private final DDataWriter<ActorRef, ?> ddataWriter;
 
     @SuppressWarnings("unused")
-    private PubUpdater(final DDataWriter<?> ddataWriter) {
+    private PubUpdater(final DDataWriter<ActorRef, ?> ddataWriter) {
         this.ddataWriter = ddataWriter;
         subscribeForClusterMemberRemovedAware();
     }
@@ -46,7 +47,7 @@ public final class PubUpdater extends AbstractActorWithTimers implements Cluster
      *
      * @param topicsWriter writer of the topics distributed data.
      */
-    public static Props props(final DDataWriter<?> topicsWriter) {
+    public static Props props(final DDataWriter<ActorRef, ?> topicsWriter) {
         return Props.create(PubUpdater.class, topicsWriter);
     }
 
@@ -63,7 +64,7 @@ public final class PubUpdater extends AbstractActorWithTimers implements Cluster
     }
 
     @Override
-    public DDataWriter<?> getDDataWriter() {
+    public DDataWriter<ActorRef, ?> getDDataWriter() {
         return ddataWriter;
     }
 

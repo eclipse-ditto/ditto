@@ -33,7 +33,7 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
-import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
@@ -55,7 +55,7 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
     protected static final String MQTT_QOS_HEADER = "mqtt.qos";
     protected static final String MQTT_RETAIN_HEADER = "mqtt.retain";
 
-    protected final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+    protected final DittoDiagnosticLoggingAdapter logger;
     protected final boolean dryRun;
     @Nullable protected final EnforcementFilterFactory<String, CharSequence> topicEnforcementFilterFactory;
     protected final PayloadMapping payloadMapping;
@@ -66,6 +66,10 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
             final ConnectionType connectionType) {
         super(connectionId, String.join(";", source.getAddresses()), messageMappingProcessor, source,
                 connectionType);
+
+        logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this)
+                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connectionId);
+
         this.dryRun = dryRun;
         this.payloadMapping = source.getPayloadMapping();
         this.reconnectForRedelivery = reconnectForRedelivery;
@@ -173,7 +177,6 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
     private Optional<ExternalMessage> hiveToExternalMessage(final P message, final ConnectionId connectionId) {
         HashMap<String, String> headers = null;
         try {
-            ConnectionLogUtil.enhanceLogWithConnectionId(logger, connectionId);
             final ByteBuffer payload = getPayload(message)
                     .map(ByteBuffer::asReadOnlyBuffer)
                     .orElse(ByteBufferUtils.empty());

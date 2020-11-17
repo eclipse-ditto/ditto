@@ -32,7 +32,6 @@ import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThing;
 import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
@@ -168,8 +167,8 @@ final class ThingsUpdater extends AbstractActorWithTimers {
 
     private void processThingTag(final ThingTag thingTag) {
         final String elementIdentifier = thingTag.asIdentifierString();
-        LogUtil.enhanceLogWithCorrelationId(log, "things-tags-sync-" + elementIdentifier);
-        log.debug("Forwarding incoming ThingTag '{}'", elementIdentifier);
+        log.withCorrelationId("things-tags-sync-" + elementIdentifier)
+                .debug("Forwarding incoming ThingTag '{}'", elementIdentifier);
         forwardJsonifiableToShardRegion(thingTag, ThingTag::getEntityId);
     }
 
@@ -204,7 +203,6 @@ final class ThingsUpdater extends AbstractActorWithTimers {
 
 
     private void processThingEvent(final ThingEvent<?> thingEvent) {
-        LogUtil.enhanceLogWithCorrelationId(log, thingEvent);
         log.withCorrelationId(thingEvent)
                 .debug("Forwarding incoming ThingEvent for thingId '{}'",
                         String.valueOf(thingEvent.getThingEntityId()));

@@ -22,7 +22,7 @@ import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActo
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceOperationsActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingSupervisorActor;
 import org.eclipse.ditto.services.things.persistence.actors.ThingsPersistenceStreamingActorCreator;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
@@ -34,6 +34,7 @@ import org.eclipse.ditto.services.utils.health.config.MetricsReporterConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
+import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
@@ -57,7 +58,7 @@ public final class ThingsRootActor extends DittoRootActor {
      */
     public static final String ACTOR_NAME = "thingsRoot";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
 
@@ -71,7 +72,9 @@ public final class ThingsRootActor extends DittoRootActor {
         final ClusterConfig clusterConfig = thingsConfig.getClusterConfig();
         final ShardRegionExtractor shardRegionExtractor =
                 ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem);
-        final ThingEventPubSubFactory pubSubFactory = ThingEventPubSubFactory.of(getContext(), shardRegionExtractor);
+        final DistributedAcks distributedAcks = DistributedAcks.create(getContext());
+        final ThingEventPubSubFactory pubSubFactory =
+                ThingEventPubSubFactory.of(getContext(), shardRegionExtractor, distributedAcks);
         final DistributedPub<ThingEvent<?>> distributedPub = pubSubFactory.startDistributedPub();
 
         final ActorRef thingsShardRegion = ClusterSharding.get(actorSystem)

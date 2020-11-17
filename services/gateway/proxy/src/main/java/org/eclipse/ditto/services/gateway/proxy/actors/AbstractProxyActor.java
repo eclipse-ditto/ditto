@@ -16,7 +16,8 @@ import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatistics;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
@@ -28,7 +29,6 @@ import akka.actor.OneForOneStrategy;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 
@@ -47,7 +47,7 @@ public abstract class AbstractProxyActor extends AbstractActor {
      */
     protected final ActorRef pubSubMediator;
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final ActorRef statisticsActor;
 
@@ -126,7 +126,7 @@ public abstract class AbstractProxyActor extends AbstractActor {
         return receiveBuilder.build();
     }
 
-    protected DiagnosticLoggingAdapter getLogger() {
+    protected DittoDiagnosticLoggingAdapter getLogger() {
         return log;
     }
 

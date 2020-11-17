@@ -150,6 +150,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                     assertThat(msg).contains("AMQP message dropped")
             );
 
+            // Check that message sending attempts eventually agree with the parallelism.
             verify(messageProducer, timeout(10_000).times(connectionConfig.getPublisherParallelism()))
                     .send(any(JmsMessage.class), any(CompletionListener.class));
         }};

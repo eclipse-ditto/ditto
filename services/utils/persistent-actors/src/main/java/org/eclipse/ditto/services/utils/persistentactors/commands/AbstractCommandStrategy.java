@@ -26,8 +26,6 @@ import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.base.Command;
 
-import akka.event.DiagnosticLoggingAdapter;
-
 /**
  * Abstract base implementation of {@code CommandStrategy}.
  *
@@ -59,9 +57,9 @@ public abstract class AbstractCommandStrategy<C extends Command, S, K, R extends
         checkNotNull(command, "Command");
 
         if (isDefined(context, entity, command)) {
-            final DiagnosticLoggingAdapter logger = context.getLog();
-            if (logger.isDebugEnabled()) {
-                logger.debug("Applying command <{}>", command);
+            if (context.getLog().isDebugEnabled()) {
+                context.getLog().withCorrelationId(command)
+                        .debug("Applying command <{}>", command);
             }
             @Nullable final Metadata metadata = calculateRelativeMetadata(entity, command).orElse(null);
             return doApply(context, entity, nextRevision, command, metadata);

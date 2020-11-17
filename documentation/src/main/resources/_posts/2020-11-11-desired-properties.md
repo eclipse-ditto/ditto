@@ -16,7 +16,8 @@ With the upcoming release of Eclipse Ditto **version 1.5.0**
 **API versions later than 1**. The _desired properties_ for features are added on the same level of the model as 
 the feature properties and can reflect for example feature property updates ,which are intended, but not yet applied. 
 
-_Further logics for desired feature properties might be implemented in future Ditto versions._
+{% include note.html content="Further logics for desired feature properties might be implemented in future Ditto 
+                              versions." %}
 
 A fully-fledged JSON representation of a feature with desired properties is shown below:
 
@@ -67,7 +68,7 @@ A fully-fledged JSON representation of a feature with desired properties is show
     events you want to receive, for changes done to the desired properties.
     
 ### Executing CRUD operations on desired feature properties
-CRUD operations can be executed either via the [Ditto HTTP API](httpapi-concepts.html) <b>versions later than 1</b> or via 
+CRUD operations can be executed either via the [Ditto HTTP API](httpapi-concepts.html) **versions later than 1** or via 
 [ditto-protocol](protocol-overview.html) messages.
 
 _Possible CRUD operations for desired feature properties via ditto-protocol_:
@@ -110,6 +111,12 @@ final Adaptable modifyFeatureDesiredProperties =
         }));
 ```
 
+## Feedback?
+
+Please [get in touch](feedback.html) if you have feedback or questions towards this new concept of desired properties.
+
+<br/>
+<br/>
 {% include image.html file="ditto.svg" alt="Ditto" max-width=500 %}
 --<br/>
 The Eclipse Ditto team

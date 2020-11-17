@@ -66,6 +66,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Target;
+import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.MockClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -134,6 +135,7 @@ import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
+import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Unit test for {@link org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceActor}.
@@ -685,7 +687,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
             // create connection
             underTest.tell(createConnection, commandSender.ref());
-            mockClientProbe.expectMsg(openConnection);
+            mockClientProbe.expectMsg(FiniteDuration.create(5, TimeUnit.SECONDS), openConnection);
             commandSender.expectMsg(createConnectionResponse);
 
             final ActorRef clientActor = watch(mockClientProbe.sender());
@@ -1582,9 +1584,16 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                 createConnection.getConnection()
                         .toBuilder()
                         .targets(createConnection.getConnection().getTargets().stream()
-                                .map(target -> ConnectivityModelFactory.newTargetBuilder(target)
-                                        .issuedAcknowledgementLabel(getTestAck())
-                                        .build())
+                                .map(target -> {
+                                    if (target.getTopics().stream()
+                                            .anyMatch(ft -> ft.getTopic().equals(Topic.LIVE_EVENTS))) {
+                                        return ConnectivityModelFactory.newTargetBuilder(target)
+                                                .issuedAcknowledgementLabel(getTestAck())
+                                                .build();
+                                    } else {
+                                        return target;
+                                    }
+                                })
                                 .collect(Collectors.toList()))
                         .build(),
                 createConnection.getDittoHeaders()

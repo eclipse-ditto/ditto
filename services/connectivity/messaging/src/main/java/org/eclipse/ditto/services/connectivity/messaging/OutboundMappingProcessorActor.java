@@ -35,8 +35,13 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -54,7 +59,6 @@ import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.connectivity.mapping.ConnectivitySignalEnrichmentProvider;
@@ -68,6 +72,7 @@ import org.eclipse.ditto.services.connectivity.messaging.mappingoutcome.MappingO
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
+import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -79,6 +84,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -160,6 +166,36 @@ public final class OutboundMappingProcessorActor
                 ConnectivitySignalEnrichmentProvider.get(getContext().getSystem()).getFacade(connectionId);
         this.processorPoolSize = determinePoolSize(processorPoolSize, mappingConfig.getMaxPoolSize());
         toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(limitsConfig.getHeadersMaxSize());
+    }
+
+    /**
+     * Issue weak acknowledgements to the sender of a signal.
+     *
+     * @param signal the signal with 0 or more acknowledgement requests.
+     * @param isWeakAckLabel the predicate to test if a requested acknowledgement label should generate a weak ack.
+     * @param sender the actor who send the signal and who should receive the weak acknowledgements.
+     */
+    public static void issueWeakAcknowledgements(final Signal<?> signal,
+            final Predicate<AcknowledgementLabel> isWeakAckLabel,
+            final ActorRef sender) {
+        final Set<AcknowledgementRequest> requestedAcks = signal.getDittoHeaders().getAcknowledgementRequests();
+        final boolean customAckRequested = requestedAcks.stream()
+                .anyMatch(request -> !DittoAcknowledgementLabel.contains(request.getLabel()));
+        final EntityId entityId = signal.getEntityId();
+        if (customAckRequested && entityId instanceof EntityIdWithType) {
+            final List<AcknowledgementLabel> weakAckLabels = requestedAcks.stream()
+                    .map(AcknowledgementRequest::getLabel)
+                    .filter(isWeakAckLabel)
+                    .collect(Collectors.toList());
+            if (!weakAckLabels.isEmpty()) {
+                final DittoHeaders dittoHeaders = signal.getDittoHeaders();
+                final List<Acknowledgement> ackList = weakAckLabels.stream()
+                        .map(label -> weakAck(label, (EntityIdWithType) entityId, dittoHeaders))
+                        .collect(Collectors.toList());
+                final Acknowledgements weakAcks = Acknowledgements.of(ackList, dittoHeaders);
+                sender.tell(weakAcks, ActorRef.noSender());
+            }
+        }
     }
 
     private int determinePoolSize(final int connectionPoolSize, final int maxPoolSize) {
@@ -247,8 +283,10 @@ public final class OutboundMappingProcessorActor
     @Override
     protected Sink<OutboundSignalWithId, ?> createSink() {
         // Enrich outbound signals by extra fields if necessary.
+        // Targets attached to the OutboundSignal are pre-selected by authorization, topic and filter sans enrichment.
         final Flow<OutboundSignalWithId, OutboundSignal.MultiMapped, ?> flow = Flow.<OutboundSignalWithId>create()
                 .mapAsync(processorPoolSize, outbound -> toMultiMappedOutboundSignal(
+                        outbound,
                         Source.single(outbound)
                                 .via(splitByTargetExtraFieldsFlow())
                                 .mapAsync(mappingConfig.getParallelism(), this::enrichAndFilterSignal)
@@ -283,7 +321,7 @@ public final class OutboundMappingProcessorActor
 
                     final boolean shouldSendSignalWithoutExtraFields =
                             !splitTargets.first().isEmpty() ||
-                                    isTwinCommandResponseWithReplyTarget(outboundSignal.getSource()) ||
+                                    isCommandResponseWithReplyTarget(outboundSignal.getSource()) ||
                                     outboundSignal.getTargets().isEmpty(); // no target - this is an error response
                     final Stream<Pair<OutboundSignalWithId, FilteredTopic>> outboundSignalWithoutExtraFields =
                             shouldSendSignalWithoutExtraFields
@@ -322,7 +360,7 @@ public final class OutboundMappingProcessorActor
         final DittoHeaders headers = DittoHeaders.newBuilder()
                 .authorizationContext(target.getAuthorizationContext())
                 // the correlation-id MUST NOT be set! as the DittoHeaders are used as a caching key in the Caffeine
-                //  cache this would break the cache loading
+                // cache this would break the cache loading
                 // schema version is always the latest for connectivity signal enrichment.
                 .schemaVersion(JsonSchemaVersion.LATEST)
                 .build();
@@ -535,40 +573,56 @@ public final class OutboundMappingProcessorActor
     }
 
     private <T> CompletionStage<Collection<OutboundSignal.MultiMapped>> toMultiMappedOutboundSignal(
+            final OutboundSignalWithId outbound,
             final Source<OutboundSignalWithId, T> source) {
 
         return source.runWith(Sink.seq(), materializer)
                 .thenApply(outboundSignals -> {
                     if (outboundSignals.isEmpty()) {
+                        // signal dropped; issue weak acks for all requested acks belonging to this connection
+                        issueWeakAcknowledgements(outbound.getSource(),
+                                outboundMappingProcessor::isSourceDeclaredOrTargetIssuedAck,
+                                outbound.sender);
                         return List.of();
                     } else {
                         final ActorRef sender = outboundSignals.get(0).sender;
                         final List<Mapped> mappedSignals = outboundSignals.stream()
                                 .map(OutboundSignalWithId::asMapped)
                                 .collect(Collectors.toList());
+                        final List<Target> targetsToPublishAt = outboundSignals.stream()
+                                .map(OutboundSignal::getTargets)
+                                .flatMap(List::stream)
+                                .collect(Collectors.toList());
+                        final Predicate<AcknowledgementLabel> willPublish =
+                                ConnectionValidator.getTargetIssuedAcknowledgementLabels(connectionId,
+                                        targetsToPublishAt)
+                                        .collect(Collectors.toSet())::contains;
+                        issueWeakAcknowledgements(outbound.getSource(),
+                                willPublish.negate().and(outboundMappingProcessor::isTargetIssuedAck),
+                                sender);
                         return List.of(OutboundSignalFactory.newMultiMappedOutboundSignal(mappedSignals, sender));
                     }
                 });
     }
 
-    private static Collection<OutboundSignalWithId> applyFilter(final OutboundSignalWithId outboundSignalWithExtra,
+    private Collection<OutboundSignalWithId> applyFilter(final OutboundSignalWithId outboundSignalWithExtra,
             final FilteredTopic filteredTopic) {
 
         final Optional<String> filter = filteredTopic.getFilter();
         final Optional<JsonFieldSelector> extraFields = filteredTopic.getExtraFields();
         if (filter.isPresent() && extraFields.isPresent()) {
             // evaluate filter criteria again if signal enrichment is involved.
+            final Signal<?> signal = outboundSignalWithExtra.getSource();
+            final DittoHeaders dittoHeaders = signal.getDittoHeaders();
             final Criteria criteria = QueryFilterCriteriaFactory.modelBased()
-                    .filterCriteria(filter.get(), outboundSignalWithExtra.getSource().getDittoHeaders());
+                    .filterCriteria(filter.get(), dittoHeaders);
             return outboundSignalWithExtra.getExtra()
-                    .flatMap(extra -> {
-                        final Signal<?> signal = outboundSignalWithExtra.getSource();
-                        return ThingEventToThingConverter.mergeThingWithExtraFields(signal, extraFields.get(), extra)
-                                .filter(ThingPredicateVisitor.apply(criteria))
-                                .map(thing -> outboundSignalWithExtra);
-                    })
+                    .flatMap(extra -> ThingEventToThingConverter
+                            .mergeThingWithExtraFields(signal, extraFields.get(), extra)
+                            .filter(ThingPredicateVisitor.apply(criteria))
+                            .map(thing -> outboundSignalWithExtra))
                     .map(Collections::singletonList)
-                    .orElseGet(Collections::emptyList);
+                    .orElse(List.of());
         } else {
             // no signal enrichment: filtering is already done in SignalFilter since there is no ignored field
             return Collections.singletonList(outboundSignalWithExtra);
@@ -621,11 +675,21 @@ public final class OutboundMappingProcessorActor
         }
     }
 
-    private static boolean isTwinCommandResponseWithReplyTarget(final Signal<?> signal) {
+    private static boolean isCommandResponseWithReplyTarget(final Signal<?> signal) {
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
-        return signal instanceof CommandResponse &&
-                !ProtocolAdapter.isLiveSignal(signal) &&
-                dittoHeaders.getReplyTarget().isPresent();
+        return signal instanceof CommandResponse && dittoHeaders.getReplyTarget().isPresent();
+    }
+
+    private static Acknowledgement weakAck(final AcknowledgementLabel label,
+            final EntityIdWithType entityId,
+            final DittoHeaders dittoHeaders) {
+        final JsonValue payload = JsonValue.of("Acknowledgement was issued automatically as weak ack, " +
+                "because the signal is not relevant for the subscriber. Possible reasons are: " +
+                "the subscriber was not authorized, " +
+                "the subscriber did not subscribe for the signal type, " +
+                "the signal was dropped by a configured RQL filter, " +
+                "or the signal was dropped by all payload mappers.");
+        return Acknowledgement.weak(label, entityId, dittoHeaders, payload);
     }
 
     static final class OutboundSignalWithId implements OutboundSignal, WithId {

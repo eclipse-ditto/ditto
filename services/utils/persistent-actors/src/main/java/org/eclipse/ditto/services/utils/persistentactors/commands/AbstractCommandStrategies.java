@@ -20,11 +20,8 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.base.Command;
-
-import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * This <em>Singleton</em> delegates a {@code Command} to a dedicated strategy - if one is available - to be handled.
@@ -68,9 +65,8 @@ public abstract class AbstractCommandStrategies<C extends Command, S, K, R exten
 
     @Override
     public R unhandled(final Context<K> context, @Nullable final S entity, final long nextRevision, final C command) {
-        final DiagnosticLoggingAdapter log = context.getLog();
-        LogUtil.enhanceLogWithCorrelationId(log, command);
-        log.info("Command <{}> cannot be handled by this strategy.", command);
+        context.getLog().withCorrelationId(command)
+                .info("Command <{}> cannot be handled by this strategy.", command);
         return getEmptyResult();
     }
 
@@ -96,9 +92,8 @@ public abstract class AbstractCommandStrategies<C extends Command, S, K, R exten
         final CommandStrategy<C, S, K, R> commandStrategy = getAppropriateStrategy(command.getClass());
 
         if (commandStrategy != null) {
-            final DiagnosticLoggingAdapter log = context.getLog();
-            LogUtil.enhanceLogWithCorrelationId(log, command);
-            log.debug("Applying command <{}>", command);
+            context.getLog().withCorrelationId(command)
+                    .debug("Applying command <{}>", command);
             return commandStrategy.apply(context, entity, nextRevision, command);
         } else {
             // this may happen when subclasses override the "isDefined" condition.

@@ -14,10 +14,9 @@ package org.eclipse.ditto.services.utils.persistentactors.commands;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.base.Command;
-
-import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * The CommandStrategy interface.
@@ -82,7 +81,7 @@ public interface CommandStrategy<C extends Command, S, K, R extends Result> {
         /**
          * @return the log.
          */
-        DiagnosticLoggingAdapter getLog();
+        DittoDiagnosticLoggingAdapter getLog();
 
     }
 

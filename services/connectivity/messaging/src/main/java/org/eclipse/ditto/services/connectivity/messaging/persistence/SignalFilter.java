@@ -76,7 +76,7 @@ final class SignalFilter {
      * Filters the passed {@code signal} by extracting those {@link Target}s which should receive the signal.
      * Fields are ignored if they occur as "extra targets" to be evaluated later after signal enrichment.
      *
-     * @param signal the signal to filter / determine the {@link Target}s for
+     * @param signal the signal to filter / determine the {@link org.eclipse.ditto.model.connectivity.Target}s for
      * @return the determined Targets for the passed in {@code signal}
      * @throws org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException if the optional filter string of a
      * Target cannot be mapped to a valid criterion

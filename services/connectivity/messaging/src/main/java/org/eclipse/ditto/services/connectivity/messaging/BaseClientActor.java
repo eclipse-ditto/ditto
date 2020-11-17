@@ -1160,9 +1160,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 connectivityConfig,
                 protocolAdapterProvider.getProtocolAdapter(null),
                 logger);
-        OutboundMappingProcessor.of(connectionId(),
-                connection.getConnectionType(),
-                connection.getPayloadMappingDefinition(),
+        OutboundMappingProcessor.of(connection,
                 actorSystem,
                 connectivityConfig,
                 protocolAdapterProvider.getProtocolAdapter(null),
@@ -1182,9 +1180,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         try {
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
-            outboundMappingProcessor = OutboundMappingProcessor.of(connection.getId(),
-                    connection.getConnectionType(),
-                    connection.getPayloadMappingDefinition(),
+            outboundMappingProcessor = OutboundMappingProcessor.of(connection,
                     getContext().getSystem(),
                     connectivityConfig,
                     protocolAdapter,
@@ -1361,11 +1357,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                             logger.warning("Received unhandled DittoRuntimeException <{}>. " +
                                     "Telling outbound mapping processor about it.", error);
                             outboundMappingProcessorActor.tell(error, ActorRef.noSender());
-                            return SupervisorStrategy.resume();
+                            return (SupervisorStrategy.Directive) SupervisorStrategy.resume();
                         })
                         .matchAny(error -> {
                             self.tell(new ImmutableConnectionFailure(getSender(), error, "exception in child"), self);
-                            return SupervisorStrategy.stop();
+                            return (SupervisorStrategy.Directive) SupervisorStrategy.stop();
                         }).build()
         );
     }

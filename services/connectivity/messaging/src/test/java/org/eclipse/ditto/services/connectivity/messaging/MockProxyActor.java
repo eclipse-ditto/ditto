@@ -29,8 +29,8 @@ final class MockProxyActor extends AbstractActor {
      *
      * @param actorSystem the actor system where the mock concierge forwarder is to be created.
      */
-    public static void create(final ActorSystem actorSystem) {
-        actorSystem.actorOf(Props.create(MockProxyActor.class), "connectivityRoot");
+    public static ActorRef create(final ActorSystem actorSystem) {
+        return actorSystem.actorOf(Props.create(MockProxyActor.class), "connectivityRoot");
     }
 
     @Override
@@ -40,7 +40,11 @@ final class MockProxyActor extends AbstractActor {
 
     @Override
     public Receive createReceive() {
-        return ReceiveBuilder.create().build();
+        return ReceiveBuilder.create()
+                .match(ActorRef.class, actorRef ->
+                        getContext().getChildren().forEach(child -> child.forward(actorRef, getContext()))
+                )
+                .build();
     }
 
     private static final class MockInnerActor extends AbstractActor {
@@ -52,7 +56,7 @@ final class MockProxyActor extends AbstractActor {
             return ReceiveBuilder.create()
                     .match(ActorRef.class, actorRef -> {
                         recipient = actorRef;
-                        getSender().tell(actorRef, getSelf());
+                        getSender().tell(getSelf(), getSelf());
                     })
                     .matchAny(message -> {
                         if (recipient != null) {

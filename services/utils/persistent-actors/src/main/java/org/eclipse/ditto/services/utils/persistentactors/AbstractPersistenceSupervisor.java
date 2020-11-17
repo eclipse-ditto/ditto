@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.base.actors.ShutdownBehaviour;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
@@ -43,11 +43,12 @@ import akka.japi.pf.ReceiveBuilder;
  * <li>shuts down self on command, and</li>
  * <li>handles initialization errors by becoming corrupted for a time.</li>
  * </ol>
+ *
  * @param <E> the type of the EntityId
  */
 public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends AbstractActorWithTimers {
 
-    protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    protected final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     @Nullable private E entityId;
     @Nullable private Props persistenceActorProps;

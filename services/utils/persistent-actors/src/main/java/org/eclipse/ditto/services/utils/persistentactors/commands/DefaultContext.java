@@ -18,7 +18,7 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
-import akka.event.DiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 
 /**
  * Holds the context required to execute the
@@ -30,12 +30,12 @@ import akka.event.DiagnosticLoggingAdapter;
 public final class DefaultContext<K> implements CommandStrategy.Context<K> {
 
     private final K state;
-    private final DiagnosticLoggingAdapter log;
+    private final DittoDiagnosticLoggingAdapter log;
 
-    private DefaultContext(final K state, final DiagnosticLoggingAdapter theLog) {
+    private DefaultContext(final K state, final DittoDiagnosticLoggingAdapter log) {
 
         this.state = checkNotNull(state, "state");
-        log = checkNotNull(theLog, "DiagnosticLoggingAdapter");
+        this.log = checkNotNull(log, "log");
     }
 
     /**
@@ -46,7 +46,7 @@ public final class DefaultContext<K> implements CommandStrategy.Context<K> {
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static <K> DefaultContext<K> getInstance(final K state, final DiagnosticLoggingAdapter log) {
+    public static <K> DefaultContext<K> getInstance(final K state, final DittoDiagnosticLoggingAdapter log) {
         return new DefaultContext<>(state, log);
     }
 
@@ -56,7 +56,7 @@ public final class DefaultContext<K> implements CommandStrategy.Context<K> {
     }
 
     @Override
-    public DiagnosticLoggingAdapter getLog() {
+    public DittoDiagnosticLoggingAdapter getLog() {
         return log;
     }
 

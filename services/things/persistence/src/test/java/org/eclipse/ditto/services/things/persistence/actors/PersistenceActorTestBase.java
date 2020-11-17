@@ -44,6 +44,7 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.things.common.config.DefaultThingConfig;
 import org.eclipse.ditto.services.things.common.config.ThingConfig;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.junit.After;
@@ -238,6 +239,12 @@ public abstract class PersistenceActorTestBase {
         @Override
         public Object wrapForPublication(final ThingEvent<?> message) {
             return message;
+        }
+
+        @Override
+        public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
+                final AckExtractor<S> ackExtractor) {
+            return wrapForPublication(message);
         }
     }
 }
