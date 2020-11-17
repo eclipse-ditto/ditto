@@ -18,7 +18,6 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.after;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -69,7 +68,6 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.stubbing.Answer;
@@ -152,7 +150,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                     assertThat(msg).contains("AMQP message dropped")
             );
 
-            verify(messageProducer, times(connectionConfig.getPublisherParallelism()))
+            verify(messageProducer, timeout(10_000).times(connectionConfig.getPublisherParallelism()))
                     .send(any(JmsMessage.class), any(CompletionListener.class));
         }};
 
