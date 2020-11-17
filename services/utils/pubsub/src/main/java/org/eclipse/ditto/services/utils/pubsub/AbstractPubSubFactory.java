@@ -133,7 +133,7 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
     /**
      * Literal DData provider.
      */
-    protected static final class LiteralDDataProvider extends LiteralDData.Provider {
+    public static final class LiteralDDataProvider extends LiteralDData.Provider {
 
         private final String clusterRole;
         private final String messageType;

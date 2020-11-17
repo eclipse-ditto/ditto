@@ -16,10 +16,12 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
-import org.eclipse.ditto.services.utils.pubsub.ddata.ack.AckDData;
+import org.eclipse.ditto.services.utils.pubsub.AbstractPubSubFactory;
+import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
+import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDData;
+import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -27,6 +29,7 @@ import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.Address;
 import akka.cluster.Cluster;
 import akka.cluster.ddata.Replicator;
 import akka.testkit.TestProbe;
@@ -37,10 +40,13 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class AckUpdaterTest {
 
+    private static final LiteralDData.Provider PROVIDER =
+            AbstractPubSubFactory.LiteralDDataProvider.of("dc-default", "ack");
+
     private ActorSystem system1;
     private ActorSystem system2;
-    private AckDData ddata1;
-    private AckDData ddata2;
+    private DData<Address, String, LiteralUpdate> ddata1;
+    private DData<Address, String, LiteralUpdate> ddata2;
 
     @Before
     public void setUpCluster() throws Exception {
@@ -53,8 +59,8 @@ public final class AckUpdaterTest {
         cluster2.registerOnMemberUp(latch::countDown);
         cluster1.join(cluster1.selfAddress());
         cluster2.join(cluster1.selfAddress());
-        ddata1 = AckDData.of(system1, AckDData.Provider.of("dc-default", "ack"));
-        ddata2 = AckDData.of(system2, AckDData.Provider.of("dc-default", "ack"));
+        ddata1 = LiteralDData.of(system1, PROVIDER);
+        ddata2 = LiteralDData.of(system2, PROVIDER);
         // wait for both members to be UP
         latch.await();
     }
@@ -66,58 +72,53 @@ public final class AckUpdaterTest {
     }
 
     @Test
-    public void localGroupConflict() {
+    public void localConflict() {
         new TestKit(system1) {{
             final ActorRef underTest = system1.actorOf(AckSupervisor.props(ddata1));
             final TestProbe s1 = TestProbe.apply("s1", system1);
             final TestProbe s2 = TestProbe.apply("s2", system1);
 
-            // GIVEN: a group of ack labels are declared
+            // WHEN: a group of ack labels are declared
             underTest.tell(AckUpdater.declareAckLabels(s1.ref(), "g1", Set.of("a1", "a2")), getRef());
             expectMsgClass(AckUpdater.SubAck.class);
 
-            // WHEN: a different group of ack labels are declared with the same group name
+            // THEN: a different group of ack labels may not be declared with the same group name
             underTest.tell(AckUpdater.declareAckLabels(s2.ref(), "g1", Set.of("a2", "a3")), getRef());
             // TODO: switch to the right exception
             expectMsgClass(AcknowledgementLabelNotUniqueException.class);
-        }};
-    }
 
-    @Test
-    public void localNonGroupConflict() {
-        new TestKit(system1) {{
-            final ActorRef underTest = system1.actorOf(AckSupervisor.props(ddata1));
-            final TestProbe s1 = TestProbe.apply("s1", system1);
-            final TestProbe s2 = TestProbe.apply("s2", system1);
-
-            // GIVEN: a group of ack labels are declared
-            underTest.tell(AckUpdater.declareAckLabels(s1.ref(), "g1", Set.of("a1", "a2")), getRef());
-            expectMsgClass(AckUpdater.SubAck.class);
-
-            // WHEN: intersecting ack labels are declared without any group
+            // THEN: intersecting ack labels may not be declared without any group
             underTest.tell(AckUpdater.declareAckLabels(s2.ref(), null, Set.of("a2", "a3")), getRef());
             expectMsgClass(AcknowledgementLabelNotUniqueException.class);
         }};
     }
 
-    @Ignore("TODO: turns out akka.japi.Pair is not serializable.")
-    public void remoteGroupConflict() {
+    @Test
+    public void remoteConflict() {
         new TestKit(system1) {{
             final ActorRef underTest = system1.actorOf(AckSupervisor.props(ddata1));
-            final ActorRef ackUpdter2 = system2.actorOf(AckSupervisor.props(ddata2));
+            final ActorRef ackUpdater2 = system2.actorOf(AckSupervisor.props(ddata2));
             final TestProbe s1 = TestProbe.apply("s1", system1);
             final TestProbe s2 = TestProbe.apply("s2", system2);
 
             // GIVEN: a group of ack labels are declared on a remote node
-            ackUpdter2.tell(AckUpdater.declareAckLabels(s2.ref(), "g1", Set.of("a1", "a2")), s2.ref());
+            ackUpdater2.tell(AckUpdater.declareAckLabels(s2.ref(), "g1", Set.of("a1", "a2")), s2.ref());
             s2.expectMsgClass(AckUpdater.SubAck.class);
 
             // WHEN: ddata is replicated
             waitForHeartBeats(system1, ddata1);
 
-            // THEN: it is an error to declare different ack labels under the same name.
+            // THEN: it is an error to declare different ack labels under the same group name.
             underTest.tell(AckUpdater.declareAckLabels(s1.ref(), "g1", Set.of("a2", "a3")), getRef());
             // TODO: switch to the right exception
+            expectMsgClass(AcknowledgementLabelNotUniqueException.class);
+
+            // THEN: it is an error to declare intersecting ack labels without a group.
+            underTest.tell(AckUpdater.declareAckLabels(s1.ref(), null, Set.of("a2", "a3")), getRef());
+            expectMsgClass(AcknowledgementLabelNotUniqueException.class);
+
+            // THEN: it is an error to declare intersecting ack labels under under a different group.
+            underTest.tell(AckUpdater.declareAckLabels(s1.ref(), "g2", Set.of("a2", "a3")), getRef());
             expectMsgClass(AcknowledgementLabelNotUniqueException.class);
         }};
     }
@@ -126,7 +127,7 @@ public final class AckUpdaterTest {
         return ConfigFactory.load("pubsub-factory-test.conf");
     }
 
-    private static void waitForHeartBeats(final ActorSystem system, final AckDData ackDData) {
+    private static void waitForHeartBeats(final ActorSystem system, final DData<?, ?, ?> ackDData) {
         final int howManyHeartBeats = 5;
         final TestProbe probe = TestProbe.apply(system);
         ackDData.getReader().receiveChanges(probe.ref());

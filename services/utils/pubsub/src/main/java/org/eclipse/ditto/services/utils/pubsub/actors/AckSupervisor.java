@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.utils.pubsub.actors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
-import org.eclipse.ditto.services.utils.pubsub.ddata.ack.AckDData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 
 import akka.actor.ActorRef;
@@ -30,12 +29,12 @@ import akka.japi.pf.ReceiveBuilder;
 public final class AckSupervisor extends AbstractPubSubSupervisor {
 
     private final Address selfAddress;
-    private final AckDData ackDData;
+    private final DData<Address, String, LiteralUpdate> ackDData;
 
     @Nullable private ActorRef acksUpdater;
 
     @SuppressWarnings("unused")
-    private AckSupervisor(final AckDData ackDData) {
+    private AckSupervisor(final DData<Address, String, LiteralUpdate> ackDData) {
         super();
         this.ackDData = ackDData;
         selfAddress = Cluster.get(getContext().getSystem()).selfAddress();
@@ -47,7 +46,7 @@ public final class AckSupervisor extends AbstractPubSubSupervisor {
      * @param ackDData access to the distributed data of acknowledgement labels.
      * @return the Props object.
      */
-    public static Props props(final AckDData ackDData) {
+    public static Props props(final DData<Address, String, LiteralUpdate> ackDData) {
         return Props.create(AckSupervisor.class, ackDData);
     }
 
