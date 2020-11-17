@@ -11,10 +11,10 @@ toc: true
 ---
 
 ## Desired feature properties added to things model
-With the release of Eclipse Ditto **version 1.5.0**
+With the upcoming release of Eclipse Ditto **version 1.5.0** 
 [desired feature properties](basic-feature.html#feature-desired-properties) are introduced to the things model for 
-**API versions later than 1**. The _desired properties_ for features are added on the same level of the model as
-the feature properties and can reflect for example feature property updates ,which are intended, but not yet applied.
+**API versions later than 1**. The _desired properties_ for features are added on the same level of the model as 
+the feature properties and can reflect for example feature property updates ,which are intended, but not yet applied. 
 
 {% include note.html content="Further logics for desired feature properties might be implemented in future Ditto 
                               versions." %}
@@ -62,13 +62,13 @@ A fully-fledged JSON representation of a feature with desired properties is show
     - You can [search](httpapi-search.html) for things with specific desired properties with [RQL-functions](basic-rql.html).
     - You can search for things, which have [existent](basic-rql.html#exists) desired properties for a feature.
 * **Get notified on changes**
-    - You can [receive events](basic-signals-event.html) for changes done to the desired properties of things
+    - You can [receive events](basic-signals-event.html) for changes done to the desired properties of things 
       you're authorized to read.
-    - You can [enrich](basic-enrichment.html) and [filter](basic-changenotifications.html#filtering) the
+    - You can [enrich](basic-enrichment.html) and [filter](basic-changenotifications.html#filtering) the 
     events you want to receive, for changes done to the desired properties.
     
 ### Executing CRUD operations on desired feature properties
-CRUD operations can be executed either via the [Ditto HTTP API](httpapi-concepts.html) **versions later than 1** or via
+CRUD operations can be executed either via the [Ditto HTTP API](httpapi-concepts.html) **versions later than 1** or via 
 [ditto-protocol](protocol-overview.html) messages.
 
 _Possible CRUD operations for desired feature properties via ditto-protocol_:
@@ -81,9 +81,9 @@ _Possible CRUD operations for desired feature properties via ditto-protocol_:
 - [Delete a single desired property of a feature via ditto-protocol](protocol-examples-deletedesiredproperty.html)
 
 ### Using the ditto-client to manage desired feature properties
-The desired feature properties can also be retrieved, modified and deleted via the [Ditto Java Client](client-sdk-java.html).
-At the time of publishing of this blog post (**Ditto Java Client version 1.5.0**), no special CRUD operations for
-desired feature properties are implemented in the client. Thus, the operations have to be executed via creating
+The desired feature properties can also be retrieved, modified and deleted via the [Ditto Java Client](client-sdk-java.html). 
+With the upcoming (**Ditto Java Client version 1.5.0**), no special CRUD operations for 
+desired feature properties are implemented in the client. Thus, the operations have to be executed via creating 
 **ditto-protocol messages** manually in the client.
 
 Example for creating/modifying desired feature properties of a thing via the ditto-client:
