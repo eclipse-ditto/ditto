@@ -23,5 +23,5 @@
  @FunctionalInterface
  interface AmqpMessageContext {
 
-     CompletionStage<?> onPublishMessage(final ExternalMessage message);
+     CompletionStage<?> onPublishMessage(ExternalMessage message);
  }
