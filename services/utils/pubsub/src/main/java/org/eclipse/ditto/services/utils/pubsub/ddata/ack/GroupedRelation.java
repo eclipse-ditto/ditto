@@ -26,7 +26,17 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**
- * Information about local subscribers' declared acknowledgement labels and groups.
+ * The union of disjoint complete bipartite graphs where each connected component has an optional "group" name.
+ * In other words, a mutable relation between keys and values such that:
+ * <ol>
+ * <li>Each key and each value belongs to zero or one group,</li>
+ * <li>All keys belonging to one group are associated with the same values,</li>
+ * <li>Keys in different groups are associated with disjoint values,</li>
+ * <li>Keys not in any group are each associated with a unique set of values.</li>
+ * </ol>
+ *
+ * @param <K> type of keys.
+ * @param <V> type of values.
  */
 @NotThreadSafe
 public final class GroupedRelation<K, V> {
@@ -37,47 +47,92 @@ public final class GroupedRelation<K, V> {
 
     private GroupedRelation() {}
 
-    // TODO javadoc
+    /**
+     * Create an empty grouped relation.
+     *
+     * @param <K> the type of keys.
+     * @param <V> the type of values.
+     * @return a new empty grouped relation.
+     */
     public static <K, V> GroupedRelation<K, V> create() {
         return new GroupedRelation<>();
     }
 
-    // TODO javadoc
+    /**
+     * Associate a key with a set of values such that none belongs to a group.
+     *
+     * @param key the key.
+     * @param values the values.
+     */
     public void put(final K key, final Set<V> values) {
         doPut(key, null, values);
     }
 
-    // TODO javadoc
+    /**
+     * Associate a key with a set of values and a group.
+     *
+     * @param key the key.
+     * @param group the group, or null.
+     * @param values the values.
+     */
     public void put(final K key, @Nullable final String group, final Set<V> values) {
         doPut(key, group, values);
     }
 
-    // TODO: javadoc -- for local sanity check
+    /**
+     * Retrieve grouped values associated with a key.
+     *
+     * @param key the key.
+     * @return the grouped values associated with it, or an empty optional if no values are associated.
+     */
     public Optional<Grouped<V>> getValues(K key) {
         return Optional.ofNullable(k2v.get(key));
     }
 
-    @Nullable
-    public Set<V> getValuesOfGroup(final String group) {
-        return g2v.get(group);
+    /**
+     * Retrieve the values associated to a key by the group the key belongs to.
+     *
+     * @param group the group.
+     * @return the set of values associated to every key belonging to that group, or an empty optional.
+     */
+    public Optional<Set<V>> getValuesOfGroup(final String group) {
+        return Optional.ofNullable(g2v.get(group));
     }
 
-    // TODO: javadoc
+    /**
+     * Retrieve the set of keys associated with a value with an optional group name.
+     *
+     * @param value the value.
+     * @return the grouped set of keys.
+     */
     public Optional<Grouped<K>> getKeys(V value) {
         return Optional.ofNullable(v2k.get(value));
     }
 
-    // TODO: javadoc
+    /**
+     * Create an immutable snapshot of this mutable relation.
+     *
+     * @return the snapshot.
+     */
     public GroupedSnapshot<K, V> export() {
         return new GroupedSnapshot<>(indexKeysByValue(), indexGroupsByKey());
     }
 
-    // TODO: javadoc
+    /**
+     * Stream all grouped values.
+     *
+     * @return the grouped values.
+     */
     public Stream<Grouped<V>> streamGroupedValues() {
         return k2v.values().stream();
     }
 
-    // TODO: javadoc
+    /**
+     * Check if a value is associated with any key.
+     *
+     * @param value the value.
+     * @return whether it is associated with any key.
+     */
     public boolean containsValue(final V value) {
         return v2k.containsKey(value);
     }

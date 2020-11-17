@@ -31,17 +31,32 @@ public final class GroupedSnapshot<K, V> {
         this.k2g = k2g;
     }
 
-    // TODO: javadoc
+    /**
+     * Check if a value is associated with any key.
+     *
+     * @param value the value.
+     * @return whether the value is associated with a key.
+     */
     public boolean containsValue(final V value) {
         return v2k.containsKey(value);
     }
 
-    // TODO: javadoc
+    /**
+     * Get all keys associated with a value.
+     *
+     * @param value the value.
+     * @return the set of keys associated with a value.
+     */
     public Collection<K> getKeys(final V value) {
         return v2k.getOrDefault(value, Set.of());
     }
 
-    // TODO: javadoc
+    /**
+     * Get the group a key belongs to, if any.
+     *
+     * @param key the key.
+     * @return the group the key belongs to, or an empty optional if the key belongs to no group.
+     */
     public Optional<String> getGroup(final K key) {
         return Optional.ofNullable(k2g.get(key));
     }

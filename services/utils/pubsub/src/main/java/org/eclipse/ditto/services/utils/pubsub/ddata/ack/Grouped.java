@@ -32,20 +32,43 @@ public final class Grouped<T> {
         this.values = checkNotNull(values, "values");
     }
 
-    // TODO: javadoc
-
+    /**
+     * Create a grouped set of values without group name.
+     *
+     * @param values the values.
+     * @param <T> the type of values.
+     * @return the grouped values.
+     */
     public static <T> Grouped<T> of(final Set<T> values) {
         return new Grouped<>(null, values);
     }
 
+    /**
+     * Create a grouped set of values.
+     *
+     * @param group the group name, or null for values without a group name.
+     * @param values the values.
+     * @param <T> the type of values.
+     * @return the grouped values.
+     */
     public static <T> Grouped<T> of(@Nullable final String group, final Set<T> values) {
         return new Grouped<>(group, values);
     }
 
+    /**
+     * Retrieve the optional group name.
+     *
+     * @return the optional group name.
+     */
     public Optional<String> getGroup() {
         return Optional.ofNullable(group);
     }
 
+    /**
+     * Retrieve the set of values.
+     *
+     * @return the set of values.
+     */
     public Set<T> getValues() {
         return values;
     }

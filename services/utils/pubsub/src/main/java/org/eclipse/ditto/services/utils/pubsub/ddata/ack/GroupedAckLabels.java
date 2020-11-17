@@ -37,7 +37,7 @@ import akka.japi.Pair;
 import scala.jdk.javaapi.CollectionConverters;
 
 /**
- * Model of a set of string values with a group.
+ * A set of acknowledgement labels together with an optional group name for storage in an {@code ORMultiMap}.
  */
 public final class GroupedAckLabels {
 
@@ -49,21 +49,24 @@ public final class GroupedAckLabels {
         this.ackLabels = checkNotNull(ackLabels, "values");
     }
 
-    // TODO: javadoc
-
-    public static GroupedAckLabels of(final Set<String> values) {
-        return new GroupedAckLabels(null, values);
-    }
-
-    public static GroupedAckLabels of(@Nullable final String group, final Set<String> values) {
-        return new GroupedAckLabels(group, values);
-    }
-
+    /**
+     * Create grouped ack labels from grouped strings.
+     *
+     * @param grouped a set of strings with an optional group name.
+     * @return Grouped ack labels.
+     */
     public static GroupedAckLabels fromGrouped(final Grouped<String> grouped) {
-        return of(grouped.getGroup().orElse(null), grouped.getValues());
+        return new GroupedAckLabels(grouped.getGroup().orElse(null), grouped.getValues());
     }
 
-    // TODO: javadoc
+    /**
+     * Deserialize string values of an {@code ORMultiMap} as grouped acknowledgement labels in JSON format.
+     *
+     * @param orMultiMap the ORMultiMap.
+     * @param keyPredicate a filter on the entries to deserialize based on key.
+     * @param <K> the type of keys in the ORMultiMap.
+     * @return a multi-map from keys to grouped ack labels deserialized from each binding.
+     */
     public static <K> Map<K, List<GroupedAckLabels>> deserializeORMultiMap(final ORMultiMap<K, String> orMultiMap,
             final Predicate<K> keyPredicate) {
         final Map<K, scala.collection.immutable.Set<String>> entries =
@@ -75,12 +78,22 @@ public final class GroupedAckLabels {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    // TODO: javadoc
+    /**
+     * Deserialize grouped ack labels from a JSON string.
+     *
+     * @param jsonString the JSON string.
+     * @return grouped ack labels.
+     */
     public static GroupedAckLabels fromJsonString(final String jsonString) {
         return fromJson(JsonFactory.newObject(jsonString));
     }
 
-    // TODO: javadoc
+    /**
+     * Deserialize grouped ack labels from a JSON object.
+     *
+     * @param jsonObject the JSON object.
+     * @return grouped ack labels.
+     */
     public static GroupedAckLabels fromJson(final JsonObject jsonObject) {
         final String group = jsonObject.getValue(JsonFields.GROUP).orElse(null);
         final Set<String> ackLabels = jsonObject.getValue(JsonFields.ACK_LABELS)
@@ -91,7 +104,12 @@ public final class GroupedAckLabels {
         return new GroupedAckLabels(group, ackLabels);
     }
 
-    // TODO: javadoc
+    /**
+     * Return a stream containing a pair with guaranteed group name and ack labels if this object has a group name,
+     * or an empty stream otherwise.
+     *
+     * @return the stream.
+     */
     public Stream<Pair<String, Set<String>>> streamAsGroupedPair() {
         if (group != null) {
             return Stream.of(Pair.create(group, ackLabels));
@@ -100,11 +118,20 @@ public final class GroupedAckLabels {
         }
     }
 
-    // TODO: javadoc
+    /**
+     * Stream ack labels of this object.
+     *
+     * @return a stream of ack labels.
+     */
     public Stream<String> streamAckLabels() {
         return ackLabels.stream();
     }
 
+    /**
+     * Serialize this object as a JSON object.
+     *
+     * @return JSON representation of this object.
+     */
     public JsonObject toJson() {
         return JsonFactory.newObjectBuilder()
                 .set(JsonFields.GROUP, group, field -> !field.getValue().isNull())
@@ -114,6 +141,11 @@ public final class GroupedAckLabels {
                 .build();
     }
 
+    /**
+     * Serialize this object as a JSON string.
+     *
+     * @return JSON representation of this object.
+     */
     public String toJsonString() {
         return toJson().toString();
     }
@@ -146,6 +178,7 @@ public final class GroupedAckLabels {
                 .collect(Collectors.toList());
     }
 
+    // JSON field names are 1-character long to conserve space in the distributed data.
     private static final class JsonFields {
 
         private static final JsonFieldDefinition<String> GROUP = JsonFactory.newStringFieldDefinition("g");

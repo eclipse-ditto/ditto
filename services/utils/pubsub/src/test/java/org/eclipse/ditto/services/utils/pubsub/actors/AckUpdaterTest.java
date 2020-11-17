@@ -90,6 +90,10 @@ public final class AckUpdaterTest {
             // THEN: intersecting ack labels may not be declared without any group
             underTest.tell(AckUpdater.declareAckLabels(s2.ref(), null, Set.of("a2", "a3")), getRef());
             expectMsgClass(AcknowledgementLabelNotUniqueException.class);
+
+            // THEN: it is an error to declare intersecting ack labels under under a different group.
+            underTest.tell(AckUpdater.declareAckLabels(s1.ref(), "g2", Set.of("a2", "a3")), getRef());
+            expectMsgClass(AcknowledgementLabelNotUniqueException.class);
         }};
     }
 

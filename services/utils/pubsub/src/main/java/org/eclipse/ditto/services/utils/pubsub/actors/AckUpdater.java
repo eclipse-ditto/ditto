@@ -19,8 +19,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -115,25 +116,26 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
 
     private boolean isAllowedLocally(final DeclareAckLabels request) {
         if (request.group != null) {
-            final Set<String> groupLabels = localAckLabels.getValuesOfGroup(request.group);
-            return groupLabels == null || groupLabels.equals(request.ackLabels);
-        } else {
-            return request.ackLabels.stream().noneMatch(localAckLabels::containsValue);
+            final Optional<Set<String>> groupLabels = localAckLabels.getValuesOfGroup(request.group);
+            if (groupLabels.isPresent()) {
+                return groupLabels.get().equals(request.ackLabels);
+            }
         }
+        return noDeclaredLabelMatches(request, localAckLabels::containsValue);
     }
 
     private boolean isAllowedRemotely(final DeclareAckLabels request) {
         if (request.group != null) {
             final Set<String> remoteGroup = remoteGroups.get(request.group);
-            return (remoteGroup == null && noRemoteLabelIntersectsDeclaredAcks(request)) ||
-                    Objects.equals(remoteGroup, request.ackLabels);
-        } else {
-            return noRemoteLabelIntersectsDeclaredAcks(request);
+            if (remoteGroup != null) {
+                return remoteGroup.equals(request.ackLabels);
+            }
         }
+        return noDeclaredLabelMatches(request, remoteAckLabels::contains);
     }
 
-    private boolean noRemoteLabelIntersectsDeclaredAcks(final DeclareAckLabels request) {
-        return request.ackLabels.stream().noneMatch(remoteAckLabels::contains);
+    private boolean noDeclaredLabelMatches(final DeclareAckLabels request, final Predicate<String> contains) {
+        return request.ackLabels.stream().noneMatch(contains);
     }
 
     private void tick(Clock tick) {

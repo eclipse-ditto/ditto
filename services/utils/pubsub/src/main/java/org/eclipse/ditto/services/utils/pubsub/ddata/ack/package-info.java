@@ -12,7 +12,7 @@
  */
 
 /**
- * Distributed ternary relation between actor references, actor group, and declared acknowledgement labels.
+ * Data structures for the ternary relation between actor references, actor groups, and declared acknowledgement labels.
  */
 @org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault
 package org.eclipse.ditto.services.utils.pubsub.ddata.ack;
