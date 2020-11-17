@@ -376,9 +376,7 @@ public abstract class AbstractConsumerActorTest<M> {
                 connectivityConfig,
                 protocolAdapter,
                 logger);
-        final OutboundMappingProcessor outboundMappingProcessor = OutboundMappingProcessor.of(CONNECTION_ID,
-                CONNECTION.getConnectionType(),
-                payloadMappingDefinition,
+        final OutboundMappingProcessor outboundMappingProcessor = OutboundMappingProcessor.of(CONNECTION,
                 actorSystem,
                 connectivityConfig,
                 protocolAdapter,

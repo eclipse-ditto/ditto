@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -36,9 +37,11 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -148,9 +151,23 @@ public final class OutboundMappingProcessorTest {
 
         final PayloadMappingDefinition payloadMappingDefinition =
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappings);
+        final Connection connection =
+                ConnectivityModelFactory.newConnectionBuilder(ConnectionId.of("theConnection"),
+                        ConnectionType.AMQP_10,
+                        ConnectivityStatus.OPEN,
+                        "amqp://localhost:5671")
+                        .payloadMappingDefinition(payloadMappingDefinition)
+                        .sources(List.of(ConnectivityModelFactory.newSourceBuilder()
+                                .address("address")
+                                .authorizationContext(AuthorizationContext.newInstance(
+                                        DittoAuthorizationContextType.UNSPECIFIED,
+                                        AuthorizationSubject.newInstance("ditto:ditto")
+                                ))
+                                .declaredAcknowledgementLabels(Set.of(AcknowledgementLabel.of("custom:ack")))
+                                .build()))
+                        .build();
 
-        underTest = OutboundMappingProcessor.of(ConnectionId.of("theConnection"), ConnectionType.AMQP_10,
-                payloadMappingDefinition, actorSystem,
+        underTest = OutboundMappingProcessor.of(connection, actorSystem,
                 connectivityConfig, protocolAdapterProvider.getProtocolAdapter(null), logger);
     }
 
@@ -212,7 +229,9 @@ public final class OutboundMappingProcessorTest {
             final AcknowledgementLabel targetIssuedAckLabel = AcknowledgementLabel.of("issued:ack");
             signal = signal.setDittoHeaders(signal.getDittoHeaders().toBuilder()
                     .acknowledgementRequest(AcknowledgementRequest.of(targetIssuedAckLabel),
-                            AcknowledgementRequest.of(customAckLabel))
+                            AcknowledgementRequest.of(customAckLabel),
+                            AcknowledgementRequest.parseAcknowledgementRequest("non-declared:ack")
+                    )
                     .build()
             );
             final OutboundSignal outboundSignal = Mockito.mock(OutboundSignal.class);
@@ -260,7 +279,7 @@ public final class OutboundMappingProcessorTest {
                                             AcknowledgementRequest.of(customAckLabel))
                                     .build())
                             .build();
-            final MessageCommand signal =  SendThingMessage.of(TestConstants.Things.THING_ID, message, dittoHeaders);
+            final MessageCommand signal = SendThingMessage.of(TestConstants.Things.THING_ID, message, dittoHeaders);
             final OutboundSignal outboundSignal = Mockito.mock(OutboundSignal.class);
             final MappingOutcome.Visitor<OutboundSignal.Mapped, Void> mock = Mockito.mock(MappingOutcome.Visitor.class);
             when(outboundSignal.getSource()).thenReturn(signal);

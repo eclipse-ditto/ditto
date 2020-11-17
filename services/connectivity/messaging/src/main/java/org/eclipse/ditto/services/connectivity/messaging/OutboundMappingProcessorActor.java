@@ -134,8 +134,6 @@ public final class OutboundMappingProcessorActor
     private final SignalEnrichmentFacade signalEnrichmentFacade;
     private final int processorPoolSize;
     private final DittoRuntimeExceptionToErrorResponseFunction toErrorResponseFunction;
-    private final Predicate<AcknowledgementLabel> isSourceDeclaredAck;
-    private final Predicate<AcknowledgementLabel> isTargetIssuedAck;
 
     @SuppressWarnings("unused")
     private OutboundMappingProcessorActor(final ActorRef clientActor,
@@ -168,15 +166,6 @@ public final class OutboundMappingProcessorActor
                 ConnectivitySignalEnrichmentProvider.get(getContext().getSystem()).getFacade(connectionId);
         this.processorPoolSize = determinePoolSize(processorPoolSize, mappingConfig.getMaxPoolSize());
         toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(limitsConfig.getHeadersMaxSize());
-
-        isSourceDeclaredAck =
-                ConnectionValidator.getSourceDeclaredAcknowledgementLabels(connectionId, connection.getSources())
-                        .collect(Collectors.toSet())::contains;
-        isTargetIssuedAck =
-                ConnectionValidator.getTargetIssuedAcknowledgementLabels(connectionId, connection.getTargets())
-                        // live response does not require a weak ack
-                        .filter(ackLabel -> !DittoAcknowledgementLabel.LIVE_RESPONSE.equals(ackLabel))
-                        .collect(Collectors.toSet())::contains;
     }
 
     /**
@@ -592,7 +581,7 @@ public final class OutboundMappingProcessorActor
                     if (outboundSignals.isEmpty()) {
                         // signal dropped; issue weak acks for all requested acks belonging to this connection
                         issueWeakAcknowledgements(outbound.getSource(),
-                                isSourceDeclaredAck.or(isTargetIssuedAck),
+                                outboundMappingProcessor::isSourceDeclaredOrTargetIssuedAck,
                                 outbound.sender);
                         return List.of();
                     } else {
@@ -609,7 +598,7 @@ public final class OutboundMappingProcessorActor
                                         targetsToPublishAt)
                                         .collect(Collectors.toSet())::contains;
                         issueWeakAcknowledgements(outbound.getSource(),
-                                isTargetIssuedAck.and(willPublish.negate()),
+                                willPublish.negate().and(outboundMappingProcessor::isTargetIssuedAck),
                                 sender);
                         return List.of(OutboundSignalFactory.newMultiMappedOutboundSignal(mappedSignals, sender));
                     }

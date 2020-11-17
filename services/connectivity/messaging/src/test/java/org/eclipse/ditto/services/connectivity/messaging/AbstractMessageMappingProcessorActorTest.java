@@ -356,7 +356,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
         final ThreadSafeDittoLoggingAdapter logger = mockLoggingAdapter();
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         final OutboundMappingProcessor outboundMappingProcessor =
-                OutboundMappingProcessor.of(CONNECTION_ID, CONNECTION.getConnectionType(), payloadMappingDefinition,
+                OutboundMappingProcessor.of(CONNECTION,
                         actorSystem,
                         TestConstants.CONNECTIVITY_CONFIG, protocolAdapter, logger);
 
