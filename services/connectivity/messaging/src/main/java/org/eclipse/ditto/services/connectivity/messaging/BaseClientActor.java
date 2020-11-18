@@ -276,8 +276,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         if (hasOutboundMapperConfigChanged(modifiedConfig)) {
             logger.debug("Config changed for OutboundMappingProcessor, recreating it.");
             final OutboundMappingProcessor outboundMappingProcessor =
-                    OutboundMappingProcessor.of(connection.getId(), connection.getConnectionType(),
-                            connection.getPayloadMappingDefinition(), getContext().getSystem(), modifiedConfig,
+                    OutboundMappingProcessor.of(connection, getContext().getSystem(), modifiedConfig,
                             protocolAdapter, logger);
             outboundMappingProcessorActor.tell(new ReplaceOutboundMappingProcessor(outboundMappingProcessor),
                     getSelf());
