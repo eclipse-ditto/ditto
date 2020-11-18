@@ -135,7 +135,7 @@ public class ConnectionValidatorTest {
     @Test
     public void rejectConnectionWithSourceWithoutAddresses() {
         final Connection connection = createConnection(CONNECTION_ID).toBuilder()
-                .sources(singletonList(
+                .setSources(singletonList(
                         ConnectivityModelFactory.newSourceBuilder()
                                 .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
                                 .consumerCount(0)
@@ -151,7 +151,7 @@ public class ConnectionValidatorTest {
     @Test
     public void rejectConnectionWithInvalidSourceDeclaredAcks() {
         final Connection connection = createConnection(CONNECTION_ID).toBuilder()
-                .sources(TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS.stream()
+                .setSources(TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS.stream()
                         .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
                                 .declaredAcknowledgementLabels(Set.of(AcknowledgementLabel.of("ack")))
                                 .build())
@@ -167,7 +167,7 @@ public class ConnectionValidatorTest {
     @Test
     public void acceptConnectionWithPlaceholderPrefixedSourceDeclaredAck() {
         final Connection connection = createConnection(CONNECTION_ID).toBuilder()
-                .sources(TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS.stream()
+                .setSources(TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS.stream()
                         .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
                                 .declaredAcknowledgementLabels(Set.of(AcknowledgementLabel.of("{{connection:id}}:ack")))
                                 .build())
@@ -185,7 +185,7 @@ public class ConnectionValidatorTest {
         final Connection connection =
                 ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_10,
                         ConnectivityStatus.OPEN, "amqp://localhost:5671")
-                        .sources(getListFromFunction(
+                        .setSources(getListFromFunction(
                                 () -> ConnectivityModelFactory.newSourceBuilder()
                                         .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
                                         .consumerCount(0)
@@ -204,7 +204,7 @@ public class ConnectionValidatorTest {
         final Connection connection =
                 ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_10,
                         ConnectivityStatus.OPEN, "amqp://localhost:5671")
-                        .targets(getListFromFunction(
+                        .setTargets(getListFromFunction(
                                 () -> ConnectivityModelFactory.newTargetBuilder()
                                         .address("")
                                         .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
@@ -228,7 +228,7 @@ public class ConnectionValidatorTest {
     @Test
     public void rejectConnectionWithEmptySourceAddress() {
         final Connection connection = createConnection(CONNECTION_ID).toBuilder()
-                .sources(singletonList(
+                .setSources(singletonList(
                         ConnectivityModelFactory.newSourceBuilder()
                                 .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
                                 .address("")
@@ -245,7 +245,7 @@ public class ConnectionValidatorTest {
     @Test
     public void rejectConnectionWithEmptyTargetAddress() {
         final Connection connection = createConnection(CONNECTION_ID).toBuilder()
-                .targets(Collections.singletonList(ConnectivityModelFactory.newTargetBuilder()
+                .setTargets(Collections.singletonList(ConnectivityModelFactory.newTargetBuilder()
                         .address("")
                         .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
                         .topics(Topic.LIVE_MESSAGES)
@@ -275,7 +275,7 @@ public class ConnectionValidatorTest {
     @Test
     public void rejectConnectionWithDuplicatedTargetIssuedAck() {
         final Connection connection = createConnection(CONNECTION_ID).toBuilder()
-                .targets(TestConstants.Targets.TARGETS.stream()
+                .setTargets(TestConstants.Targets.TARGETS.stream()
                         .map(target -> ConnectivityModelFactory.newTargetBuilder(target)
                                 .issuedAcknowledgementLabel(AcknowledgementLabel.of("{{connection:id}}:ack"))
                                 .build())
