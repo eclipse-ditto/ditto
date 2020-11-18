@@ -18,27 +18,58 @@ import akka.shapeless._
 import scala.{:: => _}
 
 /**
-  * RQL Parser base containing commonly used types for both Predicate and Options parsing in EBNF:
-  * <pre>
-  * Literal                    = FloatLiteral | IntegerLiteral | StringLiteral | "true" | "false" | "null"
-  * DoubleLiteral              = [ '+' | '-' ], "0.", Digit, { Digit } | [ '+' | '-' ], DigitWithoutZero, { Digit }, '.', Digit, { Digit }
-  * LongLiteral                = '0' | [ '+' | '-' ], DigitWithoutZero, { Digit }
-  * DigitWithoutZero           = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
-  * Digit                      = '0' | DigitWithoutZero
-  * StringLiteral              = '"', ? printable characters ?, '"'
-  * PropertyLiteral            = ? printable characters ?
-  * </pre>
-  */
+ * RQL Parser base containing commonly used types for both Predicate and Options parsing in EBNF:
+ * <pre>
+ * Literal                    = FloatLiteral | IntegerLiteral | StringLiteral | "true" | "false" | "null"
+ * DoubleLiteral              = [ '+' | '-' ], "0.", Digit, { Digit } | [ '+' | '-' ], DigitWithoutZero, { Digit }, '.', Digit, { Digit }
+ * LongLiteral                = '0' | [ '+' | '-' ], DigitWithoutZero, { Digit }
+ * DigitWithoutZero           = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
+ * Digit                      = '0' | DigitWithoutZero
+ * StringLiteral              = '"', ? printable characters ?, '"'
+ * PropertyLiteral            = ? printable characters ?
+ * </pre>
+ */
 class RqlParserBase(val input: ParserInput) extends Parser {
   protected val sb = new java.lang.StringBuilder
 
-  private val WhiteSpaceChar = CharPredicate(" \n\r\t\f")
-  private val CommaClosingParenthesisQuote = CharPredicate(",)\"\\")
-  private val QuoteBackslash = CharPredicate("\"\\")
-  private val QuoteBackslashSlash = QuoteBackslash ++ "/"
+  private def Digit = rule {
+    anyOf("0123456789")
+  }
+
+  private def Digit19 = rule {
+    anyOf("123456789")
+  }
+
+  private def HexDigit = rule {
+    anyOf("0123456789ABCDEFabcdef")
+  }
+
+  private def WhiteSpaceChar = rule {
+    anyOf(" \n\r\t\f")
+  }
+
+  private def CommaClosingParenthesisQuote = rule {
+    anyOf(",)\"\\")
+  }
+
+  private def QuoteBackslash = rule {
+    anyOf("\"\\")
+  }
+
+  private def SingleQuoteBackslash = rule {
+    anyOf("'\\")
+  }
+
+  private def QuoteBackslashSlash = rule {
+    QuoteBackslash | "/"
+  }
+
+  private def SingleQuoteBackslashSlash = rule {
+    SingleQuoteBackslash | "/"
+  }
 
   protected def Literal: Rule1[java.lang.Object] = rule {
-    (DoubleLiteral | LongLiteral | StringLiteral | "true" ~ WhiteSpace ~ push(java.lang.Boolean.TRUE) |
+    (DoubleLiteral | LongLiteral | StringLiteral | StringSingleQuoteLiteral | "true" ~ WhiteSpace ~ push(java.lang.Boolean.TRUE) |
       "false" ~ WhiteSpace ~ push(java.lang.Boolean.FALSE) | "null" ~ WhiteSpace ~ push(None)) ~ WhiteSpace
   }
 
@@ -51,11 +82,11 @@ class RqlParserBase(val input: ParserInput) extends Parser {
   }
 
   protected def Integer: Rule[HNil, HNil] = rule {
-    optional(anyOf("+-")) ~ (CharPredicate.Digit19 ~ Digits | CharPredicate.Digit)
+    optional(anyOf("+-")) ~ (Digit19 ~ Digits | Digit)
   }
 
   protected def Digits: Rule[HNil, HNil] = rule {
-    oneOrMore(CharPredicate.Digit)
+    oneOrMore(Digit)
   }
 
   protected def Frac: Rule[HNil, HNil] = rule {
@@ -66,6 +97,10 @@ class RqlParserBase(val input: ParserInput) extends Parser {
     '"' ~ clearSB() ~ CharactersInQuotes ~ ws('"') ~ push(sb.toString)
   }
 
+  protected def StringSingleQuoteLiteral: Rule1[java.lang.String] = rule {
+    '\'' ~ clearSB() ~ CharactersInSingleQuotes ~ ws('\'') ~ push(sb.toString)
+  }
+
   protected def PropertyLiteral: Rule1[java.lang.String] = rule {
     clearSB() ~ Characters ~ push(sb.toString)
   }
@@ -74,12 +109,20 @@ class RqlParserBase(val input: ParserInput) extends Parser {
     zeroOrMore(NormalCharInQuotes | '\\' ~ EscapedChar)
   }
 
+  protected def CharactersInSingleQuotes: Rule[HNil, HNil] = rule {
+    zeroOrMore(NormalCharInSingleQuotes | '\\' ~ SingleQuoteEscapedChar)
+  }
+
   protected def Characters: Rule[HNil, HNil] = rule {
     zeroOrMore(NormalChar | '\\' ~ EscapedChar)
   }
 
   protected def NormalCharInQuotes: Rule[HNil, HNil] = rule {
     !QuoteBackslash ~ ANY ~ appendSB()
+  }
+
+  protected def NormalCharInSingleQuotes: Rule[HNil, HNil] = rule {
+    !SingleQuoteBackslash ~ ANY ~ appendSB()
   }
 
   protected def NormalChar: Rule[HNil, HNil] = rule {
@@ -96,8 +139,18 @@ class RqlParserBase(val input: ParserInput) extends Parser {
       | Unicode ~> { code: Int => sb.append(code.asInstanceOf[Char]); () }
   )
 
+  protected def SingleQuoteEscapedChar: Rule[HNil, HNil] = rule(
+    SingleQuoteBackslashSlash ~ appendSB()
+      | 'b' ~ appendSB('\b')
+      | 'f' ~ appendSB('\f')
+      | 'n' ~ appendSB('\n')
+      | 'r' ~ appendSB('\r')
+      | 't' ~ appendSB('\t')
+      | Unicode ~> { code: Int => sb.append(code.asInstanceOf[Char]); () }
+  )
+
   protected def Unicode: Rule[HNil, Int :: HNil] = rule {
-    'u' ~ capture(CharPredicate.HexDigit ~ CharPredicate.HexDigit ~ CharPredicate.HexDigit ~ CharPredicate.HexDigit) ~>
+    'u' ~ capture(HexDigit ~ HexDigit ~ HexDigit ~ HexDigit) ~>
       ((code: String) => java.lang.Integer.parseInt(code, 16))
   }
 

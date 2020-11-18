@@ -89,7 +89,7 @@ public final class DittoMessageSubjectValueValidatorTest {
 
     @Test
     public void acceptNonDittoMessageSubjectString() {
-        final String invalidDittoMessageSubjectString = "{foo}";
+        final String invalidDittoMessageSubjectString = "§foo";
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.accept(MessageHeaderDefinition.SUBJECT, invalidDittoMessageSubjectString))

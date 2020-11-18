@@ -23,7 +23,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
  *
  * @param <T> the type of the implementing class.
  */
-public abstract class CommonCommandResponse<T extends AbstractCommandResponse> extends AbstractCommandResponse<T>
+public abstract class CommonCommandResponse<T extends CommonCommandResponse<T>> extends AbstractCommandResponse<T>
         implements WithIdButActuallyNot {
     /**
      * Type prefix.

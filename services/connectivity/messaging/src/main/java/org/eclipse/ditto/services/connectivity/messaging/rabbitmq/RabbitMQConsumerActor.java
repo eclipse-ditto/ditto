@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,7 +26,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.model.connectivity.EnforcementFactoryFactory;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
@@ -33,18 +34,20 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
+import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
 import com.rabbitmq.client.BasicProperties;
+import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Delivery;
 import com.rabbitmq.client.Envelope;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 
@@ -56,16 +59,17 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
     private static final String MESSAGE_ID_HEADER = "messageId";
     private static final String CONTENT_TYPE_APPLICATION_OCTET_STREAM = "application/octet-stream";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     @Nullable
     private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
     private final PayloadMapping payloadMapping;
+    private final Channel channel;
 
     @SuppressWarnings("unused")
     private RabbitMQConsumerActor(final ConnectionId connectionId, final String sourceAddress,
-            final ActorRef messageMappingProcessor, final Source source) {
-        super(connectionId, sourceAddress, messageMappingProcessor, source);
+            final ActorRef inboundMessageProcessor, final Source source, final Channel channel) {
+        super(connectionId, sourceAddress, inboundMessageProcessor, source, ConnectionType.AMQP_091);
         headerEnforcementFilterFactory =
                 source.getEnforcement()
                         .map(value ->
@@ -73,21 +77,29 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
                                         PlaceholderFactory.newHeadersPlaceholder()))
                         .orElse(null);
         this.payloadMapping = source.getPayloadMapping();
+        this.channel = channel;
+    }
+
+    @Override
+    protected DittoDiagnosticLoggingAdapter log() {
+        return log;
     }
 
     /**
      * Creates Akka configuration object {@link Props} for this {@code RabbitMQConsumerActor}.
      *
      * @param sourceAddress the source address.
-     * @param messageMappingProcessor the message mapping processor where received messages are forwarded to
+     * @param inboundMessageProcessor the message mapping processor where received messages are forwarded to
      * @param source the configured connection source for the consumer actor.
      * @param connectionId ID of the connection
      * @return the Akka configuration Props object.
      */
-    static Props props(final String sourceAddress, final ActorRef messageMappingProcessor, final Source source,
+    static Props props(final String sourceAddress, final ActorRef inboundMessageProcessor, final Source source,
+            Channel channel,
             final ConnectionId connectionId) {
 
-        return Props.create(RabbitMQConsumerActor.class, connectionId, sourceAddress, messageMappingProcessor, source);
+        return Props.create(RabbitMQConsumerActor.class, connectionId, sourceAddress, inboundMessageProcessor, source,
+                channel);
     }
 
     @Override
@@ -110,10 +122,10 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
         Map<String, String> headers = null;
         try {
             final String correlationId = properties.getCorrelationId();
-            LogUtil.enhanceLogWithCorrelationId(log, correlationId);
             if (log.isDebugEnabled()) {
-                log.debug("Received message from RabbitMQ ({}//{}): {}", envelope, properties,
-                        new String(body, StandardCharsets.UTF_8));
+                log.withCorrelationId(correlationId)
+                        .debug("Received message from RabbitMQ ({}//{}): {}", envelope, properties,
+                                new String(body, StandardCharsets.UTF_8));
             }
             headers = extractHeadersFromMessage(properties, envelope);
             final ExternalMessageBuilder externalMessageBuilder =
@@ -134,7 +146,32 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
             externalMessageBuilder.withPayloadMapping(payloadMapping);
             final ExternalMessage externalMessage = externalMessageBuilder.build();
             inboundMonitor.success(externalMessage);
-            forwardToMappingActor(externalMessage);
+
+            forwardToMappingActor(externalMessage,
+                    () -> {
+                        try {
+                            final long deliveryTag = delivery.getEnvelope().getDeliveryTag();
+                            channel.basicAck(deliveryTag, false);
+                            inboundAcknowledgedMonitor.success(externalMessage,
+                                    "Sending success acknowledgement: basic.ack for deliveryTag={0}", deliveryTag);
+                        } catch (final IOException e) {
+                            log.error("Acknowledging delivery {} failed: {}", envelope.getDeliveryTag(),
+                                    e.getMessage());
+                            inboundAcknowledgedMonitor.exception(e);
+                        }
+                    },
+                    requeue -> {
+                        try {
+                            channel.basicNack(delivery.getEnvelope().getDeliveryTag(), false, requeue);
+                            inboundAcknowledgedMonitor.exception("Sending negative acknowledgement: " +
+                                            "basic.nack for deliveryTag={0}, requeue={0}",
+                                    delivery.getEnvelope().getDeliveryTag(), requeue);
+                        } catch (final IOException e) {
+                            log.error("Delivery of basic.nack for deliveryTag={} failed: {}", envelope.getDeliveryTag(),
+                                    e.getMessage());
+                            inboundAcknowledgedMonitor.exception(e);
+                        }
+                    });
         } catch (final DittoRuntimeException e) {
             log.warning("Processing delivery {} failed: {}", envelope.getDeliveryTag(), e.getMessage());
             if (headers != null) {

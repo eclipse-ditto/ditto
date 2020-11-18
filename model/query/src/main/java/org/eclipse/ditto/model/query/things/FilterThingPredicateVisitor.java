@@ -32,6 +32,7 @@ public final class FilterThingPredicateVisitor implements FilterFieldExpressionV
 
     public static Predicate<Thing> apply(final FilterFieldExpression expression,
             final Function<String, Predicate<Thing>> predicateFunction) {
+
         return expression.acceptFilterVisitor(new FilterThingPredicateVisitor(predicateFunction));
     }
 
@@ -43,6 +44,13 @@ public final class FilterThingPredicateVisitor implements FilterFieldExpressionV
     @Override
     public Predicate<Thing> visitFeatureIdProperty(final String featureId, final String property) {
         return predicateFunction.apply("/features/" + featureId + "/properties/" + property);
+    }
+
+    @Override
+    public Predicate<Thing> visitFeatureIdDesiredProperty(final CharSequence featureId,
+            final CharSequence desiredProperty) {
+
+        return predicateFunction.apply("/features/" + featureId + "/desiredProperties/" + desiredProperty);
     }
 
     @Override

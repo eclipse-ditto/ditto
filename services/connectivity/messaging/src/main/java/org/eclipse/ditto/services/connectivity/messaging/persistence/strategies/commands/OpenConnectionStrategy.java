@@ -25,6 +25,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -48,10 +49,14 @@ final class OpenConnectionStrategy extends AbstractConnectivityCommandStrategy<O
 
     @Override
     protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
-            @Nullable final Connection connection, final long nextRevision, final OpenConnection command) {
+            @Nullable final Connection connection,
+            final long nextRevision,
+            final OpenConnection command,
+            @Nullable final Metadata metadata) {
+
         final Optional<DittoRuntimeException> validationError = validate(context, command, connection);
         if (validationError.isPresent()) {
-            return newErrorResult(validationError.get());
+            return newErrorResult(validationError.get(), command);
         } else {
             final ConnectivityEvent event = ConnectionOpened.of(context.getState().id(), command.getDittoHeaders());
             final WithDittoHeaders response =

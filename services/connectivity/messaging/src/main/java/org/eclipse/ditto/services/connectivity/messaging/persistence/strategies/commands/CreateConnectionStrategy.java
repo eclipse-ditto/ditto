@@ -27,6 +27,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -34,7 +35,6 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionAction;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.StagedCommand;
-import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnectionResponse;
@@ -52,9 +52,11 @@ final class CreateConnectionStrategy extends AbstractConnectivityCommandStrategy
 
     @Override
     protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
-            @Nullable final Connection entity, final long nextRevision, final CreateConnection command) {
-        ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(context.getLog(), command,
-                context.getState().id());
+            @Nullable final Connection entity,
+            final long nextRevision,
+            final CreateConnection command,
+            @Nullable final Metadata metadata) {
+
         final Connection connection = command.getConnection().toBuilder().lifecycle(ACTIVE).build();
         final ConnectivityEvent event =
                 ConnectionCreated.of(connection, getEventTimestamp(), command.getDittoHeaders());
@@ -62,10 +64,11 @@ final class CreateConnectionStrategy extends AbstractConnectivityCommandStrategy
                 CreateConnectionResponse.of(connection, command.getDittoHeaders());
         final Optional<DittoRuntimeException> validationError = validate(context, command);
         if (validationError.isPresent()) {
-            return newErrorResult(validationError.get());
+            return newErrorResult(validationError.get(), command);
         } else if (connection.getConnectionStatus() == ConnectivityStatus.OPEN) {
-            context.getLog().debug("Connection <{}> has status <{}> and will therefore be opened.",
-                    connection.getId(), connection.getConnectionStatus());
+            context.getLog().withCorrelationId(command)
+                    .debug("Connection <{}> has status <{}> and will therefore be opened.",
+                            connection.getId(), connection.getConnectionStatus());
             final List<ConnectionAction> actions = Arrays.asList(
                     PERSIST_AND_APPLY_EVENT, SEND_RESPONSE, BECOME_CREATED, OPEN_CONNECTION_IGNORE_ERRORS, UPDATE_SUBSCRIPTIONS);
             return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);

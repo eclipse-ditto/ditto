@@ -17,6 +17,14 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FEATURES;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_ID;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES;
+import static org.eclipse.ditto.model.things.TestConstants.Metadata.METADATA;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.ATTRIBUTES;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.CREATED;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.DEFINITION;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.LIFECYCLE;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.MODIFIED;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.REVISION;
+import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_ID;
 import static org.eclipse.ditto.model.things.assertions.DittoThingsAssertions.assertThat;
 
 import java.util.Collections;
@@ -293,13 +301,28 @@ public final class ImmutableThingFromCopyBuilderTest {
     }
 
     @Test(expected = NullPointerException.class)
+    public void tryToSetFetFeatureDesiredPropertyForNullFeatureId() {
+        underTestV2.setFeatureDesiredProperty(null, PROPERTY_PATH, PROPERTY_VALUE);
+    }
+
+    @Test(expected = NullPointerException.class)
     public void tryToSetFeaturePropertyWithNullPath() {
         underTestV1.setFeatureProperty(FLUX_CAPACITOR_ID, null, PROPERTY_VALUE);
     }
 
     @Test(expected = NullPointerException.class)
+    public void tryToSetFeatureDesiredPropertyWithNullPath() {
+        underTestV2.setFeatureDesiredProperty(FLUX_CAPACITOR_ID, null, PROPERTY_VALUE);
+    }
+
+    @Test(expected = NullPointerException.class)
     public void tryToSetFeaturePropertyWithNullValue() {
         underTestV1.setFeatureProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void tryToSetFeatureDesiredPropertyWithNullValue() {
+        underTestV2.setFeatureDesiredProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, null);
     }
 
     @Test
@@ -311,11 +334,27 @@ public final class ImmutableThingFromCopyBuilderTest {
     }
 
     @Test
+    public void setFeatureDesiredPropertyOnEmptyBuilder() {
+        underTestV2.setFeatureDesiredProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
+        final Thing thing = underTestV2.build();
+
+        assertThat(thing).hasFeatureDesiredProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
+    }
+
+    @Test
     public void setFeaturePropertyUsingPositivePredicateOnEmptyBuilder() {
         underTestV1.setFeatureProperty(features -> true, FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
         final Thing thing = underTestV1.build();
 
         assertThat(thing).hasFeatureProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
+    }
+
+    @Test
+    public void setFeatureDesiredPropertyUsingPositivePredicateOnEmptyBuilder() {
+        underTestV2.setFeatureDesiredProperty(features -> true, FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
+        final Thing thing = underTestV2.build();
+
+        assertThat(thing).hasFeatureDesiredProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
     }
 
     @Test
@@ -327,6 +366,14 @@ public final class ImmutableThingFromCopyBuilderTest {
     }
 
     @Test
+    public void setFeatureDesiredPropertyUsingNegativePredicateOnEmptyBuilder() {
+        underTestV2.setFeatureDesiredProperty(features -> false, FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
+        final Thing thing = underTestV2.build();
+
+        assertThat(thing).hasFeature(TestConstants.Feature.FLUX_CAPACITOR_V2);
+    }
+
+    @Test
     public void setFeaturePropertyOnBuilderWithFeatures() {
         underTestV1.setFeatures(FEATURES);
         underTestV1.setFeatureProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
@@ -335,15 +382,33 @@ public final class ImmutableThingFromCopyBuilderTest {
         assertThat(thing).hasFeatureProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
     }
 
+    @Test
+    public void setFeatureDesiredPropertyOnBuilderWithFeatures() {
+        underTestV2.setFeatures(FEATURES);
+        underTestV2.setFeatureDesiredProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
+        final Thing thing = underTestV2.build();
+
+        assertThat(thing).hasFeatureDesiredProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH, PROPERTY_VALUE);
+    }
+
     @Test(expected = NullPointerException.class)
     public void tryToRemoveFeaturePropertyForNullFeatureId() {
         underTestV1.removeFeatureProperty(null, PROPERTY_PATH);
     }
 
+    @Test(expected = NullPointerException.class)
+    public void tryToRemoveFeatureDesiredPropertyForNullFeatureId() {
+        underTestV2.removeFeatureDesiredProperty(null, PROPERTY_PATH);
+    }
 
     @Test(expected = NullPointerException.class)
     public void tryToRemoveFeaturePropertyWithNullPath() {
         underTestV1.removeFeatureProperty(FLUX_CAPACITOR_ID, null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void tryToRemoveDesiredFeaturePropertyWithNullPath() {
+        underTestV2.removeFeatureDesiredProperty(FLUX_CAPACITOR_ID, null);
     }
 
     @Test
@@ -353,6 +418,15 @@ public final class ImmutableThingFromCopyBuilderTest {
         final Thing thing = underTestV1.build();
 
         assertThat(thing).hasNotFeatureProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH);
+    }
+
+    @Test
+    public void removeFeatureDesiredProperty() {
+        underTestV2.setFeature(TestConstants.Feature.FLUX_CAPACITOR_V2);
+        underTestV2.removeFeatureDesiredProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH);
+        final Thing thing = underTestV2.build();
+
+        assertThat(thing).hasNotFeatureDesiredProperty(FLUX_CAPACITOR_ID, PROPERTY_PATH);
     }
 
     @Test(expected = NullPointerException.class)
@@ -861,4 +935,19 @@ public final class ImmutableThingFromCopyBuilderTest {
                 .hasNamespace(namespace);
     }
 
+    @Test
+    public void parseThingWithMetadata() {
+        final Thing testThing = ImmutableThing.of(THING_ID, TestConstants.Thing.POLICY_ID,
+            DEFINITION, ATTRIBUTES, FEATURES, LIFECYCLE, REVISION, MODIFIED, CREATED, METADATA);
+
+        final Thing thing = ImmutableThingFromCopyBuilder
+            .of(testThing.toJson(JsonSchemaVersion.V_2, field -> true))
+            .build();
+
+        final JsonObject serializedThing = thing.toJson(JsonSchemaVersion.V_2, field -> true);
+
+        assertThat(serializedThing.getField("_metadata").get().getValue())
+                .isEqualTo(METADATA.asObject());
+
+    }
 }

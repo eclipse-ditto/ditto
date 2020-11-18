@@ -51,6 +51,8 @@ abstract class AbstractThingAdapter<T extends Signal<?>> extends AbstractAdapter
         THING_PATH_PATTERNS.put("featureDefinition", Pattern.compile("^/features/[^/]*/definition$"));
         THING_PATH_PATTERNS.put("featureProperties", Pattern.compile("^/features/[^/]*/properties$"));
         THING_PATH_PATTERNS.put("featureProperty", Pattern.compile("^/features/[^/]*/properties/.*$"));
+        THING_PATH_PATTERNS.put("featureDesiredProperties", Pattern.compile("^/features/[^/]*/desiredProperties$"));
+        THING_PATH_PATTERNS.put("featureDesiredProperty", Pattern.compile("^/features/[^/]*/desiredProperties/.*$"));
     }
 
     /**

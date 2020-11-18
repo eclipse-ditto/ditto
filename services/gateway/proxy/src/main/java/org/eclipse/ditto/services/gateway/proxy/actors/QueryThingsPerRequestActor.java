@@ -30,7 +30,8 @@ import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.GatewayHttpConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
@@ -43,7 +44,6 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.ReceiveTimeout;
-import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * Actor which is started for each {@link QueryThings} command in the gateway handling the response from
@@ -56,7 +56,7 @@ import akka.event.DiagnosticLoggingAdapter;
  */
 final class QueryThingsPerRequestActor extends AbstractActor {
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final QueryThings queryThings;
     private final ActorRef aggregatorProxyActor;
@@ -92,7 +92,8 @@ final class QueryThingsPerRequestActor extends AbstractActor {
      */
     static Props props(final QueryThings queryThings,
             final ActorRef aggregatorProxyActor,
-            final ActorRef originatingSender, final ActorRef pubSubMediator) {
+            final ActorRef originatingSender,
+            final ActorRef pubSubMediator) {
 
         return Props.create(QueryThingsPerRequestActor.class, queryThings, aggregatorProxyActor, originatingSender,
                 pubSubMediator);
@@ -106,10 +107,10 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                     stopMyself();
                 })
                 .match(QueryThingsResponse.class, qtr -> {
-                    LogUtil.enhanceLogWithCorrelationId(log, qtr);
                     queryThingsResponse = qtr;
 
-                    log.debug("Received QueryThingsResponse: {}", qtr);
+                    log.withCorrelationId(qtr)
+                            .debug("Received QueryThingsResponse: {}", qtr);
 
                     queryThingsResponseThingIds = qtr.getSearchResult()
                             .stream()
@@ -124,7 +125,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                     } else {
                         final Optional<JsonFieldSelector> selectedFieldsWithThingId = getSelectedFieldsWithThingId();
                         final RetrieveThings retrieveThings = RetrieveThings.getBuilder(queryThingsResponseThingIds)
-                                .dittoHeaders(qtr.getDittoHeaders())
+                                .dittoHeaders(qtr.getDittoHeaders().toBuilder().responseRequired(true).build())
                                 .selectedFields(selectedFieldsWithThingId)
                                 .build();
                         // delegate to the ThingsAggregatorProxyActor which receives the results via a cluster stream:
@@ -132,8 +133,8 @@ final class QueryThingsPerRequestActor extends AbstractActor {
                     }
                 })
                 .match(RetrieveThingsResponse.class, rtr -> {
-                    LogUtil.enhanceLogWithCorrelationId(log, rtr);
-                    log.debug("Received RetrieveThingsResponse: {}", rtr);
+                    log.withCorrelationId(rtr)
+                            .debug("Received RetrieveThingsResponse: {}", rtr);
 
                     if (queryThingsResponse != null) {
                         final JsonArray rtrEntity = rtr.getEntity(rtr.getImplementedSchemaVersion()).asArray();
@@ -214,7 +215,7 @@ final class QueryThingsPerRequestActor extends AbstractActor {
 
         if (!outOfSyncThingIds.isEmpty()) {
             final ThingsOutOfSync thingsOutOfSync =
-                    ThingsOutOfSync.of(outOfSyncThingIds, queryThingsResponse.getDittoHeaders());
+                    ThingsOutOfSync.of(outOfSyncThingIds, queryThings.getDittoHeaders());
             pubSubMediator.tell(DistPubSubAccess.publishViaGroup(ThingsOutOfSync.TYPE, thingsOutOfSync),
                     ActorRef.noSender());
         }

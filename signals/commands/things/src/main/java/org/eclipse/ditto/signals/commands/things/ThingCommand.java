@@ -30,7 +30,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingCommand<T extends ThingCommand> extends Command<T>, WithThingId, WithEntityType {
+public interface ThingCommand<T extends ThingCommand<T>> extends Command<T>, WithThingId, WithEntityType {
 
     /**
      * Type Prefix of Thing commands.

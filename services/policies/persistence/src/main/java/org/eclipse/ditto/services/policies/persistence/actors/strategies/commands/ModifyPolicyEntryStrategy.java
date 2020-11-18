@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -49,8 +50,11 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy policy,
-            final long nextRevision, final ModifyPolicyEntry command) {
+    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+            @Nullable final Policy policy,
+            final long nextRevision,
+            final ModifyPolicyEntry command,
+            @Nullable final Metadata metadata) {
 
         final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyEntry policyEntry = command.getPolicyEntry();
@@ -77,7 +81,7 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
                     },
                     command::getDittoHeaders);
         } catch (final PolicyTooLargeException e) {
-            return ResultFactory.newErrorResult(e);
+            return ResultFactory.newErrorResult(e, command);
         }
 
         final PoliciesValidator validator = PoliciesValidator.newInstance(nonNullPolicy.setEntry(policyEntry));
@@ -103,7 +107,7 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
             return ResultFactory.newMutationResult(command, eventToPersist, response);
         } else {
             return ResultFactory.newErrorResult(
-                    policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders));
+                    policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders), command);
         }
     }
 

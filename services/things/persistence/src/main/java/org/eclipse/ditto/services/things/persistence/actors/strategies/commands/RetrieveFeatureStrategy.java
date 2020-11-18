@@ -18,6 +18,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Feature;
@@ -44,14 +45,18 @@ final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<Retriev
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
-            final long nextRevision, final RetrieveFeature command) {
+    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final RetrieveFeature command,
+            @Nullable final Metadata metadata) {
+
         final ThingId thingId = context.getState();
 
         return extractFeatures(thing)
                 .map(features -> getFeatureResult(features, thingId, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.featureNotFound(thingId,
-                        command.getFeatureId(), command.getDittoHeaders())));
+                        command.getFeatureId(), command.getDittoHeaders()), command));
     }
 
     private Optional<Features> extractFeatures(final @Nullable Thing thing) {
@@ -70,7 +75,7 @@ final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<Retriev
                 .<Result<ThingEvent>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureNotFound(thingId, featureId, dittoHeaders)));
+                        ExceptionFactory.featureNotFound(thingId, featureId, dittoHeaders), command));
     }
 
     private static JsonObject getFeatureJson(final Feature feature, final RetrieveFeature command) {

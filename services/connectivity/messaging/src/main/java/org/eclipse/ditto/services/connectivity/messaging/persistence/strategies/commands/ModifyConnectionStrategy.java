@@ -28,6 +28,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -54,7 +55,11 @@ final class ModifyConnectionStrategy extends AbstractConnectivityCommandStrategy
 
     @Override
     protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
-            @Nullable final Connection entity, final long nextRevision, final ModifyConnection command) {
+            @Nullable final Connection entity,
+            final long nextRevision,
+            final ModifyConnection command,
+            @Nullable final Metadata metadata) {
+
         final Connection connection = command.getConnection().toBuilder().lifecycle(ACTIVE).build();
         if (entity != null && entity.getConnectionType() != connection.getConnectionType()) {
             return ResultFactory.newErrorResult(
@@ -62,7 +67,8 @@ final class ModifyConnectionStrategy extends AbstractConnectivityCommandStrategy
                             .newBuilder("ConnectionType <" + connection.getConnectionType().getName() +
                                     "> of existing connection <" + context.getState().id() + "> cannot be changed!")
                             .dittoHeaders(command.getDittoHeaders())
-                            .build()
+                            .build(),
+                    command
             );
         }
         final ConnectivityEvent event =
@@ -75,15 +81,17 @@ final class ModifyConnectionStrategy extends AbstractConnectivityCommandStrategy
         final boolean isNextConnectionOpen = connection.getConnectionStatus() == ConnectivityStatus.OPEN;
         final Optional<DittoRuntimeException> validationError = validate(context, command);
         if (validationError.isPresent()) {
-            return newErrorResult(validationError.get());
+            return newErrorResult(validationError.get(), command);
         } else if (isNextConnectionOpen || isCurrentConnectionOpen) {
             final List<ConnectionAction> actions;
             if (isNextConnectionOpen) {
-                context.getLog().debug("Desired connection state is OPEN");
+                context.getLog().withCorrelationId(command)
+                        .debug("Desired connection state is OPEN");
                 actions = Arrays.asList(PERSIST_AND_APPLY_EVENT, CLOSE_CONNECTION, STOP_CLIENT_ACTORS,
                         OPEN_CONNECTION, UPDATE_SUBSCRIPTIONS, SEND_RESPONSE);
             } else {
-                context.getLog().debug("Desired connection state is not OPEN");
+                context.getLog().withCorrelationId(command)
+                        .debug("Desired connection state is not OPEN");
                 actions = Arrays.asList(PERSIST_AND_APPLY_EVENT, UPDATE_SUBSCRIPTIONS, CLOSE_CONNECTION,
                         STOP_CLIENT_ACTORS, SEND_RESPONSE);
             }

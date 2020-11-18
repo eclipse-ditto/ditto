@@ -16,6 +16,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
 /**
@@ -80,6 +81,16 @@ public interface TargetBuilder {
      * @return this builder
      */
     TargetBuilder topics(final Topic requiredTopic, final Topic... additionalTopics);
+
+    /**
+     * Sets the label of an acknowledgement which should automatically be issued by this target based on the technical
+     * settlement/ACK the connection channel provides.
+     *
+     * @param acknowledgementLabel the label of the automatically issued acknowledgement
+     * @return this builder
+     * @since 1.2.0
+     */
+    TargetBuilder issuedAcknowledgementLabel(@Nullable AcknowledgementLabel acknowledgementLabel);
 
     /**
      * Sets the {@link HeaderMapping}, may be null if headerMapping is not enabled.

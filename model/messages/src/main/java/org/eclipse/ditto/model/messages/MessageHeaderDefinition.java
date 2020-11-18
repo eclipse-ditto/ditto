@@ -37,7 +37,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ditto-message-direction"}, Java type: String.
      * </p>
      */
-    DIRECTION("ditto-message-direction", String.class, false, false, HeaderValueValidators.getNoOpValidator()),
+    DIRECTION("ditto-message-direction", String.class, false, false, DittoMessageDirectionValueValidator.getInstance()),
 
     /**
      * Header definitions for the subject of a message.
@@ -53,7 +53,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ditto-message-thing-id"}, Java type: String.
      * </p>
      */
-    THING_ID("ditto-message-thing-id", String.class, false, false, HeaderValueValidators.getNoOpValidator()),
+    THING_ID("ditto-message-thing-id", String.class, false, false, DittoMessageThingIdValueValidator.getInstance()),
 
     /**
      * Header definition for the Feature ID of a message, if sent to a Feature.
@@ -68,10 +68,11 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * <p>
      * Key: {@code "timeout"}, Java type: {@code long}.
      * </p>
+     *
      * @deprecated since 1.1.0: replaced by {@link org.eclipse.ditto.model.base.headers.DittoHeaderDefinition#TIMEOUT}
      */
     @Deprecated
-    TIMEOUT("timeout", long.class, true, true, TimeoutValueValidator.getInstance()),
+    TIMEOUT("timeout", long.class, true, true, MessageHeaderTimeoutValueValidator.getInstance()),
 
     /**
      * Header containing the timestamp of the message as ISO 8601 string.
@@ -88,13 +89,6 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * </p>
      */
     STATUS_CODE("status", int.class, true, false, HttpStatusCodeValueValidator.getInstance());
-
-    /**
-     * The regex pattern a Subject has to conform to.
-     * Defined by <a href="http://www.ietf.org/rfc/rfc3986.txt">RFC-3986</a>.
-     */
-    static final String SUBJECT_REGEX =
-            "(([a-zA-Z][0-9a-zA-Z+\\-\\.]*:)?/{0,2}[0-9a-zA-Z;/?:@&=+$\\.\\-_!~*'()%]+)?(#[0-9a-zA-Z;/?:@&=+$\\.\\-_!~*'()%]+)?";
 
     /**
      * Map to speed up lookup of header definition by key.

@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.Validator;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -47,16 +48,20 @@ final class DeleteAclEntryStrategy extends AbstractThingCommandStrategy<DeleteAc
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
-            final long nextRevision, final DeleteAclEntry command) {
+    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final DeleteAclEntry command,
+            @Nullable final Metadata metadata) {
+
         final AuthorizationSubject authSubject = command.getAuthorizationSubject();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         return extractAcl(thing, command)
-                .map(acl -> getDeleteAclEntryResult(acl, context, nextRevision, command, thing))
+                .map(acl -> getDeleteAclEntryResult(acl, context, nextRevision, command, thing, metadata))
                 .orElseGet(
                         () -> ResultFactory.newErrorResult(ExceptionFactory.aclEntryNotFound(context.getState(),
-                                authSubject, dittoHeaders)));
+                                authSubject, dittoHeaders), command));
     }
 
     private Optional<AccessControlList> extractAcl(@Nullable final Thing thing, final DeleteAclEntry command) {
@@ -67,7 +72,8 @@ final class DeleteAclEntryStrategy extends AbstractThingCommandStrategy<DeleteAc
     }
 
     private Result<ThingEvent> getDeleteAclEntryResult(final AccessControlList acl, final Context<ThingId> context,
-            final long nextRevision, final DeleteAclEntry command, @Nullable final Thing thing) {
+            final long nextRevision, final DeleteAclEntry command, @Nullable final Thing thing,
+            @Nullable final Metadata metadata) {
 
         final ThingId thingId = context.getState();
         final AuthorizationSubject authSubject = command.getAuthorizationSubject();
@@ -78,14 +84,15 @@ final class DeleteAclEntryStrategy extends AbstractThingCommandStrategy<DeleteAc
         final Validator validator = getAclValidator(aclWithoutAuthSubject);
         if (!validator.isValid()) {
             return ResultFactory.newErrorResult(
-                    ExceptionFactory.aclInvalid(thingId, validator.getReason(), dittoHeaders));
+                    ExceptionFactory.aclInvalid(thingId, validator.getReason(), dittoHeaders), command);
         }
 
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
                 DeleteAclEntryResponse.of(thingId, authSubject, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command,
-                AclEntryDeleted.of(thingId, authSubject, nextRevision, getEventTimestamp(), dittoHeaders), response);
+                AclEntryDeleted.of(thingId, authSubject, nextRevision, getEventTimestamp(), dittoHeaders, metadata),
+                response);
     }
 
     private static Validator getAclValidator(final AccessControlList acl) {

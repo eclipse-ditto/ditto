@@ -49,10 +49,11 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
     private static final String MESSAGE_TEMPLATE = "Namespaced entity ID ''{0}'' is not valid!";
 
     private static final String NAMESPACED_ENTITY_ID_DESCRIPTION =
-            "It must conform to the namespaced entity ID notation (see Ditto documentation) with a maximum length of " +
-                    "256 characters.";
+            "It must conform to the namespaced entity ID notation (see Ditto documentation) with a maximum name " +
+                    "length of 256 characters.";
 
-    private static final URI DEFAULT_HREF = URI.create("https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id");
+    private static final URI DEFAULT_HREF =
+            URI.create("https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id");
 
     private final CharSequence entityId;
 
@@ -83,17 +84,15 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new ThingIdInvalidException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static NamespacedEntityIdInvalidException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return new Builder(readEntityId(jsonObject).orElse(null))
-                .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(""))
-                .href(readHRef(jsonObject).orElse(DEFAULT_HREF))
-                .build();
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders,
+                new Builder(readEntityId(jsonObject).orElse(null)));
     }
 
     private static Optional<String> readEntityId(final JsonObject jsonObject) {
@@ -105,6 +104,18 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
         return Optional.ofNullable(entityId);
     }
 
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new Builder(null)
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
+                .dittoHeaders(dittoHeaders)
+                .build();
+    }
+
+    // TODO: equals and hashcode
     /**
      * A mutable builder with a fluent API for a {@link NamespacedEntityIdInvalidException}.
      */

@@ -14,52 +14,75 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.headers.DittoHeaderDefinition.CORRELATION_ID;
+import static org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator.resolveConnectionIdPlaceholder;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.CharsetDeterminer;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
+import org.eclipse.ditto.model.connectivity.GenericTarget;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.ReplyTarget;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
-import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringLoggerConfig;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
-import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
-import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 import akka.actor.AbstractActor;
-import akka.event.DiagnosticLoggingAdapter;
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -69,40 +92,59 @@ import akka.japi.pf.ReceiveBuilder;
  */
 public abstract class BasePublisherActor<T extends PublishTarget> extends AbstractActor {
 
-    protected final ConnectionId connectionId;
-    protected final List<Target> targets;
+    protected final Connection connection;
     protected final Map<Target, ResourceStatus> resourceStatusMap;
 
+    protected final ConnectivityConfig connectivityConfig;
+    protected final ConnectionConfig connectionConfig;
     protected final ConnectionLogger connectionLogger;
-    protected final ConnectionMonitor responsePublishedMonitor;
-    protected final ConnectionMonitor responseDroppedMonitor;
+
+    /**
+     * Common logger for all sub-classes of BasePublisherActor as its MDC already contains the connection ID.
+     */
+    protected final ThreadSafeDittoLoggingAdapter logger;
+
+    private final ConnectionMonitor responseDroppedMonitor;
+    private final ConnectionMonitor responsePublishedMonitor;
+    private final ConnectionMonitor responseAcknowledgedMonitor;
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
     private final List<Optional<ReplyTarget>> replyTargets;
+    private final int acknowledgementSizeBudget;
+    protected final ExpressionResolver connectionIdResolver;
 
     protected BasePublisherActor(final Connection connection) {
-        checkNotNull(connection, "connection");
-        this.connectionId = connection.getId();
-        this.targets = connection.getTargets();
+        this.connection = checkNotNull(connection, "connection");
         resourceStatusMap = new HashMap<>();
-        final Instant now = Instant.now();
+        final List<Target> targets = connection.getTargets();
         targets.forEach(target ->
                 resourceStatusMap.put(target,
                         ConnectivityModelFactory.newTargetStatus(getInstanceIdentifier(), ConnectivityStatus.OPEN,
-                                target.getAddress(), "Started at " + now)));
+                                target.getAddress(), "Started at " + Instant.now())));
 
-        final MonitoringConfig monitoringConfig = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        ).getMonitoringConfig();
+        connectivityConfig = getConnectivityConfig();
+        connectionConfig = connectivityConfig.getConnectionConfig();
+        final MonitoringConfig monitoringConfig = connectivityConfig.getMonitoringConfig();
+        final MonitoringLoggerConfig loggerConfig = monitoringConfig.logger();
+        this.connectionLogger = ConnectionLogger.getInstance(connection.getId(), loggerConfig);
         connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
-        responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(this.connectionId);
-        responsePublishedMonitor = connectionMonitorRegistry.forResponsePublished(this.connectionId);
-        connectionLogger =
-                ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger()).forConnection(this.connectionId);
+        responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(connection.getId());
+        responsePublishedMonitor = connectionMonitorRegistry.forResponsePublished(connection.getId());
+        responseAcknowledgedMonitor = connectionMonitorRegistry.forResponseAcknowledged(connection.getId());
         replyTargets = connection.getSources().stream().map(Source::getReplyTarget).collect(Collectors.toList());
+        acknowledgementSizeBudget = connectionConfig.getAcknowledgementConfig().getIssuedMaxBytes();
+        this.logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
+                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
+
+        connectionIdResolver = PlaceholderFactory.newExpressionResolver(PlaceholderFactory.newConnectionIdPlaceholder(),
+                connection.getId());
     }
 
-    private static String getInstanceIdentifier() {
-        return InstanceIdentifierSupplier.getInstance().get();
+    private ConnectivityConfig getConnectivityConfig() {
+        final ActorContext context = getContext();
+        final ActorSystem actorSystem = context.getSystem();
+        final ActorSystem.Settings settings = actorSystem.settings();
+        final DefaultScopedConfig dittoScopedConfig = DefaultScopedConfig.dittoScoped(settings.config());
+        return DittoConnectivityConfig.of(dittoScopedConfig);
     }
 
     @Override
@@ -110,100 +152,190 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final ReceiveBuilder receiveBuilder = receiveBuilder();
         preEnhancement(receiveBuilder);
 
-        receiveBuilder.match(OutboundSignal.Mapped.class, BasePublisherActor::isResponseOrErrorOrSearchEvent,
-                outbound -> {
-                    final ExternalMessage response = outbound.getExternalMessage();
-                    final String correlationId = response.getHeaders().get(CORRELATION_ID.getKey());
-                    ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log(), correlationId, connectionId);
-
-                    final Optional<ReplyTarget> replyTargetOptional = outbound.getSource()
-                            .getDittoHeaders()
-                            .getReplyTarget()
-                            .flatMap(this::getReplyTargetByIndex);
-                    if (replyTargetOptional.isPresent()) {
-                        catchHeaderMappingException(responsePublishedMonitor, outbound.getSource(), () -> {
-                            final ReplyTarget replyTarget = replyTargetOptional.get();
-                            final ExpressionResolver expressionResolver = Resolvers.forOutbound(outbound);
-                            final String address = replyTarget.getAddress();
-                            final Optional<T> resolvedAddress =
-                                    resolveTargetAddress(expressionResolver, address).map(this::toPublishTarget);
-
-                            if (resolvedAddress.isPresent()) {
-                                final HeaderMapping headerMapping = replyTarget.getHeaderMapping().orElse(null);
-                                final ExternalMessage responseWithMappedHeaders =
-                                        applyHeaderMapping(expressionResolver, outbound, headerMapping, log());
-                                publishResponseOrError(resolvedAddress.get(), outbound, responseWithMappedHeaders);
-                            } else {
-                                log().debug("Response dropped, reply-target address unresolved: <{}>", address);
-                                responseDroppedMonitor.failure(outbound.getSource(),
-                                        "Response dropped since its reply-target''s address " +
-                                                "cannot be resolved to a value: {0}",
-                                        address);
-                            }
-                        });
-                    } else {
-                        log().debug("Response dropped, missing reply-target: {}", response);
-                        responseDroppedMonitor.failure(outbound.getSource(),
-                                "Response dropped since it was missing a reply-target.");
-                    }
-                })
-                .match(OutboundSignal.Mapped.class, outbound -> {
-                    final ExpressionResolver resolver = Resolvers.forOutbound(outbound);
-                    final ExternalMessage message = outbound.getExternalMessage();
-                    final String correlationId = message.getHeaders().get(CORRELATION_ID.getKey());
-                    ConnectionLogUtil.enhanceLogWithCorrelationIdAndConnectionId(log(), correlationId, connectionId);
-
-                    final Signal<?> outboundSource = outbound.getSource();
-                    log().debug("Publishing mapped message of type <{}> to targets <{}>: {}",
-                            outboundSource.getType(), outbound.getTargets(), message);
-                    outbound.getTargets().forEach(target -> {
-                        log().debug("Publishing mapped message of type <{}> to target address <{}>",
-                                outboundSource.getType(), target.getAddress());
-
-                        final ConnectionMonitor publishedMonitor =
-                                connectionMonitorRegistry.forOutboundPublished(connectionId,
-                                        target.getOriginalAddress());
-                        final HeaderMapping headerMapping = target.getHeaderMapping().orElse(null);
-                        catchHeaderMappingException(publishedMonitor, outboundSource, () ->
-                                resolveTargetAddress(resolver, target.getAddress())
-                                        .map(this::toPublishTarget)
-                                        .ifPresent(publishTarget -> {
-                                            final ExternalMessage mappedMessage =
-                                                    applyHeaderMapping(resolver, outbound, headerMapping, log());
-                                            publishMessage(target, publishTarget, mappedMessage, publishedMonitor);
-                                        }));
-                    });
-                })
+        receiveBuilder.match(OutboundSignal.MultiMapped.class, this::sendMultiMappedOutboundSignal)
                 .match(RetrieveAddressStatus.class, ram -> getCurrentTargetStatus().forEach(rs ->
-                        getSender().tell(rs, getSelf())))
-                .matchAny(m -> {
-                    log().warning("Unknown message: {}", m);
-                    unhandled(m);
-                });
+                        getSender().tell(rs, getSelf())));
 
         postEnhancement(receiveBuilder);
-        return receiveBuilder.build();
+        return receiveBuilder.matchAny(m -> {
+            logger.warning("Unknown message: {}", m);
+            unhandled(m);
+        }).build();
     }
 
-    private void catchHeaderMappingException(final ConnectionMonitor publishedMonitor, final Signal<?> outboundSource,
-            final Runnable doPublish) {
-        try {
-            doPublish.run();
-        } catch (final DittoRuntimeException e) {
-            publishedMonitor.failure(outboundSource,
-                    "Failed to publish signal: {0}",
-                    e.getMessage());
-            log().warning("Got unexpected DittoRuntimeException when publishing a signal: {} {}",
-                    e.getClass().getSimpleName(), e.getMessage());
+    private Collection<ResourceStatus> getCurrentTargetStatus() {
+        return resourceStatusMap.values();
+    }
+
+    private void sendMultiMappedOutboundSignal(final OutboundSignal.MultiMapped multiMapped) {
+        final int quota = computeMaxAckPayloadBytesForSignal(multiMapped);
+        final ExceptionToAcknowledgementConverter errorConverter = getExceptionConverter();
+        final List<OutboundSignal.Mapped> mappedOutboundSignals = multiMapped.getMappedOutboundSignals();
+        final CompletableFuture<CommandResponse<?>>[] sendMonitorAndResponseFutures = mappedOutboundSignals.stream()
+                // message sending step
+                .flatMap(outbound -> sendMappedOutboundSignal(outbound, quota))
+                // monitor and acknowledge step
+                .flatMap(sendingOrDropped -> sendingOrDropped.monitorAndAcknowledge(errorConverter).stream())
+                // convert to completable future array for aggregation
+                .map(CompletionStage::toCompletableFuture)
+                .<CompletableFuture<CommandResponse<?>>>toArray(CompletableFuture[]::new);
+
+        aggregateNonNullFutures(sendMonitorAndResponseFutures)
+                .thenAccept(responsesList -> {
+                    final ActorRef sender = multiMapped.getSender().orElse(null);
+
+                    final Collection<Acknowledgement> acknowledgements = new ArrayList<>();
+                    final Collection<CommandResponse<?>> nonAcknowledgements = new ArrayList<>();
+                    responsesList.forEach(response -> {
+                        if (response instanceof Acknowledgement){
+                            final Acknowledgement acknowledgement = (Acknowledgement) response;
+                            if (shouldPublishAcknowledgement(acknowledgement)) {
+                                acknowledgements.add(acknowledgement);
+                            }
+                        } else {
+                            nonAcknowledgements.add(response);
+                        }
+                    });
+
+                    issueAcknowledgements(multiMapped, sender, acknowledgements);
+                    sendBackResponses(multiMapped, sender, nonAcknowledgements);
+                })
+                .exceptionally(e -> {
+                    logger.withCorrelationId(multiMapped.getSource())
+                            .error(e, "Message sending failed unexpectedly: <{}>", multiMapped);
+                    return null;
+                });
+    }
+
+    protected abstract boolean shouldPublishAcknowledgement(final Acknowledgement acknowledgement);
+
+    private void issueAcknowledgements(final OutboundSignal.MultiMapped multiMapped, @Nullable final ActorRef sender,
+            final Collection<Acknowledgement> ackList) {
+
+        final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(multiMapped.getSource());
+        if (Objects.equals(sender, getSelf())) {
+            l.debug("Not sending acks <{}> because sender is this publisher actor," +
+                    " which can't handle acknowledgements.", ackList);
+        } else if (!ackList.isEmpty() && sender != null) {
+            final Acknowledgements aggregatedAcks = appendConnectionId(
+                    Acknowledgements.of(ackList, multiMapped.getSource().getDittoHeaders()));
+            l.debug("Message sent. Replying to <{}>: <{}>", sender, aggregatedAcks);
+            sender.tell(aggregatedAcks, getSelf());
+        } else if (ackList.isEmpty()) {
+            l.debug("Message sent: No acks requested.");
+        } else {
+            l.error("Message sent: Acks requested, but no sender: <{}>", multiMapped.getSource());
         }
     }
 
-    private void publishResponseOrError(final T address, final OutboundSignal outbound,
-            final ExternalMessage response) {
+    private void sendBackResponses(final OutboundSignal.MultiMapped multiMapped, @Nullable final ActorRef sender,
+            final Collection<CommandResponse<?>> nonAcknowledgementsResponses) {
 
-        log().debug("Publishing mapped response/error message of type <{}> to reply address <{}>: {}",
-                outbound.getSource().getType(), address, response);
-        publishMessage(null, address, response, responsePublishedMonitor);
+        final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(multiMapped.getSource());
+        if (!nonAcknowledgementsResponses.isEmpty() && sender != null) {
+            nonAcknowledgementsResponses.forEach(response -> {
+                l.debug("CommandResponse created from HTTP response. Replying to <{}>: <{}>", sender, response);
+                sender.tell(response, getSelf());
+            });
+        } else if (nonAcknowledgementsResponses.isEmpty()) {
+            l.debug("No CommandResponse created from HTTP response.");
+        } else {
+            l.error("CommandResponse created from HTTP response, but no sender: <{}>", multiMapped.getSource());
+        }
+    }
+
+    /**
+     * Gets the converter from publisher exceptions to Acknowledgements.
+     * Override to handle client-specific exceptions.
+     *
+     * @return the converter.
+     */
+    protected ExceptionToAcknowledgementConverter getExceptionConverter() {
+        return DefaultExceptionToAcknowledgementConverter.getInstance();
+    }
+
+    private static <T> CompletionStage<List<T>> aggregateNonNullFutures(final CompletableFuture<T>[] futures) {
+        return CompletableFuture.allOf(futures)
+                .thenApply(aVoid -> Arrays.stream(futures)
+                        .map(CompletableFuture::join)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList()));
+    }
+
+    private Acknowledgements appendConnectionId(final Acknowledgements acknowledgements) {
+        return InboundMappingProcessorActor.appendConnectionIdToAcknowledgements(acknowledgements, connection.getId());
+    }
+
+    private int computeMaxAckPayloadBytesForSignal(final OutboundSignal.MultiMapped multiMapped) {
+        final List<OutboundSignal.Mapped> mappedOutboundSignals = multiMapped.getMappedOutboundSignals();
+        final int numberOfSignals = mappedOutboundSignals.size();
+        return 0 == numberOfSignals ? acknowledgementSizeBudget : acknowledgementSizeBudget / numberOfSignals;
+    }
+
+    private Stream<SendingOrDropped> sendMappedOutboundSignal(final OutboundSignal.Mapped outbound,
+            final int maxPayloadBytesForSignal) {
+
+        final ExternalMessage message = outbound.getExternalMessage();
+        final String correlationId = message.getHeaders().get(CORRELATION_ID.getKey());
+        final Signal<?> outboundSource = outbound.getSource();
+        final List<Target> outboundTargets = outbound.getTargets();
+
+        final ThreadSafeDittoLoggingAdapter l = logger.withCorrelationId(correlationId);
+        l.debug("Publishing mapped message of type <{}> to targets <{}>: {}", outboundSource.getType(), outboundTargets,
+                message);
+
+        final Optional<SendingContext> replyTargetSendingContext = getSendingContext(outbound);
+
+        final List<SendingContext> sendingContexts = replyTargetSendingContext.map(List::of)
+                .orElseGet(() -> outboundTargets.stream()
+                        .map(target -> getSendingContextForTarget(outbound, target))
+                        .collect(Collectors.toList()));
+
+        if (sendingContexts.isEmpty()) {
+            // Message dropped: neither reply-target nor target is available for the message.
+            if (l.isDebugEnabled()) {
+                l.debug("Message without GenericTarget dropped: <{}>", outbound.getExternalMessage());
+            } else {
+                l.info("Message without GenericTarget dropped.");
+            }
+            return Stream.empty();
+        } else {
+            // message not dropped
+            final ExpressionResolver resolver = Resolvers.forOutbound(outbound, connection.getId());
+            final int acks = (int) sendingContexts.stream().filter(SendingContext::shouldAcknowledge).count();
+            final int maxPayloadBytes = acks == 0 ? maxPayloadBytesForSignal : maxPayloadBytesForSignal / acks;
+            return sendingContexts.stream()
+                    .map(sendingContext -> tryToPublishToGenericTarget(resolver, sendingContext,
+                            maxPayloadBytesForSignal, maxPayloadBytes, l));
+        }
+    }
+
+    private Optional<SendingContext> getSendingContext(final OutboundSignal.Mapped mappedOutboundSignal) {
+        final Optional<SendingContext> result;
+        if (isResponseOrErrorOrSearchEvent(mappedOutboundSignal)) {
+            final Signal<?> source = mappedOutboundSignal.getSource();
+            final DittoHeaders dittoHeaders = source.getDittoHeaders();
+            result = dittoHeaders.getReplyTarget()
+                    .flatMap(this::getReplyTargetByIndex)
+                    .map(replyTarget -> getSendingContextForReplyTarget(mappedOutboundSignal, replyTarget));
+        } else {
+            result = Optional.empty();
+        }
+        return result;
+    }
+
+    /**
+     * Checks whether the passed in {@code outboundSignal} is a response or an error or a search event.
+     * Those messages are supposed to be published at the reply target of the source whence the original command came.
+     *
+     * @param outboundSignal the OutboundSignal to check.
+     * @return {@code true} if the OutboundSignal is a response or an error, {@code false} otherwise
+     */
+    private static boolean isResponseOrErrorOrSearchEvent(final OutboundSignal.Mapped outboundSignal) {
+        final ExternalMessage externalMessage = outboundSignal.getExternalMessage();
+        return externalMessage.isResponse() ||
+                externalMessage.isError() ||
+                outboundSignal.getSource() instanceof SubscriptionEvent;
     }
 
     private Optional<ReplyTarget> getReplyTargetByIndex(final int replyTargetIndex) {
@@ -212,8 +344,101 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                 : Optional.empty();
     }
 
-    private Collection<ResourceStatus> getCurrentTargetStatus() {
-        return resourceStatusMap.values();
+    private SendingContext getSendingContextForReplyTarget(final OutboundSignal.Mapped outboundSignal,
+            final ReplyTarget replyTarget) {
+
+        return SendingContext.newBuilder()
+                .mappedOutboundSignal(outboundSignal)
+                .externalMessage(outboundSignal.getExternalMessage())
+                .genericTarget(replyTarget)
+                .droppedMonitor(responseDroppedMonitor)
+                .publishedMonitor(responsePublishedMonitor)
+                .acknowledgedMonitor(responseAcknowledgedMonitor)
+                .build();
+    }
+
+    private SendingContext getSendingContextForTarget(final OutboundSignal.Mapped outboundSignal, final Target target) {
+        final String originalAddress = target.getOriginalAddress();
+        final ConnectionMonitor publishedMonitor =
+                connectionMonitorRegistry.forOutboundPublished(connection.getId(), originalAddress);
+
+        final ConnectionMonitor droppedMonitor =
+                connectionMonitorRegistry.forOutboundDropped(connection.getId(), originalAddress);
+
+        final boolean targetAckRequested = isTargetAckRequested(outboundSignal, target);
+
+        @Nullable final ConnectionMonitor acknowledgedMonitor = targetAckRequested
+                ? connectionMonitorRegistry.forOutboundAcknowledged(connection.getId(), originalAddress)
+                : null;
+        @Nullable final Target autoAckTarget = targetAckRequested ? target : null;
+
+        return SendingContext.newBuilder()
+                .mappedOutboundSignal(outboundSignal)
+                .externalMessage(outboundSignal.getExternalMessage())
+                .genericTarget(target)
+                .publishedMonitor(publishedMonitor)
+                .droppedMonitor(droppedMonitor)
+                .acknowledgedMonitor(acknowledgedMonitor)
+                .autoAckTarget(autoAckTarget)
+                .build();
+    }
+
+    private SendingOrDropped tryToPublishToGenericTarget(final ExpressionResolver resolver,
+            final SendingContext sendingContext,
+            final int maxTotalMessageSize,
+            final int quota,
+            final ThreadSafeDittoLoggingAdapter logger) {
+
+        try {
+            return publishToGenericTarget(resolver, sendingContext, maxTotalMessageSize, quota, logger);
+        } catch (final Exception e) {
+            return new Sending(sendingContext, CompletableFuture.failedFuture(e), connectionIdResolver, logger);
+        }
+    }
+
+    private SendingOrDropped publishToGenericTarget(final ExpressionResolver resolver,
+            final SendingContext sendingContext,
+            final int maxTotalMessageSize,
+            final int quota,
+            final ThreadSafeDittoLoggingAdapter logger) {
+
+        final OutboundSignal.Mapped outbound = sendingContext.getMappedOutboundSignal();
+        final GenericTarget genericTarget = sendingContext.getGenericTarget();
+        final String address = genericTarget.getAddress();
+        final Optional<T> publishTargetOptional = resolveTargetAddress(resolver, address).map(this::toPublishTarget);
+
+        final SendingOrDropped result;
+        if (publishTargetOptional.isPresent()) {
+            final Signal<?> outboundSource = outbound.getSource();
+            logger.debug("Publishing mapped message of type <{}> to address <{}>: {}", outboundSource.getType(),
+                    address, sendingContext.getExternalMessage());
+            final T publishTarget = publishTargetOptional.get();
+            @Nullable final Target autoAckTarget = sendingContext.getAutoAckTarget().orElse(null);
+            final HeaderMapping headerMapping = genericTarget.getHeaderMapping().orElse(null);
+            final ExternalMessage mappedMessage = applyHeaderMapping(resolver, outbound, headerMapping);
+            final CompletionStage<CommandResponse<?>> responsesFuture = publishMessage(outboundSource,
+                    autoAckTarget,
+                    publishTarget,
+                    mappedMessage,
+                    maxTotalMessageSize,
+                    quota
+            );
+            // set the external message after header mapping for the result of header mapping to show up in log
+            result = new Sending(sendingContext.setExternalMessage(mappedMessage), responsesFuture,
+                    connectionIdResolver, logger);
+        } else {
+            result = new Dropped(sendingContext, "Signal dropped, target address unresolved: {0}");
+        }
+        return result;
+    }
+
+    private static ExternalMessage applyHeaderMapping(final ExpressionResolver expressionResolver,
+            final OutboundSignal.Mapped outboundSignal, @Nullable final HeaderMapping headerMapping) {
+
+        final OutboundSignalToExternalMessage outboundSignalToExternalMessage =
+                OutboundSignalToExternalMessage.newInstance(outboundSignal, expressionResolver, headerMapping);
+
+        return outboundSignalToExternalMessage.get();
     }
 
     /**
@@ -236,83 +461,78 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      * @param address the address to convert to a {@link PublishTarget} of type {@code <T>}.
      * @return the instance of type {@code <T>}
      */
-    protected abstract T toPublishTarget(final String address);
+    protected abstract T toPublishTarget(String address);
 
     /**
-     * Publishes the passed {@code message} to the passed {@code publishTarget}.
+     * Publish a message. Construct the acknowledgement regardless of any request for diagnostic purposes.
      *
-     * @param target the nullable Target for getting even more information about the configured Target to publish to.
+     * @param signal the nullable Target for getting even more information about the configured Target to publish to.
+     * @param autoAckTarget if set, this is the Target from which {@code Acknowledgement}s should automatically be
+     * produced and delivered.
      * @param publishTarget the {@link PublishTarget} to publish to.
-     * @param message the {@link org.eclipse.ditto.services.models.connectivity.ExternalMessage} to publish.
-     * @param publishedMonitor the monitor that can be used for monitoring purposes.
+     * @param message the {@link ExternalMessage} to publish.
+     * @param maxTotalMessageSize the total max message size in bytes of the payload of an automatically created
+     * response.
+     * @param ackSizeQuota budget in bytes for how large the payload of this acknowledgement can be, or 0 to not
+     * send any acknowledgement.
+     * @return future of command responses (acknowledgements and potentially responses to live commands / live messages)
+     * to reply to sender, or future of null if ackSizeQuota is 0.
      */
-    protected abstract void publishMessage(@Nullable Target target, T publishTarget,
-            ExternalMessage message, ConnectionMonitor publishedMonitor);
+    protected abstract CompletionStage<CommandResponse<?>> publishMessage(Signal<?> signal,
+            @Nullable Target autoAckTarget,
+            T publishTarget,
+            ExternalMessage message,
+            int maxTotalMessageSize,
+            int ackSizeQuota);
 
     /**
-     * @return the logger to use.
-     */
-    protected abstract DiagnosticLoggingAdapter log();
-
-    /**
-     * Checks whether the passed in {@code outboundSignal} is a response or an error or a search event.
-     * Those messages are supposed to be published at the reply target of the source whence the original command came.
+     * Decode a byte buffer according to the charset specified in an external message.
      *
-     * @param outboundSignal the OutboundSignal to check.
-     * @return {@code true} if the OutboundSignal is a response or an error, {@code false} otherwise
+     * @param buffer the byte buffer.
+     * @param message the external message.
+     * @return the decoded string.
      */
-    private static boolean isResponseOrErrorOrSearchEvent(final OutboundSignal.Mapped outboundSignal) {
-        return outboundSignal.getExternalMessage().isResponse() ||
-                outboundSignal.getExternalMessage().isError() ||
-                outboundSignal.getSource() instanceof SubscriptionEvent;
-    }
-
-    /**
-     * Applies the optional "header mapping" potentially configured on the passed {@code target} on the passed {@code
-     * outboundSignal}.
-     *
-     * @param outboundSignal the OutboundSignal containing the {@link ExternalMessage} with headers potentially
-     * containing placeholders.
-     * @param mapping headerMappings to apply.
-     * @param log the logger to use for logging.
-     * @return the ExternalMessage with replaced headers
-     */
-    static ExternalMessage applyHeaderMapping(final OutboundSignal.Mapped outboundSignal,
-            final @Nullable HeaderMapping mapping,
-            final DiagnosticLoggingAdapter log) {
-
-        return applyHeaderMapping(Resolvers.forOutbound(outboundSignal), outboundSignal, mapping, log);
-    }
-
-    private static ExternalMessage applyHeaderMapping(final ExpressionResolver expressionResolver,
-            final OutboundSignal.Mapped outboundSignal,
-            final @Nullable HeaderMapping mapping,
-            final DiagnosticLoggingAdapter log) {
-
-        final ExternalMessage originalMessage = outboundSignal.getExternalMessage();
-
-        final ExternalMessageBuilder messageBuilder = ExternalMessageFactory.newExternalMessageBuilder(originalMessage);
-
-        if (mapping != null) {
-            final Signal<?> sourceSignal = outboundSignal.getSource();
-
-            final Map<String, String> mappedHeaders = mapping.getMapping().entrySet().stream()
-                    .flatMap(e -> mapHeaderByResolver(expressionResolver, e.getValue())
-                            .map(resolvedValue -> Stream.of(new AbstractMap.SimpleEntry<>(e.getKey(), resolvedValue)))
-                            .orElseGet(Stream::empty))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-            LogUtil.enhanceLogWithCorrelationId(log, sourceSignal);
-            log.debug("Result of header mapping <{}> are these headers to be published: {}", mapping, mappedHeaders);
-
-            messageBuilder.withAdditionalHeaders(mappedHeaders);
+    protected static String decodeAsHumanReadable(@Nullable final ByteBuffer buffer, final ExternalMessage message) {
+        if (buffer != null) {
+            return getCharsetFromMessage(message).decode(buffer).toString();
+        } else {
+            return "<empty>";
         }
-
-        return messageBuilder.build();
     }
 
-    private static Optional<String> mapHeaderByResolver(final ExpressionResolver resolver, final String value) {
-        return PlaceholderFilter.applyOrElseDelete(value, resolver);
+    /**
+     * Determine charset from an external message.
+     *
+     * @param message the external message.
+     * @return its charset.
+     */
+    protected static Charset getCharsetFromMessage(final ExternalMessage message) {
+        return message.findContentType()
+                .map(BasePublisherActor::determineCharset)
+                .orElse(StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Escalate an error to the parent to trigger a restart.
+     * This is thread safe because self and parent are thread-safe.
+     *
+     * @param error the encountered failure.
+     * @param description description of the failure.
+     */
+    protected void escalate(final Throwable error, final String description) {
+        final ConnectionFailure failure = new ImmutableConnectionFailure(getSelf(), error, description);
+        getContext().getParent().tell(failure, getSelf());
+    }
+
+    /**
+     * Extract acknowledgement label from an auto-ack target.
+     *
+     * @param target the target.
+     * @return the configured auto-ack label if any exists, or an empty optional.
+     */
+    protected Optional<AcknowledgementLabel> getAcknowledgementLabel(@Nullable final Target target) {
+        return Optional.ofNullable(target).flatMap(Target::getIssuedAcknowledgementLabel)
+                .flatMap(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel));
     }
 
     /**
@@ -321,6 +541,39 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
      */
     private static Optional<String> resolveTargetAddress(final ExpressionResolver resolver, final String value) {
         return resolver.resolve(value).toOptional();
+    }
+
+    private static String getInstanceIdentifier() {
+        return InstanceIdentifierSupplier.getInstance().get();
+    }
+
+    private static Charset determineCharset(final CharSequence contentType) {
+        return CharsetDeterminer.getInstance().apply(contentType);
+    }
+
+    private boolean isTargetAckRequested(final OutboundSignal.Mapped mapped, final Target target) {
+        final Signal<?> source = mapped.getSource();
+        final DittoHeaders dittoHeaders = source.getDittoHeaders();
+        final Set<AcknowledgementRequest> acknowledgementRequests = dittoHeaders.getAcknowledgementRequests();
+        final Set<AcknowledgementLabel> requestedAcks = acknowledgementRequests.stream()
+                .map(AcknowledgementRequest::getLabel)
+                .collect(Collectors.toSet());
+
+        if (target.getIssuedAcknowledgementLabel()
+                .filter(DittoAcknowledgementLabel.LIVE_RESPONSE::equals)
+                .isPresent()) {
+            return dittoHeaders.isResponseRequired() && isLiveSignal(source);
+        } else {
+            return target.getIssuedAcknowledgementLabel()
+                    .flatMap(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
+                    .filter(requestedAcks::contains)
+                    .isPresent();
+        }
+    }
+
+    private static boolean isLiveSignal(final Signal<?> signal) {
+        return signal instanceof MessageCommand ||
+                (signal instanceof ThingCommand && ProtocolAdapter.isLiveSignal(signal));
     }
 
 }

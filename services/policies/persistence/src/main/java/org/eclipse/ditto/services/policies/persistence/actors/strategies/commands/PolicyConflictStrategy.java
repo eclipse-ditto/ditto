@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
@@ -36,11 +37,16 @@ final class PolicyConflictStrategy extends AbstractPolicyCommandStrategy<CreateP
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy entity,
-            final long nextRevision, final CreatePolicy command) {
+    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+            @Nullable final Policy entity,
+            final long nextRevision,
+            final CreatePolicy command,
+            @Nullable final Metadata metadata) {
+
         return ResultFactory.newErrorResult(PolicyConflictException.newBuilder(command.getEntityId())
-                .dittoHeaders(command.getDittoHeaders())
-                .build());
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build(),
+                command);
     }
 
     @Override

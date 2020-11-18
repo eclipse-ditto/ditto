@@ -12,16 +12,17 @@
  */
 package org.eclipse.ditto.services.utils.akka.logging;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
+import java.util.ConcurrentModificationException;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.services.utils.akka.LogUtil;
-
 import akka.event.DiagnosticLoggingAdapter;
-import scala.collection.Seq;
-import scala.collection.immutable.Map;
 
 /**
  * Wraps and delegates to a {@link DiagnosticLoggingAdapter}.
@@ -31,22 +32,30 @@ import scala.collection.immutable.Map;
 final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAdapter {
 
     private final DiagnosticLoggingAdapter loggingAdapter;
-    @Nullable private CharSequence correlationId;
+    private final String loggerName;
+    private final Map<String, Object> localMdc;
 
-    private DefaultDiagnosticLoggingAdapter(final DiagnosticLoggingAdapter loggingAdapter) {
+    private DefaultDiagnosticLoggingAdapter(final DiagnosticLoggingAdapter loggingAdapter,
+            final CharSequence loggerName) {
+
         this.loggingAdapter = checkNotNull(loggingAdapter, "loggingAdapter");
-        correlationId = null;
+        this.loggerName = argumentNotEmpty(loggerName, "loggerName").toString();
+        localMdc = new HashMap<>(5);
     }
 
     /**
      * Returns an instance of this class.
      *
      * @param loggingAdapter the actual DiagnosticLoggingAdapter to delegate to.
+     * @param loggerName the name of the returned logger.
      * @return the instance.
-     * @throws NullPointerException if {@code loggingAdapter} is {@code null}.
+     * @throws NullPointerException if any argument is @code null}.
+     * @throws IllegalArgumentException if {@code loggerName} is empty.
      */
-    public static DefaultDiagnosticLoggingAdapter of(final DiagnosticLoggingAdapter loggingAdapter) {
-        return new DefaultDiagnosticLoggingAdapter(loggingAdapter);
+    public static DefaultDiagnosticLoggingAdapter of(final DiagnosticLoggingAdapter loggingAdapter,
+            final CharSequence loggerName) {
+
+        return new DefaultDiagnosticLoggingAdapter(loggingAdapter, loggerName);
     }
 
     @Override
@@ -71,308 +80,76 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
 
     @Override
     public void notifyError(final String message) {
+        tryToPutLocalMdcToActualMdc();
         loggingAdapter.notifyError(message);
+    }
+
+    private void tryToPutLocalMdcToActualMdc() {
+        try {
+            putLocalMdcToActualMdc();
+        } catch (final ConcurrentModificationException e) {
+            handleConcurrentModificationException();
+        }
+    }
+
+    private void putLocalMdcToActualMdc() {
+        if (!localMdc.isEmpty()) {
+
+            // Optimization: only alter actual MDC if local MDC contains entries at all.
+            final Map<String, Object> actualMdc = getMDC();
+            actualMdc.putAll(localMdc);
+            setMDC(actualMdc);
+        }
+    }
+
+    private void handleConcurrentModificationException() {
+
+        // Logging should not interfere with application's actual work.
+        loggingAdapter.warning("This logger <{}> is used by multiple threads!" +
+                " Please consider to use a thread-safe logger instead.", getName());
     }
 
     @Override
     public void notifyError(final Throwable cause, final String message) {
+        tryToPutLocalMdcToActualMdc();
         loggingAdapter.notifyError(cause, message);
     }
 
     @Override
     public void notifyWarning(final String message) {
+        tryToPutLocalMdcToActualMdc();
         loggingAdapter.notifyWarning(message);
     }
 
     @Override
     public void notifyInfo(final String message) {
+        tryToPutLocalMdcToActualMdc();
         loggingAdapter.notifyInfo(message);
     }
 
     @Override
     public void notifyDebug(final String message) {
+        tryToPutLocalMdcToActualMdc();
         loggingAdapter.notifyDebug(message);
     }
 
     @Override
-    public void error(final Throwable cause, final String message) {
-        if (isErrorEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.error(cause, message);
-        }
-    }
-
-    private void putCorrelationIdToMdc() {
-        if (null != correlationId) {
-            LogUtil.enhanceLogWithCustomField(loggingAdapter, LogUtil.X_CORRELATION_ID, correlationId.toString());
-        }
-    }
-
-    @Override
-    public void error(final Throwable cause, final String template, final Object arg1) {
-        if (isErrorEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.error(cause, template, arg1);
-        }
-    }
-
-    @Override
-    public void error(final Throwable cause,
-            final String template,
-            final Object arg1,
-            final Object arg2) {
-
-        if (isErrorEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.error(cause, template, arg1, arg2);
-        }
-    }
-
-    @Override
-    public void error(final Throwable cause,
-            final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3) {
-
-        if (isErrorEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.error(cause, template, arg1, arg2, arg3);
-        }
-    }
-
-    @Override
-    public void error(final Throwable cause,
-            final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3,
-            final Object arg4) {
-
-        if (isErrorEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.error(cause, template, arg1, arg2, arg3, arg4);
-        }
-    }
-
-    @Override
-    public void error(final String message) {
-        if (isErrorEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.error(message);
-        }
-    }
-
-    @Override
-    public void error(final String template, final Object arg1) {
-        if (isErrorEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.error(template, arg1);
-        }
-    }
-
-    @Override
-    public void error(final String template, final Object arg1, final Object arg2) {
-        if (isErrorEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.error(template, arg1, arg2);
-        }
-    }
-
-    @Override
-    public void error(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3) {
-
-        if (isErrorEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.error(template, arg1, arg2, arg3);
-        }
-    }
-
-    @Override
-    public void error(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3,
-            final Object arg4) {
-
-        if (isErrorEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.error(template, arg1, arg2, arg3, arg4);
-        }
-    }
-
-    @Override
-    public void warning(final String message) {
-        if (isWarningEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.warning(message);
-        }
-    }
-
-    @Override
-    public void warning(final String template, final Object arg1) {
-        if (isWarningEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.warning(template, arg1);
-        }
-    }
-
-    @Override
-    public void warning(final String template, final Object arg1, final Object arg2) {
-        if (isWarningEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.warning(template, arg1, arg2);
-        }
-    }
-
-    @Override
-    public void warning(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3) {
-
-        if (isWarningEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.warning(template, arg1, arg2, arg3);
-        }
-    }
-
-    @Override
-    public void warning(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3,
-            final Object arg4) {
-
-        if (isWarningEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.warning(template, arg1, arg2, arg3, arg4);
-        }
-    }
-
-    @Override
-    public void info(final String message) {
-        if (isInfoEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.info(message);
-        }
-    }
-
-    @Override
-    public void info(final String template, final Object arg1) {
-        if (isInfoEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.info(template, arg1);
-        }
-    }
-
-    @Override
-    public void info(final String template, final Object arg1, final Object arg2) {
-        if (isInfoEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.info(template, arg1, arg2);
-        }
-    }
-
-    @Override
-    public void info(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3) {
-
-        if (isInfoEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.info(template, arg1, arg2, arg3);
-        }
-    }
-
-    @Override
-    public void info(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3,
-            final Object arg4) {
-
-        if (isInfoEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.info(template, arg1, arg2, arg3, arg4);
-        }
-    }
-
-    @Override
-    public void debug(final String message) {
-        if (isDebugEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.debug(message);
-        }
-    }
-
-    @Override
-    public void debug(final String template, final Object arg1) {
-        if (isDebugEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.debug(template, arg1);
-        }
-    }
-
-    @Override
-    public void debug(final String template, final Object arg1, final Object arg2) {
-        if (isDebugEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.debug(template, arg1, arg2);
-        }
-    }
-
-    @Override
-    public void debug(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3) {
-
-        if (isDebugEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.debug(template, arg1, arg2, arg3);
-        }
-    }
-
-    @Override
-    public void debug(final String template,
-            final Object arg1,
-            final Object arg2,
-            final Object arg3,
-            final Object arg4) {
-
-        if (isDebugEnabled()) {
-            putCorrelationIdToMdc();
-            loggingAdapter.debug(template, arg1, arg2, arg3, arg4);
-        }
-    }
-
-    @Override
-    public String format(final String t, final Seq<Object> arg) {
-        return loggingAdapter.format(t, arg);
-    }
-
-    @Override
-    public Map<String, Object> mdc() {
+    public scala.collection.immutable.Map<String, Object> mdc() {
         return loggingAdapter.mdc();
     }
 
     @Override
-    public void mdc(final Map<String, Object> mdc) {
+    public void mdc(final scala.collection.immutable.Map<String, Object> mdc) {
         loggingAdapter.mdc(mdc);
     }
 
     @Override
-    public java.util.Map<String, Object> getMDC() {
-        return loggingAdapter.getMDC();
+    public Map<String, Object> getMDC() {
+        return new HashMap<>(loggingAdapter.getMDC());
     }
 
     @Override
-    public void setMDC(final java.util.Map<String, Object> jMdc) {
+    public void setMDC(final Map<String, Object> jMdc) {
         loggingAdapter.setMDC(jMdc);
     }
 
@@ -382,15 +159,86 @@ final class DefaultDiagnosticLoggingAdapter extends AbstractDiagnosticLoggingAda
     }
 
     @Override
-    public DefaultDiagnosticLoggingAdapter setCorrelationId(@Nullable final CharSequence correlationId) {
-        this.correlationId = correlationId;
+    public DefaultDiagnosticLoggingAdapter putMdcEntry(final CharSequence key, @Nullable final CharSequence value) {
+        if (null != value) {
+            tryToPutToLocalMdc(validateMdcEntryKey(key).toString(), value);
+        } else {
+            removeMdcEntry(key);
+        }
         return this;
     }
 
+    private void tryToPutToLocalMdc(final String key, final Object value) {
+        try {
+            localMdc.put(key, value);
+        } catch (final ConcurrentModificationException e) {
+            handleConcurrentModificationException();
+        }
+    }
+
+    private static CharSequence validateMdcEntryKey(final CharSequence key) {
+        return argumentNotEmpty(key, "key");
+    }
+
     @Override
-    public void discardCorrelationId() {
-        correlationId = null;
-        LogUtil.removeCustomField(loggingAdapter, LogUtil.X_CORRELATION_ID);
+    public DefaultDiagnosticLoggingAdapter removeMdcEntry(final CharSequence key) {
+        final String keyAsString = validateMdcEntryKey(key).toString();
+        if (null != tryToRemoveFromLocalMdc(keyAsString)) {
+
+            // Optimization: only modify actual MDC if local MDC was altered at all.
+            final Map<String, Object> actualMdc = getMDC();
+            actualMdc.remove(keyAsString);
+            setMDC(actualMdc);
+        }
+        return this;
+    }
+
+    @Nullable
+    private Object tryToRemoveFromLocalMdc(final String key) {
+        try {
+            return localMdc.remove(key);
+        } catch (final ConcurrentModificationException e) {
+            handleConcurrentModificationException();
+            return null;
+        }
+    }
+
+    @Override
+    public DefaultDiagnosticLoggingAdapter discardMdcEntries() {
+        tryToRemoveLocalMdcFromActualMdc();
+        tryToClearLocalMdc();
+        return this;
+    }
+
+    private void tryToClearLocalMdc() {
+        try {
+            localMdc.clear();
+        } catch (final ConcurrentModificationException e) {
+            handleConcurrentModificationException();
+        }
+    }
+
+    private void tryToRemoveLocalMdcFromActualMdc() {
+        try {
+            removeLocalMdcFromActualMdc();
+        } catch (final ConcurrentModificationException e) {
+            handleConcurrentModificationException();
+        }
+    }
+
+    private void removeLocalMdcFromActualMdc() {
+        if (!localMdc.isEmpty()) {
+
+            // Optimization: only remove entries from actual MDC if local MDC contains entries at all.
+            final Map<String, Object> actualMdc = getMDC();
+            localMdc.forEach(actualMdc::remove);
+            setMDC(actualMdc);
+        }
+    }
+
+    @Override
+    public String getName() {
+        return loggerName;
     }
 
 }

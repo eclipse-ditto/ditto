@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.models.concierge.pubsub;
 
+import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -30,8 +31,8 @@ public interface LiveSignalPub {
      * @param context context of the actor under which pub and sub actors are started.
      * @return the live signal pub.
      */
-    static LiveSignalPub of(final ActorContext context) {
-        return LiveSignalPubImpl.of(context);
+    static LiveSignalPub of(final ActorContext context, final DistributedAcks distributedAcks) {
+        return LiveSignalPubImpl.of(context, distributedAcks);
     }
 
     /**

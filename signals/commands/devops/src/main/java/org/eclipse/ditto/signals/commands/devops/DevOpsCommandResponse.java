@@ -28,7 +28,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  *
  * @param <T> the type of the implementing class.
  */
-public interface DevOpsCommandResponse<T extends DevOpsCommandResponse> extends CommandResponse<T>,
+public interface DevOpsCommandResponse<T extends DevOpsCommandResponse<T>> extends CommandResponse<T>,
         WithIdButActuallyNot {
 
     /**

@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.Map;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
@@ -38,6 +39,7 @@ public class ImmutableExpressionResolverTest {
     private static final String THING_NAME = "foobar199";
     private static final String THING_NAMESPACE = "org.eclipse.ditto";
     private static final ThingId THING_ID = ThingId.of(THING_NAMESPACE, THING_NAME);
+    private static final ConnectionId CONNECTION_ID = ConnectionId.generateRandom();
     private static final String KNOWN_TOPIC = "org.eclipse.ditto/" + THING_NAME + "/things/twin/commands/modify";
     private static final Map<String, String> KNOWN_HEADERS =
             DittoHeaders.newBuilder().putHeader("one", "1").putHeader("two", "2").build();
@@ -72,8 +74,11 @@ public class ImmutableExpressionResolverTest {
                 PlaceholderFactory.newThingPlaceholder(), THING_ID);
         final ImmutablePlaceholderResolver<TopicPath> topicPathResolver = new ImmutablePlaceholderResolver<>(
                 PlaceholderFactory.newTopicPathPlaceholder(), topic);
+        final ImmutablePlaceholderResolver<ConnectionId> connectionIdResolver = new ImmutablePlaceholderResolver<>(
+                PlaceholderFactory.newConnectionIdPlaceholder(), CONNECTION_ID);
 
-        underTest = new ImmutableExpressionResolver(Arrays.asList(headersResolver, thingResolver, topicPathResolver));
+        underTest = new ImmutableExpressionResolver(
+                Arrays.asList(headersResolver, thingResolver, topicPathResolver, connectionIdResolver));
     }
 
     @Test
@@ -85,6 +90,8 @@ public class ImmutableExpressionResolverTest {
                 .contains(KNOWN_HEADERS.get("two"));
         assertThat(underTest.resolve("{{ thing:id }}"))
                 .contains(THING_ID.toString());
+        assertThat(underTest.resolve("{{ connection:id }}"))
+                .contains(CONNECTION_ID.toString());
         assertThat(underTest.resolve("{{ thing:name }}"))
                 .contains(THING_NAME);
         assertThat(underTest.resolve("{{ topic:full }}"))
@@ -95,7 +102,7 @@ public class ImmutableExpressionResolverTest {
         // verify different whitespace
         assertThat(underTest.resolve("{{topic:entityId }}"))
                 .contains(THING_NAME);
-        assertThat(underTest.resolve("{{topic:entityId}}"))
+        assertThat(underTest.resolve("{{topic:entityName}}"))
                 .contains(THING_NAME);
         assertThat(underTest.resolve("{{        topic:entityId}}"))
                 .contains(THING_NAME);

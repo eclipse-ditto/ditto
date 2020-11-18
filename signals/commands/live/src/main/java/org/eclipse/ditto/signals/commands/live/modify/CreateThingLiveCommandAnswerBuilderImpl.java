@@ -91,7 +91,7 @@ final class CreateThingLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingCreated created() {
-            return ThingCreated.of(command.getThing(), -1, Instant.now(), command.getDittoHeaders());
+            return ThingCreated.of(command.getThing(), -1, Instant.now(), command.getDittoHeaders(), null);
         }
     }
 

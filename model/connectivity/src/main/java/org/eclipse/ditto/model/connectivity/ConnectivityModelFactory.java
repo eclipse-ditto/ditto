@@ -30,7 +30,11 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 
 /**
@@ -372,13 +376,62 @@ public final class ConnectivityModelFactory {
     /**
      * Returns a new {@code MappingContext}.
      *
-     * @param mappingEngine fully qualified classname of a mapping engine
-     * @param options the mapping options required to instantiate a mapper
+     * @param mappingEngine fully qualified classname of a mapping engine.
+     * @param options the mapping options required to instantiate a mapper.
+     * @return the created MappingContext.
+     * @throws NullPointerException if any argument is {@code null}.
+     *
+     * @since 1.3.0
+     */
+    public static MappingContextBuilder newMappingContextBuilder(final String mappingEngine,
+            final JsonObject options) {
+        return new ImmutableMappingContext.Builder(mappingEngine, options);
+    }
+
+    /**
+     * Returns a new {@code MappingContext}.
+     *
+     * @param mappingEngine fully qualified classname of a mapping engine.
+     * @param options the mapping options required to instantiate a mapper.
      * @return the created MappingContext.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static MappingContext newMappingContext(final String mappingEngine, final Map<String, String> options) {
+        return newMappingContextBuilder(mappingEngine, options.entrySet()
+                .stream()
+                .map(entry -> JsonField.newInstance(entry.getKey(), JsonValue.of(entry.getValue())))
+                .collect(JsonCollectors.fieldsToObject())).build();
+    }
+
+    /**
+     * Returns a new {@code MappingContext}.
+     *
+     * @param mappingEngine fully qualified classname of a mapping engine
+     * @param options the mapping options required to instantiate a mapper
+     * @return the created MappingContext.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.3.0
+     */
+    public static MappingContext newMappingContext(final String mappingEngine, final JsonObject options) {
         return ImmutableMappingContext.of(mappingEngine, options);
+    }
+
+    /**
+     * Returns a new {@code MappingContext}.
+     *
+     * @param mappingEngine fully qualified classname of a mapping engine.
+     * @param options the mapping options required to instantiate a mapper.
+     * @param incomingConditions the conditions to be checked before mapping incoming messages.
+     * @param outgoingConditions the conditions to be checked before mapping outgoing messages.
+     * @return the created MappingContext.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.3.0
+     */
+    public static MappingContext newMappingContext(final String mappingEngine, final JsonObject options,
+            final Map<String, String> incomingConditions, final Map<String, String> outgoingConditions) {
+        return newMappingContextBuilder(mappingEngine, options).incomingConditions(incomingConditions)
+                .outgoingConditions(outgoingConditions)
+                .build();
     }
 
     /**
@@ -484,7 +537,7 @@ public final class ConnectivityModelFactory {
      *
      * @return new {@link Source} builder
      */
-    public static SourceBuilder newSourceBuilder() {
+    public static SourceBuilder<?> newSourceBuilder() {
         return new ImmutableSource.Builder();
     }
 
@@ -493,7 +546,7 @@ public final class ConnectivityModelFactory {
      *
      * @return new {@link Source} builder
      */
-    public static SourceBuilder newSourceBuilder(final Source source) {
+    public static SourceBuilder<?> newSourceBuilder(final Source source) {
         return new ImmutableSource.Builder(source);
     }
 
@@ -555,6 +608,29 @@ public final class ConnectivityModelFactory {
                 .authorizationContext(target.getAuthorizationContext())
                 .headerMapping(target.getHeaderMapping().orElse(null))
                 .qos(qos)
+                .topics(target.getTopics())
+                .build();
+    }
+
+    /**
+     * Creates a new {@link Target} from existing target but different address and acknowledgement.
+     *
+     * @param target the target
+     * @param address the address where the signals will be published
+     * @param qos the qos of the new Target (e.g. for MQTT targets)
+     * @param label the {@link AcknowledgementLabel} of the new Target
+     * @return the created {@link Target}
+     * @since 1.2.0
+     */
+    public static Target newTarget(final Target target, final String address, @Nullable final Integer qos, final
+    AcknowledgementLabel label) {
+        return newTargetBuilder()
+                .address(address)
+                .originalAddress(target.getOriginalAddress())
+                .authorizationContext(target.getAuthorizationContext())
+                .headerMapping(target.getHeaderMapping().orElse(null))
+                .qos(qos)
+                .issuedAcknowledgementLabel(label)
                 .topics(target.getTopics())
                 .build();
     }
@@ -904,13 +980,6 @@ public final class ConnectivityModelFactory {
             final String message) {
 
         return ImmutableLogEntry.getBuilder(correlationId, timestamp, logCategory, logType, logLevel, message);
-    }
-
-    /**
-     * @return new instance of the {@link org.eclipse.ditto.model.connectivity.SourceAddressPlaceholder}
-     */
-    public static SourceAddressPlaceholder newSourceAddressPlaceholder() {
-        return ImmutableSourceAddressPlaceholder.INSTANCE;
     }
 
 }

@@ -16,13 +16,13 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -35,7 +35,8 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingsResponse;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -46,15 +47,15 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 
+import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.PatternsCS;
-import akka.stream.ActorMaterializer;
+import akka.pattern.Patterns;
+import akka.stream.Materializer;
 import akka.stream.SourceRef;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -76,15 +77,15 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
     private static final int ASK_TIMEOUT = 60;
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final ActorRef targetActor;
-    private final ActorMaterializer actorMaterializer;
+    private final Materializer materializer;
 
     @SuppressWarnings("unused")
     private ThingsAggregatorProxyActor(final ActorRef targetActor) {
         this.targetActor = targetActor;
-        actorMaterializer = ActorMaterializer.create(getContext());
+        materializer = Materializer.createMaterializer(this::getContext);
     }
 
     /**
@@ -126,20 +127,20 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
     }
 
     private void handleRetrieveThings(final RetrieveThings rt, final Object msgToAsk) {
-        LogUtil.enhanceLogWithCorrelationId(log, rt.getDittoHeaders().getCorrelationId());
         final List<ThingId> thingIds = rt.getThingEntityIds();
-        log.info("Got '{}' message. Retrieving requested '{}' Things..",
-                RetrieveThings.class.getSimpleName(), thingIds.size());
+        log.withCorrelationId(rt)
+                .info("Got '{}' message. Retrieving requested '{}' Things..",
+                        RetrieveThings.class.getSimpleName(), thingIds.size());
 
         final ActorRef sender = getSender();
         askTargetActor(rt, thingIds, msgToAsk, sender);
     }
 
     private void handleSudoRetrieveThings(final SudoRetrieveThings srt, final Object msgToAsk) {
-        LogUtil.enhanceLogWithCorrelationId(log, srt.getDittoHeaders().getCorrelationId());
         final List<ThingId> thingIds = srt.getThingIds();
-        log.info("Got '{}' message. Retrieving requested '{}' Things..",
-                SudoRetrieveThings.class.getSimpleName(), thingIds.size());
+        log.withCorrelationId(srt)
+                .info("Got '{}' message. Retrieving requested '{}' Things..",
+                        SudoRetrieveThings.class.getSimpleName(), thingIds.size());
 
         final ActorRef sender = getSender();
         askTargetActor(srt, thingIds, msgToAsk, sender);
@@ -147,10 +148,10 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
     private void askTargetActor(final Command<?> command, final List<ThingId> thingIds,
             final Object msgToAsk, final ActorRef sender) {
-        PatternsCS.ask(targetActor, msgToAsk, Duration.ofSeconds(ASK_TIMEOUT))
+        Patterns.ask(targetActor, msgToAsk, Duration.ofSeconds(ASK_TIMEOUT))
                 .thenAccept(response -> {
-                    if (response instanceof SourceRef){
-                        handleSourceRef((SourceRef) response, thingIds, command, sender);
+                    if (response instanceof SourceRef) {
+                        handleSourceRef((SourceRef<?>) response, thingIds, command, sender);
                     } else if (response instanceof DittoRuntimeException) {
                         sender.tell(response, getSelf());
                     } else {
@@ -166,7 +167,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 });
     }
 
-    private void handleSourceRef(final SourceRef sourceRef, final List<ThingId> thingIds,
+    private void handleSourceRef(final SourceRef<?> sourceRef, final List<ThingId> thingIds,
             final Command<?> originatingCommand, final ActorRef originatingSender) {
         final Function<Jsonifiable<?>, PlainJson> thingPlainJsonSupplier;
         final Function<List<PlainJson>, CommandResponse<?>> overallResponseSupplier;
@@ -185,19 +186,28 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 .tag("size", Integer.toString(thingIds.size()))
                 .build();
 
+        final Source<Jsonifiable<?>, NotUsed> thingNotAccessibleExceptionSource = Source.single(
+                ThingNotAccessibleException.fromMessage("Thing could not be accessed.", DittoHeaders.empty())
+        );
+
         final CompletionStage<List<PlainJson>> o =
-                (CompletionStage<List<PlainJson>>) sourceRef.getSource()
-                        .orElse(Source.single(ThingNotAccessibleException.fromMessage("Thing could not be accessed.",
-                                DittoHeaders.empty())))
+                sourceRef.getSource()
+                        .<Jsonifiable<?>>map(Jsonifiable.class::cast)
+                        .orElse(thingNotAccessibleExceptionSource)
                         .filterNot(el -> el instanceof DittoRuntimeException)
-                        .map(param -> thingPlainJsonSupplier.apply((Jsonifiable<?>) param))
+                        .map(thingPlainJsonSupplier::apply)
                         .log("retrieve-thing-response", log)
-                        .recover(new PFBuilder()
-                                .match(NoSuchElementException.class,
-                                        nsee -> overallResponseSupplier.apply(Collections.emptyList()))
+                        .recoverWithRetries(1, new PFBuilder<Throwable, Source<PlainJson, NotUsed>>()
+                                .match(NoSuchElementException.class, nsee -> Source.single(PlainJson.empty()))
+                                .match(IllegalStateException.class, ise -> {
+                                    // TODO: remove this workaround after akka/akka#28852 is resolved.
+                                    // It prevents spurious failures due to upstream crashing but also
+                                    // hides legitimate errors.
+                                    return Source.single(PlainJson.empty());
+                                })
                                 .build()
                         )
-                        .runWith(Sink.seq(), actorMaterializer);
+                        .runWith(Sink.seq(), materializer);
 
         final CompletionStage<? extends CommandResponse<?>> commandResponseCompletionStage = o
                 .thenApply(plainJsonSorter)
@@ -207,7 +217,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                     return list;
                 });
 
-        PatternsCS.pipe(commandResponseCompletionStage, getContext().dispatcher()).to(originatingSender);
+        Patterns.pipe(commandResponseCompletionStage, getContext().dispatcher()).to(originatingSender);
     }
 
     private Function<Jsonifiable<?>, PlainJson> supplyPlainJsonFromRetrieveThingResponse() {
@@ -239,9 +249,13 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
     private Function<List<PlainJson>, List<PlainJson>> supplyPlainJsonSorter(final List<ThingId> thingIds) {
         return plainJsonThings -> {
             final Comparator<PlainJson> comparator = (pj1, pj2) -> {
-                final ThingId thingId1 = ThingId.of(pj1.getId());
-                final ThingId thingId2 = ThingId.of(pj2.getId());
-                return Integer.compare(thingIds.indexOf(thingId1), thingIds.indexOf(thingId2));
+                if (!pj1.isEmpty() && !pj2.isEmpty()) {
+                    final ThingId thingId1 = ThingId.of(pj1.getId());
+                    final ThingId thingId2 = ThingId.of(pj2.getId());
+                    return Integer.compare(thingIds.indexOf(thingId1), thingIds.indexOf(thingId2));
+                } else {
+                    return 0;
+                }
             };
 
             final List<PlainJson> sortedList = new ArrayList<>(plainJsonThings);
@@ -255,6 +269,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
             @Nullable final String namespace) {
         return plainJsonThings -> RetrieveThingsResponse.of(plainJsonThings.stream()
                 .map(PlainJson::getJson)
+                .filter(Predicate.not(String::isEmpty))
                 .collect(Collectors.toList()), namespace, dittoHeaders);
     }
 
@@ -262,6 +277,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
             final DittoHeaders dittoHeaders) {
         return plainJsonThings -> SudoRetrieveThingsResponse.of(plainJsonThings.stream()
                 .map(PlainJson::getJson)
+                .filter(Predicate.not(String::isEmpty))
                 .collect(Collectors.toList()), dittoHeaders);
     }
 
@@ -278,8 +294,16 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
             this.json = checkNotNull(json, "JSON");
         }
 
+        static PlainJson empty() {
+            return new PlainJson("", "");
+        }
+
         static PlainJson of(final CharSequence id, final String json) {
             return new PlainJson(id, json);
+        }
+
+        boolean isEmpty() {
+            return id.isEmpty() && json.isEmpty();
         }
 
         String getId() {

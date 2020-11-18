@@ -21,5 +21,6 @@ The following connection types are supported:
 * [AMQP 0.9.1](connectivity-protocol-bindings-amqp091.html)
 * [AMQP 1.0](connectivity-protocol-bindings-amqp10.html)
 * [MQTT 3.1.1](connectivity-protocol-bindings-mqtt.html)
+* [MQTT 5](connectivity-protocol-bindings-mqtt5.html)
 * [HTTP 1.1](connectivity-protocol-bindings-http.html)
 * [Kafka 2.x](connectivity-protocol-bindings-kafka2.html)

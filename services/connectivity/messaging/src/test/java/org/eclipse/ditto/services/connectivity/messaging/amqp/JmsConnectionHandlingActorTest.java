@@ -14,7 +14,9 @@ package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -33,6 +35,7 @@ import org.eclipse.ditto.services.connectivity.messaging.WithMockServers;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -59,9 +62,11 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
     private static final ConnectionId connectionId = TestConstants.createRandomConnectionId();
     private static Connection connection;
 
-    @Mock private final Session mockSession = Mockito.mock(Session.class);
-    @Mock private final JmsConnection mockConnection = Mockito.mock(JmsConnection.class);
-    private final JmsConnectionFactory jmsConnectionFactory = (connection1, exceptionListener) -> mockConnection;
+    @Mock private final Session mockSession = mock(Session.class);
+    @Mock private final JmsConnection mockConnection = mock(JmsConnection.class);
+    @Mock private final ConnectionLogger connectionLogger = mock(ConnectionLogger.class);
+    private final JmsConnectionFactory jmsConnectionFactory =
+            (connection1, exceptionListener, connectionLogger) -> mockConnection;
 
     @BeforeClass
     public static void setUp() {
@@ -77,7 +82,7 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
 
     @Before
     public void init() throws JMSException {
-        when(mockConnection.createSession(Session.CLIENT_ACKNOWLEDGE)).thenReturn(mockSession);
+        when(mockConnection.createSession(anyInt())).thenReturn(mockSession);
     }
 
     @Test
@@ -87,7 +92,8 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
             final IllegalStateException exception = new IllegalStateException("failureOnJmsConnect");
             doThrow(exception).when(mockConnection).start();
 
-            final Props props = JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory);
+            final Props props =
+                    JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory, connectionLogger);
             final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
 
             final TestProbe origin = TestProbe.apply(actorSystem);
@@ -107,7 +113,8 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
             final IllegalStateException exception = new IllegalStateException("failureOnCreateConsumer");
             doThrow(exception).when(mockSession).createConsumer(any());
 
-            final Props props = JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory);
+            final Props props =
+                    JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory, connectionLogger);
             final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
 
             final TestProbe origin = TestProbe.apply(actorSystem);
@@ -124,7 +131,8 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
     public void handleJmsConnect() throws JMSException {
         new TestKit(actorSystem) {{
 
-            final Props props = JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory);
+            final Props props =
+                    JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory, connectionLogger);
             final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
 
             final TestProbe origin = TestProbe.apply(actorSystem);
@@ -147,21 +155,24 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
     public void handleRecoverSession() throws JMSException {
         new TestKit(actorSystem) {{
 
-            final Props props = JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory);
+            final Props props =
+                    JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory, connectionLogger);
             final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
 
             final TestProbe origin = TestProbe.apply(actorSystem);
 
-            final JmsSession existingSession = Mockito.mock(JmsSession.class);
-            connectionHandlingActor.tell(new AmqpClientActor.JmsRecoverSession(origin.ref(), mockConnection, existingSession),
+            final JmsSession existingSession = mock(JmsSession.class);
+            connectionHandlingActor.tell(
+                    new AmqpClientActor.JmsRecoverSession(origin.ref(), mockConnection, existingSession),
                     getRef());
 
-            final AmqpClientActor.JmsSessionRecovered recovered = expectMsgClass(AmqpClientActor.JmsSessionRecovered.class);
+            final AmqpClientActor.JmsSessionRecovered recovered =
+                    expectMsgClass(AmqpClientActor.JmsSessionRecovered.class);
             assertThat(recovered.getOrigin()).contains(origin.ref());
             assertThat(recovered.getSession()).isSameAs(mockSession);
 
             verify(existingSession).close();
-            verify(mockConnection).createSession(Session.CLIENT_ACKNOWLEDGE);
+            verify(mockConnection).createSession(anyInt());
             verify(mockSession, times(connection.getSources()
                     .stream()
                     .mapToInt(s -> s.getAddresses().size() * s.getConsumerCount())
@@ -174,17 +185,19 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
     public void handleRecoverSessionFails() throws JMSException {
         new TestKit(actorSystem) {{
 
-            final JmsConnection failsToCreateSession = Mockito.mock(JmsConnection.class);
-            when(failsToCreateSession.createSession(Session.CLIENT_ACKNOWLEDGE)).thenThrow(new JMSException("failed to create session"));
+            final JmsConnection failsToCreateSession = mock(JmsConnection.class);
+            when(failsToCreateSession.createSession(anyInt())).thenThrow(new JMSException("failed to create session"));
 
-            final Props props = JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory);
+            final Props props =
+                    JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory, connectionLogger);
             final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
-            connectionHandlingActor.tell(new AmqpClientActor.JmsRecoverSession(getRef(), failsToCreateSession, mockSession),
+            connectionHandlingActor.tell(
+                    new AmqpClientActor.JmsRecoverSession(getRef(), failsToCreateSession, mockSession),
                     getRef());
 
             expectMsgClass(ConnectionFailure.class);
             verify(mockSession).close();
-            verify(failsToCreateSession).createSession(Session.CLIENT_ACKNOWLEDGE);
+            verify(failsToCreateSession).createSession(anyInt());
         }};
     }
 
@@ -192,7 +205,8 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
     public void handleJmsDisconnect() throws JMSException {
         new TestKit(actorSystem) {{
 
-            final Props props = JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory);
+            final Props props =
+                    JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory, connectionLogger);
             final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
 
             final TestProbe origin = TestProbe.apply(actorSystem);
@@ -213,7 +227,8 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
             final JMSException exception = new JMSException("failureOnJmsConnect");
             doThrow(exception).when(mockConnection).stop();
 
-            final Props props = JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory);
+            final Props props =
+                    JMSConnectionHandlingActor.props(connection, e -> {}, jmsConnectionFactory, connectionLogger);
             final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
 
             final TestProbe origin = TestProbe.apply(actorSystem);

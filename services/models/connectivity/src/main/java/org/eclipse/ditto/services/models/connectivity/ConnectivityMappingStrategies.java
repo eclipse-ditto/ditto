@@ -20,14 +20,15 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
+import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategies;
 import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
+import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandRegistry;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
 import org.eclipse.ditto.signals.events.base.GlobalEventRegistry;
@@ -41,7 +42,7 @@ public final class ConnectivityMappingStrategies extends MappingStrategies {
 
     @Nullable private static ConnectivityMappingStrategies instance = null;
 
-    private ConnectivityMappingStrategies(final Map<String, MappingStrategy> strategies) {
+    private ConnectivityMappingStrategies(final Map<String, JsonParsable<Jsonifiable<?>>> strategies) {
         super(strategies);
     }
 
@@ -79,7 +80,9 @@ public final class ConnectivityMappingStrategies extends MappingStrategies {
                 .add("ImmutableConnection", jsonObject -> ConnectivityModelFactory.connectionFromJson(jsonObject)) // do not replace with lambda!
                 .add(ResourceStatus.class, jsonObject -> ConnectivityModelFactory.resourceStatusFromJson(jsonObject)) // do not replace with lambda!
                 .add("ImmutableResourceStatus", jsonObject -> ConnectivityModelFactory.resourceStatusFromJson(jsonObject)) // do not replace with lambda!
-                .add(ConnectionTag.class, jsonObject -> ConnectionTag.fromJson(jsonObject))
+                .add(ConnectivityStatus.class, jsonObject -> ConnectivityStatus.fromJson(jsonObject)) // do not replace with lambda!
+                .add(BaseClientState.class, jsonObject -> BaseClientState.fromJson(jsonObject)) // do not replace with lambda!
+                .add(ConnectionTag.class, jsonObject -> ConnectionTag.fromJson(jsonObject)) // do not replace with lambda!
                 .add(BatchedEntityIdWithRevisions.typeOf(ConnectionTag.class),
                         BatchedEntityIdWithRevisions.deserializer(jsonObject -> ConnectionTag.fromJson(jsonObject)))
                 .build();

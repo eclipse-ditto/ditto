@@ -28,6 +28,8 @@ import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 @Immutable
 final class TimestampValueValidator extends AbstractHeaderValueValidator {
 
+    private static final TimestampValueValidator INSTANCE = new TimestampValueValidator();
+
     private TimestampValueValidator() {
         super(String.class::equals);
     }
@@ -38,7 +40,7 @@ final class TimestampValueValidator extends AbstractHeaderValueValidator {
      * @return the instance.
      */
     static TimestampValueValidator getInstance() {
-        return new TimestampValueValidator();
+        return INSTANCE;
     }
 
     @Override

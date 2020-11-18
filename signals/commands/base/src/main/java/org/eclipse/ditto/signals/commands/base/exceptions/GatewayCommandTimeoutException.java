@@ -74,11 +74,26 @@ public final class GatewayCommandTimeoutException extends DittoRuntimeException 
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @return the new GatewayCommandTimeoutException.
+     * @deprecated since DittoHeaders are required for the builder. Use {@code #fromMessage(String, DittoHeaders)} instead.
      */
+    @Deprecated
     public static GatewayCommandTimeoutException fromMessage(final String message) {
         return new Builder()
                 .message(message)
                 .build();
+    }
+
+    /**
+     * Constructs a new {@code GatewayCommandTimeoutException} object with given message.
+     *
+     * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
+     * @param dittoHeaders the headers of the command which resulted in this exception.
+     * @return the new GatewayCommandTimeoutException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     */
+    public static GatewayCommandTimeoutException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -88,18 +103,24 @@ public final class GatewayCommandTimeoutException extends DittoRuntimeException 
      * @param dittoHeaders the headers.
      * @return an instance of this class.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} is missing required JSON fields.
-     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} contains unexpected value types.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static GatewayCommandTimeoutException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
-                .loadJson(jsonObject)
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 

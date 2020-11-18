@@ -33,6 +33,9 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.apache.qpid.jms.message.facade.JmsMessageFacade;
 import org.apache.qpid.jms.provider.amqp.message.AmqpJmsMessageFacade;
 import org.apache.qpid.proton.amqp.Symbol;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.services.utils.akka.logging.CommonMdcEntryKey;
+import org.eclipse.ditto.services.utils.akka.logging.MdcEntrySettable;
 
 import akka.event.LoggingAdapter;
 
@@ -94,11 +97,10 @@ final class JMSPropertyMapper {
      *
      * @param message the message.
      * @param headers the mapped headers.
-     * @param log the logger.
+     * @param logger the logger.
      */
-    static void setPropertiesAndApplicationProperties(final Message message,
-            final Map<String, String> headers,
-            final LoggingAdapter log) {
+    static <T extends LoggingAdapter & MdcEntrySettable<T>> void setPropertiesAndApplicationProperties(
+            final Message message, final Map<String, String> headers, final T logger) {
 
         headers.forEach((headerName, headerValue) -> {
             try {
@@ -108,9 +110,14 @@ final class JMSPropertyMapper {
                     setAmqpApplicationProperty(message, headerName, headerValue);
                 }
             } catch (final Exception e) {
-                // errors are mostly user error; log them at debug level, then proceed with other properties.
-                log.debug("Error setting AMQP property/application property <{}>=<{}>: <{}>",
-                        headerName, headerValue, e);
+
+                // Errors are mostly caused by user; thus log them at debug level then proceed with other properties.
+                if (logger.isDebugEnabled()) {
+                    @Nullable final String correlationId = headers.get(DittoHeaderDefinition.CORRELATION_ID.getKey());
+                    logger.withMdcEntry(CommonMdcEntryKey.CORRELATION_ID, correlationId)
+                            .debug("Error setting AMQP property/application property <{}>=<{}>: <{}>", headerName,
+                                    headerValue, e);
+                }
             }
         });
     }
@@ -187,12 +194,10 @@ final class JMSPropertyMapper {
 
     private static void setContentEncoding(final Message message, final String contentEncoding) {
         // do nothing---not supported by Qpid client.
-        // TODO: introduce the function when Qpid client supports content encoding.
     }
 
     private static Optional<String> getContentEncoding(final Message message) {
         // return nothing---not supported by Qpid client.
-        // TODO: introduce the functionality when Qpid client supports content encoding.
         return Optional.empty();
     }
 

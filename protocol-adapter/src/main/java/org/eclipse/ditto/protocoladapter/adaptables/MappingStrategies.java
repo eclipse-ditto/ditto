@@ -34,5 +34,5 @@ public interface MappingStrategies<T extends Jsonifiable.WithPredicate<JsonObjec
      * @return the {@link JsonifiableMapper} or {@code null} if no mapper was found
      */
     @Nullable
-    JsonifiableMapper<T> find(final String type);
+    JsonifiableMapper<T> find(String type);
 }

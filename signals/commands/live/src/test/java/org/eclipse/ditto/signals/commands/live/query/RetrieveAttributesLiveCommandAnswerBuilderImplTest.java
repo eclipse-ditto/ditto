@@ -86,7 +86,7 @@ public final class RetrieveAttributesLiveCommandAnswerBuilderImplTest {
                 .hasNoEvent()
                 .hasThingQueryCommandResponse()
                 .hasType(RetrieveAttributesResponse.TYPE)
-                .hasDittoHeaders(DittoHeaders.empty())
+                .hasDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .hasResourcePath(JsonPointer.of("attributes"));
     }
 
@@ -102,7 +102,7 @@ public final class RetrieveAttributesLiveCommandAnswerBuilderImplTest {
                 .hasNoEvent()
                 .hasThingErrorResponse()
                 .withType(ThingErrorResponse.TYPE)
-                .withDittoHeaders(DittoHeaders.empty())
+                .withDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .withStatus(HttpStatusCode.NOT_FOUND)
                 .withDittoRuntimeExceptionOfType(AttributesNotAccessibleException.class);
     }

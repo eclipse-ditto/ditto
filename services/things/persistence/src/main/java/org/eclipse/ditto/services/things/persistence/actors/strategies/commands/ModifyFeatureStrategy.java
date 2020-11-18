@@ -18,6 +18,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -47,8 +48,11 @@ final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFea
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
-            final long nextRevision, final ModifyFeature command) {
+    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final ModifyFeature command,
+            @Nullable final Metadata metadata) {
 
         final Thing nonNullThing = getEntityOrThrow(thing);
 
@@ -72,8 +76,8 @@ final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFea
                 command::getDittoHeaders);
 
         return extractFeature(command, nonNullThing)
-                .map(feature -> getModifyResult(context, nextRevision, command, thing))
-                .orElseGet(() -> getCreateResult(context, nextRevision, command, thing));
+                .map(feature -> getModifyResult(context, nextRevision, command, thing, metadata))
+                .orElseGet(() -> getCreateResult(context, nextRevision, command, thing, metadata));
     }
 
     private Optional<Feature> extractFeature(final ModifyFeature command, @Nullable final Thing thing) {
@@ -82,13 +86,14 @@ final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFea
     }
 
     private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
-            final ModifyFeature command, @Nullable final Thing thing) {
+            final ModifyFeature command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
+
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final ThingEvent event =
+        final ThingEvent<?> event =
                 FeatureModified.of(command.getThingEntityId(), command.getFeature(), nextRevision, getEventTimestamp(),
-                        dittoHeaders);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                        dittoHeaders, metadata);
+        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
                 ModifyFeatureResponse.modified(context.getState(), command.getFeatureId(), dittoHeaders),
                 thing);
 
@@ -96,14 +101,15 @@ final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFea
     }
 
     private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
-            final ModifyFeature command, @Nullable final Thing thing) {
+            final ModifyFeature command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
 
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final Feature feature = command.getFeature();
 
-        final ThingEvent event =
-                FeatureCreated.of(command.getThingEntityId(), feature, nextRevision, getEventTimestamp(), dittoHeaders);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+        final ThingEvent<?> event =
+                FeatureCreated.of(command.getThingEntityId(), feature, nextRevision, getEventTimestamp(), dittoHeaders,
+                        metadata);
+        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
                 ModifyFeatureResponse.created(context.getState(), feature, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command, event, response);

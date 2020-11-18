@@ -88,24 +88,16 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
     }
 
     @Override
-    protected Flow<ImmutableDispatch, ImmutableDispatch, NotUsed> processMessageFlow() {
-        return handler;
-    }
-
-    @Override
-    protected Sink<ImmutableDispatch, ?> processedMessageSink() {
-        return Sink.foreach(dispatch -> logger.withCorrelationId(dispatch.getMessage())
-                .warning("Unhandled Message in DispatcherActor: <{}>", dispatch));
+    protected Sink<ImmutableDispatch, ?> createSink() {
+        return handler.to(
+                Sink.foreach(dispatch -> logger.withCorrelationId(dispatch.getMessage())
+                        .warning("Unhandled Message in DispatcherActor: <{}>", dispatch))
+        );
     }
 
     @Override
     protected int getBufferSize() {
         return enforcementConfig.getBufferSize();
-    }
-
-    @Override
-    protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        // no-op
     }
 
     /**

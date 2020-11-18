@@ -22,11 +22,13 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.policies.PolicyId;
 
 /**
@@ -62,6 +64,8 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
         thing.getLifecycle().ifPresent(result::setLifecycle);
         thing.getRevision().ifPresent(result::setRevision);
         thing.getModified().ifPresent(result::setModified);
+        thing.getCreated().ifPresent(result::setCreated);
+        thing.getMetadata().ifPresent(result::setMetadata);
 
         return result;
     }
@@ -123,16 +127,32 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
                 .map(ImmutableThingFromCopyBuilder::tryToParseModified)
                 .ifPresent(result::setModified);
 
+        jsonObject.getValue(Thing.JsonFields.CREATED)
+                .map(ImmutableThingFromCopyBuilder::tryToParseCreated)
+                .ifPresent(result::setCreated);
+
+        jsonObject.getValue(Thing.JsonFields.METADATA)
+                .map(ThingsModelFactory::newMetadata)
+                .ifPresent(result::setMetadata);
+
         return result;
     }
 
     private static Instant tryToParseModified(final CharSequence dateTime) {
+        return tryToParseDate(dateTime, Thing.JsonFields.MODIFIED);
+    }
+
+    private static Instant tryToParseCreated(final CharSequence dateTime) {
+        return tryToParseDate(dateTime, Thing.JsonFields.CREATED);
+    }
+
+    private static Instant tryToParseDate(final CharSequence dateTime, final JsonFieldDefinition<String> field) {
         try {
             return Instant.parse(dateTime);
         } catch (final DateTimeParseException e) {
             final String msgPattern = "The JSON object''s field <{0}> is not in ISO-8601 format as expected!";
             throw JsonParseException.newBuilder()
-                    .message(MessageFormat.format(msgPattern, Thing.JsonFields.MODIFIED.getPointer()))
+                    .message(MessageFormat.format(msgPattern, field.getPointer()))
                     .cause(e)
                     .build();
         }
@@ -473,6 +493,27 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    public FromCopy setFeature(final Predicate<Features> existingFeaturesPredicate,
+            final CharSequence featureId,
+            final FeatureDefinition featureDefinition,
+            final FeatureProperties featureProperties,
+            final FeatureProperties featureDesiredProperties) {
+
+        if (testFeaturesPredicate(existingFeaturesPredicate)) {
+            setFeature(featureId, featureDefinition, featureProperties, featureDesiredProperties);
+        }
+        return this;
+    }
+
+    @Override
+    public FromCopy setFeature(final CharSequence featureId, @Nullable final FeatureDefinition featureDefinition,
+            @Nullable final FeatureProperties featureProperties, @Nullable final FeatureProperties featureDesiredProperties) {
+
+        fromScratchBuilder.setFeature(featureId, featureDefinition, featureProperties, featureDesiredProperties);
+        return this;
+    }
+
+    @Override
     public FromCopy setFeature(final String featureId, final FeatureDefinition featureDefinition,
             final FeatureProperties featureProperties) {
 
@@ -564,6 +605,62 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
 
         if (testFeaturesPredicate(existingFeaturesPredicate)) {
             fromScratchBuilder.removeFeatureProperties(featureId);
+        }
+        return this;
+    }
+
+    @Override
+    public FromCopy setFeatureDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath,
+            final JsonValue desiredPropertyValue) {
+
+        fromScratchBuilder.setFeatureDesiredProperty(featureId, desiredPropertyPath, desiredPropertyValue);
+        return this;
+    }
+
+    @Override
+    public FromCopy setFeatureDesiredProperty(final Predicate<Features> existingFeaturesPredicate,
+            final CharSequence featureId,
+            final JsonPointer desiredPropertyPath,
+            final JsonValue desiredPropertyValue) {
+
+        if (testFeaturesPredicate(existingFeaturesPredicate)) {
+            fromScratchBuilder.setFeatureDesiredProperty(featureId, desiredPropertyPath, desiredPropertyValue);
+        }
+        return this;
+    }
+
+    @Override
+    public FromCopy removeFeatureDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath) {
+        fromScratchBuilder.removeFeatureDesiredProperty(featureId, desiredPropertyPath);
+        return this;
+    }
+
+    @Override
+    public FromCopy removeFeatureDesiredProperty(final Predicate<Features> existingFeaturesPredicate, final CharSequence featureId,
+            final JsonPointer desiredPropertyPath) {
+
+        if (testFeaturesPredicate(existingFeaturesPredicate)) {
+            fromScratchBuilder.removeFeatureDesiredProperty(featureId, desiredPropertyPath);
+        }
+        return this;
+    }
+
+    @Override
+    public FromCopy setFeatureDesiredProperties(final Predicate<Features> existingFeaturesPredicate, final CharSequence featureId,
+            final FeatureProperties desiredProperties) {
+
+        if (testFeaturesPredicate(existingFeaturesPredicate)) {
+            fromScratchBuilder.setFeatureDesiredProperties(featureId, desiredProperties);
+        }
+        return this;
+    }
+
+    @Override
+    public FromCopy removeFeatureDesiredProperties(final Predicate<Features> existingFeaturesPredicate,
+            final CharSequence featureId) {
+
+        if (testFeaturesPredicate(existingFeaturesPredicate)) {
+            fromScratchBuilder.removeFeatureDesiredProperties(featureId);
         }
         return this;
     }
@@ -691,11 +788,41 @@ final class ImmutableThingFromCopyBuilder implements ThingBuilder, ThingBuilder.
     }
 
     @Override
+    public FromCopy setCreated(@Nullable final Instant created) {
+        fromScratchBuilder.setCreated(created);
+        return this;
+    }
+
+    @Override
+    public FromCopy setCreated(final Predicate<Instant> existingCreatedPredicate, @Nullable final Instant created) {
+        if (existingCreatedPredicate.test(fromScratchBuilder.created)) {
+            setCreated(created);
+        }
+        return this;
+    }
+
+    @Override
+    public FromCopy setMetadata(@Nullable final Metadata metadata) {
+        fromScratchBuilder.setMetadata(metadata);
+        return this;
+    }
+
+    @Override
+    public FromCopy setMetadata(final Predicate<Metadata> existingMetadataPredicate,
+            @Nullable final Metadata metadata) {
+        if (existingMetadataPredicate.test(fromScratchBuilder.metadata)) {
+            setMetadata(metadata);
+        }
+        return this;
+    }
+
+    @Override
     public FromCopy setId(@Nullable final String thingId) {
         fromScratchBuilder.setId(thingId);
         return this;
     }
 
+    @Override
     public FromCopy setId(@Nullable final ThingId thingId) {
         fromScratchBuilder.setId(thingId);
         return this;

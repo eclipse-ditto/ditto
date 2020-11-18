@@ -1,29 +1,49 @@
 thomas_jaeckle:
     name: Thomas Jäckle
-    email: thomas.jaeckle@bosch-si.com
-    web: http://twitter.com/thjaeckle
+    email: thomas.jaeckle@bosch.io
+    web: https://github.com/thjaeckle
 
 florian_fendt:
     name: Florian Fendt
-    email: florian.fendt@bosch-si.com
+    email: florian.fendt@bosch.io
     web: https://github.com/ffendt
 
 juergen_fickel:
     name: Jürgen Fickel
-    email: juergen.fickel@bosch-si.com
+    email: juergen.fickel@bosch.io
     web: https://github.com/jufickel-b
 
 philipp_michalski:
     name: Philipp Michalski
-    email: philipp.michalski@bosch-si.com
+    email: philipp.michalski@bosch.io
     web: https://github.com/phalski
 
 dominik_guggemos:
     name: Dominik Guggemos
-    email: dominik.guggemos@bosch-si.com
+    email: dominik.guggemos@bosch.io
     web: https://github.com/dguggemos
 
 johannes_schneider:
     name: Johannes Schneider
-    email: johannes.schneider@bosch-si.com
+    email: johannes.schneider@bosch.io
     web: https://github.com/jokraehe
+
+yufei_cai:
+    name: Yufei Cai
+    email: yufei.cai@bosch.io
+    web: https://github.com/yufei-cai
+
+yannic_klem:
+    name: Yannic Klem
+    email: yannic.klem@bosch.io
+    web: https://github.com/Yannic92
+
+david_joos:
+    name: David Joos
+    email: david.joos@bosch.io
+    web: https://github.com/joosdavid
+
+david_schwilk:
+    name: David Schwilk
+    email: david.schwilk@bosch.io
+    web: https://github.com/derschwilk

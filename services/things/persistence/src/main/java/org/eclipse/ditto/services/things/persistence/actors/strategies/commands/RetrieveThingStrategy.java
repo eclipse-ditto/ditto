@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Thing;
@@ -55,8 +56,11 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
-            final long nextRevision, final RetrieveThing command) {
+    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final RetrieveThing command,
+            @Nullable final Metadata metadata) {
 
         return ResultFactory.newQueryResult(command,
                 appendETagHeaderIfProvided(command, getRetrieveThingResponse(thing, command), thing));
@@ -86,7 +90,7 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
     public Result<ThingEvent> unhandled(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveThing command) {
         return ResultFactory.newErrorResult(
-                new ThingNotAccessibleException(context.getState(), command.getDittoHeaders()));
+                new ThingNotAccessibleException(context.getState(), command.getDittoHeaders()), command);
     }
 
     @Override

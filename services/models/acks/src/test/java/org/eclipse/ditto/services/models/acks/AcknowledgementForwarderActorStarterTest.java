@@ -29,6 +29,7 @@ import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.models.acks.config.DefaultAcknowledgementConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestDuplicateCorrelationIdException;
+import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -153,8 +154,9 @@ public final class AcknowledgementForwarderActorStarterTest {
     }
 
     private AcknowledgementForwarderActorStarter getActorStarter(final DittoHeaders dittoHeaders) {
-        return AcknowledgementForwarderActorStarter.getInstance(actorContext, KNOWN_ENTITY_ID, dittoHeaders,
-                acknowledgementConfig);
+        return AcknowledgementForwarderActorStarter.getInstance(actorContext, KNOWN_ENTITY_ID,
+                ThingDeleted.of(KNOWN_ENTITY_ID, 1L, dittoHeaders),
+                acknowledgementConfig, label -> true);
     }
 
 }

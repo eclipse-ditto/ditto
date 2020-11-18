@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.model.base.entity.id;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,12 +25,50 @@ import org.junit.Test;
  */
 public final class RegexPatternsTest {
 
-    private static final List<String> GOOD_NAMESPACES = Arrays.asList(
-            "",
-            "ditto.eclipse.org",
-            "com.google",
-            "Foo.bar_122_"
+    /**
+     * Also applies to entity name (thing and policy name), attributes, features & policy label
+     */
+    private static final List<String> BAD_FEATURE_IDS = Arrays.asList(
+            // slashes
+            "/", "//", "/abc", "abc/", "//abc", "abc//", "abc/abc", "abc//abc",
+            // forbidden special characters
+            "§", "°", "´",
+            // whitespaces
+            "\t", "\n",
+            // examples
+            "3°C", "´a", "§1", "foo/bar"
     );
+
+    private static final List<String> GOOD_FEATURE_IDS = Arrays.asList(
+            // allowed special characters
+            "!\"$%&()=?`*+~'#_-:.;,|<>\\{}[]^",
+            // whitespaces
+            " ", "        ", "a b c",
+            // examples
+            "a", "a!", "$a", "&a", "?a", "a.:b?c(de)-f%g\"h\"\\jk|lm#p", "\"a\"", "{\"property\":123}", "foo%3A", "$foo"
+    );
+
+    /**
+     * Also applies to policy resource & policy subject
+     */
+    private static final List<String> BAD_MESSAGE_SUBJECTS = Arrays.asList(
+            // forbidden special characters
+            "§", "°", "´",
+            // whitespaces
+            "\t", "\n",
+            // examples
+            "3°C", "´a", "§1"
+    );
+
+    private static final List<String> GOOD_MESSAGE_SUBJECTS = Arrays.asList(
+            // slashes
+            "/", "//", "/abc", "abc/", "//abc", "abc//", "abc/abc", "abc//abc",
+            // allowed special characters
+            "!\"$%&()=?`*+~'#_-:.;,|<>\\{}[]^/",
+            // examples
+            "a", "a!", "$a", "&a", "?a", "a.:b?c(de)-f%g\"h\"\\jk|lm#p", "\"a\"", "{\"property\":123}"
+    );
+
     private static final List<String> BAD_NAMESPACES = Arrays.asList(
             "org.eclipse.",
             ".org.eclipse",
@@ -41,32 +78,21 @@ public final class RegexPatternsTest {
             "org.1eclipse",
             "org.ec lipse",
             "org.",
-            ".org"
+            ".org",
+            "$test"
     );
 
-    private static final List<String> GOOD_NAMES = Arrays.asList(
-            "ditto",
-            "thing42",
-            "-:@&=+,.!~*'_;<>$",
-            "foo%2Fbar"
-    );
-    private static final List<String> BAD_NAMES = Arrays.asList(
+    private static final List<String> GOOD_NAMESPACES = Arrays.asList(
             "",
-            "$ditto",
-            "foo/bar",
-            "foo bar"
-    );
-
-    private static final List<String> BAD_IDS = Arrays.asList(
-            "org.eclipse.ditto",
-            "foo;bar",
-            "foo%3A"
+            "ditto.eclipse.org",
+            "com.google",
+            "Foo.bar_122_"
     );
 
     @Test
     public void entityNameRegex() {
-        GOOD_NAMES.forEach(this::assertNameMatches);
-        BAD_NAMES.forEach(this::assertNameNotMatches);
+        GOOD_FEATURE_IDS.forEach(this::assertNameMatches);
+        BAD_FEATURE_IDS.forEach(this::assertNameNotMatches);
     }
 
     private void assertNameMatches(final String name) {
@@ -75,6 +101,20 @@ public final class RegexPatternsTest {
 
     private void assertNameNotMatches(final String name) {
         assertNotMatches(RegexPatterns.ENTITY_NAME_PATTERN, name);
+    }
+
+    @Test
+    public void featureRegex() {
+        GOOD_FEATURE_IDS.forEach(this::assertFeatureMatches);
+        BAD_FEATURE_IDS.forEach(this::assertFeatureNotMatches);
+    }
+
+    private void assertFeatureMatches(final String id) {
+        assertMatches(RegexPatterns.NO_CONTROL_CHARS_NO_SLASHES_PATTERN, id);
+    }
+
+    private void assertFeatureNotMatches(final String id) {
+        assertNotMatches(RegexPatterns.NO_CONTROL_CHARS_NO_SLASHES_PATTERN, id);
     }
 
     @Test
@@ -92,14 +132,28 @@ public final class RegexPatternsTest {
     }
 
     @Test
+    public void subjectRegex() {
+        GOOD_MESSAGE_SUBJECTS.forEach(this::assertSubjectMatches);
+        BAD_MESSAGE_SUBJECTS.forEach(this::assertSubjectNotMatches);
+    }
+
+    private void assertSubjectMatches(final String subject) {
+        assertMatches(RegexPatterns.NO_CONTROL_CHARS_PATTERN, subject);
+    }
+
+    private void assertSubjectNotMatches(final String subject) {
+        assertNotMatches(RegexPatterns.NO_CONTROL_CHARS_PATTERN, subject);
+    }
+
+    @Test
     public void idRegex() {
-        GOOD_NAMESPACES.forEach(namespace -> GOOD_NAMES.forEach(name -> {
+        GOOD_NAMESPACES.forEach(namespace -> GOOD_FEATURE_IDS.forEach(name -> {
             assertIdMatches(namespace + ":" + name);
         }));
-        BAD_NAMESPACES.forEach(namespace -> BAD_NAMES.forEach(name -> {
+        BAD_NAMESPACES.forEach(namespace -> BAD_FEATURE_IDS.forEach(name -> {
             assertIdNotMatches(namespace + ":" + name);
         }));
-        BAD_IDS.forEach(this::assertIdNotMatches);
+        BAD_FEATURE_IDS.forEach(this::assertIdNotMatches);
     }
 
     private void assertIdMatches(final String id) {

@@ -16,7 +16,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
 
@@ -38,7 +38,7 @@ public abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers i
     /**
      * Logger of this actor.
      */
-    protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    protected final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     /**
      * The pub-sub config.
@@ -91,9 +91,9 @@ public abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers i
                     final Duration restartDelay = config.getRestartDelay();
                     log.error(error, "Child <{}> crashed. Restarting all children after <{}>",
                             getSender(), restartDelay);
-                    getTimers().startSingleTimer(Control.RESTART, Control.RESTART, restartDelay);
+                    scheduleRestartChildren();
                     onChildFailure();
-                    return SupervisorStrategy.stop();
+                    return (SupervisorStrategy.Directive) SupervisorStrategy.stop();
                 }).build());
     }
 
@@ -102,6 +102,13 @@ public abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers i
         return createPubSubBehavior().orElse(ReceiveBuilder.create()
                 .matchEquals(Control.RESTART, this::restartChildren)
                 .build());
+    }
+
+    /**
+     * Schedule restart for all children.
+     */
+    protected void scheduleRestartChildren() {
+        getTimers().startSingleTimer(Control.RESTART, Control.RESTART, config.getRestartDelay());
     }
 
     /**

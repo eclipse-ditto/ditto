@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.util.config.endpoints;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -28,15 +27,12 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import akka.http.javadsl.model.MediaTypes;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.assertj.core.util.Lists;
 import org.assertj.core.util.Maps;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.services.gateway.util.config.endpoints.GatewayHttpConfig;
-import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -45,6 +41,7 @@ import org.junit.Test;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import akka.http.javadsl.model.MediaTypes;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
@@ -69,7 +66,7 @@ public final class GatewayHttpConfigTest {
                 provided(Pattern.class).isAlsoImmutable(),
                 assumingFields("queryParamsAsHeaders", "additionalAcceptedMediaTypes", "schemaVersions")
                         .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
-                assumingFields("redirectToHttpsBlacklistPattern").areNotModifiedAndDoNotEscape());
+                assumingFields("redirectToHttpsBlocklistPattern").areNotModifiedAndDoNotEscape());
     }
 
     @Test

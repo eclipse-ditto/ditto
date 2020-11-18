@@ -51,12 +51,18 @@
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>${javac.source}</source>
+                    <target>${javac.target}</target>
+                </configuration>
             </plugin>
 
             <plugin>
                 <groupId>net.alchim31.maven</groupId>
                 <artifactId>scala-maven-plugin</artifactId>
                 <configuration>
+                    <source>${javac.source}</source>
+                    <target>${javac.target}</target>
                     <scalaVersion>${scala.full.version}</scalaVersion>
                 </configuration>
                 <executions>
@@ -123,6 +129,8 @@
                 <configuration>
                     <parameter>
                         <excludes>
+                            <!-- Always exclude the 'internal' package -->
+                            <exclude>org.eclipse.ditto.model.rqlparser.internal</exclude>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
                         </excludes>

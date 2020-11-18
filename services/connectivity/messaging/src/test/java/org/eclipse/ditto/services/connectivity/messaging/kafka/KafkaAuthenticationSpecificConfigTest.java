@@ -23,8 +23,6 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.apache.kafka.common.config.SaslConfigs;
-import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
@@ -33,15 +31,9 @@ import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Topic;
-import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
-import org.eclipse.ditto.services.connectivity.messaging.config.KafkaConfig;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import com.typesafe.config.Config;
-
-import akka.kafka.ProducerSettings;
 
 /**
  * Unit test for {@link KafkaAuthenticationSpecificConfig}.
@@ -61,7 +53,6 @@ public final class KafkaAuthenticationSpecificConfigTest {
     private static final String KNOWN_PASSWORD = "knownPassword";
 
     private static Map<String, String> defaultSpecificConfig;
-    private static ProducerSettings<String, String> defaultProducerSettings;
 
     private KafkaAuthenticationSpecificConfig underTest;
 
@@ -69,11 +60,6 @@ public final class KafkaAuthenticationSpecificConfigTest {
     public static void initTestFixture() {
         defaultSpecificConfig = new HashMap<>();
         defaultSpecificConfig.put("bootstrapServers", DEFAULT_HOST);
-
-        final KafkaConfig kafkaConfig = TestConstants.CONNECTION_CONFIG.getKafkaConfig();
-        final Config internalProducerConfig = kafkaConfig.getInternalProducerConfig();
-        final Serializer<String> stringSerializer = new StringSerializer();
-        defaultProducerSettings = ProducerSettings.create(internalProducerConfig, stringSerializer, stringSerializer);
     }
 
     @Before
@@ -168,27 +154,30 @@ public final class KafkaAuthenticationSpecificConfigTest {
     }
 
     private void shouldNotContainSaslMechanism(final Connection connection) {
-        final ProducerSettings<String, String> settings = underTest.apply(defaultProducerSettings, connection);
+        final HashMap<String, Object> properties = new HashMap<>();
+        underTest.apply(properties, connection);
 
-        assertThat(settings.properties().get(SaslConfigs.SASL_MECHANISM).isDefined()).isFalse();
-        assertThat(settings.properties().get(SaslConfigs.SASL_JAAS_CONFIG).isDefined()).isFalse();
+        assertThat(properties.get(SaslConfigs.SASL_MECHANISM)).isNull();
+        assertThat(properties.get(SaslConfigs.SASL_JAAS_CONFIG)).isNull();
     }
 
     private void shouldContainPlainSaslMechanism(final Connection connection) {
-        final ProducerSettings<String, String> settings = underTest.apply(defaultProducerSettings, connection);
+        final HashMap<String, Object> properties = new HashMap<>();
+        underTest.apply(properties, connection);
 
-        assertThat(settings.properties().get(SaslConfigs.SASL_MECHANISM).get()).isEqualTo(KNOWN_PLAIN_SASL_MECHANISM);
-        assertThat(settings.properties().get(SaslConfigs.SASL_JAAS_CONFIG).get()).isEqualTo(
+        assertThat(properties.get(SaslConfigs.SASL_MECHANISM)).isEqualTo(KNOWN_PLAIN_SASL_MECHANISM);
+        assertThat(properties.get(SaslConfigs.SASL_JAAS_CONFIG)).isEqualTo(
                 "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"" + KNOWN_USER +
                         "\" password=\"" + KNOWN_PASSWORD + "\";"
         );
     }
 
     private void shouldContainScramSaslMechanism(final Connection connection, final String mechanism) {
-        final ProducerSettings<String, String> settings = underTest.apply(defaultProducerSettings, connection);
+        final HashMap<String, Object> properties = new HashMap<>();
+        underTest.apply(properties, connection);
 
-        assertThat(settings.properties().get(SaslConfigs.SASL_MECHANISM).get()).isEqualTo(mechanism);
-        assertThat(settings.properties().get(SaslConfigs.SASL_JAAS_CONFIG).get()).isEqualTo(
+        assertThat(properties.get(SaslConfigs.SASL_MECHANISM)).isEqualTo(mechanism);
+        assertThat(properties.get(SaslConfigs.SASL_JAAS_CONFIG)).isEqualTo(
                 "org.apache.kafka.common.security.scram.ScramLoginModule required username=\"" + KNOWN_USER +
                         "\" password=\"" + KNOWN_PASSWORD + "\";"
         );

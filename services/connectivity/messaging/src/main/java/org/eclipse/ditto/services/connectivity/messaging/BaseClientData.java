@@ -31,7 +31,7 @@ import akka.actor.ActorRef;
 import akka.japi.Pair;
 
 /**
- * The data the {@link BaseClientActor} has in its different {@link BaseClientState States}.
+ * The data the {@link BaseClientActor} has in its different {@link org.eclipse.ditto.services.models.connectivity.BaseClientState States}.
  */
 @Immutable
 public final class BaseClientData {
@@ -125,17 +125,6 @@ public final class BaseClientData {
      */
     List<Pair<ActorRef, DittoHeaders>> getSessionSenders() {
         return sessionSenders;
-    }
-
-    /**
-     * @return the DittoHeaders from the most recently added {@code sessionSenders}
-     */
-    public DittoHeaders getLastSessionHeaders() {
-        if (sessionSenders.isEmpty()) {
-            return DittoHeaders.empty();
-        } else {
-            return sessionSenders.get(sessionSenders.size() - 1).second();
-        }
     }
 
     /**

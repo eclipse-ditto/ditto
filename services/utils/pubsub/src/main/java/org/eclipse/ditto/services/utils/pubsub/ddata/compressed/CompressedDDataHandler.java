@@ -12,48 +12,32 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata.compressed;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
-import java.util.stream.Collectors;
 
-import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
-import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
-import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
-import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
+import org.eclipse.ditto.services.utils.pubsub.ddata.AbstractDDataHandler;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
 import akka.actor.Address;
-import akka.cluster.Cluster;
-import akka.cluster.ddata.Key;
 import akka.cluster.ddata.ORMultiMap;
-import akka.cluster.ddata.ORMultiMapKey;
 import akka.cluster.ddata.Replicator;
-import akka.cluster.ddata.SelfUniqueAddress;
 import akka.util.ByteString;
-import scala.collection.JavaConverters;
+import scala.jdk.javaapi.CollectionConverters;
 
 /**
- * A distributed collection of Bloom filters of strings indexed by ActorRef.
+ * A distributed collection of hashes of strings indexed by ActorRef.
  * The hash functions for all filter should be identical.
  */
-public final class CompressedDDataHandler extends DistributedData<ORMultiMap<ActorRef, ByteString>>
-        implements DDataReader<ByteString>, DDataWriter<CompressedUpdate>, Hashes {
+public final class CompressedDDataHandler extends AbstractDDataHandler<ActorRef, ByteString, CompressedUpdate>
+        implements Hashes {
 
-    private final String topicType;
-    private final SelfUniqueAddress selfUniqueAddress;
     private final List<Integer> seeds;
-
-    private final Gauge ddataMetrics = DittoMetrics.gauge("pubsub-ddata-entries");
 
     private CompressedDDataHandler(final DistributedDataConfig config,
             final ActorRefFactory actorRefFactory,
@@ -61,9 +45,7 @@ public final class CompressedDDataHandler extends DistributedData<ORMultiMap<Act
             final Executor ddataExecutor,
             final String topicType,
             final List<Integer> seeds) {
-        super(config, actorRefFactory, ddataExecutor);
-        this.topicType = topicType;
-        this.selfUniqueAddress = SelfUniqueAddress.apply(Cluster.get(actorSystem).selfUniqueAddress());
+        super(config, actorRefFactory, actorSystem, ddataExecutor, topicType);
         this.seeds = seeds;
     }
 
@@ -73,7 +55,7 @@ public final class CompressedDDataHandler extends DistributedData<ORMultiMap<Act
      *
      * @param system the actor system.
      * @param ddataConfig the distributed data config.
-     * @param topicType the type of messages, typically the canonical name of the message class.
+     * @param topicType the type of messages, typically "message-type-name-aware".
      * @param pubSubConfig the pub-sub config.
      * @return access to the distributed data.
      */
@@ -91,26 +73,6 @@ public final class CompressedDDataHandler extends DistributedData<ORMultiMap<Act
         return seeds;
     }
 
-    @Override
-    public CompletionStage<Collection<ActorRef>> getSubscribers(final Collection<ByteString> topic) {
-
-        return get(Replicator.readLocal()).thenApply(optional -> {
-            if (optional.isPresent()) {
-                final ORMultiMap<ActorRef, ByteString> mmap = optional.get();
-                ddataMetrics.set((long) mmap.size());
-                return JavaConverters.mapAsJavaMap(mmap.entries())
-                        .entrySet()
-                        .stream()
-                        .filter(entry -> topic.stream().anyMatch(entry.getValue()::contains))
-                        .map(Map.Entry::getKey)
-                        .collect(Collectors.toList());
-            } else {
-                ddataMetrics.set(0L);
-                return Collections.emptyList();
-            }
-        });
-    }
-
     /**
      * Lossy-compress a topic into a ByteString consisting of hash codes from the family of hash functions.
      *
@@ -120,13 +82,6 @@ public final class CompressedDDataHandler extends DistributedData<ORMultiMap<Act
     @Override
     public ByteString approximate(final String topic) {
         return hashCodesToByteString(getHashes(topic));
-    }
-
-    @SuppressWarnings("unchecked")
-    static ByteString hashCodesToByteString(final List<Integer> hashes) {
-        // force-casting to List<Object> to interface with covariant Scala collection
-        final List<Object> hashesForScala = (List<Object>) (Object) hashes;
-        return ByteString.fromInts(JavaConverters.asScalaBuffer(hashesForScala).toSeq());
     }
 
     @Override
@@ -143,41 +98,10 @@ public final class CompressedDDataHandler extends DistributedData<ORMultiMap<Act
         });
     }
 
-    @Override
-    public CompletionStage<Void> put(final ActorRef ownSubscriber, final CompressedUpdate topics,
-            final Replicator.WriteConsistency writeConsistency) {
-
-        if (topics.shouldReplaceAll()) {
-            // complete replacement
-            return update(writeConsistency, mmap -> mmap.put(selfUniqueAddress, ownSubscriber, topics.getInserts()));
-        } else {
-            // incremental update
-            return update(writeConsistency, mmap -> {
-                ORMultiMap<ActorRef, ByteString> result = mmap;
-                for (final ByteString inserted : topics.getInserts()) {
-                    result = result.addBinding(selfUniqueAddress, ownSubscriber, inserted);
-                }
-                for (final ByteString deleted : topics.getDeletes()) {
-                    result = result.removeBinding(selfUniqueAddress, ownSubscriber, deleted);
-                }
-                return result;
-            });
-        }
-    }
-
-    @Override
-    public CompletionStage<Void> removeSubscriber(final ActorRef subscriber,
-            final Replicator.WriteConsistency writeConsistency) {
-        return update(writeConsistency, mmap -> mmap.remove(selfUniqueAddress, subscriber));
-    }
-
-    @Override
-    protected Key<ORMultiMap<ActorRef, ByteString>> getKey() {
-        return ORMultiMapKey.create(topicType);
-    }
-
-    @Override
-    protected ORMultiMap<ActorRef, ByteString> getInitialValue() {
-        return ORMultiMap.emptyWithValueDeltas();
+    @SuppressWarnings("unchecked")
+    static ByteString hashCodesToByteString(final List<Integer> hashes) {
+        // force-casting to List<Object> to interface with covariant Scala collection
+        final List<Object> hashesForScala = (List<Object>) (Object) hashes;
+        return ByteString.fromInts(CollectionConverters.asScala(hashesForScala).toSeq());
     }
 }

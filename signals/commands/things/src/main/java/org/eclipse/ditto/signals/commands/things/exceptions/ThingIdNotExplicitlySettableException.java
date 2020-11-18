@@ -101,16 +101,25 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new ThingIdNotExplicitlySettableException.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
      * JsonFields#MESSAGE} field.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static ThingIdNotExplicitlySettableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        final String message = readMessage(jsonObject);
-        final String description = readDescription(jsonObject).orElse("");
-        return new Builder(message, description)
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
-                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
@@ -153,6 +162,9 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
         private Builder(final String message, final String description) {
             message(message);
             description(description);
+        }
+
+        private Builder() {
         }
 
         @Override

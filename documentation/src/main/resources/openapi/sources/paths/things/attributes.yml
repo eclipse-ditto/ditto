@@ -1,0 +1,192 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+get:
+  summary: List all attributes of a specific thing
+  description: |-
+    Returns all attributes of the thing identified by the `thingId` path parameter.
+  tags:
+    - Things
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/attributesFieldsQueryParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+  responses:
+    '200':
+      description: The attributes of the specific thing were successfully retrieved.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/attributes.yml'
+    '304':
+      $ref: '../../responses/notModified.yml'
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+        * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id))
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The thing with the given ID was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+put:
+  summary: Create or update all attributes of a specific thing at once
+  description: |-
+    Create or update the attributes of a thing identified by the `thingId`
+    path parameter. The attributes will be overwritten - all at once - with the
+    content (JSON) set in the request body.
+  tags:
+    - Things
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/requestedAcksParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '201':
+      description: The attributes were successfully created.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+        Location:
+          description: The location of the created attribute resource
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/attributes.yml'
+    '204':
+      description: The attributes were successfully updated.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          * the JSON body of the attributes to be created/modified is invalid
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller has insufficient permissions.
+            For modifying the attributes of an existing thing, `WRITE` permission is required.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The thing with the given ID was
+        not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+    '413':
+      $ref: '../../responses/entityTooLarge.yml'
+  requestBody:
+    $ref: '../../requests/attributes.yml'
+delete:
+  summary: Delete all attributes of a specific thing at once
+  description: |-
+    Deletes all attributes of the thing identified by the `thingId` path
+    parameter.
+  tags:
+    - Things
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/requestedAcksParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '204':
+      description: The attributes were successfully deleted.
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the caller has insufficient permissions.
+            For deleting all attributes of an existing thing, `WRITE` permission is required.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The thing with the given ID or
+        its attributes were not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'

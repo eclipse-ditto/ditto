@@ -99,7 +99,7 @@ final class DeleteThingLiveCommandAnswerBuilderImpl
         @Nonnull
         @Override
         public ThingDeleted deleted() {
-            return ThingDeleted.of(command.getThingEntityId(), -1, Instant.now(), command.getDittoHeaders());
+            return ThingDeleted.of(command.getThingEntityId(), -1, Instant.now(), command.getDittoHeaders(), null);
         }
     }
 

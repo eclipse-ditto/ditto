@@ -34,6 +34,7 @@ import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
@@ -63,11 +64,14 @@ public final class ThingPersistenceActor
      */
     static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-snapshots";
 
+    private static AckExtractor<ThingEvent<?>> ACK_EXTRACTOR =
+            AckExtractor.of(ThingEvent::getEntityId, ThingEvent::getDittoHeaders);
+
     private final ThingConfig thingConfig;
-    private final DistributedPub<ThingEvent> distributedPub;
+    private final DistributedPub<ThingEvent<?>> distributedPub;
 
     @SuppressWarnings("unused")
-    private ThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent> distributedPub,
+    private ThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent<?>> distributedPub,
             final SnapshotAdapter<Thing> snapshotAdapter) {
 
         super(thingId, snapshotAdapter);
@@ -86,7 +90,7 @@ public final class ThingPersistenceActor
      * @param snapshotAdapter the snapshot adapter.
      * @return the Akka configuration Props object
      */
-    public static Props props(final ThingId thingId, final DistributedPub<ThingEvent> distributedPub,
+    public static Props props(final ThingId thingId, final DistributedPub<ThingEvent<?>> distributedPub,
             final SnapshotAdapter<Thing> snapshotAdapter) {
 
         return Props.create(ThingPersistenceActor.class, thingId, distributedPub, snapshotAdapter);
@@ -99,7 +103,7 @@ public final class ThingPersistenceActor
      * @param distributedPub the distributed-pub access to publish thing events.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ThingId thingId, final DistributedPub<ThingEvent> distributedPub) {
+    public static Props props(final ThingId thingId, final DistributedPub<ThingEvent<?>> distributedPub) {
         return props(thingId, distributedPub, new ThingMongoSnapshotAdapter());
     }
 
@@ -174,7 +178,7 @@ public final class ThingPersistenceActor
 
     @Override
     protected void publishEvent(final ThingEvent event) {
-        distributedPub.publish(event, getSender());
+        distributedPub.publishWithAcks(event, ACK_EXTRACTOR, getSender());
     }
 
     @Override

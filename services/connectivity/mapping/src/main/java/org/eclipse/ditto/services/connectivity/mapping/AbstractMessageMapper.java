@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.connectivity.mapping;
 
 import java.util.Collection;
+import java.util.Map;
 
 /**
  * Abstract implementation of {@link MessageMapper} which adds an id field and also its initialization from mapping
@@ -21,7 +22,9 @@ import java.util.Collection;
 public abstract class AbstractMessageMapper implements MessageMapper {
 
     private String id;
-    private Collection<String> contentTypeBlacklist;
+    private Map<String, String> incomingConditions;
+    private Map<String, String> outgoingConditions;
+    private Collection<String> contentTypeBlocklist;
 
     @Override
     public String getId() {
@@ -29,14 +32,26 @@ public abstract class AbstractMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Collection<String> getContentTypeBlacklist() {
-        return contentTypeBlacklist;
+    public Map<String, String> getIncomingConditions() {
+        return incomingConditions;
+    }
+
+    @Override
+    public Map<String, String> getOutgoingConditions() {
+        return outgoingConditions;
+    }
+
+    @Override
+    public Collection<String> getContentTypeBlocklist() {
+        return contentTypeBlocklist;
     }
 
     @Override
     public final void configure(final MappingConfig mappingConfig, final MessageMapperConfiguration configuration) {
         this.id = configuration.getId();
-        this.contentTypeBlacklist = configuration.getContentTypeBlacklist();
+        this.incomingConditions = configuration.getIncomingConditions();
+        this.outgoingConditions = configuration.getOutgoingConditions();
+        this.contentTypeBlocklist = configuration.getContentTypeBlocklist();
         doConfigure(mappingConfig, configuration);
     }
 

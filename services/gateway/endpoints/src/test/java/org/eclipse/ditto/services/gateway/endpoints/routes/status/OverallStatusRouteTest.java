@@ -19,8 +19,14 @@ import java.util.function.Supplier;
 
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.health.DittoStatusAndHealthProviderFactory;
 import org.eclipse.ditto.services.gateway.health.StatusAndHealthProvider;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationProvider;
+import org.eclipse.ditto.services.gateway.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.junit.Before;
 import org.junit.Test;
@@ -44,14 +50,18 @@ public final class OverallStatusRouteTest extends EndpointTestBase {
 
     private TestRoute statusTestRoute;
 
+
     @Before
     public void setUp() {
         final Supplier<ClusterStatus> clusterStateSupplier = createClusterStatusSupplierMock();
         final StatusAndHealthProvider statusHealthProvider =
                 DittoStatusAndHealthProviderFactory.of(system(), clusterStateSupplier, healthCheckConfig);
-
-        final OverallStatusRoute statusRoute = new OverallStatusRoute(clusterStateSupplier, statusHealthProvider,
-                authConfig.getDevOpsConfig());
+        final DevOpsConfig devOpsConfig = authConfig.getDevOpsConfig();
+        final DevopsAuthenticationDirectiveFactory devopsAuthenticationDirectiveFactory =
+                DevopsAuthenticationDirectiveFactory.newInstance(jwtAuthenticationFactory, devOpsConfig);
+        final DevopsAuthenticationDirective authenticationDirective = devopsAuthenticationDirectiveFactory.status();
+        final OverallStatusRoute statusRoute =
+                new OverallStatusRoute(clusterStateSupplier, statusHealthProvider, authenticationDirective);
         statusTestRoute = testRoute(statusRoute.buildOverallStatusRoute());
     }
 

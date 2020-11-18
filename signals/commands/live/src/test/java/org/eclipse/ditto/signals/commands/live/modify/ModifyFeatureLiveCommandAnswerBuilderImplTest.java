@@ -101,7 +101,7 @@ public final class ModifyFeatureLiveCommandAnswerBuilderImplTest {
                 .hasNoEvent()
                 .hasThingErrorResponse()
                 .withType(ThingErrorResponse.TYPE)
-                .withDittoHeaders(DittoHeaders.empty())
+                .withDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .withStatus(HttpStatusCode.NOT_FOUND)
                 .withDittoRuntimeExceptionOfType(FeatureNotAccessibleException.class);
     }
@@ -118,7 +118,7 @@ public final class ModifyFeatureLiveCommandAnswerBuilderImplTest {
                 .hasNoEvent()
                 .hasThingErrorResponse()
                 .withType(ThingErrorResponse.TYPE)
-                .withDittoHeaders(DittoHeaders.empty())
+                .withDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .withStatus(HttpStatusCode.FORBIDDEN)
                 .withDittoRuntimeExceptionOfType(FeatureNotModifiableException.class);
     }

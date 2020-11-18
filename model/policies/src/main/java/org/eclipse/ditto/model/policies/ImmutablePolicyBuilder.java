@@ -38,6 +38,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     @Nullable private PolicyLifecycle lifecycle;
     @Nullable private PolicyRevision revision;
     @Nullable private Instant modified;
+    @Nullable private Instant created;
 
     private ImmutablePolicyBuilder() {
         subjects = new LinkedHashMap<>();
@@ -47,6 +48,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
         lifecycle = null;
         revision = null;
         modified = null;
+        created = null;
     }
 
     /**
@@ -103,7 +105,6 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     public static PolicyBuilder of(final Policy existingPolicy) {
         checkNotNull(existingPolicy, "existing Policy");
 
-        @SuppressWarnings("ConstantConditions")
         final ImmutablePolicyBuilder result = new ImmutablePolicyBuilder()
                 .setLifecycle(existingPolicy.getLifecycle().orElse(null))
                 .setRevision(existingPolicy.getRevision().orElse(null))
@@ -147,6 +148,12 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
     @Override
     public ImmutablePolicyBuilder setModified(@Nullable final Instant modified) {
         this.modified = modified;
+        return this;
+    }
+
+    @Override
+    public ImmutablePolicyBuilder setCreated(@Nullable final Instant created) {
+        this.created = created;
         return this;
     }
 
@@ -335,7 +342,7 @@ final class ImmutablePolicyBuilder implements PolicyBuilder {
                 .map(lbl -> PoliciesModelFactory.newPolicyEntry(lbl, getFinalSubjects(lbl), getFinalResources(lbl)))
                 .collect(Collectors.toList());
 
-        return ImmutablePolicy.of(id, lifecycle, revision, modified, policyEntries);
+        return ImmutablePolicy.of(id, lifecycle, revision, modified, created, policyEntries);
     }
 
     @Nonnull

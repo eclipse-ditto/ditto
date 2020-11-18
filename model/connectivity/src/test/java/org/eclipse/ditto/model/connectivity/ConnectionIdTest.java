@@ -41,7 +41,7 @@ public class ConnectionIdTest {
 
     @Test
     public void manuallyCreatedPlaceholderIsPlaceholder() {
-        assertThat(ConnectionId.of("none").isDummy()).isTrue();
+        assertThat(ConnectionId.of("_").isDummy()).isTrue();
     }
 
     @Test

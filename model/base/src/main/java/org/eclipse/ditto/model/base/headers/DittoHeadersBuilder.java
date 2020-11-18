@@ -20,11 +20,15 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.common.ResponseType;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaderKey;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -36,7 +40,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * @param <R> the type of the built DittoHeaders object.
  */
 @NotThreadSafe
-public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends DittoHeaders> {
+public interface DittoHeadersBuilder<B extends DittoHeadersBuilder<B, R>, R extends DittoHeaders> {
 
     /**
      * Sets the specified correlation ID.
@@ -173,7 +177,16 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * @param contentType the contentType value to be set.
      * @return this builder for Method Chaining.
      */
-    B contentType(CharSequence contentType);
+    B contentType(@Nullable CharSequence contentType);
+
+    /**
+     * Sets the Ditto typed contentType value.
+     *
+     * @param contentType the Ditto typed contentType value to be set.
+     * @return this builder for Method Chaining.
+     * @since 1.3.0
+     */
+    B contentType(@Nullable ContentType contentType);
 
     /**
      * Sets the ETag value.
@@ -202,10 +215,10 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
     /**
      * Sets the inbound {@code MessageMapper} ID value.
      *
-     * @param inboundPayloadMapperId the inbound {@code MessageMapper} ID which mapped incoming arbitrary payload from external sources.
+     * @param inboundPayloadMapperId the inbound {@code MessageMapper} ID which mapped incoming arbitrary payload from external sources. If null, the header will be removed.
      * @return this builder for Method Chaining
      */
-    B inboundPayloadMapper(String inboundPayloadMapperId);
+    B inboundPayloadMapper(@Nullable String inboundPayloadMapperId);
 
     /**
      * Set the reply-target.
@@ -216,17 +229,32 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
     B replyTarget(@Nullable Integer replyTarget);
 
     /**
+     * Set the expected response types. In combination with {@link #replyTarget(Integer)} this decides which type
+     * of responses are delivered to a reply target of a connection source.
+     *
+     * @param responseTypes the response types that should be delivered to a reply target.
+     * @return this builder.
+     * @since 1.2.0
+     */
+    B expectedResponseTypes(ResponseType... responseTypes);
+
+    /**
+     * Set the expected response types. In combination with {@link #replyTarget(Integer)} this decides which type
+     * of responses are delivered to a reply target of a connection source.
+     *
+     * @param responseTypes the response types that should be delivered to a reply target.
+     * @return this builder.
+     * @since 1.2.0
+     */
+    B expectedResponseTypes(Collection<ResponseType> responseTypes);
+
+    /**
      * Sets the acknowledgements ("ACK") which are requested together with an issued Ditto {@code Command}.
      * Such ACKs are sent back to the issuer of the command so that it can be verified which steps were successful.
      * <p>
      * In addition to built-in ACK labels like
      * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#TWIN_PERSISTED} also custom labels may be used
      * which can be sent back even by external systems.
-     * </p>
-     * <p>
-     * As long as ACKs are requested, calls of {@link #responseRequired(boolean)} are neglected as requested ACKs always
-     * imply that a response is required.
-     * </p>
      *
      * @param acknowledgementRequests the requests for acknowledgements.
      * @return this builder.
@@ -277,6 +305,26 @@ public interface DittoHeadersBuilder<B extends DittoHeadersBuilder, R extends Di
      * @since 1.1.0
      */
     B timeout(@Nullable Duration timeout);
+
+    /**
+     * Puts the given metadata association to this builder.
+     * An existing entry with the same key will be replaced.
+     *
+     * @param key the metadata key.
+     * @param value the metadata value.
+     * @return this builder.
+     * @since 1.2.0
+     */
+    B putMetadata(MetadataHeaderKey key, JsonValue value);
+
+    /**
+     * Sets the allowPolicyLockout value.
+     *
+     * @param allowPolicyLockout the allowPolicyLockout value to be set.
+     * @return this builder for method chaining.
+     * @since 1.3.0
+     */
+    B allowPolicyLockout(boolean allowPolicyLockout);
 
     /**
      * Puts an arbitrary header with the specified {@code name} and String {@code value} to this builder.

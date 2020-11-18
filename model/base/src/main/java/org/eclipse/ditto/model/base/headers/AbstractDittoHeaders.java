@@ -18,6 +18,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.AbstractMap;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -42,8 +43,11 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.common.ResponseType;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -118,6 +122,11 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     @Override
     public Optional<String> getContentType() {
         return getStringForDefinition(DittoHeaderDefinition.CONTENT_TYPE);
+    }
+
+    @Override
+    public Optional<ContentType> getDittoContentType() {
+        return getContentType().map(ContentType::of);
     }
 
     @Override
@@ -239,6 +248,10 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     protected abstract Optional<HeaderDefinition> getSpecificDefinitionByKey(CharSequence key);
 
     /**
+     * Resolves the passed in {@code definition} to a boolean.
+     *
+     * @param definition the definition to get boolean for.
+     * @return the optionally resolved boolean.
      * @deprecated as of 1.1.0 please use {@link #isExpectedBoolean(HeaderDefinition, Boolean)} instead.
      */
     @Deprecated
@@ -289,6 +302,17 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
+    public Collection<ResponseType> getExpectedResponseTypes() {
+        final JsonArray jsonValueArray = getJsonArrayForDefinition(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES);
+        return jsonValueArray.stream()
+                .map(JsonValue::asString)
+                .map(ResponseType::fromName)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList()); // toList() to keep original order
+    }
+
+    @Override
     public Set<AcknowledgementRequest> getAcknowledgementRequests() {
         final JsonArray jsonValueArray = getJsonArrayForDefinition(DittoHeaderDefinition.REQUESTED_ACKS);
         return jsonValueArray.stream()
@@ -302,6 +326,17 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
         return getStringForDefinition(DittoHeaderDefinition.TIMEOUT)
                 .map(DittoDuration::parseDuration)
                 .map(DittoDuration::getDuration);
+    }
+
+    @Override
+    public MetadataHeaders getMetadataHeadersToPut() {
+        final String metadataHeaderValue = getOrDefault(DittoHeaderDefinition.PUT_METADATA.getKey(), "");
+        return MetadataHeaders.parseMetadataHeaders(metadataHeaderValue);
+    }
+
+    @Override
+    public boolean isAllowPolicyLockout() {
+        return isExpectedBoolean(DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT, Boolean.TRUE);
     }
 
     @Override

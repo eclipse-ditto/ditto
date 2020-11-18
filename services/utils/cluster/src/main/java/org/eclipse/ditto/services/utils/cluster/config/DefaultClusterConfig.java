@@ -30,12 +30,13 @@ public final class DefaultClusterConfig implements ClusterConfig {
     private static final String CONFIG_PATH = "cluster";
 
     private final int numberOfShards;
-    private final List<String> clusterStatusRolesBlacklist;
+    private final List<String> clusterStatusRolesBlocklist;
 
     private DefaultClusterConfig(final ConfigWithFallback config) {
         numberOfShards = config.getInt(ClusterConfigValue.NUMBER_OF_SHARDS.getConfigPath());
-        clusterStatusRolesBlacklist = Collections.unmodifiableList(
-                new ArrayList<>(config.getStringList(ClusterConfigValue.CLUSTER_STATUS_ROLES_BLACKLIST.getConfigPath())));
+        clusterStatusRolesBlocklist = Collections.unmodifiableList(
+                new ArrayList<>(
+                        config.getStringList(ClusterConfigValue.CLUSTER_STATUS_ROLES_BLOCKLIST.getConfigPath())));
     }
 
     /**
@@ -56,8 +57,8 @@ public final class DefaultClusterConfig implements ClusterConfig {
     }
 
     @Override
-    public Collection<String> getClusterStatusRolesBlacklist() {
-        return clusterStatusRolesBlacklist;
+    public Collection<String> getClusterStatusRolesBlocklist() {
+        return clusterStatusRolesBlocklist;
     }
 
     @Override
@@ -70,19 +71,19 @@ public final class DefaultClusterConfig implements ClusterConfig {
         }
         final DefaultClusterConfig that = (DefaultClusterConfig) o;
         return numberOfShards == that.numberOfShards &&
-                Objects.equals(clusterStatusRolesBlacklist, that.clusterStatusRolesBlacklist);
+                Objects.equals(clusterStatusRolesBlocklist, that.clusterStatusRolesBlocklist);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(numberOfShards, clusterStatusRolesBlacklist);
+        return Objects.hash(numberOfShards, clusterStatusRolesBlocklist);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "numberOfShards=" + numberOfShards +
-                ", clusterStatusRolesBlacklist=" + clusterStatusRolesBlacklist +
+                ", clusterStatusRolesBlocklist=" + clusterStatusRolesBlocklist +
                 "]";
     }
 }

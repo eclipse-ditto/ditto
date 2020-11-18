@@ -50,7 +50,10 @@ public final class ImmutableAcknowledgementsTest {
     private static final ThingId KNOWN_ENTITY_ID = ThingId.generateRandom();
     private static final HttpStatusCode KNOWN_STATUS_CODE = HttpStatusCode.OK;
     private static final JsonValue KNOWN_PAYLOAD = JsonObject.newBuilder().set("known", "payload").build();
-    private static final DittoHeaders KNOWN_DITTO_HEADERS = DittoHeaders.newBuilder().randomCorrelationId().build();
+    private static final DittoHeaders KNOWN_DITTO_HEADERS = DittoHeaders.newBuilder()
+            .randomCorrelationId()
+            .responseRequired(false)
+            .build();
     private static final Acknowledgement KNOWN_ACK_1 =
             ImmutableAcknowledgement.of(AcknowledgementLabel.of("welcome-ack"), KNOWN_ENTITY_ID, KNOWN_STATUS_CODE,
                     KNOWN_DITTO_HEADERS, KNOWN_PAYLOAD);
@@ -271,7 +274,7 @@ public final class ImmutableAcknowledgementsTest {
                         HttpStatusCode.REQUEST_TIMEOUT, KNOWN_DITTO_HEADERS, null);
         final AcknowledgementLabel customAckLabel = AcknowledgementLabel.of("foo");
         final Acknowledgement customAcknowledgement = ImmutableAcknowledgement.of(customAckLabel, KNOWN_ENTITY_ID,
-                        HttpStatusCode.OK, KNOWN_DITTO_HEADERS, null);
+                HttpStatusCode.OK, KNOWN_DITTO_HEADERS, null);
         final List<Acknowledgement> acknowledgements =
                 Lists.list(KNOWN_ACK_1, timeoutAcknowledgement, customAcknowledgement);
         final ImmutableAcknowledgements underTest = ImmutableAcknowledgements.of(acknowledgements, KNOWN_DITTO_HEADERS);
@@ -283,16 +286,26 @@ public final class ImmutableAcknowledgementsTest {
 
     @Test
     public void getDittoHeadersReturnsExpected() {
-        final DittoHeaders dittoHeaders = KNOWN_DITTO_HEADERS;
         final ImmutableAcknowledgements underTest =
-                ImmutableAcknowledgements.of(knownAcknowledgements, dittoHeaders);
+                ImmutableAcknowledgements.of(knownAcknowledgements, KNOWN_DITTO_HEADERS);
 
-        assertThat(underTest.getDittoHeaders()).isEqualTo(dittoHeaders);
+        assertThat(underTest.getDittoHeaders()).isEqualTo(KNOWN_DITTO_HEADERS);
+    }
+
+    @Test
+    public void responseRequiredIsSetToFalse() {
+        final ImmutableAcknowledgements underTest =
+                ImmutableAcknowledgements.of(knownAcknowledgements, DittoHeaders.empty());
+
+        assertThat(underTest.getDittoHeaders().isResponseRequired()).isFalse();
     }
 
     @Test
     public void setDittoHeadersWorksAsExpected() {
-        final DittoHeaders newDittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
+        final DittoHeaders newDittoHeaders = DittoHeaders.newBuilder()
+                .randomCorrelationId()
+                .responseRequired(false)
+                .build();
         final ImmutableAcknowledgements underTest =
                 ImmutableAcknowledgements.of(knownAcknowledgements, KNOWN_DITTO_HEADERS);
 

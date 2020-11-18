@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.models.acks;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
@@ -40,7 +39,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
-import org.mockito.Mockito;
 
 /**
  * Unit test for {@link AcknowledgementAggregator}.
@@ -181,55 +179,6 @@ public final class AcknowledgementAggregatorTest {
         assertThatNullPointerException()
                 .isThrownBy(() -> underTest.addReceivedAcknowledgment(null))
                 .withMessage("The acknowledgement must not be null!")
-                .withNoCause();
-    }
-
-    @Test
-    public void tryToAddReceivedAcknowledgementWithoutCorrelationId() {
-        final Acknowledgement acknowledgement = Mockito.mock(Acknowledgement.class);
-        Mockito.when(acknowledgement.getDittoHeaders()).thenReturn(DittoHeaders.empty());
-        final AcknowledgementAggregator underTest =
-                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
-
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> underTest.addReceivedAcknowledgment(acknowledgement))
-                .withMessage("The received Acknowledgement did not provide a correlation ID at all but expected was "
-                        + "<%s>!", correlationId, TIMEOUT)
-                .withNoCause();
-    }
-
-    @Test
-    public void tryToAddReceivedAcknowledgementWithDifferentCorrelationId() {
-        final String unexpectedCorrelationId = String.valueOf(UUID.randomUUID());
-        final DittoHeaders acknowledgementHeaders = DittoHeaders.newBuilder()
-                .correlationId(unexpectedCorrelationId)
-                .build();
-        final Acknowledgement acknowledgement = Mockito.mock(Acknowledgement.class);
-        Mockito.when(acknowledgement.getDittoHeaders()).thenReturn(acknowledgementHeaders);
-        final AcknowledgementAggregator underTest =
-                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
-
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> underTest.addReceivedAcknowledgment(acknowledgement))
-                .withMessage("The received Acknowledgement's correlation ID <%s> differs from the expected <%s>!",
-                        unexpectedCorrelationId, correlationId, TIMEOUT)
-                .withNoCause();
-    }
-
-    @Test
-    public void tryToAddReceivedAcknowledgementWithDifferentEntityId() {
-        final ThingId unexpectedEntityId = ThingId.generateRandom();
-        final Acknowledgement acknowledgement =
-                Acknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, unexpectedEntityId, HttpStatusCode.NO_CONTENT,
-                        dittoHeaders);
-
-        final AcknowledgementAggregator underTest =
-                AcknowledgementAggregator.getInstance(ENTITY_ID, correlationId, TIMEOUT, HEADER_TRANSLATOR);
-
-        assertThatExceptionOfType(IllegalArgumentException.class)
-                .isThrownBy(() -> underTest.addReceivedAcknowledgment(acknowledgement))
-                .withMessage("The entity ID <%s> is not compatible with <%s>!",
-                        unexpectedEntityId, ENTITY_ID)
                 .withNoCause();
     }
 

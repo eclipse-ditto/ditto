@@ -199,7 +199,7 @@ public final class ResourceModified extends AbstractPolicyEvent<ResourceModified
      * format.
      */
     public static ResourceModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<ResourceModified>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+        return new EventJsonDeserializer<ResourceModified>(TYPE, jsonObject).deserialize((revision, timestamp, metadata) -> {
             final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));

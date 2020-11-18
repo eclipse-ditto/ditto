@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.model.things;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
@@ -31,11 +33,11 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.SerializationContext;
-import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -66,14 +68,18 @@ final class ImmutableFeatureProperties implements FeatureProperties {
      * @param jsonObject provides the data to initialize the new properties with.
      * @return the new properties.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws JsonKeyInvalidException if a property name in the passed {@code jsonObject} was not valid
+     * according to pattern
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static FeatureProperties of(final JsonObject jsonObject) {
-        ConditionChecker.checkNotNull(jsonObject, "JSON object");
+        checkNotNull(jsonObject, "JSON object");
 
         if (jsonObject instanceof ImmutableFeatureProperties) {
             return (FeatureProperties) jsonObject;
         }
-        return new ImmutableFeatureProperties(jsonObject);
+
+        return new ImmutableFeatureProperties(JsonKeyValidator.validateJsonKeys(jsonObject));
     }
 
     @Override

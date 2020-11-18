@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.BeforeClass;
@@ -47,6 +48,10 @@ public final class ImmutableJsonifiableAdaptableTest {
     private static final HttpStatusCode KNOWN_STATUS = HttpStatusCode.OK;
     private static final long KNOWN_REVISION = 1337;
     private static final Instant KNOWN_TIMESTAMP = Instant.now();
+    private static final Metadata KNOWN_METADATA = Metadata.newBuilder()
+            .set("foo", 42)
+            .set("bar", JsonObject.newBuilder().set("fop", "fada").build())
+            .build();
     private static final JsonFieldSelector KNOWN_FIELDS = JsonFieldSelector.newInstance("/foo");
 
     private static JsonObject knownExtra;
@@ -72,6 +77,7 @@ public final class ImmutableJsonifiableAdaptableTest {
                 .withStatus(KNOWN_STATUS)
                 .withRevision(KNOWN_REVISION)
                 .withTimestamp(KNOWN_TIMESTAMP)
+                .withMetadata(KNOWN_METADATA)
                 .withFields(KNOWN_FIELDS)
                 .build();
     }
@@ -105,6 +111,7 @@ public final class ImmutableJsonifiableAdaptableTest {
                 .set(Payload.JsonFields.STATUS, KNOWN_STATUS.toInt())
                 .set(Payload.JsonFields.REVISION, KNOWN_REVISION)
                 .set(Payload.JsonFields.TIMESTAMP, KNOWN_TIMESTAMP.toString())
+                .set(Payload.JsonFields.METADATA, KNOWN_METADATA.toJson())
                 .set(Payload.JsonFields.FIELDS, KNOWN_FIELDS.toString())
                 .build();
 
@@ -132,6 +139,7 @@ public final class ImmutableJsonifiableAdaptableTest {
                 .set(Payload.JsonFields.STATUS, KNOWN_STATUS.toInt())
                 .set(Payload.JsonFields.REVISION, KNOWN_REVISION)
                 .set(Payload.JsonFields.TIMESTAMP, KNOWN_TIMESTAMP.toString())
+                .set(Payload.JsonFields.METADATA, KNOWN_METADATA.toJson())
                 .set(Payload.JsonFields.FIELDS, KNOWN_FIELDS.toString())
                 .build();
 

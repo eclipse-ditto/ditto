@@ -43,7 +43,7 @@
           "items": {
             "type": "string",
             "description": "A single acknowledgement label containing at least 3 characters.",
-            "pattern": "[a-zA-Z0-9-_]{3,64}"
+            "pattern": "[a-zA-Z0-9-_:]{3,100}"
           }
         },
         "timeout": {

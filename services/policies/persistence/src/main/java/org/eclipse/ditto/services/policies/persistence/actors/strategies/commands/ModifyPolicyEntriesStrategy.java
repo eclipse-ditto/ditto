@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -44,8 +45,12 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy entity,
-            final long nextRevision, final ModifyPolicyEntries command) {
+    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+            @Nullable final Policy entity,
+            final long nextRevision,
+            final ModifyPolicyEntries command,
+            @Nullable final Metadata metadata) {
+
         final Iterable<PolicyEntry> policyEntries = command.getPolicyEntries();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
@@ -59,7 +64,7 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
                     () -> policyEntriesJsonArray.toString().length(),
                     command::getDittoHeaders);
         } catch (final PolicyTooLargeException e) {
-            return ResultFactory.newErrorResult(e);
+            return ResultFactory.newErrorResult(e, command);
         }
 
         final PolicyId policyId = context.getState();

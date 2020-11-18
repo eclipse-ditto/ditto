@@ -87,7 +87,7 @@ public final class DeleteAttributesLiveCommandAnswerBuilderImplTest {
                 .hasNoEvent()
                 .hasThingErrorResponse()
                 .withType(ThingErrorResponse.TYPE)
-                .withDittoHeaders(DittoHeaders.empty())
+                .withDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .withStatus(HttpStatusCode.NOT_FOUND)
                 .withDittoRuntimeExceptionOfType(AttributesNotAccessibleException.class);
     }
@@ -105,7 +105,7 @@ public final class DeleteAttributesLiveCommandAnswerBuilderImplTest {
                 .hasNoEvent()
                 .hasThingErrorResponse()
                 .withType(ThingErrorResponse.TYPE)
-                .withDittoHeaders(DittoHeaders.empty())
+                .withDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .withStatus(HttpStatusCode.FORBIDDEN)
                 .withDittoRuntimeExceptionOfType(AttributesNotModifiableException.class);
     }

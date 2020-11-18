@@ -18,6 +18,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Label;
@@ -44,8 +45,12 @@ final class ModifyResourceStrategy extends AbstractPolicyCommandStrategy<ModifyR
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy policy,
-            final long nextRevision, final ModifyResource command) {
+    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+            @Nullable final Policy policy,
+            final long nextRevision,
+            final ModifyResource command,
+            @Nullable final Metadata metadata) {
+
         final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyId policyId = context.getState();
         final Label label = command.getLabel();
@@ -77,10 +82,10 @@ final class ModifyResourceStrategy extends AbstractPolicyCommandStrategy<ModifyR
                         appendETagHeaderIfProvided(command, rawResponse, nonNullPolicy));
             } else {
                 return ResultFactory.newErrorResult(
-                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders));
+                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders), command);
             }
         } else {
-            return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, dittoHeaders));
+            return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, dittoHeaders), command);
         }
     }
 

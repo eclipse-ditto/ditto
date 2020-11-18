@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
 
@@ -42,6 +43,8 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     @Nullable ThingLifecycle lifecycle;
     @Nullable ThingRevision revision;
     @Nullable Instant modified;
+    @Nullable Instant created;
+    @Nullable Metadata metadata;
     @Nullable private JsonSchemaVersion schemaVersion;
     @Nullable private PolicyId policyId;
     @Nullable
@@ -65,6 +68,8 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
         lifecycle = null;
         revision = null;
         modified = null;
+        created = null;
+        metadata = null;
     }
 
     /**
@@ -170,14 +175,22 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
-    public FromScratch setFeature(final String featureId, final FeatureDefinition featureDefinition,
+    public FromScratch setFeature(final String featureId, @Nullable final FeatureDefinition featureDefinition,
             final FeatureProperties featureProperties) {
 
         return setFeature(ThingsModelFactory.newFeature(featureId, featureDefinition, featureProperties));
     }
 
     @Override
-    public FromScratch setFeature(final String featureId, final FeatureProperties featureProperties) {
+    public FromScratch setFeature(final CharSequence featureId, @Nullable final FeatureDefinition featureDefinition,
+            @Nullable final FeatureProperties featureProperties, @Nullable final FeatureProperties featureDesiredProperties) {
+
+        return setFeature(ThingsModelFactory.newFeature(featureId, featureDefinition, featureProperties,
+                featureDesiredProperties));
+    }
+
+    @Override
+    public FromScratch setFeature(final String featureId, @Nullable final FeatureProperties featureProperties) {
         return setFeature(ThingsModelFactory.newFeature(featureId, featureProperties));
     }
 
@@ -192,7 +205,7 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     }
 
     @Override
-    public FromScratch setFeatureDefinition(final String featureId, final FeatureDefinition featureDefinition) {
+    public FromScratch setFeatureDefinition(final String featureId, @Nullable final FeatureDefinition featureDefinition) {
         checkNotNull(featureDefinition, "Feature Definition to be set");
         invokeOnFeaturesBuilder(fb -> fb.set(fb.get(featureId)
                 .map(feature -> feature.setDefinition(featureDefinition))
@@ -258,6 +271,60 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
         if (null != featuresBuilder) {
             featuresBuilder.get(featureId)
                     .map(Feature::removeProperties)
+                    .ifPresent(featuresBuilder::set);
+        }
+        return this;
+    }
+
+    @Override
+    public FromScratch setFeatureDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath,
+            final JsonValue desiredPropertyValue) {
+
+        checkNotNull(desiredPropertyPath, "desiredPropertyPath");
+
+        final Features existingFeatures = getFeatures();
+        if (null != existingFeatures) {
+            return setFeatures(existingFeatures.setDesiredProperty(featureId, desiredPropertyPath, desiredPropertyValue));
+        } else {
+            final FeatureProperties featureDesiredProperties = ThingsModelFactory.newFeaturePropertiesBuilder()
+                    .set(desiredPropertyPath, desiredPropertyValue)
+                    .build();
+            return setFeature(featureId, null, null, featureDesiredProperties);
+        }
+    }
+
+    @Override
+    public FromScratch removeFeatureDesiredProperty(final CharSequence featureId, final JsonPointer desiredPropertyPath) {
+        checkNotNull(featureId, "featureId");
+        checkNotNull(desiredPropertyPath, "desiredPropertyPath");
+
+        if (null != featuresBuilder) {
+            final Features existingFeatures = getFeatures();
+            if (null != existingFeatures) {
+                return setFeatures(existingFeatures.removeDesiredProperty(featureId, desiredPropertyPath));
+            }
+        }
+        return this;
+    }
+
+    @Override
+    public FromScratch setFeatureDesiredProperties(final CharSequence featureId, final FeatureProperties desiredPropertiesPath) {
+        checkNotNull(featureId, "featureId");
+        checkNotNull(desiredPropertiesPath, "desiredPropertiesPath");
+
+        invokeOnFeaturesBuilder(fb -> fb.set(fb.get(featureId)
+                .map(feature -> feature.setDesiredProperties(desiredPropertiesPath))
+                .orElseGet(() -> ThingsModelFactory.newFeature(featureId, null, null,
+                        desiredPropertiesPath))));
+        return this;
+    }
+
+    @Override
+    public FromScratch removeFeatureDesiredProperties(final CharSequence featureId) {
+        checkNotNull(featureId, "featureId");
+        if (null != featuresBuilder) {
+            featuresBuilder.get(featureId)
+                    .map(Feature::removeDesiredProperties)
                     .ifPresent(featuresBuilder::set);
         }
         return this;
@@ -333,6 +400,18 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     @Override
     public FromScratch setModified(@Nullable final Instant modified) {
         this.modified = modified;
+        return this;
+    }
+
+    @Override
+    public FromScratch setCreated(@Nullable final Instant created) {
+        this.created = created;
+        return this;
+    }
+
+    @Override
+    public FromScratch setMetadata(@Nullable final Metadata metadata) {
+        this.metadata = metadata;
         return this;
     }
 
@@ -437,10 +516,10 @@ final class ImmutableThingFromScratchBuilder implements ThingBuilder, ThingBuild
     public Thing build() {
         if (null != policyId) {
             return ImmutableThing.of(id, null, policyId, definition, getAttributes(), getFeatures(), lifecycle,
-                    revision, modified);
+                    revision, modified, created, metadata);
         } else {
             return ImmutableThing.of(id, getAcl(), null, definition, getAttributes(), getFeatures(), lifecycle,
-                    revision, modified);
+                    revision, modified, created, metadata);
         }
     }
 

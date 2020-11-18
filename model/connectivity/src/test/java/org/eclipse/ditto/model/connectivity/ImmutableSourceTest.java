@@ -14,19 +14,26 @@
 package org.eclipse.ditto.model.connectivity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
@@ -46,6 +53,12 @@ public final class ImmutableSourceTest {
 
     private static final Map<String, String> MAPPING;
 
+    private static final FilteredAcknowledgementRequest FILTERED_ACKNOWLEDGEMENT_REQUEST =
+            FilteredAcknowledgementRequest.of(new HashSet<>(
+                            Arrays.asList(AcknowledgementRequest.of(AcknowledgementLabel.of("custom-ack")),
+                                    AcknowledgementRequest.of(AcknowledgementLabel.of("second-custom-ack")))),
+                    "fn:filter(header:qos,'ne',0)");
+
     static {
         final Map<String, String> mapping = new HashMap<>();
         mapping.put("correlation-id", "{{ header:message-id }}");
@@ -63,15 +76,30 @@ public final class ImmutableSourceTest {
                     .consumerCount(2)
                     .index(0)
                     .address(AMQP_SOURCE1)
+                    .acknowledgementRequests(FILTERED_ACKNOWLEDGEMENT_REQUEST)
                     .headerMapping(ConnectivityModelFactory.newHeaderMapping(MAPPING))
                     .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPING, CUSTOM_MAPPING))
                     .replyTarget(ImmutableReplyTargetTest.REPLY_TARGET)
+                    .declaredAcknowledgementLabels(Collections.singleton(AcknowledgementLabel.of("ack")))
                     .build();
 
     private static final JsonObject SOURCE_JSON = JsonObject
             .newBuilder()
             .set(Source.JsonFields.ADDRESSES, JsonFactory.newArrayBuilder().add(AMQP_SOURCE1).build())
             .set(Source.JsonFields.CONSUMER_COUNT, 2)
+            .set(Source.JsonFields.ACKNOWLEDGEMENT_REQUESTS,
+                    JsonFactory.newObjectBuilder()
+                            .set(FilteredAcknowledgementRequest.JsonFields.INCLUDES,
+                                    FILTERED_ACKNOWLEDGEMENT_REQUEST.getIncludes()
+                                            .stream()
+                                            .map(AcknowledgementRequest::getLabel)
+                                            .map(AcknowledgementLabel::toString)
+                                            .map(JsonFactory::newValue)
+                                            .collect(
+                                                    JsonCollectors.valuesToArray()))
+                            .set(FilteredAcknowledgementRequest.JsonFields.FILTER,
+                                    FILTERED_ACKNOWLEDGEMENT_REQUEST.getFilter().orElse(null))
+                            .build())
             .set(Source.JsonFields.HEADER_MAPPING,
                     JsonFactory.newObjectBuilder().setAll(MAPPING.entrySet().stream()
                             .map(e -> JsonFactory.newField(JsonFactory.newKey(e.getKey()), JsonValue.of(e.getValue())))
@@ -83,6 +111,7 @@ public final class ImmutableSourceTest {
             .set(Source.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
             .set(Source.JsonFields.REPLY_TARGET, ImmutableReplyTargetTest.REPLY_TARGET_JSON)
             .set(Source.JsonFields.REPLY_TARGET_ENABLED, true)
+            .set(Source.JsonFields.DECLARED_ACKS, JsonArray.of("[\"ack\"]"))
             .build();
 
     private static final String MQTT_SOURCE1 = "mqtt/source1";
@@ -95,6 +124,7 @@ public final class ImmutableSourceTest {
             .authorizationContext(AUTHORIZATION_CONTEXT)
             .address(MQTT_SOURCE1)
             .enforcement(ENFORCEMENT)
+            .acknowledgementRequests(FILTERED_ACKNOWLEDGEMENT_REQUEST)
             .consumerCount(2)
             .index(0)
             .qos(1)
@@ -110,6 +140,19 @@ public final class ImmutableSourceTest {
                     .set(Enforcement.JsonFields.INPUT, "{{ topic }}")
                     .set(Enforcement.JsonFields.FILTERS, JsonFactory.newArrayBuilder().add(MQTT_FILTER).build())
                     .build())
+            .set(Source.JsonFields.ACKNOWLEDGEMENT_REQUESTS,
+                    JsonFactory.newObjectBuilder()
+                            .set(FilteredAcknowledgementRequest.JsonFields.INCLUDES,
+                                    FILTERED_ACKNOWLEDGEMENT_REQUEST.getIncludes()
+                                            .stream()
+                                            .map(AcknowledgementRequest::getLabel)
+                                            .map(AcknowledgementLabel::toString)
+                                            .map(JsonFactory::newValue)
+                                            .collect(
+                                                    JsonCollectors.valuesToArray()))
+                            .set(FilteredAcknowledgementRequest.JsonFields.FILTER,
+                                    FILTERED_ACKNOWLEDGEMENT_REQUEST.getFilter().orElse(null))
+                            .build())
             .build();
 
 
@@ -126,9 +169,12 @@ public final class ImmutableSourceTest {
                 areImmutable(),
                 provided(AuthorizationContext.class,
                         Enforcement.class,
+                        FilteredAcknowledgementRequest.class,
                         HeaderMapping.class,
                         PayloadMapping.class,
-                        ReplyTarget.class).areAlsoImmutable());
+                        ReplyTarget.class).areAlsoImmutable(),
+                assumingFields("declaredAcknowledgementLabels")
+                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test

@@ -33,7 +33,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  * @param <T> the type of the message's payload.
  * @param <C> the type of the MessageCommand.
  */
-public interface MessageCommand<T, C extends MessageCommand> extends Command<C>, WithThingId {
+public interface MessageCommand<T, C extends MessageCommand<T, C>> extends Command<C>, WithThingId {
 
     /**
      * Type Prefix of Message commands.

@@ -69,12 +69,11 @@ public final class GatewayWebsocketSessionClosedException extends DittoRuntimeEx
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new GatewayWebsocketSessionClosedException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static GatewayWebsocketSessionClosedException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+    public static GatewayWebsocketSessionClosedException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -84,16 +83,24 @@ public final class GatewayWebsocketSessionClosedException extends DittoRuntimeEx
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new GatewayWebsocketSessionClosedException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static GatewayWebsocketSessionClosedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 

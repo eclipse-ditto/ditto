@@ -19,6 +19,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
@@ -102,15 +103,22 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
     protected ActorRef startEntityActor(final ActorSystem system, final ActorRef pubSubMediator, final ThingId id) {
         final Props props =
                 ThingSupervisorActor.props(pubSubMediator,
-                        new DistributedPub<ThingEvent>() {
+                        new DistributedPub<>() {
+
                             @Override
                             public ActorRef getPublisher() {
                                 return pubSubMediator;
                             }
 
                             @Override
-                            public Object wrapForPublication(final ThingEvent message) {
+                            public Object wrapForPublication(final ThingEvent<?> message) {
                                 return message;
+                            }
+
+                            @Override
+                            public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
+                                    final AckExtractor<S> ackExtractor) {
+                                return wrapForPublication(message);
                             }
                         },
                         ThingPersistenceActor::props);

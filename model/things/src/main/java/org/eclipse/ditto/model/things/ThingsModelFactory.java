@@ -19,8 +19,6 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -28,12 +26,15 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKeyInvalidException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.json.JsonPointerInvalidException;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
+import org.eclipse.ditto.model.base.entity.metadata.MetadataBuilder;
+import org.eclipse.ditto.model.base.entity.metadata.MetadataModelFactory;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -42,8 +43,6 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  */
 @Immutable
 public final class ThingsModelFactory {
-
-    private static final Pattern FEATURE_PROPERTY_PATTERN = Pattern.compile("^[^/].*[^/]$|[^/]");
 
     /*
      * Inhibit instantiation of this utility class.
@@ -263,18 +262,14 @@ public final class ThingsModelFactory {
      * @param jsonObject provides the initial values of the result.
      * @return the new immutable initialised {@code FeatureProperties}.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if a property name in the passed {@code jsonObject}
+     * was not valid according to pattern
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static FeatureProperties newFeatureProperties(final JsonObject jsonObject) {
         checkNotNull(jsonObject, "JSON object for initialization");
 
         if (!jsonObject.isNull()) {
-            for (final CharSequence key : jsonObject.getKeys()) {
-                final Matcher propertyMatcher =
-                        FEATURE_PROPERTY_PATTERN.matcher(ConditionChecker.checkNotNull(key, "Property of the Feature"));
-                if (!propertyMatcher.matches()) {
-                    throw JsonPointerInvalidException.newBuilderForOuterSlashes(key).build();
-                }
-            }
             return ImmutableFeatureProperties.of(jsonObject);
         } else {
             return nullFeatureProperties();
@@ -322,6 +317,8 @@ public final class ThingsModelFactory {
      * @param featureId the ID of the new Feature.
      * @return the new {@code null}-like {@code Feature}.
      * @throws NullPointerException if {@code featureId} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if {@code featureId} was not valid according to pattern
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static Feature nullFeature(final String featureId) {
         return NullFeature.of(featureId);
@@ -333,6 +330,8 @@ public final class ThingsModelFactory {
      * @param featureId the ID of the new Feature.
      * @return the new immutable {@code Feature}.
      * @throws NullPointerException if {@code featureId} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if {@code featureId} was not valid according to pattern
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static Feature newFeature(final String featureId) {
         return ImmutableFeature.of(featureId);
@@ -345,6 +344,8 @@ public final class ThingsModelFactory {
      * @param featureProperties the properties of the new Feature or {@code null}.
      * @return the new immutable {@code Feature}.
      * @throws NullPointerException if {@code featureId} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if {@code featureId} was not valid according to pattern
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static Feature newFeature(final String featureId, @Nullable final FeatureProperties featureProperties) {
         return ImmutableFeature.of(featureId, featureProperties);
@@ -357,6 +358,8 @@ public final class ThingsModelFactory {
      * @param featureDefinition the Definition of the new Feature or {@code null}.
      * @return the new immutable {@code Feature}.
      * @throws NullPointerException if {@code featureId} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if {@code featureId} was not valid according to pattern
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static Feature newFeature(final String featureId, @Nullable final FeatureDefinition featureDefinition) {
         return ImmutableFeature.of(featureId, featureDefinition, null);
@@ -370,12 +373,35 @@ public final class ThingsModelFactory {
      * @param featureProperties the properties of the new Feature or {@code null}.
      * @return the new immutable {@code Feature}.
      * @throws NullPointerException if {@code featureId} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if {@code featureId} was not valid according to pattern
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static Feature newFeature(final String featureId, @Nullable final FeatureDefinition featureDefinition,
             @Nullable final FeatureProperties featureProperties) {
 
         return ImmutableFeature.of(featureId, featureDefinition, featureProperties);
     }
+    /**
+     * Returns a new immutable {@link Feature} with the given ID, properties, desired Properties and Definition.
+     *
+     * @param featureId the ID of the new feature.
+     * @param featureDefinition the Definition of the new Feature or {@code null}.
+     * @param featureProperties the properties of the new Feature or {@code null}.
+     * @param desiredFeatureProperties the desired properties of the new Feature or {@code null}.
+     * @return the new immutable {@code Feature}.
+     * @throws NullPointerException if {@code featureId} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if {@code featureId} was not valid according to pattern
+     * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * @since 1.5.0
+     */
+    public static Feature newFeature(final CharSequence featureId,
+            @Nullable final FeatureDefinition featureDefinition,
+            @Nullable final FeatureProperties featureProperties,
+            @Nullable FeatureProperties desiredFeatureProperties) {
+
+        return ImmutableFeature.of(featureId, featureDefinition, featureProperties, desiredFeatureProperties);
+    }
+
 
     /**
      * Returns a new builder for an immutable {@link Feature} from scratch with a fluent API.
@@ -539,6 +565,98 @@ public final class ThingsModelFactory {
         final FeaturesBuilder result = ImmutableFeaturesBuilder.newInstance();
         result.setAll(features);
         return result;
+    }
+
+    /**
+     * Validates the given {@link JsonPointer} to a feature property.
+     *
+     * @param jsonPointer {@code jsonPointer} that is validated
+     * @return the same {@code jsonPointer} if validation was successful
+     * @throws JsonKeyInvalidException if {@code jsonPointer} was not valid according to
+     * pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * @since 1.2.0
+     */
+    public static JsonPointer validateFeaturePropertyPointer(final JsonPointer jsonPointer) {
+        return JsonKeyValidator.validate(jsonPointer);
+    }
+
+    /**
+     * Validates the given {@link JsonObject} containing only valid keys.
+     *
+     * @param jsonObject {@code jsonObject} that is validated
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if {@code jsonObject} was not valid according to
+     * pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
+     * @since 1.3.0
+     */
+    public static void validateJsonKeys(final JsonObject jsonObject) {
+        JsonKeyValidator.validateJsonKeys(jsonObject);
+    }
+
+    /**
+     * Returns a new immutable empty {@link Metadata}.
+     *
+     * @return the new immutable empty {@code Metadata}.
+     * @since 1.2.0
+     */
+    public static Metadata emptyMetadata() {
+        return MetadataModelFactory.emptyMetadata();
+    }
+
+    /**
+     * Returns a new immutable {@link Metadata} which represents {@code null}.
+     *
+     * @return the new {@code null}-like {@code Metadata}.
+     * @since 1.2.0
+     */
+    public static Metadata nullMetadata() {
+        return MetadataModelFactory.nullMetadata();
+    }
+
+    /**
+     * Returns a new immutable {@link Metadata} which is initialised with the values of the given JSON object.
+     *
+     * @param jsonObject provides the initial values of the result.
+     * @return the new immutable initialised {@code Metadata}.
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @since 1.2.0
+     */
+    public static Metadata newMetadata(final JsonObject jsonObject) {
+        return MetadataModelFactory.newMetadata(jsonObject);
+    }
+
+    /**
+     * Returns a new immutable {@link Metadata} which is initialised with the values of the given JSON string. This
+     * string is required to be a valid {@link JsonObject}.
+     *
+     * @param jsonString provides the initial values of the result;
+     * @return the new immutable initialised {@code Metadata}.
+     * @throws DittoJsonException if {@code jsonString} cannot be parsed to {@code Metadata}.
+     * @since 1.2.0
+     */
+    public static Metadata newMetadata(final String jsonString) {
+        return MetadataModelFactory.newMetadata(jsonString);
+    }
+
+    /**
+     * Returns a new empty builder for a {@link Metadata}.
+     *
+     * @return the builder.
+     * @since 1.2.0
+     */
+    public static MetadataBuilder newMetadataBuilder() {
+        return MetadataModelFactory.newMetadataBuilder();
+    }
+
+    /**
+     * Returns a new builder for a {@link Metadata} which is initialised with the values of the given Metadata.
+     *
+     * @param metadata provides the initial values of the result.
+     * @return the builder.
+     * @throws NullPointerException if {@code metadata} is {@code null}.
+     * @since 1.2.0
+     */
+    public static MetadataBuilder newMetadataBuilder(final Metadata metadata) {
+        return MetadataModelFactory.newMetadataBuilder(metadata);
     }
 
     /**

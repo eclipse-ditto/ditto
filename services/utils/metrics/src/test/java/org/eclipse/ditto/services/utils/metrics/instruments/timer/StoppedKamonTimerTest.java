@@ -14,8 +14,13 @@ package org.eclipse.ditto.services.utils.metrics.instruments.timer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
 import org.junit.Before;
 import org.junit.Test;
+
+import kamon.metric.Timer;
 
 public class StoppedKamonTimerTest {
 
@@ -44,5 +49,19 @@ public class StoppedKamonTimerTest {
     @Test
     public void getTags() {
         assertThat(sut.getTags().keySet()).hasSize(1);
+    }
+
+    @Test
+    public void reportDurationCorrectly() throws Exception {
+        // GIVEN: 1250ms passes between timer start and timer end
+        final StartedTimer startedTimer = PreparedKamonTimer.newTimer(UUID.randomUUID().toString()).start();
+        TimeUnit.MILLISECONDS.sleep(1250);
+
+        // WHEN: timer records the elapsed nanoseconds
+        final StoppedKamonTimer stoppedTimer = (StoppedKamonTimer) startedTimer.stop();
+        final kamon.metric.Timer.Atomic internalTimer = (Timer.Atomic) stoppedTimer.getKamonInternalTimer();
+
+        // THEN: the recorded value is at least 1s
+        assertThat(internalTimer.getMaxValueAsDouble()).isGreaterThan(1e9);
     }
 }

@@ -16,6 +16,7 @@ import java.util.Map;
 
 import org.assertj.core.api.AbstractMapAssert;
 import org.assertj.core.api.Assertions;
+import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.model.messages.MessageFormatInvalidException;
 import org.eclipse.ditto.model.messages.MessageSendNotAllowedException;
@@ -25,7 +26,7 @@ import org.eclipse.ditto.model.messages.TimeoutInvalidException;
 import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategies;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategies;
 import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategies;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.devops.ChangeLogLevel;
 import org.eclipse.ditto.signals.commands.devops.ChangeLogLevelResponse;
 import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfig;
@@ -105,9 +106,10 @@ public final class GatewayMappingStrategiesTest {
     }
 
     private static final class StrategyAssert
-            extends AbstractMapAssert<StrategyAssert, Map<String, MappingStrategy>, String, MappingStrategy> {
+            extends
+            AbstractMapAssert<StrategyAssert, Map<String, JsonParsable<Jsonifiable<?>>>, String, JsonParsable<Jsonifiable<?>>> {
 
-        StrategyAssert(final Map<String, MappingStrategy> strategies) {
+        StrategyAssert(final Map<String, JsonParsable<Jsonifiable<?>>> strategies) {
             super(strategies, StrategyAssert.class);
         }
 
@@ -119,7 +121,7 @@ public final class GatewayMappingStrategiesTest {
             return myself;
         }
 
-        StrategyAssert knowsAllOf(final Map<String, MappingStrategy> mappingStrategies) {
+        StrategyAssert knowsAllOf(final Map<String, JsonParsable<Jsonifiable<?>>> mappingStrategies) {
             mappingStrategies.keySet().forEach(this::knows);
             return myself;
         }

@@ -49,6 +49,7 @@ public final class QueryThingsPerRequestActorTest {
     private TestProbe originalSenderProbe;
     private TestProbe pubSubMediatorProbe;
     private DittoHeaders dittoHeaders;
+    private DittoHeaders responseHeaders;
 
     @Before
     public void startActorSystem() {
@@ -56,7 +57,8 @@ public final class QueryThingsPerRequestActorTest {
         aggregatorProbe = TestProbe.apply("aggregator", actorSystem);
         originalSenderProbe = TestProbe.apply("originalSender", actorSystem);
         pubSubMediatorProbe = TestProbe.apply("pubSubMediator", actorSystem);
-        dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
+        dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().responseRequired(true).build();
+        responseHeaders = dittoHeaders.toBuilder().responseRequired(false).build();
     }
 
     @After
@@ -85,7 +87,7 @@ public final class QueryThingsPerRequestActorTest {
         final ThingId thingId1 = ThingId.of("thing:1");
         final ThingId thingId2 = ThingId.of("thing:2");
         final SearchResult searchResult = forIdItems(thingId1, thingId2);
-        final QueryThingsResponse queryThingsResponse = QueryThingsResponse.of(searchResult, dittoHeaders);
+        final QueryThingsResponse queryThingsResponse = QueryThingsResponse.of(searchResult, responseHeaders);
 
         // WHEN: QueryThingsResponse has items
         underTest.tell(queryThingsResponse, ActorRef.noSender());
@@ -94,7 +96,7 @@ public final class QueryThingsPerRequestActorTest {
         aggregatorProbe.expectMsg(RetrieveThings.getBuilder(thingId1, thingId2)
                 .dittoHeaders(dittoHeaders)
                 .build());
-        aggregatorProbe.reply(RetrieveThingsResponse.of(asArray(thingId1, thingId2), "thing", dittoHeaders));
+        aggregatorProbe.reply(RetrieveThingsResponse.of(asArray(thingId1, thingId2), "thing", responseHeaders));
         originalSenderProbe.expectMsg(queryThingsResponse);
     }
 
@@ -107,7 +109,7 @@ public final class QueryThingsPerRequestActorTest {
         final ThingId thingId1 = ThingId.of("thing:1");
         final ThingId thingId2 = ThingId.of("thing:2");
         final SearchResult searchResult = forIdItems(thingId1, thingId2);
-        final QueryThingsResponse queryThingsResponse = QueryThingsResponse.of(searchResult, dittoHeaders);
+        final QueryThingsResponse queryThingsResponse = QueryThingsResponse.of(searchResult, responseHeaders);
 
         // WHEN: QueryThingsResponse has items
         underTest.tell(queryThingsResponse, ActorRef.noSender());
@@ -118,7 +120,7 @@ public final class QueryThingsPerRequestActorTest {
                 .dittoHeaders(dittoHeaders)
                 .build());
 
-        aggregatorProbe.reply(RetrieveThingsResponse.of(asArray(thingId1, thingId2), "thing", dittoHeaders));
+        aggregatorProbe.reply(RetrieveThingsResponse.of(asArray(thingId1, thingId2), "thing", responseHeaders));
 
         // THEN: final response does not include thingId
         originalSenderProbe.expectMsg(queryThingsResponse);
@@ -134,7 +136,7 @@ public final class QueryThingsPerRequestActorTest {
         final ThingId thingId1 = ThingId.of("thing:1");
         final ThingId thingId2 = ThingId.of("thing:2");
         final SearchResult searchResult = forIdItems(thingId1, thingId2);
-        final QueryThingsResponse queryThingsResponse = QueryThingsResponse.of(searchResult, dittoHeaders);
+        final QueryThingsResponse queryThingsResponse = QueryThingsResponse.of(searchResult, responseHeaders);
 
         // WHEN: QueryThingsResponse has items
         underTest.tell(queryThingsResponse, ActorRef.noSender());
@@ -146,11 +148,11 @@ public final class QueryThingsPerRequestActorTest {
                 .build());
         final JsonObject definition = JsonObject.newBuilder().set("definition", "vacuum:cleaner:1548").build();
         aggregatorProbe.reply(
-                RetrieveThingsResponse.of(asArrayWithExtra(definition, thingId1, thingId2), "thing", dittoHeaders));
+                RetrieveThingsResponse.of(asArrayWithExtra(definition, thingId1, thingId2), "thing", responseHeaders));
 
         // THEN: final response does not include thingId
         originalSenderProbe.expectMsg(
-                QueryThingsResponse.of(SearchResult.newBuilder().add(definition, definition).build(), dittoHeaders));
+                QueryThingsResponse.of(SearchResult.newBuilder().add(definition, definition).build(), responseHeaders));
     }
 
     @Test
@@ -159,7 +161,7 @@ public final class QueryThingsPerRequestActorTest {
         final ThingId thingId1 = ThingId.of("thing:1");
         final ThingId thingId2 = ThingId.of("thing:2");
         final SearchResult searchResult = forIdItems(thingId1, thingId2);
-        final QueryThingsResponse queryThingsResponse = QueryThingsResponse.of(searchResult, dittoHeaders);
+        final QueryThingsResponse queryThingsResponse = QueryThingsResponse.of(searchResult, responseHeaders);
 
         // GIVEN: QueryThingsResponse has items and aggregator probe is asked to retrieve things
         underTest.tell(queryThingsResponse, ActorRef.noSender());
@@ -168,10 +170,10 @@ public final class QueryThingsPerRequestActorTest {
                 .build());
 
         // WHEN: response from aggregator is missing thingId1
-        aggregatorProbe.reply(RetrieveThingsResponse.of(asArray(thingId2), "thing", dittoHeaders));
+        aggregatorProbe.reply(RetrieveThingsResponse.of(asArray(thingId2), "thing", responseHeaders));
 
         // THEN: final response does not include thingId1
-        originalSenderProbe.expectMsg(QueryThingsResponse.of(forIdItems(thingId2), dittoHeaders));
+        originalSenderProbe.expectMsg(QueryThingsResponse.of(forIdItems(thingId2), responseHeaders));
 
         // THEN: an UpdateThings command is published requesting search index update of thingId1
         pubSubMediatorProbe.expectMsg(

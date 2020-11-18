@@ -122,6 +122,16 @@ public final class DefaultConnectionConfigTest {
                 .satisfies(httpPushConfig -> softly.assertThat(httpPushConfig.getMaxQueueSize())
                         .as(HttpPushConfig.ConfigValue.MAX_QUEUE_SIZE.getConfigPath())
                         .isEqualTo(9));
+
+        softly.assertThat(underTest.getAmqp091Config())
+                .as("amqp091Config")
+                .satisfies(amqp091Config -> softly.assertThat(amqp091Config.getPublisherPendingAckTTL())
+                        .as(Amqp091Config.ConfigValue.PUBLISHER_PENDING_ACK_TTL.getConfigPath())
+                        .isEqualTo(Duration.ofSeconds(31556736L)));
+
+        softly.assertThat(underTest.getAckLabelDeclareInterval())
+                .as(ConnectionConfig.ConnectionConfigValue.ACK_LABEL_DECLARE_INTERVAL.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(99L));
     }
 
 }

@@ -32,11 +32,13 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
-import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
@@ -45,6 +47,9 @@ import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import com.typesafe.config.ConfigValueFactory;
 
@@ -53,34 +58,36 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
-import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.ConnectionContext;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.HttpsConnectionContext;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.model.ContentTypes;
+import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpMethods;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
-import akka.stream.ActorMaterializer;
+import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Flow;
 import akka.testkit.javadsl.TestKit;
 
 /**
  * Tests {@link org.eclipse.ditto.services.connectivity.messaging.httppush.HttpPushClientActor}.
  */
+@RunWith(MockitoJUnitRunner.class)
 public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
     private static final ProtocolAdapter ADAPTER = DittoProtocolAdapter.newInstance();
 
     private ActorSystem actorSystem;
-    private ActorMaterializer mat;
     private Flow<HttpRequest, HttpResponse, NotUsed> handler;
     private ServerBinding binding;
     private Connection connection;
     private BlockingQueue<HttpRequest> requestQueue;
     private BlockingQueue<HttpResponse> responseQueue;
+    @Mock
+    private ConnectionLogger connectionLogger;
 
     @Before
     public void createActorSystem() {
@@ -88,7 +95,6 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
         actorSystem = ActorSystem.create(getClass().getSimpleName(),
                 TestConstants.CONFIG.withValue("ditto.connectivity.connection.http-push.blocked-hostnames",
                         ConfigValueFactory.fromAnyRef("")));
-        mat = ActorMaterializer.create(actorSystem);
         requestQueue = new LinkedBlockingQueue<>();
         responseQueue = new LinkedBlockingQueue<>();
         handler = Flow.fromFunction(request -> {
@@ -96,7 +102,8 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
             return responseQueue.take();
         });
         binding = Http.get(actorSystem)
-                .bindAndHandle(handler, ConnectHttp.toHost("127.0.0.1", 0), mat)
+                .newServerAt("127.0.0.1", 0)
+                .bindFlow(handler)
                 .toCompletableFuture()
                 .join();
         connection = getHttpConnectionBuilderToLocalBinding(false, binding.localAddress().getPort()).build();
@@ -168,16 +175,17 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
                 .clientKey(TestConstants.Certificates.CLIENT_SELF_SIGNED_KEY)
                 .clientCertificate(TestConstants.Certificates.CLIENT_SELF_SIGNED_CRT)
                 .build();
-        final SSLContext sslContext = SSLContextCreator.fromConnection(connection, DittoHeaders.empty())
-                .clientCertificate(credentials);
-        final HttpsConnectionContext invalidHttpsContext = ConnectionContext.https(sslContext);
+        final SSLContext sslContext =
+                SSLContextCreator.fromConnection(connection, DittoHeaders.empty(), connectionLogger)
+                        .clientCertificate(credentials);
+        final HttpsConnectionContext invalidHttpsContext = ConnectionContext.httpsServer(sslContext);
 
         final int port = binding.localAddress().getPort();
         binding.terminate(Duration.ofMillis(1L)).toCompletableFuture().join();
         binding = Http.get(actorSystem)
-                .bindAndHandle(handler,
-                        ConnectHttp.toHostHttps("127.0.0.1", port).withCustomHttpsContext(invalidHttpsContext),
-                        mat)
+                .newServerAt("127.0.0.1", port)
+                .enableHttps(invalidHttpsContext)
+                .bindFlow(handler)
                 .toCompletableFuture()
                 .join();
 
@@ -206,16 +214,17 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
                 .credentials(credentials)
                 .trustedCertificates(TestConstants.Certificates.CLIENT_SELF_SIGNED_CRT)
                 .build();
-        final SSLContext sslContext = SSLContextCreator.fromConnection(connection, DittoHeaders.empty())
-                .clientCertificate(credentials);
-        final HttpsConnectionContext httpsContext = ConnectionContext.https(sslContext);
+        final SSLContext sslContext =
+                SSLContextCreator.fromConnection(connection, DittoHeaders.empty(), connectionLogger)
+                        .clientCertificate(credentials);
+        final HttpsConnectionContext httpsContext = ConnectionContext.httpsServer(sslContext);
 
         final int port = binding.localAddress().getPort();
         binding.terminate(Duration.ofMillis(1L)).toCompletableFuture().join();
         binding = Http.get(actorSystem)
-                .bindAndHandle(handler,
-                        ConnectHttp.toHostHttps("127.0.0.1", port).withCustomHttpsContext(httpsContext),
-                        mat)
+                .newServerAt("127.0.0.1", port)
+                .enableHttps(httpsContext)
+                .bindFlow(handler)
                 .toCompletableFuture()
                 .join();
 
@@ -237,11 +246,13 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
             final ActorRef underTest = actorSystem.actorOf(createClientActor(getRef(), getConnection(false)));
             underTest.tell(OpenConnection.of(connection.getId(), DittoHeaders.empty()), getRef());
             expectMsg(new Status.Success(BaseClientState.CONNECTED));
-
+            final String customHeaderKey = "custom-header";
+            final String customHeaderValue = "custom-value";
             // WHEN: a thing event is sent to a target with header mapping content-type=application/json
-            final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(Collections.emptyList())
+            final ThingModifiedEvent<?> thingModifiedEvent = TestConstants.thingModified(Collections.emptyList())
                     .setDittoHeaders(DittoHeaders.newBuilder()
                             .correlationId("internal-correlation-id")
+                            .putHeader(customHeaderKey, customHeaderValue)
                             .build());
             final OutboundSignal outboundSignal =
                     OutboundSignalFactory.newOutboundSignal(thingModifiedEvent, singletonList(HTTP_TARGET));
@@ -255,15 +266,17 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
             // THEN: only headers in the header mapping are retained
             assertThat(thingModifiedRequest.entity().getContentType()).isEqualTo(ContentTypes.APPLICATION_JSON);
-            assertThat(thingModifiedRequest.getHeader("correlation-id")).isEmpty();
+            assertThat(thingModifiedRequest.getHeader("correlation-id"))
+                    .contains(HttpHeader.parse("correlation-id", "internal-correlation-id"));
+            assertThat(thingModifiedRequest.getHeader(customHeaderKey)).isEmpty();
 
             // THEN: the payload is the JSON string of the event as a Ditto protocol message
             assertThat(thingModifiedRequest.entity()
-                    .toStrict(10_000, mat)
+                    .toStrict(10_000, SystemMaterializer.get(actorSystem).materializer())
                     .toCompletableFuture()
                     .join()
                     .getData()
-                    .utf8String()).isEqualTo(toJsonString(ADAPTER.toAdaptable(thingModifiedEvent)));
+                    .utf8String()).isEqualTo(toJsonString(ADAPTER.toAdaptable((Signal<?>) thingModifiedEvent)));
         }};
     }
 
@@ -280,7 +293,7 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
             expectMsg(new Status.Success(BaseClientState.CONNECTED));
 
             // WHEN: a thing event is sent to a target with header mapping content-type=application/json
-            final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(Collections.emptyList());
+            final ThingModifiedEvent<?> thingModifiedEvent = TestConstants.thingModified(Collections.emptyList());
             final OutboundSignal outboundSignal =
                     OutboundSignalFactory.newOutboundSignal(thingModifiedEvent, singletonList(target));
             underTest.tell(outboundSignal, getRef());

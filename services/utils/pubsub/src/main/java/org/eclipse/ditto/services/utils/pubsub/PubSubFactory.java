@@ -32,4 +32,11 @@ public interface PubSubFactory<T> {
      * @return access to distributed subscription.
      */
     DistributedSub startDistributedSub();
+
+    /**
+     * Retrieve the DistributedAcks with which the DistributedPub and DistributedSub were constructed.
+     *
+     * @return the given DistributedAcks.
+     */
+    DistributedAcks getDistributedAcks();
 }

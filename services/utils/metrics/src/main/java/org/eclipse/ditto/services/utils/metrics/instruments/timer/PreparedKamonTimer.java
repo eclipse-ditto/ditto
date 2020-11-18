@@ -12,9 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.metrics.instruments.timer;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -24,13 +22,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import kamon.Kamon;
-import kamon.metric.AtomicHdrHistogram;
-import kamon.metric.Bucket;
-import kamon.metric.Histogram;
-import kamon.metric.MetricDistribution;
+import kamon.metric.Distribution;
 import kamon.metric.Timer;
-import kamon.metric.TimerImpl;
-import scala.collection.Seq;
+import kamon.tag.TagSet;
 
 /**
  * Kamon based implementation of {@link PreparedTimer}.
@@ -91,16 +85,13 @@ public class PreparedKamonTimer implements PreparedTimer {
     }
 
     @Override
-    public Long[] getRecords() {
-        final List<Long> values = new ArrayList<>();
-        final Seq<Bucket> buckets = getSnapshot(false).distribution().buckets();
-        buckets.toStream().foreach(bucket -> addBucketValuesToList(bucket, values));
-        return values.toArray(new Long[0]);
+    public Long getTotalTime() {
+        return getSnapshot(false).sum();
     }
 
     @Override
     public Long getNumberOfRecords() {
-        return getSnapshot(false).distribution().count();
+        return getSnapshot(false).count();
     }
 
     @Override
@@ -120,30 +111,17 @@ public class PreparedKamonTimer implements PreparedTimer {
         return true;
     }
 
-    private MetricDistribution getSnapshot(boolean reset) {
+    private Distribution getSnapshot(boolean reset) {
         final Timer kamonInternalTimer = getKamonInternalTimer();
-        Histogram histogram;
-        if (kamonInternalTimer instanceof TimerImpl) {
-            histogram = ((TimerImpl) kamonInternalTimer).histogram();
+        if (kamonInternalTimer instanceof Timer.Atomic) {
+            return ((Timer.Atomic) kamonInternalTimer).snapshot(reset);
         } else {
             throw new IllegalStateException("Could not get snapshot of kamon timer");
         }
-
-        if (histogram instanceof AtomicHdrHistogram) {
-            return ((AtomicHdrHistogram) histogram).snapshot(reset);
-        }
-        throw new IllegalStateException("Could not get snapshot of kamon timer");
     }
 
     private kamon.metric.Timer getKamonInternalTimer() {
-        return Kamon.timer(name).refine(this.tags);
-    }
-
-    private List<Long> addBucketValuesToList(Bucket bucket, List<Long> values) {
-        for (int i = 0; i < bucket.frequency(); i++) {
-            values.add(bucket.value());
-        }
-        return values;
+        return Kamon.timer(name).withTags(TagSet.from(new HashMap<>(this.tags)));
     }
 
 

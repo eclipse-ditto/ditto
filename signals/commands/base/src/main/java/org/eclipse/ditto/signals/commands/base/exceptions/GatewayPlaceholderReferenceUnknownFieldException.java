@@ -81,15 +81,24 @@ public final class GatewayPlaceholderReferenceUnknownFieldException extends Ditt
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new {@code GatewayPlaceholderReferenceUnknownFieldException}.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have
-     * the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static GatewayPlaceholderReferenceUnknownFieldException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DESCRIPTION_WITHOUT_ENTITY_ID))
                 .build();
     }
 
@@ -100,7 +109,7 @@ public final class GatewayPlaceholderReferenceUnknownFieldException extends Ditt
     public static final class Builder
             extends DittoRuntimeExceptionBuilder<GatewayPlaceholderReferenceUnknownFieldException> {
 
-        private Builder() {}
+        private Builder() {description(DESCRIPTION_WITHOUT_ENTITY_ID);}
 
         private Builder(final String message, final String description) {
             this();

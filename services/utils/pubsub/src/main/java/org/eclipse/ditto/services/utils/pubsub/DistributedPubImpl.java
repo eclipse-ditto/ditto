@@ -12,7 +12,11 @@
  */
 package org.eclipse.ditto.services.utils.pubsub;
 
+import java.util.Set;
+
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.services.utils.pubsub.actors.Publisher;
+import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorRef;
@@ -40,6 +44,17 @@ final class DistributedPubImpl<T> implements DistributedPub<T> {
 
     @Override
     public Object wrapForPublication(final T message) {
-        return Publisher.Publish.of(topicExtractor.getTopics(message), message);
+        return Publisher.publish(topicExtractor.getTopics(message), message);
+    }
+
+    @Override
+    public <S extends T> Object wrapForPublicationWithAcks(final S message, final AckExtractor<S> ackExtractor) {
+        final Set<AcknowledgementRequest> ackRequests = ackExtractor.getAckRequests(message);
+        if (ackRequests.isEmpty()) {
+            return wrapForPublication(message);
+        } else {
+            return Publisher.publishWithAck(topicExtractor.getTopics(message), message, ackRequests,
+                    ackExtractor.getEntityId(message), ackExtractor.getDittoHeaders(message));
+        }
     }
 }

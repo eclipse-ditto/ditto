@@ -61,6 +61,11 @@ public enum LogType {
     PUBLISHED("published", LogCategory.TARGET, LogCategory.RESPONSE),
 
     /**
+     * Log related to a 'acknowledged' metric event.
+     */
+    ACKNOWLEDGED("acknowledged", LogCategory.SOURCE, LogCategory.TARGET, LogCategory.RESPONSE),
+
+    /**
      * Log that is not related to any metric event.
      */
     OTHER("other", LogCategory.SOURCE, LogCategory.TARGET, LogCategory.RESPONSE, LogCategory.CONNECTION);

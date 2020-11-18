@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.base.headers;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -24,8 +25,11 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.common.ResponseType;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
@@ -145,6 +149,14 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Optional<String> getContentType();
 
     /**
+     * Returns the parsed content-type of the entity.
+     *
+     * @return the parsed content-type.
+     * @since 1.3.0
+     */
+    Optional<ContentType> getDittoContentType();
+
+    /**
      * Returns the json schema version.
      *
      * @return the schema version.
@@ -262,6 +274,12 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Optional<Integer> getReplyTarget();
 
     /**
+     * @return the list of response types that should be published to the reply target.
+     * @since 1.2.0
+     */
+    Collection<ResponseType> getExpectedResponseTypes();
+
+    /**
      * Indicates whether the size of the headers entries is greater than the specified size.
      *
      * @param size the size to compare to.
@@ -302,7 +320,25 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      * </p>
      *
      * @return the command timeout.
+     * @since 1.1.0
      */
     Optional<Duration> getTimeout();
+
+    /**
+     * Returns the metadata headers to put/set for the (modifying) command they were added to.
+     *
+     * @return the MetadataHeaders to put being a sorted set of {@code MetadataHeader}s.
+     * Changes on the returned set are not reflected back to this DittoHeaders instance.
+     * @since 1.2.0
+     */
+    MetadataHeaders getMetadataHeadersToPut();
+
+    /**
+     * Returns whether the policy lockout is allowed.
+     *
+     * @return {@code true} if the policy lockout is allowed
+     * @since 1.3.0
+     */
+    boolean isAllowPolicyLockout();
 
 }

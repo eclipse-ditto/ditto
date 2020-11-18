@@ -32,7 +32,7 @@ import org.eclipse.ditto.signals.base.Signal;
  * @param <T> the type of the implementing class.
  */
 @IndexSubclasses
-public interface Command<T extends Command> extends Signal<T> {
+public interface Command<T extends Command<T>> extends Signal<T> {
 
     /**
      * Type qualifier of commands.

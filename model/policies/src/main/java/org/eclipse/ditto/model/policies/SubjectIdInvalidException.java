@@ -84,10 +84,7 @@ public final class SubjectIdInvalidException extends DittoRuntimeException imple
      */
     public static SubjectIdInvalidException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .message(message)
-                .dittoHeaders(dittoHeaders)
-                .build();
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -98,21 +95,28 @@ public final class SubjectIdInvalidException extends DittoRuntimeException imple
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new SubjectIdInvalidException.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * JsonFields#MESSAGE} field.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static SubjectIdInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
-                .build();
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
     @Override
     public JsonSchemaVersion[] getSupportedSchemaVersions() {
         return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
+                .dittoHeaders(dittoHeaders)
+                .build();
     }
 
     /**

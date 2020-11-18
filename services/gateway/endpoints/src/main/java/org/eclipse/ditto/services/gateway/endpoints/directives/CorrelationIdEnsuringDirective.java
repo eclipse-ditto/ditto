@@ -18,9 +18,11 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 
+import javax.annotation.concurrent.Immutable;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpRequest;
@@ -29,15 +31,17 @@ import akka.http.javadsl.server.Route;
 /**
  * Custom Akka Http directive adding a correlationId to the request, if it does not yet exist.
  */
+@Immutable
 public final class CorrelationIdEnsuringDirective {
 
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(CorrelationIdEnsuringDirective.class);
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(CorrelationIdEnsuringDirective.class);
 
-    private static final String CORRELATION_ID_HEADER =
+    private static final String CORRELATION_ID_HEADER_NAME =
             org.eclipse.ditto.services.gateway.security.HttpHeader.X_CORRELATION_ID.getName();
 
     private CorrelationIdEnsuringDirective() {
-        // no op
+        throw new AssertionError();
     }
 
     /**
@@ -48,25 +52,31 @@ public final class CorrelationIdEnsuringDirective {
      */
     public static Route ensureCorrelationId(final Function<String, Route> inner) {
         return extractRequestContext(requestContext -> {
-            final HttpRequest request = requestContext.getRequest();
-            final Optional<String> correlationIdOpt = extractCorrelationId(request);
-            final String correlationId;
-            if (correlationIdOpt.isPresent()) {
-                correlationId = correlationIdOpt.get();
-                LOGGER.withCorrelationId(correlationId)
-                        .debug("CorrelationId already exists in request: {}", correlationId);
-            } else {
-                correlationId = UUID.randomUUID().toString();
-                LOGGER.withCorrelationId(correlationId).debug("Created new CorrelationId: {}", correlationId);
-            }
-
+            final String correlationId = getCorrelationIdFromHeaders(requestContext.getRequest())
+                    .orElseGet(CorrelationIdEnsuringDirective::createNewCorrelationId);
             return inner.apply(correlationId);
         });
     }
 
-    private static Optional<String> extractCorrelationId(final HttpRequest request) {
-        return request.getHeader(CORRELATION_ID_HEADER).map(HttpHeader::value)
-                .or(() -> request.getHeader(DittoHeaderDefinition.CORRELATION_ID.getKey()).map(HttpHeader::value));
+    private static Optional<String> getCorrelationIdFromHeaders(final HttpRequest request) {
+        final Optional<String> result = request.getHeader(CORRELATION_ID_HEADER_NAME)
+                .or(() -> request.getHeader(DittoHeaderDefinition.CORRELATION_ID.getKey()))
+                .map(HttpHeader::value);
+
+        if (LOGGER.isDebugEnabled()) {
+            result.ifPresent(correlationId -> LOGGER.withCorrelationId(correlationId)
+                    .debug("Correlation ID <{}> already exists in request.", correlationId));
+        }
+
+        return result;
+    }
+
+    private static String createNewCorrelationId() {
+        final String result = String.valueOf(UUID.randomUUID());
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.withCorrelationId(result).debug("Created new correlation ID <{}>.", result);
+        }
+        return result;
     }
 
 }

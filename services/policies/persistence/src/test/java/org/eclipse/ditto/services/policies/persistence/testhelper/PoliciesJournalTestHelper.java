@@ -32,7 +32,6 @@ import akka.actor.ActorSystem;
 import akka.persistence.inmemory.query.javadsl.InMemoryReadJournal;
 import akka.persistence.query.EventEnvelope;
 import akka.persistence.query.PersistenceQuery;
-import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 
@@ -47,8 +46,8 @@ public final class PoliciesJournalTestHelper<J> {
     private static final int WAIT_TIMEOUT = 3;
     private final Function<PolicyId, String> domainIdToPersistenceId;
     private final BiFunction<BsonDocument, Long, J> journalEntryToDomainObject;
-    private final ActorMaterializer mat;
     private final InMemoryReadJournal readJournal;
+    private final ActorSystem actorSystem;
 
     /**
      * Constructor.
@@ -64,7 +63,7 @@ public final class PoliciesJournalTestHelper<J> {
             domainIdToPersistenceId) {
         this.journalEntryToDomainObject = requireNonNull(journalEntryToDomainObject);
         this.domainIdToPersistenceId = requireNonNull(domainIdToPersistenceId);
-        mat = ActorMaterializer.create(actorSystem);
+        this.actorSystem = actorSystem;
 
         readJournal = PersistenceQuery.get(actorSystem).
                 getReadJournalFor(InMemoryReadJournal.class, InMemoryReadJournal.Identifier());
@@ -93,7 +92,7 @@ public final class PoliciesJournalTestHelper<J> {
     }
 
     private <T> List<T> runBlockingWithReturn(final Source<T, NotUsed> publisher) {
-        final CompletionStage<List<T>> done = publisher.runWith(Sink.seq(), mat);
+        final CompletionStage<List<T>> done = publisher.runWith(Sink.seq(), actorSystem);
         try {
             return done.toCompletableFuture().get(WAIT_TIMEOUT, TimeUnit.SECONDS);
         } catch (final InterruptedException | ExecutionException | TimeoutException e) {

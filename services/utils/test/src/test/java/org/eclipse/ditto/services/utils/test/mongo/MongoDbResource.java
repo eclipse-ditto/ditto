@@ -19,6 +19,8 @@ import java.net.URI;
 import java.util.Optional;
 import java.util.function.Supplier;
 
+import javax.annotation.Nullable;
+
 import org.junit.Assume;
 import org.junit.rules.ExternalResource;
 import org.slf4j.Logger;
@@ -27,17 +29,14 @@ import de.flapdoodle.embed.mongo.Command;
 import de.flapdoodle.embed.mongo.MongodExecutable;
 import de.flapdoodle.embed.mongo.MongodProcess;
 import de.flapdoodle.embed.mongo.MongodStarter;
-import de.flapdoodle.embed.mongo.config.DownloadConfigBuilder;
-import de.flapdoodle.embed.mongo.config.ExtractedArtifactStoreBuilder;
-import de.flapdoodle.embed.mongo.config.MongoCmdOptionsBuilder;
-import de.flapdoodle.embed.mongo.config.MongodConfigBuilder;
+import de.flapdoodle.embed.mongo.config.Defaults;
+import de.flapdoodle.embed.mongo.config.MongoCmdOptions;
+import de.flapdoodle.embed.mongo.config.MongodConfig;
 import de.flapdoodle.embed.mongo.config.Net;
-import de.flapdoodle.embed.mongo.config.RuntimeConfigBuilder;
 import de.flapdoodle.embed.mongo.distribution.Version;
 import de.flapdoodle.embed.process.config.io.ProcessOutput;
 import de.flapdoodle.embed.process.config.store.HttpProxyFactory;
-import de.flapdoodle.embed.process.config.store.IProxyFactory;
-import de.flapdoodle.embed.process.config.store.NoProxyFactory;
+import de.flapdoodle.embed.process.config.store.ImmutableDownloadConfig;
 import de.flapdoodle.embed.process.io.progress.StandardConsoleProgressListener;
 
 /**
@@ -116,10 +115,10 @@ public final class MongoDbResource extends ExternalResource {
         final Optional<String> proxyUppercase = Optional.ofNullable(System.getenv(HTTP_PROXY_ENV_KEY));
         final Optional<String> proxyLowercase = Optional.ofNullable(System.getenv(HTTP_PROXY_ENV_KEY.toLowerCase()));
         final Optional<String> httpProxy = proxyUppercase.isPresent() ? proxyUppercase : proxyLowercase;
-        final IProxyFactory proxyFactory = httpProxy
+        @Nullable final HttpProxyFactory proxyFactory = httpProxy
                 .map(URI::create)
-                .map(proxyURI -> (IProxyFactory) new HttpProxyFactory(proxyURI.getHost(), proxyURI.getPort()))
-                .orElse(new NoProxyFactory());
+                .map(proxyURI -> new HttpProxyFactory(proxyURI.getHost(), proxyURI.getPort()))
+                .orElse(null);
 
         final int mongoDbPort = defaultPort != null
                 ? defaultPort
@@ -176,7 +175,7 @@ public final class MongoDbResource extends ExternalResource {
 
     private static MongodExecutable tryToConfigureMongoDb(final String bindIp,
             final int mongoDbPort,
-            final IProxyFactory proxyFactory,
+            @Nullable final HttpProxyFactory proxyFactory,
             final Logger logger) {
 
         try {
@@ -188,7 +187,7 @@ public final class MongoDbResource extends ExternalResource {
 
     private static MongodExecutable configureMongoDb(final String bindIp,
             final int mongoDbPort,
-            final IProxyFactory proxyFactory,
+            @Nullable final HttpProxyFactory proxyFactory,
             final Logger logger) throws IOException {
 
         final Command command = Command.MongoD;
@@ -200,23 +199,23 @@ public final class MongoDbResource extends ExternalResource {
             processOutput = ProcessOutput.getDefaultInstanceSilent();
         }
 
-        final MongodStarter mongodStarter = MongodStarter.getInstance(new RuntimeConfigBuilder()
-                .defaults(command)
+        final ImmutableDownloadConfig.Builder downloadConfigBuilder =
+                Defaults.downloadConfigFor(command).progressListener(new StandardConsoleProgressListener());
+        if (proxyFactory != null) {
+            downloadConfigBuilder.proxyFactory(proxyFactory);
+        }
+
+        final MongodStarter mongodStarter = MongodStarter.getInstance(Defaults.runtimeConfigFor(command)
                 .processOutput(processOutput)
-                .artifactStore(new ExtractedArtifactStoreBuilder()
-                        .defaults(command)
-                        .download(new DownloadConfigBuilder()
-                                .defaultsForCommand(command)
-                                .proxyFactory(proxyFactory)
-                                .progressListener(new StandardConsoleProgressListener())
-                                .build()))
+                .artifactStore(Defaults.extractedArtifactStoreFor(command)
+                        .withDownloadConfig(downloadConfigBuilder.build()))
                 .build());
 
-        return mongodStarter.prepare(new MongodConfigBuilder()
+        return mongodStarter.prepare(MongodConfig.builder()
                 .net(new Net(bindIp, mongoDbPort, false))
                 .version(Version.Main.V3_6)
-                .cmdOptions(new MongoCmdOptionsBuilder()
-                        .useStorageEngine("wiredTiger")
+                .cmdOptions(MongoCmdOptions.builder()
+                        .storageEngine("wiredTiger")
                         .useNoJournal(false)
                         .build())
                 .build());

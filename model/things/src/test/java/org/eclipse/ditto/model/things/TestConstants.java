@@ -93,6 +93,17 @@ public final class TestConstants {
         /**
          * A known Feature which is required for time travel.
          */
+        public static final org.eclipse.ditto.model.things.Feature FLUX_CAPACITOR_V2 =
+                org.eclipse.ditto.model.things.Feature.newBuilder()
+                        .properties(FLUX_CAPACITOR_PROPERTIES)
+                        .desiredProperties(FLUX_CAPACITOR_PROPERTIES)
+                        .definition(FLUX_CAPACITOR_DEFINITION)
+                        .withId(FLUX_CAPACITOR_ID)
+                        .build();
+
+        /**
+         * A known Feature for API V1.
+         */
         public static final org.eclipse.ditto.model.things.Feature FLUX_CAPACITOR =
                 org.eclipse.ditto.model.things.Feature.newBuilder()
                         .properties(FLUX_CAPACITOR_PROPERTIES)
@@ -104,6 +115,11 @@ public final class TestConstants {
          * Known features of a Thing.
          */
         public static final Features FEATURES = ThingsModelFactory.newFeatures(Feature.FLUX_CAPACITOR);
+
+        /**
+         * Known features of a Thing for API v!.
+         */
+        public static final Features FEATURES_V2 = ThingsModelFactory.newFeatures(Feature.FLUX_CAPACITOR_V2);
 
         private Feature() {
             throw new AssertionError();
@@ -175,6 +191,8 @@ public final class TestConstants {
 
         public static final Instant MODIFIED = Instant.EPOCH;
 
+        public static final Instant CREATED = Instant.EPOCH;
+
         /**
          * A known Thing for testing in V1.
          */
@@ -186,6 +204,7 @@ public final class TestConstants {
                 .setId(THING_ID)
                 .setRevision(REVISION_NUMBER)
                 .setModified(MODIFIED)
+                .setCreated(CREATED)
                 .build();
 
         /**
@@ -194,17 +213,36 @@ public final class TestConstants {
         public static final org.eclipse.ditto.model.things.Thing THING_V2 = ThingsModelFactory.newThingBuilder()
                 .setAttributes(ATTRIBUTES)
                 .setDefinition(DEFINITION)
-                .setFeatures(Feature.FEATURES)
+                .setFeatures(Feature.FEATURES_V2)
                 .setLifecycle(LIFECYCLE)
                 .setPolicyId(POLICY_ID)
                 .setId(THING_ID)
                 .setRevision(REVISION_NUMBER)
                 .setModified(MODIFIED)
+                .setCreated(CREATED)
                 .build();
 
         private Thing() {
             throw new AssertionError();
         }
+    }
+
+    /**
+     * Metadata-related test constants.
+     */
+    public static final class Metadata {
+
+        private Metadata() {
+            throw new AssertionError();
+        }
+
+        /**
+         * Known Metadata of a Thing.
+         */
+        public static final org.eclipse.ditto.model.base.entity.metadata.Metadata METADATA =
+                ThingsModelFactory.newMetadataBuilder()
+                        .set("issuedAt", 0L)
+                        .build();
     }
 
 }

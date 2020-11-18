@@ -14,75 +14,70 @@ package org.eclipse.ditto.signals.commands.things.acks;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.Set;
-import java.util.function.UnaryOperator;
-
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.acks.AbstractCommandAckRequestSetter;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 
 /**
- * This UnaryOperator accepts a Command and checks whether its DittoHeaders should be extended by an
+ * This UnaryOperator accepts a ThingModifyCommand and checks whether its DittoHeaders should be extended by an
  * {@link AcknowledgementRequest} for {@link DittoAcknowledgementLabel#TWIN_PERSISTED}.
+ * <p>
  * If so, the result is a new command with extended headers, else the same command is returned.
- * The headers are only extended if the command is an instance of {@link ThingModifyCommand} if
- * {@link DittoHeaders#isResponseRequired()} evaluates to {@code true} and if command headers do not yet contain
- * acknowledgement requests.
+ * </p>
  *
  * @since 1.1.0
  */
 @Immutable
-public final class ThingModifyCommandAckRequestSetter implements UnaryOperator<Command<?>> {
+public final class ThingModifyCommandAckRequestSetter extends AbstractCommandAckRequestSetter<ThingModifyCommand<?>> {
+
+    private static final ThingModifyCommandAckRequestSetter INSTANCE = new ThingModifyCommandAckRequestSetter();
 
     private ThingModifyCommandAckRequestSetter() {
-        super();
+        super(DittoAcknowledgementLabel.TWIN_PERSISTED);
     }
 
     /**
-     * Returns an instance of {@code CommandAckLabelSetter}.
+     * Returns an instance of {@code ThingModifyCommandAckRequestSetter}.
      *
      * @return the instance.
      */
     public static ThingModifyCommandAckRequestSetter getInstance() {
-        return new ThingModifyCommandAckRequestSetter();
+        return INSTANCE;
     }
 
-    @Override
+    /**
+     * @param command the command that will be checked for adding an {@link AcknowledgementRequest}
+     * for {@link DittoAcknowledgementLabel#TWIN_PERSISTED}.
+     * @return the command with the correct headers.
+     * @deprecated as of 1.2.0: use {@link AbstractCommandAckRequestSetter#apply} instead.
+     */
+    @Deprecated
     public Command<?> apply(final Command<?> command) {
         Command<?> result = checkNotNull(command, "command");
-        if (isThingModifyCommand(command) && isResponseRequired(command)) {
-            result = requestDittoPersistedAckIfNoOtherAcksAreRequested(command);
+        if (command instanceof ThingModifyCommand) {
+            result = apply((ThingModifyCommand<?>) command);
         }
         return result;
     }
 
-    private static boolean isThingModifyCommand(final Command<?> command) {
-        return ThingModifyCommand.class.isAssignableFrom(command.getClass());
+    @Override
+    public boolean isApplicable(final ThingModifyCommand<?> command) {
+        checkNotNull(command, "command");
+        return !isLiveChannelCommand(command);
     }
 
-    private static boolean isResponseRequired(final WithDittoHeaders<?> command) {
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        return dittoHeaders.isResponseRequired();
+    @Override
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public Class<ThingModifyCommand<?>> getMatchedClass() {
+        return (Class) ThingModifyCommand.class;
     }
 
-    private static Command<?> requestDittoPersistedAckIfNoOtherAcksAreRequested(final Command<?> command) {
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final Set<AcknowledgementRequest> acknowledgementRequests = dittoHeaders.getAcknowledgementRequests();
-        final boolean requestedAcksHeaderPresent =
-                dittoHeaders.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey());
-        if (acknowledgementRequests.isEmpty() && !requestedAcksHeaderPresent) {
-            acknowledgementRequests.add(AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED));
-            return command.setDittoHeaders(DittoHeaders.newBuilder(dittoHeaders)
-                    .acknowledgementRequests(acknowledgementRequests)
-                    .build());
-        }
-        return command;
+    @Override
+    protected boolean isBindResponseRequiredToAddingRemovingImplicitLabel() {
+        return false;
     }
-
 }

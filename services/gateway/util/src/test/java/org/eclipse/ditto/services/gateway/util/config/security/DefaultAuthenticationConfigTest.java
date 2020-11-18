@@ -46,7 +46,7 @@ public final class DefaultAuthenticationConfigTest {
     public void assertImmutability() {
         assertInstancesOf(DefaultAuthenticationConfig.class,
                 areImmutable(),
-                provided(HttpProxyConfig.class, DefaultOAuthConfig.class).areAlsoImmutable());
+                provided(HttpProxyConfig.class, DefaultOAuthConfig.class, DefaultDevOpsConfig.class).areAlsoImmutable());
     }
 
     @Test

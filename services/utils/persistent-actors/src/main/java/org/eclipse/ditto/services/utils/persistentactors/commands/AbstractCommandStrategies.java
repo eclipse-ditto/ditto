@@ -14,15 +14,14 @@ package org.eclipse.ditto.services.utils.persistentactors.commands;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.base.Command;
-
-import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * This <em>Singleton</em> delegates a {@code Command} to a dedicated strategy - if one is available - to be handled.
@@ -66,9 +65,8 @@ public abstract class AbstractCommandStrategies<C extends Command, S, K, R exten
 
     @Override
     public R unhandled(final Context<K> context, @Nullable final S entity, final long nextRevision, final C command) {
-        final DiagnosticLoggingAdapter log = context.getLog();
-        LogUtil.enhanceLogWithCorrelationId(log, command);
-        log.info("Command <{}> cannot be handled by this strategy.", command);
+        context.getLog().withCorrelationId(command)
+                .info("Command <{}> cannot be handled by this strategy.", command);
         return getEmptyResult();
     }
 
@@ -83,14 +81,19 @@ public abstract class AbstractCommandStrategies<C extends Command, S, K, R exten
     }
 
     @Override
-    protected R doApply(final Context<K> context, @Nullable final S entity, final long nextRevision, final C command) {
+    protected Optional<Metadata> calculateRelativeMetadata(@Nullable final S entity, final C command) {
+        return Optional.empty();
+    }
+
+    @Override
+    protected R doApply(final Context<K> context, @Nullable final S entity, final long nextRevision, final C command,
+            @Nullable final Metadata metadata) {
 
         final CommandStrategy<C, S, K, R> commandStrategy = getAppropriateStrategy(command.getClass());
 
         if (commandStrategy != null) {
-            final DiagnosticLoggingAdapter log = context.getLog();
-            LogUtil.enhanceLogWithCorrelationId(log, command);
-            log.debug("Applying command <{}>", command);
+            context.getLog().withCorrelationId(command)
+                    .debug("Applying command <{}>", command);
             return commandStrategy.apply(context, entity, nextRevision, command);
         } else {
             // this may happen when subclasses override the "isDefined" condition.

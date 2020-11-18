@@ -17,6 +17,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -44,15 +45,19 @@ final class DeleteFeatureStrategy extends AbstractThingCommandStrategy<DeleteFea
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
-            final long nextRevision, final DeleteFeature command) {
+    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final DeleteFeature command,
+            @Nullable final Metadata metadata) {
+
         final String featureId = command.getFeatureId();
 
         return extractFeature(command, thing)
-                .map(feature -> getDeleteFeatureResult(context, nextRevision, command, thing))
+                .map(feature -> getDeleteFeatureResult(context, nextRevision, command, thing, metadata))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureNotFound(context.getState(), featureId,
-                                command.getDittoHeaders())));
+                                command.getDittoHeaders()), command));
     }
 
     private Optional<Feature> extractFeature(final DeleteFeature command, @Nullable final Thing thing) {
@@ -63,13 +68,14 @@ final class DeleteFeatureStrategy extends AbstractThingCommandStrategy<DeleteFea
     }
 
     private Result<ThingEvent> getDeleteFeatureResult(final Context<ThingId> context, final long nextRevision,
-            final DeleteFeature command, @Nullable final Thing thing) {
+            final DeleteFeature command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
+
         final ThingId thingId = context.getState();
         final String featureId = command.getFeatureId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final ThingEvent event =
-                FeatureDeleted.of(thingId, featureId, nextRevision, getEventTimestamp(), dittoHeaders);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+        final ThingEvent<?> event =
+                FeatureDeleted.of(thingId, featureId, nextRevision, getEventTimestamp(), dittoHeaders, metadata);
+        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
                 DeleteFeatureResponse.of(thingId, featureId, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command, event, response);

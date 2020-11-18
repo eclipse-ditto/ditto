@@ -34,7 +34,7 @@ messages to Things and receive messages from Things.
 |---------|--------------------------------|---------------------------|
 | Things management             | ✓     | ✓ |
 | Features management           | ✓     | ✓ |
-| Search Things                 | no    | ✓ |
+| Search Things                 | ✓     | ✓ |
 | Count Things                  | no    | ✓ |
 | Messages                      | ✓     | ✓ |
 | Change notifications          | ✓     | ✓ (SSEs) |

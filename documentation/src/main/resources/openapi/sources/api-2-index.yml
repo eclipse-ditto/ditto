@@ -1,0 +1,263 @@
+# Copyright (c) 2017 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+openapi: 3.0.0
+info:
+  title: Eclipse Ditto HTTP API
+  version: "2"
+  description: |-
+    JSON-based, REST-like API for Eclipse Ditto
+
+    The Eclipse Ditto HTTP API uses response status codes (see [RFC 7231](https://tools.ietf.org/html/rfc7231#section-6))
+    to indicate whether a specific request has been successfully completed, or not.
+
+    However, the descriptions we provide additionally to the status code (e.g. in our API docs, or error codes like. "things.entitiy.tooLarge") might change without advance notice. These are not be considered as official API, and must therefore not be applied in your applications or tests.
+
+servers:
+  - url: https://ditto.eclipse.org/api/2
+    description: "online Ditto Sandbox"
+  - url: /api/2
+    description: "local Ditto"
+
+tags:
+  - name: Things
+    description: Manage every thing
+  - name: Features
+    description: Structure the features of your things
+  - name: Policies
+    description: Control access to your things
+  - name: Things-Search
+    description: Find every thing
+  - name: Messages
+    description: Talk with your things
+
+security:
+  #  - Google:
+  #    - openid
+  - basicAuth: [ ]
+  - bearerAuth: [ ]
+
+paths:
+
+  ###
+  ### Things
+  ###
+  /things:
+    $ref: "./paths/things/index.yml"
+  '/things/{thingId}':
+    $ref: "./paths/things/thing.yml"
+  '/things/{thingId}/definition':
+    $ref: "./paths/things/definition.yml"
+  '/things/{thingId}/policyId':
+    $ref: "./paths/things/policyid.yml"
+  '/things/{thingId}/attributes':
+    $ref: "./paths/things/attributes.yml"
+  '/things/{thingId}/attributes/{attributePath}':
+    $ref: "./paths/things/attribute.yml"
+
+  ###
+  ### Features
+  ###
+  '/things/{thingId}/features':
+    $ref: "./paths/features/index.yml"
+  '/things/{thingId}/features/{featureId}':
+    $ref: "./paths/features/feature.yml"
+  '/things/{thingId}/features/{featureId}/definition':
+    $ref: "./paths/features/definition.yml"
+  '/things/{thingId}/features/{featureId}/properties':
+    $ref: "./paths/features/properties.yml"
+  '/things/{thingId}/features/{featureId}/properties/{propertyPath}':
+    $ref: "./paths/features/property.yml"
+  '/things/{thingId}/features/{featureId}/desiredProperties':
+    $ref: "./paths/features/desiredProperties.yml"
+  '/things/{thingId}/features/{featureId}/desiredProperties/{propertyPath}':
+    $ref: "./paths/features/desiredProperty.yml"
+
+  ###
+  ### Messages
+  ###
+  '/things/{thingId}/inbox/claim':
+    $ref: "./paths/messages/inbox-claim.yml"
+  '/things/{thingId}/inbox/messages/{messageSubject}':
+    $ref: "./paths/messages/inbox-message.yml"
+  '/things/{thingId}/outbox/messages/{messageSubject}':
+    $ref: "./paths/messages/outbox-message.yml"
+  '/things/{thingId}/features/{featureId}/inbox/messages/{messageSubject}':
+    $ref: "./paths/messages/feature-inbox-message.yml"
+  '/things/{thingId}/features/{featureId}/outbox/messages/{messageSubject}':
+    $ref: "./paths/messages/feature-outbox-message.yml"
+
+  ###
+  ### Policies
+  ###
+  '/policies/{policyId}':
+    $ref: "./paths/policies/policy.yml"
+  '/policies/{policyId}/entries':
+    $ref: "./paths/policies/entries.yml"
+  '/policies/{policyId}/entries/{label}':
+    $ref: "./paths/policies/entry.yml"
+  '/policies/{policyId}/entries/{label}/subjects':
+    $ref: "./paths/policies/subjects.yml"
+  '/policies/{policyId}/entries/{label}/subjects/{subjectId}':
+    $ref: "./paths/policies/subject.yml"
+  '/policies/{policyId}/entries/{label}/resources':
+    $ref: "./paths/policies/resources.yml"
+  '/policies/{policyId}/entries/{label}/resources/{resourcePath}':
+    $ref: "./paths/policies/resource.yml"
+
+  ###
+  ### Who Am I
+  ###
+  '/whoami':
+    $ref: "./paths/whoami/index.yml"
+
+  ###
+  ### Things-Search
+  ###
+  /search/things:
+    $ref: "./paths/search/things.yml"
+  /search/things/count:
+    $ref: "./paths/search/things-count.yml"
+
+components:
+
+  responses:
+    EntityTooLarge:
+      $ref: "./responses/entityTooLarge.yml"
+    MessageTimeout:
+      $ref: "./responses/messageTimeout.yml"
+    MessageTooLarge:
+      $ref: "./responses/messageTooLarge.yml"
+    NotModified:
+      $ref: "./responses/notModified.yml"
+    PreconditionFailed:
+      $ref: "./responses/preconditionFailed.yml"
+
+  parameters:
+    AllowPolicyLockoutParam:
+      $ref: "./parameters/allowPolicyLockoutParam.yml"
+    AttributesPathPathParam:
+      $ref: "./parameters/attributePathPathParam.yml"
+    AttributesFieldsQueryParam:
+      $ref: "./parameters/attributesFieldsQueryParam.yml"
+    DesiredPropertiesFieldsQueryParam:
+      $ref: "./parameters/desiredPropertiesFieldsQueryParam.yml"
+    FeatureFieldsQueryParam:
+      $ref: "./parameters/featureFieldsQueryParam.yml"
+    FeatureIdPathPathParam:
+      $ref: "./parameters/featureIdPathPathParam.yml"
+    FeaturesFieldsQueryParam:
+      $ref: "./parameters/featuresFieldsQueryParam.yml"
+    IfMatchHeaderParam:
+      $ref: "./parameters/ifMatchHeaderParam.yml"
+    IfMatchHeaderParamHash:
+      $ref: "./parameters/ifMatchHeaderParamHash.yml"
+    IfNoneMatchHeaderParam:
+      $ref: "./parameters/ifNoneMatchHeaderParam.yml"
+    LabelPathParam:
+      $ref: "./parameters/labelPathParam.yml"
+    LiveMessageRequestedAcksParam:
+      $ref: "./parameters/liveMessageRequestedAcksParam.yml"
+    MessageClaimTimeoutParam:
+      $ref: "./parameters/messageClaimTimeoutParam.yml"
+    MessageSubjectPathParam:
+      $ref: "./parameters/messageSubjectPathParam.yml"
+    MessageTimeoutParam:
+      $ref: "./parameters/messageTimeoutParam.yml"
+    NamespacesFilter:
+      $ref: "./parameters/namespacesFilter.yml"
+    PolicyIdPathParam:
+      $ref: "./parameters/policyIdPathParam.yml"
+    PropertiesFieldsQueryParam:
+      $ref: "./parameters/propertiesFieldsQueryParam.yml"
+    PropertyPathPathParam:
+      $ref: "./parameters/propertyPathPathParam.yml"
+    PutMetadataParam:
+      $ref: "./parameters/putMetadataParam.yml"
+    RequestedAcksParam:
+      $ref: "./parameters/requestedAcksParam.yml"
+    ResourcePathPathParam:
+      $ref: "./parameters/resourcePathPathParam.yml"
+    ResponseRequiredParam:
+      $ref: "./parameters/responseRequiredParam.yml"
+    SearchFilter:
+      $ref: "./parameters/searchFilter.yml"
+    SubjectIdPathParam:
+      $ref: "./parameters/subjectIdPathParam.yml"
+    ThingFieldsQueryParam:
+      $ref: "./parameters/thingFieldsQueryParam.yml"
+    ThingIdPathParam:
+      $ref: "./parameters/thingIdPathParam.yml"
+    TimeoutParam:
+      $ref: "./parameters/timeoutParam.yml"
+
+  schemas:
+    Error:
+      $ref: "./schemas/error.yml"
+    AdvancedError:
+      $ref: "./schemas/advancedError.yml"
+    Attributes:
+      $ref: "./schemas/attributes.yml"
+    Definition:
+      $ref: "./schemas/definition.yml"
+    FeatureDefinition:
+      $ref: "./schemas/featureDefinition.yml"
+    FeatureProperties:
+      $ref: "./schemas/featureProperties.yml"
+    FeatureDesiredProperties:
+      $ref: "./schemas/featureDesiredProperties.yml"
+    Feature:
+      $ref: "./schemas/feature.yml"
+    SearchResultThings:
+      $ref: "./schemas/searchResultThings.yml"
+    SearchResultThingsCount:
+      type: integer
+    NewThing:
+      $ref: "./schemas/newThing.yml"
+    Thing:
+      $ref: "./schemas/thing.yml"
+    Policy:
+      $ref: "./schemas/policy.yml"
+    PolicyEntries:
+      $ref: "./schemas/policyEntries.yml"
+    PolicyEntry:
+      $ref: "./schemas/policyEntry.yml"
+    Subjects:
+      $ref: "./schemas/subjects.yml"
+    SubjectEntry:
+      $ref: "./schemas/subjectEntry.yml"
+    Resources:
+      $ref: "./schemas/resources.yml"
+    ResourceEntry:
+      $ref: "./schemas/resourceEntry.yml"
+    ResourceEntryRestricted:
+      $ref: "./schemas/resourceEntryRestricted.yml"
+    Permission:
+      $ref: "./schemas/permission.yml"
+    Features:
+      $ref: "./schemas/features.yml"
+    WhoAmI:
+      $ref: "./schemas/whoami.yml"
+    WhoAmISubject:
+      $ref: "./schemas/whoamiSubject.yml"
+
+  securitySchemes:
+    basicAuth:
+      type: http
+      description: |-
+        Eclipse Ditto sandbox demo user (demo1 ... demo9) + password (demo)
+      scheme: basic
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |-
+        A JSON Web Token issued by a supported OAuth 2.0 Identity Provider, e.g. a Google "id_token"
+

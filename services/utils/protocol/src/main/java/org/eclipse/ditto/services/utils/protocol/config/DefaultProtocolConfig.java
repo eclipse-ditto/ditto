@@ -33,12 +33,12 @@ public final class DefaultProtocolConfig implements ProtocolConfig {
     private static final String CONFIG_PATH = "protocol";
 
     private final String provider;
-    private final Set<String> blacklist;
+    private final Set<String> blocklist;
 
     private DefaultProtocolConfig(final ScopedConfig scopedConfig) {
         provider = scopedConfig.getString(ProtocolConfigValue.PROVIDER.getConfigPath());
-        blacklist = Collections.unmodifiableSet(
-                new HashSet<>(scopedConfig.getStringList(ProtocolConfigValue.BLACKLIST.getConfigPath())));
+        blocklist = Collections.unmodifiableSet(
+                new HashSet<>(scopedConfig.getStringList(ProtocolConfigValue.BLOCKLIST.getConfigPath())));
     }
 
     /**
@@ -59,8 +59,8 @@ public final class DefaultProtocolConfig implements ProtocolConfig {
     }
 
     @Override
-    public Set<String> getBlacklistedHeaderKeys() {
-        return blacklist;
+    public Set<String> getBlockedHeaderKeys() {
+        return blocklist;
     }
 
     @Override
@@ -73,19 +73,19 @@ public final class DefaultProtocolConfig implements ProtocolConfig {
         }
         final DefaultProtocolConfig that = (DefaultProtocolConfig) o;
         return provider.equals(that.provider) &&
-                blacklist.equals(that.blacklist);
+                blocklist.equals(that.blocklist);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(provider, blacklist);
+        return Objects.hash(provider, blocklist);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "provider=" + provider +
-                ", blacklist=" + blacklist +
+                ", blocklist=" + blocklist +
                 "]";
     }
 

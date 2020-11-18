@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -51,9 +52,8 @@ import org.eclipse.ditto.services.gateway.endpoints.utils.EventSniffer;
 import org.eclipse.ditto.services.gateway.endpoints.utils.GatewaySignalEnrichmentProvider;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
-import org.eclipse.ditto.services.gateway.streaming.StreamingSessionIdentifier;
-import org.eclipse.ditto.services.gateway.streaming.actors.EventAndResponsePublisher;
 import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
+import org.eclipse.ditto.services.gateway.streaming.actors.SupervisedStream;
 import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
@@ -76,6 +76,9 @@ import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.http.javadsl.server.directives.RouteDirectives;
 import akka.japi.pf.PFBuilder;
+import akka.pattern.Patterns;
+import akka.stream.KillSwitch;
+import akka.stream.KillSwitches;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
 import scala.PartialFunction;
@@ -101,6 +104,11 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
 
     private static final Counter THINGS_SSE_COUNTER = getCounterFor(PATH_THINGS);
     private static final Counter SEARCH_SSE_COUNTER = getCounterFor(PATH_SEARCH);
+
+    /**
+     * Timeout asking the local streaming actor.
+     */
+    private static final Duration LOCAL_ASK_TIMEOUT = Duration.ofSeconds(5L);
 
     private final ActorRef streamingActor;
     private final StreamingConfig streamingConfig;
@@ -235,36 +243,30 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
         final SignalEnrichmentFacade facade =
                 signalEnrichmentProvider == null ? null : signalEnrichmentProvider.getFacade(ctx.getRequest());
 
-        final CompletionStage<Source<ServerSentEvent, NotUsed>> sseSourceStage =
-                dittoHeadersStage.thenApply(dittoHeaders -> {
-
-                    sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders);
-
+        final CompletionStage<Source<ServerSentEvent, NotUsed>> sseSourceStage = dittoHeadersStage.thenCompose(
+                dittoHeaders -> sseAuthorizationEnforcer.checkAuthorization(ctx, dittoHeaders).thenApply(_void -> {
                     if (filterString != null) {
                         // will throw an InvalidRqlExpressionException if the RQL expression was not valid:
                         queryFilterCriteriaFactory.filterCriteria(filterString, dittoHeaders);
                     }
 
-                    final Source<SessionedJsonifiable, ActorRef> publisherSource =
-                            Source.actorPublisher(EventAndResponsePublisher.props(10));
+                    final Source<SessionedJsonifiable, SupervisedStream.WithQueue> publisherSource =
+                            SupervisedStream.sourceQueue(10);
 
-                    return publisherSource.mapMaterializedValue(
-                            publisherActor -> {
-                                final String requestCorrelationId = dittoHeaders.getCorrelationId()
+                    return publisherSource.viaMat(KillSwitches.single(), Keep.both())
+                            .mapMaterializedValue(pair -> {
+                                final SupervisedStream.WithQueue withQueue = pair.first();
+                                final KillSwitch killSwitch = pair.second();
+                                final String connectionCorrelationId = dittoHeaders.getCorrelationId()
                                         .orElseThrow(() -> new IllegalStateException(
                                                 "Expected correlation-id in SSE DittoHeaders: " + dittoHeaders));
 
-                                final CharSequence connectionCorrelationId = StreamingSessionIdentifier.of(
-                                        requestCorrelationId, UUID.randomUUID().toString());
-
                                 final JsonSchemaVersion jsonSchemaVersion = dittoHeaders.getSchemaVersion()
                                         .orElse(JsonSchemaVersion.LATEST);
-                                sseConnectionSupervisor.supervise(publisherActor, connectionCorrelationId,
-                                        dittoHeaders);
-                                streamingActor.tell(
-                                        new Connect(publisherActor, connectionCorrelationId, STREAMING_TYPE_SSE,
-                                                jsonSchemaVersion, null),
-                                        null);
+                                sseConnectionSupervisor.supervise(withQueue.getSupervisedStream(),
+                                        connectionCorrelationId, dittoHeaders);
+                                final Connect connect = new Connect(withQueue.getSourceQueue(), connectionCorrelationId,
+                                        STREAMING_TYPE_SSE, jsonSchemaVersion, null, Set.of());
                                 final StartStreaming startStreaming =
                                         StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
                                                 dittoHeaders.getAuthorizationContext())
@@ -272,7 +274,14 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                                 .withFilter(filterString)
                                                 .withExtraFields(extraFields)
                                                 .build();
-                                streamingActor.tell(startStreaming, null);
+                                Patterns.ask(streamingActor, connect, LOCAL_ASK_TIMEOUT)
+                                        .thenApply(ActorRef.class::cast)
+                                        .thenAccept(streamingSessionActor ->
+                                                streamingSessionActor.tell(startStreaming, ActorRef.noSender()))
+                                        .exceptionally(e -> {
+                                            killSwitch.abort(e);
+                                            return null;
+                                        });
                                 return NotUsed.getInstance();
                             })
                             .mapAsync(streamingConfig.getParallelism(), jsonifiable ->
@@ -286,7 +295,8 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                             // sniffer shouldn't sniff heartbeats
                             .viaMat(eventSniffer.toAsyncFlow(ctx.getRequest()), Keep.none())
                             .keepAlive(Duration.ofSeconds(1), ServerSentEvent::heartbeat);
-                });
+                })
+        );
 
         return completeOKWithFuture(sseSourceStage, EventStreamMarshalling.toEventStream());
     }
@@ -445,8 +455,9 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     private static final class NoOpSseAuthorizationEnforcer implements SseAuthorizationEnforcer {
 
         @Override
-        public void checkAuthorization(final RequestContext requestContext, final DittoHeaders dittoHeaders) {
-            // Does nothing.
+        public CompletionStage<Void> checkAuthorization(final RequestContext requestContext,
+                final DittoHeaders dittoHeaders) {
+            return CompletableFuture.completedStage(null);
         }
 
     }
@@ -457,7 +468,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
     private static final class NoOpSseConnectionSupervisor implements SseConnectionSupervisor {
 
         @Override
-        public void supervise(final ActorRef sseConnectionActor, final CharSequence connectionCorrelationId,
+        public void supervise(final SupervisedStream supervisedStream, final CharSequence connectionCorrelationId,
                 final DittoHeaders dittoHeaders) {
 
             // Does nothing.

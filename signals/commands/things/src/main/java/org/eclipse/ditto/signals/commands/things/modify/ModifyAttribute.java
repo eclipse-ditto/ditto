@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.AttributesModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -73,8 +74,8 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
 
         super(TYPE, dittoHeaders);
         this.thingId = thingId;
-        this.attributePointer = checkAttributePointer(attributePointer, dittoHeaders);
-        this.attributeValue = checkNotNull(attributeValue, "new attribute");
+        this.attributePointer = checkAttributePointer(checkNotNull(attributePointer, "attributePointer"), dittoHeaders);
+        this.attributeValue = checkAttributeValue(checkNotNull(attributeValue, "attributeValue"));
 
         ThingCommandSizeValidator.getInstance().ensureValidSize(
                 attributeValue::getUpperBoundForStringSize,
@@ -83,13 +84,19 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
     }
 
     private static JsonPointer checkAttributePointer(final JsonPointer pointer, final DittoHeaders dittoHeaders) {
-        checkNotNull(pointer, "key of the attribute to be modified");
         if (pointer.isEmpty()) {
             throw AttributePointerInvalidException.newBuilder(pointer)
                     .dittoHeaders(dittoHeaders)
                     .build();
         }
-        return pointer;
+        return AttributesModelFactory.validateAttributePointer(pointer);
+    }
+
+    private static JsonValue checkAttributeValue(final JsonValue value) {
+        if (value.isObject()) {
+            AttributesModelFactory.validateAttributeKeys(value.asObject());
+        }
+        return value;
     }
 
     /**
@@ -103,8 +110,11 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
      * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
      * {@code attributeJsonPointer} is empty.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributeJsonPointer} are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.json.JsonValue, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.json.JsonPointer,
+     * org.eclipse.ditto.json.JsonValue, org.eclipse.ditto.model.base.headers.DittoHeaders)}
      * instead.
      */
     @Deprecated
@@ -127,6 +137,8 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
      * @throws NullPointerException if any argument but {@code thingId} is {@code null}.
      * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
      * {@code attributeJsonPointer} is empty.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributeJsonPointer} are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ModifyAttribute of(final ThingId thingId,
             final JsonPointer attributeJsonPointer,
@@ -150,6 +162,8 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
      * org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
      * {@link #JSON_ATTRIBUTE} contains an empty pointer.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of attribute pointer are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ModifyAttribute fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
@@ -168,6 +182,8 @@ public final class ModifyAttribute extends AbstractCommand<ModifyAttribute>
      * {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#ID_REGEX}.
      * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
      * {@link #JSON_ATTRIBUTE} contains an empty pointer.
+     * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of attribute pointer are not valid
+     * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ModifyAttribute fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ModifyAttribute>(TYPE, jsonObject).deserialize(() -> {

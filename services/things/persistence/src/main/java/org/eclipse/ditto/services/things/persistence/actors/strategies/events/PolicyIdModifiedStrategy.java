@@ -23,6 +23,10 @@ import org.eclipse.ditto.signals.events.things.PolicyIdModified;
 @Immutable
 final class PolicyIdModifiedStrategy extends AbstractThingEventStrategy<PolicyIdModified> {
 
+    protected PolicyIdModifiedStrategy() {
+        super();
+    }
+
     @Override
     protected ThingBuilder.FromCopy applyEvent(final PolicyIdModified event, final ThingBuilder.FromCopy thingBuilder) {
         return thingBuilder.setPolicyId(event.getPolicyEntityId());

@@ -124,7 +124,7 @@ public final class ThingAcknowledgementJsonParserTest {
 
         assertThatExceptionOfType(JsonParseException.class)
                 .isThrownBy(() -> underTest.apply(jsonRepresentation))
-                .withMessage("Acknowledgement label <%s> is invalid!", invalidLabel,
+                .withMessage("Acknowledgement label <%s> is invalid.", invalidLabel,
                         labelFieldDefinition.getPointer())
                 .withCauseInstanceOf(AcknowledgementLabelInvalidException.class);
     }

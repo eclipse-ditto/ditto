@@ -12,8 +12,10 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.KNOWN_DOMAIN;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.UNKNOWN_PATH;
+import static org.mockito.Mockito.doAnswer;
 
 import java.text.MessageFormat;
 import java.util.Arrays;
@@ -25,6 +27,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
@@ -34,6 +37,9 @@ import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevOpsBasicAuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
@@ -56,14 +62,13 @@ import org.eclipse.ditto.services.gateway.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.signals.commands.base.CommandHeaderInvalidException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayDuplicateHeaderException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import com.typesafe.config.Config;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -74,6 +79,8 @@ import akka.http.javadsl.model.headers.RawHeader;
 import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.TestRoute;
 import akka.http.javadsl.testkit.TestRouteResult;
+import akka.stream.Materializer;
+import akka.stream.SystemMaterializer;
 
 /**
  * Tests {@link RootRoute}.
@@ -105,10 +112,6 @@ public final class RootRouteTest extends EndpointTestBase {
             THINGS_1_PATH + "?" + ThingsParameter.IDS + "=namespace:bumlux";
     private static final String WS_2_PATH = ROOT_PATH + RootRoute.WS_PATH_PREFIX + "/" + JsonSchemaVersion.V_2.toInt();
 
-    private static final String PATH_WITH_INVALID_ENCODING = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
-            JsonSchemaVersion.V_1.toInt() + "/" + ThingsRoute.PATH_THINGS +
-            "/:bumlux/features?fields=feature-1%2properties";
-
     private static final String HTTPS = "https";
 
     private final Executor messageDispatcher;
@@ -125,12 +128,14 @@ public final class RootRouteTest extends EndpointTestBase {
     @Before
     public void setUp() {
         final ActorSystem actorSystem = system();
-        final Config config = actorSystem.settings().config();
+        final Materializer materializer = SystemMaterializer.get(system()).materializer();
         final ProtocolAdapterProvider protocolAdapterProvider =
                 ProtocolAdapterProvider.load(protocolConfig, actorSystem);
         final HeaderTranslator headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
+        doAnswer(invocation -> system()).when(httpClientFacade).getActorSystem();
         final JwtAuthenticationFactory jwtAuthenticationFactory =
-                JwtAuthenticationFactory.newInstance(authConfig.getOAuthConfig(), cacheConfig, httpClientFacade);
+                JwtAuthenticationFactory.newInstance(authConfig.getOAuthConfig(), cacheConfig, httpClientFacade,
+                        authorizationSubjectsProviderFactory);
         final GatewayAuthenticationDirectiveFactory authenticationDirectiveFactory =
                 new DittoGatewayAuthenticationDirectiveFactory(authConfig, jwtAuthenticationFactory, messageDispatcher);
 
@@ -140,15 +145,21 @@ public final class RootRouteTest extends EndpointTestBase {
         final StatusAndHealthProvider statusAndHealthProvider =
                 DittoStatusAndHealthProviderFactory.of(actorSystem, clusterStatusSupplier, healthCheckConfig);
         final DevOpsConfig devOpsConfig = authConfig.getDevOpsConfig();
+        final DevopsAuthenticationDirectiveFactory devopsAuthenticationDirectiveFactory =
+                DevopsAuthenticationDirectiveFactory.newInstance(jwtAuthenticationFactory, devOpsConfig);
+        final DevopsAuthenticationDirective devOpsAuthenticationDirective =
+                devopsAuthenticationDirectiveFactory.devops();
+        final DevopsAuthenticationDirective statusAuthenticationDirective =
+                devopsAuthenticationDirectiveFactory.status();
         final Route rootRoute = RootRoute.getBuilder(httpConfig)
-                .statsRoute(new StatsRoute(proxyActor, actorSystem, httpConfig, commandConfig, devOpsConfig,
-                        headerTranslator))
+                .statsRoute(new StatsRoute(proxyActor, actorSystem, httpConfig, commandConfig,
+                        headerTranslator, devOpsAuthenticationDirective))
                 .statusRoute(new StatusRoute(clusterStatusSupplier, createHealthCheckingActorMock(), actorSystem))
-                .overallStatusRoute(
-                        new OverallStatusRoute(clusterStatusSupplier, statusAndHealthProvider, devOpsConfig))
+                .overallStatusRoute(new OverallStatusRoute(clusterStatusSupplier, statusAndHealthProvider,
+                        statusAuthenticationDirective))
                 .cachingHealthRoute(new CachingHealthRoute(statusAndHealthProvider, publicHealthConfig))
-                .devopsRoute(new DevOpsRoute(proxyActor, actorSystem, httpConfig, commandConfig, devOpsConfig,
-                        headerTranslator))
+                .devopsRoute(new DevOpsRoute(proxyActor, actorSystem, httpConfig, commandConfig,
+                        headerTranslator, devOpsAuthenticationDirective))
                 .policiesRoute(new PoliciesRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
                 .sseThingsRoute(ThingsSseRouteBuilder.getInstance(proxyActor, streamingConfig, proxyActor))
                 .thingsRoute(new ThingsRoute(proxyActor, actorSystem, httpConfig, commandConfig, messageConfig,
@@ -156,7 +167,7 @@ public final class RootRouteTest extends EndpointTestBase {
                 .thingSearchRoute(
                         new ThingSearchRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
                 .whoamiRoute(new WhoamiRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
-                .websocketRoute(WebSocketRoute.getInstance(proxyActor, streamingConfig))
+                .websocketRoute(WebSocketRoute.getInstance(proxyActor, streamingConfig, materializer))
                 .supportedSchemaVersions(httpConfig.getSupportedSchemaVersions())
                 .protocolAdapterProvider(protocolAdapterProvider)
                 .headerTranslator(headerTranslator)
@@ -184,7 +195,15 @@ public final class RootRouteTest extends EndpointTestBase {
     }
 
     @Test
-    public void getStatusWithAuth() {
+    public void getStatusWithStatusAuth() {
+        final TestRouteResult result =
+                rootTestRoute.run(withHttps(withStatusCredentials(HttpRequest.GET(OVERALL_STATUS_PATH))));
+
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+
+    @Test
+    public void getStatusWithDevopsAuth() {
         final TestRouteResult result =
                 rootTestRoute.run(withHttps(withDevopsCredentials(HttpRequest.GET(OVERALL_STATUS_PATH))));
 
@@ -314,6 +333,28 @@ public final class RootRouteTest extends EndpointTestBase {
     }
 
     @Test
+    public void getThingWithResponseRequiredFalse() {
+        final HttpRequest request = withHttps(withPreAuthenticatedAuthentication(
+                HttpRequest.GET(THINGS_2_PATH + "/org.eclipse.ditto%3Adummy")
+        )).addHeader(akka.http.javadsl.model.HttpHeader.parse("response-required", "false"));
+        final TestRouteResult result = rootTestRoute.run(request);
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+
+        final String headerKey = DittoHeaderDefinition.RESPONSE_REQUIRED.getKey();
+        final CommandHeaderInvalidException expectedException =
+                CommandHeaderInvalidException.newBuilder(headerKey)
+                        .message(MessageFormat.format(
+                                "Query commands must not have the header ''{0}'' set to 'false'", headerKey)
+                        )
+                        .description(MessageFormat.format(
+                                "Set the header ''{0}'' to 'true' instead in order to receive a response to your " +
+                                        "query command.", headerKey))
+                        .build();
+        final JsonObject expectedResponsePayload = expectedException.toJson();
+        result.assertEntity(expectedResponsePayload.toString());
+    }
+
+    @Test
     public void getThingSearchUrl() {
         final HttpRequest request = withHttps(withPreAuthenticatedAuthentication(HttpRequest.GET(THING_SEARCH_2_PATH)));
 
@@ -364,12 +405,6 @@ public final class RootRouteTest extends EndpointTestBase {
         final TestRouteResult result = rootTestRoute.run(HttpRequest.GET(UNKNOWN_PATH));
         result.assertStatusCode(StatusCodes.MOVED_PERMANENTLY);
         result.assertHeaderExists(Location.create(HTTPS + "://" + KNOWN_DOMAIN + UNKNOWN_PATH));
-    }
-
-    @Test
-    public void getWithInvalidEncoding() {
-        final TestRouteResult result = rootTestRoute.run(HttpRequest.GET(PATH_WITH_INVALID_ENCODING));
-        result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
     @Test
@@ -436,6 +471,25 @@ public final class RootRouteTest extends EndpointTestBase {
         final TestRouteResult result = rootTestRoute.run(request);
 
         result.assertStatusCode(StatusCodes.REQUEST_HEADER_FIELDS_TOO_LARGE);
+    }
+
+    /**
+     * Make sure header is RFC 7230 conform
+     */
+    @Test
+    public void getExceptionDueToInvalidHeaderKey() {
+        assertThatExceptionOfType(akka.http.scaladsl.model.IllegalHeaderException.class).isThrownBy(() -> {
+                    akka.http.javadsl.model.HttpHeader.parse("(),/:;<=>?@[\\]{}", "lol");
+                }
+        );
+    }
+
+    @Test
+    public void getExceptionDueToInvalidHeaderValue() {
+        assertThatExceptionOfType(akka.http.scaladsl.model.IllegalHeaderException.class).isThrownBy(() -> {
+                    akka.http.javadsl.model.HttpHeader.parse("x-correlation-id", "\n");
+                }
+        );
     }
 
     private static HttpRequest withHttps(final HttpRequest httpRequest) {

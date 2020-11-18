@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
@@ -43,6 +44,7 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.things.common.config.DefaultThingConfig;
 import org.eclipse.ditto.services.things.common.config.ThingConfig;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.junit.After;
@@ -65,7 +67,7 @@ import akka.testkit.javadsl.TestKit;
 public abstract class PersistenceActorTestBase {
 
     protected static final ThingId THING_ID = ThingId.of("org.eclipse.ditto", "thingId");
-    protected static final String POLICY_ID = "org.eclipse.ditto:policyId";
+    protected static final PolicyId POLICY_ID = PolicyId.of("org.eclipse.ditto:policyId");
     protected static final String AUTH_SUBJECT = "allowedId";
     protected static final AuthorizationSubject AUTHORIZED_SUBJECT =
             AuthorizationModelFactory.newAuthSubject(AUTH_SUBJECT);
@@ -80,8 +82,8 @@ public abstract class PersistenceActorTestBase {
 
     protected static final JsonFieldSelector ALL_FIELDS_SELECTOR = JsonFactory.newFieldSelector(
             Thing.JsonFields.ATTRIBUTES, Thing.JsonFields.ACL,
-            Thing.JsonFields.FEATURES, Thing.JsonFields.ID, Thing.JsonFields.MODIFIED, Thing.JsonFields.REVISION,
-            Thing.JsonFields.POLICY_ID, Thing.JsonFields.LIFECYCLE);
+            Thing.JsonFields.FEATURES, Thing.JsonFields.ID, Thing.JsonFields.MODIFIED, Thing.JsonFields.CREATED,
+            Thing.JsonFields.REVISION, Thing.JsonFields.POLICY_ID, Thing.JsonFields.LIFECYCLE);
 
     private static final FeatureDefinition FEATURE_DEFINITION = FeatureDefinition.fromIdentifier("ns:name:version");
     private static final FeatureProperties FEATURE_PROPERTIES =
@@ -183,7 +185,7 @@ public abstract class PersistenceActorTestBase {
         return actorSystem.actorOf(getPropsOfThingPersistenceActor(thingId, getDistributedPub()));
     }
 
-    private Props getPropsOfThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent> pub) {
+    private Props getPropsOfThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent<?>> pub) {
 
         return ThingPersistenceActor.props(thingId, pub);
     }
@@ -220,12 +222,12 @@ public abstract class PersistenceActorTestBase {
         actorSystem.eventStream().setLogLevel(akka.stream.Attributes.logLevelOff());
     }
 
-    protected DistributedPub<ThingEvent> getDistributedPub() {
+    protected DistributedPub<ThingEvent<?>> getDistributedPub() {
         return new TestPub();
     }
 
     @AllParametersAndReturnValuesAreNonnullByDefault
-    private final class TestPub implements DistributedPub<ThingEvent> {
+    private final class TestPub implements DistributedPub<ThingEvent<?>> {
 
         private TestPub() {}
 
@@ -235,8 +237,14 @@ public abstract class PersistenceActorTestBase {
         }
 
         @Override
-        public Object wrapForPublication(final ThingEvent message) {
+        public Object wrapForPublication(final ThingEvent<?> message) {
             return message;
+        }
+
+        @Override
+        public <S extends ThingEvent<?>> Object wrapForPublicationWithAcks(final S message,
+                final AckExtractor<S> ackExtractor) {
+            return wrapForPublication(message);
         }
     }
 }

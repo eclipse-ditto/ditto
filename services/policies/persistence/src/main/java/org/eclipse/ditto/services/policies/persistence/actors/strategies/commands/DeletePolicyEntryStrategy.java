@@ -18,6 +18,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -43,8 +44,12 @@ final class DeletePolicyEntryStrategy extends AbstractPolicyCommandStrategy<Dele
 
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy policy,
-            final long nextRevision, final DeletePolicyEntry command) {
+    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+            @Nullable final Policy policy,
+            final long nextRevision,
+            final DeletePolicyEntry command,
+            @Nullable final Metadata metadata) {
+
         final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final Label label = command.getLabel();
@@ -61,10 +66,10 @@ final class DeletePolicyEntryStrategy extends AbstractPolicyCommandStrategy<Dele
                 return ResultFactory.newMutationResult(command, policyEntryDeleted, response);
             } else {
                 return ResultFactory.newErrorResult(
-                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders));
+                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders), command);
             }
         } else {
-            return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, dittoHeaders));
+            return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, dittoHeaders), command);
         }
     }
 

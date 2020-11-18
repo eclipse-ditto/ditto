@@ -18,11 +18,13 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -38,9 +40,14 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeader;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaderKey;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -48,7 +55,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * most of the work including header value validation.
  */
 @NotThreadSafe
-public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeadersBuilder, R extends DittoHeaders>
+public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeadersBuilder<S, R>, R extends DittoHeaders>
         implements DittoHeadersBuilder<S, R> {
 
     private static final Map<String, HeaderDefinition> BUILT_IN_DEFINITIONS;
@@ -64,6 +71,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
 
     protected final S myself;
     private final Map<String, String> headers;
+    private MetadataHeaders metadataHeaders;
     private final Map<String, HeaderDefinition> definitions;
 
     /**
@@ -85,7 +93,20 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         validateValueTypes(initialHeaders, definitions); // this constructor does validate the known value types
         myself = (S) selfType.cast(this);
         headers = new HashMap<>(initialHeaders);
+        metadataHeaders = MetadataHeaders.newInstance();
+        metadataHeaders.addAll(extractMetadataHeaders(headers));
         this.definitions = getHeaderDefinitionsAsMap(definitions);
+    }
+
+    private static MetadataHeaders extractMetadataHeaders(final Map<String, String> headers) {
+        final String metadataHeadersCharSequence = headers.remove(DittoHeaderDefinition.PUT_METADATA.getKey());
+        final MetadataHeaders result;
+        if (null != metadataHeadersCharSequence) {
+            result = MetadataHeaders.parseMetadataHeaders(metadataHeadersCharSequence);
+        } else {
+            result = MetadataHeaders.newInstance();
+        }
+        return result;
     }
 
     private static Map<String, HeaderDefinition> getHeaderDefinitionsAsMap(
@@ -121,6 +142,8 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         checkNotNull(definitions, "definitions");
         myself = (S) selfType.cast(this);
         headers = new HashMap<>(initialHeaders);
+        metadataHeaders = MetadataHeaders.newInstance();
+        metadataHeaders.addAll(extractMetadataHeaders(headers));
         this.definitions = getHeaderDefinitionsAsMap(definitions);
     }
 
@@ -202,6 +225,28 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
             putCharSequence(DittoHeaderDefinition.REPLY_TARGET, String.valueOf(replyTarget));
         } else {
             removeHeader(DittoHeaderDefinition.REPLY_TARGET.getKey());
+        }
+        return myself;
+    }
+
+    @Override
+    public S expectedResponseTypes(final ResponseType... responseTypes) {
+        checkNotNull(responseTypes, "responseTypes");
+        final List<String> expectedResponseTypes = Arrays.stream(responseTypes)
+                .map(ResponseType::getName)
+                .collect(Collectors.toList());
+        putStringCollection(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES, expectedResponseTypes);
+        return myself;
+    }
+
+    @Override
+    public S expectedResponseTypes(final Collection<ResponseType> responseTypes) {
+        checkNotNull(responseTypes, "responseTypes");
+        if (!responseTypes.isEmpty()) {
+            final List<String> expectedResponseTypes = responseTypes.stream()
+                    .map(ResponseType::getName)
+                    .collect(Collectors.toList());
+            putStringCollection(DittoHeaderDefinition.EXPECTED_RESPONSE_TYPES, expectedResponseTypes);
         }
         return myself;
     }
@@ -315,8 +360,18 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
-    public S contentType(final CharSequence contentType) {
+    public S contentType(@Nullable final CharSequence contentType) {
         putCharSequence(DittoHeaderDefinition.CONTENT_TYPE, contentType);
+        return myself;
+    }
+
+    @Override
+    public S contentType(@Nullable final ContentType contentType) {
+        if (null != contentType) {
+            putCharSequence(DittoHeaderDefinition.CONTENT_TYPE, contentType.getValue());
+        } else {
+            removeHeader(DittoHeaderDefinition.CONTENT_TYPE.getKey());
+        }
         return myself;
     }
 
@@ -339,7 +394,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
-    public S inboundPayloadMapper(final String inboundPayloadMapperId) {
+    public S inboundPayloadMapper(@Nullable final String inboundPayloadMapperId) {
         putCharSequence(DittoHeaderDefinition.INBOUND_PAYLOAD_MAPPER, inboundPayloadMapperId);
         return myself;
     }
@@ -404,11 +459,27 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S putMetadata(final MetadataHeaderKey key, final JsonValue value) {
+        metadataHeaders.add(MetadataHeader.of(key, value));
+        return myself;
+    }
+
+    @Override
+    public S allowPolicyLockout(final boolean allowPolicyLockout) {
+        putBoolean(DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT, allowPolicyLockout);
+        return myself;
+    }
+
+    @Override
     public S putHeader(final CharSequence key, final CharSequence value) {
         validateKey(key);
         checkNotNull(value, "value");
         validateValueType(key, value);
-        headers.put(key.toString(), value.toString());
+        if (isMetadataKey(key)) {
+            metadataHeaders = MetadataHeaders.parseMetadataHeaders(value);
+        } else {
+            headers.put(key.toString(), value.toString());
+        }
         return myself;
     }
 
@@ -423,11 +494,14 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         }
     }
 
+    private static boolean isMetadataKey(final CharSequence key) {
+        return Objects.equals(DittoHeaderDefinition.PUT_METADATA.getKey(), key.toString());
+    }
+
     @Override
     public S putHeaders(final Map<String, String> headers) {
         checkNotNull(headers, "headers");
-        validateValueTypes(headers, definitions.values());
-        this.headers.putAll(headers);
+        headers.forEach(this::putHeader);
         return myself;
     }
 
@@ -435,6 +509,9 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     public S removeHeader(final CharSequence key) {
         validateKey(key);
         headers.remove(key.toString());
+        if (isMetadataKey(key)) {
+            metadataHeaders.clear();
+        }
         return myself;
     }
 
@@ -448,40 +525,20 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     @Override
     public R build() {
         // do it here
-        calculateIsResponseRequired();
+        putMetadataHeadersToRegularHeaders();
         final ImmutableDittoHeaders dittoHeaders = ImmutableDittoHeaders.of(headers);
         return doBuild(dittoHeaders);
     }
 
-    private void  calculateIsResponseRequired() {
-        // The order is important. A timeout of zero eventually determines response-required to be false.
-        calculateIsResponseRequiredViaRequestedAcks();
-        calculateIsResponseRequiredViaTimeout();
-    }
-
-    private void calculateIsResponseRequiredViaRequestedAcks() {
-        @Nullable final String ackRequests = headers.get(DittoHeaderDefinition.REQUESTED_ACKS.getKey());
-        if (null != ackRequests && !headers.containsKey(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey())) {
-            // only if "response-required" was not already set, assume the default
-            final boolean containsAckRequests = !JsonArray.of(ackRequests).isEmpty();
-            responseRequired(containsAckRequests);
-        }
-    }
-
-    private void calculateIsResponseRequiredViaTimeout() {
-        @Nullable final String timeoutValue = headers.get(DittoHeaderDefinition.TIMEOUT.getKey());
-        if (null != timeoutValue) {
-            final DittoDuration dittoDuration = DittoDuration.parseDuration(timeoutValue);
-
-            // sets response-required explicitly to false, which is desired in that case
-            if (dittoDuration.isZero()) {
-                responseRequired(false);
-            }
+    private void putMetadataHeadersToRegularHeaders() {
+        if (!metadataHeaders.isEmpty()) {
+            headers.put(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaders.toJsonString());
         }
     }
 
     @Override
     public String toString() {
+        putMetadataHeadersToRegularHeaders();
         return headers.toString();
     }
 

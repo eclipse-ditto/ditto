@@ -75,6 +75,7 @@ final class EvictingConnectionLogger implements ConnectionLogger {
 
     /**
      * Create a new builder.
+     *
      * @param successCapacity how many success logs should be stored by the logger.
      * @param failureCapacity how many failure logs should be stored by the logger.
      * @param category category of logs stored by the logger.
@@ -112,7 +113,8 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     }
 
     @Override
-    public void failure(final ConnectionMonitor.InfoProvider infoProvider, @Nullable final DittoRuntimeException dittoRuntimeException) {
+    public void failure(final ConnectionMonitor.InfoProvider infoProvider,
+            @Nullable final DittoRuntimeException dittoRuntimeException) {
         if (null != dittoRuntimeException) {
             failure(infoProvider, defaultFailureMessage, dittoRuntimeException.getMessage() +
                     dittoRuntimeException.getDescription().map(" "::concat).orElse(""));
@@ -133,7 +135,11 @@ final class EvictingConnectionLogger implements ConnectionLogger {
 
     @Override
     public void exception(final ConnectionMonitor.InfoProvider infoProvider, @Nullable final Exception exception) {
-        exception(infoProvider, defaultExceptionMessage);
+        if (null != exception) {
+            exception(infoProvider, defaultExceptionMessage, exception.getMessage());
+        } else {
+            exception(infoProvider, defaultExceptionMessage, FALLBACK_EXCEPTION_TEXT);
+        }
     }
 
     @Override
@@ -172,7 +178,7 @@ final class EvictingConnectionLogger implements ConnectionLogger {
     private String addHeadersAndPayloadToMessage(final ConnectionMonitor.InfoProvider infoProvider,
             final String initialMessage) {
 
-        if (logHeadersAndPayload) {
+        if (!infoProvider.isEmpty() && logHeadersAndPayload) {
             final String headersMessage = getDebugHeaderMessage(infoProvider);
             final String payloadMessage = getDebugPayloadMessage(infoProvider);
             return initialMessage + headersMessage + payloadMessage;
@@ -266,7 +272,7 @@ final class EvictingConnectionLogger implements ConnectionLogger {
 
         private static final String DEFAULT_SUCCESS_MESSAGE = "Processed message.";
         private static final String DEFAULT_FAILURE_MESSAGE = "Failure while processing message : {0}";
-        private static final String DEFAULT_EXCEPTION_MESSAGE = "Unexpected failure while processing message.";
+        private static final String DEFAULT_EXCEPTION_MESSAGE = "Unexpected failure while processing message: {0}";
 
         private final int successCapacity;
         private final int failureCapacity;
@@ -292,6 +298,7 @@ final class EvictingConnectionLogger implements ConnectionLogger {
 
         /**
          * Use the address for the built {@code EvictingConnectionLogger}.
+         *
          * @param address the source or target address for which the logger stores logs.
          * @return the builder for method chaining.
          */
@@ -303,6 +310,7 @@ final class EvictingConnectionLogger implements ConnectionLogger {
         /**
          * Use as default success message for the built {@code EvictingConnectionLogger}. It is used if no message
          * is specified while logging.
+         *
          * @param defaultSuccessMessage default message for success logs.
          * @return the builder for method chaining.
          */
@@ -314,6 +322,7 @@ final class EvictingConnectionLogger implements ConnectionLogger {
         /**
          * Use as default failure message for the built {@code EvictingConnectionLogger}. It is used if no message
          * is specified while logging.
+         *
          * @param defaultFailureMessage default message for failure logs.
          * @return the builder for method chaining.
          */
@@ -325,6 +334,7 @@ final class EvictingConnectionLogger implements ConnectionLogger {
         /**
          * Use as default exception message for the built {@code EvictingConnectionLogger}. It is used if no message
          * is specified while logging.
+         *
          * @param defaultExceptionMessage default message for exception logs.
          * @return the builder for method chaining.
          */
@@ -336,6 +346,7 @@ final class EvictingConnectionLogger implements ConnectionLogger {
         /**
          * Enables logging the headers and the payload of messages. The detail level of the logged contents depends a
          * user-settable header.
+         *
          * @return the builder for method chaining.
          */
         Builder logHeadersAndPayload() {
@@ -345,6 +356,7 @@ final class EvictingConnectionLogger implements ConnectionLogger {
 
         /**
          * Build the logger.
+         *
          * @return a new instance of {@code EvictingConnectionLogger}.
          */
         public EvictingConnectionLogger build() {

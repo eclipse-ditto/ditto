@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.utils.persistence.mongo;
 
 import java.time.Duration;
-import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 import org.bson.Document;
@@ -36,8 +35,7 @@ import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.SourceRef;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
@@ -49,7 +47,7 @@ import akka.stream.javadsl.StreamRefs;
 public final class SnapshotStreamingActor extends AbstractActor {
 
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-    private final ActorMaterializer materializer = ActorMaterializer.create(getContext());
+    private final Materializer materializer = Materializer.createMaterializer(this::getContext);
 
     private final Function<String, EntityId> pid2EntityId;
     private final Function<EntityId, String> entityId2Pid;
@@ -147,10 +145,10 @@ public final class SnapshotStreamingActor extends AbstractActor {
 
     private void startStreaming(final SudoStreamSnapshots command) {
         final Duration timeout = Duration.ofMillis(command.getTimeoutMillis());
-        final CompletionStage<SourceRef<StreamedSnapshot>> sourceRef = createSource(command)
+        final SourceRef<StreamedSnapshot> sourceRef = createSource(command)
                 .initialTimeout(timeout)
                 .idleTimeout(timeout)
                 .runWith(StreamRefs.sourceRef(), materializer);
-        Patterns.pipe(sourceRef, getContext().getDispatcher()).to(getSender());
+        getSender().tell(sourceRef, getSelf());
     }
 }

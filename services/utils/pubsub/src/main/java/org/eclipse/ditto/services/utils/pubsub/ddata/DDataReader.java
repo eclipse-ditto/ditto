@@ -13,16 +13,30 @@
 package org.eclipse.ditto.services.utils.pubsub.ddata;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 import akka.actor.ActorRef;
+import akka.cluster.ddata.Key;
+import akka.cluster.ddata.ORMultiMap;
+import akka.cluster.ddata.Replicator;
+import scala.collection.immutable.Set;
 
 /**
  * Reader of distributed Bloom filters of subscribed topics.
  *
  * @param <T> type of topic approximations.
  */
-public interface DDataReader<T> {
+public interface DDataReader<K, T> {
+
+    /**
+     * Get subscribers from a list of topic hashes.
+     *
+     * @param multimap the state of the distributed data.
+     * @param topicHashes the hash codes of each topic.
+     * @return collection of subscribers with 1 or more topics.
+     */
+    Collection<K> getSubscribers(Map<K, Set<T>> multimap, Collection<T> topicHashes);
 
     /**
      * Get subscribers from a list of topic hashes.
@@ -30,7 +44,23 @@ public interface DDataReader<T> {
      * @param topicHashes the hash codes of each topic.
      * @return future collection of subscribers whose Bloom filter contains all hashes of 1 or more topics.
      */
-    CompletionStage<Collection<ActorRef>> getSubscribers(Collection<T> topicHashes);
+    CompletionStage<Collection<K>> getSubscribers(Collection<T> topicHashes);
+
+    /**
+     * Read a low-level map from the local replicator.
+     *
+     * @return the low-level map.
+     */
+    default CompletionStage<Map<K, Set<T>>> read() {
+        return read((Replicator.ReadConsistency) Replicator.readLocal());
+    }
+
+    /**
+     * Read a low-level map from the local replicator.
+     *
+     * @return the low-level map.
+     */
+    CompletionStage<Map<K, Set<T>>> read(Replicator.ReadConsistency readConsistency);
 
     /**
      * Map a topic to a key with which to read distributed data.
@@ -39,4 +69,17 @@ public interface DDataReader<T> {
      * @return its approximation in the distributed data.
      */
     T approximate(String topic);
+
+    /**
+     * Start sending distributed data change events to the recipient.
+     * No further events are sent once the recipient terminates.
+     *
+     * @param recipient the recipient of distributed data events.
+     */
+    void receiveChanges(ActorRef recipient);
+
+    /**
+     * @return Key of the distributed data.
+     */
+    Key<ORMultiMap<K, T>> getKey();
 }

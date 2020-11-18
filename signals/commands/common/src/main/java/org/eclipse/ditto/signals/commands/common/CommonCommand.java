@@ -39,7 +39,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommand;
  * @param <T> the type of the implementing class.
  */
 @Immutable
-public abstract class CommonCommand<T extends CommonCommand> extends AbstractCommand<T>
+public abstract class CommonCommand<T extends CommonCommand<T>> extends AbstractCommand<T>
         implements WithIdButActuallyNot {
 
     /**

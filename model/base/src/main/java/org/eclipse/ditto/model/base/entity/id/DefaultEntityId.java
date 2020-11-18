@@ -26,7 +26,7 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class DefaultEntityId implements EntityId {
 
-    private static final DefaultEntityId DUMMY_ID = DefaultEntityId.of("none");
+    private static final DefaultEntityId DUMMY_ID = DefaultEntityId.of(":_");
 
     private final String id;
 

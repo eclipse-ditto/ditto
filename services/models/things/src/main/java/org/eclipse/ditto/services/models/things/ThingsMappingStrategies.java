@@ -24,7 +24,7 @@ import org.eclipse.ditto.services.models.streaming.BatchedEntityIdWithRevisions;
 import org.eclipse.ditto.services.utils.cluster.GlobalMappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategiesBuilder;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.signals.base.JsonParsable;
 
 /**
  * {@link MappingStrategies} for the Things service containing all {@link Jsonifiable} types known to Things.
@@ -34,7 +34,7 @@ public final class ThingsMappingStrategies extends MappingStrategies {
 
     @Nullable private static ThingsMappingStrategies instance = null;
 
-    private ThingsMappingStrategies(final Map<String, MappingStrategy> mappingStrategies) {
+    private ThingsMappingStrategies(final Map<String, JsonParsable<Jsonifiable<?>>> mappingStrategies) {
         super(mappingStrategies);
     }
 

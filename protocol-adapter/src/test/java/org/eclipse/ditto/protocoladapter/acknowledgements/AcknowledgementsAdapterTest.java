@@ -44,6 +44,7 @@ public final class AcknowledgementsAdapterTest implements ProtocolAdapterTest {
     private static final HttpStatusCode KNOWN_STATUS = HttpStatusCode.CREATED;
     private static final DittoHeaders KNOWN_HEADERS = DittoHeaders.newBuilder()
             .correlationId("foobar")
+            .responseRequired(false)
             .build();
     private static final JsonValue KNOWN_PAYLOAD = JsonObject.newBuilder()
             .set("foo", 42)
@@ -59,6 +60,7 @@ public final class AcknowledgementsAdapterTest implements ProtocolAdapterTest {
     private static final HttpStatusCode KNOWN_STATUS_2 = HttpStatusCode.CONFLICT;
     private static final DittoHeaders KNOWN_HEADERS_2 = DittoHeaders.newBuilder()
             .correlationId("foobar")
+            .responseRequired(false)
             .build();
     private static final JsonValue KNOWN_PAYLOAD_2 = null;
     private static final Acknowledgement KNOWN_ACK_2_ERROR =
@@ -72,6 +74,7 @@ public final class AcknowledgementsAdapterTest implements ProtocolAdapterTest {
     private static final HttpStatusCode KNOWN_STATUS_3 = HttpStatusCode.NO_CONTENT;
     private static final DittoHeaders KNOWN_HEADERS_3 = DittoHeaders.newBuilder()
             .correlationId("foobar")
+            .responseRequired(false)
             .build();
     private static final JsonValue KNOWN_PAYLOAD_3 = JsonValue.of("Hello world!");
     private static final Acknowledgement KNOWN_ACK_3_SUCCESS = ThingAcknowledgementFactory.newAcknowledgement(

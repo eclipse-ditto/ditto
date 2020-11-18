@@ -28,13 +28,15 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 
 /**
  * This class helps to deserialize JSON to a sub-class of {@link Event}. Hereby this class extracts the values which
  * are
  * common for all events. All remaining required values have to be extracted in
- * {@link FactoryMethodFunction#create(long, Instant)}. There the actual event object is created, too.
+ * {@link FactoryMethodFunction#create(long, Instant, org.eclipse.ditto.model.base.entity.metadata.Metadata)}.
+ * There the actual event object is created, too.
  *
  * @param <T> the type of the Event.
  */
@@ -107,7 +109,13 @@ public final class EventJsonDeserializer<T extends Event> {
                 .map(EventJsonDeserializer::tryToParseModified)
                 .orElse(null);
 
-        return factoryMethodFunction.create(revision, timestamp);
+        final Metadata metadata = jsonObject.getValue(Event.JsonFields.METADATA.getPointer())
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .map(Metadata::newMetadata)
+                .orElse(null);
+
+        return factoryMethodFunction.create(revision, timestamp, metadata);
     }
 
     private void validateEventType() {
@@ -153,9 +161,10 @@ public final class EventJsonDeserializer<T extends Event> {
          *
          * @param revision the revision of the Entity.
          * @param timestamp the event's timestamp.
+         * @param metadata the event's metadata.
          * @return the created event.
          */
-        T create(long revision, @Nullable Instant timestamp);
+        T create(long revision, @Nullable Instant timestamp, @Nullable Metadata metadata);
 
     }
 

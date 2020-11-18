@@ -25,9 +25,11 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.entity.type.WithEntityType;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -41,6 +43,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  * Can contain built-in {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel Ditto ACK labels} as well as
  * custom ones emitted by external applications.
  * </p>
+ *
  * @since 1.1.0
  */
 public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithOptionalEntity, WithEntityType {
@@ -77,6 +80,28 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
     }
 
     /**
+     * Returns a new weak {@code Acknowledgement} for the specified parameters.
+     *
+     * @param label the label of the new Acknowledgement.
+     * @param entityId the ID of the affected entity being acknowledged.
+     * @param dittoHeaders the DittoHeaders.
+     * @param payload the optional payload of the Acknowledgement.
+     * @return the Acknowledgement.
+     * @throws NullPointerException if one of the required parameters was {@code null}.
+     * @since 1.5.0
+     */
+    static Acknowledgement weak(final AcknowledgementLabel label,
+            final EntityIdWithType entityId,
+            final DittoHeaders dittoHeaders,
+            @Nullable final JsonValue payload) {
+
+        final DittoHeaders weakAckHeaders = dittoHeaders.toBuilder()
+                .putHeader(DittoHeaderDefinition.WEAK_ACK.getKey(), Boolean.TRUE.toString())
+                .build();
+        return AcknowledgementFactory.newAcknowledgement(label, entityId, HttpStatusCode.OK, weakAckHeaders, payload);
+    }
+
+    /**
      * Returns a new {@code Acknowledgement} for the specified parameters.
      *
      * @param label the label of the new Acknowledgement.
@@ -110,11 +135,30 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
     boolean isSuccess();
 
     /**
+     * Indicates whether this Acknowledgement is a weak acknowledgement.
+     * Weak acknowledgements are issued automatically by the service, if a subscriber declared to issued an
+     * acknowledgement with this  {@link #getLabel()}, but was for some reason not allowed to receive the signal.
+     *
+     * @return true if this is a weak acknowledgement, false otherwise.
+     * @since 1.5.0
+     */
+    boolean isWeak();
+
+    /**
      * Indicates whether this Acknowledgement represents a timeout.
      *
      * @return {@code true} if this Acknowledgement is timed out.
      */
     boolean isTimeout();
+
+    @Override
+    default ResponseType getResponseType() {
+        if (isSuccess()) {
+            return ResponseType.RESPONSE;
+        } else {
+            return ResponseType.NACK;
+        }
+    }
 
     /**
      * Returns the status code of the Acknowledgement specifying whether it was a successful {@code ACK} or a
@@ -131,6 +175,14 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      */
     @Override
     Optional<JsonValue> getEntity(JsonSchemaVersion schemaVersion);
+
+    /**
+     * Sets the optional payload of the Acknowledgement.
+     *
+     * @return the Acknowledgement with set payload.
+     * @since 1.2.0
+     */
+    Acknowledgement setEntity(@Nullable JsonValue payload);
 
     /**
      * Returns all non hidden marked fields of this Acknowledgement.

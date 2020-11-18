@@ -447,5 +447,4 @@ public enum HttpStatusCode {
                 statusCodeValue <= NETWORK_CONNECT_TIMEOUT.statusCodeValue;
     }
 
-
 }

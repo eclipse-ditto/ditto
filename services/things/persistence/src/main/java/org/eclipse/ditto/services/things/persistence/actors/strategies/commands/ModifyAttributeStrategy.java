@@ -20,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -48,8 +49,12 @@ final class ModifyAttributeStrategy extends AbstractThingCommandStrategy<ModifyA
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
-            final long nextRevision, final ModifyAttribute command) {
+    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final ModifyAttribute command,
+            @Nullable final Metadata metadata) {
+
         final Thing nonNullThing = getEntityOrThrow(thing);
 
         final JsonObject thingWithoutAttributeJsonObject = nonNullThing.removeAttribute(command.getAttributePointer()).toJson();
@@ -72,36 +77,38 @@ final class ModifyAttributeStrategy extends AbstractThingCommandStrategy<ModifyA
 
         return nonNullThing.getAttributes()
                 .filter(attributes -> attributes.contains(command.getAttributePointer()))
-                .map(attributes -> getModifyResult(context, nextRevision, command, thing))
-                .orElseGet(() -> getCreateResult(context, nextRevision, command, thing));
+                .map(attributes -> getModifyResult(context, nextRevision, command, thing, metadata))
+                .orElseGet(() -> getCreateResult(context, nextRevision, command, thing, metadata));
     }
 
     private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
-            final ModifyAttribute command, @Nullable final Thing thing) {
+            final ModifyAttribute command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
+
         final ThingId thingId = context.getState();
         final JsonPointer attributePointer = command.getAttributePointer();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final ThingEvent event =
+        final ThingEvent<?> event =
                 AttributeModified.of(thingId, attributePointer, command.getAttributeValue(), nextRevision,
-                        getEventTimestamp(), dittoHeaders);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                        getEventTimestamp(), dittoHeaders, metadata);
+        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
                 ModifyAttributeResponse.modified(thingId, attributePointer, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command, event, response);
     }
 
     private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
-            final ModifyAttribute command, @Nullable final Thing thing) {
+            final ModifyAttribute command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
+
         final ThingId thingId = context.getState();
         final JsonPointer attributePointer = command.getAttributePointer();
         final JsonValue attributeValue = command.getAttributeValue();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final ThingEvent event =
+        final ThingEvent<?> event =
                 AttributeCreated.of(thingId, attributePointer, attributeValue, nextRevision, getEventTimestamp(),
-                        dittoHeaders);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                        dittoHeaders, metadata);
+        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
                 ModifyAttributeResponse.created(thingId, attributePointer, attributeValue, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command, event, response);

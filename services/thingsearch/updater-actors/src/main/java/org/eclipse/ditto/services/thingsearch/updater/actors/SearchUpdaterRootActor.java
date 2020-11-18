@@ -34,6 +34,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonCommandListener;
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
+import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.DistributedSub;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
@@ -50,7 +51,6 @@ import akka.actor.SupervisorStrategy;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
 import akka.stream.KillSwitch;
 
 /**
@@ -85,7 +85,6 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     @SuppressWarnings("unused")
     private SearchUpdaterRootActor(final SearchConfig searchConfig,
             final ActorRef pubSubMediator,
-            final ActorMaterializer materializer,
             final ThingsSearchPersistence thingsSearchPersistence,
             final TimestampPersistence backgroundSyncPersistence) {
 
@@ -102,7 +101,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
         final ShardRegionFactory shardRegionFactory = ShardRegionFactory.getInstance(actorSystem);
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
-        final ActorRef changeQueueActor = getContext().actorOf(ChangeQueueActor.props(), ChangeQueueActor.ACTOR_NAME);
+        final ActorRef changeQueueActor = startChildActor(ChangeQueueActor.ACTOR_NAME, ChangeQueueActor.props());
 
         final Props thingUpdaterProps = ThingUpdater.props(pubSubMediator, changeQueueActor);
 
@@ -123,20 +122,21 @@ public final class SearchUpdaterRootActor extends AbstractActor {
         }
 
         final DistributedSub thingEventSub =
-                ThingEventPubSubFactory.shardIdOnly(getContext(), numberOfShards).startDistributedSub();
+                ThingEventPubSubFactory.shardIdOnly(getContext(), numberOfShards, DistributedAcks.empty())
+                        .startDistributedSub();
         final Props thingsUpdaterProps =
                 ThingsUpdater.props(thingEventSub, updaterShardRegion, updaterConfig, blockedNamespaces,
                         pubSubMediator);
 
-        thingsUpdaterActor = getContext().actorOf(thingsUpdaterProps, ThingsUpdater.ACTOR_NAME);
+        thingsUpdaterActor = startChildActor(ThingsUpdater.ACTOR_NAME, thingsUpdaterProps);
         startClusterSingletonActor(NewEventForwarder.ACTOR_NAME,
                 NewEventForwarder.props(thingEventSub, updaterShardRegion, blockedNamespaces));
 
-        // start policy event forwarder as cluster singleton
+        // start policy event forwarder
         final Props policyEventForwarderProps =
                 PolicyEventForwarder.props(pubSubMediator, thingsUpdaterActor, blockedNamespaces,
                         searchUpdaterPersistence);
-        startClusterSingletonActor(PolicyEventForwarder.ACTOR_NAME, policyEventForwarderProps);
+        startChildActor(PolicyEventForwarder.ACTOR_NAME, policyEventForwarderProps);
 
         // start background sync actor as cluster singleton
         final Props backgroundSyncActorProps = BackgroundSyncActor.props(
@@ -176,19 +176,17 @@ public final class SearchUpdaterRootActor extends AbstractActor {
      *
      * @param searchConfig the configuration settings of the Things-Search service.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param materializer actor materializer to create stream actors.
      * @param thingsSearchPersistence persistence to access the search index in read-only mode.
      * @param backgroundSyncPersistence persistence for background synchronization.
      * @return a Props object to create this actor.
      */
     public static Props props(final SearchConfig searchConfig,
             final ActorRef pubSubMediator,
-            final ActorMaterializer materializer,
             final ThingsSearchPersistence thingsSearchPersistence,
             final TimestampPersistence backgroundSyncPersistence) {
 
-        return Props.create(SearchUpdaterRootActor.class, searchConfig, pubSubMediator, materializer,
-                thingsSearchPersistence, backgroundSyncPersistence);
+        return Props.create(SearchUpdaterRootActor.class, searchConfig, pubSubMediator, thingsSearchPersistence,
+                backgroundSyncPersistence);
     }
 
     @Override

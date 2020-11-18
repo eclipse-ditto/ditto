@@ -56,12 +56,12 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
     boolean isRedirectToHttps();
 
     /**
-     * Returns the pattern for blacklisting paths which should <em>not</em> be redirected to HTTPS, even if
+     * Returns the pattern for blocking paths which should <em>not</em> be redirected to HTTPS, even if
      * {@link #isRedirectToHttps()} return {@code true}.
      *
      * @return the pattern.
      */
-    Pattern getRedirectToHttpsBlacklistPattern();
+    Pattern getRedirectToHttpsBlocklistPattern();
 
     /**
      * Indicates whether Cross-Origin Resource Sharing (CORS) should be enabled.
@@ -96,7 +96,7 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
     Set<HeaderDefinition> getQueryParametersAsHeaders();
 
     /**
-     * Whitelisted Media-Types, which should also be accepted by the endpoints besides the one they accept.
+     * Allowed Media-Types, which should also be accepted by the endpoints besides the one they accept.
      *
      * @return media-types.
      * @since 1.1.0
@@ -126,10 +126,10 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
         REDIRECT_TO_HTTPS("redirect-to-https", false),
 
         /**
-         * The pattern for blacklisting paths which should <em>not</em> be redirected to HTTPS, even if
+         * The pattern for blocking paths which should <em>not</em> be redirected to HTTPS, even if
          * {@link #REDIRECT_TO_HTTPS} is set to {@code true}.
          */
-        REDIRECT_TO_HTTPS_BLACKLIST_PATTERN("redirect-to-https-blacklist-pattern",
+        REDIRECT_TO_HTTPS_BLOCKLIST_PATTERN("redirect-to-https-blocklist-pattern",
                 "/cr.*|/api.*|/ws.*|/status.*|/overall.*"),
 
         /**
@@ -156,6 +156,7 @@ public interface HttpConfig extends org.eclipse.ditto.services.base.config.http.
          */
         QUERY_PARAMS_AS_HEADERS("query-params-as-headers", Arrays.asList(DittoHeaderDefinition.CORRELATION_ID.getKey(),
                 DittoHeaderDefinition.REQUESTED_ACKS.getKey(),
+                DittoHeaderDefinition.DECLARED_ACKS.getKey(),
                 DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(),
                 DittoHeaderDefinition.TIMEOUT.getKey())),
 

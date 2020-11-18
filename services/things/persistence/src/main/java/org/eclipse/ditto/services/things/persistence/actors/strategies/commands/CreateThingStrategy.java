@@ -25,6 +25,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.Validator;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -81,8 +82,12 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
-            final long nextRevision, final CreateThing command) {
+    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final CreateThing command,
+            @Nullable final Metadata metadata) {
+
         final DittoHeaders commandHeaders = command.getDittoHeaders();
 
         // Thing not yet created - do so ..
@@ -92,32 +97,34 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
                     handleCommandVersion(context, command.getImplementedSchemaVersion(), command.getThing(),
                             commandHeaders);
         } catch (final DittoRuntimeException e) {
-            return newErrorResult(e);
+            return newErrorResult(e, command);
         }
 
         // before persisting, check if the Thing is valid and reject if not:
         final Result validateThingError =
-                validateThing(context, command.getImplementedSchemaVersion(), newThing, commandHeaders);
+                validateThing(context, command.getImplementedSchemaVersion(), newThing, command);
         if (validateThingError != null) {
             return validateThingError;
         }
 
         // for v2 upwards, set the policy-id to the thing-id if none is specified:
         final boolean isV2Upwards = !JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion());
-        if (isV2Upwards && !newThing.getPolicyEntityId().isPresent()) {
+        if (isV2Upwards && newThing.getPolicyEntityId().isEmpty()) {
             newThing = newThing.setPolicyId(PolicyId.of(context.getState()));
         }
 
-        final Instant modified = Instant.now();
-        // provide modified and revision only in the response, not in the event (it is defined by the persistence)
-        final Thing newThingWithModifiedAndRevision = newThing.toBuilder()
-                .setModified(modified)
+        final Instant now = Instant.now();
+        final Thing newThingWithImplicits = newThing.toBuilder()
+                .setModified(now)
+                .setCreated(now)
                 .setRevision(nextRevision)
+                .setMetadata(metadata)
                 .build();
-        final ThingCreated thingCreated = ThingCreated.of(newThing, nextRevision, modified, commandHeaders);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
-                CreateThingResponse.of(newThingWithModifiedAndRevision, commandHeaders),
-                newThingWithModifiedAndRevision);
+        final ThingCreated thingCreated = ThingCreated.of(newThingWithImplicits, nextRevision, now, commandHeaders,
+                metadata);
+        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+                CreateThingResponse.of(newThingWithImplicits, commandHeaders),
+                newThingWithImplicits);
 
         return newMutationResult(command, thingCreated, response, true, false);
     }
@@ -138,7 +145,7 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
             }
 
             // policyId is required for v2
-            if (!thing.getPolicyEntityId().isPresent()) {
+            if (thing.getPolicyEntityId().isEmpty()) {
                 throw PolicyIdMissingException.fromThingIdOnCreate(context.getState(), dittoHeaders);
             }
 
@@ -182,7 +189,8 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
 
     @Nullable
     private Result validateThing(final Context<ThingId> context, final JsonSchemaVersion version, final Thing thing,
-            final DittoHeaders headers) {
+            final CreateThing command) {
+        final DittoHeaders headers = command.getDittoHeaders();
         final Optional<AccessControlList> accessControlList = thing.getAccessControlList();
         if (JsonSchemaVersion.V_1.equals(version)) {
             if (accessControlList.isPresent()) {
@@ -194,14 +202,14 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
                             AclInvalidException.newBuilder(context.getState())
                                     .dittoHeaders(headers)
                                     .build();
-                    return newErrorResult(aclInvalidException);
+                    return newErrorResult(aclInvalidException, command);
                 }
             } else {
                 final AclInvalidException aclInvalidException =
                         AclInvalidException.newBuilder(context.getState())
                                 .dittoHeaders(headers)
                                 .build();
-                return newErrorResult(aclInvalidException);
+                return newErrorResult(aclInvalidException, command);
             }
         }
         return null;

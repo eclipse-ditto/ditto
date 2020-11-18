@@ -76,8 +76,10 @@ There are some pre-defined headers, which have a special meaning for Ditto:
 | `If-None-Match` | Has the same semantics as defined for the [HTTP API](httpapi-concepts.html#conditional-requests). | `String` |
 | `response-required` | Configures for a **command** whether or not a **response** should be sent back. | `Boolean` - default: `true` |
 | `requested-acks` | Defines which [acknowledgements](basic-acknowledgements.html) are requested for a command processed by Ditto. | `JsonArray` of `String` - default: `["twin-persisted"]` |
+| `ditto-weak-ack` | Marks [weak acknowledgements](basic-acknowledgements.html) issued by Ditto. | `Boolean` - default: `false`  |
 | `timeout` | Defines how long the Ditto server should wait, e.g. applied when waiting for requested acknowledgements. | `String` - e.g.: `42s` or `250ms` or `1m` - default: `60s`|
 | `version` | Determines in which schema version the `payload` should be interpreted. | `Number` - currently: \[1,2\] |
+| `put-metadata` | Determines which Metadata information is stored in the thing. | `JsonArray` of `JsonObject`s containing [metadata](basic-metadata.html) to apply. |
 
 Custom headers of messages through the [live channel](protocol-twinlive.html) are delivered verbatim. When naming 
 custom headers, it is best to attach a prefix specific to your application, that does not conflict with Ditto or
@@ -93,6 +95,10 @@ HTTP protocol, for example the prefix `ditto-*`.
   subject
   timeout-access
   ```
+
+The interaction between the headers `response-required`, `requested-acks` and `timeout` is documented
+[here](basic-acknowledgements.html#interaction-between-headers).
+
 
 ## Path
 

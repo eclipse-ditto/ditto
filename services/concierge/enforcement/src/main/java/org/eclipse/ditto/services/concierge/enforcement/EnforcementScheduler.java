@@ -25,6 +25,7 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 
@@ -98,11 +99,10 @@ final class EnforcementScheduler extends AbstractActor {
     }
 
     private Void dispatchEnforcedMessage(final Contextual<?> enforcementResult) {
-        final DittoDiagnosticLoggingAdapter logger = enforcementResult.getLog();
         final Optional<? extends WithDittoHeaders> messageOpt = enforcementResult.getMessageOptional();
         if (messageOpt.isPresent()) {
             final WithDittoHeaders<?> message = messageOpt.get();
-            logger.setCorrelationId(message);
+            final ThreadSafeDittoLoggingAdapter logger = enforcementResult.getLog().withCorrelationId(message);
             final Optional<ActorRef> receiverOpt = enforcementResult.getReceiver();
             final Optional<Supplier<CompletionStage<Object>>> askFutureOpt = enforcementResult.getAskFuture();
             if (askFutureOpt.isPresent() && receiverOpt.isPresent()) {
@@ -125,7 +125,7 @@ final class EnforcementScheduler extends AbstractActor {
             logger.discardCorrelationId();
         } else {
             // message does not exist; nothing to dispatch
-            logger.debug("Not dispatching due to lack of message: {}", enforcementResult);
+            enforcementResult.getLog().debug("Not dispatching due to lack of message: {}", enforcementResult);
         }
         return null;
     }
@@ -141,14 +141,14 @@ final class EnforcementScheduler extends AbstractActor {
      */
     private Futures scheduleTaskAfter(final Futures previousFutures, final EnforcementTask task) {
         final CompletionStage<?> taskFuture =
-                previousFutures.authFuture.thenCompose(authChangeComplete ->
-                        previousFutures.enforceFuture.thenCombine(task.start(),
+                previousFutures.beforeStartFuture.thenCompose(authChangeComplete ->
+                        previousFutures.beforeCompleteFuture.thenCombine(task.start(),
                                 (previousTaskComplete, enforcementResult) -> dispatchEnforcedMessage(enforcementResult)
                         )
                 ).handle((result, error) -> sendFutureComplete(task, error));
         return task.changesAuthorization()
-                ? previousFutures.appendAuthFuture(taskFuture)
-                : previousFutures.appendEnforceFuture(taskFuture);
+                ? previousFutures.appendBeforeStartFuture(taskFuture)
+                : previousFutures.appendBeforeCompleteFuture(taskFuture);
     }
 
     private Void sendFutureComplete(final EnforcementTask task, @Nullable final Throwable error) {
@@ -162,7 +162,7 @@ final class EnforcementScheduler extends AbstractActor {
     private static final class FutureComplete {
 
         private final EntityId entityId;
-        @Nullable final Throwable error;
+        @Nullable private final Throwable error;
 
         private FutureComplete(final EntityId entityId, @Nullable final Throwable error) {
             this.entityId = entityId;
@@ -192,14 +192,15 @@ final class EnforcementScheduler extends AbstractActor {
         private static final Futures INITIAL_FUTURES =
                 new Futures(CompletableFuture.completedStage(null), CompletableFuture.completedStage(null), 0);
 
-        private final CompletionStage<?> authFuture;
-        private final CompletionStage<?> enforceFuture;
+        private final CompletionStage<?> beforeStartFuture;
+        private final CompletionStage<?> beforeCompleteFuture;
         private final int referenceCount;
 
-        private Futures(final CompletionStage<?> authFuture,
-                final CompletionStage<?> enforceFuture, final int referenceCount) {
-            this.authFuture = authFuture;
-            this.enforceFuture = enforceFuture;
+        private Futures(final CompletionStage<?> beforeStartFuture, final CompletionStage<?> beforeCompleteFuture,
+                final int referenceCount) {
+
+            this.beforeStartFuture = beforeStartFuture;
+            this.beforeCompleteFuture = beforeCompleteFuture;
             this.referenceCount = referenceCount;
         }
 
@@ -210,24 +211,15 @@ final class EnforcementScheduler extends AbstractActor {
             return INITIAL_FUTURES;
         }
 
-        /**
-         * Add another authorization-changing task to the in-flight futures.
-         *
-         * @param authFuture the scheduled enforcement task that would change authorization upon completion.
-         * @return the futures.
-         */
-        private Futures appendAuthFuture(final CompletionStage<?> authFuture) {
-            return new Futures(authFuture, authFuture, referenceCount + 1);
+        private Futures appendBeforeStartFuture(final CompletionStage<?> beforeStartFuture) {
+
+            // Setting both futures to the specified future allows the garbage collector to discard the unused
+            // beforeCompleteFuture object.
+            return new Futures(beforeStartFuture, beforeStartFuture, referenceCount + 1);
         }
 
-        /**
-         * Add another non-authorization-changing task to the in-flight futures.
-         *
-         * @param enforceFuture the scheduled enforcement task that would not change authorization upon completion.
-         * @return the futures.
-         */
-        private Futures appendEnforceFuture(final CompletionStage<?> enforceFuture) {
-            return new Futures(authFuture, enforceFuture, referenceCount + 1);
+        private Futures appendBeforeCompleteFuture(final CompletionStage<?> beforeCompleteFuture) {
+            return new Futures(beforeStartFuture, beforeCompleteFuture, referenceCount + 1);
         }
 
         @Nullable
@@ -236,7 +228,7 @@ final class EnforcementScheduler extends AbstractActor {
             if (nextReferenceCount <= 0) {
                 return null;
             } else {
-                return new Futures(authFuture, enforceFuture, nextReferenceCount);
+                return new Futures(beforeStartFuture, beforeCompleteFuture, nextReferenceCount);
             }
         }
 
@@ -244,5 +236,7 @@ final class EnforcementScheduler extends AbstractActor {
         public String toString() {
             return String.format("%d Futures", referenceCount);
         }
+
     }
+
 }

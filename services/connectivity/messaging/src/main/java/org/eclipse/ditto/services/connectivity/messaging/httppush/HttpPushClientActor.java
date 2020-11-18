@@ -35,11 +35,13 @@ import org.eclipse.ditto.services.base.config.http.HttpProxyConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
-import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -54,6 +56,7 @@ public final class HttpPushClientActor extends BaseClientActor {
     private static final int PROXY_CONNECT_TIMEOUT_SECONDS = 15;
 
     private final HttpPushFactory factory;
+    private final ConnectionLogger connectionLogger;
 
     @Nullable
     private ActorRef httpPublisherActor;
@@ -63,12 +66,15 @@ public final class HttpPushClientActor extends BaseClientActor {
     private HttpPushClientActor(final Connection connection, final ActorRef connectionActor) {
         super(connection, ActorRef.noSender(), connectionActor);
 
-        httpPushConfig = DittoConnectivityConfig.of(
+        final DittoConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
-        )
+        );
+        httpPushConfig = connectivityConfig
                 .getConnectionConfig()
                 .getHttpPushConfig();
-        factory = HttpPushFactory.of(connection, httpPushConfig);
+        final MonitoringLoggerConfig loggerConfig = connectivityConfig.getMonitoringConfig().logger();
+        connectionLogger = ConnectionLogger.getInstance(connection.getId(), loggerConfig);
+        factory = HttpPushFactory.of(connection, httpPushConfig, connectionLogger);
     }
 
     /**
@@ -95,10 +101,11 @@ public final class HttpPushClientActor extends BaseClientActor {
     }
 
     @Override
-    protected CompletionStage<Status.Status> doTestConnection(final Connection connection) {
-        final Uri uri = Uri.create(connection.getUri());
+    protected CompletionStage<Status.Status> doTestConnection(final TestConnection testConnectionCommand) {
+        final Connection connectionToBeTested = testConnectionCommand.getConnection();
+        final Uri uri = Uri.create(connectionToBeTested.getUri());
         if (HttpPushValidator.isSecureScheme(uri.getScheme())) {
-            return testSSL(connection, uri.getHost().address(), uri.port());
+            return testSSL(connectionToBeTested, uri.getHost().address(), uri.port());
         } else {
             // non-secure HTTP without test request; succeed after TCP connection.
             return statusSuccessFuture("TCP connection to '%s:%d' established successfully",
@@ -152,7 +159,7 @@ public final class HttpPushClientActor extends BaseClientActor {
         } else {
             // check without HTTP proxy
             final SSLContextCreator sslContextCreator =
-                    SSLContextCreator.fromConnection(connection, DittoHeaders.empty());
+                    SSLContextCreator.fromConnection(connection, DittoHeaders.empty(), connectionLogger);
             final SSLSocketFactory socketFactory = connection.getCredentials()
                     .map(credentials -> credentials.accept(sslContextCreator))
                     .orElse(sslContextCreator.withoutClientCertificate()).getSocketFactory();
@@ -188,12 +195,13 @@ public final class HttpPushClientActor extends BaseClientActor {
 
     private CompletionStage<Status.Status> checkProxyConnection(final String hostWithoutLookup, final int port,
             final Socket proxySocket) throws InterruptedException, java.util.concurrent.ExecutionException {
+
         final ExecutorService executor = Executors.newSingleThreadExecutor();
         try {
             return executor.submit(() -> {
-                byte[] tmpBuffer = new byte[512];
+                final byte[] tmpBuffer = new byte[512];
                 final InputStream socketInput = proxySocket.getInputStream();
-                int len = socketInput.read(tmpBuffer, 0, tmpBuffer.length);
+                final int len = socketInput.read(tmpBuffer, 0, tmpBuffer.length);
                 if (len == 0) {
                     socketInput.close();
                     return statusFailureFuture(new SocketException("Invalid response from proxy"));
@@ -205,8 +213,7 @@ public final class HttpPushClientActor extends BaseClientActor {
                     return statusSuccessFuture("Connection to '%s:%d' via HTTP proxy established successfully.",
                             hostWithoutLookup, port);
                 } else {
-                    ConnectionLogUtil.enhanceLogWithConnectionId(log, connectionId());
-                    log.info("Could not connect to <{}> via Http Proxy <{}>", hostWithoutLookup + ":" + port,
+                    logger.info("Could not connect to <{}> via Http Proxy <{}>", hostWithoutLookup + ":" + port,
                             proxySocket.getInetAddress());
                     socketInput.close();
                     return statusFailureFuture(new SocketException("Failed to create Socket via HTTP proxy: " +
@@ -228,4 +235,5 @@ public final class HttpPushClientActor extends BaseClientActor {
     private static CompletionStage<Status.Status> statusFailureFuture(final Throwable error) {
         return CompletableFuture.completedFuture(new Status.Failure(error));
     }
+
 }

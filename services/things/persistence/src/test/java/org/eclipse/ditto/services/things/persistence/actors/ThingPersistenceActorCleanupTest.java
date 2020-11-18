@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.things.persistence.actors;
 
 import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.appendETagToDittoHeaders;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -71,12 +72,13 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
                 // create a thing...
                 final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 persistenceActorUnderTest.tell(createThing, getRef());
-                final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
+                final CreateThingResponse createThingResponse = expectMsgClass(dilated(Duration.ofSeconds(5)),
+                        CreateThingResponse.class);
                 final Thing thingCreated = createThingResponse.getThingCreated()
                         .orElseThrow(IllegalStateException::new);
                 assertThingInResponse(thingCreated, thing, 1);
                 // ...and verify journal and snapshot state
-                expectedEvents.add(toEvent(createThing, 1));
+                expectedEvents.add(toEvent(createThing, thingCreated));
                 assertJournal(thingId, expectedEvents);
                 assertSnapshotsEmpty(thingId);
 
@@ -131,7 +133,7 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
 
                 expectMsgEquals(modifyThingResponse(modifiedThing, dittoHeadersV2));
 
-                return toEvent(modifyThingCommand, revisionNumber);
+                return toEvent(modifyThingCommand, modifiedThing);
             }
         };
     }
@@ -151,12 +153,13 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
                 // create a thing...
                 final CreateThing createThing = CreateThing.of(thing, null, dittoHeadersV2);
                 persistenceActorUnderTest.tell(createThing, getRef());
-                final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
+                final CreateThingResponse createThingResponse = expectMsgClass(dilated(Duration.ofSeconds(5)),
+                        CreateThingResponse.class);
                 final Thing thingCreated = createThingResponse.getThingCreated()
                         .orElseThrow(IllegalStateException::new);
                 assertThingInResponse(thingCreated, thing, 1);
                 // ...and verify journal and snapshot state
-                expectedEvents.add(toEvent(createThing, 1));
+                expectedEvents.add(toEvent(createThing, thingCreated));
                 assertJournal(thingId, expectedEvents);
                 assertSnapshotsEmpty(thingId);
 
@@ -167,7 +170,7 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
 
                 final Thing expectedDeletedSnapshot = toDeletedThing(thingCreated, 2);
                 assertSnapshots(thingId, Collections.singletonList(expectedDeletedSnapshot));
-                final Event deletedEvent = toEvent(deleteThing, 2);
+                final Event deletedEvent = toEvent(deleteThing, expectedDeletedSnapshot);
                 expectedEvents.add(deletedEvent);
                 assertJournal(thingId, expectedEvents);
 

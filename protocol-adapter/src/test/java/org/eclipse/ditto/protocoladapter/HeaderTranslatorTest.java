@@ -98,7 +98,7 @@ public final class HeaderTranslatorTest {
     }
 
     @Test
-    public void testReadExternalWhitelistedHeader() {
+    public void testReadExternalAllowedHeader() {
         final HeaderTranslator underTest = HeaderTranslator.of(DittoHeaderDefinition.values());
 
         final Map<String, String> externalHeaders = new HashMap<>();
@@ -194,6 +194,7 @@ public final class HeaderTranslatorTest {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .correlationId(correlationId)
                 .acknowledgementRequests(allAcknowledgementRequests)
+                .responseRequired(true)
                 .build();
         final JsonArray allAcknowledgementRequestsJsonArray = allAcknowledgementRequests.stream()
                 .map(AcknowledgementRequest::toString)

@@ -92,11 +92,13 @@ public interface MessageBuilder<T> {
     MessageBuilder<T> extra(@Nullable JsonObject extra);
 
     /**
-     * Adds a {@code responseConsumer} which is invoked with a potential response Message to the built Message.
+     * Adds a {@code responseConsumer} which is stored together with the message but never serialized.
      *
-     * @param responseConsumer Consumer to invoke for a potential response Message.
+     * @param responseConsumer the consumer to store.
      * @return this builder to allow method chaining.
+     * @deprecated since 1.2.0.
      */
+    @Deprecated
     MessageBuilder<T> responseConsumer(@Nullable MessageResponseConsumer<?> responseConsumer);
 
     /**

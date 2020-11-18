@@ -17,6 +17,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
@@ -45,7 +46,8 @@ final class RetrievePolicyIdStrategy extends AbstractThingCommandStrategy<Retrie
     protected Result<ThingEvent> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
-            final RetrievePolicyId command) {
+            final RetrievePolicyId command,
+            @Nullable final Metadata metadata) {
 
         return extractPolicyId(thing)
                 .map(policyId -> RetrievePolicyIdResponse.of(context.getState(), policyId,
@@ -55,7 +57,8 @@ final class RetrievePolicyIdStrategy extends AbstractThingCommandStrategy<Retrie
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         PolicyIdNotAccessibleException.newBuilder(context.getState())
                                 .dittoHeaders(command.getDittoHeaders())
-                                .build()));
+                                .build(),
+                        command));
     }
 
     private Optional<PolicyId> extractPolicyId(final @Nullable Thing thing) {

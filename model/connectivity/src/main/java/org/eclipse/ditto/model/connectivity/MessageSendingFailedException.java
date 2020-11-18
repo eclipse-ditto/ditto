@@ -38,6 +38,7 @@ public final class MessageSendingFailedException extends DittoRuntimeException i
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "message.sending.failed";
 
+    private static final HttpStatusCode DEFAULT_STATUS_CODE = HttpStatusCode.SERVICE_UNAVAILABLE;
     private static final String MESSAGE_TEMPLATE = "Failed to send message: {0}";
     private static final String DEFAULT_MESSAGE = "Failed to send message.";
     private static final String DEFAULT_DESCRIPTION = "Sending the message to an external system failed, " +
@@ -45,11 +46,12 @@ public final class MessageSendingFailedException extends DittoRuntimeException i
             "messages.";
 
     private MessageSendingFailedException(final DittoHeaders dittoHeaders,
+            final HttpStatusCode statusCode,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.SERVICE_UNAVAILABLE, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, statusCode, dittoHeaders, message, description, cause, href);
     }
 
     /**
@@ -67,12 +69,11 @@ public final class MessageSendingFailedException extends DittoRuntimeException i
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new MessageSendingFailedException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static MessageSendingFailedException fromMessage(final String message, final DittoHeaders dittoHeaders) {
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+    public static MessageSendingFailedException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -82,15 +83,23 @@ public final class MessageSendingFailedException extends DittoRuntimeException i
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new MessageSendingFailedException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * JsonFields#MESSAGE} field.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static MessageSendingFailedException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 
@@ -100,7 +109,22 @@ public final class MessageSendingFailedException extends DittoRuntimeException i
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<MessageSendingFailedException> {
 
+        private HttpStatusCode statusCode = DEFAULT_STATUS_CODE;
+
         private Builder() {
+            description(DEFAULT_DESCRIPTION);
+        }
+
+        /**
+         * Set the status code of this builder.
+         *
+         * @param statusCode the new status code.
+         * @return this builder.
+         * @since 1.2.0
+         */
+        public Builder statusCode(final HttpStatusCode statusCode) {
+            this.statusCode = statusCode;
+            return this;
         }
 
         @Override
@@ -120,7 +144,7 @@ public final class MessageSendingFailedException extends DittoRuntimeException i
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new MessageSendingFailedException(dittoHeaders, message, description, cause, href);
+            return new MessageSendingFailedException(dittoHeaders, statusCode, message, description, cause, href);
         }
     }
 }

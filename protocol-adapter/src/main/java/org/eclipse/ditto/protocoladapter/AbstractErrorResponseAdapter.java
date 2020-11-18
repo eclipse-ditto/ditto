@@ -22,7 +22,6 @@ import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
-import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Adapter for mapping a {@link ErrorResponse} to and from an {@link Adaptable}.
@@ -66,14 +65,14 @@ public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> i
     @Override
     public T fromAdaptable(final Adaptable adaptable) {
         final DittoHeaders dittoHeaders = DittoHeaders.of(
-                headerTranslator.fromExternalHeaders(adaptable.getHeaders().orElse(DittoHeaders.empty())));
+                headerTranslator.fromExternalHeaders(adaptable.getDittoHeaders()));
         final TopicPath topicPath = adaptable.getTopicPath();
 
         final DittoRuntimeException dittoRuntimeException = adaptable.getPayload()
                 .getValue()
                 .map(JsonValue::asObject)
                 .map(jsonObject -> parseWithErrorRegistry(jsonObject, dittoHeaders, errorRegistry))
-                .orElseThrow(() -> new JsonMissingFieldException(ThingCommandResponse.JsonFields.PAYLOAD));
+                .orElseThrow(() -> new JsonMissingFieldException(CommandResponse.JsonFields.PAYLOAD));
 
         return buildErrorResponse(topicPath, dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
     }
@@ -106,7 +105,7 @@ public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> i
 
         return Adaptable.newBuilder(topicPathBuildable.build())
                 .withPayload(payload)
-                .withHeaders(DittoHeaders.of(headerTranslator.toExternalAndRetainKnownHeaders(responseHeaders)))
+                .withHeaders(DittoHeaders.of(headerTranslator.toExternalHeaders(responseHeaders)))
                 .build();
     }
 

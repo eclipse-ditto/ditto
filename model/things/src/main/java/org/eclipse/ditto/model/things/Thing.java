@@ -418,6 +418,157 @@ public interface Thing extends Entity<ThingRevision> {
     Thing removeFeatureProperty(String featureId, JsonPointer propertyPath);
 
     /**
+     * Sets the given desired properties of a Feature on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature.
+     * @param desiredProperties the desired properties to be set.
+     * @return a copy of this Thing with the Feature containing the given desired properties.
+     * @throws NullPointerException if {@code featureId} is {@code null}.
+     * @since 1.5.0
+     */
+    Thing setFeatureDesiredProperties(CharSequence featureId, FeatureProperties desiredProperties);
+
+    /**
+     * Sets the given desired property to the Feature with the given ID on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature.
+     * @param desiredPropertyPath the hierarchical path within the Feature to the desired property to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Thing with the Feature containing the given desired property.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath,
+            final JsonValue desiredPropertyValue) {
+
+        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath), desiredPropertyValue);
+    }
+
+    /**
+     * Sets the given desired property to the Feature with the given ID on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature.
+     * @param desiredPropertyPath the hierarchical path within the Feature to the desired property to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Thing with the Feature containing the given desired property.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath,
+            final boolean desiredPropertyValue) {
+
+        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath), JsonValue.of(desiredPropertyValue));
+    }
+
+    /**
+     * Sets the given desired property to the Feature with the given ID on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature.
+     * @param desiredPropertyPath the hierarchical path within the Feature to the desired property to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Thing with the Feature containing the given desired property.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath, final int desiredPropertyValue) {
+        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath), JsonValue.of(desiredPropertyValue));
+    }
+
+    /**
+     * Sets the given desired property to the Feature with the given ID on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature.
+     * @param desiredPropertyPath the hierarchical path within the Feature to the desired property to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Thing with the Feature containing the given desired property.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath,
+            final long desiredPropertyValue) {
+
+        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath), JsonValue.of(desiredPropertyValue));
+    }
+
+    /**
+     * Sets the given desired property to the Feature with the given ID on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature.
+     * @param desiredPropertyPath the hierarchical path within the Feature to the desired property to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Thing with the Feature containing the given desired property.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath,
+            final double desiredPropertyValue) {
+
+        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath), JsonValue.of(desiredPropertyValue));
+    }
+
+    /**
+     * Sets the given desired property to the Feature with the given ID on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature.
+     * @param desiredPropertyPath the hierarchical path within the Feature to the desired property to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Thing with the Feature containing the given desired property.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    default Thing setFeatureDesiredProperty(final CharSequence featureId, final CharSequence desiredPropertyPath,
+            final String desiredPropertyValue) {
+
+        return setFeatureDesiredProperty(featureId, JsonPointer.of(desiredPropertyPath), JsonValue.of(desiredPropertyValue));
+    }
+
+    /**
+     * Sets the given desired property to the Feature with the given ID on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature.
+     * @param desiredPropertyPath the hierarchical path within the Feature to the desired property to be set.
+     * @param desiredPropertyValue the desired property value to be set.
+     * @return a copy of this Thing with the Feature containing the given desired property.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    Thing setFeatureDesiredProperty(CharSequence featureId, JsonPointer desiredPropertyPath, JsonValue desiredPropertyValue);
+
+    /**
+     * Removes all desired properties from the given Feature on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature of which all desired properties are to be removed.
+     * @return a copy of this Thing with all of the Feature's desired properties removed.
+     * @throws NullPointerException if {@code featureId} is {@code null}.
+     * @since 1.5.0
+     */
+    Thing removeFeatureDesiredProperties(CharSequence featureId);
+
+    /**
+     * Removes the given desired property from a Feature on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature.
+     * @param propertyPath the hierarchical path within the Feature to the desired property to be removed.
+     * @return a copy of this Thing with the given Features desired property removed.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    default Thing removeFeatureDesiredProperty(final CharSequence featureId, final CharSequence propertyPath) {
+        return removeFeatureDesiredProperty(featureId, JsonPointer.of(propertyPath));
+    }
+
+    /**
+     * Removes the given desired property from a Feature on a copy of this Thing.
+     *
+     * @param featureId the ID of the Feature.
+     * @param propertyPath the hierarchical path within the Feature to the desired property to be removed.
+     * @return a copy of this Thing with the given Feature desired property removed.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 1.5.0
+     */
+    Thing removeFeatureDesiredProperty(CharSequence featureId, JsonPointer propertyPath);
+
+    /**
      * Returns the current lifecycle of this Thing.
      *
      * @return the current lifecycle of this Thing.
@@ -614,6 +765,15 @@ public interface Thing extends Entity<ThingRevision> {
                         JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         /**
+         * JSON field containing the Thing's created timestamp in ISO-8601 format.
+         *
+         * @since 1.2.0
+         */
+        public static final JsonFieldDefinition<String> CREATED =
+                JsonFactory.newStringFieldDefinition("_created", FieldType.SPECIAL, FieldType.HIDDEN,
+                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+
+        /**
          * JSON field containing the Thing's ID.
          */
         public static final JsonFieldDefinition<String> ID =
@@ -652,6 +812,15 @@ public interface Thing extends Entity<ThingRevision> {
         public static final JsonFieldDefinition<JsonObject> FEATURES =
                 JsonFactory.newJsonObjectFieldDefinition("features", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the Thing's metadata.
+         *
+         * @since 1.2.0
+         */
+        public static final JsonFieldDefinition<JsonObject> METADATA =
+            JsonFactory.newJsonObjectFieldDefinition("_metadata", FieldType.SPECIAL, FieldType.HIDDEN,
+                JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

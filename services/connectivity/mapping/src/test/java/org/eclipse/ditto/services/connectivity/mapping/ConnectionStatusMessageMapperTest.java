@@ -63,7 +63,8 @@ public class ConnectionStatusMessageMapperTest {
     private static MappingConfig mappingConfig;
 
     private Map<String, String> validHeader;
-    private Map<String, String> validConfigProps;
+    private Map<String, JsonValue> validConfigProps;
+    private Map<String, String> validConditions;
     private DefaultMessageMapperConfiguration validMapperConfig;
     private MessageMapper underTest;
 
@@ -72,15 +73,16 @@ public class ConnectionStatusMessageMapperTest {
         mappingConfig = DefaultMappingConfig.of(ConfigFactory.empty());
         underTest = new ConnectionStatusMessageMapper();
 
-        validConfigProps = new HashMap<>();
-        validConfigProps.put(ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_THING_ID,
-                "configNamespace:configDeviceId");
+        validConfigProps = Map.of(ConnectionStatusMessageMapper.MAPPING_OPTIONS_PROPERTIES_THING_ID,
+                JsonValue.of("configNamespace:configDeviceId"));
+        validConditions = Map.of();
 
         validHeader = new HashMap<>();
         validHeader.put(HEADER_HONO_DEVICE_ID, "headerNamespace:headerDeviceId");
         validHeader.put(HEADER_HONO_TTD, TTD_STR);
         validHeader.put(HEADER_HONO_CREATION_TIME, CREATION_TIME_STR);
-        validMapperConfig = DefaultMessageMapperConfiguration.of("valid", validConfigProps);
+        validMapperConfig =
+                DefaultMessageMapperConfiguration.of("valid", validConfigProps, validConditions, validConditions);
     }
 
     @Rule
@@ -176,10 +178,10 @@ public class ConnectionStatusMessageMapperTest {
 
     @Test
     public void doForwardMapWithMissingHeader() {
-        final Map<String, String> props = new HashMap<>();
-        props.put(MAPPING_OPTIONS_PROPERTIES_THING_ID, "{{ header:thing-id }}"); // header does not exist
+        final Map<String, JsonValue> props =
+                Map.of(MAPPING_OPTIONS_PROPERTIES_THING_ID, JsonValue.of("{{ header:thing-id }}"));
         final MessageMapperConfiguration thingIdWithPlaceholder
-                = DefaultMessageMapperConfiguration.of("placeholder", props);
+                = DefaultMessageMapperConfiguration.of("placeholder", props, validConditions, validConditions);
         underTest.configure(mappingConfig, thingIdWithPlaceholder);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
@@ -223,46 +225,48 @@ public class ConnectionStatusMessageMapperTest {
         underTest.configure(mappingConfig, validMapperConfig);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
-        assertThat(mappingResult.get(0).getPayload().getPath().getFeatureId().get())
-                .isEqualTo(DEFAULT_FEATURE_ID);
+        assertThat(mappingResult.get(0).getPayload().getPath().getFeatureId())
+                .contains(DEFAULT_FEATURE_ID);
     }
 
     @Test
     public void doForwardMappingContextWithIndividualFeatureId() {
         final String individualFeatureId = "individualFeatureId";
-        final Map<String, String> props = new HashMap<>(validConfigProps);
-        props.put(MAPPING_OPTIONS_PROPERTIES_FEATURE_ID, individualFeatureId);
+        final Map<String, JsonValue> props = new HashMap<>(validConfigProps);
+        props.put(MAPPING_OPTIONS_PROPERTIES_FEATURE_ID, JsonValue.of(individualFeatureId));
         final MessageMapperConfiguration individualFeatureIdConfig
-                = DefaultMessageMapperConfiguration.of("placeholder", props);
+                = DefaultMessageMapperConfiguration.of("placeholder", props, validConditions, validConditions);
         underTest.configure(mappingConfig, individualFeatureIdConfig);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
-        assertThat(mappingResult.get(0).getPayload().getPath().getFeatureId().get())
-                .isEqualTo(individualFeatureId);
+        assertThat(mappingResult.get(0).getPayload().getPath().getFeatureId())
+                .contains(individualFeatureId);
     }
 
     @Test
     public void doForwardMappingContextWithoutThingId() {
         exception.expect(MessageMapperConfigurationInvalidException.class);
-        underTest.configure(mappingConfig, DefaultMessageMapperConfiguration.of("valid", Collections.emptyMap()));
+        underTest.configure(mappingConfig,
+                DefaultMessageMapperConfiguration.of("valid", Collections.emptyMap(), validConditions,
+                        validConditions));
     }
 
     @Test
     public void doForwardMappingContextWithWrongThingId() {
         exception.expect(DittoRuntimeException.class);
-        final Map<String, String> props = new HashMap<>();
-        props.put(MAPPING_OPTIONS_PROPERTIES_THING_ID, "Invalid Value");
+        final Map<String, JsonValue> props =
+                Map.of(MAPPING_OPTIONS_PROPERTIES_THING_ID, JsonValue.of("Invalid Value"));
         final MessageMapperConfiguration wrongThingId
-                = DefaultMessageMapperConfiguration.of("invalidThingId", props);
+                = DefaultMessageMapperConfiguration.of("invalidThingId", props, validConditions, validConditions);
         underTest.configure(mappingConfig, wrongThingId);
     }
 
     @Test
     public void doForwardMappingContextWithThingIdMapping() {
-        final Map<String, String> props = new HashMap<>();
-        props.put(MAPPING_OPTIONS_PROPERTIES_THING_ID, "{{ header:device_id }}");
+        final Map<String, JsonValue> props =
+                Map.of(MAPPING_OPTIONS_PROPERTIES_THING_ID, JsonValue.of("{{ header:device_id }}"));
         final MessageMapperConfiguration thingIdWithPlaceholder
-                = DefaultMessageMapperConfiguration.of("placeholder", props);
+                = DefaultMessageMapperConfiguration.of("placeholder", props, validConditions, validConditions);
         underTest.configure(mappingConfig, thingIdWithPlaceholder);
         final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
         final List<Adaptable> mappingResult = underTest.map(externalMessage);
@@ -272,10 +276,10 @@ public class ConnectionStatusMessageMapperTest {
 
     @Test
     public void doForwardMappingContextWithWrongThingIdMapping() {
-        final Map<String, String> props = new HashMap<>();
-        props.put(MAPPING_OPTIONS_PROPERTIES_THING_ID, "{{ header:device_id }}");
+        final Map<String, JsonValue> props =
+                Map.of(MAPPING_OPTIONS_PROPERTIES_THING_ID, JsonValue.of("{{ header:device_id }}"));
         final MessageMapperConfiguration thingIdWithPlaceholder
-                = DefaultMessageMapperConfiguration.of("placeholder", props);
+                = DefaultMessageMapperConfiguration.of("placeholder", props, validConditions, validConditions);
         underTest.configure(mappingConfig, thingIdWithPlaceholder);
         final Map<String, String> invalidHeader = validHeader;
         invalidHeader.replace(HEADER_HONO_DEVICE_ID, "Invalid Value");

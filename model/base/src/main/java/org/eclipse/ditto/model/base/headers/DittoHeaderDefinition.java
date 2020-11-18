@@ -41,12 +41,12 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
             HeaderValueValidators.getJsonObjectValidator()),
 
     /**
-     * Header definition for correlation Id value.
+     * Header definition for correlation Id value which MUST NOT be empty.
      * <p>
      * Key: {@code "correlation-id"}, Java type: {@link String}.
      * </p>
      */
-    CORRELATION_ID("correlation-id", String.class, true, true, HeaderValueValidators.getNoOpValidator()),
+    CORRELATION_ID("correlation-id", String.class, true, true, HeaderValueValidators.getNonEmptyValidator()),
 
     /**
      * Header definition for schema version value.
@@ -163,6 +163,15 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
     REPLY_TARGET("ditto-reply-target", Integer.class, false, false, HeaderValueValidators.getIntValidator()),
 
     /**
+     * Header definition for the internal header "ditto-expected-response-types". This header is evaluated to distinguish
+     * if a response should published or not.
+     *
+     * @since 1.2.0
+     */
+    EXPECTED_RESPONSE_TYPES("ditto-expected-response-types", JsonArray.class, false, false,
+            HeaderValueValidators.getJsonArrayValidator()),
+
+    /**
      * Header definition for "ditto-inbound-payload-mapper".
      * <p>
      * Key: {@code "ditto-inbound-payload-mapper"}, Java type: {@link String}.
@@ -188,7 +197,20 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    REQUESTED_ACKS("requested-acks", JsonArray.class, true, true, HeaderValueValidators.getJsonArrayValidator()),
+    REQUESTED_ACKS("requested-acks", JsonArray.class, true, true,
+            HeaderValueValidators.getRequestedAcksValueValidator()),
+
+    /**
+     * Header definition for defining the acknowledgement labels a subscriber may send.
+     * Not defined as DittoHeaders accessor method or in the DittoHeadersBuilder as this header is specific for
+     * WebSocket sessions only and has also not a "Signal" scope which DittoHeaders normally have.
+     * <p>
+     * Key: {@code "declared-acks"}, Java type: {@link JsonArray}.
+     * </p>
+     *
+     * @since 1.4.0
+     */
+    DECLARED_ACKS("declared-acks", JsonArray.class, true, false, HeaderValueValidators.getJsonArrayValidator()),
 
     /**
      * Header definition for the timeout of a command or message.
@@ -199,10 +221,10 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @since 1.1.0
      */
     TIMEOUT("timeout", DittoDuration.class, String.class, true, true,
-            HeaderValueValidators.getDittoDurationValidator()),
+            HeaderValueValidators.getTimeoutValueValidator()),
 
     /**
-     * Header definition for the entity id related to the command/event/response/error.
+     * Header definition for the entity ID related to the command/event/response/error.
      * <p>
      * Key: {@code "ditto-entity-id"}, Java type: {@link String}.
      * </p>
@@ -232,9 +254,48 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.1.0
      */
-    LOCATION("location", String.class, false, true,
+    LOCATION("location", String.class, true, true,
             HeaderValueValidators.getNoOpValidator()),
-    ;
+
+    /**
+     * Header definition for the Ditto connection ID in automatic acknowledgements.
+     *
+     * @since 1.2.0
+     */
+    CONNECTION_ID("ditto-connection-id", String.class, false, true, HeaderValueValidators.getNoOpValidator()),
+
+    /**
+     * Header definition for setting metadata relatively to the resource of a modified entity.
+     * <p>
+     * Key {@code "put-metadata"}, Java type: {@link JsonArray}.
+     * </p>
+     *
+     * @since 1.2.0
+     */
+    PUT_METADATA("put-metadata", JsonArray.class, true, false, HeaderValueValidators.getMetadataHeadersValidator()),
+
+    /**
+     * Header definition for allowing the policy lockout (i.e. a subject can create a policy without having WRITE
+     * permission on the policy resource for itself, by default a subject making the request must have
+     * WRITE permission on policy resource).
+     *
+     * <p>
+     * Key {@code "allow-policy-lockout"}, Java type: {@link boolean}.
+     * </p>
+     *
+     * @since 1.3.0
+     */
+    ALLOW_POLICY_LOCKOUT("allow-policy-lockout", boolean.class, true, false,
+            HeaderValueValidators.getBooleanValidator()),
+
+    /**
+     * Header definition to identify a weak acknowledgement.
+     * Weak acknowledgements are issued by the service in case a subscriber could not provide the acknowledgement
+     * because of missing permissions or rql filtering.
+     *
+     * @since 1.5.0
+     */
+    WEAK_ACK("ditto-weak-ack", boolean.class, false, true, HeaderValueValidators.getBooleanValidator());
 
     /**
      * Map to speed up lookup of header definition by key.

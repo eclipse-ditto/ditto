@@ -73,6 +73,14 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
     Amqp10Config getAmqp10Config();
 
     /**
+     * Returns the config specific to the AMQP 0.9.1 protocol.
+     *
+     * @return the config.
+     * @since 1.2.0
+     */
+    Amqp091Config getAmqp091Config();
+
+    /**
      * Returns the config specific to the MQTT protocol.
      *
      * @return the config.
@@ -94,6 +102,13 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
     HttpPushConfig getHttpPushConfig();
 
     /**
+     * Returns the acknowledgement label declaration interval.
+     *
+     * @return how often to declare acknowledgement labels for as long as it is not successful.
+     */
+    Duration getAckLabelDeclareInterval();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code ConnectionConfig}.
      */
@@ -112,7 +127,12 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
         /**
          * A comma separated list of blocked hostnames to which no http requests will be sent out.
          */
-        BLOCKED_HOSTNAMES("blocked-hostnames", "");
+        BLOCKED_HOSTNAMES("blocked-hostnames", ""),
+
+        /**
+         * How often to attempt acknowledgement label declaration for as long as it is not successful.
+         */
+        ACK_LABEL_DECLARE_INTERVAL("ack-label-declare-interval", Duration.ofSeconds(10L));
 
         private final String path;
         private final Object defaultValue;

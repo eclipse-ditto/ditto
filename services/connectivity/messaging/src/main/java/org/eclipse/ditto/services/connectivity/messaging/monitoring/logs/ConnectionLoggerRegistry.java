@@ -43,9 +43,9 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
-import org.eclipse.ditto.services.connectivity.util.ConnectionLogUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 
 /**
  * This registry holds loggers for the connectivity service. The loggers are identified by the connection ID, a {@link
@@ -54,7 +54,10 @@ import org.slf4j.LoggerFactory;
  */
 public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry<ConnectionLogger> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ConnectionLoggerRegistry.class);
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(ConnectionLoggerRegistry.class);
+
+    private static final String MDC_CONNECTION_ID = ConnectivityMdcEntryKey.CONNECTION_ID.toString();
 
     private static final ConcurrentMap<MapKey, MuteableConnectionLogger> loggers = new ConcurrentHashMap<>();
     private static final ConcurrentMap<EntityId, LogMetadata> metadata = new ConcurrentHashMap<>();
@@ -95,14 +98,14 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * @return the {@link org.eclipse.ditto.model.connectivity.LogEntry}s.
      */
     public ConnectionLogs aggregateLogs(final ConnectionId connectionId) {
-        ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
-        LOGGER.info("Aggregating logs for connection <{}>.", connectionId);
+        final ThreadSafeDittoLogger logger = LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId);
+        logger.info("Aggregating logs for connection <{}>.", connectionId);
 
         final LogMetadata timing;
         final List<LogEntry> logs;
 
         if (isActiveForConnection(connectionId)) {
-            LOGGER.trace("Logging is enabled, will aggregate logs for connection <{}>", connectionId);
+            logger.trace("Logging is enabled, will aggregate logs for connection <{}>", connectionId);
             timing = refreshMetadata(connectionId);
             final List<LogEntry> allLogs = streamLoggers(connectionId)
                     .map(ConnectionLogger::getLogs)
@@ -112,13 +115,13 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
 
             logs = restrictMaxLogEntriesLength(allLogs, connectionId);
         } else {
-            LOGGER.debug("Logging is disabled, will return empty logs for connection <{}>", connectionId);
+            logger.debug("Logging is disabled, will return empty logs for connection <{}>", connectionId);
 
             timing = getMetadata(connectionId);
             logs = Collections.emptyList();
         }
 
-        LOGGER.debug("Aggregated logs for connection <{}>: {}", connectionId, logs);
+        logger.debug("Aggregated logs for connection <{}>: {}", connectionId, logs);
         return new ConnectionLogs(timing.getEnabledSince(), timing.getEnabledUntil(), logs);
     }
 
@@ -130,8 +133,10 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
             final long sizeOfLogEntry = logEntry.toJsonString().length();
             final long sizeWithNextEntry = currentSize + sizeOfLogEntry;
             if (sizeWithNextEntry > maximumLogSizeInByte) {
-                LOGGER.info("Dropping <{}> of <{}> log entries for connection with ID <{}>, because of size limit.",
-                        originalLogEntries.size() - restrictedLogs.size(), originalLogEntries.size(), connectionId);
+                LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
+                        .info("Dropping <{}> of <{}> log entries for connection with ID <{}>, because of size limit.",
+                                originalLogEntries.size() - restrictedLogs.size(), originalLogEntries.size(),
+                                connectionId);
                 break;
             }
             restrictedLogs.add(logEntry);
@@ -165,7 +170,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     public boolean isLoggingExpired(final ConnectionId connectionId, final Instant timestamp) {
         final Instant enabledUntil = getMetadata(connectionId).getEnabledUntil();
         if (enabledUntil == null || timestamp.isAfter(enabledUntil)) {
-            LOGGER.debug("Logging for connection <{}> expired.", connectionId);
+            LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
+                    .debug("Logging for connection <{}> expired.", connectionId);
             return true;
         }
 
@@ -173,8 +179,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     }
 
     public void muteForConnection(final ConnectionId connectionId) {
-        ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
-        LOGGER.info("Muting loggers for connection <{}>.", connectionId);
+        LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
+                .info("Muting loggers for connection <{}>.", connectionId);
 
         streamLoggers(connectionId)
                 .forEach(MuteableConnectionLogger::mute);
@@ -188,8 +194,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
      * @param connectionId the connection for which the loggers should be enabled.
      */
     public void unmuteForConnection(final ConnectionId connectionId) {
-        ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
-        LOGGER.info("Unmuting loggers for connection <{}>.", connectionId);
+        LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
+                .info("Unmuting loggers for connection <{}>.", connectionId);
 
         streamLoggers(connectionId)
                 .forEach(MuteableConnectionLogger::unmute);
@@ -211,8 +217,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     @Override
     public void initForConnection(final Connection connection) {
         final ConnectionId connectionId = connection.getId();
-        ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
-        LOGGER.info("Initializing loggers for connection <{}>.", connectionId);
+        LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
+                .info("Initializing loggers for connection <{}>.", connectionId);
 
         connection.getSources().stream()
                 .map(Source::getAddresses)
@@ -244,8 +250,8 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     @Override
     public void resetForConnection(final Connection connection) {
         final ConnectionId connectionId = connection.getId();
-        ConnectionLogUtil.enhanceLogWithConnectionId(connectionId);
-        LOGGER.info("Resetting loggers for connection <{}>.", connectionId);
+        LOGGER.withMdcEntry(MDC_CONNECTION_ID, connectionId)
+                .info("Resetting loggers for connection <{}>.", connectionId);
 
         resetForConnectionId(connectionId);
     }
@@ -295,6 +301,16 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     }
 
     @Override
+    public ConnectionLogger forOutboundDropped(final ConnectionId connectionId, final String target) {
+        return getLogger(connectionId, LogCategory.TARGET, LogType.DROPPED, target);
+    }
+
+    @Override
+    public ConnectionLogger forOutboundAcknowledged(final ConnectionId connectionId, final String target) {
+        return getLogger(connectionId, LogCategory.TARGET, LogType.ACKNOWLEDGED, target);
+    }
+
+    @Override
     public ConnectionLogger forInboundConsumed(final ConnectionId connectionId, final String source) {
         return getLogger(connectionId, LogCategory.SOURCE, LogType.CONSUMED, source);
     }
@@ -312,6 +328,10 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     @Override
     public ConnectionLogger forInboundDropped(final ConnectionId connectionId, final String source) {
         return getLogger(connectionId, LogCategory.SOURCE, LogType.DROPPED, source);
+    }
+    @Override
+    public ConnectionLogger forInboundAcknowledged(final ConnectionId connectionId, final String source) {
+        return getLogger(connectionId, LogCategory.SOURCE, LogType.ACKNOWLEDGED, source);
     }
 
     @Override
@@ -332,6 +352,11 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     @Override
     public ConnectionLogger forResponsePublished(final ConnectionId connectionId) {
         return getLogger(connectionId, LogCategory.RESPONSE, LogType.PUBLISHED, RESPONSES_ADDRESS);
+    }
+
+    @Override
+    public ConnectionLogger forResponseAcknowledged(final ConnectionId connectionId) {
+        return getLogger(connectionId, LogCategory.RESPONSE, LogType.ACKNOWLEDGED, RESPONSES_ADDRESS);
     }
 
     /**

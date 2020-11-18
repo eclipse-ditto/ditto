@@ -28,7 +28,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface PolicyCommand<T extends PolicyCommand> extends Command<T>, WithEntityType {
+public interface PolicyCommand<T extends PolicyCommand<T>> extends Command<T>, WithEntityType {
 
     /**
      * Type Prefix of Policy commands.

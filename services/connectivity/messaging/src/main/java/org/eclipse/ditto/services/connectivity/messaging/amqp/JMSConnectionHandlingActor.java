@@ -34,8 +34,13 @@ import org.apache.qpid.jms.JmsConnection;
 import org.apache.qpid.jms.JmsQueue;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.services.connectivity.messaging.config.Amqp10Config;
+import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 
 import akka.actor.AbstractActor;
@@ -57,6 +62,18 @@ import akka.event.DiagnosticLoggingAdapter;
 public final class JMSConnectionHandlingActor extends AbstractActor {
 
     /**
+     * Magic number to activate individual message acknowledgement. Qpid JMS client provides no public constant for
+     * this value but permits its use for session creation.
+     * <p>
+     * Reference:
+     * JmsAcknowledgeCallback.java:51 individual acknowledgement is performed when envelope is set
+     * JmsMessageConsumer.java:500    envelope is set when session has ack mode 101
+     * JmsConnection.java:315         ack mode is passed verbatim to JmsSession constructor after validation
+     * JmsConnection.java:554         call to JmsSession.validateSessionMode, which accepts 101 as valid
+     */
+    private static final int JMS_INDIVIDUAL_ACKNOWLEDGE_MODE_MAGIC_NUMBER = 101;
+
+    /**
      * The Actor name prefix.
      */
     static final String ACTOR_NAME_PREFIX = "jmsConnectionHandling-";
@@ -66,21 +83,23 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
      */
     private static final String DISPATCHER_NAME = "jms-connection-handling-dispatcher";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final Connection connection;
     private final ExceptionListener exceptionListener;
     private final JmsConnectionFactory jmsConnectionFactory;
+    private final ConnectionLogger connectionLogger;
 
     @Nullable private Session currentSession = null;
 
     @SuppressWarnings("unused")
     private JMSConnectionHandlingActor(final Connection connection, final ExceptionListener exceptionListener,
-            final JmsConnectionFactory jmsConnectionFactory) {
+            final JmsConnectionFactory jmsConnectionFactory, final ConnectionLogger connectionLogger) {
 
         this.connection = checkNotNull(connection, "connection");
         this.exceptionListener = exceptionListener;
         this.jmsConnectionFactory = jmsConnectionFactory;
+        this.connectionLogger = connectionLogger;
     }
 
     /**
@@ -89,17 +108,19 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
      * @param connection the connection
      * @param exceptionListener the exception listener
      * @param jmsConnectionFactory the jms connection factory
+     * @param connectionLogger used to log failures during certificate validation.
      * @return the Akka configuration Props object.
      */
     static Props props(final Connection connection, final ExceptionListener exceptionListener,
-            final JmsConnectionFactory jmsConnectionFactory) {
+            final JmsConnectionFactory jmsConnectionFactory, final ConnectionLogger connectionLogger) {
 
-        return Props.create(JMSConnectionHandlingActor.class, connection, exceptionListener, jmsConnectionFactory);
+        return Props.create(JMSConnectionHandlingActor.class, connection, exceptionListener, jmsConnectionFactory,
+                connectionLogger);
     }
 
     static Props propsWithOwnDispatcher(final Connection connection, final ExceptionListener exceptionListener,
-            final JmsConnectionFactory jmsConnectionFactory) {
-        return props(connection, exceptionListener, jmsConnectionFactory)
+            final JmsConnectionFactory jmsConnectionFactory, final ConnectionLogger connectionLogger) {
+        return props(connection, exceptionListener, jmsConnectionFactory, connectionLogger)
                 .withDispatcher(DISPATCHER_NAME);
     }
 
@@ -171,7 +192,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         final ActorRef self = getSelf();
 
         // try to close an existing session first
-        recoverSession.getSession().ifPresent((session) -> {
+        recoverSession.getSession().ifPresent(session -> {
             try {
                 session.close();
             } catch (final JMSException e) {
@@ -191,7 +212,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
                 final AmqpClientActor.JmsSessionRecovered r =
                         new AmqpClientActor.JmsSessionRecovered(origin, session, consumers);
                 sender.tell(r, self);
-                log.debug("Session of connection <{}> recovered successfully.", this.connection.getId());
+                log.debug("Session of connection <{}> recovered successfully.", connection.getId());
             } catch (final ConnectionFailedException e) {
                 sender.tell(new ImmutableConnectionFailure(origin, e, e.getMessage()), self);
                 log.warning(e.getMessage());
@@ -266,13 +287,14 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
 
     private Session createSession(final JmsConnection jmsConnection) {
         final Session session = safelyExecuteJmsOperation(jmsConnection, "create session",
-                () -> (jmsConnection.createSession(Session.CLIENT_ACKNOWLEDGE)));
+                () -> jmsConnection.createSession(JMS_INDIVIDUAL_ACKNOWLEDGE_MODE_MAGIC_NUMBER));
         currentSession = session;
         return session;
     }
 
     private <T> T safelyExecuteJmsOperation(@Nullable final JmsConnection jmsConnection,
             final String task, final ThrowingSupplier<T> jmsOperation) {
+
         try {
             return jmsOperation.get();
         } catch (final JMSException | NamingException e) {
@@ -312,13 +334,16 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     }
 
     @Nullable
-    private ConsumerData createJmsConsumer(final Session session, final Map<String, Exception> failedSources,
-            final Source source, final String sourceAddress, final String addressWithIndex) {
+    private ConsumerData createJmsConsumer(final Session session,
+            final Map<String, Exception> failedSources,
+            final Source source,
+            final String sourceAddress,
+            final String addressWithIndex) {
+
         log.debug("Creating AMQP Consumer for <{}>", addressWithIndex);
-        final Destination destination = new JmsQueue(sourceAddress);
-        final MessageConsumer messageConsumer;
         try {
-            messageConsumer = session.createConsumer(destination);
+            final Destination destination = new JmsQueue(sourceAddress);
+            final MessageConsumer messageConsumer = session.createConsumer(destination);
             return ConsumerData.of(source, sourceAddress, addressWithIndex, messageConsumer);
         } catch (final JMSException jmsException) {
             failedSources.put(addressWithIndex, jmsException);
@@ -333,10 +358,16 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     private JmsConnection createJmsConnection() {
         return safelyExecuteJmsOperation(null, "create JMS connection", () -> {
             if (log.isDebugEnabled()) {
+                final ConnectionConfig connectionConfig =
+                        DittoConnectivityConfig.of(
+                                DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
+                                .getConnectionConfig();
+                final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
                 log.debug("Attempt to create connection {} for URI [{}]", connection.getId(),
-                        ConnectionBasedJmsConnectionFactory.buildAmqpConnectionUriFromConnection(connection));
+                        ConnectionBasedJmsConnectionFactory
+                                .buildAmqpConnectionUriFromConnection(connection, amqp10Config));
             }
-            return jmsConnectionFactory.createConnection(connection, exceptionListener);
+            return jmsConnectionFactory.createConnection(connection, exceptionListener, connectionLogger);
         });
     }
 
@@ -356,14 +387,14 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
             try {
                 jmsConnection.stop();
             } catch (final JMSException e) {
-                log.debug("Stopping connection <{}> failed, probably it was already stopped: {}",
-                        this.connection.getId(), e.getMessage());
+                log.debug("Stopping connection <{}> failed, probably it was already stopped: {}", connection.getId(),
+                        e.getMessage());
             }
             try {
                 jmsConnection.close();
             } catch (final JMSException e) {
-                log.debug("Closing connection <{}> failed, probably it was already closed: {}",
-                        this.connection.getId(), e.getMessage());
+                log.debug("Closing connection <{}> failed, probably it was already closed: {}", connection.getId(),
+                        e.getMessage());
             }
         }
     }
@@ -393,5 +424,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
          * @throws NamingException if the identifier of connection could not be found in the Context.
          */
         T get() throws JMSException, NamingException;
+
     }
+
 }

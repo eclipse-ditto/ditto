@@ -17,6 +17,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Feature;
@@ -42,15 +43,19 @@ final class RetrieveFeatureDefinitionStrategy extends AbstractThingCommandStrate
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
-            final long nextRevision, final RetrieveFeatureDefinition command) {
+    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final RetrieveFeatureDefinition command,
+            @Nullable final Metadata metadata) {
+
         final ThingId thingId = context.getState();
         final String featureId = command.getFeatureId();
 
         return extractFeature(command, thing)
                 .map(feature -> getFeatureDefinition(feature, thingId, command, thing))
                 .orElseGet(() -> ResultFactory.newErrorResult(ExceptionFactory.featureNotFound(thingId,
-                        featureId, command.getDittoHeaders())));
+                        featureId, command.getDittoHeaders()), command));
     }
 
     private Optional<Feature> extractFeature(final RetrieveFeatureDefinition command, final @Nullable Thing thing) {
@@ -70,7 +75,7 @@ final class RetrieveFeatureDefinitionStrategy extends AbstractThingCommandStrate
                 .<Result<ThingEvent>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featureDefinitionNotFound(thingId, featureId, dittoHeaders)));
+                        ExceptionFactory.featureDefinitionNotFound(thingId, featureId, dittoHeaders), command));
     }
 
 

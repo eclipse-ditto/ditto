@@ -18,7 +18,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
@@ -37,6 +37,7 @@ import akka.pattern.AskTimeoutException;
  * <p>
  * This actor will never survive beyond the given timeout duration.
  * </ol>
+ *
  * @param <T> the type of the messages this aggregator aggregates
  */
 final class MessageAggregator<T> extends AbstractActorWithTimers {
@@ -46,7 +47,7 @@ final class MessageAggregator<T> extends AbstractActorWithTimers {
      */
     static final Object TIMEOUT = new AskTimeoutException("MessageAggregator.TIMEOUT");
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final ActorRef initialReceiver;
     private final Class<T> messageClass;

@@ -21,11 +21,15 @@ import org.eclipse.ditto.model.query.expression.FilterFieldExpression;
 public interface FilterFieldExpressionVisitor<T> extends SortFieldExpressionVisitor<T> {
 
     @Override
-    T visitAttribute(final String key);
+    T visitAttribute(String key);
 
     @Override
-    T visitFeatureIdProperty(final String featureId, final String property);
+    T visitFeatureIdProperty(String featureId, String property);
 
     @Override
-    T visitSimple(final String fieldName);
+    T visitFeatureIdDesiredProperty(CharSequence featureId, CharSequence desiredProperty);
+
+    @Override
+    T visitSimple(String fieldName);
+
 }

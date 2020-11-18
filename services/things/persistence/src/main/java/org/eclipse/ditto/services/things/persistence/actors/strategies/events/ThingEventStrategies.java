@@ -31,6 +31,12 @@ import org.eclipse.ditto.signals.events.things.FeatureDefinitionCreated;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionDeleted;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionModified;
 import org.eclipse.ditto.signals.events.things.FeatureDeleted;
+import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertiesCreated;
+import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertiesDeleted;
+import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertiesModified;
+import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertyCreated;
+import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertyDeleted;
+import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertyModified;
 import org.eclipse.ditto.signals.events.things.FeatureModified;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesCreated;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesDeleted;
@@ -129,6 +135,14 @@ public final class ThingEventStrategies extends AbstractEventStrategies<ThingEve
         addStrategy(FeaturePropertyCreated.class, new FeaturePropertyCreatedStrategy());
         addStrategy(FeaturePropertyModified.class, new FeaturePropertyModifiedStrategy());
         addStrategy(FeaturePropertyDeleted.class, new FeaturePropertyDeletedStrategy());
+
+        addStrategy(FeatureDesiredPropertiesCreated.class, new FeatureDesiredPropertiesCreatedStrategy());
+        addStrategy(FeatureDesiredPropertiesModified.class, new FeatureDesiredPropertiesModifiedStrategy());
+        addStrategy(FeatureDesiredPropertiesDeleted.class, new FeatureDesiredPropertiesDeletedStrategy());
+
+        addStrategy(FeatureDesiredPropertyCreated.class, new FeatureDesiredPropertyCreatedStrategy());
+        addStrategy(FeatureDesiredPropertyModified.class, new FeatureDesiredPropertyModifiedStrategy());
+        addStrategy(FeatureDesiredPropertyDeleted.class, new FeatureDesiredPropertyDeletedStrategy());
     }
 
     private void addPolicyIdStrategies() {

@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ReconnectConfig;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceActor;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
@@ -37,7 +37,7 @@ import akka.actor.Cancellable;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
-import akka.stream.ActorMaterializer;
+import akka.stream.Materializer;
 import akka.stream.javadsl.Source;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -54,12 +54,12 @@ public final class ReconnectActor extends AbstractActor {
 
     private static final String CORRELATION_ID_PREFIX = "reconnect-actor-triggered:";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
-    private final ActorMaterializer materializer;
     private final ActorRef connectionShardRegion;
     private final Supplier<Source<String, NotUsed>> currentPersistenceIdsSourceSupplier;
     private final ReconnectConfig reconnectConfig;
+    private final Materializer materializer;
 
     private Cancellable reconnectCheck;
     private boolean reconnectInProgress = false;
@@ -70,19 +70,19 @@ public final class ReconnectActor extends AbstractActor {
 
         this.connectionShardRegion = connectionShardRegion;
         this.currentPersistenceIdsSourceSupplier = currentPersistenceIdsSourceSupplier;
+        materializer = Materializer.createMaterializer(this::getContext);
         reconnectConfig = getReconnectConfig(getContext());
-        materializer = ActorMaterializer.create(getContext());
     }
 
     @SuppressWarnings("unused")
     private ReconnectActor(final ActorRef connectionShardRegion, final MongoReadJournal readJournal) {
         this.connectionShardRegion = connectionShardRegion;
         reconnectConfig = getReconnectConfig(getContext());
-        materializer = ActorMaterializer.create(getContext());
 
-        currentPersistenceIdsSourceSupplier =
-                () -> readJournal.getJournalPids(reconnectConfig.getReadJournalBatchSize(),
-                        reconnectConfig.getInterval(), materializer);
+        materializer = Materializer.createMaterializer(this::getContext);
+        currentPersistenceIdsSourceSupplier = () ->
+                readJournal.getJournalPids(reconnectConfig.getReadJournalBatchSize(), reconnectConfig.getInterval(),
+                        materializer);
     }
 
     /**

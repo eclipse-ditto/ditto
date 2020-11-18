@@ -195,7 +195,7 @@ public final class SubjectCreated extends AbstractPolicyEvent<SubjectCreated> im
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected 'SubjectCreated' format.
      */
     public static SubjectCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<SubjectCreated>(TYPE, jsonObject).deserialize((revision, timestamp) -> {
+        return new EventJsonDeserializer<SubjectCreated>(TYPE, jsonObject).deserialize((revision, timestamp, metadata) -> {
             final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));

@@ -18,10 +18,11 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
@@ -30,7 +31,6 @@ import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementRequestTimeoutException;
@@ -54,6 +54,7 @@ public final class AcknowledgementAggregator {
     private final HeaderTranslator headerTranslator;
     private final Map<AcknowledgementLabel, Acknowledgement> acknowledgementMap;
     private final Duration timeout;
+    private final Set<AcknowledgementLabel> expectedLabels;
 
     private AcknowledgementAggregator(final EntityIdWithType entityId,
             final CharSequence correlationId,
@@ -64,6 +65,7 @@ public final class AcknowledgementAggregator {
         this.correlationId = argumentNotEmpty(correlationId).toString();
         this.headerTranslator = checkNotNull(headerTranslator, "headerTranslator");
         acknowledgementMap = new LinkedHashMap<>(DEFAULT_INITIAL_CAPACITY);
+        expectedLabels = new HashSet<>();
         this.timeout = checkNotNull(timeout, "timeout");
     }
 
@@ -126,6 +128,7 @@ public final class AcknowledgementAggregator {
         checkNotNull(acknowledgementRequest, "acknowledgementRequest");
         final AcknowledgementLabel ackLabel = acknowledgementRequest.getLabel();
         acknowledgementMap.put(ackLabel, getTimeoutAcknowledgement(ackLabel));
+        expectedLabels.add(ackLabel);
     }
 
     private Acknowledgement getTimeoutAcknowledgement(final AcknowledgementLabel acknowledgementLabel) {
@@ -166,43 +169,18 @@ public final class AcknowledgementAggregator {
      */
     public void addReceivedAcknowledgment(final Acknowledgement acknowledgement) {
         checkNotNull(acknowledgement, "acknowledgement");
-        validateCorrelationId(acknowledgement);
-        validateEntityId(acknowledgement);
-        if (isRequested(acknowledgement) && isFirstOfItsLabel(acknowledgement)) {
+        if (isExpected(acknowledgement)) {
             final DittoHeaders acknowledgementHeaders = filterHeaders(acknowledgement.getDittoHeaders());
             final Acknowledgement adjustedAck = acknowledgement.setDittoHeaders(acknowledgementHeaders);
-            acknowledgementMap.put(adjustedAck.getLabel(), adjustedAck);
+            final AcknowledgementLabel label = adjustedAck.getLabel();
+            acknowledgementMap.put(label, adjustedAck);
+            expectedLabels.remove(label);
         }
     }
 
-    private void validateCorrelationId(final WithDittoHeaders<Acknowledgement> acknowledgement) {
-        final DittoHeaders dittoHeaders = acknowledgement.getDittoHeaders();
-        final String receivedCorrelationId = dittoHeaders.getCorrelationId()
-                .orElseThrow(() -> {
-                    final String pattern = "The received Acknowledgement did not provide a correlation ID at all but"
-                            + " expected was <{0}>!";
-                    return new IllegalArgumentException(MessageFormat.format(pattern, correlationId));
-                });
-
-        if (!receivedCorrelationId.equals(correlationId)) {
-            final String ptrn = "The received Acknowledgement''s correlation ID <{0}> differs from the expected <{1}>!";
-            throw new IllegalArgumentException(MessageFormat.format(ptrn, receivedCorrelationId, correlationId));
-        }
-    }
-
-    private void validateEntityId(final Acknowledgement acknowledgement) {
-        entityId.isCompatibleOrThrow(acknowledgement.getEntityId());
-    }
-
-    private boolean isRequested(final Acknowledgement acknowledgement) {
+    private boolean isExpected(final Acknowledgement acknowledgement) {
         final AcknowledgementLabel ackLabel = acknowledgement.getLabel();
-        return acknowledgementMap.containsKey(ackLabel);
-    }
-
-    private boolean isFirstOfItsLabel(final Acknowledgement acknowledgement) {
-        final AcknowledgementLabel ackLabel = acknowledgement.getLabel();
-        @Nullable final Acknowledgement knownAcknowledgement = acknowledgementMap.get(ackLabel);
-        return null != knownAcknowledgement && knownAcknowledgement.isTimeout();
+        return expectedLabels.contains(ackLabel);
     }
 
     private DittoHeaders filterHeaders(final DittoHeaders dittoHeaders) {
@@ -216,9 +194,7 @@ public final class AcknowledgementAggregator {
      * acknowledgements.
      */
     public boolean receivedAllRequestedAcknowledgements() {
-        final Collection<Acknowledgement> acknowledgements = acknowledgementMap.values();
-        return acknowledgements.stream()
-                .noneMatch(Acknowledgement::isTimeout);
+        return expectedLabels.isEmpty();
     }
 
     /**

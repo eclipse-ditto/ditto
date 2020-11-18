@@ -23,15 +23,18 @@ import java.util.Set;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
+import org.eclipse.ditto.signals.base.JsonParsable;
 
 import com.typesafe.config.Config;
 
 import akka.actor.ActorSystem;
 
 /**
- * An unmodifiable map of {@link MappingStrategy} elements associated with the name of the type the strategy yields.
- *
+ * An unmodifiable map of {@link JsonParsable} elements associated with the name of the type the strategy
+ * yields.
+ * <p>
  * Implementations define the mapping strategies for both persistence (JsonifiableSerializer) as well as Cluster
  * Sharding Mapping Strategies.
  * As all {@code Command}s, {@code CommandResponse}s, {@code Event}s and {@code DittoRuntimeException}s are
@@ -39,12 +42,12 @@ import akka.actor.ActorSystem;
  * participate in cluster communication.
  */
 @Immutable
-public abstract class MappingStrategies extends AbstractMap<String, MappingStrategy> {
+public abstract class MappingStrategies extends AbstractMap<String, JsonParsable<Jsonifiable<?>>> {
 
     private static final String CONFIG_KEY_DITTO_MAPPING_STRATEGY_IMPLEMENTATION =
             "ditto.mapping-strategy.implementation";
 
-    private final Map<String, MappingStrategy> strategies;
+    private final Map<String, JsonParsable<Jsonifiable<?>>> strategies;
 
     /**
      * Constructs a new AbstractMappingStrategies object.
@@ -52,7 +55,7 @@ public abstract class MappingStrategies extends AbstractMap<String, MappingStrat
      * @param strategies the key-value pairs of the returned mapping strategies.
      * @throws NullPointerException if {@code strategies} is {@code null}.
      */
-    protected MappingStrategies(final Map<String, MappingStrategy> strategies) {
+    protected MappingStrategies(final Map<String, JsonParsable<Jsonifiable<?>>> strategies) {
         this.strategies = Map.copyOf(checkNotNull(strategies, "strategies"));
     }
 
@@ -61,7 +64,7 @@ public abstract class MappingStrategies extends AbstractMap<String, MappingStrat
      * {@value CONFIG_KEY_DITTO_MAPPING_STRATEGY_IMPLEMENTATION}.
      *
      * @param actorSystem the ActorSystem we are running in.
-     * @return the resolved MappingStrategy.
+     * @return the resolved MappingStrategies.
      */
     public static MappingStrategies loadMappingStrategies(final ActorSystem actorSystem) {
 
@@ -80,7 +83,7 @@ public abstract class MappingStrategies extends AbstractMap<String, MappingStrat
      * @return an Optional containing the mapping strategy which is associated with the given {@code key} or an empty
      * Optional if the key is unknown.
      */
-    public Optional<MappingStrategy> getMappingStrategy(@Nullable final String key) {
+    public Optional<JsonParsable<Jsonifiable<?>>> getMappingStrategy(@Nullable final String key) {
         if (null == key) {
             return Optional.empty();
         }
@@ -88,7 +91,7 @@ public abstract class MappingStrategies extends AbstractMap<String, MappingStrat
     }
 
     @Override
-    public Set<Entry<String, MappingStrategy>> entrySet() {
+    public Set<Entry<String, JsonParsable<Jsonifiable<?>>>> entrySet() {
         return strategies.entrySet();
     }
 

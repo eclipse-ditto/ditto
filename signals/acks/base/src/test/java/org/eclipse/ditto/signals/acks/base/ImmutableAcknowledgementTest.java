@@ -22,10 +22,13 @@ import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Before;
@@ -52,7 +55,10 @@ public final class ImmutableAcknowledgementTest {
 
     @Before
     public void setUp() {
-        dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
+        dittoHeaders = DittoHeaders.newBuilder()
+                .correlationId(testName.getMethodName())
+                .responseRequired(false)
+                .build();
     }
 
     @Test
@@ -122,8 +128,14 @@ public final class ImmutableAcknowledgementTest {
                 .set(Acknowledgement.JsonFields.STATUS_CODE, KNOWN_STATUS_CODE.toInt())
                 .set(Acknowledgement.JsonFields.DITTO_HEADERS, dittoHeaders.toJson())
                 .build();
+
+        final DittoHeaders dittoHeadersWithAckRequests = this.dittoHeaders.toBuilder()
+                .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of("foo:bar")))
+                .build();
+
         final ImmutableAcknowledgement<ThingId> underTest =
-                ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, KNOWN_STATUS_CODE, dittoHeaders, null);
+                ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, KNOWN_STATUS_CODE,
+                        dittoHeadersWithAckRequests, null);
 
         assertThat(underTest.toJson()).isEqualTo(expected);
     }
@@ -138,9 +150,14 @@ public final class ImmutableAcknowledgementTest {
                 .set(Acknowledgement.JsonFields.PAYLOAD, KNOWN_PAYLOAD)
                 .set(Acknowledgement.JsonFields.DITTO_HEADERS, dittoHeaders.toJson())
                 .build();
+
+        final DittoHeaders dittoHeadersWithAckRequests = this.dittoHeaders.toBuilder()
+                .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of("foo:bar")))
+                .build();
+
         final ImmutableAcknowledgement<ThingId> underTest =
-                ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, KNOWN_STATUS_CODE, dittoHeaders,
-                        KNOWN_PAYLOAD);
+                ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, KNOWN_STATUS_CODE,
+                        dittoHeadersWithAckRequests, KNOWN_PAYLOAD);
 
         assertThat(underTest.toJson()).isEqualTo(expected);
     }
@@ -179,6 +196,26 @@ public final class ImmutableAcknowledgementTest {
                 ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, statusCode, dittoHeaders, KNOWN_PAYLOAD);
 
         assertThat(underTest.isSuccess()).isTrue();
+    }
+
+    @Test
+    public void liveResponseAcknowledgementWithNonTimeoutIsSuccess() {
+        final HttpStatusCode statusCode = HttpStatusCode.NOT_FOUND;
+        final ImmutableAcknowledgement<ThingId> underTest =
+                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.LIVE_RESPONSE, KNOWN_ENTITY_ID, statusCode,
+                        dittoHeaders, KNOWN_PAYLOAD);
+
+        assertThat(underTest.isSuccess()).isTrue();
+    }
+
+    @Test
+    public void liveResponseAcknowledgementWithTimeoutIsFailed() {
+        final HttpStatusCode statusCode = HttpStatusCode.REQUEST_TIMEOUT;
+        final ImmutableAcknowledgement<ThingId> underTest =
+                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.LIVE_RESPONSE, KNOWN_ENTITY_ID, statusCode,
+                        dittoHeaders, KNOWN_PAYLOAD);
+
+        assertThat(underTest.isSuccess()).isFalse();
     }
 
     @Test
@@ -227,16 +264,30 @@ public final class ImmutableAcknowledgementTest {
 
     @Test
     public void getDittoHeadersReturnsExpected() {
+        final DittoHeaders dittoHeadersWithAckRequests = this.dittoHeaders.toBuilder()
+                .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of("foo:bar")))
+                .build();
         final ImmutableAcknowledgement<ThingId> underTest =
-                ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, KNOWN_STATUS_CODE, dittoHeaders,
+                ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, KNOWN_STATUS_CODE,
+                        dittoHeadersWithAckRequests, KNOWN_PAYLOAD);
+
+        assertThat(underTest.getDittoHeaders()).isEqualTo(this.dittoHeaders);
+    }
+
+    @Test
+    public void responseRequiredIsSetToFalse() {
+        final ImmutableAcknowledgement<ThingId> underTest =
+                ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, KNOWN_STATUS_CODE, DittoHeaders.empty(),
                         KNOWN_PAYLOAD);
 
-        assertThat(underTest.getDittoHeaders()).isEqualTo(dittoHeaders);
+        assertThat(underTest.getDittoHeaders().isResponseRequired()).isFalse();
     }
 
     @Test
     public void setDittoHeadersWorksAsExpected() {
-        final DittoHeaders newDittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
+        final DittoHeaders newDittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().
+                responseRequired(false)
+                .build();
         final ImmutableAcknowledgement<ThingId> underTest =
                 ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, KNOWN_STATUS_CODE, dittoHeaders,
                         KNOWN_PAYLOAD);
@@ -292,6 +343,40 @@ public final class ImmutableAcknowledgementTest {
                         KNOWN_PAYLOAD);
 
         assertThat(underTest.getType()).isEqualTo(expected);
+    }
+
+    @Test
+    public void isWeakWhenHeaderIsTrue() {
+        final DittoHeaders ackHeader = dittoHeaders.toBuilder()
+                .putHeader(DittoHeaderDefinition.WEAK_ACK.getKey(), "true")
+                .build();
+        final ImmutableAcknowledgement<ThingId> underTest = ImmutableAcknowledgement.of(KNOWN_ACK_LABEL,
+                KNOWN_ENTITY_ID, KNOWN_STATUS_CODE, ackHeader, KNOWN_PAYLOAD);
+
+        assertThat(underTest.isWeak()).isTrue();
+    }
+
+    @Test
+    public void isNotWeakWhenHeaderIsFalse() {
+        final DittoHeaders ackHeader = dittoHeaders
+                .toBuilder()
+                .putHeader(DittoHeaderDefinition.WEAK_ACK.getKey(), "false")
+                .build();
+        final ImmutableAcknowledgement<ThingId> underTest = ImmutableAcknowledgement.of(KNOWN_ACK_LABEL,
+                KNOWN_ENTITY_ID, KNOWN_STATUS_CODE, ackHeader, KNOWN_PAYLOAD);
+
+        assertThat(underTest.isWeak()).isFalse();
+    }
+
+    @Test
+    public void isNotWeakWhenHeaderIsNotPresent() {
+        final DittoHeaders ackHeader = dittoHeaders.toBuilder()
+                .removeHeader(DittoHeaderDefinition.WEAK_ACK.getKey())
+                .build();
+        final ImmutableAcknowledgement<ThingId> underTest = ImmutableAcknowledgement.of(KNOWN_ACK_LABEL,
+                KNOWN_ENTITY_ID, KNOWN_STATUS_CODE, ackHeader, KNOWN_PAYLOAD);
+
+        assertThat(underTest.isWeak()).isFalse();
     }
 
 }

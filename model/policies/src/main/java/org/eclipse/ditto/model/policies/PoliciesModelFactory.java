@@ -31,6 +31,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.Validator;
+import org.eclipse.ditto.model.base.entity.validation.NoControlCharactersValidator;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 
 /**
@@ -225,6 +227,14 @@ public final class PoliciesModelFactory {
         }
 
         argumentNotEmpty(typeWithPath, "typeWithPath");
+
+        final Validator validator = NoControlCharactersValidator.getInstance(typeWithPath);
+        if (!validator.isValid()) {
+            throw PolicyEntryInvalidException.newBuilder()
+                    .message("The Policy Resource " + typeWithPath + " is invalid")
+                    .description(validator.getReason().orElse(null))
+                    .build();
+        }
 
         final String[] typeWithPathSplit = splitTypeWithPath(typeWithPath.toString());
         return ImmutableResourceKey.newInstance(typeWithPathSplit[0], JsonPointer.of(typeWithPathSplit[1]));
@@ -437,7 +447,8 @@ public final class PoliciesModelFactory {
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code label} is empty.
      */
-    public static PolicyEntry newPolicyEntry(final CharSequence label, final Iterable<Subject> subjects, final Iterable<Resource> resources) {
+    public static PolicyEntry newPolicyEntry(final CharSequence label, final Iterable<Subject> subjects,
+            final Iterable<Resource> resources) {
         return ImmutablePolicyEntry.of(Label.of(label), newSubjects(subjects), newResources(resources));
     }
 
@@ -606,7 +617,7 @@ public final class PoliciesModelFactory {
         allEntries.add(entry);
         Collections.addAll(allEntries, furtherEntries);
 
-        return ImmutablePolicy.of(PolicyId.of(id), PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null,
+        return ImmutablePolicy.of(PolicyId.of(id), PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null,
                 allEntries);
     }
 
@@ -629,7 +640,7 @@ public final class PoliciesModelFactory {
         allEntries.add(entry);
         Collections.addAll(allEntries, furtherEntries);
 
-        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, allEntries);
+        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null, allEntries);
     }
 
     /**
@@ -643,7 +654,7 @@ public final class PoliciesModelFactory {
      */
     @Deprecated
     public static Policy newPolicy(final CharSequence id, final Iterable<PolicyEntry> entries) {
-        return ImmutablePolicy.of(PolicyId.of(id), PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null,
+        return ImmutablePolicy.of(PolicyId.of(id), PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null,
                 entries);
     }
 
@@ -656,7 +667,7 @@ public final class PoliciesModelFactory {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static Policy newPolicy(final PolicyId id, final Iterable<PolicyEntry> entries) {
-        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, entries);
+        return ImmutablePolicy.of(id, PolicyLifecycle.ACTIVE, PolicyRevision.newInstance(1), null, null, entries);
     }
 
     /**

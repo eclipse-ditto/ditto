@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -51,8 +52,12 @@ final class ModifyResourcesStrategy extends AbstractPolicyCommandStrategy<Modify
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy policy,
-            final long nextRevision, final ModifyResources command) {
+    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+            @Nullable final Policy policy,
+            final long nextRevision,
+            final ModifyResources command,
+            @Nullable final Metadata metadata) {
+
         final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyId policyId = context.getState();
         final Label label = command.getLabel();
@@ -83,7 +88,7 @@ final class ModifyResourcesStrategy extends AbstractPolicyCommandStrategy<Modify
                     },
                     command::getDittoHeaders);
         } catch (final PolicyTooLargeException e) {
-            return ResultFactory.newErrorResult(e);
+            return ResultFactory.newErrorResult(e, command);
         }
 
         if (nonNullPolicy.getEntryFor(label).isPresent()) {
@@ -99,10 +104,10 @@ final class ModifyResourcesStrategy extends AbstractPolicyCommandStrategy<Modify
                 return ResultFactory.newMutationResult(command, event, response);
             } else {
                 return ResultFactory.newErrorResult(
-                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders));
+                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders), command);
             }
         } else {
-            return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, dittoHeaders));
+            return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, dittoHeaders), command);
         }
     }
 

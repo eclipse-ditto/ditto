@@ -14,35 +14,35 @@ package org.eclipse.ditto.services.utils.pubsub.ddata;
 
 import java.util.concurrent.CompletionStage;
 
-import akka.actor.ActorRef;
 import akka.actor.Address;
 import akka.cluster.ddata.Replicator;
 
 /**
  * Writer of a distributed subscriber-topic relation.
  *
+ * @param <K> type of keys of the multimap.
  * @param <T> type of topic updates to perform in the distributed data.
  */
-public interface DDataWriter<T> {
+public interface DDataWriter<K, T> {
 
     /**
      * Associate a subscriber with a topic.
      *
-     * @param ownSubscriber actor that manages local subscriptions for this cluster member.
+     * @param ownSubscriber key that represents the subscriber of this cluster member.
      * @param topicUpdates representation of topic updates.
      * @param writeConsistency write consistency for the operation.
      * @return future that completes or fails according to the result of the operation.
      */
-    CompletionStage<Void> put(ActorRef ownSubscriber, T topicUpdates, Replicator.WriteConsistency writeConsistency);
+    CompletionStage<Void> put(K ownSubscriber, T topicUpdates, Replicator.WriteConsistency writeConsistency);
 
     /**
      * Remove a subscriber outright.
      *
-     * @param subscriber the subscriber to remove.
+     * @param subscriber the subscriber key to remove.
      * @param writeConsistency write consistency for the operation.
      * @return future that completes or fails according to the result of the operation.
      */
-    CompletionStage<Void> removeSubscriber(ActorRef subscriber, Replicator.WriteConsistency writeConsistency);
+    CompletionStage<Void> removeSubscriber(K subscriber, Replicator.WriteConsistency writeConsistency);
 
     /**
      * Remove all subscribers at an address from the ddata with write consistency local.

@@ -21,6 +21,7 @@ import org.junit.Test;
 /**
  * Tests {@link DittoEncodingHelper}.
  */
+@Deprecated
 public final class DittoEncodingHelperTest {
 
     @Test
@@ -65,7 +66,8 @@ public final class DittoEncodingHelperTest {
 
     @Test
     public void testNameWithWhitespace() {
-        assertEncodingAndDecoding("This is a normal sentence and not a name.", "This%20is%20a%20normal%20sentence%20and%20not%20a%20name.");
+        assertEncodingAndDecoding("This is a normal sentence and not a name.",
+                "This%20is%20a%20normal%20sentence%20and%20not%20a%20name.");
     }
 
     private void assertEncodingAndDecoding(final String testString) {
@@ -81,7 +83,8 @@ public final class DittoEncodingHelperTest {
         assertThat(DittoEncodingHelper.decode(encoded))
                 .isEqualTo(testString);
 
-        assertThat(URLDecoder.decode(encoded)) // the URLDecoder must produce the same decoding - it decodes even more characters
+        assertThat(URLDecoder.decode(
+                encoded)) // the URLDecoder must produce the same decoding - it decodes even more characters
                 .isEqualTo(testString);
     }
 }

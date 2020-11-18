@@ -35,7 +35,10 @@ import java.util.Map;
  * % (percent)              used to define an escaped character itself
  * " (quotation marks)      often used as the delimiters around URI in text documents and protocol fields
  * </pre>
+ *
+ * @deprecated DittoEncodingHelper is not longer in use.
  */
+@Deprecated
 public final class DittoEncodingHelper {
 
     private static final Map<Character, CharSequence> ENCODE_MAP;
@@ -92,8 +95,8 @@ public final class DittoEncodingHelper {
             final char character = chars[i];
             if (character == '%') {
                 // read the following 2 characters (and proceed with the "i" pointer):
-                @SuppressWarnings("squid:ForLoopCounterChangedCheck")
-                final String escaped = new String(new char[]{character, chars[++i], chars[++i]});
+                @SuppressWarnings("squid:ForLoopCounterChangedCheck") final String escaped =
+                        new String(new char[]{character, chars[++i], chars[++i]});
                 final Character replacement = DECODE_MAP.get(escaped);
                 stringBuilder.append(replacement);
             } else {

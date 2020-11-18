@@ -39,20 +39,19 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
-import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
-import org.eclipse.ditto.model.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.model.connectivity.Source;
-import org.eclipse.ditto.model.connectivity.SourceAddressPlaceholder;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.model.placeholders.SourceAddressPlaceholder;
 import org.eclipse.ditto.model.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
+import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
@@ -104,7 +103,7 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
 
         validateTargetQoS(qos.get(), dittoHeaders, targetDescription);
         validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder(),
-                newHeadersPlaceholder());
+                newHeadersPlaceholder(), PlaceholderFactory.newFeaturePlaceholder());
     }
 
     /**
@@ -153,8 +152,7 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
 
     protected static void validateEnforcementInput(final Enforcement enforcement,
             final Supplier<String> sourceDescription, final DittoHeaders dittoHeaders) {
-        final SourceAddressPlaceholder sourceAddressPlaceholder =
-                ConnectivityModelFactory.newSourceAddressPlaceholder();
+        final SourceAddressPlaceholder sourceAddressPlaceholder = PlaceholderFactory.newSourceAddressPlaceholder();
         try {
             EnforcementFactoryFactory
                     .newEnforcementFilterFactory(enforcement, sourceAddressPlaceholder)

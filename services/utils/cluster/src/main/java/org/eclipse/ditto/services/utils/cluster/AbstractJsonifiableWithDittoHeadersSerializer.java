@@ -26,7 +26,6 @@ import java.util.function.Function;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.BinaryToHexConverter;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
@@ -34,6 +33,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.json.cbor.BinaryToHexConverter;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -44,6 +44,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.signals.base.JsonParsable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -257,7 +258,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     private Jsonifiable<?> createJsonifiableFrom(final String manifest, final ByteBuffer bytebuffer)
             throws NotSerializableException {
 
-        final MappingStrategy mappingStrategy = mappingStrategies.getMappingStrategy(manifest)
+        final JsonParsable<Jsonifiable<?>> mappingStrategy = mappingStrategies.getMappingStrategy(manifest)
                 .orElseThrow(() -> {
                     LOG.warn("No strategy found to map manifest <{}> to a Jsonifiable.WithPredicate!", manifest);
                     return new NotSerializableException(manifest);
@@ -284,7 +285,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
                 .map(DittoHeaders::newBuilder)
                 .orElseGet(DittoHeaders::newBuilder);
 
-        return mappingStrategy.map(payload, dittoHeadersBuilder.build());
+        return mappingStrategy.parse(payload, dittoHeadersBuilder.build());
     }
 
     /**

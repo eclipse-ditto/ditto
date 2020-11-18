@@ -18,18 +18,17 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.server.RequestContext;
 
 /**
@@ -38,7 +37,9 @@ import akka.http.javadsl.server.RequestContext;
 @Immutable
 public final class AuthenticationChain {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(AuthenticationChain.class);
+    private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory
+            .getThreadSafeLogger(AuthenticationChain.class);
+
     private final Collection<AuthenticationProvider<?>> authenticationProviderChain;
     private final Executor authenticationDispatcher;
     private final AuthenticationFailureAggregator authenticationFailureAggregator;
@@ -87,51 +88,118 @@ public final class AuthenticationChain {
     public CompletableFuture<AuthenticationResult> authenticate(final RequestContext requestContext,
             final DittoHeaders dittoHeaders) {
 
-        return CompletableFuture
-                .runAsync(() -> LogUtil.enhanceLogWithCorrelationId(dittoHeaders), authenticationDispatcher)
-                .thenApply(voidValue -> doAuthenticate(requestContext, dittoHeaders));
+        return authenticationProviderChain.stream()
+                .reduce(
+                        emptyAuthResultAccumulator(authenticationProviderChain, requestContext, dittoHeaders),
+                        (future, provider) ->
+                                future.thenComposeAsync(accumulator -> accumulator.andThen(provider),
+                                        authenticationDispatcher),
+                        (future1, future2) ->
+                                future1.thenComposeAsync(accumulator -> accumulator.andThen(future2),
+                                        authenticationDispatcher)
+                )
+                .thenApplyAsync(AuthResultAccumulator::getResult, authenticationDispatcher);
     }
 
-    private AuthenticationResult doAuthenticate(final RequestContext requestContext, final DittoHeaders dittoHeaders) {
-        final HttpRequest httpRequest = requestContext.getRequest();
-        final Uri requestUri = httpRequest.getUri();
+    private CompletableFuture<AuthResultAccumulator> emptyAuthResultAccumulator(final Collection<?> authProviders,
+            final RequestContext requestContext,
+            final DittoHeaders dittoHeaders) {
+        return CompletableFuture.completedFuture(
+                new AuthResultAccumulator(null, new ArrayList<>(authProviders.size()), requestContext, dittoHeaders)
+        );
+    }
 
-        final List<AuthenticationResult> failedAuthenticationResults = new ArrayList<>();
+    private final class AuthResultAccumulator {
 
-        for (final AuthenticationProvider authenticationProvider : authenticationProviderChain) {
-            final String authProviderName = authenticationProvider.getClass().getSimpleName();
+        @Nullable private final AuthenticationResult successResult;
+        private final List<AuthenticationResult> failureResults;
+        private final RequestContext requestContext;
+        private final DittoHeaders dittoHeaders;
 
-            if (!authenticationProvider.isApplicable(requestContext)) {
-                LOGGER.debug("AuthenticationProvider <{}> is not applicable. Trying next ...", authProviderName);
-                continue;
-            }
+        private AuthResultAccumulator(
+                @Nullable final AuthenticationResult successResult,
+                final List<AuthenticationResult> failureResults,
+                final RequestContext requestContext,
+                final DittoHeaders dittoHeaders) {
+            this.successResult = successResult;
+            this.failureResults = failureResults;
+            this.requestContext = requestContext;
+            this.dittoHeaders = dittoHeaders;
+        }
 
-            LOGGER.debug("Applying authentication provider <{}> to URI <{}>.", authProviderName, requestUri);
-            final AuthenticationResult authenticationResult =
-                    authenticationProvider.authenticate(requestContext, dittoHeaders);
-
-            if (authenticationResult.isSuccess()) {
-                LOGGER.debug("Authentication using authentication provider <{}> to URI <{}> was successful.",
-                        authProviderName, requestUri);
-                return authenticationResult;
+        // precondition: successResult == null
+        private AuthResultAccumulator appendResult(final AuthenticationProvider<?> authenticationProvider,
+                final AuthenticationResult nextResult) {
+            if (nextResult.isSuccess()) {
+                logSuccess(authenticationProvider);
+                return new AuthResultAccumulator(nextResult, failureResults, requestContext, dittoHeaders);
             } else {
-                LOGGER.debug("Authentication using authentication provider <{}> to URI <{}> failed.", authProviderName,
-                        requestUri, authenticationResult.getReasonOfFailure());
-                failedAuthenticationResults.add(authenticationResult);
+                logFailure(authenticationProvider, nextResult);
+                failureResults.add(nextResult);
+                return new AuthResultAccumulator(successResult, failureResults, requestContext, dittoHeaders);
             }
         }
 
-        if (failedAuthenticationResults.isEmpty()) {
+        private void logSuccess(final AuthenticationProvider<?> provider) {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.withCorrelationId(dittoHeaders)
+                        .debug("Authentication using authentication provider <{}> to URI <{}> was successful.",
+                                provider.getClass().getSimpleName(), requestContext.getRequest().getUri());
+            }
+        }
+
+        private void logFailure(final AuthenticationProvider<?> provider, final AuthenticationResult result) {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.withCorrelationId(dittoHeaders)
+                        .debug("Authentication using authentication provider <{}> to URI <{}> failed due to {}: {}",
+                                provider.getClass().getSimpleName(),
+                                requestContext.getRequest().getUri(),
+                                result.getReasonOfFailure().getClass().getSimpleName(),
+                                result.getReasonOfFailure().getMessage());
+            }
+        }
+
+        private CompletableFuture<AuthResultAccumulator> andThen(final CompletableFuture<AuthResultAccumulator> other) {
+            if (successResult != null) {
+                return CompletableFuture.completedFuture(this);
+            } else {
+                return other.thenApplyAsync(that -> {
+                    failureResults.addAll(that.failureResults);
+                    return new AuthResultAccumulator(that.successResult, failureResults, requestContext, dittoHeaders);
+                }, authenticationDispatcher);
+            }
+        }
+
+        private CompletableFuture<AuthResultAccumulator> andThen(
+                final AuthenticationProvider<?> authenticationProvider) {
+            if (successResult == null && authenticationProvider.isApplicable(requestContext)) {
+                return authenticationProvider.authenticate(requestContext, dittoHeaders)
+                        .thenApplyAsync(result -> appendResult(authenticationProvider, result), authenticationDispatcher);
+            } else {
+                return CompletableFuture.completedFuture(this);
+            }
+        }
+
+        private AuthenticationResult asFailure() {
+            if (failureResults.isEmpty()) {
+                return DefaultAuthenticationResult.failed(dittoHeaders,
+                        new IllegalStateException("No applicable authentication provider was found!"));
+            }
+
+            if (1 == failureResults.size()) {
+                return failureResults.get(0);
+            }
+
             return DefaultAuthenticationResult.failed(dittoHeaders,
-                    new IllegalStateException("No applicable authentication provider was found!"));
+                    authenticationFailureAggregator.aggregateAuthenticationFailures(failureResults));
         }
 
-        if (1 == failedAuthenticationResults.size()) {
-            return failedAuthenticationResults.get(0);
+        /**
+         * @return either the success result or the aggregated failure result.
+         */
+        private AuthenticationResult getResult() {
+            return Objects.requireNonNullElseGet(successResult, this::asFailure);
         }
-
-        return DefaultAuthenticationResult.failed(dittoHeaders,
-                authenticationFailureAggregator.aggregateAuthenticationFailures(failedAuthenticationResults));
     }
 
 }

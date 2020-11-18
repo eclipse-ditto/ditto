@@ -85,17 +85,25 @@ public final class AcknowledgementRequestDuplicateCorrelationIdException extends
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new exception.
      * @throws NullPointerException if any argument is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} misses a required field.
-     * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} contained an unexpected value type.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static AcknowledgementRequestDuplicateCorrelationIdException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        return new AcknowledgementRequestDuplicateCorrelationIdException(dittoHeaders,
-                readMessage(jsonObject),
-                readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION),
-                null,
-                readHRef(jsonObject).orElse(null));
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
+                .dittoHeaders(dittoHeaders)
+                .build();
     }
 
     /**
@@ -107,6 +115,10 @@ public final class AcknowledgementRequestDuplicateCorrelationIdException extends
 
         private Builder(final String correlationId) {
             message(MessageFormat.format(MESSAGE_TEMPLATE, correlationId));
+            description(DEFAULT_DESCRIPTION);
+        }
+
+        private Builder() {
             description(DEFAULT_DESCRIPTION);
         }
 

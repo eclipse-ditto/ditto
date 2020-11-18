@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -33,9 +34,10 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
-import org.eclipse.ditto.services.connectivity.messaging.BaseClientState;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
@@ -167,11 +169,13 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
             final OutboundSignal.Mapped mappedSignal = Mockito.mock(OutboundSignal.Mapped.class);
             when(mappedSignal.getTargets()).thenReturn(singletonList(TARGET));
             when(mappedSignal.getSource()).thenReturn(thingModifiedEvent);
-            kafkaClientActor.tell(mappedSignal, getRef());
+            final OutboundSignal.MultiMapped multiMapped =
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(mappedSignal), getRef());
+            kafkaClientActor.tell(multiMapped, getRef());
 
-            final OutboundSignal.Mapped message =
-                    probe.expectMsgClass(OutboundSignal.Mapped.class);
-            assertThat(message.getExternalMessage().getTextPayload()).contains(expectedJson);
+            final OutboundSignal.MultiMapped message =
+                    probe.expectMsgClass(OutboundSignal.MultiMapped.class);
+            assertThat(message.first().getExternalMessage().getTextPayload()).contains(expectedJson);
 
             kafkaClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);

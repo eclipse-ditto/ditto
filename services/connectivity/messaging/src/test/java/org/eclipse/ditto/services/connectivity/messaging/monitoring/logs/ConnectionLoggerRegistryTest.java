@@ -62,8 +62,6 @@ import com.typesafe.config.ConfigFactory;
 @NotThreadSafe // since a static class is used ...
 public final class ConnectionLoggerRegistryTest {
 
-    private static final String ID = ConnectionLoggerRegistryTest.class.getSimpleName();
-
     private final ConnectionLoggerRegistry underTest =
             ConnectionLoggerRegistry.fromConfig(TestConstants.MONITORING_CONFIG.logger());
 
@@ -408,7 +406,7 @@ public final class ConnectionLoggerRegistryTest {
     }
 
     private ConnectionId connectionId() {
-        return ConnectionId.of(ID + ":" + UUID.randomUUID().toString());
+        return ConnectionId.of( "loggerRegistryTest-" + UUID.randomUUID().toString());
     }
 
     private Connection connection(final ConnectionId connectionId) {

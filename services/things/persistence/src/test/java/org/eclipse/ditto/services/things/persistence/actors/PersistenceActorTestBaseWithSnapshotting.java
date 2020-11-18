@@ -29,11 +29,12 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingBuilder;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.assertions.DittoThingsAssertions;
-import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.things.persistence.serializer.ThingMongoEventAdapter;
 import org.eclipse.ditto.services.things.persistence.testhelper.Assertions;
 import org.eclipse.ditto.services.things.persistence.testhelper.ThingsJournalTestHelper;
@@ -79,7 +80,7 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
     private ThingsJournalTestHelper<ThingEvent> journalTestHelper;
     private ThingsSnapshotTestHelper<Thing> snapshotTestHelper;
 
-    private Map<Class<? extends Command>, BiFunction<Command, Long, ThingEvent>> commandToEventMapperRegistry;
+    private Map<Class<? extends Command>, BiFunction<Command, Thing, ThingEvent>> commandToEventMapperRegistry;
 
     Config createNewDefaultTestConfig() {
         return ConfigFactory.empty()
@@ -102,17 +103,37 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
                 PersistenceActorTestBaseWithSnapshotting::convertDomainIdToPersistenceId);
 
         commandToEventMapperRegistry = new HashMap<>();
-        commandToEventMapperRegistry.put(CreateThing.class, (command, revision) -> {
+        commandToEventMapperRegistry.put(CreateThing.class, (command, thing) -> {
             final CreateThing createCommand = (CreateThing) command;
-            return ThingCreated.of(createCommand.getThing(), revision, DittoHeaders.empty());
+            final ThingBuilder.FromCopy thingBuilder = createCommand.getThing().toBuilder();
+            thing.getCreated().ifPresent(thingBuilder::setCreated);
+            thing.getModified().ifPresent(thingBuilder::setModified);
+            thing.getRevision().ifPresent(thingBuilder::setRevision);
+            return ThingCreated.of(thingBuilder.build(),
+                    thing.getRevision().get().toLong(),
+                    thing.getModified().orElse(null),
+                    DittoHeaders.empty(),
+                    thing.getMetadata().orElse(null));
         });
-        commandToEventMapperRegistry.put(ModifyThing.class, (command, revision) -> {
+        commandToEventMapperRegistry.put(ModifyThing.class, (command, thing) -> {
             final ModifyThing modifyCommand = (ModifyThing) command;
-            return ThingModified.of(modifyCommand.getThing(), revision, DittoHeaders.empty());
+            final ThingBuilder.FromCopy thingBuilder = modifyCommand.getThing().toBuilder();
+            thing.getCreated().ifPresent(thingBuilder::setCreated);
+            thing.getModified().ifPresent(thingBuilder::setModified);
+            thing.getRevision().ifPresent(thingBuilder::setRevision);
+            return ThingModified.of(thingBuilder.build(),
+                    thing.getRevision().get().toLong(),
+                    thing.getModified().orElse(null),
+                    DittoHeaders.empty(),
+                    thing.getMetadata().orElse(null));
         });
-        commandToEventMapperRegistry.put(DeleteThing.class, (command, revision) -> {
+        commandToEventMapperRegistry.put(DeleteThing.class, (command, thing) -> {
             final DeleteThing deleteCommand = (DeleteThing) command;
-            return ThingDeleted.of(deleteCommand.getThingEntityId(), revision, DittoHeaders.empty());
+            return ThingDeleted.of(deleteCommand.getThingEntityId(),
+                    thing.getRevision().get().toLong(),
+                    thing.getModified().orElse(null),
+                    DittoHeaders.empty(),
+                    thing.getMetadata().orElse(null));
         });
     }
 
@@ -126,8 +147,7 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
                 .build();
 
         DittoThingsAssertions.assertThat(actualThing)
-                .hasEqualJson(expectedComparisonThing, FIELD_SELECTOR, IS_MODIFIED.negate())
-                .hasNoModified();
+                .hasEqualJson(expectedComparisonThing, FIELD_SELECTOR, IS_MODIFIED.negate());
     }
 
     static void assertThingInResponse(final Thing actualThing, final Thing expectedThing,
@@ -171,14 +191,14 @@ public abstract class PersistenceActorTestBaseWithSnapshotting extends Persisten
         return thing.toBuilder().setRevision(newRevision).setLifecycle(ThingLifecycle.DELETED).build();
     }
 
-    Event toEvent(final Command command, final long revision) {
+    Event toEvent(final Command command, final Thing templateThing) {
         final Class<? extends Command> clazz = command.getClass();
-        final BiFunction<Command, Long, ThingEvent> commandToEventFunction = commandToEventMapperRegistry.get(clazz);
+        final BiFunction<Command, Thing, ThingEvent> commandToEventFunction = commandToEventMapperRegistry.get(clazz);
         if (commandToEventFunction == null) {
             throw new UnsupportedOperationException("Mapping not yet implemented for type: " + clazz);
         }
 
-        return commandToEventFunction.apply(command, revision);
+        return commandToEventFunction.apply(command, templateThing);
     }
 
     void assertSnapshots(final ThingId thingId, final List<Thing> expectedSnapshots) {

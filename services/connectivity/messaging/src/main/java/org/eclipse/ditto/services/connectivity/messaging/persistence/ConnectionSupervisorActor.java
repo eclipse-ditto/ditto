@@ -105,7 +105,8 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
 
     @Override
     protected Props getPersistenceActorProps(final ConnectionId entityId) {
-        return ConnectionPersistenceActor.props(entityId, dittoProtocolSub, proxyActor, propsFactory, commandInterceptor);
+        return ConnectionPersistenceActor.props(entityId, dittoProtocolSub, proxyActor, propsFactory,
+                commandInterceptor);
     }
 
     @Override
@@ -123,7 +124,7 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
 
     @Override
     protected DittoRuntimeExceptionBuilder<?> getUnavailableExceptionBuilder(@Nullable final ConnectionId entityId) {
-        final ConnectionId connectionId = entityId != null ? entityId : ConnectionId.of(DefaultEntityId.dummy());
+        final ConnectionId connectionId = entityId != null ? entityId : ConnectionId.dummy();
         return ConnectionUnavailableException.newBuilder(connectionId);
     }
 

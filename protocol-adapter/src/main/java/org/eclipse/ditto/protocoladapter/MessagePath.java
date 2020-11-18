@@ -14,6 +14,7 @@ package org.eclipse.ditto.protocoladapter;
 
 import java.util.Optional;
 
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.messages.MessageDirection;
 
@@ -35,5 +36,20 @@ public interface MessagePath extends JsonPointer {
      * @return direction based on this message path.
      */
     Optional<MessageDirection> getDirection();
+
+    static Optional<MessageDirection> jsonKeyToDirection(final JsonKey jsonKey) {
+        switch (jsonKey.toString()) {
+            case "inbox":
+                return Optional.of(MessageDirection.TO);
+            case "outbox":
+                return Optional.of(MessageDirection.FROM);
+            default:
+                return Optional.empty();
+        }
+    }
+
+    static JsonKey directionToJsonKey(final MessageDirection direction) {
+        return JsonKey.of(direction == MessageDirection.TO ? "inbox" : "outbox");
+    }
 
 }

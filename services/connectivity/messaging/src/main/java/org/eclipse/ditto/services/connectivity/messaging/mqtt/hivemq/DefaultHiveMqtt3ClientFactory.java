@@ -12,34 +12,24 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-
 import javax.annotation.Nullable;
-import javax.net.ssl.TrustManagerFactory;
 
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.DittoTrustManagerFactory;
-import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.KeyManagerFactoryFactory;
+import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 
 import com.hivemq.client.mqtt.MqttClient;
-import com.hivemq.client.mqtt.MqttClientSslConfig;
-import com.hivemq.client.mqtt.MqttClientSslConfigBuilder;
 import com.hivemq.client.mqtt.lifecycle.MqttClientConnectedListener;
 import com.hivemq.client.mqtt.lifecycle.MqttClientDisconnectedListener;
-import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
+import com.hivemq.client.mqtt.mqtt3.Mqtt3AsyncClient;
 import com.hivemq.client.mqtt.mqtt3.Mqtt3ClientBuilder;
 
 /**
  * Default implementation of {@link HiveMqtt3ClientFactory}.
  */
-public final class DefaultHiveMqtt3ClientFactory implements HiveMqtt3ClientFactory {
+public final class DefaultHiveMqtt3ClientFactory extends AbstractHiveMqttClientFactory
+        implements HiveMqtt3ClientFactory {
 
     private static final DefaultHiveMqtt3ClientFactory INSTANCE = new DefaultHiveMqtt3ClientFactory();
-    private static final List<String> MQTT_SECURE_SCHEMES = Arrays.asList("ssl", "wss");
 
     /**
      * @return the singleton instance of {@link DefaultHiveMqtt3ClientFactory}
@@ -52,52 +42,27 @@ public final class DefaultHiveMqtt3ClientFactory implements HiveMqtt3ClientFacto
     }
 
     @Override
-    public Mqtt3Client newClient(final Connection connection, final String identifier, final boolean allowReconnect,
+    public Mqtt3AsyncClient newClient(final Connection connection, final String identifier,
+            final boolean allowReconnect,
             @Nullable final MqttClientConnectedListener connectedListener,
-            @Nullable final MqttClientDisconnectedListener disconnectedListener) {
-        final Mqtt3ClientBuilder mqtt3ClientBuilder = MqttClient.builder().useMqttVersion3();
-        final URI uri = URI.create(connection.getUri());
-        mqtt3ClientBuilder.serverHost(uri.getHost());
-        mqtt3ClientBuilder.serverPort(uri.getPort());
+            @Nullable final MqttClientDisconnectedListener disconnectedListener,
+            final ConnectionLogger connectionLogger) {
 
-        final Optional<String> possibleUsername = connection.getUsername();
-        final Optional<String> possiblePassword = connection.getPassword();
-        if (possibleUsername.isPresent() && possiblePassword.isPresent()) {
-            mqtt3ClientBuilder.simpleAuth()
-                    .username(possibleUsername.get())
-                    .password(possiblePassword.get().getBytes(StandardCharsets.UTF_8))
-                    .applySimpleAuth();
-        }
-
-        if (allowReconnect && connection.isFailoverEnabled()) {
-            mqtt3ClientBuilder.automaticReconnectWithDefaultConfig();
-        }
-
-        if (isSecuredConnection(connection.getProtocol())) {
-
-            final MqttClientSslConfigBuilder sslConfigBuilder = MqttClientSslConfig.builder();
-
-            // create DittoTrustManagerFactory to apply hostname verification
-            // or to disable certificate check when the connection requires it
-            sslConfigBuilder.trustManagerFactory(DittoTrustManagerFactory.from(connection));
-
-            connection.getCredentials()
-                    .map(credentials -> credentials.accept(KeyManagerFactoryFactory.getInstance()))
-                    .ifPresent(sslConfigBuilder::keyManagerFactory);
-
-            mqtt3ClientBuilder.sslConfig(sslConfigBuilder.build());
-        }
-
-        if (null != connectedListener) {
-            mqtt3ClientBuilder.addConnectedListener(connectedListener);
-        }
-        if (null != disconnectedListener) {
-            mqtt3ClientBuilder.addDisconnectedListener(disconnectedListener);
-        }
-        return mqtt3ClientBuilder.identifier(identifier).build();
+        return newClientBuilder(connection, identifier, allowReconnect, connectedListener, disconnectedListener,
+                connectionLogger).buildAsync();
     }
 
-    private static boolean isSecuredConnection(final String protocol) {
-        return MQTT_SECURE_SCHEMES.contains(protocol.toLowerCase());
+    @Override
+    public Mqtt3ClientBuilder newClientBuilder(final Connection connection, final String identifier,
+            final boolean allowReconnect,
+            @Nullable final MqttClientConnectedListener connectedListener,
+            @Nullable final MqttClientDisconnectedListener disconnectedListener,
+            final ConnectionLogger connectionLogger) {
+        final Mqtt3ClientBuilder mqtt3ClientBuilder =
+                configureClientBuilder(MqttClient.builder().useMqttVersion3(), connection, identifier, allowReconnect,
+                        connectedListener, disconnectedListener, connectionLogger);
+        configureSimpleAuth(mqtt3ClientBuilder.simpleAuth(), connection);
+        return mqtt3ClientBuilder;
     }
+
 }

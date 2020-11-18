@@ -18,6 +18,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -35,8 +36,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty} command.
  */
 @Immutable
-final class DeleteFeaturePropertyStrategy extends
-        AbstractThingCommandStrategy<DeleteFeatureProperty> {
+final class DeleteFeaturePropertyStrategy extends AbstractThingCommandStrategy<DeleteFeatureProperty> {
 
     /**
      * Constructs a new {@code DeleteFeaturePropertyStrategy} object.
@@ -46,14 +46,18 @@ final class DeleteFeaturePropertyStrategy extends
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
-            final long nextRevision, final DeleteFeatureProperty command) {
+    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final DeleteFeatureProperty command,
+            @Nullable final Metadata metadata) {
 
         return extractFeature(command, thing)
-                .map(feature -> getDeleteFeaturePropertyResult(feature, context, nextRevision, command, thing))
+                .map(feature -> getDeleteFeaturePropertyResult(feature, context, nextRevision, command, thing,
+                        metadata))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureNotFound(context.getState(), command.getFeatureId(),
-                                command.getDittoHeaders())));
+                                command.getDittoHeaders()), command));
     }
 
     private Optional<Feature> extractFeature(final DeleteFeatureProperty command, final @Nullable Thing thing) {
@@ -62,7 +66,8 @@ final class DeleteFeaturePropertyStrategy extends
     }
 
     private Result<ThingEvent> getDeleteFeaturePropertyResult(final Feature feature, final Context<ThingId> context,
-            final long nextRevision, final DeleteFeatureProperty command, @Nullable final Thing thing) {
+            final long nextRevision, final DeleteFeatureProperty command, @Nullable final Thing thing,
+            @Nullable final Metadata metadata) {
 
         final JsonPointer propertyPointer = command.getPropertyPointer();
         final ThingId thingId = context.getState();
@@ -74,13 +79,14 @@ final class DeleteFeaturePropertyStrategy extends
                 .map(featureProperty -> {
                     final ThingEvent event =
                             FeaturePropertyDeleted.of(thingId, featureId, propertyPointer, nextRevision,
-                                    getEventTimestamp(), dittoHeaders);
+                                    getEventTimestamp(), dittoHeaders, metadata);
                     final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                             DeleteFeaturePropertyResponse.of(thingId, featureId, propertyPointer, dittoHeaders), thing);
                     return ResultFactory.newMutationResult(command, event, response);
                 })
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.featurePropertyNotFound(thingId, featureId, propertyPointer, dittoHeaders)));
+                        ExceptionFactory.featurePropertyNotFound(thingId, featureId, propertyPointer, dittoHeaders),
+                        command));
     }
 
     @Override

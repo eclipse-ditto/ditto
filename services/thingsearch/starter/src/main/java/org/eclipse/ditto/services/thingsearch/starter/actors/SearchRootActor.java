@@ -12,14 +12,10 @@
  */
 package org.eclipse.ditto.services.thingsearch.starter.actors;
 
-import static akka.http.javadsl.server.Directives.logRequest;
-import static akka.http.javadsl.server.Directives.logResult;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.BACKGROUND_SYNC_COLLECTION_NAME;
 
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
 
@@ -34,7 +30,6 @@ import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactory;
 import org.eclipse.ditto.model.query.expression.ThingsFieldExpressionFactoryImpl;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.services.base.actors.DittoRootActor;
-import org.eclipse.ditto.services.base.config.http.HttpConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.query.QueryParser;
@@ -43,10 +38,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersi
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
 import org.eclipse.ditto.services.thingsearch.updater.actors.SearchUpdaterRootActor;
 import org.eclipse.ditto.services.utils.akka.streaming.TimestampPersistence;
-import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
-import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.IndexInitializationConfig;
@@ -58,19 +50,12 @@ import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoTimesta
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
 
-import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
-import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
-import akka.cluster.Cluster;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
-import akka.http.javadsl.ConnectHttp;
-import akka.http.javadsl.Http;
-import akka.http.javadsl.ServerBinding;
-import akka.http.javadsl.server.Route;
-import akka.stream.ActorMaterializer;
+import akka.stream.SystemMaterializer;
 
 /**
  * Our "Parent" Actor which takes care of supervision of all other Actors in our system.
@@ -87,8 +72,7 @@ public final class SearchRootActor extends DittoRootActor {
     private final LoggingAdapter log;
 
     @SuppressWarnings("unused")
-    private SearchRootActor(final SearchConfig searchConfig, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+    private SearchRootActor(final SearchConfig searchConfig, final ActorRef pubSubMediator) {
 
         log = Logging.getLogger(getContext().system(), this);
 
@@ -104,16 +88,17 @@ public final class SearchRootActor extends DittoRootActor {
         final ActorRef searchActor = initializeSearchActor(searchConfig.getLimitsConfig(), thingsSearchPersistence);
         pubSubMediator.tell(DistPubSubAccess.put(searchActor), getSelf());
 
+        final ActorSystem actorSystem = getContext().getSystem();
         final TimestampPersistence backgroundSyncPersistence =
                 MongoTimestampPersistence.initializedInstance(BACKGROUND_SYNC_COLLECTION_NAME, mongoDbClient,
-                        materializer);
+                        SystemMaterializer.get(actorSystem).materializer());
 
         final ActorRef searchUpdaterRootActor = startChildActor(SearchUpdaterRootActor.ACTOR_NAME,
-                SearchUpdaterRootActor.props(searchConfig, pubSubMediator, materializer, thingsSearchPersistence,
+                SearchUpdaterRootActor.props(searchConfig, pubSubMediator, thingsSearchPersistence,
                         backgroundSyncPersistence));
         final ActorRef healthCheckingActor = initializeHealthCheckActor(searchConfig, searchUpdaterRootActor);
 
-        createHealthCheckingActorHttpBinding(searchConfig.getHttpConfig(), healthCheckingActor, materializer);
+        bindHttpStatusRoute(searchConfig.getHttpConfig(), healthCheckingActor);
     }
 
     @Nullable
@@ -174,54 +159,16 @@ public final class SearchRootActor extends DittoRootActor {
                 SearchHealthCheckingActorFactory.props(searchConfig, searchUpdaterRootActor));
     }
 
-    private void createHealthCheckingActorHttpBinding(final HttpConfig httpConfig,
-            final ActorRef healthCheckingActor, final ActorMaterializer materializer) {
-
-        String hostname = httpConfig.getHostname();
-        if (hostname.isEmpty()) {
-            hostname = LocalHostAddressSupplier.getInstance().get();
-            log.info("No explicit hostname configured, using HTTP hostname <{}>.", hostname);
-        }
-
-        final ActorSystem actorSystem = getContext().system();
-        final CompletionStage<ServerBinding> binding = Http.get(actorSystem) //
-                .bindAndHandle(
-                        createRoute(actorSystem, healthCheckingActor).flow(actorSystem,
-                                materializer),
-                        ConnectHttp.toHost(hostname, httpConfig.getPort()), materializer);
-
-        binding.thenAccept(theBinding -> CoordinatedShutdown.get(getContext().getSystem()).addTask(
-                CoordinatedShutdown.PhaseServiceUnbind(), "shutdown_health_http_endpoint", () -> {
-                    log.info("Gracefully shutting down status/health HTTP endpoint ...");
-                    return theBinding.terminate(Duration.ofSeconds(1))
-                            .handle((httpTerminated, e) -> Done.getInstance());
-                })
-        ).exceptionally(failure -> {
-            log.error(failure, "Something very bad happened: {}", failure.getMessage());
-            actorSystem.terminate();
-            return null;
-        });
-    }
-
     /**
      * Creates Akka configuration object Props for this SearchRootActor.
      *
      * @param searchConfig the configuration settings of this service.
      * @param pubSubMediator the PubSub mediator Actor.
-     * @param materializer the materializer for the akka actor system.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final SearchConfig searchConfig, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+    public static Props props(final SearchConfig searchConfig, final ActorRef pubSubMediator) {
 
-        return Props.create(SearchRootActor.class, searchConfig, pubSubMediator, materializer);
-    }
-
-    private static Route createRoute(final ActorSystem actorSystem, final ActorRef healthCheckingActor) {
-        final StatusRoute statusRoute = new StatusRoute(new ClusterStatusSupplier(Cluster.get(actorSystem)),
-                healthCheckingActor, actorSystem);
-
-        return logRequest("http-request", () -> logResult("http-response", statusRoute::buildStatusRoute));
+        return Props.create(SearchRootActor.class, searchConfig, pubSubMediator);
     }
 
     private static ThingsFieldExpressionFactory getThingsFieldExpressionFactory() {
@@ -233,6 +180,7 @@ public final class SearchRootActor extends DittoRootActor {
         addMapping(mappings, Thing.JsonFields.POLICY_ID);
         addMapping(mappings, Thing.JsonFields.REVISION);
         addMapping(mappings, Thing.JsonFields.MODIFIED);
+        addMapping(mappings, Thing.JsonFields.CREATED);
         addMapping(mappings, Thing.JsonFields.DEFINITION);
         return new ThingsFieldExpressionFactoryImpl(mappings);
     }

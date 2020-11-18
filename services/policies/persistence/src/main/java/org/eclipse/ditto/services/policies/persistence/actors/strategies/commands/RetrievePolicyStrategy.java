@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
@@ -35,13 +36,17 @@ final class RetrievePolicyStrategy extends AbstractPolicyQueryCommandStrategy<Re
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context, @Nullable final Policy entity,
-            final long nextRevision, final RetrievePolicy command) {
+    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+            @Nullable final Policy entity,
+            final long nextRevision,
+            final RetrievePolicy command,
+            @Nullable final Metadata metadata) {
+
         if (entity != null) {
             return ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command,
                     RetrievePolicyResponse.of(context.getState(), entity, command.getDittoHeaders()), entity));
         } else {
-            return ResultFactory.newErrorResult(policyNotFound(context.getState(), command.getDittoHeaders()));
+            return ResultFactory.newErrorResult(policyNotFound(context.getState(), command.getDittoHeaders()), command);
         }
     }
 

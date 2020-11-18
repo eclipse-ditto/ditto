@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.stream.ActorMaterializer;
 
 /**
  * Entry point of the Policies Service.
@@ -56,10 +55,9 @@ public final class PoliciesService extends DittoService<PoliciesConfig> {
     }
 
     @Override
-    protected Props getMainRootActorProps(final PoliciesConfig policiesConfig, final ActorRef pubSubMediator,
-            final ActorMaterializer materializer) {
+    protected Props getMainRootActorProps(final PoliciesConfig policiesConfig, final ActorRef pubSubMediator) {
 
-        return PoliciesRootActor.props(policiesConfig, new PolicyMongoSnapshotAdapter(), pubSubMediator, materializer);
+        return PoliciesRootActor.props(policiesConfig, new PolicyMongoSnapshotAdapter(), pubSubMediator);
     }
 
 }

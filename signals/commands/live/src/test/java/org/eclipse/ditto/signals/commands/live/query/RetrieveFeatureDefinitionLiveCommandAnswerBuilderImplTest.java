@@ -83,7 +83,7 @@ public final class RetrieveFeatureDefinitionLiveCommandAnswerBuilderImplTest {
                 .hasNoEvent()
                 .hasThingQueryCommandResponse()
                 .hasType(RetrieveFeatureDefinitionResponse.TYPE)
-                .hasDittoHeaders(DittoHeaders.empty())
+                .hasDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .hasResourcePath(JsonPointer.of("features/" + TestConstants.Feature.FLUX_CAPACITOR_ID + "/definition"));
     }
 
@@ -98,7 +98,7 @@ public final class RetrieveFeatureDefinitionLiveCommandAnswerBuilderImplTest {
                 .hasNoEvent()
                 .hasThingErrorResponse()
                 .withType(ThingErrorResponse.TYPE)
-                .withDittoHeaders(DittoHeaders.empty())
+                .withDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
                 .withStatus(HttpStatusCode.NOT_FOUND)
                 .withDittoRuntimeExceptionOfType(FeatureDefinitionNotAccessibleException.class);
     }

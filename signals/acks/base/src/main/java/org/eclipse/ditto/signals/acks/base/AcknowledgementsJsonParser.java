@@ -20,6 +20,7 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -122,17 +123,29 @@ public final class AcknowledgementsJsonParser<I extends EntityIdWithType>
 
         return acknowledgements.stream()
                 .filter(isNotJsonSchemaVersion)
-                .map(jsonField -> parseAcknowledgement(jsonField, expectedEntityId))
+                .flatMap(jsonField -> parseAcknowledgement(jsonField, expectedEntityId))
                 .collect(Collectors.toList());
     }
 
-    private Acknowledgement parseAcknowledgement(final JsonField acknowledgementJsonField, final I expectedEntityId) {
+    private Stream<Acknowledgement> parseAcknowledgement(final JsonField acknowledgementJsonField,
+            final I expectedEntityId) {
         final JsonValue acknowledgementJsonValue = acknowledgementJsonField.getValue();
-        if (!acknowledgementJsonValue.isObject()) {
-            final String msgPattern = "<{0}> is not an Acknowledgement JSON object representation!";
-            throw new JsonParseException(MessageFormat.format(msgPattern, acknowledgementJsonValue));
+
+        if (acknowledgementJsonValue.isArray()) {
+            return acknowledgementJsonValue.asArray()
+                    .stream()
+                    .map(json -> parseAcknowledgementFromObject(json, expectedEntityId));
+        } else {
+            return Stream.of(parseAcknowledgementFromObject(acknowledgementJsonValue, expectedEntityId));
         }
-        final Acknowledgement result = acknowledgementJsonParser.apply(acknowledgementJsonValue.asObject());
+    }
+
+    private Acknowledgement parseAcknowledgementFromObject(final JsonValue jsonObject, final I expectedEntityId) {
+        if (!jsonObject.isObject()) {
+            final String msgPattern = "<{0}> is not an Acknowledgement JSON object representation!";
+            throw new JsonParseException(MessageFormat.format(msgPattern, jsonObject));
+        }
+        final Acknowledgement result = acknowledgementJsonParser.apply(jsonObject.asObject());
         validateEntityId(result, expectedEntityId);
         return result;
     }

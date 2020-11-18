@@ -54,6 +54,7 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.actor.Status;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.MediaTypes;
@@ -62,10 +63,12 @@ import akka.http.javadsl.server.AllDirectives;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
 import akka.japi.function.Function;
-import akka.stream.ActorMaterializer;
-import akka.stream.ActorMaterializerSettings;
+import akka.stream.ActorAttributes;
+import akka.stream.Attributes;
 import akka.stream.Supervision;
 import akka.stream.javadsl.Flow;
+import akka.stream.javadsl.Keep;
+import akka.stream.javadsl.RunnableGraph;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamConverters;
@@ -87,7 +90,6 @@ public abstract class AbstractRoute extends AllDirectives {
     private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(AbstractRoute.class);
 
     protected final ActorRef proxyActor;
-    protected final ActorMaterializer materializer;
     protected final ActorSystem actorSystem;
 
     private final HttpConfig httpConfig;
@@ -95,6 +97,7 @@ public abstract class AbstractRoute extends AllDirectives {
     private final HeaderTranslator headerTranslator;
     private final HttpRequestActorPropsFactory httpRequestActorPropsFactory;
     private final Set<String> mediaTypeJsonWithFallbacks;
+    private final Attributes supervisionStrategy;
 
     /**
      * Constructs the abstract route builder.
@@ -124,22 +127,24 @@ public abstract class AbstractRoute extends AllDirectives {
 
         LOGGER.debug("Using headerTranslator <{}>.", headerTranslator);
 
-        materializer = ActorMaterializer.create(ActorMaterializerSettings.create(actorSystem)
-                .withSupervisionStrategy((Function<Throwable, Supervision.Directive>) exc -> {
-                            if (exc instanceof DittoRuntimeException) {
-                                LOGGER.withCorrelationId((DittoRuntimeException) exc)
-                                        .debug("DittoRuntimeException during materialization of HTTP request: [{}] {}",
-                                                exc.getClass().getSimpleName(), exc.getMessage());
-                            } else {
-                                LOGGER.warn("Exception during materialization of HTTP request: {}", exc.getMessage(), exc);
-                            }
-                            return Supervision.stop(); // in any case, stop!
-                        }
-                ), actorSystem);
-
         httpRequestActorPropsFactory =
                 AkkaClassLoader.instantiate(actorSystem, HttpRequestActorPropsFactory.class,
                         httpConfig.getActorPropsFactoryFullQualifiedClassname());
+
+        supervisionStrategy = createSupervisionStrategy();
+    }
+
+    private Attributes createSupervisionStrategy() {
+        return ActorAttributes.withSupervisionStrategy(exc -> {
+            if (exc instanceof DittoRuntimeException) {
+                LOGGER.withCorrelationId((DittoRuntimeException) exc)
+                        .debug("DittoRuntimeException during materialization of HTTP request: [{}] {}",
+                                exc.getClass().getSimpleName(), exc.getMessage());
+            } else {
+                LOGGER.warn("Exception during materialization of HTTP request: {}", exc.getMessage(), exc);
+            }
+            return Supervision.stop(); // in any case, stop!
+        });
     }
 
     /**
@@ -215,6 +220,10 @@ public abstract class AbstractRoute extends AllDirectives {
         }
     }
 
+    protected <M> M runWithSupervisionStrategy(final RunnableGraph<M> graph) {
+        return graph.withAttributes(supervisionStrategy).run(actorSystem);
+    }
+
     private Route doHandlePerRequest(final RequestContext ctx,
             final DittoHeaders dittoHeaders,
             final Source<ByteString, ?> payloadSource,
@@ -223,21 +232,26 @@ public abstract class AbstractRoute extends AllDirectives {
 
         final CompletableFuture<HttpResponse> httpResponseFuture = new CompletableFuture<>();
 
-        payloadSource
-                .fold(ByteString.empty(), ByteString::concat)
+        runWithSupervisionStrategy(payloadSource
+                .fold(ByteString.emptyByteString(), ByteString::concat)
                 .map(ByteString::utf8String)
-                .map(requestJsonToCommandFunction)
-                .map(command -> {
-                    final JsonSchemaVersion schemaVersion =
-                            dittoHeaders.getSchemaVersion().orElse(command.getImplementedSchemaVersion());
-                    return command.implementsSchemaVersion(schemaVersion) ? command
-                            : CommandNotSupportedException.newBuilder(schemaVersion.toInt())
-                            .dittoHeaders(dittoHeaders)
-                            .build();
+                .map(x -> {
+                    try {
+                        // DON'T replace this try-catch by .recover: The supervising strategy is called before recovery!
+                        final Command<?> command = requestJsonToCommandFunction.apply(x);
+                        final JsonSchemaVersion schemaVersion =
+                                dittoHeaders.getSchemaVersion().orElse(command.getImplementedSchemaVersion());
+                        return command.implementsSchemaVersion(schemaVersion) ? command
+                                : CommandNotSupportedException.newBuilder(schemaVersion.toInt())
+                                .dittoHeaders(dittoHeaders)
+                                .build();
+                    } catch (final Exception e) {
+                        return new Status.Failure(e);
+                    }
                 })
                 .to(Sink.actorRef(createHttpPerRequestActor(ctx, httpResponseFuture),
                         AbstractHttpRequestActor.COMPLETE_MESSAGE))
-                .run(materializer);
+        );
 
         // optional step: transform the response entity:
         if (responseTransformFunction != null) {
@@ -247,10 +261,11 @@ public abstract class AbstractRoute extends AllDirectives {
                 // read it
                 final boolean isEmptyResponse = response.entity().isKnownEmpty();
                 if (isSuccessfulResponse && !isEmptyResponse) {
-                    final InputStream inputStream = response.entity()
+                    final InputStream inputStream = runWithSupervisionStrategy(response.entity()
                             .getDataBytes()
-                            .fold(ByteString.empty(), ByteString::concat)
-                            .runWith(StreamConverters.asInputStream(), materializer);
+                            .fold(ByteString.emptyByteString(), ByteString::concat)
+                            .toMat(StreamConverters.asInputStream(), Keep.right())
+                    );
                     final JsonValue jsonValue = JsonFactory.readFrom(new InputStreamReader(inputStream));
                     try {
                         final JsonValue transformed = responseTransformFunction.apply(jsonValue);

@@ -46,10 +46,12 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final SnapshotConfig snapshotConfig;
     private final DefaultAcknowledgementConfig acknowledgementConfig;
     private final Amqp10Config amqp10Config;
+    private final Amqp091Config amqp091Config;
     private final MqttConfig mqttConfig;
     private final KafkaConfig kafkaConfig;
     private final HttpPushConfig httpPushConfig;
     private final ActivityCheckConfig activityCheckConfig;
+    private final Duration ackLabelDeclareInterval;
 
     private DefaultConnectionConfig(final ConfigWithFallback config) {
         clientActorAskTimeout = config.getDuration(ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT.getConfigPath());
@@ -59,10 +61,12 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         snapshotConfig = DefaultSnapshotConfig.of(config);
         acknowledgementConfig = DefaultAcknowledgementConfig.of(config);
         amqp10Config = DefaultAmqp10Config.of(config);
+        amqp091Config = DefaultAmqp091Config.of(config);
         mqttConfig = DefaultMqttConfig.of(config);
         kafkaConfig = DefaultKafkaConfig.of(config);
         httpPushConfig = DefaultHttpPushConfig.of(config);
         activityCheckConfig = DefaultActivityCheckConfig.of(config);
+        ackLabelDeclareInterval = config.getDuration(ConnectionConfigValue.ACK_LABEL_DECLARE_INTERVAL.getConfigPath());
     }
 
     /**
@@ -119,6 +123,11 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     }
 
     @Override
+    public Amqp091Config getAmqp091Config() {
+        return amqp091Config;
+    }
+
+    @Override
     public MqttConfig getMqttConfig() {
         return mqttConfig;
     }
@@ -131,6 +140,11 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     @Override
     public HttpPushConfig getHttpPushConfig() {
         return httpPushConfig;
+    }
+
+    @Override
+    public Duration getAckLabelDeclareInterval() {
+        return ackLabelDeclareInterval;
     }
 
     @Override
@@ -154,16 +168,19 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
                 Objects.equals(acknowledgementConfig, that.acknowledgementConfig) &&
                 Objects.equals(amqp10Config, that.amqp10Config) &&
+                Objects.equals(amqp091Config, that.amqp091Config) &&
                 Objects.equals(mqttConfig, that.mqttConfig) &&
                 Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
                 Objects.equals(kafkaConfig, that.kafkaConfig) &&
-                Objects.equals(httpPushConfig, that.httpPushConfig);
+                Objects.equals(httpPushConfig, that.httpPushConfig) &&
+                Objects.equals(ackLabelDeclareInterval, that.ackLabelDeclareInterval);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(clientActorAskTimeout, allowedHostnames, blockedHostnames, supervisorConfig, snapshotConfig,
-                activityCheckConfig, acknowledgementConfig, amqp10Config, mqttConfig, kafkaConfig, httpPushConfig);
+                activityCheckConfig, acknowledgementConfig, amqp10Config, amqp091Config, mqttConfig, kafkaConfig,
+                httpPushConfig, ackLabelDeclareInterval);
     }
 
     @Override
@@ -176,10 +193,12 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 ", snapshotConfig=" + snapshotConfig +
                 ", acknowledgementConfig=" + acknowledgementConfig +
                 ", amqp10Config=" + amqp10Config +
+                ", amqp091Config=" + amqp091Config +
                 ", mqttConfig=" + mqttConfig +
                 ", kafkaConfig=" + kafkaConfig +
                 ", httpPushConfig=" + httpPushConfig +
                 ", activityCheckConfig=" + activityCheckConfig +
+                ", ackLabelDeclareInterval=" + ackLabelDeclareInterval +
                 "]";
     }
 

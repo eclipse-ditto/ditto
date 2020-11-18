@@ -100,6 +100,8 @@ Find a [Things example at the end of the page.](basic-policy.html#example)
 | thing:/features/X                 | Applies to the Feature with ID X and all its sub-paths. |
 | thing:/features/X/properties      | Applies to all properties of the Feature X. |
 | thing:/features/X/properties/Y    | Applies to the property with path Y (and its sub-paths) of the Feature with ID X. <br />Y may be a nested path such as tire/pressure. |
+| thing:/features/X/desiredProperties      | Applies to all desired properties of the Feature X. |
+| thing:/features/X/desiredProperties/Y    | Applies to the desired property with path Y (and its sub-paths) of the Feature with ID X. <br />Y may be a nested path such as tire/pressure. |
 
 Find a [Things example at the end of the page.](basic-policy.html#example)
 
@@ -139,10 +141,10 @@ The [Things example at the end of the page](basic-policy.html#example) also defi
 
 | Change | Permission | Description |
 |--------|------------|-------------|
-| grant  | READ       | All subjects named in the section are granted read permission on the resources specified in the path, and all subsequent paths, except they are revoked at a subsequent policy label. |
-| grant  | WRITE      | All subjects named in the section are granted write permission on the resources specified in the path, and all subsequent paths, except they are revoked at a subsequent policy label. |
-| revoke | READ       | All subjects named in the section are prohibited to read on the resources specified in the path, and all subsequent paths, except they are granted again such permission at a subsequent policy label. |
-| revoke | WRITE      | All subjects named in the section are prohibited to write on the resources specified in the path, and all subsequent paths, except they are granted again such permission at a subsequent policy label. |
+| grant  | READ       | All subjects named in the section are granted _read_ permission on the resources specified in the path, and all nested paths, except they are revoked at a deeper level, or another policy entry (label). |
+| grant  | WRITE      | All subjects named in the section are granted _write_ permission on the resources specified in the path, and all nested paths, except they are revoked at a deeper level, or another policy entry (label). |
+| revoke | READ       | All subjects named in the section are _prohibited to read_ on the resources specified in the path, and all nested paths, except they are granted again such permission at a deeper level, or another policy entry (label). |
+| revoke | WRITE      | All subjects named in the section are _prohibited to write_ on the resources specified in the path, and all nested paths, except they are granted again such permission at a deeper level, or another policy entry (label). |
 
 
 ## Tools for editing a Policy

@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.query.SortOption;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactory;
 import org.eclipse.ditto.model.query.criteria.CriteriaFactoryImpl;
 import org.eclipse.ditto.model.query.expression.AttributeExpressionImpl;
+import org.eclipse.ditto.model.query.expression.FeatureIdDesiredPropertyExpressionImpl;
 import org.eclipse.ditto.model.query.expression.FeatureIdPropertyExpressionImpl;
 import org.eclipse.ditto.model.query.expression.FieldExpression;
 import org.eclipse.ditto.model.query.expression.SimpleFieldExpressionImpl;
@@ -69,6 +70,7 @@ public final class SortingIT extends AbstractReadPersistenceITBase {
     private static final String ATTRIBUTE_SORT_KEY_WITH_DOTS = "$myAttr.with.dots";
     private static final String FEATURE_ID_WITH_DOTS = "~myFeatureId.with.dots";
     private static final String PROPERTY_SORT_KEY_WITH_DOTS = "myProperty.with.dots";
+    private static final String DESIRED_PROPERTY_SORT_KEY_WITH_DOTS = "myDesiredProperty.with.dots";
 
     @Parameterized.Parameters(name = "direction={0}")
     public static List<Object> parameters() {
@@ -138,6 +140,16 @@ public final class SortingIT extends AbstractReadPersistenceITBase {
         );
     }
 
+    @Test
+    public void sortByLongDesiredPropertyWithDots() {
+        runTestWithLongValues(
+                new SortOption(
+                        EFT.sortByFeatureDesiredProperty(FEATURE_ID_WITH_DOTS, DESIRED_PROPERTY_SORT_KEY_WITH_DOTS),
+                        testedSortDirection),
+                getLongPropertyWithDotsThingBuilder()
+        );
+    }
+
     private void runTestWithLongValues(final SortOption sortOption,
             final Function<Long, Thing> thingBuilder) {
         final List<Thing> things = createAndPersistThings(ATTRIBUTE_SORT_LONG_VALUES, thingBuilder);
@@ -200,6 +212,11 @@ public final class SortingIT extends AbstractReadPersistenceITBase {
                                     FeatureProperties.newBuilder()
                                             .set(PROPERTY_SORT_KEY_WITH_DOTS, value)
                                             .build())
+                            .desiredProperties(
+                                    FeatureProperties.newBuilder()
+                                            .set(DESIRED_PROPERTY_SORT_KEY_WITH_DOTS, value)
+                                            .build()
+                            )
                             .withId(FEATURE_ID_WITH_DOTS)
                             .build())
                     .build();
@@ -251,6 +268,14 @@ public final class SortingIT extends AbstractReadPersistenceITBase {
                         .getFeature(((FeatureIdPropertyExpressionImpl) sortField).getFeatureId())
                         .orElseThrow(IllegalStateException::new)
                         .getProperty(((FeatureIdPropertyExpressionImpl) sortField).getProperty())
+                        .orElseThrow(IllegalStateException::new)
+                        .asLong();
+            } else if (sortField instanceof FeatureIdDesiredPropertyExpressionImpl) {
+                return thing.getFeatures()
+                        .orElseThrow(IllegalStateException::new)
+                        .getFeature(((FeatureIdDesiredPropertyExpressionImpl) sortField).getFeatureId())
+                        .orElseThrow(IllegalStateException::new)
+                        .getDesiredProperty(((FeatureIdDesiredPropertyExpressionImpl) sortField).getDesiredProperty())
                         .orElseThrow(IllegalStateException::new)
                         .asLong();
             } else {

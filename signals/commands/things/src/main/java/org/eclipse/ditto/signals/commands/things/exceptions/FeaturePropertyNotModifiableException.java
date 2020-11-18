@@ -66,7 +66,8 @@ public class FeaturePropertyNotModifiableException extends DittoRuntimeException
      * @param jsonPointer the JSON Pointer of the Property.
      * @return the builder.
      */
-    public static FeaturePropertyNotModifiableException.Builder newBuilder(final ThingId thingId, final String featureId,
+    public static FeaturePropertyNotModifiableException.Builder newBuilder(final ThingId thingId,
+            final String featureId,
             final JsonPointer jsonPointer) {
         return new FeaturePropertyNotModifiableException.Builder(thingId, featureId, jsonPointer);
     }
@@ -77,13 +78,11 @@ public class FeaturePropertyNotModifiableException extends DittoRuntimeException
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new FeaturePropertyNotModifiableException.
+     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static FeaturePropertyNotModifiableException fromMessage(final String message,
+    public static FeaturePropertyNotModifiableException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
-        return new FeaturePropertyNotModifiableException.Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(message)
-                .build();
+        return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
@@ -93,16 +92,24 @@ public class FeaturePropertyNotModifiableException extends DittoRuntimeException
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new FeaturePropertyNotModifiableException.
-     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the {@code jsonObject} does not have the {@link
-     * JsonFields#MESSAGE} field.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static FeaturePropertyNotModifiableException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
                 .build();
     }
 

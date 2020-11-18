@@ -23,6 +23,10 @@ import org.eclipse.ditto.signals.events.things.AclModified;
 @Immutable
 final class AclModifiedStrategy extends AbstractThingEventStrategy<AclModified> {
 
+    protected AclModifiedStrategy() {
+        super();
+    }
+
     @Override
     protected ThingBuilder.FromCopy applyEvent(final AclModified event, final ThingBuilder.FromCopy thingBuilder) {
         return thingBuilder

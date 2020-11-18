@@ -54,10 +54,14 @@ import java.util.stream.Stream;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.AddressMetric;
@@ -107,7 +111,7 @@ import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionS
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
@@ -189,6 +193,7 @@ public final class TestConstants {
         final Map<String, String> map = new HashMap<>();
         map.put("eclipse", "ditto");
         map.put("thing_id", "{{ thing:id }}");
+        map.put("feature_id", "{{ feature:id }}");
         map.put("device_id", "{{ header:device_id }}");
         map.put("prefixed_thing_id", "some.prefix.{{ thing:id }}");
         map.put("suffixed_thing_id", "{{ header:device_id }}.some.suffix");
@@ -197,6 +202,16 @@ public final class TestConstants {
         map.put("content-type", "{{ header:content-type }}");
         map.put("reply-to", "{{ header:reply-to }}");
         HEADER_MAPPING = ConnectivityModelFactory.newHeaderMapping(map);
+    }
+
+    public static final HeaderMapping MQTT3_HEADER_MAPPING;
+
+    static {
+        final Map<String, String> map = new HashMap<>();
+        map.put("mqtt.topic", "{{ header:mqtt.topic }}");
+        map.put("mqtt.qos", "{{ header:mqtt.qos }}");
+        map.put("mqtt.retain", "{{ header:mqtt.retain }}");
+        MQTT3_HEADER_MAPPING = ConnectivityModelFactory.newHeaderMapping(map);
     }
 
     public static final Instant INSTANT = Instant.now();
@@ -237,6 +252,21 @@ public final class TestConstants {
                     final Collection<String> topics) {
                 doDelegate(d -> d.removeTwinSubscriber(subscriber, topics));
                 return CompletableFuture.completedFuture(null);
+            }
+
+            @Override
+            public CompletionStage<Void> declareAcknowledgementLabels(
+                    final Collection<AcknowledgementLabel> acknowledgementLabels, final ActorRef subscriber) {
+                if (delegate != null) {
+                    return delegate.declareAcknowledgementLabels(acknowledgementLabels, subscriber);
+                } else {
+                    return CompletableFuture.completedStage(null);
+                }
+            }
+
+            @Override
+            public void removeAcknowledgementLabelDeclaration(final ActorRef subscriber) {
+                doDelegate(d -> d.removeAcknowledgementLabelDeclaration(subscriber));
             }
 
             private void doDelegate(final Consumer<DittoProtocolSub> c) {
@@ -289,7 +319,25 @@ public final class TestConstants {
 
     public static final class Sources {
 
+        public static final String AMQP_SOURCE_ADDRESS = "amqp/source1";
         public static final List<Source> SOURCES_WITH_AUTH_CONTEXT =
+                singletonList(ConnectivityModelFactory.newSourceBuilder()
+                        .address(AMQP_SOURCE_ADDRESS)
+                        .authorizationContext(Authorization.SOURCE_SPECIFIC_CONTEXT)
+                        .consumerCount(2)
+                        .index(0)
+                        .replyTarget(ReplyTarget.newBuilder()
+                                .address("replyTarget/{{thing:id}}")
+                                .expectedResponseTypes(ResponseType.RESPONSE, ResponseType.ERROR, ResponseType.NACK)
+                                .headerMapping(ConnectivityModelFactory.newHeaderMapping(JsonFactory.newObjectBuilder()
+                                        .set("mappedHeader1", "{{header:original-header}}")
+                                        .set("mappedHeader2", "{{thing:id}}")
+                                        .set("mappedHeader3",
+                                                "{{header:" + DittoHeaderDefinition.REPLY_TARGET.getKey() + "}}")
+                                        .build()))
+                                .build())
+                        .build());
+        public static final List<Source> SOURCES_WITH_ACKNOWLEDGEMENTS =
                 singletonList(ConnectivityModelFactory.newSourceBuilder()
                         .address("amqp/source1")
                         .authorizationContext(Authorization.SOURCE_SPECIFIC_CONTEXT)
@@ -304,6 +352,11 @@ public final class TestConstants {
                                                 "{{header:" + DittoHeaderDefinition.REPLY_TARGET.getKey() + "}}")
                                         .build()))
                                 .build())
+                        .acknowledgementRequests(FilteredAcknowledgementRequest.of(
+                                new HashSet<>(
+                                        Arrays.asList(AcknowledgementRequest.parseAcknowledgementRequest("custom-ack"),
+                                                AcknowledgementRequest.parseAcknowledgementRequest(
+                                                        "very-special-ack"))), "fn:filter(header:qos,'ne','0')"))
                         .build());
         public static final List<Source> SOURCES_WITH_SAME_ADDRESS =
                 asList(ConnectivityModelFactory.newSourceBuilder()
@@ -419,10 +472,6 @@ public final class TestConstants {
         public static final String CLIENT_SELF_SIGNED_KEY = getCert("client-self-signed.key");
         public static final String CLIENT_SELF_SIGNED_CRT = getCert("client-self-signed.crt");
 
-        // AWS IoT CAs and server certificate
-        public static final String AWS_CA_CRT = getCert("aws-ca.pem");
-        public static final String AWS_IOT_CRT = getCert("aws-iot.crt");
-
         // signed by CA_CRT with common name (CN) and alternative names.
         // CN=server.alt
         // subjectAltNames=
@@ -467,6 +516,8 @@ public final class TestConstants {
 
         static {
             when(MONITOR_REGISTRY_MOCK.forInboundConsumed(any(ConnectionId.class), anyString()))
+                    .thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forInboundAcknowledged(any(ConnectionId.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
             when(MONITOR_REGISTRY_MOCK.forInboundDropped(any(ConnectionId.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
@@ -646,6 +697,13 @@ public final class TestConstants {
                 "}";
     }
 
+    public static final String MODIFY_THING_WITH_ACK =
+            "{\"topic\":\"ditto/thing/things/twin/commands/modify\"," +
+                    "\"headers\":{\"content-type\":\"application/vnd.eclipse.ditto+json\"," +
+                    "\"reply-to\":\"replies\",\"response-required\":true,\"correlation-id\":\"cid\"," +
+                    "\"requested-acks\":[\"twin-persisted\"]},\"path\":\"/\"," +
+                    "\"value\":{\"__schemaVersion\":2,\"_namespace\":\"ditto\",\"thingId\":\"ditto:thing\"}}";
+
     private static <K, V> Map.Entry<K, V> entry(final K interval, final V count) {
         return new AbstractMap.SimpleImmutableEntry<>(interval, count);
     }
@@ -723,6 +781,19 @@ public final class TestConstants {
 
     public static Connection createConnection() {
         return createConnection(TestConstants.createRandomConnectionId(), Sources.SOURCES_WITH_AUTH_CONTEXT);
+    }
+
+    public static Connection createConnectionWithDebugEnabled() {
+        return ConnectivityModelFactory.newConnectionBuilder(createRandomConnectionId(), TYPE, ConnectivityStatus.OPEN,
+                getUriOfNewMockServer())
+                .targets(Targets.TARGETS)
+                .lifecycle(ConnectionLifecycle.ACTIVE)
+                .specificConfig(Map.of("debugEnabled", String.valueOf(true)))
+                .build();
+    }
+
+    public static Connection createConnectionWithAcknowledgements() {
+        return createConnection(TestConstants.createRandomConnectionId(), Sources.SOURCES_WITH_ACKNOWLEDGEMENTS);
     }
 
     public static Connection createConnection(final ConnectionId connectionId) {
@@ -835,6 +906,13 @@ public final class TestConstants {
         return thingModified(readSubjects, Attributes.newBuilder().build());
     }
 
+    public static ThingModifiedEvent thingModifiedWithCor(final Collection<AuthorizationSubject> readSubjects) {
+        final DittoHeaders dittoHeaders =
+                DittoHeaders.newBuilder().readGrantedSubjects(readSubjects).correlationId("testCor").build();
+        return ThingModified.of(Things.THING.toBuilder().setAttributes(Attributes.newBuilder().build()).build(), 1,
+                dittoHeaders);
+    }
+
     public static ThingModifiedEvent thingModified(final Collection<AuthorizationSubject> readSubjects,
             final Attributes attributes) {
 
@@ -882,7 +960,7 @@ public final class TestConstants {
 
     public static final class ProxyActorMock extends AbstractActor {
 
-        private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+        private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
         private ProxyActorMock() {
         }

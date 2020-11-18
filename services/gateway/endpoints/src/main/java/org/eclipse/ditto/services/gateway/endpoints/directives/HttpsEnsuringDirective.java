@@ -26,8 +26,9 @@ import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
+import org.slf4j.Logger;
 
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.StatusCodes;
@@ -50,7 +51,8 @@ public final class HttpsEnsuringDirective {
 
     private static final AtomicBoolean FORCE_HTTPS_DISABLED_ALREADY_LOGGED = new AtomicBoolean(false);
 
-    private static final DittoLogger LOGGER = DittoLoggerFactory.getLogger(HttpsEnsuringDirective.class);
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(HttpsEnsuringDirective.class);
 
     private final HttpConfig httpConfig;
 
@@ -76,16 +78,22 @@ public final class HttpsEnsuringDirective {
      * NOTE: The HTTPS check can be completely disabled by configuration.
      * </p>
      *
-     * @param correlationId the correlationId (used for logging)
-     * @param inner the inner route to be wrapped with the HTTPs check
-     * @return the new route wrapping {@code inner} with the HTTPs check
+     * @param correlationId the correlationId (used for logging).
+     * @param inner the inner route to be wrapped with the HTTPs check.
+     * @return the new route wrapping {@code inner} with the HTTPs check.
      */
-    public Route ensureHttps(final String correlationId, final Supplier<Route> inner) {
+    public Route ensureHttps(final CharSequence correlationId, final Supplier<Route> inner) {
+        final ThreadSafeDittoLogger logger;
+        if (null != correlationId) {
+            logger = LOGGER.withCorrelationId(correlationId);
+        } else {
+            logger = LOGGER;
+        }
         return extractActorSystem(actorSystem -> extractRequestContext(
                 requestContext -> {
                     if (!httpConfig.isForceHttps()) {
                         if (FORCE_HTTPS_DISABLED_ALREADY_LOGGED.compareAndSet(false, true)) {
-                            LOGGER.withCorrelationId(correlationId).warn("No HTTPS is enforced!");
+                            logger.warn("No HTTPS is enforced!");
                         }
                         return inner.get();
                     }
@@ -93,15 +101,19 @@ public final class HttpsEnsuringDirective {
                     // check whether the request came from HTTPS (before Proxy which terminated SSL and called us via
                     // HTTP)
                     final Uri requestUri = requestContext.getRequest().getUri();
-                    if (!HTTPS_PROTO.equalsIgnoreCase(getForwardedProtoHeaderOrNull(requestUri, requestContext))) {
-                        return handleNonHttpsRequest(requestUri);
+                    final String forwardedProtoHeaderOrNull =
+                            getForwardedProtoHeaderOrNull(requestUri, requestContext, logger);
+                    if (!HTTPS_PROTO.equalsIgnoreCase(forwardedProtoHeaderOrNull)) {
+                        return handleNonHttpsRequest(requestUri, logger);
                     }
                     return inner.get();
                 }));
     }
 
     @Nullable
-    private static String getForwardedProtoHeaderOrNull(final Uri requestUri, final RequestContext requestContext) {
+    private static String getForwardedProtoHeaderOrNull(final Uri requestUri, final RequestContext requestContext,
+            final Logger logger) {
+
         @Nullable final String result = requestContext.getRequest()
                 .getHeader(X_FORWARDED_PROTO_STANDARD)
                 .map(HttpHeader::value)
@@ -113,37 +125,37 @@ public final class HttpsEnsuringDirective {
                         .orElse(null));
 
         if (null != result) {
-            LOGGER.debug("Header <{}> was <{}> for URI <{}>.", X_FORWARDED_PROTO_STANDARD, result, requestUri);
+            logger.debug("Header <{}> was <{}> for URI <{}>.", X_FORWARDED_PROTO_STANDARD, result, requestUri);
         } else {
-            LOGGER.debug("Neither header <{}> nor <{}> set for URI <{}>.", X_FORWARDED_PROTO_STANDARD,
+            logger.debug("Neither header <{}> nor <{}> set for URI <{}>.", X_FORWARDED_PROTO_STANDARD,
                     X_FORWARDED_PROTO_LBAAS, requestUri);
         }
 
         return result;
     }
 
-    private Route handleNonHttpsRequest(final Uri requestUri) {
-        if (httpConfig.isRedirectToHttps() && !isBlacklisted(requestUri.getPathString())) {
-            return redirectToHttps(requestUri);
+    private Route handleNonHttpsRequest(final Uri requestUri, final Logger logger) {
+        if (httpConfig.isRedirectToHttps() && !isBlocked(requestUri.getPathString())) {
+            return redirectToHttps(requestUri, logger);
         }
-        return disallowRequest(requestUri);
+        return disallowRequest(requestUri, logger);
     }
 
-    private boolean isBlacklisted(final CharSequence requestUriPath) {
-        final Pattern redirectToHttpsBlacklistPattern = httpConfig.getRedirectToHttpsBlacklistPattern();
-        final Matcher matcher = redirectToHttpsBlacklistPattern.matcher(requestUriPath);
+    private boolean isBlocked(final CharSequence requestUriPath) {
+        final Pattern redirectToHttpsBlocklistPattern = httpConfig.getRedirectToHttpsBlocklistPattern();
+        final Matcher matcher = redirectToHttpsBlocklistPattern.matcher(requestUriPath);
         return matcher.matches();
     }
 
-    private static Route redirectToHttps(final Uri originalUri) {
+    private static Route redirectToHttps(final Uri originalUri, final Logger logger) {
         final Uri httpsUri = originalUri.scheme(HTTPS_PROTO);
 
-        LOGGER.debug("Redirecting URI <{}> to <{}>.", originalUri, httpsUri);
+        logger.debug("Redirecting URI <{}> to <{}>.", originalUri, httpsUri);
         return redirect(httpsUri, StatusCodes.MOVED_PERMANENTLY);
     }
 
-    private static Route disallowRequest(final Uri requestUri) {
-        LOGGER.info("REST request on URI <{}> did not originate via HTTPS, sending back <{}>.", requestUri,
+    private static Route disallowRequest(final Uri requestUri, final Logger logger) {
+        logger.info("REST request on URI <{}> did not originate via HTTPS, sending back <{}>.", requestUri,
                 StatusCodes.NOT_FOUND);
         return complete(StatusCodes.NOT_FOUND, HTTPS_TEXT);
     }

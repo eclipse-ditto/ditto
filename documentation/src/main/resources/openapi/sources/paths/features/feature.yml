@@ -1,0 +1,234 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+get:
+  summary: Retrieve a specific feature of a specific thing
+  description: |-
+    Returns a specific feature identified by the `featureId` path parameter
+    of the thing identified by the `thingId` path parameter.
+  tags:
+    - Features
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/featureIdPathPathParam.yml'
+    - $ref: '../../parameters/featureFieldsQueryParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+  responses:
+    '200':
+      description: The feature was successfully retrieved.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/feature.yml'
+    '304':
+      $ref: '../../responses/notModified.yml'
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          * at least one of the defined query parameters is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The thing with the given ID or
+        the feature with the specified `featureId` was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+put:
+  summary: Create or modify a specific feature of a specific thing
+  description: |-
+    Create or modify a specific feature identified by the `featureId` path
+    parameter of the thing identified by the `thingId` path parameter.
+
+    ### Create feature
+    If the feature ID is new, the feature and all content from the JSON body will be created
+
+    ### Update feature
+    If the feature ID is used already in this thing, the feature will be overwrittern
+    with the content from the JSON body.
+
+    Example: Set the `featureId` to **coffee-brewer** and all properties in the body part.
+
+    ```
+    {
+      "definition": ["com.acme:coffeebrewer:0.1.0"],
+      "properties": {
+        "brewed-coffees": 42
+      }
+    }
+    ```
+  tags:
+    - Features
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/featureIdPathPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/requestedAcksParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '201':
+      description: The feature was successfully created.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+        Location:
+          description: The location of the created feature resource
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/feature.yml'
+    '204':
+      description: The feature was successfully modified.
+      headers:
+        ETag:
+          description: |-
+            The (current server-side) ETag for this (sub-)resource. For top-level resources it is in the format
+            "rev:[revision]", for sub-resources it has the format "hash:[calculated-hash]".
+          schema:
+            type: string
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+          * the JSON body of the feature to be created/modified is invalid
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the caller has insufficient permissions.
+            For modifying a single feature of an existing thing, `WRITE` permission is required.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The thing with the given ID was
+        not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'
+    '413':
+      $ref: '../../responses/entityTooLarge.yml'
+  requestBody:
+    content:
+      application/json:
+        schema:
+          $ref: '../../schemas/feature.yml'
+        example:   {
+          "definition": [ "com.acme:coffeemaker:0.1.0", "com.acme:coffeemaker:1.1.0" ],
+          "properties": {
+            "connected": true,
+            "brewed-coffees": 0
+          }
+        }
+    description: |-
+      JSON representation of the feature to be created/modified.
+      Consider that the value has to be a JSON object or null.
+
+      Examples:
+      * an empty object: {} - would just create the featureID but would delete all content of the feature
+      * a nested object with multiple model definitions and multiple properties as shown in the example value field
+    required: true
+delete:
+  summary: Delete a specific feature of a specific thing
+  description: |-
+    Deletes a specific feature identified by the `featureId` path parameter
+    of the thing identified by the `thingId` path parameter.
+  tags:
+    - Features
+  parameters:
+    - $ref: '../../parameters/thingIdPathParam.yml'
+    - $ref: '../../parameters/featureIdPathPathParam.yml'
+    - $ref: '../../parameters/ifMatchHeaderParamHash.yml'
+    - $ref: '../../parameters/ifNoneMatchHeaderParam.yml'
+    - $ref: '../../parameters/requestedAcksParam.yml'
+    - $ref: '../../parameters/timeoutParam.yml'
+    - $ref: '../../parameters/responseRequiredParam.yml'
+  responses:
+    '204':
+      description: The feature was successfully deleted.
+    '400':
+      description: |-
+        The request could not be completed. Possible reasons:
+          * the `thingId` does not conform to the namespaced entity ID notation (see [Ditto documentation on namespaced entity IDs](https://www.eclipse.org/ditto/basic-namespaces-and-names.html#namespaced-id)).
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '401':
+      description: The request could not be completed due to missing authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '403':
+      description: |-
+        The request could not be completed. Possible reasons:
+
+          * the caller has insufficient permissions.
+            For deleting a single feature of an existing thing, `WRITE` permission is required.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '404':
+      description: |-
+        The request could not be completed. The thing with the given ID or
+        the feature at the specified path was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '../../schemas/advancedError.yml'
+    '412':
+      $ref: '../../responses/preconditionFailed.yml'

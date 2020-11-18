@@ -74,22 +74,24 @@ public final class PlaceholderFunctionUnknownException extends DittoRuntimeExcep
      * @param jsonObject This exception in JSON format.
      * @param dittoHeaders Ditto headers.
      * @return Deserialized exception.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static PlaceholderFunctionUnknownException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         // deserialize message and description for delivery to client.
-        return new Builder()
-                .dittoHeaders(dittoHeaders)
-                .message(jsonObject.getValueOrThrow(JsonFields.MESSAGE))
-                .description(jsonObject.getValue(JsonFields.DESCRIPTION).orElse(DESCRIPTION))
-                .build();
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
     /**
      * Returns a mutable builder for this exception.
      *
      * @return the builder.
+     * @deprecated since 1.3.0; might be removed in future releases.
      */
+    @Deprecated
     public DittoRuntimeExceptionBuilder<PlaceholderFunctionUnknownException> toBuilder() {
         return new Builder()
                 .dittoHeaders(getDittoHeaders())
@@ -99,6 +101,17 @@ public final class PlaceholderFunctionUnknownException extends DittoRuntimeExcep
                 .href(getHref().orElse(null));
     }
 
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(null))
+                .cause(getCause())
+                .href(getHref().orElse(null))
+                .dittoHeaders(dittoHeaders)
+                .build();
+    }
+
     /**
      * A mutable builder with a fluent API.
      */
@@ -106,7 +119,7 @@ public final class PlaceholderFunctionUnknownException extends DittoRuntimeExcep
     private static final class Builder
             extends DittoRuntimeExceptionBuilder<PlaceholderFunctionUnknownException> {
 
-        private Builder() {}
+        private Builder() {description(DESCRIPTION);}
 
         @Override
         protected PlaceholderFunctionUnknownException doBuild(final DittoHeaders dittoHeaders,

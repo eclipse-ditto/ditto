@@ -43,7 +43,7 @@ Further, `"topics"` is a list of strings, each list entry representing a subscri
 [target topics and filtering](basic-connections.html#target-topics-and-filtering) for more information on that.
 
 Outbound messages are published to the configured target address if one of the subjects in `"authorizationContext"`
-has READ permission on the Thing, that is associated with a message.
+has READ permission on the thing, which is associated with a message.
 
 ```json
 {
@@ -59,13 +59,78 @@ has READ permission on the Thing, that is associated with a message.
 }
 ```
 
+#### Target acknowledgement handling
+
+For HTTP targets, whenever a message is published to the HTTP endpoint, you have two different options in order to 
+acknowledge receiving the message:
+
+##### Explicitly responding with Ditto Protocol acknowledgement message
+
+Whenever an HTTP endpoint, which received a message 
+[requesting acknowledgements](basic-acknowledgements.html#requesting-acks),
+responds with a [Ditto Protocol Acknowledgement](protocol-specification-acks.html#acknowledgement) and sets the 
+`Content-Type` header of the HTTP response to `application/vnd.eclipse.ditto+json`, this received message is treated
+as custom [acknowledgement](basic-acknowledgements.html).
+
+This however is only the case if no 
+[automatically issued acknowledgement label](basic-connections.html#target-issued-acknowledgement-label) was configured
+for that target (see section below). If such an issued acknowledgement label was configured, this one always gets
+issued instead of a custom sent back Ditto Protocol Acknowledgement.
+
+##### Implicitly create acknowledgement from HTTP response 
+
+When for the target an 
+[automatically issued acknowledgement label](basic-connections.html#target-issued-acknowledgement-label) was configured 
+and the HTTP response was not a Ditto Protocol message (with Content-Type header `application/vnd.eclipse.ditto+json`), 
+an acknowledgement is produced automatically in the following way:
+
+The HTTP response and following HTTP response information is mapped to the 
+automatically created [acknowledgement](protocol-specification-acks.html#acknowledgement):
+* `Acknowledgement.headers`: the HTTP response headers are added.
+* `Acknowledgement.status`: the HTTP response status code is used.
+* `Acknowledgement.value`: the HTTP response body is used - if the response body was of 
+  `content-type: application/json`, the JSON is inlined into the acknowledgement, otherwise the payload is added as 
+  JSON string.
+  
+#### Responding to messages
+
+For [live messages](basic-messages.html) that are published via an HTTP target you have two different options to 
+respond to that message:
+
+##### Explicitly responding with Ditto Protocol message response
+
+Whenever an HTTP endpoint, which received a [live message](basic-messages.html),
+responds with a [Ditto Protocol Message Response](protocol-specification-things-messages.html#responding-to-a-message) 
+and sets the `Content-Type` header of the HTTP response to `application/vnd.eclipse.ditto+json`, this received message 
+is treated as custom [live message response](basic-messages.html#responding-to-messages).
+
+In this case, the `correlation-id`, `thing-id` and potentially `feature-id` of the response have to match the 
+message properties to respond to.
+
+##### Implicitly responding via HTTP response 
+
+When for the target an 
+[automatically issued acknowledgement label](basic-connections.html#target-issued-acknowledgement-label) with the label 
+`live-response` was configured and the HTTP response was not a Ditto Protocol message 
+(with Content-Type header `application/vnd.eclipse.ditto+json`), a message response is produced automatically in the 
+following way:
+
+The HTTP response and following HTTP response information is mapped to the 
+automatically created [message response](protocol-specification-things-messages.html#responding-to-a-message):
+* `Message.headers`: the HTTP response headers are added.
+* `Message.status`: the HTTP response status code is used.
+* `Message.value`: the HTTP response body is used - if the response body was of 
+  `content-type: application/json`, the JSON is inlined into the acknowledgement, otherwise the payload is added as 
+  JSON string.
+
+
 ### Specific configuration properties
 
 The specific configuration properties contain the following optional keys:
-* `parallelism` (optional): Configures how many parallel requests per connection to perform, each takes up one outgoing 
+* `parallelism` (optional): Configures how many parallel requests per connection to perform, each takes one outgoing 
 TCP connection. Default (if not provided): 1
 
-# Establishing connecting to an HTTP endpoint
+## Establishing connecting to an HTTP endpoint
 
 Ditto's [Connectivity service](architecture-services-connectivity.html) is responsible for creating new and managing 
 existing connections.
@@ -104,7 +169,7 @@ Example connection configuration to create a new HTTP connection in order to mak
 }
 ```
 
-## Client-certificate authentication
+### Client-certificate authentication
 
 Ditto supports certificate-based authentication for HTTP connections. Consult 
 [Certificates for Transport Layer Security](connectivity-tls-certificates.html)

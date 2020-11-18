@@ -7,7 +7,7 @@ permalink: protocol-specification-topic.html
 
 The Ditto Protocol defines a **Topic** for each Protocol message having following structure:
 
-_[{namespace}](#namespace)/[{entityId}](#entity-id)/[{group}](#group)/[{channel}](#channel)/[{criterion}](#criterion)/[{action}](#action-optional)_
+_[{namespace}](#namespace)/[{entity-name}](#entity-name)/[{group}](#group)/[{channel}](#channel)/[{criterion}](#criterion)/[{action}](#action-optional)_
 
 Examples for valid topic paths are:
 * `org.eclipse.ditto/fancy-car-1/things/twin/commands/create`
@@ -21,9 +21,9 @@ Examples for valid topic paths are:
 
 The entity's namespace in which the entity is located.
 
-## Entity ID
+## Entity Name
 
-The entity's identifier (e.g. a `Thing ID`) to address.
+The entity's name (e.g. a `Thing Name`) to address.
 
 ## Group
 
@@ -168,6 +168,6 @@ The action of a command or an event of the [search protocol](protocol-specificat
 ### Acknowledgement criterion actions
 
 For *acks* criterion, the *action* segment specifies the identifier, which is defined by the system which issued the ACK.
-The criterion has to match the regular expression `[a-zA-Z0-9-_]{3,64}`, i.e. letters of the Latin alphabet, numbers,
+The criterion has to match the regular expression `[a-zA-Z0-9-_:]{3,100}`, i.e. letters of the Latin alphabet, numbers,
 dashes, and underscores.
 

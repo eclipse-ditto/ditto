@@ -48,6 +48,14 @@ public final class PlaceholderFactory {
     }
 
     /**
+     * @return new instance of the {@link FeaturePlaceholder}
+     * @since 1.5.0
+     */
+    public static FeaturePlaceholder newFeaturePlaceholder() {
+        return ImmutableFeaturePlaceholder.INSTANCE;
+    }
+
+    /**
      * @return new instance of the {@link EntityPlaceholder}
      */
     public static EntityPlaceholder newEntityPlaceholder() {
@@ -101,8 +109,7 @@ public final class PlaceholderFactory {
      * @param placeholderResolvers the PlaceholderResolvers to use in order to lookup placeholders in expressions.
      * @return the created ExpressionResolver instance
      */
-    public static ExpressionResolver newExpressionResolver(
-            final PlaceholderResolver<?>... placeholderResolvers) {
+    public static ExpressionResolver newExpressionResolver(final PlaceholderResolver<?>... placeholderResolvers) {
         return newExpressionResolver(Arrays.asList(placeholderResolvers));
     }
 
@@ -161,7 +168,24 @@ public final class PlaceholderFactory {
         return new ImmutableExpressionResolver(placeholderResolvers, stringUsedInPlaceholderValidation);
     }
 
+    /**
+     * @return new instance of the {@link SourceAddressPlaceholder}
+     * @since 1.4.0
+     */
+    public static SourceAddressPlaceholder newSourceAddressPlaceholder() {
+        return ImmutableSourceAddressPlaceholder.INSTANCE;
+    }
+
+    /**
+     * @return the singleton instance of {@link ConnectionIdPlaceholder}.
+     * @since 1.4.0
+     */
+    public static ConnectionIdPlaceholder newConnectionIdPlaceholder() {
+        return ImmutableConnectionIdPlaceholder.INSTANCE;
+    }
+
     private PlaceholderFactory() {
         throw new AssertionError();
     }
+
 }

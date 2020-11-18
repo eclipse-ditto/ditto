@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
+import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 
 /**
@@ -38,8 +39,8 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     private final boolean response;
     private final boolean error;
     private final PayloadType payloadType;
-    private final PayloadMapping payloadMapping;
 
+    @Nullable private final PayloadMapping payloadMapping;
     @Nullable private final String textPayload;
     @Nullable private final ByteBuffer bytePayload;
     @Nullable private final AuthorizationContext authorizationContext;
@@ -47,6 +48,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     @Nullable private final EnforcementFilter<CharSequence> enforcementFilter;
     @Nullable private final HeaderMapping headerMapping;
     @Nullable private final String sourceAddress;
+    @Nullable private final Source source;
 
     private final DittoHeaders internalHeaders;
 
@@ -60,8 +62,9 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
             @Nullable final TopicPath topicPath,
             @Nullable final EnforcementFilter<CharSequence> enforcementFilter,
             @Nullable final HeaderMapping headerMapping,
-            final PayloadMapping payloadMapping,
+            @Nullable final PayloadMapping payloadMapping,
             @Nullable final String sourceAddress,
+            @Nullable final Source source,
             final DittoHeaders internalHeaders) {
 
         this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
@@ -76,6 +79,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
         this.headerMapping = headerMapping;
         this.payloadMapping = payloadMapping;
         this.sourceAddress = sourceAddress;
+        this.source = source;
         this.internalHeaders = internalHeaders;
     }
 
@@ -178,6 +182,11 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     }
 
     @Override
+    public Optional<Source> getSource() {
+        return Optional.ofNullable(source);
+    }
+
+    @Override
     public DittoHeaders getInternalHeaders() {
         return internalHeaders;
     }
@@ -200,6 +209,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
                 Objects.equals(headerMapping, that.headerMapping) &&
                 Objects.equals(payloadMapping, that.payloadMapping) &&
                 Objects.equals(sourceAddress, that.sourceAddress) &&
+                Objects.equals(source, that.source) &&
                 Objects.equals(response, that.response) &&
                 Objects.equals(error, that.error) &&
                 payloadType == that.payloadType &&
@@ -209,7 +219,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
     @Override
     public int hashCode() {
         return Objects.hash(headers, textPayload, bytePayload, payloadType, response, error, authorizationContext,
-                topicPath, enforcementFilter, headerMapping, payloadMapping, sourceAddress, internalHeaders);
+                topicPath, enforcementFilter, headerMapping, payloadMapping, sourceAddress, internalHeaders, source);
     }
 
     @Override
@@ -224,6 +234,7 @@ final class UnmodifiableExternalMessage implements ExternalMessage {
                 ", headerMapping=" + headerMapping +
                 ", payloadMapping=" + payloadMapping +
                 ", sourceAddress=" + sourceAddress +
+                ", source=" + source +
                 ", payloadType=" + payloadType +
                 ", textPayload=" + textPayload +
                 ", bytePayload=" +

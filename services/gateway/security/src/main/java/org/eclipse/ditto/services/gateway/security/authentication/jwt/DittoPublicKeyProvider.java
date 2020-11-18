@@ -24,10 +24,7 @@ import java.text.MessageFormat;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -59,6 +56,8 @@ import com.github.benmanes.caffeine.cache.RemovalListener;
 
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
+import akka.stream.Materializer;
+import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Sink;
 import akka.util.ByteString;
 
@@ -72,11 +71,11 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
 
     private static final long JWK_REQUEST_TIMEOUT_MILLISECONDS = 5000;
     private static final String OPENID_CONNECT_DISCOVERY_PATH = "/.well-known/openid-configuration";
-    private static final String HTTPS = "https://";
     private static final JsonFieldDefinition<String> JSON_JWKS_URI = JsonFieldDefinition.ofString("jwks_uri");
 
     private final JwtSubjectIssuersConfig jwtSubjectIssuersConfig;
     private final HttpClientFacade httpClient;
+    private final Materializer materializer;
     private final Cache<PublicKeyIdWithIssuer, PublicKey> publicKeyCache;
 
     private DittoPublicKeyProvider(final JwtSubjectIssuersConfig jwtSubjectIssuersConfig,
@@ -86,6 +85,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
 
         this.jwtSubjectIssuersConfig = argumentNotNull(jwtSubjectIssuersConfig);
         this.httpClient = argumentNotNull(httpClient);
+        materializer = SystemMaterializer.get(httpClient::getActorSystem).materializer();
         argumentNotNull(publicKeysConfig, "config of the public keys cache");
         argumentNotNull(cacheName);
 
@@ -133,15 +133,12 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
         final String keyId = publicKeyIdWithIssuer.getKeyId();
         LOGGER.debug("Loading public key with id <{}> from issuer <{}>.", keyId, issuer);
 
-        final JwtSubjectIssuerConfig subjectIssuerConfig =
-                jwtSubjectIssuersConfig.getConfigItem(issuer)
-                        .orElseThrow(() -> GatewayJwtIssuerNotSupportedException.newBuilder(issuer).build());
+        final JwtSubjectIssuerConfig subjectIssuerConfig = jwtSubjectIssuersConfig.getConfigItem(issuer)
+                .orElseThrow(() -> GatewayJwtIssuerNotSupportedException.newBuilder(issuer).build());
 
         final String discoveryEndpoint = getDiscoveryEndpoint(subjectIssuerConfig.getIssuer());
-        final CompletableFuture<HttpResponse> responseFuture =
-                CompletableFuture.supplyAsync(() -> getPublicKeysFromDiscoveryEndpoint(discoveryEndpoint));
-        final CompletableFuture<JsonArray> publicKeysFuture =
-                responseFuture.thenCompose(this::mapResponseToJsonArray);
+        final CompletionStage<HttpResponse> responseFuture = getPublicKeysFromDiscoveryEndpoint(discoveryEndpoint);
+        final CompletionStage<JsonArray> publicKeysFuture = responseFuture.thenCompose(this::mapResponseToJsonArray);
         return publicKeysFuture.thenApply(publicKeysArray -> mapToPublicKey(publicKeysArray, keyId, discoveryEndpoint))
                 .toCompletableFuture();
     }
@@ -153,7 +150,7 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
         } else {
             iss = issuer;
         }
-        return HTTPS + iss + OPENID_CONNECT_DISCOVERY_PATH;
+        return jwtSubjectIssuersConfig.getProtocolPrefix() + iss + OPENID_CONNECT_DISCOVERY_PATH;
     }
 
     private CompletableFuture<JsonArray> mapResponseToJsonArray(final HttpResponse response) {
@@ -174,41 +171,28 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
                 });
     }
 
-    private HttpResponse getPublicKeysFromDiscoveryEndpoint(final String discoveryEndpoint) {
+    private CompletionStage<HttpResponse> getPublicKeysFromDiscoveryEndpoint(final String discoveryEndpoint) {
         LOGGER.debug("Loading public keys from discovery endpoint <{}>.", discoveryEndpoint);
 
-        final HttpResponse response;
-        try {
-            response = httpClient.createSingleHttpRequest(HttpRequest.GET(discoveryEndpoint))
-                    .thenCompose(this::mapResponseToJsonObject)
-                    .thenApply(jsonObject -> jsonObject.getValueOrThrow(JSON_JWKS_URI))
-                    .thenCompose(jwksUri -> httpClient.createSingleHttpRequest(HttpRequest.GET(jwksUri)))
-                    .toCompletableFuture()
-                    .get(JWK_REQUEST_TIMEOUT_MILLISECONDS, TimeUnit.MILLISECONDS);
-        } catch (final ExecutionException e) {
-            throw extractDittoRuntimeException(e, discoveryEndpoint);
-        } catch (final InterruptedException | TimeoutException e) {
-            throw handleUnexpectedException(e, discoveryEndpoint);
-        }
-        return response;
-    }
-
-    private static DittoRuntimeException extractDittoRuntimeException(final ExecutionException e,
-            final String discoveryEndpoint) {
-
-        throw DittoRuntimeException.asDittoRuntimeException(e,
-                cause -> handleUnexpectedException(cause, discoveryEndpoint));
+        return httpClient.createSingleHttpRequest(HttpRequest.GET(discoveryEndpoint))
+                .thenCompose(this::mapResponseToJsonObject)
+                .thenApply(jsonObject -> jsonObject.getValueOrThrow(JSON_JWKS_URI))
+                .thenCompose(jwksUri -> httpClient.createSingleHttpRequest(HttpRequest.GET(jwksUri)))
+                .exceptionally(e -> {
+                    throw DittoRuntimeException.asDittoRuntimeException(e,
+                            cause -> handleUnexpectedException(cause, discoveryEndpoint));
+                });
     }
 
     private CompletionStage<JsonObject> mapResponseToJsonObject(final HttpResponse response) {
         if (!response.status().isSuccess()) {
             handleNonSuccessResponse(response);
         }
-        return response.entity().getDataBytes().fold(ByteString.empty(), ByteString::concat)
+        return response.entity().getDataBytes().fold(ByteString.emptyByteString(), ByteString::concat)
                 .map(ByteString::utf8String)
                 .map(JsonFactory::readFrom)
                 .map(JsonValue::asObject)
-                .runWith(Sink.head(), httpClient.getActorMaterializer());
+                .runWith(Sink.head(), materializer);
     }
 
     private void handleNonSuccessResponse(final HttpResponse response) {
@@ -223,9 +207,9 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
     }
 
     private CompletionStage<String> getBodyAsString(final HttpResponse response) {
-        return response.entity().getDataBytes().fold(ByteString.empty(), ByteString::concat)
+        return response.entity().getDataBytes().fold(ByteString.emptyByteString(), ByteString::concat)
                 .map(ByteString::utf8String)
-                .runWith(Sink.head(), httpClient.getActorMaterializer());
+                .runWith(Sink.head(), materializer);
     }
 
     private static PublicKeyProviderUnavailableException handleUnexpectedException(final Throwable e,

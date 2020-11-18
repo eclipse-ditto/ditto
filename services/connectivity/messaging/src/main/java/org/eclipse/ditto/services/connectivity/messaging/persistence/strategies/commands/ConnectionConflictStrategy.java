@@ -16,6 +16,7 @@ import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFa
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
@@ -35,12 +36,17 @@ final class ConnectionConflictStrategy extends AbstractConnectivityCommandStrate
 
     @Override
     protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
-            @Nullable final Connection entity, final long nextRevision, final CreateConnection command) {
-        context.getLog().info("Connection <{}> already exists! Responding with conflict.", context.getState().id());
+            @Nullable final Connection entity,
+            final long nextRevision,
+            final CreateConnection command,
+            @Nullable final Metadata metadata) {
+
+        context.getLog().withCorrelationId(command)
+                .info("Connection <{}> already exists! Responding with conflict.", context.getState().id());
         final ConnectionConflictException conflictException =
                 ConnectionConflictException.newBuilder(context.getState().id())
                         .dittoHeaders(command.getDittoHeaders())
                         .build();
-        return newErrorResult(conflictException);
+        return newErrorResult(conflictException, command);
     }
 }

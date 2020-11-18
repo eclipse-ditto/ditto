@@ -65,4 +65,14 @@ public final class HeaderEntryFiltersTest {
         assertThat(underTest.apply(headerDefinition.getKey(), value)).isEqualTo(expected);
     }
 
+    @Test
+    public void locationHeaderIsUsedFromExternalHeaders() {
+        final DittoHeaderDefinition def = DittoHeaderDefinition.LOCATION;
+        final Map<String, HeaderDefinition> headerDefinitions = Maps.newHashMap(def.getKey(), def);
+        final String locationValue = "http://ditto.eclipse.org/foobar";
+
+        final HeaderEntryFilter underTest = HeaderEntryFilters.fromExternalHeadersFilter(headerDefinitions);
+        assertThat(underTest.apply(def.getKey(), locationValue)).isEqualTo(locationValue);
+    }
+
 }

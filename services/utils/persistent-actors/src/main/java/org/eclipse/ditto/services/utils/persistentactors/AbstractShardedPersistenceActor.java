@@ -18,13 +18,14 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.SnapshotConfig;
@@ -248,8 +249,8 @@ public abstract class AbstractShardedPersistenceActor<
                 .matchEquals(Control.TAKE_SNAPSHOT, this::takeSnapshotByInterval)
                 .match(SaveSnapshotSuccess.class, this::saveSnapshotSuccess)
                 .match(SaveSnapshotFailure.class, this::saveSnapshotFailure)
-                .matchAny(this::matchAnyAfterInitialization)
-                .build());
+                .build())
+                .orElse(matchAnyAfterInitialization());
 
         getContext().become(receive);
 
@@ -395,7 +396,9 @@ public abstract class AbstractShardedPersistenceActor<
             final boolean becomeCreated, final boolean becomeDeleted) {
 
         persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
-            notifySender(response);
+            if (shouldSendResponse(command.getDittoHeaders())) {
+                notifySender(response);
+            }
             if (becomeDeleted) {
                 becomeDeletedHandler();
             }
@@ -405,14 +408,25 @@ public abstract class AbstractShardedPersistenceActor<
         });
     }
 
-    @Override
-    public void onQuery(final Command command, final WithDittoHeaders response) {
-        notifySender(response);
+    private boolean shouldSendResponse(final DittoHeaders dittoHeaders) {
+        return dittoHeaders.isResponseRequired() ||
+                dittoHeaders.getAcknowledgementRequests()
+                        .stream()
+                        .anyMatch(ar -> DittoAcknowledgementLabel.TWIN_PERSISTED.equals(ar.getLabel()));
     }
 
     @Override
-    public void onError(final DittoRuntimeException error) {
-        notifySender(error);
+    public void onQuery(final Command command, final WithDittoHeaders response) {
+        if (command.getDittoHeaders().isResponseRequired()) {
+            notifySender(response);
+        }
+    }
+
+    @Override
+    public void onError(final DittoRuntimeException error, final Command errorCausingCommand) {
+        if (errorCausingCommand.getDittoHeaders().isResponseRequired()) {
+            notifySender(error);
+        }
     }
 
     private long getNextRevisionNumber() {
@@ -420,12 +434,11 @@ public abstract class AbstractShardedPersistenceActor<
     }
 
     private void persistEvent(final E event, final Consumer<E> handler) {
-        LogUtil.enhanceLogWithCorrelationId(log, event);
-        log.debug("Persisting Event <{}>.", event.getType());
+        final DittoDiagnosticLoggingAdapter l = log.withCorrelationId(event);
+        l.debug("Persisting Event <{}>.", event.getType());
 
         persist(event, persistedEvent -> {
-            LogUtil.enhanceLogWithCorrelationId(log, event.getDittoHeaders().getCorrelationId());
-            log.info("Successfully persisted Event <{}>.", event.getType());
+            l.info("Successfully persisted Event <{}>.", event.getType());
 
             /* the event has to be applied before creating the snapshot, otherwise a snapshot with new
                sequence no (e.g. 2), but old entity revision no (e.g. 1) will be created -> can lead to serious
@@ -443,7 +456,8 @@ public abstract class AbstractShardedPersistenceActor<
     private void takeSnapshot(final String reason) {
         final long revision = getRevisionNumber();
         if (entity != null && lastSnapshotRevision != revision) {
-            log.debug("Taking snapshot for entity with ID <{}> and sequence number <{}> because {}.", entityId, revision,
+            log.debug("Taking snapshot for entity with ID <{}> and sequence number <{}> because {}.", entityId,
+                    revision,
                     reason);
 
             final Object snapshotSubject = snapshotAdapter.toSnapshotStore(entity);
@@ -519,10 +533,12 @@ public abstract class AbstractShardedPersistenceActor<
     /**
      * Default is to log a warning, may be overwritten by implementations in order to handle additional messages.
      *
-     * @param message the message to handle after initialization.
+     * @return the match-all Receive object.
      */
-    protected void matchAnyAfterInitialization(final Object message) {
-        log.warning("Unknown message: {}", message);
+    protected Receive matchAnyAfterInitialization() {
+        return ReceiveBuilder.create()
+                .matchAny(message -> log.warning("Unknown message: {}", message))
+                .build();
     }
 
     /**

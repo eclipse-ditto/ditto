@@ -30,7 +30,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.AbstractDittoHeadersBuilder;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 
@@ -40,7 +39,7 @@ import org.eclipse.ditto.model.things.ThingId;
 @NotThreadSafe
 public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<MessageHeadersBuilder, MessageHeaders> {
 
-    private static final Set<MessageHeaderDefinition> MANDATORY_HEADERS = Collections.unmodifiableSet(
+    static final Set<MessageHeaderDefinition> MANDATORY_HEADERS = Collections.unmodifiableSet(
             EnumSet.of(MessageHeaderDefinition.DIRECTION, MessageHeaderDefinition.THING_ID,
                     MessageHeaderDefinition.SUBJECT));
     private static final Set<MessageHeaderDefinition> DEFINITIONS = determineMessageHeaderDefinitions();
@@ -195,28 +194,12 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
      */
     @Override
     public MessageHeadersBuilder contentType(@Nullable final CharSequence contentType) {
-        putCharSequence(DittoHeaderDefinition.CONTENT_TYPE, contentType);
-        return myself;
+        return super.contentType(contentType);
     }
 
-    /**
-     * Sets the timeout of the Message to build.
-     *
-     * @param timeout the duration of the Message to time out.
-     * @return this builder to allow method chaining.
-     * @deprecated as of version 1.1.0 please use
-     * {@link org.eclipse.ditto.model.base.headers.DittoHeadersBuilder#timeout(Duration)} instead.
-     */
     @Override
-    @Deprecated
-    public MessageHeadersBuilder timeout(@Nullable final Duration timeout) {
-        final DittoHeaderDefinition definition = DittoHeaderDefinition.TIMEOUT;
-        if (null != timeout) {
-            putCharSequence(definition, String.valueOf(timeout.getSeconds()));
-        } else {
-            removeHeader(definition.getKey());
-        }
-        return myself;
+    public MessageHeadersBuilder timeout(final Duration timeout) {
+        return super.timeout(timeout);
     }
 
     /**
@@ -247,6 +230,17 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
             removeHeader(definition.getKey());
         }
         return myself;
+    }
+
+    @Override
+    public MessageHeadersBuilder removeHeader(final CharSequence key) {
+        MessageHeaderDefinition.forKey(key).ifPresent(definition -> {
+            if (MANDATORY_HEADERS.contains(definition)) {
+                final String msgTemplate = "Mandatory header with key <{0}> cannot be removed!";
+                throw new IllegalArgumentException(MessageFormat.format(msgTemplate, key));
+            }
+        });
+        return super.removeHeader(key);
     }
 
     /**
@@ -288,18 +282,6 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
             final String msg = MessageFormat.format("HTTP status code <{0}> is unknown!", statusCode);
             return new IllegalArgumentException(msg);
         }));
-    }
-
-    @Override
-    protected void validateValueType(final CharSequence key, final CharSequence value) {
-        super.validateValueType(key, value);
-        MessageHeaderDefinition.forKey(key).ifPresent(definition -> {
-            if (MANDATORY_HEADERS.contains(definition)) {
-                final String msgTemplate = "Value for mandatory header with key <{0}> cannot be overwritten!";
-                throw new IllegalArgumentException(MessageFormat.format(msgTemplate, key));
-            }
-            definition.validateValue(value);
-        });
     }
 
     @Override

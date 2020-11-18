@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.concierge.starter.actors;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -29,7 +28,8 @@ import org.eclipse.ditto.services.concierge.common.ThingsAggregatorConfig;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
@@ -38,14 +38,12 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.Patterns;
-import akka.stream.ActorMaterializer;
+import akka.stream.SourceRef;
+import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
 import akka.util.Timeout;
-import scala.concurrent.ExecutionContext;
 
 /**
  * Actor to aggregate the retrieved Things from persistence.
@@ -59,23 +57,19 @@ public final class ThingsAggregatorActor extends AbstractActor {
 
     private static final String AGGREGATOR_INTERNAL_DISPATCHER = "aggregator-internal-dispatcher";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final ActorRef targetActor;
-    private final ExecutionContext aggregatorDispatcher;
     private final java.time.Duration retrieveSingleThingTimeout;
     private final int maxParallelism;
-    private final ActorMaterializer actorMaterializer;
 
     @SuppressWarnings("unused")
     private ThingsAggregatorActor(final ActorRef targetActor) {
         this.targetActor = targetActor;
-        aggregatorDispatcher = getContext().system().dispatchers().lookup(AGGREGATOR_INTERNAL_DISPATCHER);
         final ThingsAggregatorConfig aggregatorConfig = DittoConciergeConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         ).getThingsAggregatorConfig();
         retrieveSingleThingTimeout = aggregatorConfig.getSingleRetrieveThingTimeout();
         maxParallelism = aggregatorConfig.getMaxParallelism();
-        actorMaterializer = ActorMaterializer.create(getContext());
     }
 
     /**
@@ -94,19 +88,19 @@ public final class ThingsAggregatorActor extends AbstractActor {
         return ReceiveBuilder.create()
                 // # handle "RetrieveThings" command
                 .match(RetrieveThings.class, rt -> {
-                    LogUtil.enhanceLogWithCorrelationId(log, rt.getDittoHeaders().getCorrelationId());
-                    log.info("Got '{}' message. Retrieving requested '{}' Things..",
-                            RetrieveThings.class.getSimpleName(),
-                            rt.getThingEntityIds().size());
+                    log.withCorrelationId(rt)
+                            .info("Got '{}' message. Retrieving requested '{}' Things..",
+                                    RetrieveThings.class.getSimpleName(),
+                                    rt.getThingEntityIds().size());
                     retrieveThings(rt, getSender());
                 })
 
                 // # handle "SudoRetrieveThings" command
                 .match(SudoRetrieveThings.class, rt -> {
-                    LogUtil.enhanceLogWithCorrelationId(log, rt.getDittoHeaders().getCorrelationId());
-                    log.info("Got '{}' message. Retrieving requested '{}' Things..",
-                            SudoRetrieveThings.class.getSimpleName(),
-                            rt.getThingIds().size());
+                    log.withCorrelationId(rt)
+                            .info("Got '{}' message. Retrieving requested '{}' Things..",
+                                    SudoRetrieveThings.class.getSimpleName(),
+                                    rt.getThingIds().size());
                     retrieveThings(rt, getSender());
                 })
 
@@ -137,7 +131,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
 
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final CompletionStage<?> commandResponseSource = Source.from(thingIds)
+        final SourceRef<Jsonifiable> commandResponseSource = Source.from(thingIds)
                 .filter(Objects::nonNull)
                 .map(thingId -> {
                     final Command<?> toBeWrapped;
@@ -157,10 +151,9 @@ public final class ThingsAggregatorActor extends AbstractActor {
                 .ask(calculateParallelism(thingIds), targetActor, Jsonifiable.class,
                         Timeout.apply(retrieveSingleThingTimeout.toMillis(), TimeUnit.MILLISECONDS))
                 .log("command-response", log)
-                .runWith(StreamRefs.sourceRef(), actorMaterializer);
+                .runWith(StreamRefs.sourceRef(), SystemMaterializer.get(getContext().getSystem()).materializer());
 
-        Patterns.pipe(commandResponseSource, aggregatorDispatcher)
-                .to(resultReceiver);
+        resultReceiver.tell(commandResponseSource, getSelf());
     }
 
     private int calculateParallelism(final Collection<ThingId> thingIds) {

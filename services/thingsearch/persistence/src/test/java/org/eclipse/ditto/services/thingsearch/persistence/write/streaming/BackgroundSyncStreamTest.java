@@ -25,13 +25,13 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyRevision;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyRevisionResponse;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
-import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.testkit.javadsl.TestKit;
@@ -42,12 +42,10 @@ import akka.testkit.javadsl.TestKit;
 public final class BackgroundSyncStreamTest {
 
     private static ActorSystem actorSystem;
-    private static ActorMaterializer materializer;
 
     @BeforeClass
     public static void init() {
         actorSystem = ActorSystem.create();
-        materializer = ActorMaterializer.create(actorSystem);
     }
 
     @AfterClass
@@ -67,7 +65,8 @@ public final class BackgroundSyncStreamTest {
                 Metadata.of(ThingId.of("x:3-revision-mismatch"), 3L, PolicyId.of("x:3"), 0L),
                 Metadata.of(ThingId.of("x:4-policy-id-mismatch"), 3L, PolicyId.of("x:4"), 0L),
                 Metadata.of(ThingId.of("x:5-policy-revision-mismatch"), 3L, PolicyId.of("x:5"), 0L),
-                Metadata.of(ThingId.of("x:6-all-up-to-date"), 3L, PolicyId.of("x:6"), 0L)
+                Metadata.of(ThingId.of("x:6-all-up-to-date"), 3L, PolicyId.of("x:6"), 0L),
+                Metadata.of(ThingId.of("x:7-policy-deleted"), 7L, PolicyId.of("x:7"), 0L)
         ));
 
         final Source<Metadata, NotUsed> indexed = Source.from(List.of(
@@ -86,13 +85,16 @@ public final class BackgroundSyncStreamTest {
             final CompletionStage<List<String>> inconsistentThingIds =
                     underTest.filterForInconsistencies(persisted, indexed)
                             .map(metadata -> metadata.getThingId().toString())
-                            .runWith(Sink.seq(), materializer);
+                            .runWith(Sink.seq(), actorSystem);
 
             expectMsg(SudoRetrievePolicyRevision.of(PolicyId.of("x:5"), DittoHeaders.empty()));
             reply(SudoRetrievePolicyRevisionResponse.of(PolicyId.of("x:5"), 6L, DittoHeaders.empty()));
 
             expectMsg(SudoRetrievePolicyRevision.of(PolicyId.of("x:6"), DittoHeaders.empty()));
             reply(SudoRetrievePolicyRevisionResponse.of(PolicyId.of("x:6"), 6L, DittoHeaders.empty()));
+
+            expectMsg(SudoRetrievePolicyRevision.of(PolicyId.of("x:7"), DittoHeaders.empty()));
+            reply(PolicyNotAccessibleException.newBuilder(PolicyId.of("x:7")).build());
 
             assertThat(inconsistentThingIds.toCompletableFuture().join()).containsExactly(
                     "x:0-only-persisted",

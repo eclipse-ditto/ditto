@@ -54,7 +54,7 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.stream.Attributes;
-import akka.testkit.JavaTestKit;
+import akka.testkit.javadsl.TestKit;
 import akka.testkit.TestProbe;
 
 /**
@@ -114,7 +114,6 @@ public abstract class PersistenceActorTestBase {
 
         return DittoHeaders.newBuilder()
                 .correlationId(null)
-                .responseRequired(false)
                 .schemaVersion(schemaVersion)
                 .authorizationContext(
                         AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
@@ -160,7 +159,7 @@ public abstract class PersistenceActorTestBase {
     @After
     public void tearDownBase() {
         if (actorSystem != null) {
-            JavaTestKit.shutdownActorSystem(actorSystem);
+            TestKit.shutdownActorSystem(actorSystem);
             actorSystem = null;
         }
     }

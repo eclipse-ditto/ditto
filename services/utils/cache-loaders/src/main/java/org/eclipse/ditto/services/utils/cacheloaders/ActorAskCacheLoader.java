@@ -19,7 +19,6 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
@@ -29,13 +28,12 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 
@@ -52,7 +50,8 @@ import akka.pattern.Patterns;
 @Immutable
 public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityIdWithResourceType, Entry<V>> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ActorAskCacheLoader.class);
+    private static final ThreadSafeDittoLogger LOGGER =
+            DittoLoggerFactory.getThreadSafeLogger(ActorAskCacheLoader.class);
 
     private final Duration askTimeout;
     private final Function<String, ActorRef> entityRegionProvider;
@@ -158,10 +157,7 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityI
     @Override
     public final CompletableFuture<Entry<V>> asyncLoad(final EntityIdWithResourceType key, final Executor executor) {
         final String resourceType = key.getResourceType();
-        // provide correlation id to inner thread
-        final Optional<String> correlationId = LogUtil.getCorrelationId();
         return CompletableFuture.supplyAsync(() -> {
-            LogUtil.enhanceLogWithCorrelationId(correlationId);
             final EntityId entityId = key.getId();
             return getCommand(resourceType, entityId, key.getCacheLookupContext().orElse(null));
         }, executor).thenCompose(command -> {

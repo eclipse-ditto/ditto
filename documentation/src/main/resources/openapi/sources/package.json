@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "build": "npm run build-v1 && npm run build-v2",
+    "build-v1": "swagger-cli bundle api-1-index.yml --outfile ../ditto-api-1.yml --type yaml",
+    "build-v2": "swagger-cli bundle api-2-index.yml --outfile ../ditto-api-2.yml --type yaml"
+  },
+  "dependencies": {
+    "swagger-cli": "^4.0.4"
+  }
+}

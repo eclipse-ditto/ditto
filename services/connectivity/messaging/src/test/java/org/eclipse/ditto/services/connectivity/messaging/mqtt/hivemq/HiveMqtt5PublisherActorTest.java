@@ -20,13 +20,18 @@ import static org.mockito.Mockito.when;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 import org.awaitility.Awaitility;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 
 import com.hivemq.client.mqtt.mqtt5.Mqtt5AsyncClient;
 import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
@@ -60,7 +65,8 @@ public class HiveMqtt5PublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Target decorateTarget(final Target target) {
-        return ConnectivityModelFactory.newTarget(target, OUTBOUND_ADDRESS, 0);
+        return ConnectivityModelFactory.newTarget(target, OUTBOUND_ADDRESS, 0,
+                AcknowledgementLabel.of("please-verify"));
     }
 
     @Override
@@ -75,8 +81,10 @@ public class HiveMqtt5PublisherActorTest extends AbstractPublisherActorTest {
                 .filter(prop -> !TestConstants.HEADER_MAPPING.getMapping().containsKey(prop.getName().toString()))
                 .count()).isEqualTo(0);
         assertThat(mqttMessage.getUserProperties().asList().stream().anyMatch(
-                prop -> prop.getName().toString().equals("eclipse") && prop.getValue().toString().equals("ditto"))).isTrue();
-        assertThat(ByteBufferUtils.toUtf8String(mqttMessage.getCorrelationData().get())).isEqualTo(TestConstants.CORRELATION_ID);
+                prop -> prop.getName().toString().equals("eclipse") &&
+                        prop.getValue().toString().equals("ditto"))).isTrue();
+        assertThat(ByteBufferUtils.toUtf8String(mqttMessage.getCorrelationData().get())).isEqualTo(
+                TestConstants.CORRELATION_ID);
         assertThat(mqttMessage.getContentType().get().toString()).isEqualTo("application/vnd.eclipse.ditto+json");
     }
 
@@ -86,6 +94,17 @@ public class HiveMqtt5PublisherActorTest extends AbstractPublisherActorTest {
         assertThat(received).hasSize(1);
         final Mqtt5Publish mqttMessage = received.get(0);
         assertThat(mqttMessage.getTopic().toString()).isEqualTo("replyTarget/thing:id");
+    }
+
+    @Override
+    protected void verifyAcknowledgements(final Supplier<Acknowledgements> ackSupplier) throws Exception {
+        final CompletableFuture<Acknowledgements> acksFuture = CompletableFuture.supplyAsync(ackSupplier);
+        final Acknowledgements acks = acksFuture.join();
+        for (final Acknowledgement ack : acks.getSuccessfulAcknowledgements()) {
+            System.out.println(ack);
+            assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
+            assertThat(ack.getStatusCode()).isEqualTo(HttpStatusCode.OK);
+        }
     }
 
     protected String getOutboundAddress() {

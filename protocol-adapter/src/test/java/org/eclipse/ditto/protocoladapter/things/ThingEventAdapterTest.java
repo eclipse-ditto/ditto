@@ -23,15 +23,15 @@ import javax.annotation.Nonnull;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.LiveTwinTest;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.EventsTopicPathBuilder;
+import org.eclipse.ditto.protocoladapter.LiveTwinTest;
 import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.TestConstants;
@@ -54,6 +54,12 @@ import org.eclipse.ditto.signals.events.things.FeatureDefinitionCreated;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionDeleted;
 import org.eclipse.ditto.signals.events.things.FeatureDefinitionModified;
 import org.eclipse.ditto.signals.events.things.FeatureDeleted;
+import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertiesCreated;
+import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertiesDeleted;
+import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertiesModified;
+import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertyCreated;
+import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertyDeleted;
+import org.eclipse.ditto.signals.events.things.FeatureDesiredPropertyModified;
 import org.eclipse.ditto.signals.events.things.FeatureModified;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesCreated;
 import org.eclipse.ditto.signals.events.things.FeaturePropertiesDeleted;
@@ -1194,6 +1200,271 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
     }
 
     @Test
+    public void featureDesiredPropertiesCreatedFromAdaptable() {
+        final FeatureDesiredPropertiesCreated expected =
+                FeatureDesiredPropertiesCreated.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
+                        TestConstants.FEATURE_DESIRED_PROPERTIES, TestConstants.REVISION, null,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2), null);
+
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/desiredProperties");
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated())
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.FEATURE_DESIRED_PROPERTIES_JSON)
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void featureDesiredPropertiesCreatedToAdaptable() {
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/desiredProperties");
+
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated())
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.FEATURE_DESIRED_PROPERTIES_JSON)
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final FeatureDesiredPropertiesCreated featureDesiredPropertiesCreated =
+                FeatureDesiredPropertiesCreated.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
+                        TestConstants.FEATURE_DESIRED_PROPERTIES,
+                        TestConstants.REVISION, null, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE),
+                        null);
+        final Adaptable actual = underTest.toAdaptable(featureDesiredPropertiesCreated, channel);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void featureDesiredPropertiesModifiedFromAdaptable() {
+        final FeatureDesiredPropertiesModified expected =
+                FeatureDesiredPropertiesModified.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
+                        TestConstants.FEATURE_DESIRED_PROPERTIES, TestConstants.REVISION, null,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2), null);
+
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/desiredProperties");
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified())
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.FEATURE_DESIRED_PROPERTIES_JSON)
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void featureDesiredPropertiesModifiedToAdaptable() {
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/desiredProperties");
+
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified())
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.FEATURE_DESIRED_PROPERTIES_JSON)
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final FeatureDesiredPropertiesModified featureDesiredPropertiesModified =
+                FeatureDesiredPropertiesModified.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
+                        TestConstants.FEATURE_DESIRED_PROPERTIES, TestConstants.REVISION, null,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), null);
+        final Adaptable actual = underTest.toAdaptable(featureDesiredPropertiesModified, channel);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void featureDesiredPropertiesDeletedFromAdaptable() {
+        final FeatureDesiredPropertiesDeleted expected = FeatureDesiredPropertiesDeleted.of(TestConstants.THING_ID,
+                TestConstants.FEATURE_ID, TestConstants.REVISION, null,
+                setChannelHeader(TestConstants.DITTO_HEADERS_V_2), null);
+
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/desiredProperties");
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
+                .withPayload(Payload.newBuilder(path)
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void featureDesiredPropertiesDeletedToAdaptable() {
+        final JsonPointer path = JsonPointer.of("/features/" + TestConstants.FEATURE_ID + "/desiredProperties");
+
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
+                .withPayload(Payload.newBuilder(path)
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final FeatureDesiredPropertiesDeleted featureDesiredPropertiesDeleted =
+                FeatureDesiredPropertiesDeleted.of(TestConstants.THING_ID,
+                        TestConstants.FEATURE_ID, TestConstants.REVISION, null,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), null);
+        final Adaptable actual = underTest.toAdaptable(featureDesiredPropertiesDeleted, channel);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void featureDesiredPropertyCreatedFromAdaptable() {
+        final FeatureDesiredPropertyCreated expected = FeatureDesiredPropertyCreated.of(TestConstants.THING_ID,
+                TestConstants.FEATURE_ID, TestConstants.FEATURE_DESIRED_PROPERTY_POINTER,
+                TestConstants.FEATURE_DESIRED_PROPERTY_VALUE,
+                TestConstants.REVISION, null, setChannelHeader(TestConstants.DITTO_HEADERS_V_2), null);
+
+        final JsonPointer path = JsonPointer.of(
+                "/features/" + TestConstants.FEATURE_ID + "/desiredProperties" +
+                        TestConstants.FEATURE_DESIRED_PROPERTY_POINTER);
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated())
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.FEATURE_DESIRED_PROPERTY_VALUE)
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void featureDesiredPropertyCreatedToAdaptable() {
+        final JsonPointer path = JsonPointer.of(
+                "/features/" + TestConstants.FEATURE_ID + "/desiredProperties" +
+                        TestConstants.FEATURE_DESIRED_PROPERTY_POINTER);
+
+        final Adaptable expected = Adaptable.newBuilder(topicPathCreated())
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.FEATURE_DESIRED_PROPERTY_VALUE)
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final FeatureDesiredPropertyCreated featureDesiredPropertyCreated =
+                FeatureDesiredPropertyCreated.of(TestConstants.THING_ID,
+                        TestConstants.FEATURE_ID, TestConstants.FEATURE_DESIRED_PROPERTY_POINTER,
+                        TestConstants.FEATURE_DESIRED_PROPERTY_VALUE,
+                        TestConstants.REVISION, null, setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE),
+                        null);
+        final Adaptable actual = underTest.toAdaptable(featureDesiredPropertyCreated, channel);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void featureDesiredPropertyModifiedFromAdaptable() {
+        final FeatureDesiredPropertyModified expected = FeatureDesiredPropertyModified.of(TestConstants.THING_ID,
+                TestConstants.FEATURE_ID, TestConstants.FEATURE_DESIRED_PROPERTY_POINTER,
+                TestConstants.FEATURE_DESIRED_PROPERTY_VALUE,
+                TestConstants.REVISION, null, setChannelHeader(TestConstants.DITTO_HEADERS_V_2), null);
+
+        final JsonPointer path = JsonPointer.of(
+                "/features/" + TestConstants.FEATURE_ID + "/desiredProperties" +
+                        TestConstants.FEATURE_DESIRED_PROPERTY_POINTER);
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathModified())
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.FEATURE_DESIRED_PROPERTY_VALUE)
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void featureDesiredPropertyModifiedToAdaptable() {
+        final JsonPointer path = JsonPointer.of(
+                "/features/" + TestConstants.FEATURE_ID + "/desiredProperties" +
+                        TestConstants.FEATURE_DESIRED_PROPERTY_POINTER);
+
+        final Adaptable expected = Adaptable.newBuilder(topicPathModified())
+                .withPayload(Payload.newBuilder(path)
+                        .withValue(TestConstants.FEATURE_DESIRED_PROPERTY_VALUE)
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final FeatureDesiredPropertyModified featureDesiredPropertyModified =
+                FeatureDesiredPropertyModified.of(TestConstants.THING_ID,
+                        TestConstants.FEATURE_ID, TestConstants.FEATURE_DESIRED_PROPERTY_POINTER,
+                        TestConstants.FEATURE_DESIRED_PROPERTY_VALUE,
+                        TestConstants.REVISION, null,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), null);
+        final Adaptable actual = underTest.toAdaptable(featureDesiredPropertyModified, channel);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void featureDesiredPropertyDeletedFromAdaptable() {
+        final FeatureDesiredPropertyDeleted expected =
+                FeatureDesiredPropertyDeleted.of(TestConstants.THING_ID, TestConstants.FEATURE_ID,
+                        TestConstants.FEATURE_DESIRED_PROPERTY_POINTER, TestConstants.REVISION, null,
+                        setChannelHeader(TestConstants.DITTO_HEADERS_V_2), null);
+
+        final JsonPointer path = JsonPointer.of(
+                "/features/" + TestConstants.FEATURE_ID + "/desiredProperties" +
+                        TestConstants.FEATURE_DESIRED_PROPERTY_POINTER);
+
+        final Adaptable adaptable = Adaptable.newBuilder(topicPathDeleted())
+                .withPayload(Payload.newBuilder(path)
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+        final ThingEvent<?> actual = underTest.fromAdaptable(adaptable);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void featureDesiredPropertyDeletedToAdaptable() {
+        final JsonPointer path = JsonPointer.of(
+                "/features/" + TestConstants.FEATURE_ID + "/desiredProperties" +
+                        TestConstants.FEATURE_DESIRED_PROPERTY_POINTER);
+
+        final Adaptable expected = Adaptable.newBuilder(topicPathDeleted())
+                .withPayload(Payload.newBuilder(path)
+                        .withRevision(TestConstants.REVISION)
+                        .build())
+                .withHeaders(TestConstants.HEADERS_V_2)
+                .build();
+
+        final FeatureDesiredPropertyDeleted featureDesiredPropertyDeleted =
+                FeatureDesiredPropertyDeleted.of(TestConstants.THING_ID,
+                        TestConstants.FEATURE_ID, TestConstants.FEATURE_DESIRED_PROPERTY_POINTER,
+                        TestConstants.REVISION, null,
+                        setChannelHeader(TestConstants.HEADERS_V_2_NO_CONTENT_TYPE), null);
+        final Adaptable actual = underTest.toAdaptable(featureDesiredPropertyDeleted, channel);
+
+        assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
     public void featureDefinitionCreatedFromAdaptable() {
         final FeatureDefinitionCreated expected = FeatureDefinitionCreated.of(TestConstants.THING_ID,
                 TestConstants.FEATURE_ID, TestConstants.FEATURE_DEFINITION, TestConstants.REVISION,
@@ -1415,6 +1686,11 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
 
         @Override
         public Optional<Instant> getTimestamp() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Metadata> getMetadata() {
             return Optional.empty();
         }
 

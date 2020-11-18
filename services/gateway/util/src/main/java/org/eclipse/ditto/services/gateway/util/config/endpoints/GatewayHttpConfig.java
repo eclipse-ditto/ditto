@@ -24,7 +24,6 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -48,20 +47,22 @@ public final class GatewayHttpConfig implements HttpConfig {
     private final Set<JsonSchemaVersion> schemaVersions;
     private final boolean forceHttps;
     private final boolean redirectToHttps;
-    private final Pattern redirectToHttpsBlacklistPattern;
+    private final Pattern redirectToHttpsBlocklistPattern;
     private final boolean enableCors;
     private final Duration requestTimeout;
     private final String actorPropsFactoryFullQualifiedClassname;
     private final Set<HeaderDefinition> queryParamsAsHeaders;
     private final Set<String> additionalAcceptedMediaTypes;
+    private final Duration coordinatedShutdownTimeout;
 
     private GatewayHttpConfig(final DefaultHttpConfig basicHttpConfig, final ScopedConfig scopedConfig) {
         hostname = basicHttpConfig.getHostname();
         port = basicHttpConfig.getPort();
+        coordinatedShutdownTimeout = basicHttpConfig.getCoordinatedShutdownTimeout();
         schemaVersions = Collections.unmodifiableSet(getJsonSchemaVersions(scopedConfig));
         forceHttps = scopedConfig.getBoolean(GatewayHttpConfigValue.FORCE_HTTPS.getConfigPath());
         redirectToHttps = scopedConfig.getBoolean(GatewayHttpConfigValue.REDIRECT_TO_HTTPS.getConfigPath());
-        redirectToHttpsBlacklistPattern = tryToCreateBlacklistPattern(scopedConfig);
+        redirectToHttpsBlocklistPattern = tryToCreateBlocklistPattern(scopedConfig);
         enableCors = scopedConfig.getBoolean(GatewayHttpConfigValue.ENABLE_CORS.getConfigPath());
         requestTimeout = scopedConfig.getDuration(GatewayHttpConfigValue.REQUEST_TIMEOUT.getConfigPath());
         actorPropsFactoryFullQualifiedClassname = scopedConfig.getString(
@@ -88,18 +89,18 @@ public final class GatewayHttpConfig implements HttpConfig {
         return result;
     }
 
-    private static Pattern tryToCreateBlacklistPattern(final Config httpScopedConfig) {
+    private static Pattern tryToCreateBlocklistPattern(final Config httpScopedConfig) {
         try {
-            return createBlacklistPattern(httpScopedConfig);
+            return createBlocklistPattern(httpScopedConfig);
         } catch (final PatternSyntaxException e) {
             throw new DittoConfigError(MessageFormat.format("Failed to get <{0}> as Pattern!",
-                    GatewayHttpConfigValue.REDIRECT_TO_HTTPS_BLACKLIST_PATTERN.getConfigPath()), e);
+                    GatewayHttpConfigValue.REDIRECT_TO_HTTPS_BLOCKLIST_PATTERN.getConfigPath()), e);
         }
     }
 
-    private static Pattern createBlacklistPattern(final Config httpScopedConfig) {
+    private static Pattern createBlocklistPattern(final Config httpScopedConfig) {
         return Pattern.compile(
-                httpScopedConfig.getString(GatewayHttpConfigValue.REDIRECT_TO_HTTPS_BLACKLIST_PATTERN.getConfigPath()));
+                httpScopedConfig.getString(GatewayHttpConfigValue.REDIRECT_TO_HTTPS_BLOCKLIST_PATTERN.getConfigPath()));
     }
 
     private static Set<HeaderDefinition> getQueryParameterNamesAsHeaderDefinitions(final Config scopedConfig) {
@@ -159,6 +160,11 @@ public final class GatewayHttpConfig implements HttpConfig {
     }
 
     @Override
+    public Duration getCoordinatedShutdownTimeout() {
+        return coordinatedShutdownTimeout;
+    }
+
+    @Override
     public Set<JsonSchemaVersion> getSupportedSchemaVersions() {
         return schemaVersions;
     }
@@ -174,8 +180,8 @@ public final class GatewayHttpConfig implements HttpConfig {
     }
 
     @Override
-    public Pattern getRedirectToHttpsBlacklistPattern() {
-        return redirectToHttpsBlacklistPattern;
+    public Pattern getRedirectToHttpsBlocklistPattern() {
+        return redirectToHttpsBlocklistPattern;
     }
 
     @Override
@@ -214,12 +220,13 @@ public final class GatewayHttpConfig implements HttpConfig {
         }
         final GatewayHttpConfig that = (GatewayHttpConfig) o;
         return port == that.port &&
+                Objects.equals(coordinatedShutdownTimeout, that.coordinatedShutdownTimeout) &&
                 forceHttps == that.forceHttps &&
                 redirectToHttps == that.redirectToHttps &&
                 enableCors == that.enableCors &&
                 hostname.equals(that.hostname) &&
                 schemaVersions.equals(that.schemaVersions) &&
-                redirectToHttpsBlacklistPattern.equals(that.redirectToHttpsBlacklistPattern) &&
+                redirectToHttpsBlocklistPattern.equals(that.redirectToHttpsBlocklistPattern) &&
                 requestTimeout.equals(that.requestTimeout) &&
                 actorPropsFactoryFullQualifiedClassname.equals(that.actorPropsFactoryFullQualifiedClassname) &&
                 queryParamsAsHeaders.equals(that.queryParamsAsHeaders) &&
@@ -228,8 +235,8 @@ public final class GatewayHttpConfig implements HttpConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(hostname, port, schemaVersions, forceHttps, redirectToHttps,
-                redirectToHttpsBlacklistPattern, enableCors, requestTimeout, actorPropsFactoryFullQualifiedClassname,
+        return Objects.hash(hostname, port, coordinatedShutdownTimeout, schemaVersions, forceHttps, redirectToHttps,
+                redirectToHttpsBlocklistPattern, enableCors, requestTimeout, actorPropsFactoryFullQualifiedClassname,
                 queryParamsAsHeaders, additionalAcceptedMediaTypes);
     }
 
@@ -238,10 +245,11 @@ public final class GatewayHttpConfig implements HttpConfig {
         return getClass().getSimpleName() + " [" +
                 "hostname=" + hostname +
                 ", port=" + port +
+                ", coordinatedShutdownTimeout=" + coordinatedShutdownTimeout +
                 ", schemaVersions=" + schemaVersions +
                 ", forceHttps=" + forceHttps +
                 ", redirectToHttps=" + redirectToHttps +
-                ", redirectToHttpsBlacklistPattern=" + redirectToHttpsBlacklistPattern +
+                ", redirectToHttpsBlocklistPattern=" + redirectToHttpsBlocklistPattern +
                 ", enableCors=" + enableCors +
                 ", requestTimeout=" + requestTimeout +
                 ", actorPropsFactoryFullQualifiedClassname=" + actorPropsFactoryFullQualifiedClassname +

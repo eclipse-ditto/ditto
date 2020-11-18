@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
@@ -33,8 +34,11 @@ final class DittoAckRequestsFilter extends AbstractHeaderEntryFilter {
 
     // Representation of the supposedly most often occurring ack request header value.
     private static final String TWIN_PERSISTED_ONLY_VALUE = "[\"" + DittoAcknowledgementLabel.TWIN_PERSISTED + "\"]";
+    private static final String LIVE_RESPONSE_ONLY_VALUE = "[\"" + DittoAcknowledgementLabel.LIVE_RESPONSE + "\"]";
 
     private static final JsonValue EMPTY_JSON_STRING = JsonValue.of("");
+
+    private static final DittoAckRequestsFilter INSTANCE = new DittoAckRequestsFilter();
 
     private DittoAckRequestsFilter() {
         super();
@@ -48,19 +52,22 @@ final class DittoAckRequestsFilter extends AbstractHeaderEntryFilter {
      * @return the instance.
      */
     public static DittoAckRequestsFilter getInstance() {
-        return new DittoAckRequestsFilter();
+        return INSTANCE;
     }
 
     @Override
     @Nullable
     public String filterValue(final String key, final String value) {
-        String result = value;
-        if (Objects.equals(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), key)) {
-            if (isTwinPersistedOnly(value) || value.isEmpty()) {
+        @Nullable final String result;
+        if (isRequestedAcks(key)) {
+            // optimization: for "twin-persisted" and "live-response" in array notation, no JSON parsing has to be done:
+            if (value.isEmpty() || isTwinPersistedOnly(value) || isLiveResponseOnly(value)) {
                 result = null;
             } else {
-                result = parseAsJsonArrayAndFilter(value);
+                result = tryToParseAsJsonArrayAndFilter(value);
             }
+        } else {
+           result = value;
         }
         return result;
     }
@@ -69,23 +76,39 @@ final class DittoAckRequestsFilter extends AbstractHeaderEntryFilter {
         return TWIN_PERSISTED_ONLY_VALUE.equals(value);
     }
 
+    private static boolean isLiveResponseOnly(final String value) {
+        return LIVE_RESPONSE_ONLY_VALUE.equals(value);
+    }
+
+    private static boolean isRequestedAcks(final String key) {
+        return Objects.equals(DittoHeaderDefinition.REQUESTED_ACKS.getKey(), key);
+    }
+
+    @Nullable
+    private static String tryToParseAsJsonArrayAndFilter(final String value) {
+        try {
+            return parseAsJsonArrayAndFilter(value);
+        } catch (final JsonParseException e) {
+            return null;
+        }
+    }
+
+    @Nullable
     private static String parseAsJsonArrayAndFilter(final String value) {
         final JsonArray originalAckRequestsJsonArray = JsonArray.of(value);
         final JsonArray filteredAckRequestsJsonArray = originalAckRequestsJsonArray.stream()
+                .filter(JsonValue::isString)
                 .filter(jsonValue -> !jsonValue.equals(EMPTY_JSON_STRING))
                 .filter(jsonValue -> !isDittoInternal(jsonValue))
                 .collect(JsonCollectors.valuesToArray());
 
-        return filteredAckRequestsJsonArray.toString();
+        final boolean allElementsFiltered =
+                filteredAckRequestsJsonArray.isEmpty() && !originalAckRequestsJsonArray.isEmpty();
+        return allElementsFiltered ? null : filteredAckRequestsJsonArray.toString();
     }
 
     private static boolean isDittoInternal(final JsonValue ackRequestLabelJsonValue) {
-        for (final AcknowledgementLabel label : DittoAcknowledgementLabel.values()) {
-            if (Objects.equals(label.toString(), ackRequestLabelJsonValue.asString())) {
-                return true;
-            }
-        }
-        return false;
+        return DittoAcknowledgementLabel.contains(AcknowledgementLabel.of(ackRequestLabelJsonValue.asString()));
     }
 
 }

@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
@@ -39,13 +40,14 @@ import org.eclipse.ditto.signals.events.base.Event;
  * @param <T> the type of the implementing class.
  */
 @Immutable
-public abstract class AbstractThingEvent<T extends AbstractThingEvent> implements ThingEvent<T> {
+public abstract class AbstractThingEvent<T extends AbstractThingEvent<T>> implements ThingEvent<T> {
 
     private final String type;
     private final ThingId thingId;
     private final long revision;
     @Nullable private final Instant timestamp;
     private final DittoHeaders dittoHeaders;
+    @Nullable private final Metadata metadata;
 
     /**
      * Constructs a new {@code AbstractThingEvent} object.
@@ -55,19 +57,26 @@ public abstract class AbstractThingEvent<T extends AbstractThingEvent> implement
      * @param revision the revision of the Thing.
      * @param timestamp the timestamp of the event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
+     * @param metadata the metadata which was applied together with the event, relative to the event's
+     * {@link #getResourcePath()}.
+     * @throws NullPointerException if any argument but {@code timestamp} or {@code metadata} is {@code null}.
      */
     protected AbstractThingEvent(final String type,
             final ThingId thingId,
             final long revision,
             @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
 
         this.type = checkNotNull(type, "Event type");
         this.thingId = checkNotNull(thingId, "Thing identifier");
         this.revision = revision;
         this.timestamp = timestamp;
-        this.dittoHeaders = checkNotNull(dittoHeaders, "command headers");
+        this.dittoHeaders = checkNotNull(dittoHeaders, "dittoHeaders").isResponseRequired() ? dittoHeaders
+                .toBuilder()
+                .responseRequired(false)
+                .build() : dittoHeaders;
+        this.metadata = metadata;
     }
 
     @Override
@@ -91,6 +100,11 @@ public abstract class AbstractThingEvent<T extends AbstractThingEvent> implement
     }
 
     @Override
+    public Optional<Metadata> getMetadata() {
+        return Optional.ofNullable(metadata);
+    }
+
+    @Override
     public DittoHeaders getDittoHeaders() {
         return dittoHeaders;
     }
@@ -108,6 +122,7 @@ public abstract class AbstractThingEvent<T extends AbstractThingEvent> implement
                 // TYPE is included unconditionally
                 .set(Event.JsonFields.TYPE, type)
                 .set(Event.JsonFields.TIMESTAMP, getTimestamp().map(Instant::toString).orElse(null), predicate)
+                .set(Event.JsonFields.METADATA, getMetadata().map(Metadata::toJson).orElse(null), predicate)
                 .set(Event.JsonFields.REVISION, revision, predicate)
                 .set(JsonFields.THING_ID, thingId.toString());
 
@@ -141,7 +156,8 @@ public abstract class AbstractThingEvent<T extends AbstractThingEvent> implement
                 Objects.equals(thingId, that.thingId) &&
                 Objects.equals(revision, that.revision) &&
                 Objects.equals(timestamp, that.timestamp) &&
-                Objects.equals(dittoHeaders, that.dittoHeaders);
+                Objects.equals(dittoHeaders, that.dittoHeaders) &&
+                Objects.equals(metadata, that.metadata);
     }
 
     protected boolean canEqual(@Nullable final Object other) {
@@ -150,13 +166,17 @@ public abstract class AbstractThingEvent<T extends AbstractThingEvent> implement
 
     @Override
     public int hashCode() {
-        return Objects.hash(type, thingId, revision, timestamp, dittoHeaders);
+        return Objects.hash(type, thingId, revision, timestamp, dittoHeaders, metadata);
     }
 
     @Override
     public String toString() {
-        return "type=" + type + ", thingId=" + thingId + ", revision=" + revision + ", timestamp=" + timestamp + ", " +
-                "dittoHeaders=" + dittoHeaders;
+        return "type=" + type +
+                ", thingId=" + thingId +
+                ", revision=" + revision +
+                ", timestamp=" + timestamp +
+                ", dittoHeaders=" + dittoHeaders +
+                ", metadata=" + metadata;
     }
 
 }

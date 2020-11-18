@@ -58,7 +58,7 @@ public final class AddHeaderMessageMapper implements MessageMapper {
     }
 
     @Override
-    public Collection<String> getContentTypeBlacklist() {
+    public Collection<String> getContentTypeBlocklist() {
         return Collections.emptyList();
     }
 
@@ -82,6 +82,16 @@ public final class AddHeaderMessageMapper implements MessageMapper {
                 .stream()
                 .map(em -> em.withHeader(OUTBOUND_HEADER.getKey(), OUTBOUND_HEADER.getValue()))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Map<String, String> getIncomingConditions() {
+        return Collections.emptyMap();
+    }
+
+    @Override
+    public Map<String, String> getOutgoingConditions() {
+        return Collections.emptyMap();
     }
 
 }

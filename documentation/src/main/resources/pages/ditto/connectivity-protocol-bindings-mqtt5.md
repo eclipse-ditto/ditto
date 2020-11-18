@@ -13,12 +13,12 @@ Consume messages from MQTT 5 brokers via [sources](#source-format) and send mess
 When MQTT messages are sent in [Ditto Protocol](protocol-overview.html),
 the payload should be `UTF-8` encoded strings.
 
-If messages which are not in Ditto Protocol should be processed, a [payload mapping](connectivity-mapping.html) must
+If messages, which are not in Ditto Protocol, should be processed, a [payload mapping](connectivity-mapping.html) must
 be configured for the connection in order to transform the messages.
 
 ## MQTT 5 properties
 
-Supported MQTT 5 properties which are interpreted in a specific way are:
+Supported MQTT 5 properties, which are interpreted in a specific way are:
 
 * `9 (0x09) Correlation Data`: For correlating request messages and events. Twin events have the correlation IDs of
   [Twin commands](protocol-twinlive.html#twin) that produced them. Stored in the ditto protocol header `correlation-id`.
@@ -30,6 +30,7 @@ Supported MQTT 5 properties which are interpreted in a specific way are:
 
 The common configuration for connections in [Connections > Sources](basic-connections.html#sources) and 
 [Connections > Targets](basic-connections.html#targets) applies here as well. 
+
 Following are some specifics for MQTT connections:
 
 ### Source format
@@ -58,7 +59,46 @@ inbound messages are processed. These subjects may contain placeholders, see
 
 #### Source header mapping
 
-MQTT 5 supports so-called user defined properties, which are defined for every message type. The [header mapping](connectivity-header-mapping.html) applies to the supported MQTT 5 specific headers as well as to the user defined properties.
+MQTT 5 supports so-called user defined properties, which are defined for every message type.
+In addition, Ditto extracts the following headers from each consumed message:
+
+* `mqtt.topic`: contains the MQTT topic on which a message was received 
+* `mqtt.qos`: contains the MQTT QoS value of a received message
+* `mqtt.retain`: contains the MQTT retain flag of a received message
+* `correlation-id`: contains the MQTT 5 "correlation data" value
+* `reply-to`: contains the MQTT 5 "response topic" value
+* `content-type`: contains the MQTT 5 "content type" value
+
+The [header mapping](connectivity-header-mapping.html) applies to the supported MQTT 5 specific headers as well
+as to the user defined properties, e. g.:
+```json
+{
+  "headerMapping": {
+    "topic": "{%raw%}{{ header:mqtt.topic }}{%endraw%}",
+    "the-qos": "{%raw%}{{ header:mqtt.qos }}{%endraw%}",
+    "correlation-id": "{%raw%}{{ header:correlation-id }}{%endraw%}",
+    "device-id": "{%raw%}{{ header:device-id-user-defined-property }}{%endraw%}"
+  }
+}
+```
+
+#### Source acknowledgement handling
+
+For MQTT 5 sources, when configuring 
+[acknowledgement requests](basic-connections.html#source-acknowledgement-requests), consumed messages from the MQTT 5
+broker are treated in the following way:
+
+For Ditto acknowledgements with successful [status](protocol-specification-acks.html#combined-status-code):
+* Acknowledges the received MQTT 5 message
+
+For Ditto acknowledgements with mixed successful/failed [status](protocol-specification-acks.html#combined-status-code):
+* If some of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements-acks) require redelivery (e.g. based on a timeout):
+   * based on the [specificConfig](#specific-configuration) [reconnectForDelivery](#reconnectforredelivery) either 
+      * closes and reconnects the MQTT connection in order to receive unACKed QoS 1/2 messages again 
+      * or simply acknowledges the received MQTT 5 message
+* If none of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements-acks) require redelivery:
+   * acknowledges the received MQTT 5 message as redelivery does not make sense
+
 
 ### Target format
 
@@ -70,7 +110,7 @@ Further, `"topics"` is a list of strings, each list entry representing a subscri
 [Ditto protocol topics](protocol-specification-topic.html).
 
 Outbound messages are published to the configured target address if one of the subjects in `"authorizationContext"`
-has READ permission on the Thing, that is associated with a message.
+has READ permission on the thing, which is associated with a message.
 
 The additional field `"qos"` sets the Quality of Service with which messages are published.
 Its value can be `0` for at-most-once delivery, `1` for at-least-once delivery and `2` for exactly-once delivery.
@@ -91,9 +131,108 @@ The default value is `0` (at-most-once).
 
 #### Target header mapping
 
-MQTT 5 supports so-called user defined properties, which are defined for every message type. The [header mapping](connectivity-header-mapping.html) applies to the supported MQTT 5 specific headers as well as to the user defined properties.
+MQTT 5 supports so-called user defined properties, which are defined for every message type.
+The [header mapping](connectivity-header-mapping.html) applies to the supported MQTT 5 specific headers as well as to the user defined properties.
 
-In order to provide user defined properties for the targets of the MQTT 5 connector, use the [specific configs](basic-connections.html#specific-config) field of the connector configuration. The entries are interpreted as key-value-pairs and directly set as user properties.
+#### Target acknowledgement handling
+
+For MQTT 5 targets, when configuring 
+[automatically issued acknowledgement labels](basic-connections.html#target-issued-acknowledgement-label), requested 
+acknowledgements are produced in the following way:
+
+Once the MQTT 5 client signals that the message was acknowledged by the MQTT 5 broker, the following information 
+is mapped to the automatically created [acknowledgement](protocol-specification-acks.html#acknowledgement):
+* Acknowledgement.status: 
+   * will be `200`, if the message was successfully ACKed by the MQTT 5 broker
+   * will be `503`, if the MQTT 5 broker ran into an error before an acknowledgement message was received
+* Acknowledgement.value: 
+   * will be missing, for status `200`
+   * will contain more information, in case that an error `status` was set
+
+### Specific Configuration
+
+The MQTT 5 binding offers additional [specific configurations](basic-connections.html#specific-configuration) 
+to apply for the used MQTT client.
+
+Overall example JSON of the MQTT `"specificConfig"`:
+```json
+{
+  "id": "mqtt-example-connection-123",
+  "connectionType": "mqtt",
+  "connectionStatus": "open",
+  "failoverEnabled": true,
+  "uri": "tcp://test.mosquitto.org:1883",
+  "specificConfig": {
+    "clientId": "my-awesome-mqtt-client-id",
+    "reconnectForRedelivery": true,
+    "cleanSession": false,
+    "separatePublisherClient": true,
+    "publisherId": "my-awesome-mqtt-publisher-client-id",
+    "reconnectForRedeliveryDelay": "5s"
+  },
+  "sources": ["..."],
+  "targets": ["..."]
+}
+```
+
+#### clientId
+
+Overwrites the default MQTT client id.
+
+Default: not set - the ID of the Ditto [connection](basic-connections.html) is used as MQTT client ID. 
+
+If the connection's `clientCount` is 2 or more,
+the ID of each connectivity service instance is appended to the client ID to prevent clients from having the same
+ID. Otherwise the broker will disconnect the already-connected client every time another client with the same
+ID connects.
+
+#### reconnectForRedelivery
+
+Configures that the MQTT connection re-connects whenever a consumed message (via a connection source) with QoS 1 
+("at least once") 2 ("exactly once") is processed but cannot be [acknowledged](#source-acknowledgement-handling) successfully.<br/>
+That causes that the MQTT broker will re-publish the message once the connection reconnected.   
+If configured to `false`, the MQTT message is simply acknowledged (`PUBACK` or `PUBREC`, `PUBREL`).
+
+Default: `true`
+
+Handle with care: 
+* when set to `true`, incoming QoS 0 messages are lost during the reconnection phase
+* when set to `true` and there is also an MQTT target configured to publish messages,
+  the messages to be published during the reconnection phase are lost
+   * to fix that, configure `"separatePublisherClient"` also to `true` in order to publish via another MQTT connection
+* when set to `false`, MQTT messages with QoS 1 and 2 could get lost (e.g. during downtime or connection issues)
+
+#### cleanSession
+
+Configure the MQTT client's `cleanStart` flag. (The flag is called `cleanStart` but the option is `cleanSession` to
+be consistent with MQTT 3 specific config.)
+
+Default: the negation of `"reconnectForRedelivery"`
+
+#### separatePublisherClient
+
+Configures whether to create a separate physical client and connection to the MQTT broker for publishing messages, or not.
+By default (configured to `true`), a single Ditto connection would open 2 MQTT connections/sessions: one for subscribing and one for publishing.
+If configured to `false`, the same MQTT connection/session is used both: for subscribing to messages, and for
+publishing messages.
+
+Default: `true`
+
+#### publisherId
+
+Configures a specific MQTT client ID for the case that `"separatePublisherClient"` is enabled.
+
+Default: 
+* if client ID is configured, `clientId` + `"p"`
+* if no client ID is configured, `connectionId` + `"p"`
+
+#### reconnectForRedeliveryDelay
+
+Configures how long to wait before reconnecting a consumer client for redelivery when `"reconnectForRedelivery"`
+and `separatePublisherClient` are both enabled. The minimum value is `1s`.
+
+Default: `2s`
+
 
 ## Establishing a connection to an MQTT 5 endpoint
 
@@ -103,7 +242,7 @@ existing connections.
 This can be done dynamically at runtime without the need to restart any microservice using a
 [Ditto DevOps command](installation-operating.html#devops-commands).
 
-Example 
+Example: 
 
 Connection configuration to create a new MQTT connection:
 
@@ -143,7 +282,7 @@ Ditto supports certificate-based authentication for MQTT connections. Consult
 [Certificates for Transport Layer Security](connectivity-tls-certificates.html)
 for how to set it up.
 
-Here is an example MQTT connection that checks the broker certificate and authenticates by a client certificate.
+Here is an example MQTT connection, which checks the broker certificate and authenticates by a client certificate.
 
 ```json
 {

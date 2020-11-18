@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.persistence.strategies
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
@@ -33,12 +34,16 @@ final class RetrieveConnectionStrategy extends AbstractConnectivityCommandStrate
 
     @Override
     protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
-            @Nullable final Connection entity, final long nextRevision, final RetrieveConnection command) {
+            @Nullable final Connection entity,
+            final long nextRevision,
+            final RetrieveConnection command,
+            @Nullable final Metadata metadata) {
+
         if (entity != null) {
             return ResultFactory.newQueryResult(command,
                     RetrieveConnectionResponse.of(entity.toJson(), command.getDittoHeaders()));
         } else {
-            return ResultFactory.newErrorResult(notAccessible(context, command));
+            return ResultFactory.newErrorResult(notAccessible(context, command), command);
         }
     }
 }

@@ -20,6 +20,10 @@ import java.util.Optional;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
+import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationProvider;
+import org.eclipse.ditto.services.gateway.util.config.security.DevOpsConfig;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.thingsearch.query.CountThingsResponse;
 import org.junit.Before;
@@ -40,9 +44,11 @@ public final class StatsRouteTest extends EndpointTestBase {
     private static final String STATS_PATH = "/" + StatsRoute.STATISTICS_PATH_PREFIX;
 
     private TestRoute statsTestRoute;
+    private DevOpsConfig devOpsConfig;
 
     @Before
     public void setUp() {
+        devOpsConfig = authConfig.getDevOpsConfig();
         final ActorRef proxyActor = createDummyResponseActor();
         setUp(proxyActor);
     }
@@ -50,9 +56,16 @@ public final class StatsRouteTest extends EndpointTestBase {
     private void setUp(final ActorRef proxyActor) {
         final ActorSystem actorSystem = system();
         final ProtocolAdapterProvider adapterProvider = ProtocolAdapterProvider.load(protocolConfig, actorSystem);
+        final JwtAuthenticationFactory devopsJwtAuthenticationFactory =
+                JwtAuthenticationFactory.newInstance(devOpsConfig.getOAuthConfig(), cacheConfig, httpClientFacade,
+                        authorizationSubjectsProviderFactory);
+        final JwtAuthenticationProvider jwtAuthenticationProvider = JwtAuthenticationProvider.newInstance(
+                devopsJwtAuthenticationFactory.newJwtAuthenticationResultProvider(),
+                devopsJwtAuthenticationFactory.getJwtValidator());
+        final DevOpsOAuth2AuthenticationDirective authenticationDirective =
+                DevOpsOAuth2AuthenticationDirective.status(devOpsConfig, jwtAuthenticationProvider);
         final StatsRoute statsRoute = new StatsRoute(proxyActor, actorSystem, httpConfig, commandConfig,
-                authConfig.getDevOpsConfig(),
-                adapterProvider.getHttpHeaderTranslator());
+                adapterProvider.getHttpHeaderTranslator(), authenticationDirective);
 
         statsTestRoute = testRoute(statsRoute.buildStatsRoute(KNOWN_CORRELATION_ID));
     }

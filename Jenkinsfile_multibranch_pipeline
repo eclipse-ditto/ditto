@@ -1,22 +1,33 @@
 #!groovy
 pipeline {
-    agent none
+    agent {
+        label "$DITTO_BUILD_NODE"
+    }
+    parameters {
+        string(name: 'EXTRA_MAVEN_ARGS', defaultValue: '', description: 'Additional maven arguments.')
+    }
     environment {
         // Need to replace the '%2F' used by Jenkins to deal with / in the path (e.g. story/...)
         theBranch = "${env.BRANCH_NAME}".replace("%2F", "-").replace("/", "-")
         theVersion = "0-${theBranch}-SNAPSHOT"
-        theMvnRepo = "$WORKSPACE/../feature-repository-${theBranch}";
+        theMvnRepo = "$WORKSPACE/../../.m2/feature-repository-${theBranch}"
         JAVA_TOOL_OPTIONS = '-Duser.home=/home/jenkins-slave'
     }
     options {
         buildDiscarder(logRotator(numToKeepStr: '10'))
         disableConcurrentBuilds()
+        timeout(time: 1, unit: 'HOURS')
     }
     stages {
-        stage('Checkout scm') {
-            agent {
-                label "$DITTO_BUILD_NODE"
+        stage('Clean workspace and create local maven repository') {
+            steps {
+                echo 'Clean workspace'
+                cleanWs()
+                echo "Create local maven repository"
+                sh "mkdir -p ${theMvnRepo}"
             }
+        }
+        stage('Checkout scm') {
             steps {
                 echo 'Checkout scm'
                 checkout scm
@@ -25,33 +36,23 @@ pipeline {
         stage('Build') {
             agent {
                 docker {
-                    args "$DITTO_DOCKER_ARGS"
+                    args "$DITTO_DOCKER_ARGUMENTS"
                     image "$DITTO_DOCKER_IMAGE_MAVEN_JDK_11"
+                    reuseNode true
                 }
             }
             steps {
                 configFileProvider([configFile(fileId: 'mvn-bdc-settings', variable: 'MVN_SETTINGS')]) {
-                    sh "mvn -s $MVN_SETTINGS clean deploy source:jar -T1C --batch-mode --errors -Pbuild-documentation,ditto -Drevision=${theVersion}"
+                    sh "mvn -s $MVN_SETTINGS clean deploy source:jar " +
+                               "-T1C --batch-mode --errors " +
+                               "-Pbuild-documentation,ditto " +
+                               "-Drevision=${theVersion} " +
+                               "${params.EXTRA_MAVEN_ARGS ?: ''}"
                 }
             }
             post {
                 always {
                     junit "**/**/target/surefire-reports/*.xml,**/**/**/target/surefire-reports/*.xml,**/**/**/target/failsafe-reports/*.xml,**/**/target/failsafe-reports/*.xml"
-                }
-            }
-        }
-        stage('SonarQube Scan') {
-            agent {
-                docker {
-                    args "$DITTO_DOCKER_ARGS"
-                    image "$DITTO_DOCKER_IMAGE_MAVEN_JDK_11"
-                }
-            }
-            steps {
-                configFileProvider([configFile(fileId: 'mvn-bdc-settings', variable: 'MVN_SETTINGS')]) {
-                    withSonarQubeEnv(installationName: "$SONAR_QUBE_ENV", credentialsId: 'sonarqube') {
-                        sh "mvn -s $MVN_SETTINGS --batch-mode --errors sonar:sonar -Dsonar.branch.name=${theBranch} -Drevision=${theVersion}"
-                    }
                 }
             }
         }

@@ -22,8 +22,10 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.things.ThingEventPubSubFactory;
+import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.DistributedSub;
 
 import akka.actor.ActorContext;
@@ -36,19 +38,22 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
 
     private final DistributedSub liveSignalSub;
     private final DistributedSub twinEventSub;
+    private final DistributedAcks distributedAcks;
 
     private DittoProtocolSubImpl(final DistributedSub liveSignalSub,
-            final DistributedSub twinEventSub) {
+            final DistributedSub twinEventSub,
+            final DistributedAcks distributedAcks) {
         this.liveSignalSub = liveSignalSub;
         this.twinEventSub = twinEventSub;
+        this.distributedAcks = distributedAcks;
     }
 
-    static DittoProtocolSubImpl of(final ActorContext context) {
+    static DittoProtocolSubImpl of(final ActorContext context, final DistributedAcks distributedAcks) {
         final DistributedSub liveSignalSub =
-                LiveSignalPubSubFactory.of(context).startDistributedSub();
+                LiveSignalPubSubFactory.of(context, distributedAcks).startDistributedSub();
         final DistributedSub twinEventSub =
-                ThingEventPubSubFactory.readSubjectsOnly(context).startDistributedSub();
-        return new DittoProtocolSubImpl(liveSignalSub, twinEventSub);
+                ThingEventPubSubFactory.readSubjectsOnly(context, distributedAcks).startDistributedSub();
+        return new DittoProtocolSubImpl(liveSignalSub, twinEventSub, distributedAcks);
     }
 
     @Override
@@ -88,6 +93,38 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
     @Override
     public CompletionStage<Void> removeTwinSubscriber(final ActorRef subscriber, final Collection<String> topics) {
         return twinEventSub.unsubscribeWithAck(topics, subscriber).thenApply(ack -> null);
+    }
+
+    @Override
+    public CompletionStage<Void> declareAcknowledgementLabels(
+            final Collection<AcknowledgementLabel> acknowledgementLabels,
+            final ActorRef subscriber) {
+        if (acknowledgementLabels.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        // don't complete the future with the exception this method emits as this is a bug in Ditto which we must escalate
+        // via the actor supervision strategy
+        ensureAcknowledgementLabelsAreFullyResolved(acknowledgementLabels);
+
+        return distributedAcks.declareAcknowledgementLabels(acknowledgementLabels, subscriber).thenApply(ack -> null);
+        // no need to declare the labels for liveSignalSub because acks distributed data does not start there
+    }
+
+    private static void ensureAcknowledgementLabelsAreFullyResolved(final Collection<AcknowledgementLabel> ackLabels) {
+        ackLabels.stream()
+                .filter(Predicate.not(AcknowledgementLabel::isFullyResolved))
+                .findFirst()
+                .ifPresent(ackLabel -> {
+                    // if this happens, this is a bug in the Ditto codebase! at this point the AckLabel must be resolved
+                    throw new IllegalArgumentException("AcknowledgementLabel was not fully resolved while " +
+                            "trying to declare it: " + ackLabel);
+                });
+    }
+
+    @Override
+    public void removeAcknowledgementLabelDeclaration(final ActorRef subscriber) {
+        distributedAcks.removeAcknowledgementLabelDeclaration(subscriber);
     }
 
     private CompletionStage<Void> partitionByStreamingTypes(final Collection<StreamingType> types,

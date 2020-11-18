@@ -17,6 +17,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -45,13 +46,16 @@ final class DeleteAttributesStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
-            final long nextRevision, final DeleteAttributes command) {
+    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final DeleteAttributes command,
+            @Nullable final Metadata metadata) {
 
         return extractAttributes(thing)
-                .map(attributes -> getDeleteAttributesResult(context, nextRevision, command, thing))
+                .map(attributes -> getDeleteAttributesResult(context, nextRevision, command, thing, metadata))
                 .orElseGet(() -> ResultFactory.newErrorResult(
-                        ExceptionFactory.attributesNotFound(context.getState(), command.getDittoHeaders())));
+                        ExceptionFactory.attributesNotFound(context.getState(), command.getDittoHeaders()), command));
     }
 
     private Optional<Attributes> extractAttributes(final @Nullable Thing thing) {
@@ -59,15 +63,15 @@ final class DeleteAttributesStrategy
     }
 
     private Result<ThingEvent> getDeleteAttributesResult(final Context<ThingId> context, final long nextRevision,
-            final DeleteAttributes command, @Nullable Thing thing) {
+            final DeleteAttributes command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
         final ThingId thingId = context.getState();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
                 DeleteAttributesResponse.of(thingId, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command,
-                AttributesDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders), response);
+                AttributesDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders, metadata), response);
     }
 
     @Override

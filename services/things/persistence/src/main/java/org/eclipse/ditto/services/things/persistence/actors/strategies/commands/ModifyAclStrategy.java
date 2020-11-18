@@ -18,6 +18,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.common.Validator;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
@@ -46,8 +47,12 @@ final class ModifyAclStrategy extends AbstractThingCommandStrategy<ModifyAcl> {
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
-            final long nextRevision, final ModifyAcl command) {
+    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
+            final long nextRevision,
+            final ModifyAcl command,
+            @Nullable final Metadata metadata) {
+
         final ThingId thingId = context.getState();
         final AccessControlList newAccessControlList = command.getAccessControlList();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
@@ -56,12 +61,13 @@ final class ModifyAclStrategy extends AbstractThingCommandStrategy<ModifyAcl> {
                 Thing.MIN_REQUIRED_PERMISSIONS);
         if (!aclValidator.isValid()) {
             return ResultFactory.newErrorResult(ExceptionFactory.aclInvalid(thingId, aclValidator.getReason(),
-                    dittoHeaders));
+                    dittoHeaders), command);
         }
 
-        final ThingEvent event =
-                AclModified.of(thingId, newAccessControlList, nextRevision, getEventTimestamp(), dittoHeaders);
-        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+        final ThingEvent<?> event =
+                AclModified.of(thingId, newAccessControlList, nextRevision, getEventTimestamp(), dittoHeaders,
+                        metadata);
+        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
                 ModifyAclResponse.modified(thingId, newAccessControlList, command.getDittoHeaders()), thing);
 
         return ResultFactory.newMutationResult(command, event, response);

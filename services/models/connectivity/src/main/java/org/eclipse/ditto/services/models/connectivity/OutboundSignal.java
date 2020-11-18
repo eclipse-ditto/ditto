@@ -31,6 +31,8 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.signals.base.Signal;
 
+import akka.actor.ActorRef;
+
 /**
  * Represents an outbound signal i.e. a signal that is sent from Ditto to an external target. It contains the
  * original signal and the set of targets where this signal should be delivered.
@@ -95,6 +97,27 @@ public interface OutboundSignal extends Jsonifiable.WithFieldSelectorAndPredicat
          * @return the Ditto protocol message after adaptation.
          */
         Adaptable getAdaptable();
+    }
+
+    /**
+     * Collection of outbound signals mapped from the same signal.
+     */
+    interface MultiMapped extends OutboundSignal {
+
+        /**
+         * @return the first mapped signal.
+         */
+        Mapped first();
+
+        /**
+         * @return a list of outbound signals mapped from mapping 1 signal.
+         */
+        List<Mapped> getMappedOutboundSignals();
+
+        /**
+         * @return sender of the original signal.
+         */
+        Optional<ActorRef> getSender();
     }
 
     /**

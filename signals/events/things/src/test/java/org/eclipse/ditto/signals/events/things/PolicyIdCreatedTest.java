@@ -37,16 +37,15 @@ public class PolicyIdCreatedTest {
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
             .set(Event.JsonFields.TYPE, PolicyIdCreated.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Thing.REVISION_NUMBER)
+            .set(Event.JsonFields.METADATA, TestConstants.METADATA.toJson())
             .set(ThingEvent.JsonFields.THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(PolicyIdCreated.JSON_POLICY_ID, TestConstants.Thing.THING_ID.toString())
             .build();
-
 
     @Test
     public void assertImmutability() {
         assertInstancesOf(PolicyIdCreated.class, areImmutable(), provided(PolicyId.class).isAlsoImmutable());
     }
-
 
     @Test
     public void testHashCodeAndEquals() {
@@ -67,18 +66,16 @@ public class PolicyIdCreatedTest {
                 TestConstants.Thing.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-
     @Test
     public void toJsonReturnsExpected() {
         final PolicyIdCreated underTest =
                 PolicyIdCreated.of(TestConstants.Thing.THING_ID, PolicyId.of(TestConstants.Thing.THING_ID),
                         TestConstants.Thing.REVISION_NUMBER, TestConstants.TIMESTAMP,
-                        TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {

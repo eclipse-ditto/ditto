@@ -19,12 +19,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.write.ThingsSearchUpdaterPersistence;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
@@ -38,8 +40,7 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.PatternsCS;
-import akka.stream.ActorMaterializer;
+import akka.pattern.Patterns;
 import akka.stream.Attributes;
 import akka.stream.DelayOverflowStrategy;
 import akka.stream.KillSwitch;
@@ -57,8 +58,7 @@ final class PolicyEventForwarder extends AbstractActor {
 
     static final String ACTOR_NAME = "thingsSearchPolicyEventForwarder";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
-    private final ActorMaterializer materializer = ActorMaterializer.create(getContext());
+    private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final ActorRef thingsUpdater;
     private final ThingsSearchUpdaterPersistence persistence;
@@ -66,7 +66,7 @@ final class PolicyEventForwarder extends AbstractActor {
     private final Duration interval;
 
     private Map<PolicyId, Long> policyRevisions = new HashMap<>();
-    private KillSwitch killSwitch;
+    @Nullable private KillSwitch killSwitch;
 
     @SuppressWarnings("unused")
     private PolicyEventForwarder(final ActorRef pubSubMediator,
@@ -182,10 +182,10 @@ final class PolicyEventForwarder extends AbstractActor {
                 .withAttributes(Attributes.inputBuffer(1, 1))
                 .viaMat(KillSwitches.single(), Keep.right())
                 .mapAsync(1, message ->
-                        PatternsCS.ask(self, message, ASK_SELF_TIMEOUT).exceptionally(Function.identity()))
+                        Patterns.ask(self, message, ASK_SELF_TIMEOUT).exceptionally(Function.identity()))
                 .flatMapConcat(this::mapDumpResult)
                 .to(Sink.actorRef(self, Control.STREAM_COMPLETED))
-                .run(materializer);
+                .run(getContext().getSystem());
     }
 
     private void terminateStream() {

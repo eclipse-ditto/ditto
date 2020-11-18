@@ -34,13 +34,12 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.devops.LoggerConfig;
 import org.eclipse.ditto.model.devops.LoggingFacade;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.actors.RetrieveConfigBehavior;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.MappingStrategies;
-import org.eclipse.ditto.services.utils.cluster.MappingStrategy;
+import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -299,9 +298,9 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
         final JsonObject piggybackCommandJson = command.getPiggybackCommand();
         @Nullable final String piggybackCommandType = piggybackCommandJson.getValue(Command.JsonFields.TYPE)
                 .orElse(null);
-        final Consumer<MappingStrategy> action = mappingStrategy -> {
+        final Consumer<JsonParsable<Jsonifiable<?>>> action = mappingStrategy -> {
             try {
-                onSuccess.accept(mappingStrategy.map(piggybackCommandJson, command.getDittoHeaders()));
+                onSuccess.accept(mappingStrategy.parse(piggybackCommandJson, command.getDittoHeaders()));
             } catch (final DittoRuntimeException e) {
                 logger.withCorrelationId(command)
                         .warning("Got DittoRuntimeException while parsing PiggybackCommand <{}>: {}!",
@@ -341,7 +340,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
      */
     private static final class PubSubSubscriberActor extends AbstractActor {
 
-        private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+        private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
         @SuppressWarnings("unused")
         private PubSubSubscriberActor(final ActorRef pubSubMediator, final String serviceName, final String instance,
@@ -371,8 +370,10 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
             pubSubMediator.tell(DistPubSubAccess.subscribe(topic, getSelf()), getSelf());
             pubSubMediator.tell(DistPubSubAccess.subscribe(String.join(":", topic, serviceName), getSelf()), getSelf());
             pubSubMediator.tell(
-                    DistPubSubAccess.subscribeViaGroup(String.join(":", topic, serviceName), serviceName, getSelf()), getSelf());
-            pubSubMediator.tell(DistPubSubAccess.subscribe(String.join(":", topic, serviceName, instance), getSelf()), getSelf());
+                    DistPubSubAccess.subscribeViaGroup(String.join(":", topic, serviceName), serviceName, getSelf()),
+                    getSelf());
+            pubSubMediator.tell(DistPubSubAccess.subscribe(String.join(":", topic, serviceName, instance), getSelf()),
+                    getSelf());
         }
 
         @Override
@@ -420,7 +421,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
             return Props.create(DevOpsCommandResponseCorrelationActor.class, devOpsCommandSender, devOpsCommand);
         }
 
-        private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+        private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
         private final ActorRef devOpsCommandSender;
         private final DevOpsCommand<?> devOpsCommand;
@@ -459,14 +460,14 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
                     .match(CommandResponse.class, this::handleCommandResponse)
                     .match(DittoRuntimeException.class, this::handleDittoRuntimeException)
                     .match(ReceiveTimeout.class, receiveTimeout -> {
-                        LogUtil.enhanceLogWithCorrelationId(log, getSelf().path().name());
-                        log.info("Got ReceiveTimeout, answering with all aggregated DevOpsCommandResponses and " +
-                                "stopping ourselves ...");
+                        log.withCorrelationId(getSelf().path().name())
+                                .info("Got ReceiveTimeout, answering with all aggregated DevOpsCommandResponses and " +
+                                        "stopping ourselves ...");
                         sendCommandResponsesAndStop();
                     })
                     .matchAny(m -> {
-                        LogUtil.enhanceLogWithCorrelationId(log, getSelf().path().name());
-                        log.warning(UNKNOWN_MESSAGE_TEMPLATE, m);
+                        log.withCorrelationId(getSelf().path().name())
+                                .warning(UNKNOWN_MESSAGE_TEMPLATE, m);
                         unhandled(m);
                     }).build();
         }
@@ -481,23 +482,23 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
         }
 
         private void handleCommandResponse(final CommandResponse<?> commandResponse) {
-            LogUtil.enhanceLogWithCorrelationId(log, commandResponse);
             if (commandResponse instanceof DevOpsCommandResponse) {
                 log.debug("Received DevOpsCommandResponse from service/instance <{}/{}>: {}",
                         ((DevOpsCommandResponse<?>) commandResponse).getServiceName().orElse("?"),
                         ((DevOpsCommandResponse<?>) commandResponse).getInstance().orElse("?"),
                         commandResponse.getType());
             } else {
-                log.debug("Received DevOpsCommandResponse from service/instance <?/?>: {}", commandResponse.getType());
+                log.withCorrelationId(commandResponse)
+                        .debug("Received DevOpsCommandResponse from service/instance <?/?>: {}",
+                                commandResponse.getType());
             }
             addCommandResponse(commandResponse);
         }
 
         private void handleDittoRuntimeException(final DittoRuntimeException dittoRuntimeException) {
-            LogUtil.enhanceLogWithCorrelationId(log, dittoRuntimeException);
-
-            log.warning("Received DittoRuntimeException <{}> from <{}>: <{}>!",
-                    dittoRuntimeException.getClass().getName(), getSender(), dittoRuntimeException);
+            log.withCorrelationId(dittoRuntimeException)
+                    .warning("Received DittoRuntimeException <{}> from <{}>: <{}>!",
+                            dittoRuntimeException.getClass().getName(), getSender(), dittoRuntimeException);
 
             addCommandResponse(DevOpsErrorResponse.of(null, null, dittoRuntimeException.toJson(),
                     dittoRuntimeException.getDittoHeaders()));

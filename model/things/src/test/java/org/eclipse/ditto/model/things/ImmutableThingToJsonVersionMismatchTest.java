@@ -18,6 +18,7 @@ import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.junit.Test;
@@ -62,6 +63,8 @@ public final class ImmutableThingToJsonVersionMismatchTest {
                 .set(Thing.JsonFields.ACL, EMPTY_ACL_JSON)
                 .remove(Thing.JsonFields.POLICY_ID)
                 .remove(Thing.JsonFields.DEFINITION)
+                .remove(JsonPointer.of(Thing.JsonFields.FEATURES.getPointer().toString() + "/" + TestConstants.Feature.FLUX_CAPACITOR_ID +
+                Feature.JsonFields.DESIRED_PROPERTIES.getPointer().toString()))
                 .build();
 
         final JsonObject actualJsonV1 = THING_V2.toJson(JsonSchemaVersion.V_1);
@@ -76,6 +79,8 @@ public final class ImmutableThingToJsonVersionMismatchTest {
                 .set(Thing.JsonFields.ACL, EMPTY_ACL_JSON)
                 .remove(Thing.JsonFields.POLICY_ID)
                 .remove(Thing.JsonFields.DEFINITION)
+                .remove(JsonPointer.of(Thing.JsonFields.FEATURES.getPointer().toString() + "/" + TestConstants.Feature.FLUX_CAPACITOR_ID +
+                        Feature.JsonFields.DESIRED_PROPERTIES.getPointer().toString()))
                 .set(Thing.JsonFields.SCHEMA_VERSION, JsonSchemaVersion.V_1.toInt())
                 .build();
 

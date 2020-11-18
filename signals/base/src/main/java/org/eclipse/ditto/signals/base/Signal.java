@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  *
  * @param <T> the type of the implementing class.
  */
-public interface Signal<T extends Signal> extends Jsonifiable.WithPredicate<JsonObject, JsonField>,
+public interface Signal<T extends Signal<T>> extends Jsonifiable.WithPredicate<JsonObject, JsonField>,
         WithDittoHeaders<T>, WithManifest, WithType, WithId, WithName, WithResource {
 
     /**

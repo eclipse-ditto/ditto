@@ -191,6 +191,7 @@
         <module>legal</module>
         <module>documentation</module>
         <module>json</module>
+        <module>json-cbor</module>
         <module>model</module>
         <module>signals</module>
         <module>protocol-adapter</module>
@@ -220,7 +221,7 @@
         <!-- globally set version for checking binary compatibility against -->
         <!-- whoever changes this to ${revision} or ${project.version} is responsible for API breakage caused by this! -->
         <!-- in other words: never do that here! exclude the 'breakages' locally in the japicmp maven plugin if you intentionally break something -->
-        <binary-compatibility-check.version>1.1.0</binary-compatibility-check.version>
+        <binary-compatibility-check.version>1.4.0</binary-compatibility-check.version>
 
         <maven.skins.fluido.version>1.7</maven.skins.fluido.version>
         <doxia.markdown.version>1.8</doxia.markdown.version>
@@ -490,7 +491,7 @@
                 <plugin>
                     <groupId>net.alchim31.maven</groupId>
                     <artifactId>scala-maven-plugin</artifactId>
-                    <version>4.1.0</version>
+                    <version>4.4.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

@@ -17,7 +17,7 @@ the `content-type` of AMQP 0.9.1 messages must be set to:
 application/vnd.eclipse.ditto+json
 ```
 
-If messages which are not in Ditto Protocol should be processed, a [payload mapping](connectivity-mapping.html) must
+If messages, which are not in Ditto Protocol, should be processed, a [payload mapping](connectivity-mapping.html) must
 be configured for the AMQP 0.9.1 connection in order to transform the messages. 
 
 ## AMQP 0.9.1 properties
@@ -36,7 +36,7 @@ Following are some specifics for AMQP 0.9.1 connections:
 ### Source format
 
 An AMQP 0.9.1 connection requires the protocol configuration source object to have an `addresses` property with a list
-of queue names and `authorizationContext` array that contains the authorization subjects in whose context 
+of queue names, and `authorizationContext` array that contains the authorization subjects, in whose context 
 incoming messages are processed. These subjects may contain placeholders, see 
 [placeholders](basic-connections.html#placeholder-for-source-authorization-subjects) section for more information.
 
@@ -51,6 +51,22 @@ incoming messages are processed. These subjects may contain placeholders, see
 }
 ```
 
+#### Source acknowledgement handling
+
+For AMQP 0.9.1 sources, when configuring 
+[acknowledgement requests](basic-connections.html#source-acknowledgement-requests), consumed messages from the AMQP 0.9.1
+broker are treated in the following way:
+
+For Ditto acknowledgements with successful [status](protocol-specification-acks.html#combined-status-code):
+* Acknowledges a single AMQP 0.9.1 message with an `Ack` message for the received `deliveryTag`
+
+For Ditto acknowledgements with mixed successful/failed [status](protocol-specification-acks.html#combined-status-code):
+* If some of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements-acks) require redelivery (e.g. based on a timeout):
+   * Negatively acknowledges the AMQP 0.9.1 message with a `Nack` message for the received `deliveryTag` and setting `requeue` to `true`
+* If none of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements-acks) require redelivery:
+   * Negatively acknowledges the AMQP 0.9.1 message with a `Nack` message for the received `deliveryTag` and setting `requeue` to `false` preventing redelivery by the AMQP 0.9.1 broker
+
+
 ### Target format
 
 An AMQP 0.9.1 connection requires the protocol configuration target object to have an `address` property with a combined
@@ -61,7 +77,7 @@ Further, `"topics"` is a list of strings, each list entry representing a subscri
 [Ditto protocol topics](protocol-specification-topic.html).
 
 Outbound messages are published to the configured target address if one of the subjects in `"authorizationContext"`
-has READ permission on the Thing, that is associated with a message.
+has READ permission on the thing, which is associated with a message.
 
 
 ```json
@@ -74,6 +90,22 @@ has READ permission on the Thing, that is associated with a message.
   "authorizationContext": ["ditto:outbound-auth-subject"]
 }
 ```
+
+#### Target acknowledgement handling
+
+For AMQP 0.9.1 targets, when configuring 
+[automatically issued acknowledgement labels](basic-connections.html#target-issued-acknowledgement-label), requested 
+acknowledgements are produced in the following way:
+
+Once the AMQP 0.9.1 client signals that the message was acknowledged by the AMQP 0.9.1 broker, the following information 
+is mapped to the automatically created [acknowledgement](protocol-specification-acks.html#acknowledgement):
+* Acknowledgement.status: 
+   * will be `200`, if the message was successfully ACKed by the AMQP 0.9.1 broker
+   * will be `400`, if the AMQP 0.9.1 broker does not support publisher confirms
+   * will be `503`, if the AMQP 0.9.1 broker negatively confirmed receiving a message
+* Acknowledgement.value: 
+   * will be missing, for status `200`
+   * will contain more information, in case that an error `status` was set
 
 ### Specific configuration properties
 

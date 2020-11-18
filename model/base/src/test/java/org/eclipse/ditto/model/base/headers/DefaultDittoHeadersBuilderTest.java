@@ -17,12 +17,13 @@ import static org.assertj.core.api.Assertions.entry;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.eclipse.ditto.model.base.headers.DefaultDittoHeadersBuilder.of;
 
-import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -30,6 +31,8 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.assertions.DittoBaseAssertions;
@@ -38,6 +41,9 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeader;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaderKey;
+import org.eclipse.ditto.model.base.headers.metadata.MetadataHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,7 +59,7 @@ public final class DefaultDittoHeadersBuilderTest {
     private static final String CHANNEL = "twin";
     private static final Collection<String> READ_SUBJECTS = Arrays.asList("read", "subjects");
 
-    private DittoHeadersBuilder underTest = null;
+    private DefaultDittoHeadersBuilder underTest = null;
 
     @Before
     public void setUp() {
@@ -135,6 +141,22 @@ public final class DefaultDittoHeadersBuilderTest {
                 .build();
 
         final DittoHeaders anotherDittoHeaders = of(dittoHeaders).build();
+
+        assertThat(dittoHeaders).isEqualTo(anotherDittoHeaders);
+    }
+
+    @Test
+    public void buildWithEmptyCorrelationIdThrowsIllegalArgumentException() {
+        DittoBaseAssertions.assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
+                DittoHeaders.newBuilder().correlationId(""));
+    }
+
+    @Test
+    public void buildWithEmptyCorrelationIdFromMapThrowsDittoHeaderInvalidException() {
+        final Map<String, String> headerMap = new HashMap<>();
+        headerMap.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), "");
+        DittoBaseAssertions.assertThatExceptionOfType(DittoHeaderInvalidException.class)
+                .isThrownBy(() -> DittoHeaders.of(headerMap));
     }
 
     @Test
@@ -283,7 +305,7 @@ public final class DefaultDittoHeadersBuilderTest {
 
     @Test
     public void tryToPutMapWithInvalidMessageHeader() {
-        final String key = DittoHeaderDefinition.TIMEOUT.getKey();
+        final String key = DittoHeaderDefinition.SCHEMA_VERSION.getKey();
         final String invalidValue = "bar";
 
         final Map<String, String> invalidHeaders = new HashMap<>();
@@ -292,7 +314,7 @@ public final class DefaultDittoHeadersBuilderTest {
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.putHeaders(invalidHeaders))
-                .withMessage("The value '%s' of the header '%s' is not a valid duration.", invalidValue, key)
+                .withMessage("The value '%s' of the header '%s' is not a valid int.", invalidValue, key)
                 .withNoCause();
     }
 
@@ -307,6 +329,20 @@ public final class DefaultDittoHeadersBuilderTest {
     }
 
     @Test
+    public void ensureAllowPolicyLockoutIsFalseWhenSet() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .allowPolicyLockout(true)
+                .build();
+        DittoBaseAssertions.assertThat(dittoHeaders).hasAllowPolicyLockout(true);
+    }
+
+    @Test
+    public void ensureAllowPolicyLockoutIsFalseWhenNotSet() {
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().build();
+        DittoBaseAssertions.assertThat(dittoHeaders).hasAllowPolicyLockout(false);
+    }
+
+    @Test
     public void ensureResponseRequiredStaysFalseEvenWhenAcksAreRequested() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .responseRequired(false)
@@ -316,29 +352,6 @@ public final class DefaultDittoHeadersBuilderTest {
         assertThat(dittoHeaders)
                 .containsEntry(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), Boolean.FALSE.toString());
     }
-
-    @Test
-    public void ensureResponseRequiredIsFalseForHeadersWithZeroTimeout() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .responseRequired(true)
-                .timeout(Duration.ZERO)
-                .build();
-
-        assertThat(dittoHeaders)
-                .containsEntry(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), Boolean.FALSE.toString());
-    }
-
-    @Test
-    public void ensureResponseRequiredIsFalseEvenIfAcksAreRequestedWithTimeoutZero() {
-        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of("some-ack")))
-                .timeout("0ms")
-                .build();
-
-        assertThat(dittoHeaders)
-                .containsEntry(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), Boolean.FALSE.toString());
-    }
-
 
     @Test
     public void removesDuplicatedAuthSubjects() {
@@ -359,4 +372,125 @@ public final class DefaultDittoHeadersBuilderTest {
         assertThat(dittoHeaders.get(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey()))
                 .isEqualTo(authorizationContextWithoutDuplicates.toJsonString());
     }
+
+    @Test
+    public void putValidMetadata() {
+        final MetadataHeaderKey metadataKey = MetadataHeaderKey.parse("*/issuedAt");
+        final JsonValue metadataValue = JsonValue.of(String.valueOf(Instant.now()));
+        final MetadataHeaders expected = MetadataHeaders.newInstance();
+        expected.add(MetadataHeader.of(metadataKey, metadataValue));
+
+        final DittoHeaders dittoHeaders = underTest.putMetadata(metadataKey, metadataValue).build();
+
+        assertThat(dittoHeaders.getMetadataHeadersToPut()).isEqualTo(expected);
+    }
+
+    @Test
+    public void putValidMetadataAsCharSequence() {
+        final MetadataHeaders metadataHeaders = MetadataHeaders.newInstance();
+        metadataHeaders.add(
+                MetadataHeader.of(MetadataHeaderKey.parse("*/issuedAt"), JsonValue.of(String.valueOf(Instant.now()))));
+
+        final DittoHeaders dittoHeaders = underTest
+                .putHeader(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaders.toJsonString())
+                .build();
+
+        assertThat(dittoHeaders.getMetadataHeadersToPut()).isEqualTo(metadataHeaders);
+    }
+
+    @Test
+    public void putHeadersContainingValidMetadata() {
+        final MetadataHeaderKey metadataKey = MetadataHeaderKey.parse("*/issuedAt");
+        final JsonValue metadataValue = JsonValue.of(String.valueOf(Instant.now()));
+        final Map<String, String> headerMap = new HashMap<>();
+        headerMap.put("foo", "bar");
+        headerMap.put(metadataKey.toString(), metadataValue.toString());
+        headerMap.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), String.valueOf(UUID.randomUUID()));
+
+        final DittoHeaders dittoHeaders = underTest.putHeaders(headerMap).build();
+
+        assertThat(dittoHeaders).isEqualTo(headerMap);
+    }
+
+    @Test
+    public void putHeadersContainingInvalidMetadataKey() {
+        final String metadataKey = "*/*/issuedAt";
+        final JsonValue metadataValue = JsonValue.of(String.valueOf(Instant.now()));
+        final JsonArray metadataHeaderEntries = JsonArray.of(JsonObject.newBuilder()
+                .set(MetadataHeader.JsonFields.METADATA_KEY, metadataKey)
+                .set(MetadataHeader.JsonFields.METADATA_VALUE, metadataValue)
+                .build());
+        final Map<String, String> headerMap = new HashMap<>();
+        headerMap.put("foo", "bar");
+        headerMap.put(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaderEntries.toString());
+        headerMap.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), String.valueOf(UUID.randomUUID()));
+
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
+                .isThrownBy(() -> underTest.putHeaders(headerMap))
+                .withMessage("The value '%s' of the header 'put-metadata' is not a valid MetadataHeaders.",
+                        metadataHeaderEntries)
+                .satisfies(dittoHeaderInvalidException -> assertThat(
+                        dittoHeaderInvalidException.getDescription())
+                        .contains("The metadata header key <" +
+                                metadataKey +
+                                "> is invalid!" +
+                                " A wildcard path of a metadata header key must have exactly two levels but it had" +
+                                " <3>!"))
+                .withCauseInstanceOf(JsonParseException.class);
+    }
+
+    @Test
+    public void createBuilderFromMapContainingValidMetadata() {
+        final MetadataHeaderKey metadataKey = MetadataHeaderKey.parse("*/issuedAt");
+        final JsonValue metadataValue = JsonValue.of(String.valueOf(Instant.now()));
+        final Map<String, String> headerMap = new HashMap<>();
+        headerMap.put("foo", "bar");
+        headerMap.put(metadataKey.toString(), metadataValue.toString());
+        headerMap.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), String.valueOf(UUID.randomUUID()));
+
+        final DefaultDittoHeadersBuilder underTest = of(headerMap);
+
+        assertThat(underTest.build()).isEqualTo(headerMap);
+    }
+
+    @Test
+    public void createBuilderFromMapContainingInvalidMetadataKey() {
+        final String metadataKey = "*/*/issuedAt";
+        final JsonObject metadataHeaderEntry = JsonObject.newBuilder()
+                .set(MetadataHeader.JsonFields.METADATA_KEY, metadataKey)
+                .set(MetadataHeader.JsonFields.METADATA_VALUE, JsonValue.of(String.valueOf(Instant.now())))
+                .build();
+        final JsonArray metadataHeaderEntries = JsonArray.of(metadataHeaderEntry);
+        final Map<String, String> headerMap = new HashMap<>();
+        headerMap.put("foo", "bar");
+        headerMap.put(DittoHeaderDefinition.PUT_METADATA.getKey(), metadataHeaderEntries.toString());
+        headerMap.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), String.valueOf(UUID.randomUUID()));
+
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
+                .isThrownBy(() -> DefaultDittoHeadersBuilder.of(headerMap))
+                .satisfies(dittoHeaderInvalidException -> assertThat(dittoHeaderInvalidException.getDescription())
+                        .contains("The metadata header key <" + metadataKey + "> is invalid!" +
+                                " A wildcard path of a metadata header key must have exactly two levels but it had" +
+                                " <3>!"))
+                .withCauseInstanceOf(JsonParseException.class);
+    }
+
+    @Test
+    public void createBuilderFromMapContainingInvalidMetadataValue() {
+        final String invalidValue = String.valueOf(Instant.now());
+        final Map<String, String> headerMap = new HashMap<>();
+        headerMap.put("foo", "bar");
+        headerMap.put(DittoHeaderDefinition.PUT_METADATA.getKey(), invalidValue);
+        headerMap.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), String.valueOf(UUID.randomUUID()));
+
+        assertThatExceptionOfType(DittoHeaderInvalidException.class)
+                .isThrownBy(() -> DefaultDittoHeadersBuilder.of(headerMap))
+                .withMessage("The value '%s' of the header '%s' is not a valid MetadataHeaders.", invalidValue,
+                        DittoHeaderDefinition.PUT_METADATA.getKey())
+                .satisfies(dittoHeaderInvalidException -> assertThat(dittoHeaderInvalidException.getDescription())
+                        .hasValueSatisfying(description -> assertThat(description)
+                                .startsWith("Failed to parse JSON string '" + invalidValue + "'!")))
+                .withCauseInstanceOf(JsonParseException.class);
+    }
+
 }
