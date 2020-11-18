@@ -14,9 +14,9 @@ package org.eclipse.ditto.services.utils.health.status;
 
 import java.util.concurrent.TimeUnit;
 
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.SimpleCommand;
 import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.health.AbstractHealthCheckingActor;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
 import org.eclipse.ditto.services.utils.health.StatusInfo;
@@ -50,7 +50,7 @@ public final class StatusSupplierActor extends AbstractActor {
      */
     public static final String SIMPLE_COMMAND_RETRIEVE_HEALTH = "retrieveHealth";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final String rootActorName;
 

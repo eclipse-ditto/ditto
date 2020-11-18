@@ -34,7 +34,7 @@ import akka.cluster.ddata.Replicator;
  *
  * @param <T> type of representations of topics in the distributed data.
  */
-public final class SubUpdater<T> extends AbstractUpdater<T, SubscriptionsReader> {
+public final class SubUpdater<T> extends AbstractUpdater<ActorRef, T, SubscriptionsReader> {
 
     /**
      * Prefix of this actor's name.
@@ -45,7 +45,7 @@ public final class SubUpdater<T> extends AbstractUpdater<T, SubscriptionsReader>
     private SubUpdater(final PubSubConfig config,
             final ActorRef subscriber,
             final Subscriptions<T> subscriptions,
-            final DDataWriter<T> topicsWriter) {
+            final DDataWriter<ActorRef, T> topicsWriter) {
         super(ACTOR_NAME_PREFIX, config, subscriber, subscriptions, topicsWriter);
     }
 
@@ -57,7 +57,8 @@ public final class SubUpdater<T> extends AbstractUpdater<T, SubscriptionsReader>
      * @param topicsDData access to the distributed data of topics.
      * @return the Props object.
      */
-    public static <T> Props props(final PubSubConfig config, final ActorRef subscriber, final DData<?, T> topicsDData) {
+    public static <T> Props props(final PubSubConfig config, final ActorRef subscriber,
+            final DData<ActorRef, ?, T> topicsDData) {
 
         return Props.create(SubUpdater.class, config, subscriber, topicsDData.createSubscriptions(),
                 topicsDData.getWriter());
@@ -92,7 +93,7 @@ public final class SubUpdater<T> extends AbstractUpdater<T, SubscriptionsReader>
         // reset changed flags if there are no more pending changes
         if (awaitSubAck.isEmpty() && awaitUpdate.isEmpty()) {
             localSubscriptionsChanged = false;
-            nextWriteConsistency = Replicator.writeLocal();
+            nextWriteConsistency = (Replicator.WriteConsistency) Replicator.writeLocal();
         }
     }
 

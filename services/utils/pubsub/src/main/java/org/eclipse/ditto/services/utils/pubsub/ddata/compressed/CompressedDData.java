@@ -27,7 +27,7 @@ import akka.util.ByteString;
 /**
  * Access to distributed data of compressed topics.
  */
-public final class CompressedDData implements DData<ByteString, CompressedUpdate> {
+public final class CompressedDData implements DData<ActorRef, ByteString, CompressedUpdate> {
 
     private final CompressedDDataHandler handler;
 
@@ -58,12 +58,12 @@ public final class CompressedDData implements DData<ByteString, CompressedUpdate
     }
 
     @Override
-    public DDataReader<ByteString> getReader() {
+    public DDataReader<ActorRef, ByteString> getReader() {
         return handler;
     }
 
     @Override
-    public DDataWriter<CompressedUpdate> getWriter() {
+    public DDataWriter<ActorRef, CompressedUpdate> getWriter() {
         return handler;
     }
 

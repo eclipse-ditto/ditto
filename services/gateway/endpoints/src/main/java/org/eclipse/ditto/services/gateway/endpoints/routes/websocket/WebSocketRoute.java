@@ -45,6 +45,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
@@ -86,6 +88,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
@@ -638,7 +641,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         return signal.setDittoHeaders(internalHeadersBuilder.build());
     }
 
-    private static Function<SessionedJsonifiable, CompletionStage<Collection<String>>> postprocess(
+    private Function<SessionedJsonifiable, CompletionStage<Collection<String>>> postprocess(
             final ProtocolAdapter adapter, @Nullable final SignalEnrichmentFacade facade,
             final ThreadSafeDittoLogger logger) {
 
@@ -652,12 +655,43 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
 
             final Adaptable adaptable = jsonifiableToAdaptable(jsonifiable, adapter);
             final CompletionStage<JsonObject> extraFuture = sessionedJsonifiable.retrieveExtraFields(facade);
-            return extraFuture.<Collection<String>>thenApply(extra ->
-                    matchesFilter(sessionedJsonifiable, extra)
-                            ? Collections.singletonList(toJsonStringWithExtra(adaptable, extra))
-                            : Collections.emptyList())
-                    .exceptionally(error -> WebSocketRoute.reportEnrichmentError(error, adapter, adaptable, logger));
+            return extraFuture.<Collection<String>>thenApply(extra -> {
+                if (matchesFilter(sessionedJsonifiable, extra)) {
+                    return Collections.singletonList(toJsonStringWithExtra(adaptable, extra));
+                }
+                issuePotentialWeakAcknowledgements(sessionedJsonifiable);
+                return Collections.emptyList();
+            }).exceptionally(error -> WebSocketRoute.reportEnrichmentError(error, adapter, adaptable, logger));
         };
+    }
+
+    private void issuePotentialWeakAcknowledgements(final SessionedJsonifiable sessionedJsonifiable) {
+        sessionedJsonifiable.getSession().ifPresent(session -> {
+            final DittoHeaders dittoHeaders = sessionedJsonifiable.getDittoHeaders();
+            final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable =
+                    sessionedJsonifiable.getJsonifiable();
+            final ActorRef streamingSessionActor = session.getStreamingSessionActor();
+            if (jsonifiable instanceof Signal<?>) {
+                final EntityId entityId = ((Signal<?>) jsonifiable).getEntityId();
+                if (entityId instanceof EntityIdWithType) {
+                    dittoHeaders.getAcknowledgementRequests()
+                            .stream()
+                            .map(request -> weakAck(request.getLabel(), (EntityIdWithType) entityId, dittoHeaders))
+                            .map(IncomingSignal::of)
+                            .forEach(weakAck -> streamingSessionActor.tell(weakAck, ActorRef.noSender()));
+                }
+            }
+        });
+    }
+
+    private static Acknowledgement weakAck(final AcknowledgementLabel label,
+            final EntityIdWithType entityId,
+            final DittoHeaders dittoHeaders) {
+        final JsonValue payload = JsonValue.of("Acknowledgement was issued automatically as weak ack, " +
+                "because the signal is not relevant for the subscriber. Possible reasons are: " +
+                "the subscriber did not subscribe for the signal type, " +
+                "or the signal was dropped by a configured RQL filter.");
+        return Acknowledgement.weak(label, entityId, dittoHeaders, payload);
     }
 
     private static Collection<String> reportEnrichmentError(final Throwable error,
@@ -689,8 +723,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
     private static String toJsonStringWithExtra(final Adaptable adaptable, final JsonObject extra) {
-        final Adaptable enrichedAdaptable =
-                extra.isEmpty() ? adaptable : ProtocolFactory.setExtra(adaptable, extra);
+        final Adaptable enrichedAdaptable = extra.isEmpty() ? adaptable : ProtocolFactory.setExtra(adaptable, extra);
         return ProtocolFactory.wrapAsJsonifiableAdaptable(enrichedAdaptable).toJsonString();
     }
 

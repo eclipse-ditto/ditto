@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.pubsub;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.pubsub.actors.PubSupervisor;
@@ -24,7 +22,7 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.compressed.CompressedDData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.compressed.CompressedDDataHandler;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDDataHandler;
-import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
+import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorContext;
@@ -47,41 +45,40 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
     protected final PubSubTopicExtractor<T> topicExtractor;
 
     protected final DistributedDataConfig ddataConfig;
-    protected final DData<?, ?> ddata;
-    @Nullable protected final DData<String, LiteralUpdate> acksDdata;
+    protected final DData<ActorRef, ?, ?> ddata;
+    protected final AckExtractor<T> ackExtractor;
+    protected final DistributedAcks distributedAcks;
 
     /**
      * Create a pub-sub factory.
-     *
-     * @param context context of the actor under which publisher and subscriber actors are created.
+     *  @param context context of the actor under which publisher and subscriber actors are created.
      * @param messageClass the class of messages to publish and subscribe for.
      * @param topicExtractor a function extracting from each message the topics it was published at.
      * @param provider provider of the underlying ddata extension.
-     * @param acksProvider provider of a second ddata extension for declared acknowledgement labels.
+     * @param ackExtractor extractor of acknowledgement-related information from a message.
+     * @param distributedAcks a second ddata for declared acknowledgement labels.
      */
     protected AbstractPubSubFactory(final ActorContext context,
             final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
             final DDataProvider provider,
-            @Nullable final LiteralDDataProvider acksProvider) {
+            final AckExtractor<T> ackExtractor,
+            final DistributedAcks distributedAcks) {
 
         this.actorRefFactory = context;
         this.messageClass = messageClass;
         factoryId = provider.clusterRole;
         this.topicExtractor = topicExtractor;
+        this.ackExtractor = ackExtractor;
         ddataConfig = provider.getConfig(context.system());
         ddata = CompressedDData.of(context.system(), provider);
-        if (acksProvider != null) {
-            acksDdata = LiteralDData.of(context.system(), acksProvider);
-        } else {
-            acksDdata = null;
-        }
+        this.distributedAcks = distributedAcks;
     }
 
     @Override
     public DistributedPub<T> startDistributedPub() {
         final String pubSupervisorName = factoryId + "-pub-supervisor";
-        final Props pubSupervisorProps = PubSupervisor.props(ddata);
+        final Props pubSupervisorProps = PubSupervisor.props(ddata, distributedAcks);
         final ActorRef pubSupervisor = actorRefFactory.actorOf(pubSupervisorProps, pubSupervisorName);
         return DistributedPub.of(pubSupervisor, topicExtractor);
     }
@@ -89,9 +86,15 @@ public abstract class AbstractPubSubFactory<T> implements PubSubFactory<T> {
     @Override
     public DistributedSub startDistributedSub() {
         final String subSupervisorName = factoryId + "-sub-supervisor";
-        final Props subSupervisorProps = SubSupervisor.props(messageClass, topicExtractor, ddata, acksDdata);
+        final Props subSupervisorProps = SubSupervisor.props(messageClass, topicExtractor, ddata, ackExtractor,
+                distributedAcks);
         final ActorRef subSupervisor = actorRefFactory.actorOf(subSupervisorProps, subSupervisorName);
         return DistributedSub.of(ddataConfig, subSupervisor);
+    }
+
+    @Override
+    public DistributedAcks getDistributedAcks() {
+        return distributedAcks;
     }
 
     /**

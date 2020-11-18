@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  */
 public final class ExpiringTimerBuilder implements TimerBuilder<ExpiringTimerBuilder, StartedTimer> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultTimerBuilder.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExpiringTimerBuilder.class);
     private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     private final String name;

@@ -28,7 +28,8 @@ import org.eclipse.ditto.services.concierge.common.ThingsAggregatorConfig;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
@@ -37,7 +38,6 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.SourceRef;
 import akka.stream.SystemMaterializer;
@@ -57,7 +57,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
 
     private static final String AGGREGATOR_INTERNAL_DISPATCHER = "aggregator-internal-dispatcher";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final ActorRef targetActor;
     private final java.time.Duration retrieveSingleThingTimeout;
     private final int maxParallelism;
@@ -88,19 +88,19 @@ public final class ThingsAggregatorActor extends AbstractActor {
         return ReceiveBuilder.create()
                 // # handle "RetrieveThings" command
                 .match(RetrieveThings.class, rt -> {
-                    LogUtil.enhanceLogWithCorrelationId(log, rt.getDittoHeaders().getCorrelationId());
-                    log.info("Got '{}' message. Retrieving requested '{}' Things..",
-                            RetrieveThings.class.getSimpleName(),
-                            rt.getThingEntityIds().size());
+                    log.withCorrelationId(rt)
+                            .info("Got '{}' message. Retrieving requested '{}' Things..",
+                                    RetrieveThings.class.getSimpleName(),
+                                    rt.getThingEntityIds().size());
                     retrieveThings(rt, getSender());
                 })
 
                 // # handle "SudoRetrieveThings" command
                 .match(SudoRetrieveThings.class, rt -> {
-                    LogUtil.enhanceLogWithCorrelationId(log, rt.getDittoHeaders().getCorrelationId());
-                    log.info("Got '{}' message. Retrieving requested '{}' Things..",
-                            SudoRetrieveThings.class.getSimpleName(),
-                            rt.getThingIds().size());
+                    log.withCorrelationId(rt)
+                            .info("Got '{}' message. Retrieving requested '{}' Things..",
+                                    SudoRetrieveThings.class.getSimpleName(),
+                                    rt.getThingIds().size());
                     retrieveThings(rt, getSender());
                 })
 

@@ -21,7 +21,6 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,23 +65,14 @@ final class ThingCommandFactory {
                                 .authorizationContext(headers.getAuthorizationContext())
                                 .schemaVersion(headers.getImplementedSchemaVersion())
                                 .correlationId("sudoRetrieveThing-" +
-                                        headers.getCorrelationId().orElseGet(() -> getCorrelationId(thingId)))
+                                        headers.getCorrelationId().orElseGet(() -> UUID.randomUUID().toString()))
                                 .build()
                         )
                         .orElseGet(() ->
                                 DittoHeaders.newBuilder()
-                                        .correlationId("sudoRetrieveThing-" + getCorrelationId(thingId))
+                                        .correlationId("sudoRetrieveThing-" + UUID.randomUUID().toString())
                                         .build())
         );
-    }
-
-    private static String getCorrelationId(final ThingId thingId) {
-        return LogUtil.getCorrelationId(() -> {
-            final String correlationId = UUID.randomUUID().toString();
-            LOGGER.debug("Found no correlation-id for (Sudo)RetrieveThing on Thing <{}>. " +
-                    "Using new correlation-id: {}", thingId, correlationId);
-            return correlationId;
-        });
     }
 
 }

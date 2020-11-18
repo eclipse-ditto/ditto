@@ -88,22 +88,13 @@ public final class RetrieveStatisticsDetailsResponseSupplier
                                         .flatMap(strSet -> strSet.stream()
                                                 .map(str -> {
                                                     // groupKey may be either namespace or resource-type+namespace (in case of concierge)
-                                                    final String[] groupKeys = str.split(":", 3);
+                                                    final String[] groupKeys = str.split(":", 2);
                                                     // assume String.split(String, int) may not return an empty array
-                                                    switch (groupKeys.length) {
-                                                        case 0:
-                                                            // should not happen with Java 8 strings, but just in case
-                                                            return EMPTY_ID;
-                                                        case 1:
-                                                        case 2:
-                                                            // normal: namespace
-                                                            return ensureNonemptyString(
-                                                                    groupKeys[0]);
-                                                        default:
-                                                            // concierge: resource-type + namespace
-                                                            return groupKeys[0] + ":" +
-                                                                    groupKeys[1];
+                                                    if (groupKeys.length == 0) {
+                                                        // should not happen with Java 8 strings, but just in case
+                                                        return EMPTY_ID;
                                                     }
+                                                    return ensureNonemptyString(groupKeys[0]);
                                                 })
                                         )
                                         .collect(stringMapCollector);

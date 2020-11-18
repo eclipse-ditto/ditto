@@ -33,18 +33,18 @@ import akka.cluster.ddata.ORMultiMap;
 import akka.cluster.ddata.ORMultiMapKey;
 import akka.cluster.ddata.Replicator;
 import akka.cluster.ddata.SelfUniqueAddress;
-import scala.collection.JavaConverters;
+import scala.jdk.javaapi.CollectionConverters;
 
 /**
- * A distributed collection of Bloom filters of strings indexed by ActorRef.
- * The hash functions for all filter should be identical.
+ * A distributed collection of approximations of strings indexed by keys like ActorRef.
  */
-public abstract class AbstractDDataHandler<S, T extends IndelUpdate<S, T>>
-        extends DistributedData<ORMultiMap<ActorRef, S>>
-        implements DDataReader<S>, DDataWriter<T> {
+public abstract class AbstractDDataHandler<K, S, T extends IndelUpdate<S, T>>
+        extends DistributedData<ORMultiMap<K, S>>
+        implements DDataReader<K, S>, DDataWriter<K, T> {
+
+    protected final SelfUniqueAddress selfUniqueAddress;
 
     private final String topicType;
-    private final SelfUniqueAddress selfUniqueAddress;
     private final Gauge ddataMetrics;
 
     protected AbstractDDataHandler(final DistributedDataConfig config,
@@ -59,28 +59,35 @@ public abstract class AbstractDDataHandler<S, T extends IndelUpdate<S, T>>
     }
 
     @Override
+    public abstract CompletionStage<Void> removeAddress(Address address, Replicator.WriteConsistency writeConsistency);
+
+    @Override
     public abstract S approximate(final String topic);
 
     @Override
-    public CompletionStage<Collection<ActorRef>> getSubscribers(final Collection<S> topic) {
-
-        return read().thenApply(map -> map.entrySet()
+    public Collection<K> getSubscribers(final Map<K, scala.collection.immutable.Set<S>> mmap,
+            final Collection<S> topic) {
+        return mmap.entrySet()
                 .stream()
                 .filter(entry -> topic.stream().anyMatch(entry.getValue()::contains))
                 .map(Map.Entry::getKey)
-                .collect(Collectors.toList())
-        );
+                .collect(Collectors.toList());
     }
 
     @Override
-    public CompletionStage<Map<ActorRef, scala.collection.immutable.Set<S>>> read(
+    public CompletionStage<Collection<K>> getSubscribers(final Collection<S> topic) {
+        return read().thenApply(mmap -> getSubscribers(mmap, topic));
+    }
+
+    @Override
+    public CompletionStage<Map<K, scala.collection.immutable.Set<S>>> read(
             final Replicator.ReadConsistency readConsistency) {
 
         return get(readConsistency).thenApply(optional -> {
             if (optional.isPresent()) {
-                final ORMultiMap<ActorRef, S> mmap = optional.get();
+                final ORMultiMap<K, S> mmap = optional.get();
                 ddataMetrics.set((long) mmap.size());
-                return JavaConverters.mapAsJavaMap(mmap.entries());
+                return CollectionConverters.asJava(mmap.entries());
             } else {
                 ddataMetrics.set(0L);
                 return Map.of();
@@ -89,21 +96,7 @@ public abstract class AbstractDDataHandler<S, T extends IndelUpdate<S, T>>
     }
 
     @Override
-    public CompletionStage<Void> removeAddress(final Address address,
-            final Replicator.WriteConsistency writeConsistency) {
-        return update(writeConsistency, mmap -> {
-            ORMultiMap<ActorRef, S> result = mmap;
-            for (final ActorRef subscriber : mmap.getEntries().keySet()) {
-                if (subscriber.path().address().equals(address)) {
-                    result = result.remove(selfUniqueAddress, subscriber);
-                }
-            }
-            return result;
-        });
-    }
-
-    @Override
-    public CompletionStage<Void> put(final ActorRef ownSubscriber, final T topics,
+    public CompletionStage<Void> put(final K ownSubscriber, final T topics,
             final Replicator.WriteConsistency writeConsistency) {
 
         if (topics.shouldReplaceAll()) {
@@ -112,7 +105,7 @@ public abstract class AbstractDDataHandler<S, T extends IndelUpdate<S, T>>
         } else {
             // incremental update
             return update(writeConsistency, mmap -> {
-                ORMultiMap<ActorRef, S> result = mmap;
+                ORMultiMap<K, S> result = mmap;
                 for (final S inserted : topics.getInserts()) {
                     result = result.addBinding(selfUniqueAddress, ownSubscriber, inserted);
                 }
@@ -125,7 +118,7 @@ public abstract class AbstractDDataHandler<S, T extends IndelUpdate<S, T>>
     }
 
     @Override
-    public CompletionStage<Void> removeSubscriber(final ActorRef subscriber,
+    public CompletionStage<Void> removeSubscriber(final K subscriber,
             final Replicator.WriteConsistency writeConsistency) {
         return update(writeConsistency, mmap -> mmap.remove(selfUniqueAddress, subscriber));
     }
@@ -136,12 +129,12 @@ public abstract class AbstractDDataHandler<S, T extends IndelUpdate<S, T>>
     }
 
     @Override
-    public Key<ORMultiMap<ActorRef, S>> getKey() {
+    public Key<ORMultiMap<K, S>> getKey() {
         return ORMultiMapKey.create(topicType);
     }
 
     @Override
-    protected ORMultiMap<ActorRef, S> getInitialValue() {
+    protected ORMultiMap<K, S> getInitialValue() {
         return ORMultiMap.emptyWithValueDeltas();
     }
 }

@@ -17,6 +17,7 @@ import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
+import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
@@ -90,9 +91,10 @@ public interface DittoProtocolSub {
      * Create {@code DittoProtocolSub} for an actor system.
      *
      * @param context context of the actor under which the subscriber actors are started.
+     * @param distributedAcks the distributed acks interface.
      * @return the {@code DittoProtocolSub}.
      */
-    static DittoProtocolSub of(final ActorContext context) {
-        return DittoProtocolSubImpl.of(context);
+    static DittoProtocolSub of(final ActorContext context, final DistributedAcks distributedAcks) {
+        return DittoProtocolSubImpl.of(context, distributedAcks);
     }
 }

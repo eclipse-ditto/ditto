@@ -41,7 +41,8 @@ final class ConnectionConflictStrategy extends AbstractConnectivityCommandStrate
             final CreateConnection command,
             @Nullable final Metadata metadata) {
 
-        context.getLog().info("Connection <{}> already exists! Responding with conflict.", context.getState().id());
+        context.getLog().withCorrelationId(command)
+                .info("Connection <{}> already exists! Responding with conflict.", context.getState().id());
         final ConnectionConflictException conflictException =
                 ConnectionConflictException.newBuilder(context.getState().id())
                         .dittoHeaders(command.getDittoHeaders())

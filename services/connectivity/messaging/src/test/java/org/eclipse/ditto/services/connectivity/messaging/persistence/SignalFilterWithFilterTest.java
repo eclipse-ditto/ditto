@@ -245,7 +245,8 @@ public final class SignalFilterWithFilterTest {
         final SignalFilter signalFilter = new SignalFilter(connection, connectionMonitorRegistry);
         final List<Target> filteredTargets = signalFilter.filter(thingModified);
 
-        assertThat(filteredTargets).containsOnly(targetA, targetD); // THEN: only targetA and targetD should be in the filtered targets
+        assertThat(filteredTargets).containsOnly(targetA,
+                targetD); // THEN: only targetA and targetD should be in the filtered targets
     }
 
 }

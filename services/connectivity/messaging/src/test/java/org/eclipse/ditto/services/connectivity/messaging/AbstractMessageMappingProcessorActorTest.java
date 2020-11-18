@@ -353,18 +353,10 @@ public abstract class AbstractMessageMappingProcessorActorTest {
         mappingDefinitions.put(DUPLICATING_MAPPER, DuplicatingMessageMapper.CONTEXT);
         final PayloadMappingDefinition payloadMappingDefinition =
                 ConnectivityModelFactory.newPayloadMappingDefinition(mappingDefinitions);
-        final ThreadSafeDittoLoggingAdapter logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
-        Mockito.when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
-                .thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
-                .thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.nullable(CharSequence.class)))
-                .thenReturn(logger);
-        Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
-                .thenReturn(logger);
+        final ThreadSafeDittoLoggingAdapter logger = mockLoggingAdapter();
         final ProtocolAdapter protocolAdapter = protocolAdapterProvider.getProtocolAdapter(null);
         final OutboundMappingProcessor outboundMappingProcessor =
-                OutboundMappingProcessor.of(CONNECTION_ID, CONNECTION.getConnectionType(), payloadMappingDefinition,
+                OutboundMappingProcessor.of(CONNECTION,
                         actorSystem,
                         TestConstants.CONNECTIVITY_CONFIG, protocolAdapter, logger);
 
@@ -419,6 +411,19 @@ public abstract class AbstractMessageMappingProcessorActorTest {
         headers.put("correlation-id", correlationId);
         headers.put("content-type", "application/json");
         return ModifyAttribute.of(KNOWN_THING_ID, JsonPointer.of("foo"), JsonValue.of(42), DittoHeaders.of(headers));
+    }
+
+    static ThreadSafeDittoLoggingAdapter mockLoggingAdapter() {
+        final ThreadSafeDittoLoggingAdapter logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
+        Mockito.when(logger.withMdcEntry(Mockito.any(CharSequence.class), Mockito.nullable(CharSequence.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.nullable(CharSequence.class)))
+                .thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class)))
+                .thenReturn(logger);
+        return logger;
     }
 
     static final class TestPlaceholder implements Placeholder<String> {

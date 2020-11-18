@@ -26,6 +26,8 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
 
+import akka.actor.ActorRef;
+
 /**
  * Store of the needed information about a streaming session of a single streaming type.
  */
@@ -34,20 +36,22 @@ public final class StreamingSession {
     private final List<String> namespaces;
     private final Predicate<Thing> thingPredicate;
     @Nullable private final JsonFieldSelector extraFields;
+    private final ActorRef streamingSessionActor;
 
     private StreamingSession(final List<String> namespaces, @Nullable final Criteria eventFilterCriteria,
-            @Nullable final JsonFieldSelector extraFields) {
+            @Nullable final JsonFieldSelector extraFields, final ActorRef streamingSessionActor) {
         this.namespaces = namespaces;
         thingPredicate = eventFilterCriteria == null
                 ? thing -> true
                 : ThingPredicateVisitor.apply(eventFilterCriteria);
         this.extraFields = extraFields;
+        this.streamingSessionActor = streamingSessionActor;
     }
 
     static StreamingSession of(final List<String> namespaces, @Nullable final Criteria eventFilterCriteria,
-            @Nullable final JsonFieldSelector extraFields) {
+            @Nullable final JsonFieldSelector extraFields, final ActorRef streamingSessionActor) {
 
-        return new StreamingSession(namespaces, eventFilterCriteria, extraFields);
+        return new StreamingSession(namespaces, eventFilterCriteria, extraFields, streamingSessionActor);
     }
 
     /**
@@ -86,4 +90,9 @@ public final class StreamingSession {
     public boolean matchesFilter(final Thing thing) {
         return thingPredicate.test(thing);
     }
+
+    public ActorRef getStreamingSessionActor() {
+        return streamingSessionActor;
+    }
+
 }

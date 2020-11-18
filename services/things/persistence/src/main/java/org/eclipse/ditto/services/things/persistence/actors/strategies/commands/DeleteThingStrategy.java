@@ -23,15 +23,12 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
-
-import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * This strategy handles the {@link DeleteThing} command.
@@ -55,9 +52,8 @@ final class DeleteThingStrategy extends AbstractThingCommandStrategy<DeleteThing
 
         final ThingId thingId = context.getState();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final DiagnosticLoggingAdapter log = context.getLog();
-        LogUtil.enhanceLogWithCorrelationId(log, command);
-        log.info("Deleted Thing with ID <{}>.", thingId);
+        context.getLog().withCorrelationId(command)
+                .info("Deleted Thing with ID <{}>.", thingId);
 
         final ThingEvent<?> event = ThingDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders, metadata);
         final WithDittoHeaders<?> response =

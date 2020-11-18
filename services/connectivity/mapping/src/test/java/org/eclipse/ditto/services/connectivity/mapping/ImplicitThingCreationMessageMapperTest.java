@@ -28,12 +28,14 @@ import java.util.Map;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
@@ -42,7 +44,10 @@ import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingConflictException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
+import org.eclipse.ditto.signals.commands.things.modify.CreateThingResponse;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -282,6 +287,27 @@ public final class ImplicitThingCreationMessageMapperTest {
 
         assertThatExceptionOfType(UnresolvedPlaceholderException.class)
                 .isThrownBy(() -> underTest.map(externalMessage));
+    }
+
+    @Test
+    public void throwExceptionOnErrorResponse() {
+        underTest.configure(mappingConfig, createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS));
+        final ThingConflictException conflictException =
+                ThingConflictException.newBuilder(ThingId.generateRandom()).build();
+        final Signal<?> thingErrorResponse = ThingErrorResponse.of(conflictException);
+        final Adaptable errorAdaptable = DittoProtocolAdapter.newInstance().toAdaptable(thingErrorResponse);
+        assertThatExceptionOfType(ThingConflictException.class)
+                .isThrownBy(() -> underTest.map(errorAdaptable));
+    }
+
+    @Test
+    public void regularCommandResponsesAreNotMapped() {
+        underTest.configure(mappingConfig, createMapperConfig(THING_TEMPLATE, COMMAND_HEADERS));
+        final Signal<?> thingResponse =
+                CreateThingResponse.of(Thing.newBuilder().setId(ThingId.generateRandom()).build(),
+                        DittoHeaders.empty());
+        final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(thingResponse);
+        assertThat(underTest.map(adaptable)).isEmpty();
     }
 
     private static Signal<?> getFirstMappedSignal(final List<Adaptable> mappingResult) {

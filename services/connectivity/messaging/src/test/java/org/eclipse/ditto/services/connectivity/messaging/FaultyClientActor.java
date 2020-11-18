@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
@@ -32,7 +32,7 @@ public class FaultyClientActor extends AbstractActor {
     static final ClientActorPropsFactory faultyClientActorPropsFactory =
             (connection, connectionActor, proxyActor) -> FaultyClientActor.props(true);
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private boolean allowCreate;
 
     private FaultyClientActor(final boolean allowCreate) {
