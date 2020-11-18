@@ -16,8 +16,9 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
-import org.eclipse.ditto.services.utils.pubsub.AbstractPubSubFactory;
+import org.eclipse.ditto.services.utils.pubsub.LiteralDDataProvider;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
+import org.eclipse.ditto.services.utils.pubsub.ddata.literal.AbstractConfigAwareDDataProvider;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 import org.junit.After;
@@ -40,8 +41,8 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class AckUpdaterTest {
 
-    private static final LiteralDData.Provider PROVIDER =
-            AbstractPubSubFactory.LiteralDDataProvider.of("dc-default", "ack");
+    private static final AbstractConfigAwareDDataProvider PROVIDER =
+            LiteralDDataProvider.of("dc-default", "ack");
 
     private ActorSystem system1;
     private ActorSystem system2;

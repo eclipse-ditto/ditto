@@ -19,10 +19,13 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
+import org.eclipse.ditto.services.utils.pubsub.api.Request;
+import org.eclipse.ditto.services.utils.pubsub.api.SubAck;
+import org.eclipse.ditto.services.utils.pubsub.api.Subscribe;
+import org.eclipse.ditto.services.utils.pubsub.api.Unsubscribe;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
-import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 
 import akka.actor.ActorRef;
@@ -239,7 +242,7 @@ public final class AcksUpdater extends AbstractUpdater<Address, LiteralUpdate, M
         return Address.addressOrdering().compare(otherSubscriber, subscriber) < 0;
     }
 
-    private static abstract class ReceiveChanges implements Request {
+    private abstract static class ReceiveChanges implements Request {
 
         protected final ActorRef receiver;
 
@@ -274,45 +277,6 @@ public final class AcksUpdater extends AbstractUpdater<Address, LiteralUpdate, M
 
         private ReceiveLocalChanges(final ActorRef receiver) {
             super(receiver);
-        }
-    }
-
-    /**
-     * Notification that the distributed data changed.
-     */
-    public static final class DDataChanged {
-
-        private final Map<Address, Set<String>> multimap;
-
-        private DDataChanged(final Map<Address, Set<String>> multimap) {
-            this.multimap = multimap;
-        }
-
-        /**
-         * The changed distributed multimap as a Java map.
-         *
-         * @return the changed distributed data.
-         */
-        public Map<Address, Set<String>> getMultiMap() {
-            return multimap;
-        }
-    }
-
-    public static final class SubscriptionsChanged {
-
-        private final SubscriptionsReader subscriptionsReader;
-
-        private SubscriptionsChanged(final SubscriptionsReader subscriptionsReader) {
-            this.subscriptionsReader = subscriptionsReader;
-        }
-
-        /**
-         * The snapshot of local subscriptions.
-         *
-         * @return the snapshot.
-         */
-        public SubscriptionsReader getSubscriptionsReader() {
-            return subscriptionsReader;
         }
     }
 

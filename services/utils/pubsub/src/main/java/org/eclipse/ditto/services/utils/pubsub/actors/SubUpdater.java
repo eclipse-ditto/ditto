@@ -15,6 +15,9 @@ package org.eclipse.ditto.services.utils.pubsub.actors;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.eclipse.ditto.services.utils.pubsub.api.SubAck;
+import org.eclipse.ditto.services.utils.pubsub.api.Subscribe;
+import org.eclipse.ditto.services.utils.pubsub.api.Unsubscribe;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;

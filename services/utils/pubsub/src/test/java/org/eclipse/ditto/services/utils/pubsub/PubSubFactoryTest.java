@@ -35,9 +35,10 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.services.utils.pubsub.actors.AbstractUpdater;
-import org.eclipse.ditto.services.utils.pubsub.actors.AcksUpdater;
-import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
+import org.eclipse.ditto.services.utils.pubsub.actors.SubscriptionsChanged;
+import org.eclipse.ditto.services.utils.pubsub.api.SubAck;
+import org.eclipse.ditto.services.utils.pubsub.api.Subscribe;
+import org.eclipse.ditto.services.utils.pubsub.api.Unsubscribe;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.junit.After;
@@ -127,11 +128,11 @@ public final class PubSubFactoryTest {
             final TestProbe subscriber = TestProbe.apply(system2);
 
             // WHEN: actor subscribes to a topic with acknowledgement
-            final AbstractUpdater.SubAck subAck =
+            final SubAck subAck =
                     sub.subscribeWithAck(singleton("hello"), subscriber.ref()).toCompletableFuture().join();
 
             // THEN: subscription is acknowledged
-            assertThat(subAck.getRequest()).isInstanceOf(SubUpdater.Subscribe.class);
+            assertThat(subAck.getRequest()).isInstanceOf(Subscribe.class);
             assertThat(subAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello");
 
             // WHEN: a message is published on the subscribed topic
@@ -144,9 +145,9 @@ public final class PubSubFactoryTest {
                     .isEqualTo(publisher.ref().path().toStringWithoutAddress());
 
             // WHEN: subscription is relinquished
-            final AbstractUpdater.SubAck unsubAck =
+            final SubAck unsubAck =
                     sub.unsubscribeWithAck(asList("hello", "world"), subscriber.ref()).toCompletableFuture().join();
-            assertThat(unsubAck.getRequest()).isInstanceOf(SubUpdater.Unsubscribe.class);
+            assertThat(unsubAck.getRequest()).isInstanceOf(Unsubscribe.class);
             assertThat(unsubAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello", "world");
 
             // THEN: the subscriber does not receive published messages any more
@@ -265,9 +266,9 @@ public final class PubSubFactoryTest {
             final TestProbe subscriber = TestProbe.apply(system2);
 
             // THEN: they fulfill their function.
-            final AbstractUpdater.SubAck subAck =
+            final SubAck subAck =
                     sub.subscribeWithAck(singleton("hello"), subscriber.ref()).toCompletableFuture().join();
-            assertThat(subAck.getRequest()).isInstanceOf(SubUpdater.Subscribe.class);
+            assertThat(subAck.getRequest()).isInstanceOf(Subscribe.class);
             assertThat(subAck.getRequest().getTopics()).containsExactlyInAnyOrder("hello");
 
             pub.publish("hello", publisher.ref());
@@ -323,8 +324,8 @@ public final class PubSubFactoryTest {
             await(factory1.getDistributedAcks()
                     .declareAcknowledgementLabels(acks("lorem"), subscriber1.ref()));
             factory1.getDistributedAcks().receiveLocalDeclaredAcks(getRef());
-            final AcksUpdater.SubscriptionsChanged subscriptionsChanged =
-                    expectMsgClass(java.time.Duration.ofSeconds(10L), AcksUpdater.SubscriptionsChanged.class);
+            final SubscriptionsChanged subscriptionsChanged =
+                    expectMsgClass(java.time.Duration.ofSeconds(10L), SubscriptionsChanged.class);
             assertThat(subscriptionsChanged.getSubscriptionsReader().getSubscribers(List.of("lorem")))
                     .contains(subscriber1.ref());
         }};
@@ -561,7 +562,7 @@ public final class PubSubFactoryTest {
         final TestProbe probe = TestProbe.apply(system);
         factory.getDistributedAcks().receiveLocalDeclaredAcks(probe.ref());
         for (int i = 0; i < howManyHeartBeats; ++i) {
-            probe.expectMsgClass(AcksUpdater.SubscriptionsChanged.class);
+            probe.expectMsgClass(SubscriptionsChanged.class);
         }
         system.stop(probe.ref());
     }

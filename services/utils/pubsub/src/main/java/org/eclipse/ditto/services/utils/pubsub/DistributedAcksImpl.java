@@ -20,10 +20,12 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
-import org.eclipse.ditto.services.utils.pubsub.actors.AbstractUpdater;
 import org.eclipse.ditto.services.utils.pubsub.actors.AcksSupervisor;
 import org.eclipse.ditto.services.utils.pubsub.actors.AcksUpdater;
-import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
+import org.eclipse.ditto.services.utils.pubsub.api.RemoveSubscriber;
+import org.eclipse.ditto.services.utils.pubsub.api.Request;
+import org.eclipse.ditto.services.utils.pubsub.api.SubAck;
+import org.eclipse.ditto.services.utils.pubsub.api.Subscribe;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDData;
 
 import akka.actor.ActorContext;
@@ -48,14 +50,13 @@ final class DistributedAcksImpl implements DistributedAcks {
     }
 
     static DistributedAcks create(final ActorContext actorContext) {
-        final AbstractPubSubFactory.LiteralDDataProvider provider =
-                AbstractPubSubFactory.LiteralDDataProvider.of(CLUSTER_ROLE, "acks");
+        final LiteralDDataProvider provider = LiteralDDataProvider.of(CLUSTER_ROLE, "acks");
         return create(actorContext, CLUSTER_ROLE, provider);
     }
 
     static DistributedAcks create(final ActorContext actorContext,
             final String clusterRole,
-            final AbstractPubSubFactory.LiteralDDataProvider provider) {
+            final LiteralDDataProvider provider) {
         final String supervisorName = clusterRole + "-acks-supervisor";
         final Props props = AcksSupervisor.props(LiteralDData.of(actorContext.system(), provider));
         final ActorRef supervisor = actorContext.actorOf(props, supervisorName);
@@ -63,7 +64,7 @@ final class DistributedAcksImpl implements DistributedAcks {
         return new DistributedAcksImpl(config, supervisor);
     }
 
-    private CompletionStage<AbstractUpdater.SubAck> askSubSupervisor(final SubUpdater.Request request) {
+    private CompletionStage<SubAck> askSubSupervisor(final Request request) {
         return Patterns.ask(acksSupervisor, request, config.getWriteTimeout())
                 .thenCompose(DistributedAcksImpl::processAskResponse);
     }
@@ -80,28 +81,28 @@ final class DistributedAcksImpl implements DistributedAcks {
 
     @Override
     public void removeSubscriber(final ActorRef subscriber) {
-        final SubUpdater.Request request =
-                SubUpdater.RemoveSubscriber.of(subscriber, (Replicator.WriteConsistency) Replicator.writeLocal(),
+        final Request request =
+                RemoveSubscriber.of(subscriber, (Replicator.WriteConsistency) Replicator.writeLocal(),
                         false);
         acksSupervisor.tell(request, subscriber);
     }
 
     @Override
-    public CompletionStage<AbstractUpdater.SubAck> declareAcknowledgementLabels(
+    public CompletionStage<SubAck> declareAcknowledgementLabels(
             final Collection<AcknowledgementLabel> acknowledgementLabels,
             final ActorRef subscriber) {
         final Set<String> ackLabelStrings = acknowledgementLabels.stream()
                 .map(AcknowledgementLabel::toString)
                 .collect(Collectors.toSet());
-        final AbstractUpdater.Subscribe subscribe =
-                AbstractUpdater.Subscribe.of(ackLabelStrings, subscriber, writeLocal(), true);
+        final Subscribe subscribe =
+                Subscribe.of(ackLabelStrings, subscriber, writeLocal(), true);
         return askSubSupervisor(subscribe);
     }
 
     @Override
     public void removeAcknowledgementLabelDeclaration(final ActorRef subscriber) {
-        final AbstractUpdater.RemoveSubscriber request =
-                AbstractUpdater.RemoveSubscriber.of(subscriber, writeLocal(), false);
+        final RemoveSubscriber request =
+                RemoveSubscriber.of(subscriber, writeLocal(), false);
         acksSupervisor.tell(request, ActorRef.noSender());
     }
 
@@ -109,9 +110,9 @@ final class DistributedAcksImpl implements DistributedAcks {
         return (Replicator.WriteConsistency) Replicator.writeLocal();
     }
 
-    private static CompletionStage<AbstractUpdater.SubAck> processAskResponse(final Object askResponse) {
-        if (askResponse instanceof AbstractUpdater.SubAck) {
-            return CompletableFuture.completedStage((AbstractUpdater.SubAck) askResponse);
+    private static CompletionStage<SubAck> processAskResponse(final Object askResponse) {
+        if (askResponse instanceof SubAck) {
+            return CompletableFuture.completedStage((SubAck) askResponse);
         } else if (askResponse instanceof Throwable) {
             return CompletableFuture.failedStage((Throwable) askResponse);
         } else {

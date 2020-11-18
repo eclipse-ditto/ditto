@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.utils.pubsub.actors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
+import org.eclipse.ditto.services.utils.pubsub.api.Request;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
@@ -109,8 +110,8 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
     @Override
     protected Receive createPubSubBehavior() {
         return ReceiveBuilder.create()
-                .match(AbstractUpdater.Request.class, this::isUpdaterAvailable, this::request)
-                .match(AbstractUpdater.Request.class, this::updaterUnavailable)
+                .match(Request.class, this::isUpdaterAvailable, this::request)
+                .match(Request.class, this::updaterUnavailable)
                 .match(Terminated.class, this::subscriberTerminated)
                 .build();
     }
@@ -144,11 +145,11 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
     }
 
     @SuppressWarnings("ConstantConditions")
-    private void request(final AbstractUpdater.Request request) {
+    private void request(final Request request) {
         updater.tell(request, getSender());
     }
 
-    private void updaterUnavailable(final SubUpdater.Request request) {
+    private void updaterUnavailable(final Request request) {
         log.error("SubUpdater unavailable. Dropping <{}>", request);
         getSender().tell(new IllegalStateException("AcksUpdater not available"), getSelf());
     }

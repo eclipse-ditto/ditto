@@ -20,7 +20,9 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 /**
- * Model of a set of values with a group.
+ * Model of a set of values with an optional group.
+ *
+ * @param <T> type of the (optionally grouped) values.
  */
 public final class Grouped<T> {
 

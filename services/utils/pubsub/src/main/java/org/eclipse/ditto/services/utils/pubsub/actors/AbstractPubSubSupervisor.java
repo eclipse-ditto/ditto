@@ -33,7 +33,7 @@ import akka.japi.pf.ReceiveBuilder;
  * Supervisor of actors dealing with pub-sub featuring an all-for-one supervision strategy with delayed restart
  * and child actor name disambiguation.
  */
-public abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers implements Hashes {
+abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers implements Hashes {
 
     /**
      * Logger of this actor.

@@ -80,11 +80,6 @@ public final class AckSupervisor extends AbstractPubSubSupervisor {
         acksUpdater.tell(request, getSender());
     }
 
-    private void updaterUnavailable(final AckUpdater.Request request) {
-        log.error("AcksUpdater unavailable. Dropping <{}>", request);
-        getSender().tell(new IllegalStateException("AcksUpdater not available"), getSelf());
-    }
-
     private void ackUpdaterUnavailable(final AckUpdater.Request request) {
         log.error("AcksUpdater unavailable. Failing <{}>", request);
         getSender().tell(new IllegalStateException("AcksUpdater not available"), getSelf());

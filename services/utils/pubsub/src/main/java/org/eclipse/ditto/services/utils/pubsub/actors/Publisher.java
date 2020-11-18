@@ -120,7 +120,7 @@ public final class Publisher<T> extends AbstractActor {
         return ReceiveBuilder.create()
                 .match(Publish.class, this::publish)
                 .match(PublishWithAck.class, this::publishWithAck)
-                .match(AcksUpdater.DDataChanged.class, this::declaredAcksChanged)
+                .match(DDataChanged.class, this::declaredAcksChanged)
                 .match(Replicator.Changed.class, this::topicSubscribersChanged)
                 .matchAny(this::logUnhandled)
                 .build();
@@ -159,7 +159,7 @@ public final class Publisher<T> extends AbstractActor {
         return subscribers;
     }
 
-    private void declaredAcksChanged(final AcksUpdater.DDataChanged ddataChanged) {
+    private void declaredAcksChanged(final DDataChanged ddataChanged) {
         declaredAcks = ddataChanged.getMultiMap();
         allDeclaredAcks = declaredAcks.values().stream()
                 .flatMap(set -> CollectionConverters.asJava(set).stream())

@@ -84,7 +84,7 @@ public final class Subscriber<T> extends AbstractActor {
         return ReceiveBuilder.create()
                 .match(messageClass, this::broadcastToLocalSubscribers)
                 .match(SubscriptionsReader.class, this::updateLocalSubscriptions)
-                .match(AcksUpdater.SubscriptionsChanged.class, this::declaredAcksChanged)
+                .match(SubscriptionsChanged.class, this::declaredAcksChanged)
                 .build();
     }
 
@@ -119,7 +119,7 @@ public final class Subscriber<T> extends AbstractActor {
         this.localSubscriptions = localSubscriptions;
     }
 
-    private void declaredAcksChanged(final AcksUpdater.SubscriptionsChanged event) {
+    private void declaredAcksChanged(final SubscriptionsChanged event) {
         declaredAcks = event.getSubscriptionsReader();
     }
 

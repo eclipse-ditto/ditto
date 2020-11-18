@@ -19,14 +19,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
 import java.util.Random;
-import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Predicate;
 
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
+import org.eclipse.ditto.services.utils.pubsub.api.RemoveSubscriber;
+import org.eclipse.ditto.services.utils.pubsub.api.Request;
+import org.eclipse.ditto.services.utils.pubsub.api.SubAck;
+import org.eclipse.ditto.services.utils.pubsub.api.Subscribe;
+import org.eclipse.ditto.services.utils.pubsub.api.Unsubscribe;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Subscriptions;
@@ -46,7 +49,7 @@ import akka.japi.pf.ReceiveBuilder;
  * @param <T> type of topics in the distributed data.
  * @param <P> type of payload of DDataOpSuccess messages.
  */
-public abstract class AbstractUpdater<K, T, P> extends AbstractActorWithTimers {
+abstract class AbstractUpdater<K, T, P> extends AbstractActorWithTimers {
 
     // pseudo-random number generator for force updates. quality matters little.
     private final Random random = new Random();
@@ -286,240 +289,6 @@ public abstract class AbstractUpdater<K, T, P> extends AbstractActorWithTimers {
             return ((Replicator.WriteTo) a).n();
         } else {
             return 0;
-        }
-    }
-
-    /**
-     * Super class of subscription requests.
-     */
-    public interface Request {
-
-        /**
-         * @return topics in the subscription.
-         */
-        Set<String> getTopics();
-
-        /**
-         * @return write consistency for the request.
-         */
-        Replicator.WriteConsistency getWriteConsistency();
-
-        /**
-         * @return whether acknowledgement is expected.
-         */
-        boolean shouldAcknowledge();
-    }
-
-    private abstract static class AbstractRequest implements Request {
-
-        private final Set<String> topics;
-        private final ActorRef subscriber;
-        private final Replicator.WriteConsistency writeConsistency;
-        private final boolean acknowledge;
-
-        private AbstractRequest(final Set<String> topics,
-                final ActorRef subscriber,
-                final Replicator.WriteConsistency writeConsistency,
-                final boolean acknowledge) {
-
-            this.topics = topics;
-            this.subscriber = subscriber;
-            this.writeConsistency = writeConsistency;
-            this.acknowledge = acknowledge;
-        }
-
-        /**
-         * @return topics in the subscription.
-         */
-        public Set<String> getTopics() {
-            return topics;
-        }
-
-        /**
-         * @return subscriber of the subscription.
-         */
-        public ActorRef getSubscriber() {
-            return subscriber;
-        }
-
-        /**
-         * @return write consistency for the request.
-         */
-        public Replicator.WriteConsistency getWriteConsistency() {
-            return writeConsistency;
-        }
-
-        /**
-         * @return whether acknowledgement is expected.
-         */
-        public boolean shouldAcknowledge() {
-            return acknowledge;
-        }
-
-        @Override
-        public String toString() {
-            return getClass().getSimpleName() +
-                    "[topics=" + topics +
-                    ", subscriber=" + subscriber +
-                    ", writeConsistency=" + writeConsistency +
-                    ", acknowledge=" + acknowledge +
-                    "]";
-        }
-    }
-
-    /**
-     * Request to subscribe to topics.
-     */
-    public static final class Subscribe extends AbstractRequest {
-
-        private static final Predicate<Collection<String>> CONSTANT_TRUE = topics -> true;
-
-        private final Predicate<Collection<String>> filter;
-
-        private Subscribe(final Set<String> topics, final ActorRef subscriber,
-                final Replicator.WriteConsistency writeConsistency, final boolean acknowledge,
-                final Predicate<Collection<String>> filter) {
-            super(topics, subscriber, writeConsistency, acknowledge);
-            this.filter = filter;
-        }
-
-        /**
-         * Create a "subscribe" request.
-         *
-         * @param topics the set of topics to subscribe.
-         * @param subscriber who is subscribing.
-         * @param writeConsistency with which write consistency should this subscription be updated.
-         * @param acknowledge whether acknowledgement is desired.
-         * @return the request.
-         */
-        public static Subscribe of(final Set<String> topics, final ActorRef subscriber,
-                final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
-            return new Subscribe(topics, subscriber, writeConsistency, acknowledge, CONSTANT_TRUE);
-        }
-
-        /**
-         * Create a "subscribe" request.
-         *
-         * @param topics the set of topics to subscribe.
-         * @param subscriber who is subscribing.
-         * @param writeConsistency with which write consistency should this subscription be updated.
-         * @param acknowledge whether acknowledgement is desired.
-         * @param filter local filter for incoming messages.
-         * @return the request.
-         */
-        public static Subscribe of(final Set<String> topics, final ActorRef subscriber,
-                final Replicator.WriteConsistency writeConsistency, final boolean acknowledge,
-                final Predicate<Collection<String>> filter) {
-            return new Subscribe(topics, subscriber, writeConsistency, acknowledge, filter);
-        }
-
-        /**
-         * @return Filter for incoming messages.
-         */
-        public Predicate<Collection<String>> getFilter() {
-            return filter;
-        }
-
-    }
-
-    /**
-     * Request to unsubscribe to topics.
-     */
-    public static final class Unsubscribe extends AbstractRequest {
-
-        private Unsubscribe(final Set<String> topics, final ActorRef subscriber,
-                final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
-            super(topics, subscriber, writeConsistency, acknowledge);
-        }
-
-        /**
-         * Create an "unsubscribe" request.
-         *
-         * @param topics the set of topics to subscribe.
-         * @param subscriber who is subscribing.
-         * @param writeConsistency with which write consistency should this subscription be updated.
-         * @param acknowledge whether acknowledgement is desired.
-         * @return the request.
-         */
-        public static Unsubscribe of(final Set<String> topics, final ActorRef subscriber,
-                final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
-            return new Unsubscribe(topics, subscriber, writeConsistency, acknowledge);
-        }
-    }
-
-    /**
-     * Request to remove a subscriber.
-     */
-    public static final class RemoveSubscriber extends AbstractRequest {
-
-        private RemoveSubscriber(final ActorRef subscriber,
-                final Replicator.WriteConsistency writeConsistency,
-                final boolean acknowledge) {
-            super(Collections.emptySet(), subscriber, writeConsistency, acknowledge);
-        }
-
-        /**
-         * Create an "unsubscribe" request.
-         *
-         * @param subscriber who is subscribing.
-         * @param writeConsistency with which write consistency should this subscription be updated.
-         * @param acknowledge whether acknowledgement is desired.
-         * @return the request.
-         */
-        public static RemoveSubscriber of(final ActorRef subscriber,
-                final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
-            return new RemoveSubscriber(subscriber, writeConsistency, acknowledge);
-        }
-
-    }
-
-    /**
-     * Acknowledgement for requests.
-     */
-    public static final class SubAck {
-
-        private final Request request;
-        private final ActorRef sender;
-        private final int seqNr;
-
-        private SubAck(final Request request, final ActorRef sender, final int seqNr) {
-            this.request = request;
-            this.sender = sender;
-            this.seqNr = seqNr;
-        }
-
-        static SubAck of(final Request request, final ActorRef sender, final int seqNr) {
-            return new SubAck(request, sender, seqNr);
-        }
-
-        /**
-         * @return the request this object is acknowledging.
-         */
-        public Request getRequest() {
-            return request;
-        }
-
-        /**
-         * @return sender of the request.
-         */
-        public ActorRef getSender() {
-            return sender;
-        }
-
-        /**
-         * @return the sequence number. only visible in this package.
-         */
-        int getSeqNr() {
-            return seqNr;
-        }
-
-        @Override
-        public String toString() {
-            return getClass().getSimpleName() +
-                    "[request=" + request +
-                    ",sender=" + sender +
-                    ",seqNr=" + seqNr +
-                    "]";
         }
     }
 

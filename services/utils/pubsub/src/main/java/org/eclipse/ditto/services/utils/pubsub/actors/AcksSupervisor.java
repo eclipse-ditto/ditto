@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.pubsub.actors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.services.utils.pubsub.api.Request;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 
@@ -53,8 +54,8 @@ public final class AcksSupervisor extends AbstractPubSubSupervisor {
     @Override
     protected Receive createPubSubBehavior() {
         return ReceiveBuilder.create()
-                .match(AbstractUpdater.Request.class, this::isAcksUpdaterAvailable, this::forwardRequest)
-                .match(AbstractUpdater.Request.class, this::acksUpdaterUnavailable)
+                .match(Request.class, this::isAcksUpdaterAvailable, this::forwardRequest)
+                .match(Request.class, this::acksUpdaterUnavailable)
                 .build();
     }
 
@@ -76,26 +77,13 @@ public final class AcksSupervisor extends AbstractPubSubSupervisor {
     }
 
     @SuppressWarnings("ConstantConditions")
-    private void forwardRequest(final AbstractUpdater.Request request) {
+    private void forwardRequest(final Request request) {
         acksUpdater.tell(request, getSender());
     }
 
-    private void updaterUnavailable(final SubUpdater.Request request) {
-        log.error("AcksUpdater unavailable. Dropping <{}>", request);
-        getSender().tell(new IllegalStateException("AcksUpdater not available"), getSelf());
-    }
-
-    private void acksUpdaterUnavailable(final AbstractUpdater.Request request) {
+    private void acksUpdaterUnavailable(final Request request) {
         log.error("AcksUpdater unavailable. Failing <{}>", request);
         getSender().tell(new IllegalStateException("AcksUpdater not available"), getSelf());
-    }
-
-    private void removeAcknowledgementLabelDeclaration(final AbstractUpdater.RemoveSubscriber removeSubscriber) {
-        if (isAcksUpdaterAvailable()) {
-            acksUpdater.tell(removeSubscriber, getSender());
-        } else {
-            updaterUnavailable(removeSubscriber);
-        }
     }
 
 }
