@@ -18,8 +18,8 @@ import java.util.AbstractMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -63,17 +63,14 @@ public final class GroupedAckLabels {
      * Deserialize string values of an {@code ORMultiMap} as grouped acknowledgement labels in JSON format.
      *
      * @param orMultiMap the ORMultiMap.
-     * @param keyPredicate a filter on the entries to deserialize based on key.
      * @param <K> the type of keys in the ORMultiMap.
      * @return a multi-map from keys to grouped ack labels deserialized from each binding.
      */
-    public static <K> Map<K, List<GroupedAckLabels>> deserializeORMultiMap(final ORMultiMap<K, String> orMultiMap,
-            final Predicate<K> keyPredicate) {
+    public static <K> Map<K, List<GroupedAckLabels>> deserializeORMultiMap(final ORMultiMap<K, String> orMultiMap) {
         final Map<K, scala.collection.immutable.Set<String>> entries =
                 CollectionConverters.asJava(orMultiMap.entries());
         return entries.entrySet()
                 .stream()
-                .filter(entry -> keyPredicate.test(entry.getKey()))
                 .map(entry -> new AbstractMap.SimpleEntry<>(entry.getKey(), deserializeAckGroups(entry.getValue())))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
@@ -125,6 +122,16 @@ public final class GroupedAckLabels {
      */
     public Stream<String> streamAckLabels() {
         return ackLabels.stream();
+    }
+
+
+    /**
+     * Get the group name if any exists.
+     *
+     * @return the group name, or an empty optional.
+     */
+    public Optional<String> getGroup() {
+        return Optional.ofNullable(group);
     }
 
     /**

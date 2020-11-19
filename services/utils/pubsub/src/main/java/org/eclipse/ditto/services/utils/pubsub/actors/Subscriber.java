@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.utils.pubsub.actors;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -21,7 +20,9 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
+import org.eclipse.ditto.services.utils.pubsub.api.LocalAcksChanged;
 import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
+import org.eclipse.ditto.services.utils.pubsub.ddata.ack.GroupedSnapshot;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
@@ -51,7 +52,7 @@ public final class Subscriber<T> extends AbstractActor {
     private final Counter falsePositiveCounter = DittoMetrics.counter("pubsub-false-positive");
 
     private SubscriptionsReader localSubscriptions = SubscriptionsReader.empty();
-    private SubscriptionsReader declaredAcks = SubscriptionsReader.empty();
+    private GroupedSnapshot<ActorRef, String> declaredAcks = GroupedSnapshot.empty();
 
     @SuppressWarnings("unused")
     private Subscriber(final Class<T> messageClass,
@@ -84,7 +85,7 @@ public final class Subscriber<T> extends AbstractActor {
         return ReceiveBuilder.create()
                 .match(messageClass, this::broadcastToLocalSubscribers)
                 .match(SubscriptionsReader.class, this::updateLocalSubscriptions)
-                .match(SubscriptionsChanged.class, this::declaredAcksChanged)
+                .match(LocalAcksChanged.class, this::updateLocalAcks)
                 .build();
     }
 
@@ -104,9 +105,9 @@ public final class Subscriber<T> extends AbstractActor {
 
     private void replyWeakAck(final T message, final Set<ActorRef> localSubscribers, final ActorRef sender) {
         final Collection<AcknowledgementLabel> declaredCustomAcks =
-                ackExtractor.getDeclaredCustomAcksRequestedBy(message, declaredAcks::containsTopic);
+                ackExtractor.getDeclaredCustomAcksRequestedBy(message, declaredAcks::containsValue);
         final Collection<AcknowledgementLabel> declaredCustomAcksWithoutSubscribers = declaredCustomAcks.stream()
-                .filter(label -> disjoint(localSubscribers, declaredAcks.getSubscribers(List.of(label.toString()))))
+                .filter(label -> disjoint(localSubscribers, declaredAcks.getKeys(label.toString())))
                 .collect(Collectors.toList());
         if (!declaredCustomAcksWithoutSubscribers.isEmpty()) {
             final Acknowledgements acknowledgements =
@@ -119,8 +120,8 @@ public final class Subscriber<T> extends AbstractActor {
         this.localSubscriptions = localSubscriptions;
     }
 
-    private void declaredAcksChanged(final SubscriptionsChanged event) {
-        declaredAcks = event.getSubscriptionsReader();
+    private void updateLocalAcks(final LocalAcksChanged localAcksChanged) {
+        declaredAcks = localAcksChanged.getSnapshot();
     }
 
     private static <T> boolean disjoint(final Set<T> set1, final Set<T> set2) {

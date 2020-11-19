@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata.ack;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
-
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -128,6 +126,15 @@ public final class GroupedRelation<K, V> {
     }
 
     /**
+     * Get the entry set of the map from keys to grouped values.
+     *
+     * @return the entry set.
+     */
+    public Set<Map.Entry<K, Grouped<V>>> entrySet() {
+        return k2v.entrySet();
+    }
+
+    /**
      * Check if a value is associated with any key.
      *
      * @param value the value.
@@ -160,11 +167,10 @@ public final class GroupedRelation<K, V> {
     }
 
     private void doPut(final K key, @Nullable final String group, final Set<V> values) {
-        checkNotEmpty(values, "values");
         k2v.put(key, Grouped.of(group, values));
         values.forEach(value -> v2k.compute(value, (v, grouped) -> {
             if (grouped == null) {
-                return Grouped.of(group, new HashSet<>());
+                return Grouped.of(group, new HashSet<>(Set.of(key)));
             } else {
                 grouped.getValues().add(key);
                 return grouped;

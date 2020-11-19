@@ -18,20 +18,18 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
-import org.eclipse.ditto.services.utils.pubsub.actors.AcksSupervisor;
-import org.eclipse.ditto.services.utils.pubsub.actors.AcksUpdater;
-import org.eclipse.ditto.services.utils.pubsub.api.RemoveSubscriber;
-import org.eclipse.ditto.services.utils.pubsub.api.Request;
-import org.eclipse.ditto.services.utils.pubsub.api.SubAck;
-import org.eclipse.ditto.services.utils.pubsub.api.Subscribe;
+import org.eclipse.ditto.services.utils.pubsub.actors.AckSupervisor;
+import org.eclipse.ditto.services.utils.pubsub.actors.AckUpdater;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDData;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.cluster.ddata.Replicator;
 import akka.pattern.Patterns;
 
 /**
@@ -42,11 +40,11 @@ final class DistributedAcksImpl implements DistributedAcks {
     private static final String CLUSTER_ROLE = "acks-aware";
 
     private final DistributedDataConfig config;
-    private final ActorRef acksSupervisor;
+    private final ActorRef ackSupervisor;
 
-    private DistributedAcksImpl(final DistributedDataConfig config, final ActorRef acksSupervisor) {
+    private DistributedAcksImpl(final DistributedDataConfig config, final ActorRef ackSupervisor) {
         this.config = config;
-        this.acksSupervisor = acksSupervisor;
+        this.ackSupervisor = ackSupervisor;
     }
 
     static DistributedAcks create(final ActorContext actorContext) {
@@ -57,62 +55,67 @@ final class DistributedAcksImpl implements DistributedAcks {
     static DistributedAcks create(final ActorContext actorContext,
             final String clusterRole,
             final LiteralDDataProvider provider) {
-        final String supervisorName = clusterRole + "-acks-supervisor";
-        final Props props = AcksSupervisor.props(LiteralDData.of(actorContext.system(), provider));
+        final String supervisorName = clusterRole + "-ack-supervisor";
+        final Props props = AckSupervisor.props(LiteralDData.of(actorContext.system(), provider));
         final ActorRef supervisor = actorContext.actorOf(props, supervisorName);
         final DistributedDataConfig config = provider.getConfig(actorContext.system());
         return new DistributedAcksImpl(config, supervisor);
     }
 
-    private CompletionStage<SubAck> askSubSupervisor(final Request request) {
-        return Patterns.ask(acksSupervisor, request, config.getWriteTimeout())
+    private CompletionStage<AckUpdater.AcksDeclared> askSupervisor(final AckUpdater.AckRequest request) {
+        return Patterns.ask(ackSupervisor, request, config.getWriteTimeout())
                 .thenCompose(DistributedAcksImpl::processAskResponse);
     }
 
     @Override
     public void receiveLocalDeclaredAcks(final ActorRef receiver) {
-        acksSupervisor.tell(AcksUpdater.receiveLocalChanges(receiver), ActorRef.noSender());
+        ackSupervisor.tell(AckUpdater.ReceiveLocalChanges.of(receiver), ActorRef.noSender());
     }
 
     @Override
     public void receiveDistributedDeclaredAcks(final ActorRef receiver) {
-        acksSupervisor.tell(AcksUpdater.receiveDDataChanges(receiver), ActorRef.noSender());
+        ackSupervisor.tell(AckUpdater.ReceiveDDataChanges.of(receiver), ActorRef.noSender());
     }
 
     @Override
     public void removeSubscriber(final ActorRef subscriber) {
-        final Request request =
-                RemoveSubscriber.of(subscriber, (Replicator.WriteConsistency) Replicator.writeLocal(),
-                        false);
-        acksSupervisor.tell(request, subscriber);
+        ackSupervisor.tell(AckUpdater.RemoveSubscriberAcks.of(subscriber), subscriber);
     }
 
     @Override
-    public CompletionStage<SubAck> declareAcknowledgementLabels(
+    public CompletionStage<AckUpdater.AcksDeclared> declareAcknowledgementLabels(
             final Collection<AcknowledgementLabel> acknowledgementLabels,
             final ActorRef subscriber) {
         final Set<String> ackLabelStrings = acknowledgementLabels.stream()
                 .map(AcknowledgementLabel::toString)
                 .collect(Collectors.toSet());
-        final Subscribe subscribe =
-                Subscribe.of(ackLabelStrings, subscriber, writeLocal(), true);
-        return askSubSupervisor(subscribe);
+        final AckUpdater.AckRequest request =
+                AckUpdater.DeclareAcks.of(subscriber, null, ackLabelStrings);
+        return askSupervisor(request);
+    }
+
+    @Override
+    public CompletionStage<AckUpdater.AcksDeclared> declareAcknowledgementLabels(
+            @Nullable final String group,
+            final Collection<AcknowledgementLabel> acknowledgementLabels,
+            final ActorRef subscriber) {
+        if (group != null) {
+            ConditionChecker.checkNotEmpty(group, "group");
+        }
+        final Set<String> ackLabelStrings = acknowledgementLabels.stream()
+                .map(AcknowledgementLabel::toString)
+                .collect(Collectors.toSet());
+        return askSupervisor(AckUpdater.DeclareAcks.of(subscriber, group, ackLabelStrings));
     }
 
     @Override
     public void removeAcknowledgementLabelDeclaration(final ActorRef subscriber) {
-        final RemoveSubscriber request =
-                RemoveSubscriber.of(subscriber, writeLocal(), false);
-        acksSupervisor.tell(request, ActorRef.noSender());
+        ackSupervisor.tell(AckUpdater.RemoveSubscriberAcks.of(subscriber), ActorRef.noSender());
     }
 
-    private static Replicator.WriteConsistency writeLocal() {
-        return (Replicator.WriteConsistency) Replicator.writeLocal();
-    }
-
-    private static CompletionStage<SubAck> processAskResponse(final Object askResponse) {
-        if (askResponse instanceof SubAck) {
-            return CompletableFuture.completedStage((SubAck) askResponse);
+    private static CompletionStage<AckUpdater.AcksDeclared> processAskResponse(final Object askResponse) {
+        if (askResponse instanceof AckUpdater.AcksDeclared) {
+            return CompletableFuture.completedStage((AckUpdater.AcksDeclared) askResponse);
         } else if (askResponse instanceof Throwable) {
             return CompletableFuture.failedStage((Throwable) askResponse);
         } else {

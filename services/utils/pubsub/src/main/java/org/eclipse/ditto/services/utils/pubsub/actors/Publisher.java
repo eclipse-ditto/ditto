@@ -26,6 +26,7 @@ import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
+import org.eclipse.ditto.services.utils.pubsub.api.RemoteAcksChanged;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
@@ -37,7 +38,6 @@ import akka.actor.Props;
 import akka.cluster.ddata.Replicator;
 import akka.japi.pf.ReceiveBuilder;
 import scala.collection.immutable.Set;
-import scala.collection.immutable.Set$;
 import scala.jdk.javaapi.CollectionConverters;
 
 /**
@@ -52,8 +52,6 @@ public final class Publisher<T> extends AbstractActor {
      */
     public static final String ACTOR_NAME_PREFIX = "publisher";
 
-    private static final Set<String> EMPTY_SET = Set$.MODULE$.empty();
-
     private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
     private final DDataReader<ActorRef, T> ddataReader;
@@ -62,7 +60,7 @@ public final class Publisher<T> extends AbstractActor {
     private final Counter topicCounter = DittoMetrics.counter("pubsub-published-topics");
 
     private Map<ActorRef, Set<T>> topicSubscribers = Map.of();
-    private Map<Address, Set<String>> declaredAcks = Map.of();
+    private Map<Address, java.util.Set<String>> declaredAcks = Map.of();
     private java.util.Set<String> allDeclaredAcks = java.util.Set.of();
 
     @SuppressWarnings("unused")
@@ -120,7 +118,7 @@ public final class Publisher<T> extends AbstractActor {
         return ReceiveBuilder.create()
                 .match(Publish.class, this::publish)
                 .match(PublishWithAck.class, this::publishWithAck)
-                .match(DDataChanged.class, this::declaredAcksChanged)
+                .match(RemoteAcksChanged.class, this::declaredAcksChanged)
                 .match(Replicator.Changed.class, this::topicSubscribersChanged)
                 .matchAny(this::logUnhandled)
                 .build();
@@ -133,8 +131,8 @@ public final class Publisher<T> extends AbstractActor {
     private void publishWithAck(final PublishWithAck publishWithAck) {
         final Collection<ActorRef> subscribers = doPublish(publishWithAck.topics, publishWithAck.message);
         final java.util.Set<String> subscriberDeclaredAcks = subscribers.stream()
-                .map(subscriber -> declaredAcks.getOrDefault(subscriber.path().address(), EMPTY_SET))
-                .flatMap(set -> CollectionConverters.asJava(set).stream())
+                .map(subscriber -> declaredAcks.getOrDefault(subscriber.path().address(), java.util.Set.of()))
+                .flatMap(java.util.Set::stream)
                 .collect(Collectors.toSet());
 
         final Collection<AcknowledgementLabel> requestedCustomAcks =
@@ -159,10 +157,10 @@ public final class Publisher<T> extends AbstractActor {
         return subscribers;
     }
 
-    private void declaredAcksChanged(final DDataChanged ddataChanged) {
-        declaredAcks = ddataChanged.getMultiMap();
+    private void declaredAcksChanged(final RemoteAcksChanged event) {
+        declaredAcks = event.getMultiMap();
         allDeclaredAcks = declaredAcks.values().stream()
-                .flatMap(set -> CollectionConverters.asJava(set).stream())
+                .flatMap(java.util.Set::stream)
                 .collect(Collectors.toSet());
     }
 

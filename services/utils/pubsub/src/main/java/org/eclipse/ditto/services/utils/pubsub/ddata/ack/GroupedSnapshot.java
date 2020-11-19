@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata.ack;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -32,6 +31,17 @@ public final class GroupedSnapshot<K, V> {
     }
 
     /**
+     * Create an empty snapshot of a grouped relation.
+     *
+     * @param <K> the type of keys.
+     * @param <V> the type of values.
+     * @return an empty snapshot.
+     */
+    public static <K, V> GroupedSnapshot<K, V> empty() {
+        return new GroupedSnapshot<>(Map.of(), Map.of());
+    }
+
+    /**
      * Check if a value is associated with any key.
      *
      * @param value the value.
@@ -47,7 +57,7 @@ public final class GroupedSnapshot<K, V> {
      * @param value the value.
      * @return the set of keys associated with a value.
      */
-    public Collection<K> getKeys(final V value) {
+    public Set<K> getKeys(final V value) {
         return v2k.getOrDefault(value, Set.of());
     }
 

@@ -53,8 +53,8 @@ public final class AckSupervisor extends AbstractPubSubSupervisor {
     @Override
     protected Receive createPubSubBehavior() {
         return ReceiveBuilder.create()
-                .match(AckUpdater.Request.class, this::isAckUpdaterAvailable, this::forwardRequest)
-                .match(AckUpdater.Request.class, this::ackUpdaterUnavailable)
+                .match(AckUpdater.AckRequest.class, this::isAckUpdaterAvailable, this::forwardRequest)
+                .match(AckUpdater.AckRequest.class, this::ackUpdaterUnavailable)
                 .build();
     }
 
@@ -68,7 +68,7 @@ public final class AckSupervisor extends AbstractPubSubSupervisor {
     @Override
     protected void startChildren() {
         final Props acksUpdaterProps = AckUpdater.props(config, selfAddress, ackDData);
-        acksUpdater = startChild(acksUpdaterProps, AcksUpdater.ACTOR_NAME_PREFIX);
+        acksUpdater = startChild(acksUpdaterProps, AckUpdater.ACTOR_NAME_PREFIX);
     }
 
     private boolean isAckUpdaterAvailable() {
@@ -76,11 +76,11 @@ public final class AckSupervisor extends AbstractPubSubSupervisor {
     }
 
     @SuppressWarnings("ConstantConditions")
-    private void forwardRequest(final AckUpdater.Request request) {
+    private void forwardRequest(final AckUpdater.AckRequest request) {
         acksUpdater.tell(request, getSender());
     }
 
-    private void ackUpdaterUnavailable(final AckUpdater.Request request) {
+    private void ackUpdaterUnavailable(final AckUpdater.AckRequest request) {
         log.error("AcksUpdater unavailable. Failing <{}>", request);
         getSender().tell(new IllegalStateException("AcksUpdater not available"), getSelf());
     }

@@ -15,8 +15,10 @@ package org.eclipse.ditto.services.utils.pubsub;
 import java.util.Collection;
 import java.util.concurrent.CompletionStage;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.services.utils.pubsub.api.SubAck;
+import org.eclipse.ditto.services.utils.pubsub.actors.AckUpdater;
 
 import akka.actor.ActorRef;
 
@@ -42,7 +44,13 @@ final class DistributedAcksEmptyImpl implements DistributedAcks {
     }
 
     @Override
-    public CompletionStage<SubAck> declareAcknowledgementLabels(
+    public CompletionStage<AckUpdater.AcksDeclared> declareAcknowledgementLabels(@Nullable final String group,
+            final Collection<AcknowledgementLabel> acknowledgementLabels, final ActorRef subscriber) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public CompletionStage<AckUpdater.AcksDeclared> declareAcknowledgementLabels(
             final Collection<AcknowledgementLabel> acknowledgementLabels, final ActorRef subscriber) {
         throw new UnsupportedOperationException();
     }

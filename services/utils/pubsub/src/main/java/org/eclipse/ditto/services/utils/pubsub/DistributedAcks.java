@@ -15,8 +15,10 @@ package org.eclipse.ditto.services.utils.pubsub;
 import java.util.Collection;
 import java.util.concurrent.CompletionStage;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.services.utils.pubsub.api.SubAck;
+import org.eclipse.ditto.services.utils.pubsub.actors.AckUpdater;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
@@ -55,13 +57,31 @@ public interface DistributedAcks {
      * Each subscriber's declared acknowledgment labels must be different from the labels declared by other subscribers.
      * Subscribers relinquish their declared labels when they terminate.
      *
+     * @param group the group in which the actor belongs.
      * @param acknowledgementLabels the acknowledgement labels to declare.
      * @param subscriber the subscriber.
      * @return a future SubAck if the declaration succeeded, or a failed future if it failed.
      */
-    CompletionStage<SubAck> declareAcknowledgementLabels(
+    CompletionStage<AckUpdater.AcksDeclared> declareAcknowledgementLabels(
+            @Nullable String group,
             Collection<AcknowledgementLabel> acknowledgementLabels,
             ActorRef subscriber);
+
+    /**
+     * Declare labels of acknowledgements that a subscriber may send.
+     * Each subscriber's declared acknowledgment labels must be different from the labels declared by other subscribers.
+     * Subscribers relinquish their declared labels when they terminate.
+     *
+     * @param acknowledgementLabels the acknowledgement labels to declare.
+     * @param subscriber the subscriber.
+     * @return a future SubAck if the declaration succeeded, or a failed future if it failed.
+     */
+    default CompletionStage<AckUpdater.AcksDeclared> declareAcknowledgementLabels(
+            Collection<AcknowledgementLabel> acknowledgementLabels,
+            ActorRef subscriber) {
+
+        return declareAcknowledgementLabels(null, acknowledgementLabels, subscriber);
+    }
 
     /**
      * Remove the acknowledgement label declaration of a subscriber.

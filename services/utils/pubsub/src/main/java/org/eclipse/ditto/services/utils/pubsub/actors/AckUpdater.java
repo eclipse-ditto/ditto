@@ -12,11 +12,10 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.actors;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
-
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,9 +28,12 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.services.utils.pubsub.api.LocalAcksChanged;
+import org.eclipse.ditto.services.utils.pubsub.api.RemoteAcksChanged;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
+import org.eclipse.ditto.services.utils.pubsub.ddata.ack.Grouped;
 import org.eclipse.ditto.services.utils.pubsub.ddata.ack.GroupedAckLabels;
 import org.eclipse.ditto.services.utils.pubsub.ddata.ack.GroupedRelation;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
@@ -46,15 +48,23 @@ import akka.event.LoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
- * TODO
+ * Manage the local and remote ternary relation between actors, group names and declared acknowledgement labels.
+ * In case of conflict, prefer data from the cluster member with a smaller address.
  */
 public final class AckUpdater extends AbstractActorWithTimers implements ClusterMemberRemovedAware {
+
+    /**
+     * Prefix of this actor's name.
+     */
+    public static final String ACTOR_NAME_PREFIX = "ackUpdater";
 
     protected final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
     private final GroupedRelation<ActorRef, String> localAckLabels;
     private final Address ownAddress;
     private final DData<Address, String, LiteralUpdate> ackDData;
+    private final java.util.Set<ActorRef> ddataChangeRecipients;
+    private final java.util.Set<ActorRef> localChangeRecipients;
 
     private Set<String> remoteAckLabels = Set.of();
     private Map<String, Set<String>> remoteGroups = Map.of();
@@ -66,36 +76,35 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
             final DData<Address, String, LiteralUpdate> ackDData) {
         this.ownAddress = ownAddress;
         this.ackDData = ackDData;
-        this.localAckLabels = GroupedRelation.create();
-
+        localAckLabels = GroupedRelation.create();
+        ddataChangeRecipients = new HashSet<>();
+        localChangeRecipients = new HashSet<>();
         subscribeForClusterMemberRemovedAware();
         ackDData.getReader().receiveChanges(getSelf());
         getTimers().startTimerAtFixedRate(Clock.TICK, Clock.TICK, config.getUpdateInterval());
     }
 
-    // TODO: javadoc
+    /**
+     * Create Props object for this actor.
+     *
+     * @param config the pub-sub config.
+     * @param ownAddress address of the cluster member on which this actor lives.
+     * @param ackDData access to the distributed data of declared acknowledgement labels.
+     * @return the Props object.
+     */
     public static Props props(final PubSubConfig config, final Address ownAddress,
             final DData<Address, String, LiteralUpdate> ackDData) {
         return Props.create(AckUpdater.class, config, ownAddress, ackDData);
     }
 
-    // TODO: javadoc
-    public static Request declareAckLabels(final ActorRef subscriber,
-            @Nullable final String group,
-            final Set<String> ackLabels) {
-        return new DeclareAckLabels(subscriber, group, ackLabels);
-    }
-
-    public static Request removeSubscriber(final ActorRef subscriber) {
-        return new RemoveSubscriber(subscriber);
-    }
-
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(DeclareAckLabels.class, this::declare)
+                .match(DeclareAcks.class, this::declare)
                 .match(Terminated.class, this::terminated)
-                .match(RemoveSubscriber.class, this::removeSubscriber)
+                .match(RemoveSubscriberAcks.class, this::removeSubscriber)
+                .match(ReceiveDDataChanges.class, this::onReceiveDDataChanges)
+                .match(ReceiveLocalChanges.class, this::onReceiveLocalChanges)
                 .matchEquals(Clock.TICK, this::tick)
                 .match(Replicator.Changed.class, this::onChanged)
                 .matchAny(this::logUnhandled)
@@ -103,77 +112,113 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
                 .orElse(receiveClusterMemberRemoved());
     }
 
-    private void declare(final DeclareAckLabels request) {
+    @Override
+    public LoggingAdapter log() {
+        return log;
+    }
+
+    @Override
+    public DDataWriter<?, ?> getDDataWriter() {
+        return ackDData.getWriter();
+    }
+
+    private void declare(final DeclareAcks request) {
         final ActorRef sender = getSender();
-        if (isAllowedLocally(request) && isAllowedRemotely(request)) {
+        if (isAllowedLocally(request.group, request.ackLabels) && isAllowedRemotely(request.group, request.ackLabels)) {
             localAckLabels.put(request.subscriber, request.group, request.ackLabels);
             getContext().watch(request.subscriber);
-            getSender().tell(SubAck.of(request, sender), getSelf());
+            getSender().tell(AcksDeclared.of(request, sender), getSelf());
         } else {
             failSubscribe(sender);
         }
     }
 
-    private boolean isAllowedLocally(final DeclareAckLabels request) {
-        if (request.group != null) {
-            final Optional<Set<String>> groupLabels = localAckLabels.getValuesOfGroup(request.group);
+    private boolean isAllowedLocally(@Nullable final String group, final Set<String> ackLabels) {
+        if (group != null) {
+            final Optional<Set<String>> groupLabels = localAckLabels.getValuesOfGroup(group);
             if (groupLabels.isPresent()) {
-                return groupLabels.get().equals(request.ackLabels);
+                return groupLabels.get().equals(ackLabels);
             }
         }
-        return noDeclaredLabelMatches(request, localAckLabels::containsValue);
+        return noDeclaredLabelMatches(ackLabels, localAckLabels::containsValue);
     }
 
-    private boolean isAllowedRemotely(final DeclareAckLabels request) {
-        if (request.group != null) {
-            final Set<String> remoteGroup = remoteGroups.get(request.group);
+    private boolean isAllowedRemotely(@Nullable final String group, final Set<String> ackLabels) {
+        return isAllowedRemotelyBy(group, ackLabels, remoteGroups, remoteAckLabels::contains);
+    }
+
+    private boolean isAllowedRemotelyBy(final Grouped<String> groupedLabels,
+            final Map<String, Set<String>> remoteGroups,
+            final Predicate<String> isTakenRemotely) {
+        return isAllowedRemotelyBy(groupedLabels.getGroup().orElse(null), groupedLabels.getValues(),
+                remoteGroups, isTakenRemotely);
+    }
+
+    private boolean isAllowedRemotelyBy(@Nullable final String group, final Set<String> ackLabels,
+            final Map<String, Set<String>> remoteGroups,
+            final Predicate<String> isTakenRemotely) {
+        if (group != null) {
+            final Set<String> remoteGroup = remoteGroups.get(group);
             if (remoteGroup != null) {
-                return remoteGroup.equals(request.ackLabels);
+                return remoteGroup.equals(ackLabels);
             }
         }
-        return noDeclaredLabelMatches(request, remoteAckLabels::contains);
+        return noDeclaredLabelMatches(ackLabels, isTakenRemotely);
     }
 
-    private boolean noDeclaredLabelMatches(final DeclareAckLabels request, final Predicate<String> contains) {
-        return request.ackLabels.stream().noneMatch(contains);
+    private boolean noDeclaredLabelMatches(final Set<String> ackLabels, final Predicate<String> contains) {
+        return ackLabels.stream().noneMatch(contains);
     }
 
     private void tick(Clock tick) {
         writeLocalDData();
-        // TODO: broadcast changes
+        final LocalAcksChanged changed = LocalAcksChanged.of(localAckLabels.export());
+        localChangeRecipients.forEach(recipient -> recipient.tell(changed, getSelf()));
     }
 
     private void onChanged(final Replicator.Changed<?> event) {
         final Map<Address, List<GroupedAckLabels>> mmap =
-                GroupedAckLabels.deserializeORMultiMap(event.get(ackDData.getReader().getKey()), this::isNotOwnAddress);
-        remoteGroups = getRemoteGroups(mmap);
-        remoteAckLabels = getRemoteAckLabels(mmap);
-        // TODO: deal with local losers of races
+                GroupedAckLabels.deserializeORMultiMap(event.get(ackDData.getReader().getKey()));
+        final List<GroupedAckLabels> remoteGroupedAckLabels = getRemoteGroupedAckLabelsOrderByAddress(mmap);
+        remoteGroups = getRemoteGroups(remoteGroupedAckLabels);
+        remoteAckLabels = getRemoteAckLabels(remoteGroupedAckLabels);
+
+        for (final ActorRef localLoser : getLocalLosers(mmap)) {
+            doRemoveSubscriber(localLoser);
+            failSubscribe(localLoser);
+        }
+
+        final RemoteAcksChanged ddataChanged = RemoteAcksChanged.of(mmap);
+        ddataChangeRecipients.forEach(recipient -> recipient.tell(ddataChanged, getSelf()));
     }
 
-    private boolean isNotOwnAddress(final Address address) {
-        return !ownAddress.equals(address);
-    }
+    private List<GroupedAckLabels> getRemoteGroupedAckLabelsOrderByAddress(
+            final Map<Address, List<GroupedAckLabels>> mmap) {
 
-    private Map<String, Set<String>> getRemoteGroups(final Map<Address, List<GroupedAckLabels>> mmap) {
-        final Map<String, Set<String>> result = new HashMap<>();
-        mmap.entrySet()
+        return mmap.entrySet()
                 .stream()
-                // order by address to prefer group definitions by member with smaller address
+                .filter(this::isNotOwnAddress)
                 .sorted(entryKeyAddressComparator())
-                .forEach(entry -> entry.getValue()
-                        .stream()
-                        .flatMap(GroupedAckLabels::streamAsGroupedPair)
-                        // do not set a group of ack labels if already set by a member of smaller address
-                        .forEach(pair -> result.computeIfAbsent(pair.first(), group -> pair.second()))
-                );
+                .map(Map.Entry::getValue)
+                .flatMap(List::stream)
+                .collect(Collectors.toList());
+    }
+
+    private boolean isNotOwnAddress(final Map.Entry<Address, ?> entry) {
+        return !ownAddress.equals(entry.getKey());
+    }
+
+    private Map<String, Set<String>> getRemoteGroups(final List<GroupedAckLabels> remoteGroupedAckLabels) {
+        final Map<String, Set<String>> result = new HashMap<>();
+        remoteGroupedAckLabels.stream()
+                .flatMap(GroupedAckLabels::streamAsGroupedPair)
+                // do not set a group of ack labels if already set by a member of smaller address
+                .forEach(pair -> result.computeIfAbsent(pair.first(), group -> pair.second()));
         return Collections.unmodifiableMap(result);
     }
 
-    private Set<String> getRemoteAckLabels(final Map<Address, List<GroupedAckLabels>> mmap) {
-        return mmap.values()
-                .stream()
-                .flatMap(List::stream)
+    private Set<String> getRemoteAckLabels(final List<GroupedAckLabels> remoteGroupedAckLabels) {
+        return remoteGroupedAckLabels.stream()
                 .flatMap(GroupedAckLabels::streamAckLabels)
                 .collect(Collectors.toSet());
     }
@@ -183,10 +228,13 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
     }
 
     private void terminated(final Terminated terminated) {
-        doRemoveSubscriber(terminated.actor());
+        final ActorRef terminatedActor = terminated.actor();
+        doRemoveSubscriber(terminatedActor);
+        ddataChangeRecipients.remove(terminatedActor);
+        localChangeRecipients.remove(terminatedActor);
     }
 
-    private void removeSubscriber(final RemoveSubscriber request) {
+    private void removeSubscriber(final RemoveSubscriberAcks request) {
         doRemoveSubscriber(request.subscriber);
     }
 
@@ -219,14 +267,31 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
         sender.tell(error, getSelf());
     }
 
-    @Override
-    public LoggingAdapter log() {
-        return log;
+    private List<ActorRef> getLocalLosers(final Map<Address, List<GroupedAckLabels>> mmap) {
+        final Map<Address, List<GroupedAckLabels>> moreImportantEntries = mmap.entrySet()
+                .stream()
+                .filter(entry -> Address.addressOrdering().compare(entry.getKey(), ownAddress) < 0)
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        final List<GroupedAckLabels> moreImportantGroupedAckLabels =
+                getRemoteGroupedAckLabelsOrderByAddress(moreImportantEntries);
+        final Map<String, Set<String>> moreImportantRemoteGroups = getRemoteGroups(moreImportantGroupedAckLabels);
+        final Set<String> moreImportantAckLabels = getRemoteAckLabels(moreImportantGroupedAckLabels);
+        return localAckLabels.entrySet()
+                .stream()
+                .filter(entry -> !isAllowedRemotelyBy(entry.getValue(), moreImportantRemoteGroups,
+                        moreImportantAckLabels::contains))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
     }
 
-    @Override
-    public DDataWriter<?, ?> getDDataWriter() {
-        return ackDData.getWriter();
+    private void onReceiveDDataChanges(final ReceiveDDataChanges request) {
+        ddataChangeRecipients.add(request.receiver);
+        getContext().watch(request.receiver);
+    }
+
+    private void onReceiveLocalChanges(final ReceiveLocalChanges request) {
+        localChangeRecipients.add(request.receiver);
+        getContext().watch(request.receiver);
     }
 
     private static <T> Comparator<Map.Entry<Address, T>> entryKeyAddressComparator() {
@@ -238,21 +303,29 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
     }
 
     // TODO: javadoc
-    public interface Request {
+    // TODO: move to /api
+    public interface AckRequest {
     }
 
-    private static final class DeclareAckLabels implements Request {
+    public static final class DeclareAcks implements AckRequest {
 
         private final ActorRef subscriber;
         @Nullable private final String group;
         private final Set<String> ackLabels;
 
-        private DeclareAckLabels(final ActorRef subscriber,
+        private DeclareAcks(final ActorRef subscriber,
                 @Nullable final String group,
                 final Set<String> ackLabels) {
             this.subscriber = subscriber;
             this.group = group;
-            this.ackLabels = checkNotEmpty(ackLabels, "ackLabels");
+            this.ackLabels = ackLabels;
+        }
+
+        // TODO: javadoc
+        public static AckRequest of(final ActorRef subscriber,
+                @Nullable final String group,
+                final Set<String> ackLabels) {
+            return new DeclareAcks(subscriber, group, ackLabels);
         }
 
         @Override
@@ -265,12 +338,17 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
         }
     }
 
-    public static final class RemoveSubscriber implements Request {
+    public static final class RemoveSubscriberAcks implements AckRequest {
 
         private final ActorRef subscriber;
 
-        private RemoveSubscriber(final ActorRef subscriber) {
+        private RemoveSubscriberAcks(final ActorRef subscriber) {
             this.subscriber = subscriber;
+        }
+
+        // TODO: move to model.
+        public static AckRequest of(final ActorRef subscriber) {
+            return new RemoveSubscriberAcks(subscriber);
         }
 
         @Override
@@ -284,24 +362,24 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
     /**
      * Acknowledgement for requests.
      */
-    public static final class SubAck {
+    public static final class AcksDeclared {
 
-        private final Request request;
+        private final AckRequest request;
         private final ActorRef sender;
 
-        private SubAck(final Request request, final ActorRef sender) {
+        private AcksDeclared(final AckRequest request, final ActorRef sender) {
             this.request = request;
             this.sender = sender;
         }
 
-        static SubAck of(final Request request, final ActorRef sender) {
-            return new SubAck(request, sender);
+        static AcksDeclared of(final AckRequest request, final ActorRef sender) {
+            return new AcksDeclared(request, sender);
         }
 
         /**
          * @return the request this object is acknowledging.
          */
-        public Request getRequest() {
+        public AckRequest getRequest() {
             return request;
         }
 
@@ -318,6 +396,39 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
                     "[request=" + request +
                     ",sender=" + sender +
                     "]";
+        }
+    }
+
+    private abstract static class ReceiveChanges implements AckRequest {
+
+        protected final ActorRef receiver;
+
+        private ReceiveChanges(final ActorRef receiver) {
+            this.receiver = receiver;
+        }
+    }
+
+    public static final class ReceiveDDataChanges extends ReceiveChanges {
+
+        private ReceiveDDataChanges(final ActorRef receiver) {
+            super(receiver);
+        }
+
+        // TODO: javadoc
+        public static AckRequest of(final ActorRef receiver) {
+            return new ReceiveDDataChanges(receiver);
+        }
+    }
+
+    public static final class ReceiveLocalChanges extends ReceiveChanges {
+
+        private ReceiveLocalChanges(final ActorRef receiver) {
+            super(receiver);
+        }
+
+        // TODO: javadoc
+        public static AckRequest of(final ActorRef receiver) {
+            return new ReceiveLocalChanges(receiver);
         }
     }
 }
