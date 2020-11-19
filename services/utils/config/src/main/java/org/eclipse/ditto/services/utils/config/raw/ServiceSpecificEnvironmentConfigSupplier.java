@@ -12,10 +12,14 @@
  */
 package org.eclipse.ditto.services.utils.config.raw;
 
+import java.io.File;
+import java.nio.file.Paths;
+import java.text.MessageFormat;
 import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +32,6 @@ import com.typesafe.config.ConfigValueFactory;
  * Supplier for Typesafe {@link Config} based on the environment the service runs in.
  * Distinguishes between:
  * <ul>
- * <li>{@link HostingEnvironment#CLOUD}</li>
  * <li>{@link HostingEnvironment#DOCKER}</li>
  * <li>{@link HostingEnvironment#FILE_BASED}</li>
  * <li>{@link HostingEnvironment#DEVELOPMENT}</li>
@@ -47,6 +50,11 @@ final class ServiceSpecificEnvironmentConfigSupplier implements Supplier<Config>
      * The value of the variable is supposed to be a JSON object string.
      */
     static final String CF_VCAP_SERVICES_ENV_VARIABLE_NAME = "VCAP_SERVICES";
+
+    /**
+     * Name of the system environment variable for setting the location of config file.
+     */
+    static final String HOSTING_ENV_FILE_LOCATION_ENV_VARIABLE_NAME = "HOSTING_ENVIRONMENT_FILE_LOCATION";
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ServiceSpecificEnvironmentConfigSupplier.class);
 
@@ -79,16 +87,12 @@ final class ServiceSpecificEnvironmentConfigSupplier implements Supplier<Config>
         LOGGER.info("Running in <{}> environment.", hostingEnvironment);
 
         switch (hostingEnvironment) {
-            case CLOUD:
-                return getCloudConfig();
-            case DOCKER:
-                return getDockerConfig();
             case FILE_BASED:
                 return getFileBasedConfig();
             case DEVELOPMENT:
                 return getDevelopmentConfig();
             default:
-                return ConfigFactory.empty();
+                return withHostingEnvironmentValue(ConfigFactory.empty());
         }
     }
 
@@ -96,8 +100,6 @@ final class ServiceSpecificEnvironmentConfigSupplier implements Supplier<Config>
         switch (systemHostingEnvironment.toLowerCase()) {
             case "docker":
                 return HostingEnvironment.DOCKER;
-            case "cloud":
-                return HostingEnvironment.CLOUD;
             case "filebased":
                 return HostingEnvironment.FILE_BASED;
             default:
@@ -105,19 +107,18 @@ final class ServiceSpecificEnvironmentConfigSupplier implements Supplier<Config>
         }
     }
 
-    private Config getDockerConfig() {
-        return withHostingEnvironmentValue(getConfigFromResource(HostingEnvironment.DOCKER));
-    }
-
-    private Config getCloudConfig() {
-        final String resourceBasename = getResourceBasename(HostingEnvironment.CLOUD);
-        final Supplier<Config> configSupplier = FileBasedConfigSupplier.fromResource(resourceBasename);
-        return withHostingEnvironmentValue(configSupplier.get());
-    }
-
+    /**
+     * Returns a {@link com.typesafe.config.Config} based on the file denoted by system environment variable
+     * {@value #HOSTING_ENV_FILE_LOCATION_ENV_VARIABLE_NAME}.
+     *
+     * @return the config.
+     * @throws DittoConfigError if the value of the system environment variable
+     * {@value #HOSTING_ENV_FILE_LOCATION_ENV_VARIABLE_NAME} was either not set at all or did not denote an existing
+     * file.
+     */
     private Config getFileBasedConfig() {
-        final Supplier<Config> configSupplier = FileBasedConfigSupplier.forConfiguredConfigFile();
-        return withHostingEnvironmentValue(configSupplier.get());
+        final Config fileBasedConfig = DittoConfigFactory.fromFile(getConfigFile(getConfigFileLocation()));
+        return withHostingEnvironmentValue(fileBasedConfig);
     }
 
     private Config getDevelopmentConfig() {
@@ -125,7 +126,7 @@ final class ServiceSpecificEnvironmentConfigSupplier implements Supplier<Config>
     }
 
     private Config getConfigFromResource(final HostingEnvironment hostingEnvironment) {
-        return ConfigFactory.parseResourcesAnySyntax(getResourceBasename(hostingEnvironment));
+        return DittoConfigFactory.fromResource(getResourceBasename(hostingEnvironment));
     }
 
     private String getResourceBasename(final HostingEnvironment hostingEnvironment) {
@@ -138,6 +139,19 @@ final class ServiceSpecificEnvironmentConfigSupplier implements Supplier<Config>
 
     private ConfigValue getHostingEnvironmentConfig() {
         return ConfigValueFactory.fromAnyRef(systemHostingEnvironment.isEmpty() ? null : systemHostingEnvironment);
+    }
+
+    private static String getConfigFileLocation() {
+        final String result = System.getenv(HOSTING_ENV_FILE_LOCATION_ENV_VARIABLE_NAME);
+        if (null == result) {
+            final String msgPattern = "System environment variable <{0}> is not set!";
+            throw new DittoConfigError(MessageFormat.format(msgPattern, HOSTING_ENV_FILE_LOCATION_ENV_VARIABLE_NAME));
+        }
+        return result;
+    }
+
+    private static File getConfigFile(final String configFileLocation) {
+        return Paths.get(configFileLocation).toFile();
     }
 
 }

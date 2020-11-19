@@ -18,14 +18,8 @@ package org.eclipse.ditto.services.utils.config.raw;
 enum HostingEnvironment {
 
     /**
-     * Used when hosting environment is set to "cloud".
-     * This will use the config file $servicename-cloud.conf
-     */
-    CLOUD("-cloud"),
-
-    /**
      * Used when hosting environment is set to "docker".
-     * This will use the config file $servicename-docker.conf
+     * This will use no additional config file in addition to $servicename.conf
      */
     DOCKER("-docker"),
 
@@ -45,7 +39,7 @@ enum HostingEnvironment {
 
     private final String configFileSuffix;
 
-    private HostingEnvironment(final String suffix) {
+    HostingEnvironment(final String suffix) {
         configFileSuffix = suffix;
     }
 
