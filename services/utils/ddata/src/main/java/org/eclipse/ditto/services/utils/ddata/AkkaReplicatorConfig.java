@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.ddata;
 
+import java.time.Duration;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
@@ -39,6 +41,13 @@ public interface AkkaReplicatorConfig {
     String getRole();
 
     /**
+     * Returns the interval subscribers are notified.
+     *
+     * @return the duration.
+     */
+    Duration getNotifySubscribersInterval();
+
+    /**
      * Gets the complete Akka {@code distributed-data} config to use for the {@link akka.cluster.ddata.Replicator}.
      *
      * @return the complete config.
@@ -59,7 +68,12 @@ public interface AkkaReplicatorConfig {
         /**
          * The role to be used for the {@link akka.cluster.ddata.Replicator}.
          */
-        ROLE("role", "");
+        ROLE("role", ""),
+
+        /**
+         * the interval subscribers are notified.
+         */
+        NOTIFY_SUBSCRIBERS_INTERVAL("notify-subscribers-interval", "500 ms");
 
         private final String path;
         private final Object defaultValue;

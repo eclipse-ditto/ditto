@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.utils.health;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
@@ -32,7 +32,7 @@ public abstract class AbstractHealthCheckingActor extends AbstractActorWithTimer
      */
     public static final String ACTOR_NAME = "healthCheckingActor";
 
-    protected final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    protected final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private StatusInfo health = StatusInfo.unknown();
     private Set<ActorRef> waitingHealthReceivers = new HashSet<>();

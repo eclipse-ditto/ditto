@@ -290,8 +290,10 @@ So the device can provide its alternative options to open the barrier after 5 se
 I hope I could demonstrate the power of the new acknowledgement feature properly and could make it clear how it can be used.
 Maybe you did recognize some of your use cases in the given examples or maybe you have another use case which can or cannot be solved by this feature.
 
-We would love to get your feedback.
-  
+We would love to get your [feedback](feedback.html).
+
+<br/>
+<br/>
 {% include image.html file="ditto.svg" alt="Ditto" max-width=500 %}
 --<br/>
 The Eclipse Ditto team

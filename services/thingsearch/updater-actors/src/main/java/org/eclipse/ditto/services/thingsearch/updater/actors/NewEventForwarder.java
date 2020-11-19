@@ -21,7 +21,8 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -34,8 +35,6 @@ import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.cluster.sharding.ShardRegion;
-import akka.event.DiagnosticLoggingAdapter;
-import akka.event.Logging;
 import akka.japi.pf.ReceiveBuilder;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -49,7 +48,7 @@ final class NewEventForwarder extends AbstractActorWithTimers {
      */
     static final String ACTOR_NAME = "newEventForwarder";
 
-    private final DiagnosticLoggingAdapter log = Logging.apply(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final ActorRef shardRegion;
     private final DistributedSub thingEventSub;
     private final BlockNamespaceBehavior namespaceBlockingBehavior;
@@ -132,8 +131,8 @@ final class NewEventForwarder extends AbstractActorWithTimers {
     }
 
     private void processThingEvent(final ThingEvent<?> thingEvent) {
-        LogUtil.enhanceLogWithCorrelationId(log, thingEvent);
-        log.debug("Forwarding incoming ThingEvent for thingId '{}'", thingEvent.getThingEntityId());
+        log.withCorrelationId(thingEvent)
+                .debug("Forwarding incoming ThingEvent for thingId '{}'", thingEvent.getThingEntityId());
         namespaceBlockingBehavior.block(thingEvent).thenAccept(m -> shardRegion.tell(m, getSelf()));
     }
 

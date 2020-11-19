@@ -35,7 +35,8 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingsResponse;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -51,7 +52,6 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
@@ -77,7 +77,7 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
 
     private static final int ASK_TIMEOUT = 60;
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final ActorRef targetActor;
     private final Materializer materializer;
@@ -127,20 +127,20 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
     }
 
     private void handleRetrieveThings(final RetrieveThings rt, final Object msgToAsk) {
-        LogUtil.enhanceLogWithCorrelationId(log, rt.getDittoHeaders().getCorrelationId());
         final List<ThingId> thingIds = rt.getThingEntityIds();
-        log.info("Got '{}' message. Retrieving requested '{}' Things..",
-                RetrieveThings.class.getSimpleName(), thingIds.size());
+        log.withCorrelationId(rt)
+                .info("Got '{}' message. Retrieving requested '{}' Things..",
+                        RetrieveThings.class.getSimpleName(), thingIds.size());
 
         final ActorRef sender = getSender();
         askTargetActor(rt, thingIds, msgToAsk, sender);
     }
 
     private void handleSudoRetrieveThings(final SudoRetrieveThings srt, final Object msgToAsk) {
-        LogUtil.enhanceLogWithCorrelationId(log, srt.getDittoHeaders().getCorrelationId());
         final List<ThingId> thingIds = srt.getThingIds();
-        log.info("Got '{}' message. Retrieving requested '{}' Things..",
-                SudoRetrieveThings.class.getSimpleName(), thingIds.size());
+        log.withCorrelationId(srt)
+                .info("Got '{}' message. Retrieving requested '{}' Things..",
+                        SudoRetrieveThings.class.getSimpleName(), thingIds.size());
 
         final ActorRef sender = getSender();
         askTargetActor(srt, thingIds, msgToAsk, sender);

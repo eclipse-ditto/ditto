@@ -16,7 +16,7 @@ package org.eclipse.ditto.services.connectivity.messaging.backoff;
 import java.time.Duration;
 
 import org.eclipse.ditto.services.connectivity.config.BackOffConfig;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
 import akka.actor.AbstractActor;
 import akka.actor.AbstractActorWithTimers;
@@ -48,7 +48,7 @@ public final class BackOffActor extends AbstractActorWithTimers {
      */
     private static final Object RESET_BACK_OFF = new Object();
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final RetryTimeoutStrategy retryTimeoutStrategy;
 
@@ -106,9 +106,12 @@ public final class BackOffActor extends AbstractActorWithTimers {
         final Duration backOffTimeout = this.retryTimeoutStrategy.getNextTimeout();
         final Duration resetBackOffTimeout = backOffTimeout.multipliedBy(2L);
 
-        log.debug("Going to back off for <{}> until sending answer: <{}>", backOffTimeout, backOffWithAnswer.getAnswer());
+        log.debug("Going to back off for <{}> until sending answer: <{}>", backOffTimeout,
+                backOffWithAnswer.getAnswer());
 
-        this.getTimers().startSingleTimer(InternalTimers.BACK_OFF, new BackOffWithSender<>(getSender(), backOffWithAnswer), backOffTimeout);
+        this.getTimers()
+                .startSingleTimer(InternalTimers.BACK_OFF, new BackOffWithSender<>(getSender(), backOffWithAnswer),
+                        backOffTimeout);
         this.getTimers().startSingleTimer(InternalTimers.RESET_BACK_OFF, RESET_BACK_OFF, resetBackOffTimeout);
     }
 
@@ -136,6 +139,7 @@ public final class BackOffActor extends AbstractActorWithTimers {
      * Response from {@code BackOffActor} if it is currently backing off a message.
      */
     public static class IsInBackOffResponse {
+
         private final boolean isInBackOff;
 
         private IsInBackOffResponse(final boolean isInBackOff) {
@@ -143,7 +147,6 @@ public final class BackOffActor extends AbstractActorWithTimers {
         }
 
         /**
-         *
          * @return {@code true} if currently backing off a message, {@code false} otherwise.
          */
         public boolean isInBackOff() {
@@ -155,12 +158,14 @@ public final class BackOffActor extends AbstractActorWithTimers {
      * Message to ask the {@code BackOffActor} if it is currently backing off a message.
      */
     private static class IsInBackOff {
+
         private static final IsInBackOff INSTANCE = new IsInBackOff();
 
         private IsInBackOff() { }
     }
 
     private static class BackOffWithAnswer<T> {
+
         private final T answer;
 
         private BackOffWithAnswer(final T answer) {
@@ -174,6 +179,7 @@ public final class BackOffActor extends AbstractActorWithTimers {
 
     // does not extend BackOffWithAnswer to not accidentally break the match cases in the receive builder
     private static class BackOffWithSender<T> {
+
         private final ActorRef sender;
         private final T answer;
 

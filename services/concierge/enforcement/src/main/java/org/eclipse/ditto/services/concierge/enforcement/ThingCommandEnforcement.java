@@ -71,7 +71,6 @@ import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.models.policies.PoliciesAclMigrations;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.services.utils.cache.Cache;
@@ -170,9 +169,6 @@ public final class ThingCommandEnforcement
 
     @Override
     public CompletionStage<Contextual<WithDittoHeaders>> enforce() {
-        final ThingCommand<?> signal = signal();
-        LogUtil.enhanceLogWithCorrelationIdOrRandom(signal);
-
         return thingEnforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             try {
                 return doEnforce(enforcerKeyEntry, enforcerEntry);
@@ -698,8 +694,8 @@ public final class ThingCommandEnforcement
                     .dittoHeaders(thingCommand.getDittoHeaders())
                     .build();
             LOGGER.withCorrelationId(dittoHeaders())
-                    .info("Enforcer was not existing for Thing <{}> and no auth info was inlined, responding with: {}",
-                            thingCommand.getThingEntityId(), error);
+                    .info("Enforcer was not existing for Thing <{}> and no auth info was inlined, responding with: {} - {}",
+                            thingCommand.getThingEntityId(), error.getClass().getSimpleName(), error.getMessage());
             throw error;
         }
     }

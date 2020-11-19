@@ -21,6 +21,7 @@ import java.util.stream.IntStream;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
+import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorContext;
@@ -37,14 +38,22 @@ public final class TestPubSubFactory extends AbstractPubSubFactory<String> imple
     private final Collection<Integer> seeds;
 
     private TestPubSubFactory(final ActorContext context, final Class<String> messageClass,
-            final PubSubTopicExtractor<String> topicExtractor) {
-        super(context, messageClass, topicExtractor, PROVIDER, ACKS_PROVIDER);
+            final PubSubTopicExtractor<String> topicExtractor,
+            final AckExtractor<String> ackExtractor,
+            final DistributedAcks distributedAcks) {
+        super(context, messageClass, topicExtractor, PROVIDER, ackExtractor, distributedAcks);
         final PubSubConfig config = PubSubConfig.of(context.system().settings().config().getConfig("ditto.pubsub"));
         seeds = Hashes.digestStringsToIntegers(config.getSeed(), config.getHashFamilySize());
     }
 
-    static TestPubSubFactory of(final ActorContext context) {
-        return new TestPubSubFactory(context, String.class, TestPubSubFactory::getPrefixes);
+    static DistributedAcks startDistributedAcks(final ActorContext context) {
+        return DistributedAcksImpl.create(context, "dc-default", ACKS_PROVIDER);
+    }
+
+    static TestPubSubFactory of(final ActorContext context, final AckExtractor<String> ackExtractor,
+            final DistributedAcks distributedAcks) {
+        return new TestPubSubFactory(context, String.class, TestPubSubFactory::getPrefixes, ackExtractor,
+                distributedAcks);
     }
 
     /**
@@ -62,7 +71,7 @@ public final class TestPubSubFactory extends AbstractPubSubFactory<String> imple
      * @return subscribers of those topics in the distributed data.
      */
     private static <T> CompletionStage<Collection<ActorRef>> getSubscribers(
-            final Collection<String> topics, final DDataReader<T> reader) {
+            final Collection<String> topics, final DDataReader<ActorRef, T> reader) {
         return reader.getSubscribers(topics.stream().map(reader::approximate).collect(Collectors.toSet()));
     }
 

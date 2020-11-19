@@ -540,18 +540,20 @@ public final class InboundDispatchingActor extends AbstractActor
         if (additionalAcknowledgementRequests.isEmpty()) {
             // do not change the signal's header if no additional acknowledgementRequests are defined in the Source
             // to preserve the default behavior for signals without the header 'requested-acks'
-            return filterAcknowledgements(signal, filter, connectionId);
+            return RequestedAcksFilter.filterAcknowledgements(signal, message, filter, connectionId);
         } else {
             // The Source's acknowledgementRequests get appended to the requested-acks DittoHeader of the mapped signal
             final Set<AcknowledgementRequest> combinedRequestedAcks =
                     new HashSet<>(signal.getDittoHeaders().getAcknowledgementRequests());
             combinedRequestedAcks.addAll(additionalAcknowledgementRequests);
 
-            return filterAcknowledgements(signal.setDittoHeaders(
-                    signal.getDittoHeaders()
-                            .toBuilder()
-                            .acknowledgementRequests(combinedRequestedAcks)
-                            .build()),
+            final Signal<?> signalWithCombinedAckRequests = signal.setDittoHeaders(signal.getDittoHeaders()
+                    .toBuilder()
+                    .acknowledgementRequests(combinedRequestedAcks)
+                    .build()
+            );
+            return RequestedAcksFilter.filterAcknowledgements(signalWithCombinedAckRequests,
+                    message,
                     filter,
                     connectionId);
         }
@@ -633,49 +635,6 @@ public final class InboundDispatchingActor extends AbstractActor
             builder.randomCorrelationId();
         }
         return builder;
-    }
-
-    /**
-     * Only used for testing
-     * TODO: Extract logic into separate class and test it there.
-     *
-     * @param signal signal to filter requested acknowledges for
-     * @param filter the filter string
-     * @param connectionId the connection ID receiving the signal.
-     * @return the filtered signal.
-     */
-    static Signal<?> filterAcknowledgements(final Signal<?> signal, final @Nullable String filter,
-            final ConnectionId connectionId) {
-        if (filter != null) {
-            final String requestedAcks = DittoHeaderDefinition.REQUESTED_ACKS.getKey();
-            final boolean headerDefined = signal.getDittoHeaders().containsKey(requestedAcks);
-            final String fullFilter = "header:" + requestedAcks + "|fn:default('[]')|" + filter;
-            final ExpressionResolver resolver = Resolvers.forSignal(signal, connectionId);
-            final Optional<String> resolverResult = resolver.resolveAsPipelineElement(fullFilter).toOptional();
-            if (resolverResult.isEmpty()) {
-                // filter tripped: set requested-acks to []
-                return signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
-                        .acknowledgementRequests(Collections.emptySet())
-                        .build());
-            } else if (headerDefined) {
-                // filter not tripped, header defined
-                return signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
-                        .putHeader(requestedAcks, resolverResult.orElseThrow())
-                        .build());
-            } else {
-                // filter not tripped, header not defined:
-                // - evaluate filter again against unresolved and set requested-acks accordingly
-                // - if filter is not resolved, then keep requested-acks undefined for the default behavior
-                final Optional<String> unsetFilterResult =
-                        resolver.resolveAsPipelineElement(filter).toOptional();
-                return unsetFilterResult.<Signal<?>>map(newAckRequests ->
-                        signal.setDittoHeaders(DittoHeaders.newBuilder(signal.getDittoHeaders())
-                                .putHeader(requestedAcks, newAckRequests)
-                                .build()))
-                        .orElse(signal);
-            }
-        }
-        return signal;
     }
 
     /**

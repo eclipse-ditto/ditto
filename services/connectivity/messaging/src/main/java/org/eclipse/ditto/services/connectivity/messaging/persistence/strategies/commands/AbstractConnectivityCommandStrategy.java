@@ -85,7 +85,8 @@ abstract class AbstractConnectivityCommandStrategy<C extends ConnectivityCommand
             final Exception error) {
         final DittoRuntimeException dre =
                 toDittoRuntimeException(error, context.getState().id(), command.getDittoHeaders());
-        context.getLog().info("Operation <{}> failed due to <{}>", command, dre);
+        context.getLog().withCorrelationId(dre)
+                .info("Operation <{}> failed due to <{}>", command, dre);
         context.getState()
                 .getConnectionLogger()
                 .failure("Operation {0} failed due to {1}", command.getType(), dre.getMessage());

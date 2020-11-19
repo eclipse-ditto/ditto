@@ -21,7 +21,6 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cache.CacheLookupContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,22 +64,13 @@ final class PolicyCommandFactory {
                                 .authorizationContext(headers.getAuthorizationContext())
                                 .schemaVersion(headers.getImplementedSchemaVersion())
                                 .correlationId("sudoRetrievePolicy-" +
-                                        headers.getCorrelationId().orElseGet(() -> getCorrelationId(policyId)))
+                                        headers.getCorrelationId().orElseGet(() -> UUID.randomUUID().toString()))
                                 .build()
                         )
                         .orElseGet(() ->
                                 DittoHeaders.newBuilder()
-                                        .correlationId("sudoRetrievePolicy-" + getCorrelationId(policyId))
+                                        .correlationId("sudoRetrievePolicy-" + UUID.randomUUID().toString())
                                         .build()));
-    }
-
-    private static String getCorrelationId(final PolicyId policyId) {
-        return LogUtil.getCorrelationId(() -> {
-            final String correlationId = UUID.randomUUID().toString();
-            LOGGER.debug("Found no correlation-id for SudoRetrievePolicy on Policy <{}>. " +
-                    "Using new correlation-id: {}", policyId, correlationId);
-            return correlationId;
-        });
     }
 
 }

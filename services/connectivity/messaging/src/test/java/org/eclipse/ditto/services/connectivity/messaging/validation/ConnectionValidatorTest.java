@@ -37,6 +37,7 @@ import java.util.stream.IntStream;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.connectivity.ClientCertificateCredentials;
@@ -76,7 +77,7 @@ import akka.http.javadsl.model.Uri;
 import akka.testkit.javadsl.TestKit;
 
 /**
- * Tests {@link org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator}.
+ * Tests {@link ConnectionValidator}.
  */
 public class ConnectionValidatorTest {
 
@@ -134,7 +135,7 @@ public class ConnectionValidatorTest {
     @Test
     public void rejectConnectionWithSourceWithoutAddresses() {
         final Connection connection = createConnection(CONNECTION_ID).toBuilder()
-                .sources(singletonList(
+                .setSources(singletonList(
                         ConnectivityModelFactory.newSourceBuilder()
                                 .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
                                 .consumerCount(0)
@@ -150,7 +151,7 @@ public class ConnectionValidatorTest {
     @Test
     public void rejectConnectionWithInvalidSourceDeclaredAcks() {
         final Connection connection = createConnection(CONNECTION_ID).toBuilder()
-                .sources(TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS.stream()
+                .setSources(TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS.stream()
                         .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
                                 .declaredAcknowledgementLabels(Set.of(AcknowledgementLabel.of("ack")))
                                 .build())
@@ -166,7 +167,7 @@ public class ConnectionValidatorTest {
     @Test
     public void acceptConnectionWithPlaceholderPrefixedSourceDeclaredAck() {
         final Connection connection = createConnection(CONNECTION_ID).toBuilder()
-                .sources(TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS.stream()
+                .setSources(TestConstants.Sources.SOURCES_WITH_SAME_ADDRESS.stream()
                         .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
                                 .declaredAcknowledgementLabels(Set.of(AcknowledgementLabel.of("{{connection:id}}:ack")))
                                 .build())
@@ -184,7 +185,7 @@ public class ConnectionValidatorTest {
         final Connection connection =
                 ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_10,
                         ConnectivityStatus.OPEN, "amqp://localhost:5671")
-                        .sources(getListFromFunction(
+                        .setSources(getListFromFunction(
                                 () -> ConnectivityModelFactory.newSourceBuilder()
                                         .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
                                         .consumerCount(0)
@@ -203,7 +204,7 @@ public class ConnectionValidatorTest {
         final Connection connection =
                 ConnectivityModelFactory.newConnectionBuilder(CONNECTION_ID, ConnectionType.AMQP_10,
                         ConnectivityStatus.OPEN, "amqp://localhost:5671")
-                        .targets(getListFromFunction(
+                        .setTargets(getListFromFunction(
                                 () -> ConnectivityModelFactory.newTargetBuilder()
                                         .address("")
                                         .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
@@ -227,7 +228,7 @@ public class ConnectionValidatorTest {
     @Test
     public void rejectConnectionWithEmptySourceAddress() {
         final Connection connection = createConnection(CONNECTION_ID).toBuilder()
-                .sources(singletonList(
+                .setSources(singletonList(
                         ConnectivityModelFactory.newSourceBuilder()
                                 .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
                                 .address("")
@@ -244,7 +245,7 @@ public class ConnectionValidatorTest {
     @Test
     public void rejectConnectionWithEmptyTargetAddress() {
         final Connection connection = createConnection(CONNECTION_ID).toBuilder()
-                .targets(Collections.singletonList(ConnectivityModelFactory.newTargetBuilder()
+                .setTargets(Collections.singletonList(ConnectivityModelFactory.newTargetBuilder()
                         .address("")
                         .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
                         .topics(Topic.LIVE_MESSAGES)
@@ -268,6 +269,21 @@ public class ConnectionValidatorTest {
 
         final ConnectionValidator underTest = getConnectionValidator();
         assertThatExceptionOfType(AcknowledgementLabelInvalidException.class)
+                .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
+    }
+
+    @Test
+    public void rejectConnectionWithDuplicatedTargetIssuedAck() {
+        final Connection connection = createConnection(CONNECTION_ID).toBuilder()
+                .setTargets(TestConstants.Targets.TARGETS.stream()
+                        .map(target -> ConnectivityModelFactory.newTargetBuilder(target)
+                                .issuedAcknowledgementLabel(AcknowledgementLabel.of("{{connection:id}}:ack"))
+                                .build())
+                        .collect(Collectors.toList()))
+                .build();
+
+        final ConnectionValidator underTest = getConnectionValidator();
+        assertThatExceptionOfType(AcknowledgementLabelNotUniqueException.class)
                 .isThrownBy(() -> underTest.validate(connection, DittoHeaders.empty(), actorSystem));
     }
 

@@ -42,10 +42,11 @@ import akka.japi.pf.ReceiveBuilder;
  * Abstract super class of SubUpdater and AcksUpdater.
  * Implement the logic to aggregate subscription changes and to replicate the changes each clock tick.
  *
+ * @param <K> type of keys of the distributed multimap.
  * @param <T> type of topics in the distributed data.
  * @param <P> type of payload of DDataOpSuccess messages.
  */
-public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
+public abstract class AbstractUpdater<K, T, P> extends AbstractActorWithTimers {
 
     // pseudo-random number generator for force updates. quality matters little.
     private final Random random = new Random();
@@ -54,8 +55,8 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
 
     protected final PubSubConfig config;
     protected final Subscriptions<T> subscriptions;
-    protected final DDataWriter<T> topicsWriter;
-    protected final ActorRef subscriber;
+    protected final DDataWriter<K, T> topicsWriter;
+    protected final K subscriber;
 
     protected final Gauge topicMetric;
     protected final Gauge awaitUpdateMetric;
@@ -74,7 +75,7 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
     /**
      * Write consistency of the next message to the replicator.
      */
-    protected Replicator.WriteConsistency nextWriteConsistency = Replicator.writeLocal();
+    protected Replicator.WriteConsistency nextWriteConsistency = (Replicator.WriteConsistency) Replicator.writeLocal();
 
     /**
      * Whether local subscriptions changed.
@@ -85,9 +86,9 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
 
     protected AbstractUpdater(final String actorNamePrefix,
             final PubSubConfig config,
-            final ActorRef subscriber,
+            final K subscriber,
             final Subscriptions<T> subscriptions,
-            final DDataWriter<T> topicsWriter) {
+            final DDataWriter<K, T> topicsWriter) {
         this.config = config;
         this.subscriber = subscriber;
         this.subscriptions = subscriptions;
@@ -224,7 +225,7 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
     }
 
     /**
-     * Handle thje result of a distributed data write by sending a report to self.
+     * Handle the result of a distributed data write by sending a report to self.
      *
      * @param lastSeqNr the final sequence number of this update.
      * @param writeConsistency the write consistency of this update.
@@ -258,7 +259,7 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
         doRemoveSubscriber(request.getSubscriber());
     }
 
-    private void doRemoveSubscriber(final ActorRef subscriber) {
+    protected void doRemoveSubscriber(final ActorRef subscriber) {
         localSubscriptionsChanged |= subscriptions.removeSubscriber(subscriber);
         getContext().unwatch(subscriber);
     }
@@ -291,14 +292,32 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
     /**
      * Super class of subscription requests.
      */
-    public abstract static class Request {
+    public interface Request {
+
+        /**
+         * @return topics in the subscription.
+         */
+        Set<String> getTopics();
+
+        /**
+         * @return write consistency for the request.
+         */
+        Replicator.WriteConsistency getWriteConsistency();
+
+        /**
+         * @return whether acknowledgement is expected.
+         */
+        boolean shouldAcknowledge();
+    }
+
+    private abstract static class AbstractRequest implements Request {
 
         private final Set<String> topics;
         private final ActorRef subscriber;
         private final Replicator.WriteConsistency writeConsistency;
         private final boolean acknowledge;
 
-        private Request(final Set<String> topics,
+        private AbstractRequest(final Set<String> topics,
                 final ActorRef subscriber,
                 final Replicator.WriteConsistency writeConsistency,
                 final boolean acknowledge) {
@@ -351,7 +370,7 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
     /**
      * Request to subscribe to topics.
      */
-    public static final class Subscribe extends Request {
+    public static final class Subscribe extends AbstractRequest {
 
         private static final Predicate<Collection<String>> CONSTANT_TRUE = topics -> true;
 
@@ -406,7 +425,7 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
     /**
      * Request to unsubscribe to topics.
      */
-    public static final class Unsubscribe extends Request {
+    public static final class Unsubscribe extends AbstractRequest {
 
         private Unsubscribe(final Set<String> topics, final ActorRef subscriber,
                 final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
@@ -431,14 +450,12 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
     /**
      * Request to remove a subscriber.
      */
-    public static final class RemoveSubscriber extends Request {
+    public static final class RemoveSubscriber extends AbstractRequest {
 
-        private final boolean forAcknowledgementLabelDeclaration;
-
-        private RemoveSubscriber(final ActorRef subscriber, final Replicator.WriteConsistency writeConsistency,
-                final boolean acknowledge, final boolean forAcknowledgementLabelDeclaration) {
+        private RemoveSubscriber(final ActorRef subscriber,
+                final Replicator.WriteConsistency writeConsistency,
+                final boolean acknowledge) {
             super(Collections.emptySet(), subscriber, writeConsistency, acknowledge);
-            this.forAcknowledgementLabelDeclaration = forAcknowledgementLabelDeclaration;
         }
 
         /**
@@ -451,26 +468,9 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
          */
         public static RemoveSubscriber of(final ActorRef subscriber,
                 final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
-            return new RemoveSubscriber(subscriber, writeConsistency, acknowledge, false);
+            return new RemoveSubscriber(subscriber, writeConsistency, acknowledge);
         }
 
-        /**
-         * Create a copy of this request with 'forAcknowledgementLabelDeclaration' set to true.
-         *
-         * @return the copy.
-         */
-        public RemoveSubscriber forAcknowledgementLabelDeclaration() {
-            return new RemoveSubscriber(getSubscriber(), getWriteConsistency(), shouldAcknowledge(), true);
-        }
-
-        /**
-         * Check whether this request is for acknowledgement declaration.
-         *
-         * @return if this request is for acknowledgement declaration.
-         */
-        public boolean isForAcknowledgementLabelDeclaration() {
-            return forAcknowledgementLabelDeclaration;
-        }
     }
 
     /**
@@ -529,43 +529,6 @@ public abstract class AbstractUpdater<T, P> extends AbstractActorWithTimers {
          * Clock tick to update distributed data.
          */
         TICK
-    }
-
-    /**
-     * Message to declare ack labels for a subscriber.
-     */
-    public static final class DeclareAckLabels extends Request {
-
-        private DeclareAckLabels(final Set<String> ackLabels,
-                final ActorRef subscriber,
-                final Replicator.WriteConsistency writeConsistency,
-                final boolean acknowledge) {
-
-            super(ackLabels, subscriber, writeConsistency, acknowledge);
-        }
-
-        /**
-         * Create a message to declare unique ack labels for a subscriber.
-         *
-         * @param ackLabels what ack labels to declare.
-         * @param subscriber the subscriber.
-         * @param writeConsistency write consistency for the distributed data.
-         * @param acknowledge whether SubAck is expected.
-         * @return the message to declare ack labels.
-         */
-        public static DeclareAckLabels of(final Set<String> ackLabels, final ActorRef subscriber,
-                final Replicator.WriteConsistency writeConsistency, final boolean acknowledge) {
-            return new DeclareAckLabels(ackLabels, subscriber, writeConsistency, acknowledge);
-        }
-
-        /**
-         * Convert this message to a Subscribe message for an AbstractUpdater.
-         *
-         * @return the equivalent AbstractUpdater.Subscribe message.
-         */
-        public Subscribe toSubscribe() {
-            return Subscribe.of(getTopics(), getSubscriber(), getWriteConsistency(), shouldAcknowledge());
-        }
     }
 
     /**

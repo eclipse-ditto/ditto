@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.ddata;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -33,11 +34,14 @@ class DefaultAkkaReplicatorConfig implements AkkaReplicatorConfig {
 
     private final String name;
     private final String role;
+    private final Duration notifySubscribersInterval;
     private final Config config;
 
     private DefaultAkkaReplicatorConfig(final Config config) {
         name = config.getString(AkkaReplicatorConfigValue.NAME.getConfigPath());
         role = config.getString(AkkaReplicatorConfigValue.ROLE.getConfigPath());
+        notifySubscribersInterval =
+                config.getDuration(AkkaReplicatorConfigValue.NOTIFY_SUBSCRIBERS_INTERVAL.getConfigPath());
         this.config = config;
     }
 
@@ -92,6 +96,11 @@ class DefaultAkkaReplicatorConfig implements AkkaReplicatorConfig {
     }
 
     @Override
+    public Duration getNotifySubscribersInterval() {
+        return notifySubscribersInterval;
+    }
+
+    @Override
     public Config getCompleteConfig() {
         return config;
     }
@@ -107,12 +116,13 @@ class DefaultAkkaReplicatorConfig implements AkkaReplicatorConfig {
         final DefaultAkkaReplicatorConfig that = (DefaultAkkaReplicatorConfig) o;
         return Objects.equals(config, that.config) &&
                 Objects.equals(name, that.name) &&
-                Objects.equals(role, that.role);
+                Objects.equals(role, that.role) &&
+                Objects.equals(notifySubscribersInterval, that.notifySubscribersInterval);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(config, name, role);
+        return Objects.hash(config, name, role, notifySubscribersInterval);
     }
 
     @Override
@@ -121,6 +131,7 @@ class DefaultAkkaReplicatorConfig implements AkkaReplicatorConfig {
                 "name=" + name +
                 ", role=" + role +
                 ", config=" + config +
+                ", notifySubscribersInterval=" + notifySubscribersInterval +
                 "]";
     }
 }

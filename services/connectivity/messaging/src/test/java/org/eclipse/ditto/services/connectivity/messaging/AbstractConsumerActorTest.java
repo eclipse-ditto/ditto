@@ -348,8 +348,7 @@ public abstract class AbstractConsumerActorTest<M> {
         }};
     }
 
-    private ActorRef setupMessageMappingProcessorActor(final ActorRef clientActor,
-            final ActorRef proxyActor) {
+    private ActorRef setupMessageMappingProcessorActor(final ActorRef clientActor, final ActorRef proxyActor) {
 
         final Map<String, MappingContext> mappings = new HashMap<>();
         mappings.put("ditto", DittoMessageMapper.CONTEXT);
@@ -377,9 +376,7 @@ public abstract class AbstractConsumerActorTest<M> {
                 connectivityConfig,
                 protocolAdapter,
                 logger);
-        final OutboundMappingProcessor outboundMappingProcessor = OutboundMappingProcessor.of(CONNECTION_ID,
-                CONNECTION.getConnectionType(),
-                payloadMappingDefinition,
+        final OutboundMappingProcessor outboundMappingProcessor = OutboundMappingProcessor.of(CONNECTION,
                 actorSystem,
                 connectivityConfig,
                 protocolAdapter,

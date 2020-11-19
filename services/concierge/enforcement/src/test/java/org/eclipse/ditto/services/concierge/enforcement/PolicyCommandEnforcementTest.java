@@ -159,7 +159,9 @@ public final class PolicyCommandEnforcementTest {
 
             enforcer.tell(createPolicy, getRef());
 
-            policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
+            final SudoRetrievePolicy sudoRetrievePolicy =
+                    policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policiesShardRegionProbe.lastSender()
                     .tell(PolicyNotAccessibleException.newBuilder(POLICY_ID).build(),
                             policiesShardRegionProbe.ref());
@@ -179,7 +181,9 @@ public final class PolicyCommandEnforcementTest {
 
             enforcer.tell(createPolicy, getRef());
 
-            policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
+            final SudoRetrievePolicy sudoRetrievePolicy =
+                    policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policiesShardRegionProbe.lastSender()
                     .tell(createPolicyResponseWithoutWrite(), policiesShardRegionProbe.ref());
 
@@ -194,7 +198,9 @@ public final class PolicyCommandEnforcementTest {
 
             enforcer.tell(modifyPolicy, getRef());
 
-            policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
+            final SudoRetrievePolicy sudoRetrievePolicy =
+                    policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policiesShardRegionProbe.lastSender().tell(createDefaultPolicyResponse(), policiesShardRegionProbe.ref());
 
             policiesShardRegionProbe.expectMsg(modifyPolicy);
@@ -211,7 +217,9 @@ public final class PolicyCommandEnforcementTest {
             // GIVEN: authorized modify policy command is forwarded and response is received
             final ModifyPolicy modifyPolicy = ModifyPolicy.of(POLICY_ID, POLICY, DITTO_HEADERS);
             enforcer.tell(modifyPolicy, getRef());
-            policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
+            final SudoRetrievePolicy sudoRetrievePolicy =
+                    policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policiesShardRegionProbe.lastSender().tell(createDefaultPolicyResponse(), policiesShardRegionProbe.ref());
             policiesShardRegionProbe.expectMsg(modifyPolicy);
             final ModifyPolicyResponse mockResponse = ModifyPolicyResponse.modified(POLICY_ID, DITTO_HEADERS);
@@ -222,7 +230,9 @@ public final class PolicyCommandEnforcementTest {
             enforcer.tell(modifyPolicy, getRef());
 
             // THEN: cache is reloaded; expect SudoRetrievePolicy and not any other command
-            policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
+            final SudoRetrievePolicy sudoRetrievePolicy2 =
+                    policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            assertThat((CharSequence) sudoRetrievePolicy2.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policiesShardRegionProbe.lastSender().tell(createDefaultPolicyResponse(), policiesShardRegionProbe.ref());
             policiesShardRegionProbe.expectMsg(modifyPolicy);
         }};
@@ -235,7 +245,9 @@ public final class PolicyCommandEnforcementTest {
 
             enforcer.tell(modifyPolicy, getRef());
 
-            policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
+            final SudoRetrievePolicy sudoRetrievePolicy =
+                    policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policiesShardRegionProbe.lastSender()
                     .tell(createPolicyResponseWithoutWrite(), policiesShardRegionProbe.ref());
 
@@ -250,7 +262,9 @@ public final class PolicyCommandEnforcementTest {
 
             enforcer.tell(modifyPolicy, getRef());
 
-            policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
+            final SudoRetrievePolicy sudoRetrievePolicy =
+                    policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policiesShardRegionProbe.lastSender().tell(PolicyNotAccessibleException.newBuilder(POLICY_ID).build(),
                     policiesShardRegionProbe.ref());
 
@@ -272,7 +286,9 @@ public final class PolicyCommandEnforcementTest {
 
             enforcer.tell(modifyPolicyEntries, getRef());
 
-            policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
+            final SudoRetrievePolicy sudoRetrievePolicy =
+                    policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policiesShardRegionProbe.lastSender().tell(createDefaultPolicyResponse(), policiesShardRegionProbe.ref());
 
             policiesShardRegionProbe.expectMsg(modifyPolicyEntries);
@@ -293,7 +309,9 @@ public final class PolicyCommandEnforcementTest {
 
             enforcer.tell(modifyPolicyEntries, getRef());
 
-            policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
+            final SudoRetrievePolicy sudoRetrievePolicy =
+                    policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policiesShardRegionProbe.lastSender()
                     .tell(createPolicyResponseWithoutWriteOnEntries(), policiesShardRegionProbe.ref());
 
@@ -308,7 +326,9 @@ public final class PolicyCommandEnforcementTest {
 
             enforcer.tell(retrievePolicy, getRef());
 
-            policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
+            final SudoRetrievePolicy sudoRetrievePolicy =
+                    policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policiesShardRegionProbe.lastSender().tell(createDefaultPolicyResponse(), policiesShardRegionProbe.ref());
 
             policiesShardRegionProbe.expectMsg(retrievePolicy);
@@ -332,7 +352,9 @@ public final class PolicyCommandEnforcementTest {
 
             enforcer.tell(retrievePolicy, getRef());
 
-            policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
+            final SudoRetrievePolicy sudoRetrievePolicy =
+                    policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policiesShardRegionProbe.lastSender().tell(createDefaultPolicyResponse(), policiesShardRegionProbe.ref());
 
             policiesShardRegionProbe.expectMsg(retrievePolicy);
@@ -353,9 +375,10 @@ public final class PolicyCommandEnforcementTest {
 
             enforcer.tell(retrievePolicy, getRef());
 
-            policiesShardRegionProbe.expectMsg(
+            final SudoRetrievePolicy sudoRetrievePolicy = policiesShardRegionProbe.expectMsgClass(
                     FiniteDuration.apply(dilated(Duration.ofSeconds(5)).toMillis(), TimeUnit.MILLISECONDS),
-                    SUDO_RETRIEVE_POLICY);
+                    SudoRetrievePolicy.class);
+            assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policiesShardRegionProbe.lastSender()
                     .tell(createPolicyResponseWithoutReadOnEntries(), policiesShardRegionProbe.ref());
 
@@ -379,7 +402,9 @@ public final class PolicyCommandEnforcementTest {
 
             enforcer.tell(retrievePolicy, getRef());
 
-            policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
+            final SudoRetrievePolicy sudoRetrievePolicy =
+                    policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policiesShardRegionProbe.lastSender()
                     .tell(createPolicyResponseWithOnlyReadOnEntries(), policiesShardRegionProbe.ref());
 
@@ -411,7 +436,9 @@ public final class PolicyCommandEnforcementTest {
 
             enforcer.tell(retrievePolicy, getRef());
 
-            policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
+            final SudoRetrievePolicy sudoRetrievePolicy =
+                    policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policiesShardRegionProbe.lastSender()
                     .tell(createPolicyResponseWithoutRead(), policiesShardRegionProbe.ref());
 
@@ -426,7 +453,9 @@ public final class PolicyCommandEnforcementTest {
 
             enforcer.tell(retrievePolicy, getRef());
 
-            policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
+            final SudoRetrievePolicy sudoRetrievePolicy =
+                    policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policiesShardRegionProbe.lastSender()
                     .tell(PolicyNotAccessibleException.newBuilder(POLICY_ID).build(), policiesShardRegionProbe.ref());
 
@@ -442,7 +471,9 @@ public final class PolicyCommandEnforcementTest {
 
             enforcer.tell(retrievePolicyEntries, getRef());
 
-            policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
+            final SudoRetrievePolicy sudoRetrievePolicy =
+                    policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policiesShardRegionProbe.lastSender().tell(createDefaultPolicyResponse(), policiesShardRegionProbe.ref());
 
             policiesShardRegionProbe.expectMsg(retrievePolicyEntries);
@@ -462,7 +493,9 @@ public final class PolicyCommandEnforcementTest {
 
             enforcer.tell(retrievePolicyEntries, getRef());
 
-            policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
+            final SudoRetrievePolicy sudoRetrievePolicy =
+                    policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policiesShardRegionProbe.lastSender()
                     .tell(createPolicyResponseWithoutReadOnEntries(), policiesShardRegionProbe.ref());
 
@@ -477,7 +510,9 @@ public final class PolicyCommandEnforcementTest {
 
             enforcer.tell(createPolicy, getRef());
 
-            policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
+            final SudoRetrievePolicy sudoRetrievePolicy =
+                    policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policiesShardRegionProbe.lastSender()
                     .tell(createPolicyResponseWithoutWrite(), policiesShardRegionProbe.ref());
 
@@ -529,7 +564,9 @@ public final class PolicyCommandEnforcementTest {
 
             enforcer.tell(createPolicy, getRef());
 
-            policiesShardRegionProbe.expectMsg(SUDO_RETRIEVE_POLICY);
+            final SudoRetrievePolicy sudoRetrievePolicy =
+                    policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            assertThat((CharSequence) sudoRetrievePolicy.getEntityId()).isEqualTo(SUDO_RETRIEVE_POLICY.getEntityId());
             policiesShardRegionProbe.lastSender()
                     .tell(PolicyNotAccessibleException.newBuilder(POLICY_ID).build(),
                             policiesShardRegionProbe.ref());

@@ -47,6 +47,7 @@ import org.eclipse.ditto.services.utils.cacheloaders.ThingEnforcementIdCacheLoad
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
@@ -241,6 +242,12 @@ public final class TestSetup {
                 public Object wrapForPublication(final Command message) {
                     return DistPubSubAccess.publish(StreamingType.LIVE_COMMANDS.getDistributedPubSubTopic(), message);
                 }
+
+                @Override
+                public <S extends Command> Object wrapForPublicationWithAcks(final S message,
+                        final AckExtractor<S> ackExtractor) {
+                    return wrapForPublication(message);
+                }
             };
         }
 
@@ -256,12 +263,19 @@ public final class TestSetup {
                 public Object wrapForPublication(final Event message) {
                     return DistPubSubAccess.publish(StreamingType.LIVE_EVENTS.getDistributedPubSubTopic(), message);
                 }
+
+                @Override
+                public <S extends Event> Object wrapForPublicationWithAcks(final S message,
+                        final AckExtractor<S> ackExtractor) {
+                    return wrapForPublication(message);
+                }
             };
         }
 
         @Override
         public DistributedPub<Signal> message() {
             return new DistributedPub<>() {
+
                 @Override
                 public ActorRef getPublisher() {
                     return pubSubMediator;
@@ -270,6 +284,12 @@ public final class TestSetup {
                 @Override
                 public Object wrapForPublication(final Signal message) {
                     return DistPubSubAccess.publish(StreamingType.MESSAGES.getDistributedPubSubTopic(), message);
+                }
+
+                @Override
+                public <S extends Signal> Object wrapForPublicationWithAcks(final S message,
+                        final AckExtractor<S> ackExtractor) {
+                    return wrapForPublication(message);
                 }
             };
         }

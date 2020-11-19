@@ -79,6 +79,9 @@ public final class DefaultAkkaReplicatorConfigTest {
         softly.assertThat(underTest.getRole())
                 .as(AkkaReplicatorConfig.AkkaReplicatorConfigValue.ROLE.getConfigPath())
                 .isEqualTo("a-role");
+        softly.assertThat(underTest.getNotifySubscribersInterval())
+                .as(AkkaReplicatorConfig.AkkaReplicatorConfigValue.NOTIFY_SUBSCRIBERS_INTERVAL.getConfigPath())
+                .isEqualTo(Duration.ofSeconds(1));
     }
 
     @Test

@@ -135,7 +135,6 @@ public final class InboundMappingProcessor
         );
     }
 
-
     private Stream<MappingOutcome<MappedInboundExternalMessage>> runMapper(final MessageMapper mapper,
             final ExternalMessage message,
             final MappingTimer timer) {
@@ -214,8 +213,7 @@ public final class InboundMappingProcessor
                 .ifPresent(obj -> obj.forEach(field -> {
                     try {
                         final JsonValue value = field.getValue();
-                        headersBuilder.putHeader(field.getKey(),
-                                value.isString() ? value.asString() : value.toString());
+                        headersBuilder.putHeader(field.getKey(), value.formatAsString());
                     } catch (final Exception e) {
                         // ignore this single invalid header
                         logger.info("Putting a (payload) header resulted in an exception: {} - {}",

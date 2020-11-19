@@ -18,7 +18,8 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.services.models.concierge.ConciergeWrapper;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.base.Signal;
 
@@ -26,7 +27,6 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.cluster.pubsub.DistributedPubSubMediator;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -41,7 +41,7 @@ public class ConciergeForwarderActor extends AbstractActor {
      */
     public static final String ACTOR_NAME = "conciergeForwarder";
 
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final ActorRef pubSubMediator;
     private final ActorRef conciergeEnforcer;
@@ -104,20 +104,20 @@ public class ConciergeForwarderActor extends AbstractActor {
 
         final Signal<?> transformedSignal = signalTransformer.apply(signal);
 
-        LogUtil.enhanceLogWithCorrelationId(log, signal);
         final EntityId signalId = transformedSignal.getEntityId();
         final String signalType = transformedSignal.getType();
+        final DittoDiagnosticLoggingAdapter l = log.withCorrelationId(signal);
         if (signalId.isDummy()) {
-            log.info("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor", signalType);
-            log.debug("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor: <{}>",
+            l.info("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor", signalType);
+            l.debug("Sending signal without ID and type <{}> via pubSub to concierge-dispatcherActor: <{}>",
                     signalType, transformedSignal);
             final DistributedPubSubMediator.Send msg = wrapForPubSub(transformedSignal);
-            log.debug("Forwarding message to concierge-dispatcherActor via pub/sub: <{}>.", msg);
+            l.debug("Forwarding message to concierge-dispatcherActor via pub/sub: <{}>.", msg);
             pubSubMediator.forward(msg, ctx);
         } else {
-            log.info("Forwarding signal with ID <{}> and type <{}> to concierge enforcer", signalId, signalType);
+            l.info("Forwarding signal with ID <{}> and type <{}> to concierge enforcer", signalId, signalType);
             final Object msg = ConciergeWrapper.wrapForEnforcerRouter(transformedSignal);
-            log.debug("Forwarding message to concierge enforcer: <{}>", msg);
+            l.debug("Forwarding message to concierge enforcer: <{}>", msg);
             conciergeEnforcer.forward(msg, ctx);
         }
     }

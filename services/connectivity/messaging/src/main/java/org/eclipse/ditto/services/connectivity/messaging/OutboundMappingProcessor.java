@@ -12,12 +12,9 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import static org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator.resolveConnectionIdPlaceholder;
-
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -26,8 +23,11 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -44,6 +44,7 @@ import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.mappingoutcome.MappingOutcome;
+import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
@@ -61,24 +62,28 @@ import akka.actor.ActorSystem;
 public final class OutboundMappingProcessor extends AbstractMappingProcessor<OutboundSignal, OutboundSignal.Mapped> {
 
     private final ProtocolAdapter protocolAdapter;
+    private final Set<AcknowledgementLabel> sourceDeclaredAcks;
+    private final Set<AcknowledgementLabel> targetIssuedAcks;
 
     private OutboundMappingProcessor(final ConnectionId connectionId,
             final ConnectionType connectionType,
             final MessageMapperRegistry registry,
             final ThreadSafeDittoLoggingAdapter logger,
-            final ProtocolAdapter protocolAdapter) {
+            final ProtocolAdapter protocolAdapter,
+            final Set<AcknowledgementLabel> sourceDeclaredAcks,
+            final Set<AcknowledgementLabel> targetIssuedAcks) {
 
         super(registry, logger, connectionId, connectionType);
         this.protocolAdapter = protocolAdapter;
+        this.sourceDeclaredAcks = sourceDeclaredAcks;
+        this.targetIssuedAcks = targetIssuedAcks;
     }
 
     /**
      * Initializes a new command processor with mappers defined in mapping mappingContext.
      * The dynamic access is needed to instantiate message mappers for an actor system.
      *
-     * @param connectionId the connection ID that the processor works for.
-     * @param connectionType the type of the connection that the processor works for.
-     * @param mappingDefinition the configured mappings used by this processor
+     * @param connection the connection that the processor works for.
      * @param actorSystem the dynamic access used for message mapper instantiation.
      * @param connectivityConfig the configuration settings of the Connectivity service.
      * @param protocolAdapter the ProtocolAdapter to be used.
@@ -89,13 +94,23 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
      * @throws org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException if the configuration of
      * one of the {@code mappingContext} failed for a mapper specific reason.
      */
-    public static OutboundMappingProcessor of(final ConnectionId connectionId,
-            final ConnectionType connectionType,
-            final PayloadMappingDefinition mappingDefinition,
+    public static OutboundMappingProcessor of(final Connection connection,
             final ActorSystem actorSystem,
             final ConnectivityConfig connectivityConfig,
             final ProtocolAdapter protocolAdapter,
             final ThreadSafeDittoLoggingAdapter logger) {
+
+        final ConnectionId connectionId = connection.getId();
+        final ConnectionType connectionType = connection.getConnectionType();
+        final PayloadMappingDefinition mappingDefinition = connection.getPayloadMappingDefinition();
+        final Set<AcknowledgementLabel> sourceDeclaredAcks =
+                ConnectionValidator.getSourceDeclaredAcknowledgementLabels(connectionId, connection.getSources())
+                        .collect(Collectors.toSet());
+        final Set<AcknowledgementLabel> targetIssuedAcks =
+                ConnectionValidator.getTargetIssuedAcknowledgementLabels(connectionId, connection.getTargets())
+                        // live response does not require a weak ack
+                        .filter(ackLabel -> !DittoAcknowledgementLabel.LIVE_RESPONSE.equals(ackLabel))
+                        .collect(Collectors.toSet());
 
         final ThreadSafeDittoLoggingAdapter loggerWithConnectionId =
                 logger.withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
@@ -107,7 +122,19 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
                 messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, mappingDefinition);
 
         return new OutboundMappingProcessor(connectionId, connectionType, registry, loggerWithConnectionId,
-                protocolAdapter);
+                protocolAdapter, sourceDeclaredAcks, targetIssuedAcks);
+    }
+
+    boolean isSourceDeclaredAck(final AcknowledgementLabel label) {
+        return sourceDeclaredAcks.contains(label);
+    }
+
+    boolean isTargetIssuedAck(final AcknowledgementLabel label) {
+        return targetIssuedAcks.contains(label);
+    }
+
+    boolean isSourceDeclaredOrTargetIssuedAck(final AcknowledgementLabel label) {
+        return isSourceDeclaredAck(label) || isTargetIssuedAck(label);
     }
 
     /**
@@ -149,19 +176,13 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
 
         final MappingTimer timer = MappingTimer.outbound(connectionId, connectionType);
 
-        final Set<AcknowledgementLabel> issuedAckLabels = outboundSignal.getTargets()
-                .stream()
-                .map(Target::getIssuedAcknowledgementLabel)
-                .flatMap(Optional::stream)
-                .map(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
-                .flatMap(Optional::stream)
-                .collect(Collectors.toSet());
-
+        final DittoHeaders dittoHeaders = outboundSignal.getSource().getDittoHeaders();
         final Signal<?> signalToMap;
-        if (!issuedAckLabels.isEmpty()) {
-            final DittoHeaders dittoHeaders = outboundSignal.getSource().getDittoHeaders();
-            final Set<AcknowledgementRequest> publishedAckRequests = dittoHeaders.getAcknowledgementRequests();
-            publishedAckRequests.removeIf(ackRequest -> issuedAckLabels.contains(ackRequest.getLabel()));
+        if (dittoHeaders.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey())) {
+            final Set<AcknowledgementRequest> publishedAckRequests = dittoHeaders.getAcknowledgementRequests()
+                    .stream()
+                    .filter(ackRequest -> isSourceDeclaredAck(ackRequest.getLabel()))
+                    .collect(Collectors.toSet());
             signalToMap = outboundSignal.getSource().setDittoHeaders(dittoHeaders.toBuilder()
                     .acknowledgementRequests(publishedAckRequests)
                     .build());

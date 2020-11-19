@@ -324,6 +324,17 @@ event which was consumed by an application integrating with Ditto, or that a liv
 without any live or message response, [request the acknowledgement](#requesting-acks) for a
 [custom acknowledgement label](#custom-acknowledgement-labels).
 
+## Weak Acknowledgements (WACKs)
+
+Since there are scenarios where the subscriber of events or live messages has defined an RQL filter or is not allowed to receive an event by a policy, it is not always possible that an acknowledgement can be provided.
+To avoid that a command fails because of a missing acknowledgement for those reasons, we introduced weak acknowledgements.
+
+These weak acknowledgements are issued automatically by ditto, in case a message or an event is filtered by a subscriber which declared to provide one or more of the requested acknowledgements for the command.
+A weak acknowledgement can be identified by checking the header with value `ditto-weak-ack`.
+Weak acknowledgements have this header set to `true`.
+
+These weak acknowledgements do not cause redelivery of messages consumed by a Connection.
+
 ## Interaction between headers
 Three headers control how Ditto responds to a command: `response-required`, `requested-acks`, `timeout`.
 * `response-required`: `true` or `false`.<br/>

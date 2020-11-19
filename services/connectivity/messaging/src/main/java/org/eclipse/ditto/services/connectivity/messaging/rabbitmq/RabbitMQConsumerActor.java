@@ -38,7 +38,6 @@ import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
@@ -123,10 +122,10 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
         Map<String, String> headers = null;
         try {
             final String correlationId = properties.getCorrelationId();
-            LogUtil.enhanceLogWithCorrelationId(log, correlationId);
             if (log.isDebugEnabled()) {
-                log.debug("Received message from RabbitMQ ({}//{}): {}", envelope, properties,
-                        new String(body, StandardCharsets.UTF_8));
+                log.withCorrelationId(correlationId)
+                        .debug("Received message from RabbitMQ ({}//{}): {}", envelope, properties,
+                                new String(body, StandardCharsets.UTF_8));
             }
             headers = extractHeadersFromMessage(properties, envelope);
             final ExternalMessageBuilder externalMessageBuilder =

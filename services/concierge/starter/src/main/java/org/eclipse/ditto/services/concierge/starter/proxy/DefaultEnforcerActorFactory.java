@@ -58,6 +58,7 @@ import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespacesUpdater;
+import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 
@@ -118,7 +119,8 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
         final PreEnforcer preEnforcer = newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance());
 
-        final LiveSignalPub liveSignalPub = LiveSignalPub.of(context);
+        final DistributedAcks distributedAcks = DistributedAcks.create(context);
+        final LiveSignalPub liveSignalPub = LiveSignalPub.of(context, distributedAcks);
 
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
         enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegionProxy,

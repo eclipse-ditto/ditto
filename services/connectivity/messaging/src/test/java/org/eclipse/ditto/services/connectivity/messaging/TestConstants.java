@@ -111,7 +111,7 @@ import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionS
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
@@ -965,7 +965,7 @@ public final class TestConstants {
 
     public static final class ProxyActorMock extends AbstractActor {
 
-        private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
+        private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
         private ProxyActorMock() {
         }

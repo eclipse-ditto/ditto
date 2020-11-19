@@ -31,7 +31,9 @@ import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
@@ -44,11 +46,14 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 @Immutable
 final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Acknowledgement {
 
+    private static final String TRUE_STRING = Boolean.TRUE.toString();
+
     private final AcknowledgementLabel label;
     private final T entityId;
     private final HttpStatusCode statusCode;
     @Nullable private final JsonValue payload;
     private final DittoHeaders dittoHeaders;
+    private final boolean isWeak;
 
     private ImmutableAcknowledgement(final AcknowledgementLabel label,
             final T entityId,
@@ -59,11 +64,15 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
         this.label = checkNotNull(label, "label");
         this.entityId = checkNotNull(entityId, "entityId");
         this.statusCode = checkNotNull(statusCode, "statusCode");
-        this.dittoHeaders = checkNotNull(dittoHeaders, "dittoHeaders").isResponseRequired() ? dittoHeaders
-                .toBuilder()
-                .responseRequired(false)
-                .build() : dittoHeaders;
+        final DittoHeadersBuilder<?, ?> dittoHeadersBuilder =
+                checkNotNull(dittoHeaders, "dittoHeaders").isResponseRequired() ? dittoHeaders
+                        .toBuilder()
+                        .responseRequired(false) : dittoHeaders.toBuilder();
+        this.dittoHeaders = dittoHeadersBuilder
+                .removeHeader(DittoHeaderDefinition.REQUESTED_ACKS.getKey())
+                .build();
         this.payload = payload;
+        this.isWeak = TRUE_STRING.equalsIgnoreCase(this.dittoHeaders.get(DittoHeaderDefinition.WEAK_ACK.getKey()));
     }
 
     /**
@@ -105,6 +114,11 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
             return !isTimeout();
         }
         return statusCode.isSuccess();
+    }
+
+    @Override
+    public boolean isWeak() {
+        return isWeak;
     }
 
     @Override
@@ -180,12 +194,13 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
                 label.equals(that.label) &&
                 entityId.equals(that.entityId) &&
                 Objects.equals(payload, that.payload) &&
-                dittoHeaders.equals(that.dittoHeaders);
+                dittoHeaders.equals(that.dittoHeaders) &&
+                isWeak == that.isWeak;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(label, entityId, statusCode, payload, dittoHeaders);
+        return Objects.hash(label, entityId, statusCode, payload, dittoHeaders, isWeak);
     }
 
     @Override
@@ -196,6 +211,7 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
                 ", statusCode=" + statusCode +
                 ", payload=" + payload +
                 ", dittoHeaders=" + dittoHeaders +
+                ", isWeak=" + isWeak +
                 "]";
     }
 

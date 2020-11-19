@@ -165,6 +165,7 @@ public final class DefaultMuteableConnectionLoggerTest {
     public void testEqualsAndHashcode() {
         EqualsVerifier.forClass(DefaultMuteableConnectionLogger.class)
                 .suppress(Warning.NONFINAL_FIELDS)
+                .withIgnoredFields("logger")
                 .verify();
     }
 

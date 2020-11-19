@@ -14,13 +14,11 @@ package org.eclipse.ditto.services.utils.pubsub;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.pubsub.actors.AbstractUpdater;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
@@ -34,14 +32,19 @@ import akka.pattern.Patterns;
  */
 final class DistributedSubImpl implements DistributedSub {
 
+    private static final long ACK_DELAY_OFFSET_MILLIS = 250;
+
     private final DistributedDataConfig config;
     private final ActorRef subSupervisor;
     private final Replicator.WriteConsistency writeAll;
+    private final long ackDelayInMillis;
 
     DistributedSubImpl(final DistributedDataConfig config, final ActorRef subSupervisor) {
         this.config = config;
         this.subSupervisor = subSupervisor;
         this.writeAll = new Replicator.WriteAll(config.getWriteTimeout());
+        ackDelayInMillis =
+                config.getAkkaReplicatorConfig().getNotifySubscribersInterval().toMillis() + ACK_DELAY_OFFSET_MILLIS;
     }
 
     @Override
@@ -66,49 +69,36 @@ final class DistributedSubImpl implements DistributedSub {
 
     private CompletionStage<AbstractUpdater.SubAck> askSubSupervisor(final SubUpdater.Request request) {
         return Patterns.ask(subSupervisor, request, config.getWriteTimeout())
-                .thenCompose(DistributedSubImpl::processAskResponse);
+                .thenCompose(DistributedSubImpl::processAskResponse)
+                .thenCompose(result -> {
+                    final CompletableFuture<AbstractUpdater.SubAck> resultFuture = new CompletableFuture<>();
+                    resultFuture.completeOnTimeout(result, ackDelayInMillis, TimeUnit.MILLISECONDS);
+                    return resultFuture;
+                });
     }
 
     @Override
     public void subscribeWithoutAck(final Collection<String> topics, final ActorRef subscriber) {
         final SubUpdater.Request request =
-                SubUpdater.Subscribe.of(new HashSet<>(topics), subscriber, Replicator.writeLocal(), false);
+                SubUpdater.Subscribe.of(new HashSet<>(topics), subscriber,
+                        (Replicator.WriteConsistency) Replicator.writeLocal(), false);
         subSupervisor.tell(request, subscriber);
     }
 
     @Override
     public void unsubscribeWithoutAck(final Collection<String> topics, final ActorRef subscriber) {
         final SubUpdater.Request request =
-                SubUpdater.Unsubscribe.of(new HashSet<>(topics), subscriber, Replicator.writeLocal(), false);
+                SubUpdater.Unsubscribe.of(new HashSet<>(topics), subscriber,
+                        (Replicator.WriteConsistency) Replicator.writeLocal(), false);
         subSupervisor.tell(request, subscriber);
     }
 
     @Override
     public void removeSubscriber(final ActorRef subscriber) {
         final SubUpdater.Request request =
-                SubUpdater.RemoveSubscriber.of(subscriber, Replicator.writeLocal(), false);
+                SubUpdater.RemoveSubscriber.of(subscriber, (Replicator.WriteConsistency) Replicator.writeLocal(),
+                        false);
         subSupervisor.tell(request, subscriber);
-    }
-
-    @Override
-    public CompletionStage<AbstractUpdater.SubAck> declareAcknowledgementLabels(
-            final Collection<AcknowledgementLabel> acknowledgementLabels,
-            final ActorRef subscriber) {
-        final Set<String> ackLabelStrings = acknowledgementLabels.stream()
-                .map(AcknowledgementLabel::toString)
-                .collect(Collectors.toSet());
-        final AbstractUpdater.DeclareAckLabels declareAckLabels =
-                AbstractUpdater.DeclareAckLabels.of(ackLabelStrings, subscriber, writeAll, true);
-        return Patterns.ask(subSupervisor, declareAckLabels, config.getWriteTimeout())
-                .thenCompose(DistributedSubImpl::processAskResponse);
-    }
-
-    @Override
-    public void removeAcknowledgementLabelDeclaration(final ActorRef subscriber) {
-        final AbstractUpdater.RemoveSubscriber request =
-                AbstractUpdater.RemoveSubscriber.of(subscriber, Replicator.writeLocal(), false)
-                        .forAcknowledgementLabelDeclaration();
-        subSupervisor.tell(request, ActorRef.noSender());
     }
 
     private static CompletionStage<AbstractUpdater.SubAck> processAskResponse(final Object askResponse) {

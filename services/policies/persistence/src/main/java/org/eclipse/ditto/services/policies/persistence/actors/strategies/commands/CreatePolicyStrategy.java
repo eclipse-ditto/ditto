@@ -74,7 +74,8 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
             final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
                     CreatePolicyResponse.of(context.getState(), newPolicyWithImplicits, dittoHeaders),
                     newPolicyWithImplicits);
-            context.getLog().debug("Created new Policy with ID <{}>.", context.getState());
+            context.getLog().withCorrelationId(command)
+                    .debug("Created new Policy with ID <{}>.", context.getState());
             return ResultFactory.newMutationResult(command, policyCreated, response, true, false);
         } else {
             return ResultFactory.newErrorResult(

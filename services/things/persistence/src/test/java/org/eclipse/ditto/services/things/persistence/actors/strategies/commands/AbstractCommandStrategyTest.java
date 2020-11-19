@@ -23,9 +23,11 @@ import static org.mockito.Mockito.verify;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.persistentactors.commands.AbstractCommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
@@ -40,8 +42,6 @@ import org.junit.BeforeClass;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import akka.event.DiagnosticLoggingAdapter;
-
 /**
  * Abstract base implementation for unit tests of implementations of {@link org.eclipse.ditto.services.utils.persistentactors.commands.AbstractCommandStrategy}.
  */
@@ -52,11 +52,14 @@ public abstract class AbstractCommandStrategyTest {
     protected static final long THING_SIZE_LIMIT_BYTES = Long.parseLong(
             System.getProperty(ThingCommandSizeValidator.DITTO_LIMITS_THINGS_MAX_SIZE_BYTES, "-1"));
 
-    protected static DiagnosticLoggingAdapter logger;
+    protected static DittoDiagnosticLoggingAdapter logger;
 
     @BeforeClass
     public static void initTestConstants() {
-        logger = Mockito.mock(DiagnosticLoggingAdapter.class);
+        logger = Mockito.mock(DittoDiagnosticLoggingAdapter.class);
+        Mockito.when(logger.withCorrelationId(Mockito.any(DittoHeaders.class))).thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(WithDittoHeaders.class))).thenReturn(logger);
+        Mockito.when(logger.withCorrelationId(Mockito.any(CharSequence.class))).thenReturn(logger);
     }
 
     protected static CommandStrategy.Context<ThingId> getDefaultContext() {

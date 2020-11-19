@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.common.ResponseType;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -181,7 +182,11 @@ public final class AcknowledgementAggregatorActorTest {
             // THEN
             final Acknowledgements acks = expectMsgClass(Acknowledgements.class);
             assertThat(acks.getDittoHeaders()).isEqualTo(
-                    command.getDittoHeaders().toBuilder().responseRequired(false).build());
+                    command.getDittoHeaders().toBuilder()
+                            .responseRequired(false)
+                            .removeHeader(DittoHeaderDefinition.REQUESTED_ACKS.getKey())
+                            .build()
+            );
             assertThat(acks.getSize()).isEqualTo(2);
         }};
     }

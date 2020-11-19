@@ -118,9 +118,10 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
                                 mergedThing);
                 return ResultFactory.newMutationResult(command, thingModified, response);
             } else {
-                context.getLog().error("Thing <{}> has no ACL entries even though it is of schema version 1. " +
-                        "Persisting the event nevertheless to not block the user because of an " +
-                        "unknown internal state.", thingId);
+                context.getLog().withCorrelationId(command)
+                        .error("Thing <{}> has no ACL entries even though it is of schema version 1. " +
+                                "Persisting the event nevertheless to not block the user because of an " +
+                                "unknown internal state.", thingId);
                 final Thing modifiedThing = command.getThing().toBuilder()
                         .setModified(eventTs)
                         .setRevision(nextRevision)

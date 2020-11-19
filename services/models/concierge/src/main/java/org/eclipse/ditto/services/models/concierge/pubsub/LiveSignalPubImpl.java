@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.models.concierge.pubsub;
 
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
+import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ConstantTopics;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
@@ -46,11 +47,12 @@ final class LiveSignalPubImpl implements LiveSignalPub {
      * Start a live signal pub in an actor system.
      *
      * @param context context of the actor under which the pub and sub supervisors are started.
+     * @param distributedAcks the distributed acks interface.
      * @return the live signal pub.
      */
-    static LiveSignalPubImpl of(final ActorContext context) {
+    static LiveSignalPubImpl of(final ActorContext context, final DistributedAcks distributedAcks) {
         final DistributedPub<?> distributedPub =
-                LiveSignalPubSubFactory.of(context).startDistributedPub();
+                LiveSignalPubSubFactory.of(context, distributedAcks).startDistributedPub();
         final DistributedPub<Command> liveCommandPub =
                 distributedPub.withTopicExtractor(getTopicExtractor(StreamingType.LIVE_COMMANDS));
         final DistributedPub<Event> liveEventPub =

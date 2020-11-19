@@ -21,7 +21,6 @@ import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
 import org.eclipse.ditto.services.concierge.starter.proxy.EnforcerActorFactory;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
@@ -33,7 +32,6 @@ import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
 
 /**
  * The root actor of the concierge service.
@@ -44,8 +42,6 @@ public final class ConciergeRootActor extends DittoRootActor {
      * Name of this actor.
      */
     public static final String ACTOR_NAME = "conciergeRoot";
-
-    private final DiagnosticLoggingAdapter log = LogUtil.obtain(this);
 
     @SuppressWarnings("unused")
     private <C extends ConciergeConfig> ConciergeRootActor(final C conciergeConfig,

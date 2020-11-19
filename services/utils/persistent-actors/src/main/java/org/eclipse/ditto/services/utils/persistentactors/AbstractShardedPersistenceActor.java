@@ -25,7 +25,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.services.utils.akka.LogUtil;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.SnapshotConfig;
@@ -434,12 +434,11 @@ public abstract class AbstractShardedPersistenceActor<
     }
 
     private void persistEvent(final E event, final Consumer<E> handler) {
-        LogUtil.enhanceLogWithCorrelationId(log, event);
-        log.debug("Persisting Event <{}>.", event.getType());
+        final DittoDiagnosticLoggingAdapter l = log.withCorrelationId(event);
+        l.debug("Persisting Event <{}>.", event.getType());
 
         persist(event, persistedEvent -> {
-            LogUtil.enhanceLogWithCorrelationId(log, event.getDittoHeaders().getCorrelationId());
-            log.info("Successfully persisted Event <{}>.", event.getType());
+            l.info("Successfully persisted Event <{}>.", event.getType());
 
             /* the event has to be applied before creating the snapshot, otherwise a snapshot with new
                sequence no (e.g. 2), but old entity revision no (e.g. 1) will be created -> can lead to serious
