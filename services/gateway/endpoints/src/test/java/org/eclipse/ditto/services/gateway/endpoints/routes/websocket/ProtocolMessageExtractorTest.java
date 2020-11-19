@@ -28,6 +28,7 @@ import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.services.gateway.streaming.Jwt;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
@@ -221,6 +222,20 @@ public final class ProtocolMessageExtractorTest {
                     StartStreaming.getBuilder(streamingType, correlationId, authContext).build();
 
             assertThat(underTest.apply(protocolMessageType + "thisShouldNotBeBreakAnything")).contains(expected);
+        }
+
+        @Test
+        public void startSendingWithCorrelationId() {
+
+            final String msgCorrelationId = UUID.randomUUID().toString();
+
+            final StartStreaming expected =
+                    StartStreaming.getBuilder(streamingType, correlationId, authContext)
+                            .withCorrelationId(msgCorrelationId)
+                            .build();
+
+            assertThat(underTest.apply(protocolMessageType + "?" + String.format("%s=%s",
+                    DittoHeaderDefinition.CORRELATION_ID.getKey(), msgCorrelationId))).contains(expected);
         }
 
         @Test

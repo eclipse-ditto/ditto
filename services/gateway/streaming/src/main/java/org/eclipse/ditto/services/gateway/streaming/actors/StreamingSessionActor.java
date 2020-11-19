@@ -275,7 +275,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     try {
                         criteria = startStreaming.getFilter()
                                 .map(f -> parseCriteria(f, DittoHeaders.newBuilder()
-                                        .correlationId(startStreaming.getConnectionCorrelationId())
+                                        .correlationId(startStreaming.getCorrelationId()
+                                                .orElse(startStreaming.getConnectionCorrelationId()))
                                         .build()))
                                 .orElse(null);
                     } catch (final DittoRuntimeException e) {
