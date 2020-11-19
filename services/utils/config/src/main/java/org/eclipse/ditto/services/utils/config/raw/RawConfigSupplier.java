@@ -83,11 +83,11 @@ public final class RawConfigSupplier implements Supplier<Config> {
     }
 
     private Config getServiceSpecificBaseConfig() {
-        return ConfigFactory.parseResourcesAnySyntax(serviceName);
+        return DittoConfigFactory.fromResource(serviceName);
     }
 
     private static Config getCommonDittoServicesConfig() {
-        return ConfigFactory.parseResourcesAnySyntax(DITTO_BASE_CONFIG_NAME);
+        return DittoConfigFactory.fromResource(DITTO_BASE_CONFIG_NAME);
     }
 
 }
