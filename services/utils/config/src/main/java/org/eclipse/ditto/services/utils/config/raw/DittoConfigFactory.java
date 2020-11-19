@@ -52,12 +52,12 @@ final class DittoConfigFactory {
     }
 
     private static Config enhanceWithFallbacks(final Config initialConfig) {
-        return VcapServicesStringSupplier.getInstance()
+        final Config config = VcapServicesStringSupplier.getInstance()
                 .flatMap(VcapServicesStringSupplier::get)
                 .map(VcapServicesStringToConfig.getInstance())
                 .map(initialConfig::withFallback)
-                .orElse(initialConfig)
-                .withFallback(SecretsAsConfigSupplier.getInstance(initialConfig).get());
+                .orElse(initialConfig);
+        return config.withFallback(SecretsAsConfigSupplier.getInstance(config).get());
     }
 
 }
