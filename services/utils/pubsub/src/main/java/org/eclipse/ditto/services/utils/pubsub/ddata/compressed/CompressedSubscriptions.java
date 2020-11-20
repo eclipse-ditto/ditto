@@ -26,28 +26,27 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
 import org.eclipse.ditto.services.utils.pubsub.ddata.TopicData;
 
 import akka.actor.ActorRef;
-import akka.util.ByteString;
 
 /**
  * Local subscriptions for distribution of subscribed topics as hash code sequences.
  */
 @NotThreadSafe
-public final class CompressedSubscriptions extends AbstractSubscriptions<ByteString, CompressedUpdate>
+public final class CompressedSubscriptions extends AbstractSubscriptions<Long, CompressedUpdate>
         implements Hashes {
 
     /**
      * Seeds of hash functions. They should be identical cluster-wide.
      */
     private final Collection<Integer> seeds;
-    private final Map<ByteString, Integer> hashCodeToTopicCount;
+    private final Map<Long, Integer> hashCodeToTopicCount;
     private final CompressedUpdate updates;
 
     private CompressedSubscriptions(
             final Collection<Integer> seeds,
             final Map<ActorRef, Set<String>> subscriberToTopic,
             final Map<ActorRef, Predicate<Collection<String>>> subscriberToFilter,
-            final Map<String, TopicData<ByteString>> topicToData,
-            final Map<ByteString, Integer> hashCodeToTopicCount,
+            final Map<String, TopicData<Long>> topicToData,
+            final Map<Long, Integer> hashCodeToTopicCount,
             final CompressedUpdate updates) {
         super(subscriberToTopic, subscriberToFilter, topicToData);
         this.seeds = seeds;
@@ -67,12 +66,12 @@ public final class CompressedSubscriptions extends AbstractSubscriptions<ByteStr
     }
 
     @Override
-    protected ByteString hashTopic(final String topic) {
-        return CompressedDDataHandler.hashCodesToByteString(getHashes(topic));
+    protected Long hashTopic(final String topic) {
+        return CompressedDDataHandler.hashCodesToLong(getHashes(topic));
     }
 
     @Override
-    protected void onNewTopic(final TopicData<ByteString> newTopic) {
+    protected void onNewTopic(final TopicData<Long> newTopic) {
         hashCodeToTopicCount.compute(newTopic.getHashes(), (hashes, count) -> {
             if (count == null) {
                 updates.insert(hashes);
@@ -84,7 +83,7 @@ public final class CompressedSubscriptions extends AbstractSubscriptions<ByteStr
     }
 
     @Override
-    protected void onRemovedTopic(final TopicData<ByteString> removedTopic) {
+    protected void onRemovedTopic(final TopicData<Long> removedTopic) {
         hashCodeToTopicCount.computeIfPresent(removedTopic.getHashes(), (hashes, count) -> {
             if (count > 1) {
                 return count - 1;

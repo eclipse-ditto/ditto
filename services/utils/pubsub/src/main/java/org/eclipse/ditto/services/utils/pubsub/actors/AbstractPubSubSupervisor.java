@@ -54,7 +54,7 @@ abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers implemen
      */
     protected AbstractPubSubSupervisor() {
         this.config = PubSubConfig.of(getContext().getSystem());
-        seeds = Hashes.digestStringsToIntegers(config.getSeed(), config.getHashFamilySize());
+        seeds = Hashes.digestStringsToIntegers(config.getSeed(), Hashes.HASH_FAMILY_SIZE);
     }
 
     /**

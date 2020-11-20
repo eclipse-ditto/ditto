@@ -32,14 +32,6 @@ public interface PubSubConfig {
     String getSeed();
 
     /**
-     * @return How many hash functions to use for the Bloom filters.
-     * Expected false positive rate is {@code 1/2^this_number}.
-     * To limit the amount of wasted bandwidth, this number should
-     * be proportional to the logarithm of cluster size for huge clusters.
-     */
-    int getHashFamilySize();
-
-    /**
      * @return How long to wait to restart pub-sub if a child actor crashes.
      */
     Duration getRestartDelay();
@@ -90,13 +82,6 @@ public interface PubSubConfig {
          */
         SEED("seed", "Lorem ipsum dolor sit amet, conectetur adipiscing elit, " +
                 "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."),
-
-        /**
-         * How many hash functions to use for the Bloom filters.
-         * Expected false positive rate is {@code 1/2^this_number}.
-         * Bloom filter size is proportional to this number.
-         */
-        HASH_FAMILY_SIZE("hash-family-size", 10),
 
         /**
          * How long to wait before restarting actors executing pub-sub.

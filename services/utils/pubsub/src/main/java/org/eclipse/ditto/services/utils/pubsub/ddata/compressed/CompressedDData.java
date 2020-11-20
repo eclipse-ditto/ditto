@@ -22,12 +22,11 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.Subscriptions;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.cluster.ddata.ORMultiMap;
-import akka.util.ByteString;
 
 /**
  * Access to distributed data of compressed topics.
  */
-public final class CompressedDData implements DData<ActorRef, ByteString, CompressedUpdate> {
+public final class CompressedDData implements DData<ActorRef, Long, CompressedUpdate> {
 
     private final CompressedDDataHandler handler;
 
@@ -58,7 +57,7 @@ public final class CompressedDData implements DData<ActorRef, ByteString, Compre
     }
 
     @Override
-    public DDataReader<ActorRef, ByteString> getReader() {
+    public DDataReader<ActorRef, Long> getReader() {
         return handler;
     }
 
@@ -76,7 +75,7 @@ public final class CompressedDData implements DData<ActorRef, ByteString, Compre
      * Abstract class of distributed data extension provider to be instantiated at user site.
      */
     public abstract static class Provider
-            extends DistributedData.AbstractDDataProvider<ORMultiMap<ActorRef, ByteString>, CompressedDDataHandler> {
+            extends DistributedData.AbstractDDataProvider<ORMultiMap<ActorRef, Long>, CompressedDDataHandler> {
 
         /**
          * Get the ddata extension's config from an actor system.

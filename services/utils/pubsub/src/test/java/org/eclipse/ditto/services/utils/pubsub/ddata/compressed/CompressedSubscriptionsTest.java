@@ -21,13 +21,11 @@ import java.util.stream.IntStream;
 import org.eclipse.ditto.services.utils.pubsub.ddata.AbstractSubscriptionsTest;
 import org.junit.Test;
 
-import akka.util.ByteString;
-
 /**
  * Tests {@link org.eclipse.ditto.services.utils.pubsub.ddata.compressed.CompressedSubscriptions}.
  */
 public final class CompressedSubscriptionsTest
-        extends AbstractSubscriptionsTest<ByteString, CompressedUpdate, CompressedSubscriptions> {
+        extends AbstractSubscriptionsTest<Long, CompressedUpdate, CompressedSubscriptions> {
 
     @Override
     protected CompressedSubscriptions newSubscriptions() {
@@ -43,7 +41,7 @@ public final class CompressedSubscriptionsTest
         assertThat(update.getInserts()).containsExactlyInAnyOrder(
                 IntStream.rangeClosed(1, 7)
                         .mapToObj(i -> underTest.hashTopic(String.valueOf(i)))
-                        .toArray(ByteString[]::new)
+                        .toArray(Long[]::new)
         );
     }
 
@@ -57,7 +55,7 @@ public final class CompressedSubscriptionsTest
         assertThat(update1.getInserts()).containsExactlyInAnyOrder(
                 IntStream.rangeClosed(1, 7)
                         .mapToObj(i -> underTest.hashTopic(String.valueOf(i)))
-                        .toArray(ByteString[]::new)
+                        .toArray(Long[]::new)
         );
         assertThat(update1.getDeletes()).isEmpty();
 

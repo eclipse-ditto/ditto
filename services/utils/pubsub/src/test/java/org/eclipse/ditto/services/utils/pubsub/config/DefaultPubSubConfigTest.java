@@ -61,10 +61,6 @@ public final class DefaultPubSubConfigTest {
                 .as(PubSubConfig.ConfigValue.SEED.getConfigPath())
                 .startsWith("Lorem ipsum");
 
-        softly.assertThat(underTest.getHashFamilySize())
-                .as(PubSubConfig.ConfigValue.HASH_FAMILY_SIZE.getConfigPath())
-                .isEqualTo(10);
-
         softly.assertThat(underTest.getRestartDelay())
                 .as(PubSubConfig.ConfigValue.RESTART_DELAY.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(10L));
@@ -85,10 +81,6 @@ public final class DefaultPubSubConfigTest {
         softly.assertThat(underTest.getSeed())
                 .as(PubSubConfig.ConfigValue.SEED.getConfigPath())
                 .startsWith("Two households");
-
-        softly.assertThat(underTest.getHashFamilySize())
-                .as(PubSubConfig.ConfigValue.HASH_FAMILY_SIZE.getConfigPath())
-                .isEqualTo(11);
 
         softly.assertThat(underTest.getRestartDelay())
                 .as(PubSubConfig.ConfigValue.RESTART_DELAY.getConfigPath())

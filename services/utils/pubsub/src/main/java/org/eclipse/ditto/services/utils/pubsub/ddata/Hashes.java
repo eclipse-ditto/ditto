@@ -30,6 +30,11 @@ import scala.util.hashing.MurmurHash3$;
 public interface Hashes {
 
     /**
+     * Hash family size is fixed at 2 to fit hash code into a long int.
+     */
+    int HASH_FAMILY_SIZE = 2;
+
+    /**
      * Get seeds for the family of hash functions.
      *
      * @return the seeds.
