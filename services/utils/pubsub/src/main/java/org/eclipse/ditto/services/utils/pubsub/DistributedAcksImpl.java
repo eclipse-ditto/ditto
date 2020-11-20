@@ -24,7 +24,12 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.pubsub.actors.AckSupervisor;
-import org.eclipse.ditto.services.utils.pubsub.actors.AckUpdater;
+import org.eclipse.ditto.services.utils.pubsub.api.AckRequest;
+import org.eclipse.ditto.services.utils.pubsub.api.AcksDeclared;
+import org.eclipse.ditto.services.utils.pubsub.api.DeclareAcks;
+import org.eclipse.ditto.services.utils.pubsub.api.ReceiveLocalAcks;
+import org.eclipse.ditto.services.utils.pubsub.api.ReceiveRemoteAcks;
+import org.eclipse.ditto.services.utils.pubsub.api.RemoveSubscriberAcks;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDData;
 
 import akka.actor.ActorContext;
@@ -62,40 +67,40 @@ final class DistributedAcksImpl implements DistributedAcks {
         return new DistributedAcksImpl(config, supervisor);
     }
 
-    private CompletionStage<AckUpdater.AcksDeclared> askSupervisor(final AckUpdater.AckRequest request) {
+    private CompletionStage<AcksDeclared> askSupervisor(final AckRequest request) {
         return Patterns.ask(ackSupervisor, request, config.getWriteTimeout())
                 .thenCompose(DistributedAcksImpl::processAskResponse);
     }
 
     @Override
     public void receiveLocalDeclaredAcks(final ActorRef receiver) {
-        ackSupervisor.tell(AckUpdater.ReceiveLocalChanges.of(receiver), ActorRef.noSender());
+        ackSupervisor.tell(ReceiveLocalAcks.of(receiver), ActorRef.noSender());
     }
 
     @Override
     public void receiveDistributedDeclaredAcks(final ActorRef receiver) {
-        ackSupervisor.tell(AckUpdater.ReceiveDDataChanges.of(receiver), ActorRef.noSender());
+        ackSupervisor.tell(ReceiveRemoteAcks.of(receiver), ActorRef.noSender());
     }
 
     @Override
     public void removeSubscriber(final ActorRef subscriber) {
-        ackSupervisor.tell(AckUpdater.RemoveSubscriberAcks.of(subscriber), subscriber);
+        ackSupervisor.tell(RemoveSubscriberAcks.of(subscriber), subscriber);
     }
 
     @Override
-    public CompletionStage<AckUpdater.AcksDeclared> declareAcknowledgementLabels(
+    public CompletionStage<AcksDeclared> declareAcknowledgementLabels(
             final Collection<AcknowledgementLabel> acknowledgementLabels,
             final ActorRef subscriber) {
         final Set<String> ackLabelStrings = acknowledgementLabels.stream()
                 .map(AcknowledgementLabel::toString)
                 .collect(Collectors.toSet());
-        final AckUpdater.AckRequest request =
-                AckUpdater.DeclareAcks.of(subscriber, null, ackLabelStrings);
+        final AckRequest request =
+                DeclareAcks.of(subscriber, null, ackLabelStrings);
         return askSupervisor(request);
     }
 
     @Override
-    public CompletionStage<AckUpdater.AcksDeclared> declareAcknowledgementLabels(
+    public CompletionStage<AcksDeclared> declareAcknowledgementLabels(
             @Nullable final String group,
             final Collection<AcknowledgementLabel> acknowledgementLabels,
             final ActorRef subscriber) {
@@ -105,17 +110,17 @@ final class DistributedAcksImpl implements DistributedAcks {
         final Set<String> ackLabelStrings = acknowledgementLabels.stream()
                 .map(AcknowledgementLabel::toString)
                 .collect(Collectors.toSet());
-        return askSupervisor(AckUpdater.DeclareAcks.of(subscriber, group, ackLabelStrings));
+        return askSupervisor(DeclareAcks.of(subscriber, group, ackLabelStrings));
     }
 
     @Override
     public void removeAcknowledgementLabelDeclaration(final ActorRef subscriber) {
-        ackSupervisor.tell(AckUpdater.RemoveSubscriberAcks.of(subscriber), ActorRef.noSender());
+        ackSupervisor.tell(RemoveSubscriberAcks.of(subscriber), ActorRef.noSender());
     }
 
-    private static CompletionStage<AckUpdater.AcksDeclared> processAskResponse(final Object askResponse) {
-        if (askResponse instanceof AckUpdater.AcksDeclared) {
-            return CompletableFuture.completedStage((AckUpdater.AcksDeclared) askResponse);
+    private static CompletionStage<AcksDeclared> processAskResponse(final Object askResponse) {
+        if (askResponse instanceof AcksDeclared) {
+            return CompletableFuture.completedStage((AcksDeclared) askResponse);
         } else if (askResponse instanceof Throwable) {
             return CompletableFuture.failedStage((Throwable) askResponse);
         } else {

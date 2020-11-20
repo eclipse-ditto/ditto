@@ -18,7 +18,7 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.services.utils.pubsub.actors.AckUpdater;
+import org.eclipse.ditto.services.utils.pubsub.api.AcksDeclared;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
@@ -62,7 +62,7 @@ public interface DistributedAcks {
      * @param subscriber the subscriber.
      * @return a future SubAck if the declaration succeeded, or a failed future if it failed.
      */
-    CompletionStage<AckUpdater.AcksDeclared> declareAcknowledgementLabels(
+    CompletionStage<AcksDeclared> declareAcknowledgementLabels(
             @Nullable String group,
             Collection<AcknowledgementLabel> acknowledgementLabels,
             ActorRef subscriber);
@@ -76,7 +76,7 @@ public interface DistributedAcks {
      * @param subscriber the subscriber.
      * @return a future SubAck if the declaration succeeded, or a failed future if it failed.
      */
-    default CompletionStage<AckUpdater.AcksDeclared> declareAcknowledgementLabels(
+    default CompletionStage<AcksDeclared> declareAcknowledgementLabels(
             Collection<AcknowledgementLabel> acknowledgementLabels,
             ActorRef subscriber) {
 

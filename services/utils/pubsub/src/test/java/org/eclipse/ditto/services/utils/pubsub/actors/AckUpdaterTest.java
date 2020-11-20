@@ -17,6 +17,8 @@ import java.util.concurrent.CountDownLatch;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.services.utils.pubsub.LiteralDDataProvider;
+import org.eclipse.ditto.services.utils.pubsub.api.AcksDeclared;
+import org.eclipse.ditto.services.utils.pubsub.api.DeclareAcks;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.AbstractConfigAwareDDataProvider;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDData;
@@ -80,20 +82,20 @@ public final class AckUpdaterTest {
             final TestProbe s2 = TestProbe.apply("s2", system1);
 
             // WHEN: a group of ack labels are declared
-            underTest.tell(AckUpdater.DeclareAcks.of(s1.ref(), "g1", Set.of("a1", "a2")), getRef());
-            expectMsgClass(AckUpdater.AcksDeclared.class);
+            underTest.tell(DeclareAcks.of(s1.ref(), "g1", Set.of("a1", "a2")), getRef());
+            expectMsgClass(AcksDeclared.class);
 
             // THEN: a different group of ack labels may not be declared with the same group name
-            underTest.tell(AckUpdater.DeclareAcks.of(s2.ref(), "g1", Set.of("a2", "a3")), getRef());
+            underTest.tell(DeclareAcks.of(s2.ref(), "g1", Set.of("a2", "a3")), getRef());
             // TODO: switch to the right exception
             expectMsgClass(AcknowledgementLabelNotUniqueException.class);
 
             // THEN: intersecting ack labels may not be declared without any group
-            underTest.tell(AckUpdater.DeclareAcks.of(s2.ref(), null, Set.of("a2", "a3")), getRef());
+            underTest.tell(DeclareAcks.of(s2.ref(), null, Set.of("a2", "a3")), getRef());
             expectMsgClass(AcknowledgementLabelNotUniqueException.class);
 
             // THEN: it is an error to declare intersecting ack labels under under a different group.
-            underTest.tell(AckUpdater.DeclareAcks.of(s1.ref(), "g2", Set.of("a2", "a3")), getRef());
+            underTest.tell(DeclareAcks.of(s1.ref(), "g2", Set.of("a2", "a3")), getRef());
             expectMsgClass(AcknowledgementLabelNotUniqueException.class);
         }};
     }
@@ -107,23 +109,23 @@ public final class AckUpdaterTest {
             final TestProbe s2 = TestProbe.apply("s2", system2);
 
             // GIVEN: a group of ack labels are declared on a remote node
-            ackUpdater2.tell(AckUpdater.DeclareAcks.of(s2.ref(), "g1", Set.of("a1", "a2")), s2.ref());
-            s2.expectMsgClass(AckUpdater.AcksDeclared.class);
+            ackUpdater2.tell(DeclareAcks.of(s2.ref(), "g1", Set.of("a1", "a2")), s2.ref());
+            s2.expectMsgClass(AcksDeclared.class);
 
             // WHEN: ddata is replicated
             waitForHeartBeats(system1, ddata1);
 
             // THEN: it is an error to declare different ack labels under the same group name.
-            underTest.tell(AckUpdater.DeclareAcks.of(s1.ref(), "g1", Set.of("a2", "a3")), getRef());
+            underTest.tell(DeclareAcks.of(s1.ref(), "g1", Set.of("a2", "a3")), getRef());
             // TODO: switch to the right exception
             expectMsgClass(AcknowledgementLabelNotUniqueException.class);
 
             // THEN: it is an error to declare intersecting ack labels without a group.
-            underTest.tell(AckUpdater.DeclareAcks.of(s1.ref(), null, Set.of("a2", "a3")), getRef());
+            underTest.tell(DeclareAcks.of(s1.ref(), null, Set.of("a2", "a3")), getRef());
             expectMsgClass(AcknowledgementLabelNotUniqueException.class);
 
             // THEN: it is an error to declare intersecting ack labels under under a different group.
-            underTest.tell(AckUpdater.DeclareAcks.of(s1.ref(), "g2", Set.of("a2", "a3")), getRef());
+            underTest.tell(DeclareAcks.of(s1.ref(), "g2", Set.of("a2", "a3")), getRef());
             expectMsgClass(AcknowledgementLabelNotUniqueException.class);
         }};
     }
@@ -137,17 +139,17 @@ public final class AckUpdaterTest {
             final TestProbe s3 = TestProbe.apply("s3", system1);
 
             // GIVEN: aack labels are declared
-            underTest.tell(AckUpdater.DeclareAcks.of(s1.ref(), null, Set.of("a1")), getRef());
-            expectMsgClass(AckUpdater.AcksDeclared.class);
+            underTest.tell(DeclareAcks.of(s1.ref(), null, Set.of("a1")), getRef());
+            expectMsgClass(AcksDeclared.class);
 
             // WHEN: a disjoint
-            underTest.tell(AckUpdater.DeclareAcks.of(s2.ref(), null, Set.of("a2")), getRef());
-            expectMsgClass(AckUpdater.AcksDeclared.class);
+            underTest.tell(DeclareAcks.of(s2.ref(), null, Set.of("a2")), getRef());
+            expectMsgClass(AcksDeclared.class);
 
             // THEN:
-            underTest.tell(AckUpdater.DeclareAcks.of(s3.ref(), null, Set.of("a1")), getRef());
+            underTest.tell(DeclareAcks.of(s3.ref(), null, Set.of("a1")), getRef());
             expectMsgClass(AcknowledgementLabelNotUniqueException.class);
-            underTest.tell(AckUpdater.DeclareAcks.of(s3.ref(), null, Set.of("a2")), getRef());
+            underTest.tell(DeclareAcks.of(s3.ref(), null, Set.of("a2")), getRef());
             expectMsgClass(AcknowledgementLabelNotUniqueException.class);
         }};
     }

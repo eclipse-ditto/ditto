@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.pubsub.actors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.services.utils.pubsub.api.AckRequest;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 
@@ -53,8 +54,8 @@ public final class AckSupervisor extends AbstractPubSubSupervisor {
     @Override
     protected Receive createPubSubBehavior() {
         return ReceiveBuilder.create()
-                .match(AckUpdater.AckRequest.class, this::isAckUpdaterAvailable, this::forwardRequest)
-                .match(AckUpdater.AckRequest.class, this::ackUpdaterUnavailable)
+                .match(AckRequest.class, this::isAckUpdaterAvailable, this::forwardRequest)
+                .match(AckRequest.class, this::ackUpdaterUnavailable)
                 .build();
     }
 
@@ -76,11 +77,11 @@ public final class AckSupervisor extends AbstractPubSubSupervisor {
     }
 
     @SuppressWarnings("ConstantConditions")
-    private void forwardRequest(final AckUpdater.AckRequest request) {
+    private void forwardRequest(final AckRequest request) {
         acksUpdater.tell(request, getSender());
     }
 
-    private void ackUpdaterUnavailable(final AckUpdater.AckRequest request) {
+    private void ackUpdaterUnavailable(final AckRequest request) {
         log.error("AcksUpdater unavailable. Failing <{}>", request);
         getSender().tell(new IllegalStateException("AcksUpdater not available"), getSelf());
     }

@@ -28,8 +28,13 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.services.utils.pubsub.api.AcksDeclared;
+import org.eclipse.ditto.services.utils.pubsub.api.DeclareAcks;
 import org.eclipse.ditto.services.utils.pubsub.api.LocalAcksChanged;
+import org.eclipse.ditto.services.utils.pubsub.api.ReceiveLocalAcks;
+import org.eclipse.ditto.services.utils.pubsub.api.ReceiveRemoteAcks;
 import org.eclipse.ditto.services.utils.pubsub.api.RemoteAcksChanged;
+import org.eclipse.ditto.services.utils.pubsub.api.RemoveSubscriberAcks;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
@@ -103,8 +108,8 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
                 .match(DeclareAcks.class, this::declare)
                 .match(Terminated.class, this::terminated)
                 .match(RemoveSubscriberAcks.class, this::removeSubscriber)
-                .match(ReceiveDDataChanges.class, this::onReceiveDDataChanges)
-                .match(ReceiveLocalChanges.class, this::onReceiveLocalChanges)
+                .match(ReceiveRemoteAcks.class, this::onReceiveDDataChanges)
+                .match(ReceiveLocalAcks.class, this::onReceiveLocalChanges)
                 .matchEquals(Clock.TICK, this::tick)
                 .match(Replicator.Changed.class, this::onChanged)
                 .matchAny(this::logUnhandled)
@@ -124,9 +129,12 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
 
     private void declare(final DeclareAcks request) {
         final ActorRef sender = getSender();
-        if (isAllowedLocally(request.group, request.ackLabels) && isAllowedRemotely(request.group, request.ackLabels)) {
-            localAckLabels.put(request.subscriber, request.group, request.ackLabels);
-            getContext().watch(request.subscriber);
+        final ActorRef subscriber = request.getSubscriber();
+        final String group = request.getGroup().orElse(null);
+        final Set<String> ackLabels = request.getAckLabels();
+        if (isAllowedLocally(group, ackLabels) && isAllowedRemotely(group, ackLabels)) {
+            localAckLabels.put(subscriber, group, ackLabels);
+            getContext().watch(subscriber);
             getSender().tell(AcksDeclared.of(request, sender), getSelf());
         } else {
             failSubscribe(sender);
@@ -235,7 +243,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
     }
 
     private void removeSubscriber(final RemoveSubscriberAcks request) {
-        doRemoveSubscriber(request.subscriber);
+        doRemoveSubscriber(request.getSubscriber());
     }
 
     private void doRemoveSubscriber(final ActorRef subscriber) {
@@ -284,14 +292,14 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
                 .collect(Collectors.toList());
     }
 
-    private void onReceiveDDataChanges(final ReceiveDDataChanges request) {
-        ddataChangeRecipients.add(request.receiver);
-        getContext().watch(request.receiver);
+    private void onReceiveDDataChanges(final ReceiveRemoteAcks request) {
+        ddataChangeRecipients.add(request.getReceiver());
+        getContext().watch(request.getReceiver());
     }
 
-    private void onReceiveLocalChanges(final ReceiveLocalChanges request) {
-        localChangeRecipients.add(request.receiver);
-        getContext().watch(request.receiver);
+    private void onReceiveLocalChanges(final ReceiveLocalAcks request) {
+        localChangeRecipients.add(request.getReceiver());
+        getContext().watch(request.getReceiver());
     }
 
     private static <T> Comparator<Map.Entry<Address, T>> entryKeyAddressComparator() {
@@ -302,133 +310,4 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
         TICK
     }
 
-    // TODO: javadoc
-    // TODO: move to /api
-    public interface AckRequest {
-    }
-
-    public static final class DeclareAcks implements AckRequest {
-
-        private final ActorRef subscriber;
-        @Nullable private final String group;
-        private final Set<String> ackLabels;
-
-        private DeclareAcks(final ActorRef subscriber,
-                @Nullable final String group,
-                final Set<String> ackLabels) {
-            this.subscriber = subscriber;
-            this.group = group;
-            this.ackLabels = ackLabels;
-        }
-
-        // TODO: javadoc
-        public static AckRequest of(final ActorRef subscriber,
-                @Nullable final String group,
-                final Set<String> ackLabels) {
-            return new DeclareAcks(subscriber, group, ackLabels);
-        }
-
-        @Override
-        public String toString() {
-            return getClass().getSimpleName() +
-                    "[subscriber=" + subscriber +
-                    ",group=" + group +
-                    ",ackLabels=" + ackLabels +
-                    "]";
-        }
-    }
-
-    public static final class RemoveSubscriberAcks implements AckRequest {
-
-        private final ActorRef subscriber;
-
-        private RemoveSubscriberAcks(final ActorRef subscriber) {
-            this.subscriber = subscriber;
-        }
-
-        // TODO: move to model.
-        public static AckRequest of(final ActorRef subscriber) {
-            return new RemoveSubscriberAcks(subscriber);
-        }
-
-        @Override
-        public String toString() {
-            return getClass().getSimpleName() +
-                    "[subscriber=" + subscriber +
-                    "]";
-        }
-    }
-
-    /**
-     * Acknowledgement for requests.
-     */
-    public static final class AcksDeclared {
-
-        private final AckRequest request;
-        private final ActorRef sender;
-
-        private AcksDeclared(final AckRequest request, final ActorRef sender) {
-            this.request = request;
-            this.sender = sender;
-        }
-
-        static AcksDeclared of(final AckRequest request, final ActorRef sender) {
-            return new AcksDeclared(request, sender);
-        }
-
-        /**
-         * @return the request this object is acknowledging.
-         */
-        public AckRequest getRequest() {
-            return request;
-        }
-
-        /**
-         * @return sender of the request.
-         */
-        public ActorRef getSender() {
-            return sender;
-        }
-
-        @Override
-        public String toString() {
-            return getClass().getSimpleName() +
-                    "[request=" + request +
-                    ",sender=" + sender +
-                    "]";
-        }
-    }
-
-    private abstract static class ReceiveChanges implements AckRequest {
-
-        protected final ActorRef receiver;
-
-        private ReceiveChanges(final ActorRef receiver) {
-            this.receiver = receiver;
-        }
-    }
-
-    public static final class ReceiveDDataChanges extends ReceiveChanges {
-
-        private ReceiveDDataChanges(final ActorRef receiver) {
-            super(receiver);
-        }
-
-        // TODO: javadoc
-        public static AckRequest of(final ActorRef receiver) {
-            return new ReceiveDDataChanges(receiver);
-        }
-    }
-
-    public static final class ReceiveLocalChanges extends ReceiveChanges {
-
-        private ReceiveLocalChanges(final ActorRef receiver) {
-            super(receiver);
-        }
-
-        // TODO: javadoc
-        public static AckRequest of(final ActorRef receiver) {
-            return new ReceiveLocalChanges(receiver);
-        }
-    }
 }
