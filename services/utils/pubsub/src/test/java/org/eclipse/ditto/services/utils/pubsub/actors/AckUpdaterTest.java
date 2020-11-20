@@ -138,7 +138,7 @@ public final class AckUpdaterTest {
             final TestProbe s2 = TestProbe.apply("s2", system1);
             final TestProbe s3 = TestProbe.apply("s3", system1);
 
-            // GIVEN: aack labels are declared
+            // GIVEN: ack labels are declared
             underTest.tell(DeclareAcks.of(s1.ref(), null, Set.of("a1")), getRef());
             expectMsgClass(AcksDeclared.class);
 

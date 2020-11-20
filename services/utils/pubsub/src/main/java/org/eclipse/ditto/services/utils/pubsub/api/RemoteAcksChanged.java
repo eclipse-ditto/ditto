@@ -17,7 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.services.utils.pubsub.ddata.ack.GroupedAckLabels;
+import org.eclipse.ditto.services.utils.pubsub.ddata.ack.Grouped;
 
 import akka.actor.Address;
 import akka.japi.Pair;
@@ -28,9 +28,9 @@ import akka.japi.Pair;
 public final class RemoteAcksChanged {
 
     // TODO: store in format for fast lookups by Publisher
-    private final Map<Address, List<GroupedAckLabels>> mmap;
+    private final Map<Address, List<Grouped<String>>> mmap;
 
-    private RemoteAcksChanged(final Map<Address, List<GroupedAckLabels>> mmap) {
+    private RemoteAcksChanged(final Map<Address, List<Grouped<String>>> mmap) {
         this.mmap = mmap;
     }
 
@@ -40,7 +40,7 @@ public final class RemoteAcksChanged {
      * @param mmap the multimap.
      * @return the change notification.
      */
-    public static RemoteAcksChanged of(final Map<Address, List<GroupedAckLabels>> mmap) {
+    public static RemoteAcksChanged of(final Map<Address, List<Grouped<String>>> mmap) {
         return new RemoteAcksChanged(mmap);
     }
 
@@ -51,7 +51,7 @@ public final class RemoteAcksChanged {
                 .map(entry -> Pair.create(entry.getKey(),
                         entry.getValue()
                                 .stream()
-                                .flatMap(GroupedAckLabels::streamAckLabels)
+                                .flatMap(Grouped<String>::streamValues)
                                 .collect(Collectors.toSet())
                 ))
                 .collect(Collectors.toMap(Pair::first, Pair::second));

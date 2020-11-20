@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
@@ -39,7 +40,6 @@ import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
 import org.eclipse.ditto.services.utils.pubsub.ddata.ack.Grouped;
-import org.eclipse.ditto.services.utils.pubsub.ddata.ack.GroupedAckLabels;
 import org.eclipse.ditto.services.utils.pubsub.ddata.ack.GroupedRelation;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 
@@ -185,9 +185,9 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
     }
 
     private void onChanged(final Replicator.Changed<?> event) {
-        final Map<Address, List<GroupedAckLabels>> mmap =
-                GroupedAckLabels.deserializeORMultiMap(event.get(ackDData.getReader().getKey()));
-        final List<GroupedAckLabels> remoteGroupedAckLabels = getRemoteGroupedAckLabelsOrderByAddress(mmap);
+        final Map<Address, List<Grouped<String>>> mmap =
+                Grouped.deserializeORMultiMap(event.get(ackDData.getReader().getKey()), JsonValue::asString);
+        final List<Grouped<String>> remoteGroupedAckLabels = getRemoteGroupedAckLabelsOrderByAddress(mmap);
         remoteGroups = getRemoteGroups(remoteGroupedAckLabels);
         remoteAckLabels = getRemoteAckLabels(remoteGroupedAckLabels);
 
@@ -200,8 +200,8 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
         ddataChangeRecipients.forEach(recipient -> recipient.tell(ddataChanged, getSelf()));
     }
 
-    private List<GroupedAckLabels> getRemoteGroupedAckLabelsOrderByAddress(
-            final Map<Address, List<GroupedAckLabels>> mmap) {
+    private List<Grouped<String>> getRemoteGroupedAckLabelsOrderByAddress(
+            final Map<Address, List<Grouped<String>>> mmap) {
 
         return mmap.entrySet()
                 .stream()
@@ -216,18 +216,18 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
         return !ownAddress.equals(entry.getKey());
     }
 
-    private Map<String, Set<String>> getRemoteGroups(final List<GroupedAckLabels> remoteGroupedAckLabels) {
+    private Map<String, Set<String>> getRemoteGroups(final List<Grouped<String>> remoteGroupedAckLabels) {
         final Map<String, Set<String>> result = new HashMap<>();
         remoteGroupedAckLabels.stream()
-                .flatMap(GroupedAckLabels::streamAsGroupedPair)
+                .flatMap(Grouped<String>::streamAsGroupedPair)
                 // do not set a group of ack labels if already set by a member of smaller address
                 .forEach(pair -> result.computeIfAbsent(pair.first(), group -> pair.second()));
         return Collections.unmodifiableMap(result);
     }
 
-    private Set<String> getRemoteAckLabels(final List<GroupedAckLabels> remoteGroupedAckLabels) {
+    private Set<String> getRemoteAckLabels(final List<Grouped<String>> remoteGroupedAckLabels) {
         return remoteGroupedAckLabels.stream()
-                .flatMap(GroupedAckLabels::streamAckLabels)
+                .flatMap(Grouped<String>::streamValues)
                 .collect(Collectors.toSet());
     }
 
@@ -263,8 +263,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
 
     private LiteralUpdate createDDataUpdate() {
         final Set<String> groupedAckLabels = localAckLabels.streamGroupedValues()
-                .map(GroupedAckLabels::fromGrouped)
-                .map(GroupedAckLabels::toJsonString)
+                .map(Grouped::toJsonString)
                 .collect(Collectors.toSet());
         return LiteralUpdate.replaceAll(groupedAckLabels);
     }
@@ -275,12 +274,12 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
         sender.tell(error, getSelf());
     }
 
-    private List<ActorRef> getLocalLosers(final Map<Address, List<GroupedAckLabels>> mmap) {
-        final Map<Address, List<GroupedAckLabels>> moreImportantEntries = mmap.entrySet()
+    private List<ActorRef> getLocalLosers(final Map<Address, List<Grouped<String>>> mmap) {
+        final Map<Address, List<Grouped<String>>> moreImportantEntries = mmap.entrySet()
                 .stream()
                 .filter(entry -> Address.addressOrdering().compare(entry.getKey(), ownAddress) < 0)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        final List<GroupedAckLabels> moreImportantGroupedAckLabels =
+        final List<Grouped<String>> moreImportantGroupedAckLabels =
                 getRemoteGroupedAckLabelsOrderByAddress(moreImportantEntries);
         final Map<String, Set<String>> moreImportantRemoteGroups = getRemoteGroups(moreImportantGroupedAckLabels);
         final Set<String> moreImportantAckLabels = getRemoteAckLabels(moreImportantGroupedAckLabels);
