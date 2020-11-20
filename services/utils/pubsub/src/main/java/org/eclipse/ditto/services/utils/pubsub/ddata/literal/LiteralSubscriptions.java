@@ -12,16 +12,14 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata.literal;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.function.Predicate;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.services.utils.pubsub.ddata.AbstractSubscriptions;
+import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriberData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.TopicData;
 
 import akka.actor.ActorRef;
@@ -30,16 +28,15 @@ import akka.actor.ActorRef;
  * Local subscriptions for distribution of subscribed topics as hash code sequences.
  */
 @NotThreadSafe
-public final class LiteralSubscriptions extends AbstractSubscriptions<String, LiteralUpdate> {
+public final class LiteralSubscriptions extends AbstractSubscriptions<String, String, LiteralUpdate> {
 
     private final LiteralUpdate updates;
 
     private LiteralSubscriptions(
-            final Map<ActorRef, Set<String>> subscriberToTopic,
-            final Map<ActorRef, Predicate<Collection<String>>> subscriberToFilter,
+            final Map<ActorRef, SubscriberData> subscriberDataMap,
             final Map<String, TopicData<String>> topicToData,
             final LiteralUpdate updates) {
-        super(subscriberToTopic, subscriberToFilter, topicToData);
+        super(subscriberDataMap, topicToData);
         this.updates = updates;
     }
 
@@ -49,31 +46,17 @@ public final class LiteralSubscriptions extends AbstractSubscriptions<String, Li
      * @return the subscriptions object.
      */
     public static LiteralSubscriptions newInstance() {
-        return new LiteralSubscriptions(new HashMap<>(), new HashMap<>(), new HashMap<>(), LiteralUpdate.empty());
+        return new LiteralSubscriptions(new HashMap<>(), new HashMap<>(), LiteralUpdate.empty());
     }
 
     @Override
-    protected String hashTopic(final String topic) {
+    public String hashTopic(final String topic) {
         return topic;
     }
 
     @Override
-    protected void onNewTopic(final TopicData<String> newTopic) {
-        // nothing to do
-    }
-
-    @Override
-    protected void onRemovedTopic(final TopicData<String> removedTopic) {
-        // nothing to do
-    }
-
-    @Override
-    public LiteralUpdate export(final boolean forceUpdate) {
-        if (forceUpdate) {
-            return LiteralUpdate.replaceAll(topicToData.keySet());
-        } else {
-            return updates.exportAndReset();
-        }
+    public LiteralUpdate export() {
+        return LiteralUpdate.replaceAll(topicDataMap.keySet());
     }
 
     @Override

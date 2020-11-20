@@ -26,20 +26,14 @@ public abstract class AbstractSubscriptionsUpdate<S, T extends AbstractSubscript
         DDataUpdate<S> {
 
     private Set<S> inserts;
-    private Set<S> deletes;
-    private boolean replaceAll;
 
     /**
      * Create an IndelUpdate.
      *
      * @param inserts what to insert.
-     * @param deletes what to delete.
-     * @param replaceAll whether it is a replacement update.
      */
-    protected AbstractSubscriptionsUpdate(final Set<S> inserts, final Set<S> deletes, final boolean replaceAll) {
+    protected AbstractSubscriptionsUpdate(final Set<S> inserts) {
         this.inserts = inserts;
-        this.deletes = deletes;
-        this.replaceAll = replaceAll;
     }
 
     // TODO: javadoc
@@ -51,30 +45,8 @@ public abstract class AbstractSubscriptionsUpdate<S, T extends AbstractSubscript
         return inserts;
     }
 
-    @Override
-    public Set<S> getDeletes() {
-        return deletes;
-    }
-
-    @Override
-    public boolean shouldReplaceAll() {
-        return replaceAll;
-    }
-
     protected void reset() {
         inserts = new HashSet<>();
-        deletes = new HashSet<>();
-        replaceAll = false;
-    }
-
-    public void insert(final S newInserts) {
-        inserts.add(newInserts);
-        deletes.remove(newInserts);
-    }
-
-    public void delete(final S newDeletes) {
-        inserts.remove(newDeletes);
-        deletes.add(newDeletes);
     }
 
     public T exportAndReset() {
@@ -87,7 +59,7 @@ public abstract class AbstractSubscriptionsUpdate<S, T extends AbstractSubscript
     public boolean equals(final Object other) {
         if (getClass().isInstance(other)) {
             final AbstractSubscriptionsUpdate<?, ?> that = getClass().cast(other);
-            return replaceAll == that.replaceAll && inserts.equals(that.inserts) && deletes.equals(that.deletes);
+            return Objects.equals(inserts, that.inserts);
         } else {
             return false;
         }
@@ -95,15 +67,13 @@ public abstract class AbstractSubscriptionsUpdate<S, T extends AbstractSubscript
 
     @Override
     public int hashCode() {
-        return Objects.hash(inserts, deletes, replaceAll);
+        return Objects.hash(inserts);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "inserts=" + inserts +
-                ", deletes=" + deletes +
-                ", replaceAll=" + replaceAll +
                 "]";
     }
 }

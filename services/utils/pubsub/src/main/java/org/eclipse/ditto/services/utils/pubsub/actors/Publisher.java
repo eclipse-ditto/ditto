@@ -15,8 +15,11 @@ package org.eclipse.ditto.services.utils.pubsub.actors;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
@@ -28,6 +31,7 @@ import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.api.RemoteAcksChanged;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
+import org.eclipse.ditto.services.utils.pubsub.ddata.ack.Grouped;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 
@@ -36,35 +40,33 @@ import akka.actor.ActorRef;
 import akka.actor.Address;
 import akka.actor.Props;
 import akka.cluster.ddata.Replicator;
+import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
-import scala.collection.immutable.Set;
 import scala.jdk.javaapi.CollectionConverters;
 
 /**
- * Publishes messages according to topic Bloom filters.
- *
- * @param <T> representation of topics in the distributed data.
+ * Publishes messages according to topic distributed data.
  */
-public final class Publisher<T> extends AbstractActor {
+public final class Publisher extends AbstractActor {
 
     /**
      * Prefix of this actor's name.
      */
-    public static final String ACTOR_NAME_PREFIX = "publisher";
+    public static final java.lang.String ACTOR_NAME_PREFIX = "publisher";
 
     private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
-    private final DDataReader<ActorRef, T> ddataReader;
+    private final DDataReader<ActorRef, String> ddataReader;
 
     private final Counter messageCounter = DittoMetrics.counter("pubsub-published-messages");
     private final Counter topicCounter = DittoMetrics.counter("pubsub-published-topics");
 
-    private Map<ActorRef, Set<T>> topicSubscribers = Map.of();
-    private Map<Address, java.util.Set<String>> declaredAcks = Map.of();
-    private java.util.Set<String> allDeclaredAcks = java.util.Set.of();
+    private Map<ActorRef, Set<Long>> topicSubscribers = Map.of();
+    private Map<Address, Set<java.lang.String>> declaredAcks = Map.of();
+    private Set<java.lang.String> allDeclaredAcks = Set.of();
 
     @SuppressWarnings("unused")
-    private Publisher(final DDataReader<ActorRef, T> ddataReader, final DistributedAcks distributedAcks) {
+    private Publisher(final DDataReader<ActorRef, String> ddataReader, final DistributedAcks distributedAcks) {
         this.ddataReader = ddataReader;
         ddataReader.receiveChanges(getSelf());
         distributedAcks.receiveDistributedDeclaredAcks(getSelf());
@@ -90,7 +92,7 @@ public final class Publisher<T> extends AbstractActor {
      * @param message the message to publish.
      * @return a publish message.
      */
-    public static Request publish(final Collection<String> topics, final Object message) {
+    public static Request publish(final Collection<java.lang.String> topics, final Object message) {
         return new Publish(topics, message);
     }
 
@@ -104,9 +106,9 @@ public final class Publisher<T> extends AbstractActor {
      * @param dittoHeaders the Ditto headers of any weak acknowledgements to send back.
      * @return the request.
      */
-    public static Request publishWithAck(final Collection<String> topics,
+    public static Request publishWithAck(final Collection<java.lang.String> topics,
             final Object message,
-            final java.util.Set<AcknowledgementRequest> ackRequests,
+            final Set<AcknowledgementRequest> ackRequests,
             final EntityIdWithType entityId,
             final DittoHeaders dittoHeaders) {
 
@@ -130,9 +132,9 @@ public final class Publisher<T> extends AbstractActor {
 
     private void publishWithAck(final PublishWithAck publishWithAck) {
         final Collection<ActorRef> subscribers = doPublish(publishWithAck.topics, publishWithAck.message);
-        final java.util.Set<String> subscriberDeclaredAcks = subscribers.stream()
-                .map(subscriber -> declaredAcks.getOrDefault(subscriber.path().address(), java.util.Set.of()))
-                .flatMap(java.util.Set::stream)
+        final Set<java.lang.String> subscriberDeclaredAcks = subscribers.stream()
+                .map(subscriber -> declaredAcks.getOrDefault(subscriber.path().address(), Set.of()))
+                .flatMap(Set::stream)
                 .collect(Collectors.toSet());
 
         final Collection<AcknowledgementLabel> requestedCustomAcks =
@@ -147,12 +149,12 @@ public final class Publisher<T> extends AbstractActor {
         }
     }
 
-    private Collection<ActorRef> doPublish(final Collection<String> topics, final Object message) {
+    private Collection<ActorRef> doPublish(final Collection<java.lang.String> topics, final Object message) {
         messageCounter.increment();
         topicCounter.increment(topics.size());
-        final List<T> hashes = topics.stream().map(ddataReader::approximate).collect(Collectors.toList());
+        final List<Long> hashes = topics.stream().map(ddataReader::approximate).collect(Collectors.toList());
         final ActorRef sender = getSender();
-        final Collection<ActorRef> subscribers = ddataReader.getSubscribers(topicSubscribers, hashes);
+        final Collection<ActorRef> subscribers = getSubscribers(hashes);
         subscribers.forEach(subscriber -> subscriber.tell(message, sender));
         return subscribers;
     }
@@ -160,16 +162,35 @@ public final class Publisher<T> extends AbstractActor {
     private void declaredAcksChanged(final RemoteAcksChanged event) {
         declaredAcks = event.getMultiMap();
         allDeclaredAcks = declaredAcks.values().stream()
-                .flatMap(java.util.Set::stream)
+                .flatMap(Set::stream)
                 .collect(Collectors.toSet());
     }
 
     private void topicSubscribersChanged(final Replicator.Changed<?> event) {
-        topicSubscribers = CollectionConverters.asJava(event.get(ddataReader.getKey()).entries());
+        final Map<ActorRef, scala.collection.immutable.Set<String>> mmap =
+                CollectionConverters.asJava(event.get(ddataReader.getKey()).entries());
+        topicSubscribers = mmap.entrySet()
+                .stream()
+                .map(entry -> Pair.create(entry.getKey(), deserializeGroupedHashes(entry.getValue())))
+                .collect(Collectors.toMap(Pair::first, Pair::second));
     }
 
     private void logUnhandled(final Object message) {
         log.warning("Unhandled: <{}>", message);
+    }
+
+    private Set<ActorRef> getSubscribers(final Collection<Long> hashes) {
+        return topicSubscribers.entrySet()
+                .stream()
+                .filter(entry -> hashes.stream().anyMatch(entry.getValue()::contains))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+    }
+
+    private static Set<Long> deserializeGroupedHashes(final scala.collection.immutable.Set<String> strings) {
+        return CollectionConverters.asJava(strings).stream()
+                .flatMap(string -> Grouped.fromJson(JsonObject.of(string), JsonValue::asLong).getValues().stream())
+                .collect(Collectors.toSet());
     }
 
     /**
@@ -183,10 +204,10 @@ public final class Publisher<T> extends AbstractActor {
      */
     private static final class Publish implements Request {
 
-        private final Collection<String> topics;
+        private final Collection<java.lang.String> topics;
         private final Object message;
 
-        private Publish(final Collection<String> topics, final Object message) {
+        private Publish(final Collection<java.lang.String> topics, final Object message) {
             this.topics = topics;
             this.message = message;
         }
@@ -200,14 +221,14 @@ public final class Publisher<T> extends AbstractActor {
         private static final AckExtractor<PublishWithAck> ACK_EXTRACTOR =
                 AckExtractor.of(p -> p.entityId, p -> p.dittoHeaders);
 
-        private final Collection<String> topics;
+        private final Collection<java.lang.String> topics;
         private final Object message;
-        private final java.util.Set<AcknowledgementRequest> ackRequests;
+        private final Set<AcknowledgementRequest> ackRequests;
         private final EntityIdWithType entityId;
         private final DittoHeaders dittoHeaders;
 
-        private PublishWithAck(final Collection<String> topics, final Object message,
-                final java.util.Set<AcknowledgementRequest> ackRequests,
+        private PublishWithAck(final Collection<java.lang.String> topics, final Object message,
+                final Set<AcknowledgementRequest> ackRequests,
                 final EntityIdWithType entityId,
                 final DittoHeaders dittoHeaders) {
             this.topics = topics;

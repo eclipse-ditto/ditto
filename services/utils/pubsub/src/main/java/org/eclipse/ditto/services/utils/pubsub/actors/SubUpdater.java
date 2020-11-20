@@ -70,7 +70,7 @@ public final class SubUpdater<T> extends AbstractUpdater<ActorRef, T, Subscripti
     @Override
     protected void subscribe(final Subscribe subscribe) {
         final boolean changed =
-                subscriptions.subscribe(subscribe.getSubscriber(), subscribe.getTopics(), subscribe.getFilter());
+                subscriptions.subscribe(subscribe.getSubscriber(), subscribe.getTopics(), subscribe.getFilter(), null);
         enqueueRequest(subscribe, changed, getSender(), awaitUpdate, awaitUpdateMetric);
         if (changed) {
             getContext().watch(subscribe.getSubscriber());
@@ -102,7 +102,7 @@ public final class SubUpdater<T> extends AbstractUpdater<ActorRef, T, Subscripti
 
     @Override
     protected void tick(final Clock tick) {
-        performDDataOp(forceUpdate(), localSubscriptionsChanged, nextWriteConsistency)
+        performDDataOp(localSubscriptionsChanged, nextWriteConsistency)
                 .handle(handleDDataWriteResult(getSeqNr(), nextWriteConsistency));
         moveAwaitUpdateToAwaitAcknowledge();
     }
@@ -113,12 +113,11 @@ public final class SubUpdater<T> extends AbstractUpdater<ActorRef, T, Subscripti
         }
     }
 
-    private CompletionStage<SubscriptionsReader> performDDataOp(final boolean forceUpdate,
-            final boolean localSubscriptionsChanged,
+    private CompletionStage<SubscriptionsReader> performDDataOp(final boolean localSubscriptionsChanged,
             final Replicator.WriteConsistency writeConsistency) {
         final SubscriptionsReader snapshot;
         final CompletionStage<Void> ddataOp;
-        if (!localSubscriptionsChanged && !forceUpdate) {
+        if (!localSubscriptionsChanged) {
             snapshot = subscriptions.snapshot();
             ddataOp = CompletableFuture.completedStage(null);
         } else if (subscriptions.isEmpty()) {
@@ -127,7 +126,7 @@ public final class SubUpdater<T> extends AbstractUpdater<ActorRef, T, Subscripti
             topicMetric.set(0L);
         } else {
             // export before taking snapshot so that implementations may output incremental update.
-            final T ddata = subscriptions.export(forceUpdate);
+            final T ddata = subscriptions.export();
             // take snapshot to give to the subscriber; clear accumulated incremental changes.
             snapshot = subscriptions.snapshot();
             ddataOp = topicsWriter.put(subscriber, ddata, writeConsistency);

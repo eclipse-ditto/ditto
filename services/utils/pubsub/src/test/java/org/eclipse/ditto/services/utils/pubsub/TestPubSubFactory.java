@@ -13,13 +13,12 @@
 package org.eclipse.ditto.services.utils.pubsub;
 
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
-import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
@@ -59,20 +58,8 @@ public final class TestPubSubFactory extends AbstractPubSubFactory<String> imple
     /**
      * @return subscribers of a topic in the distributed data.
      */
-    CompletionStage<Collection<ActorRef>> getSubscribers(final String topic) {
-        return getSubscribers(Collections.singleton(topic), ddata.getReader());
-    }
-
-    /**
-     * Retrieve subscribers of a collection of topics from the distributed data.
-     * Useful for circumventing lackluster existential type implementation when the reader type parameter isn't known.
-     *
-     * @param topics the topics.
-     * @return subscribers of those topics in the distributed data.
-     */
-    private static <T> CompletionStage<Collection<ActorRef>> getSubscribers(
-            final Collection<String> topics, final DDataReader<ActorRef, T> reader) {
-        return reader.getSubscribers(topics.stream().map(reader::approximate).collect(Collectors.toSet()));
+    CompletionStage<Collection<ActorRef>> getSubscribers() {
+        return ddata.getReader().read().thenApply(Map::keySet);
     }
 
     @Override

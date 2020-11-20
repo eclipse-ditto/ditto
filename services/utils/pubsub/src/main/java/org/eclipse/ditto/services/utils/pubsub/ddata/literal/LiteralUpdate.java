@@ -13,29 +13,30 @@
 
 package org.eclipse.ditto.services.utils.pubsub.ddata.literal;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.services.utils.pubsub.ddata.AbstractSubscriptionsUpdate;
+import org.eclipse.ditto.services.utils.pubsub.ddata.DDataUpdate;
 
 /**
  * Updates of uncompressed DData.
  */
 @NotThreadSafe
-public final class LiteralUpdate extends AbstractSubscriptionsUpdate<String, LiteralUpdate> {
+public final class LiteralUpdate extends AbstractSubscriptionsUpdate<String, LiteralUpdate>
+        implements DDataUpdate<String> {
 
-    private LiteralUpdate(final Set<String> inserts, final Set<String> deletes, final boolean replaceAll) {
-        super(inserts, deletes, replaceAll);
+    private LiteralUpdate(final Set<String> inserts) {
+        super(inserts);
     }
 
     /**
      * @return An empty update.
      */
     public static LiteralUpdate empty() {
-        return new LiteralUpdate(new HashSet<>(), new HashSet<>(), false);
+        return new LiteralUpdate(new HashSet<>());
     }
 
     /**
@@ -46,11 +47,11 @@ public final class LiteralUpdate extends AbstractSubscriptionsUpdate<String, Lit
      */
     public static LiteralUpdate replaceAll(final Set<String> inserts) {
         final Set<String> copyOfInserts = Set.copyOf(inserts);
-        return new LiteralUpdate(copyOfInserts, Collections.emptySet(), true);
+        return new LiteralUpdate(copyOfInserts);
     }
 
     @Override
     public LiteralUpdate snapshot() {
-        return new LiteralUpdate(Set.copyOf(getInserts()), Set.copyOf(getDeletes()), shouldReplaceAll());
+        return new LiteralUpdate(Set.copyOf(getInserts()));
     }
 }

@@ -165,13 +165,14 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
     private boolean isAllowedRemotelyBy(@Nullable final String group, final Set<String> ackLabels,
             final Map<String, Set<String>> remoteGroups,
             final Predicate<String> isTakenRemotely) {
-        if (group != null) {
+        final boolean noConflict = noDeclaredLabelMatches(ackLabels, isTakenRemotely);
+        if (noConflict && group != null) {
             final Set<String> remoteGroup = remoteGroups.get(group);
             if (remoteGroup != null) {
                 return remoteGroup.equals(ackLabels);
             }
         }
-        return noDeclaredLabelMatches(ackLabels, isTakenRemotely);
+        return noConflict;
     }
 
     private boolean noDeclaredLabelMatches(final Set<String> ackLabels, final Predicate<String> contains) {

@@ -42,12 +42,6 @@ public interface PubSubConfig {
     Duration getUpdateInterval();
 
     /**
-     * @return Probability of forcing an update on each clock tick to recover from
-     * temporary disassociation.
-     */
-    double getForceUpdateProbability();
-
-    /**
      * Create a {@code PubSubConfig} object from a {@code Config} object at the key {@code pubsub}.
      *
      * @param config config with path {@code pubsub}.
@@ -91,14 +85,7 @@ public interface PubSubConfig {
         /**
          * How often to flush local subscriptions to the distributed data replicator.
          */
-        UPDATE_INTERVAL("update-interval", Duration.ofSeconds(3L)),
-
-        /**
-         * Probability to flush local subscriptions when there was no change to recover
-         * from temporary disassociation, during which a remove member may remove our subscriber
-         * from the distributed data when prompted by a cluster event MemberRemoved.
-         */
-        FORCE_UPDATE_PROBABILITY("force-update-probability", 0.01);
+        UPDATE_INTERVAL("update-interval", Duration.ofSeconds(3L));
 
         private final String path;
         private final Object defaultValue;

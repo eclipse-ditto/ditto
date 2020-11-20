@@ -28,14 +28,4 @@ public interface DDataUpdate<S> {
      * @return Inserted elements.
      */
     Set<S> getInserts();
-
-    /**
-     * @return Deleted elements.
-     */
-    Set<S> getDeletes();
-
-    /**
-     * @return Whether the distributed data should clear all associations and replace them by inserts.
-     */
-    boolean shouldReplaceAll();
 }

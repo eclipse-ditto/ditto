@@ -12,11 +12,9 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
@@ -62,22 +60,7 @@ public abstract class AbstractDDataHandler<K, S, T extends DDataUpdate<S>>
     public abstract CompletionStage<Void> removeAddress(Address address, Replicator.WriteConsistency writeConsistency);
 
     @Override
-    public abstract S approximate(final String topic);
-
-    @Override
-    public Collection<K> getSubscribers(final Map<K, scala.collection.immutable.Set<S>> mmap,
-            final Collection<S> topic) {
-        return mmap.entrySet()
-                .stream()
-                .filter(entry -> topic.stream().anyMatch(entry.getValue()::contains))
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public CompletionStage<Collection<K>> getSubscribers(final Collection<S> topic) {
-        return read().thenApply(mmap -> getSubscribers(mmap, topic));
-    }
+    public abstract long approximate(final String topic);
 
     @Override
     public CompletionStage<Map<K, scala.collection.immutable.Set<S>>> read(
@@ -99,22 +82,8 @@ public abstract class AbstractDDataHandler<K, S, T extends DDataUpdate<S>>
     public CompletionStage<Void> put(final K ownSubscriber, final T topics,
             final Replicator.WriteConsistency writeConsistency) {
 
-        if (topics.shouldReplaceAll()) {
-            // complete replacement
-            return update(writeConsistency, mmap -> mmap.put(selfUniqueAddress, ownSubscriber, topics.getInserts()));
-        } else {
-            // incremental update
-            return update(writeConsistency, mmap -> {
-                ORMultiMap<K, S> result = mmap;
-                for (final S inserted : topics.getInserts()) {
-                    result = result.addBinding(selfUniqueAddress, ownSubscriber, inserted);
-                }
-                for (final S deleted : topics.getDeletes()) {
-                    result = result.removeBinding(selfUniqueAddress, ownSubscriber, deleted);
-                }
-                return result;
-            });
-        }
+        // complete replacement
+        return update(writeConsistency, mmap -> mmap.put(selfUniqueAddress, ownSubscriber, topics.getInserts()));
     }
 
     @Override

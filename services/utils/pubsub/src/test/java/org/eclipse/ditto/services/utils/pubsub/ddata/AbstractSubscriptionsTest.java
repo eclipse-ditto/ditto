@@ -32,7 +32,7 @@ import akka.actor.ActorRef;
  * @param <T> type of distributed updates.
  * @param <S> type of subscriptions objects.
  */
-public abstract class AbstractSubscriptionsTest<H, T extends DDataUpdate<H>, S extends AbstractSubscriptions<H, T>> {
+public abstract class AbstractSubscriptionsTest<H, T extends DDataUpdate<H>, S extends AbstractSubscriptions<H, H, T>> {
 
     protected static final ActorRef ACTOR1 = new MockActorRef("actor1");
     protected static final ActorRef ACTOR2 = new MockActorRef("actor2");
@@ -49,23 +49,23 @@ public abstract class AbstractSubscriptionsTest<H, T extends DDataUpdate<H>, S e
      */
     protected S getVennDiagram() {
         final S subscriptions = newSubscriptions();
-        subscriptions.subscribe(ACTOR1, asSet("1", "2", "4", "5"));
-        subscriptions.subscribe(ACTOR2, asSet("2", "3", "5", "6"));
-        subscriptions.subscribe(ACTOR3, asSet("4", "5", "6", "7"));
+        subscriptions.subscribe(ACTOR1, asSet("1", "2", "4", "5"), null);
+        subscriptions.subscribe(ACTOR2, asSet("2", "3", "5", "6"), null);
+        subscriptions.subscribe(ACTOR3, asSet("4", "5", "6", "7"), null);
         return subscriptions;
     }
 
     @Test
     public void createEmptySubscriptions() {
         final int hashFamilySize = 8;
-        final AbstractSubscriptions<H, T> underTest = newSubscriptions();
-        assertThat(underTest.subscriberToTopic.isEmpty()).isTrue();
-        assertThat(underTest.topicToData.isEmpty()).isTrue();
+        final AbstractSubscriptions<H, H, T> underTest = newSubscriptions();
+        assertThat(underTest.subscriberDataMap.isEmpty()).isTrue();
+        assertThat(underTest.topicDataMap.isEmpty()).isTrue();
     }
 
     @Test
     public void testVennDiagramMembership() {
-        final AbstractSubscriptions<H, T> underTest = getVennDiagram();
+        final AbstractSubscriptions<H, H, T> underTest = getVennDiagram();
         final SubscriptionsReader reader = underTest.snapshot();
         assertThat(reader.getSubscribers(singleton("1"))).containsExactlyInAnyOrder(ACTOR1);
         assertThat(reader.getSubscribers(singleton("2"))).containsExactlyInAnyOrder(ACTOR1, ACTOR2);
@@ -74,15 +74,15 @@ public abstract class AbstractSubscriptionsTest<H, T extends DDataUpdate<H>, S e
         assertThat(reader.getSubscribers(singleton("5"))).containsExactlyInAnyOrder(ACTOR1, ACTOR2, ACTOR3);
         assertThat(reader.getSubscribers(singleton("6"))).containsExactlyInAnyOrder(ACTOR2, ACTOR3);
         assertThat(reader.getSubscribers(singleton("7"))).containsExactlyInAnyOrder(ACTOR3);
-        assertThat(underTest.subscriberToTopic.size()).isEqualTo(3);
-        assertThat(underTest.topicToData.size()).isEqualTo(7);
+        assertThat(underTest.subscriberDataMap.size()).isEqualTo(3);
+        assertThat(underTest.topicDataMap.size()).isEqualTo(7);
     }
 
     @Test
     public void testVennDiagramWithFilter() {
-        final AbstractSubscriptions<H, T> underTest = getVennDiagram();
-        underTest.subscribe(ACTOR1, Collections.emptySet(), topics -> topics.contains("1"));
-        underTest.subscribe(ACTOR2, Collections.emptySet(), topics -> !topics.contains("6"));
+        final AbstractSubscriptions<H, H, T> underTest = getVennDiagram();
+        underTest.subscribe(ACTOR1, Collections.emptySet(), topics -> topics.contains("1"), null);
+        underTest.subscribe(ACTOR2, Collections.emptySet(), topics -> !topics.contains("6"), null);
         final SubscriptionsReader reader = underTest.snapshot();
         assertThat(reader.getSubscribers(singleton("1"))).containsExactlyInAnyOrder(ACTOR1);
         assertThat(reader.getSubscribers(singleton("2"))).containsExactlyInAnyOrder(ACTOR2);
@@ -95,13 +95,13 @@ public abstract class AbstractSubscriptionsTest<H, T extends DDataUpdate<H>, S e
 
     @Test
     public void testVennDiagramMembershipAfterRotation() {
-        final AbstractSubscriptions<H, T> underTest = getVennDiagram();
-        underTest.subscribe(ACTOR1, singleton("3"));
-        underTest.subscribe(ACTOR1, singleton("6"));
-        underTest.subscribe(ACTOR2, singleton("4"));
-        underTest.subscribe(ACTOR2, singleton("7"));
-        underTest.subscribe(ACTOR3, singleton("1"));
-        underTest.subscribe(ACTOR3, singleton("2"));
+        final AbstractSubscriptions<H, H, T> underTest = getVennDiagram();
+        underTest.subscribe(ACTOR1, singleton("3"), null);
+        underTest.subscribe(ACTOR1, singleton("6"), null);
+        underTest.subscribe(ACTOR2, singleton("4"), null);
+        underTest.subscribe(ACTOR2, singleton("7"), null);
+        underTest.subscribe(ACTOR3, singleton("1"), null);
+        underTest.subscribe(ACTOR3, singleton("2"), null);
         underTest.unsubscribe(ACTOR1, singleton("1"));
         underTest.unsubscribe(ACTOR1, singleton("4"));
         underTest.unsubscribe(ACTOR2, singleton("2"));
@@ -120,18 +120,18 @@ public abstract class AbstractSubscriptionsTest<H, T extends DDataUpdate<H>, S e
 
     @Test
     public void testVennDiagramMembershipAfterAnotherRotation() {
-        final AbstractSubscriptions<H, T> underTest = getVennDiagram();
-        underTest.subscribe(ACTOR1, singleton("3"));
+        final AbstractSubscriptions<H, H, T> underTest = getVennDiagram();
+        underTest.subscribe(ACTOR1, singleton("3"), null);
         underTest.unsubscribe(ACTOR1, singleton("1"));
         underTest.unsubscribe(ACTOR1, singleton("4"));
         underTest.unsubscribe(ACTOR2, singleton("2"));
         underTest.unsubscribe(ACTOR2, singleton("3"));
-        underTest.subscribe(ACTOR1, singleton("6"));
-        underTest.subscribe(ACTOR2, singleton("4"));
-        underTest.subscribe(ACTOR2, singleton("7"));
-        underTest.subscribe(ACTOR3, singleton("1"));
+        underTest.subscribe(ACTOR1, singleton("6"), null);
+        underTest.subscribe(ACTOR2, singleton("4"), null);
+        underTest.subscribe(ACTOR2, singleton("7"), null);
+        underTest.subscribe(ACTOR3, singleton("1"), null);
         underTest.unsubscribe(ACTOR3, singleton("6"));
-        underTest.subscribe(ACTOR3, singleton("2"));
+        underTest.subscribe(ACTOR3, singleton("2"), null);
         underTest.unsubscribe(ACTOR3, singleton("7"));
         final SubscriptionsReader reader = underTest.snapshot();
         assertThat(reader.getSubscribers(singleton("1"))).containsExactlyInAnyOrder(ACTOR3);
@@ -145,7 +145,7 @@ public abstract class AbstractSubscriptionsTest<H, T extends DDataUpdate<H>, S e
 
     @Test
     public void testSubscriberRemoval() {
-        final AbstractSubscriptions<H, T> underTest = getVennDiagram();
+        final AbstractSubscriptions<H, H, T> underTest = getVennDiagram();
         underTest.removeSubscriber(ACTOR1);
         underTest.removeSubscriber(ACTOR2);
         final SubscriptionsReader reader = underTest.snapshot();
@@ -156,25 +156,25 @@ public abstract class AbstractSubscriptionsTest<H, T extends DDataUpdate<H>, S e
         assertThat(reader.getSubscribers(singleton("5"))).containsExactlyInAnyOrder(ACTOR3);
         assertThat(reader.getSubscribers(singleton("6"))).containsExactlyInAnyOrder(ACTOR3);
         assertThat(reader.getSubscribers(singleton("7"))).containsExactlyInAnyOrder(ACTOR3);
-        assertThat(underTest.subscriberToTopic.size()).isEqualTo(1);
-        assertThat(underTest.topicToData.size()).isEqualTo(4);
+        assertThat(underTest.subscriberDataMap.size()).isEqualTo(1);
+        assertThat(underTest.topicDataMap.size()).isEqualTo(4);
     }
 
     @Test
     public void testSnapshot() {
         // GIVEN: A snapshot is taken
-        final AbstractSubscriptions<H, T> underTest = getVennDiagram();
+        final AbstractSubscriptions<H, H, T> underTest = getVennDiagram();
         final SubscriptionsReader snapshot = underTest.snapshot();
 
         // THEN: snapshot cannot be modified but can be queried
         assertThat(snapshot.getSubscribers(Arrays.asList("1", "2", "3"))).containsExactlyInAnyOrder(ACTOR1, ACTOR2);
 
         // WHEN: the original mutates
-        underTest.subscribe(ACTOR1, singleton("8"));
+        underTest.subscribe(ACTOR1, singleton("8"), null);
         underTest.unsubscribe(ACTOR1, singleton("1"));
         underTest.removeSubscriber(ACTOR2);
-        assertThat(underTest.subscriberToTopic.size()).isEqualTo(2);
-        assertThat(underTest.topicToData.size()).isEqualTo(6);
+        assertThat(underTest.subscriberDataMap.size()).isEqualTo(2);
+        assertThat(underTest.topicDataMap.size()).isEqualTo(6);
 
         // THEN: snapshot should not change
         assertThat(snapshot).isEqualTo(getVennDiagram().snapshot());
@@ -183,10 +183,10 @@ public abstract class AbstractSubscriptionsTest<H, T extends DDataUpdate<H>, S e
 
     @Test
     public void changeDetectionIsAccurate() {
-        final AbstractSubscriptions<H, T> underTest = getVennDiagram();
+        final AbstractSubscriptions<H, H, T> underTest = getVennDiagram();
 
-        assertThat(underTest.subscribe(ACTOR1, asSet("1", "2"))).isFalse();
-        assertThat(underTest.subscribe(ACTOR1, asSet("2", "3"))).isTrue();
+        assertThat(underTest.subscribe(ACTOR1, asSet("1", "2"), null)).isFalse();
+        assertThat(underTest.subscribe(ACTOR1, asSet("2", "3"), null)).isTrue();
         assertThat(underTest.unsubscribe(ACTOR2, asSet("1", "4"))).isFalse();
         assertThat(underTest.unsubscribe(ACTOR2, asSet("2", "3", "5", "7"))).isTrue();
         assertThat(underTest.removeSubscriber(ACTOR4)).isFalse();

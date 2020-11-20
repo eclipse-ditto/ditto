@@ -35,7 +35,6 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.services.utils.pubsub.actors.SubscriptionsChanged;
 import org.eclipse.ditto.services.utils.pubsub.api.LocalAcksChanged;
 import org.eclipse.ditto.services.utils.pubsub.api.SubAck;
 import org.eclipse.ditto.services.utils.pubsub.api.Subscribe;
@@ -212,7 +211,7 @@ public final class PubSubFactoryTest {
 
             // THEN: the subscriber is removed
             Awaitility.await().untilAsserted(() ->
-                    assertThat(factory1.getSubscribers("hello").toCompletableFuture().join())
+                    assertThat(factory1.getSubscribers().toCompletableFuture().join())
                             .describedAs("subscriber should be removed from ddata after termination")
                             .isEmpty()
             );
@@ -242,7 +241,7 @@ public final class PubSubFactoryTest {
 
             // THEN: the subscriber is removed
             Awaitility.await().untilAsserted(() ->
-                    assertThat(factory1.getSubscribers("hello").toCompletableFuture().join())
+                    assertThat(factory1.getSubscribers().toCompletableFuture().join())
                             .describedAs("subscriber should be removed from ddata")
                             .isEmpty());
         }};

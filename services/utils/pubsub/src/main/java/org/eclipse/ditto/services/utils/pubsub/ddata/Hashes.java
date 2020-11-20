@@ -52,6 +52,17 @@ public interface Hashes {
     }
 
     /**
+     * Hash a string topic into a long integer.
+     *
+     * @param topic the topic.
+     * @return the hashed topic.
+     */
+    default Long hashAsLong(final String topic) {
+        final List<Integer> hashes = getHashes(topic);
+        return ((long) hashes.get(0)) << 32 | hashes.get(1) & 0xffffffffL;
+    }
+
+    /**
      * Hash a string by a seeded Murmur-3 hash function.
      *
      * @param string the string to hash.

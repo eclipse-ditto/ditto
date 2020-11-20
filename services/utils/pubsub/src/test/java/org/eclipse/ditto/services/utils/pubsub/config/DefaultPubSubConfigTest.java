@@ -18,7 +18,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.assertj.core.data.Percentage;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -68,10 +67,6 @@ public final class DefaultPubSubConfigTest {
         softly.assertThat(underTest.getUpdateInterval())
                 .as(PubSubConfig.ConfigValue.UPDATE_INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(3L));
-
-        softly.assertThat(underTest.getForceUpdateProbability())
-                .as(PubSubConfig.ConfigValue.FORCE_UPDATE_PROBABILITY.getConfigPath())
-                .isCloseTo(0.01, Percentage.withPercentage(1.0));
     }
 
     @Test
@@ -89,10 +84,6 @@ public final class DefaultPubSubConfigTest {
         softly.assertThat(underTest.getUpdateInterval())
                 .as(PubSubConfig.ConfigValue.UPDATE_INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(4L));
-
-        softly.assertThat(underTest.getForceUpdateProbability())
-                .as(PubSubConfig.ConfigValue.FORCE_UPDATE_PROBABILITY.getConfigPath())
-                .isCloseTo(0.011, Percentage.withPercentage(1.0));
     }
 
 }

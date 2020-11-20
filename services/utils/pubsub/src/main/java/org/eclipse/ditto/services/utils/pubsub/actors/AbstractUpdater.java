@@ -51,9 +51,6 @@ import akka.japi.pf.ReceiveBuilder;
  */
 abstract class AbstractUpdater<K, T, P> extends AbstractActorWithTimers {
 
-    // pseudo-random number generator for force updates. quality matters little.
-    private final Random random = new Random();
-
     protected final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
     protected final PubSubConfig config;
@@ -158,13 +155,6 @@ abstract class AbstractUpdater<K, T, P> extends AbstractActorWithTimers {
         log.error(failure.cause(), "updateFailure");
         // try again next clock tick
         localSubscriptionsChanged = true;
-    }
-
-    /**
-     * @return whether the next update is a random force update.
-     */
-    protected boolean forceUpdate() {
-        return random.nextDouble() < config.getForceUpdateProbability();
     }
 
     /**

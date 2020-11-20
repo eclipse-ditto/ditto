@@ -53,15 +53,16 @@ final class DistributedSubImpl implements DistributedSub {
     @Override
     public CompletionStage<SubAck> subscribeWithFilterAndAck(final Collection<String> topics,
             final ActorRef subscriber, final Predicate<Collection<String>> filter) {
+        // TODO: check group is non-empty if non-null
         final Subscribe subscribe =
-                Subscribe.of(new HashSet<>(topics), subscriber, writeAll, true, filter);
+                Subscribe.of(new HashSet<>(topics), subscriber, writeAll, true, filter, null);
         return askSubSupervisor(subscribe);
     }
 
     @Override
     public CompletionStage<SubAck> subscribeWithAck(final Collection<String> topics,
             final ActorRef subscriber) {
-        return askSubSupervisor(Subscribe.of(new HashSet<>(topics), subscriber, writeAll, true));
+        return askSubSupervisor(Subscribe.of(new HashSet<>(topics), subscriber, writeAll, true, null));
     }
 
     @Override
@@ -84,7 +85,7 @@ final class DistributedSubImpl implements DistributedSub {
     public void subscribeWithoutAck(final Collection<String> topics, final ActorRef subscriber) {
         final Request request =
                 Subscribe.of(new HashSet<>(topics), subscriber,
-                        (Replicator.WriteConsistency) Replicator.writeLocal(), false);
+                        (Replicator.WriteConsistency) Replicator.writeLocal(), false, null);
         subSupervisor.tell(request, subscriber);
     }
 

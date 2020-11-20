@@ -39,13 +39,11 @@ final class DefaultPubSubConfig implements PubSubConfig {
     private final String seed;
     private final Duration restartDelay;
     private final Duration updateInterval;
-    private final double forceUpdateProbability;
 
     private DefaultPubSubConfig(final ConfigWithFallback config) {
         seed = config.getString(ConfigValue.SEED.getConfigPath());
         restartDelay = config.getDuration(ConfigValue.RESTART_DELAY.getConfigPath());
         updateInterval = config.getDuration(ConfigValue.UPDATE_INTERVAL.getConfigPath());
-        forceUpdateProbability = config.getDouble(ConfigValue.FORCE_UPDATE_PROBABILITY.getConfigPath());
     }
 
     static PubSubConfig of(final Config config) {
@@ -67,21 +65,12 @@ final class DefaultPubSubConfig implements PubSubConfig {
         return updateInterval;
     }
 
-    @Override
-    public double getForceUpdateProbability() {
-        return forceUpdateProbability;
-    }
-
     private String[] getFieldNames() {
-        return new String[]{
-                "seed", "restartDelay", "updateInterval", "forceUpdateProbability"
-        };
+        return new String[]{"seed", "restartDelay", "updateInterval"};
     }
 
     private Object[] getFieldValues() {
-        return new Object[]{
-                seed, restartDelay, updateInterval, forceUpdateProbability
-        };
+        return new Object[]{seed, restartDelay, updateInterval};
     }
 
     @Override

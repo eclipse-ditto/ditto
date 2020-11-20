@@ -20,6 +20,7 @@ import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.AbstractDDataHandler;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
+import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
@@ -32,7 +33,7 @@ import akka.cluster.ddata.Replicator;
  * A distributed collection of hashes of strings indexed by ActorRef.
  * The hash functions for all filter should be identical.
  */
-public final class CompressedDDataHandler extends AbstractDDataHandler<ActorRef, Long, CompressedUpdate>
+public final class CompressedDDataHandler extends AbstractDDataHandler<ActorRef, String, LiteralUpdate>
         implements Hashes {
 
     private final List<Integer> seeds;
@@ -78,15 +79,15 @@ public final class CompressedDDataHandler extends AbstractDDataHandler<ActorRef,
      * @return the compressed topic.
      */
     @Override
-    public Long approximate(final String topic) {
-        return hashCodesToLong(getHashes(topic));
+    public long approximate(final String topic) {
+        return hashAsLong(topic);
     }
 
     @Override
     public CompletionStage<Void> removeAddress(final Address address,
             final Replicator.WriteConsistency writeConsistency) {
         return update(writeConsistency, mmap -> {
-            ORMultiMap<ActorRef, Long> result = mmap;
+            ORMultiMap<ActorRef, String> result = mmap;
             for (final ActorRef subscriber : mmap.getEntries().keySet()) {
                 if (subscriber.path().address().equals(address)) {
                     result = result.remove(selfUniqueAddress, subscriber);
@@ -96,7 +97,4 @@ public final class CompressedDDataHandler extends AbstractDDataHandler<ActorRef,
         });
     }
 
-    static long hashCodesToLong(final List<Integer> hashes) {
-        return ((long) hashes.get(0)) << 32 | hashes.get(1) & 0xffffffffL;
-    }
 }
