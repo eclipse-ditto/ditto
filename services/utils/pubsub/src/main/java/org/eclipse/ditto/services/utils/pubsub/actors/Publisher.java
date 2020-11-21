@@ -34,6 +34,7 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.ack.Grouped;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -92,7 +93,7 @@ public final class Publisher extends AbstractActor {
      * @param message the message to publish.
      * @return a publish message.
      */
-    public static Request publish(final Collection<java.lang.String> topics, final Object message) {
+    public static Request publish(final Collection<java.lang.String> topics, final Signal<?> message) {
         return new Publish(topics, message);
     }
 
@@ -107,7 +108,7 @@ public final class Publisher extends AbstractActor {
      * @return the request.
      */
     public static Request publishWithAck(final Collection<java.lang.String> topics,
-            final Object message,
+            final Signal<?> message,
             final Set<AcknowledgementRequest> ackRequests,
             final EntityIdWithType entityId,
             final DittoHeaders dittoHeaders) {
@@ -205,9 +206,9 @@ public final class Publisher extends AbstractActor {
     private static final class Publish implements Request {
 
         private final Collection<java.lang.String> topics;
-        private final Object message;
+        private final Signal<?> message;
 
-        private Publish(final Collection<java.lang.String> topics, final Object message) {
+        private Publish(final Collection<java.lang.String> topics, final Signal<?> message) {
             this.topics = topics;
             this.message = message;
         }
@@ -222,12 +223,13 @@ public final class Publisher extends AbstractActor {
                 AckExtractor.of(p -> p.entityId, p -> p.dittoHeaders);
 
         private final Collection<java.lang.String> topics;
-        private final Object message;
+        private final Signal<?> message;
         private final Set<AcknowledgementRequest> ackRequests;
         private final EntityIdWithType entityId;
         private final DittoHeaders dittoHeaders;
 
-        private PublishWithAck(final Collection<java.lang.String> topics, final Object message,
+        private PublishWithAck(final Collection<java.lang.String> topics,
+                final Signal<?> message,
                 final Set<AcknowledgementRequest> ackRequests,
                 final EntityIdWithType entityId,
                 final DittoHeaders dittoHeaders) {

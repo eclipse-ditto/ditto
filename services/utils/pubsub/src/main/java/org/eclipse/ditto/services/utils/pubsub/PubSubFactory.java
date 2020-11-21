@@ -12,12 +12,14 @@
  */
 package org.eclipse.ditto.services.utils.pubsub;
 
+import org.eclipse.ditto.signals.base.Signal;
+
 /**
  * Interface for pub-sub factory.
  *
  * @param <T> type of messages.
  */
-public interface PubSubFactory<T> {
+public interface PubSubFactory<T extends Signal<?>> {
 
     /**
      * Start a pub-supervisor under the user guardian. Will fail when called a second time in an actor system.
