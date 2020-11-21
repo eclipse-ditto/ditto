@@ -31,6 +31,7 @@ final class AnnotationBasedJsonParsable<T> implements JsonParsable<T> {
 
     private static final Class<?> JSON_OBJECT_PARAMETER = JsonObject.class;
     private static final Class<?> DITTO_HEADERS_PARAMETER = DittoHeaders.class;
+    private static final Class<?> REGISTRY_PARAMETER = AbstractJsonParsableRegistry.class;
 
     private final String key;
     private final String v1FallbackKey;
@@ -51,8 +52,7 @@ final class AnnotationBasedJsonParsable<T> implements JsonParsable<T> {
         this.key = key;
         this.v1FallbackKey = v1FallbackKey;
         try {
-            this.parseMethod =
-                    parsedClass.getMethod(parsingMethodName, JSON_OBJECT_PARAMETER, DITTO_HEADERS_PARAMETER);
+            this.parseMethod = getParseMethod(parsedClass, parsingMethodName);
             final Class<?> returnType = parseMethod.getReturnType();
             if (!parsedClass.isAssignableFrom(returnType)) {
                 throw new IllegalArgumentException(
@@ -113,5 +113,16 @@ final class AnnotationBasedJsonParsable<T> implements JsonParsable<T> {
                 .message(String.format("Error during parsing json: <%s>", jsonObject.toString()))
                 .cause(cause).build(),
                 dittoHeaders);
+    }
+
+    private static Method getParseMethod(final Class<?> parsedClass, final String methodName)
+            throws NoSuchMethodException {
+
+        try {
+            return parsedClass.getMethod(methodName, JSON_OBJECT_PARAMETER, DITTO_HEADERS_PARAMETER,
+                    REGISTRY_PARAMETER);
+        } catch (final NoSuchMethodException e) {
+            return parsedClass.getMethod(methodName, JSON_OBJECT_PARAMETER, DITTO_HEADERS_PARAMETER);
+        }
     }
 }

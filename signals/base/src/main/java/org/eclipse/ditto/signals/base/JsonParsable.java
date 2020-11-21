@@ -46,6 +46,19 @@ public interface JsonParsable<T> {
      *
      * @param jsonObject the JSON representation to be parsed.
      * @param dittoHeaders the headers of the command to be parsed.
+     * @param registry the JSON parsable registry to parse parts of the JSON recursively.
+     * @return the parsed instance of {@link T}
+     * @throws JsonTypeNotParsableException if the {@code jsonObject}'s {@code type} was unknown to the parser.
+     */
+    default T parse(JsonObject jsonObject, DittoHeaders dittoHeaders, AbstractJsonParsableRegistry<?> registry) {
+        return parse(jsonObject, dittoHeaders);
+    }
+
+    /**
+     * Parses an instance of {@link T} from the given {@code jsonObject} and {@code dittoHeaders}.
+     *
+     * @param jsonObject the JSON representation to be parsed.
+     * @param dittoHeaders the headers of the command to be parsed.
      * @return the parsed instance of {@link T}
      * @throws JsonTypeNotParsableException if the {@code jsonObject}'s {@code type} was unknown to the parser.
      */
