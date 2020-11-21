@@ -12,9 +12,12 @@
  */
 package org.eclipse.ditto.signals.base;
 
+import java.io.NotSerializableException;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 
 /**
@@ -46,11 +49,11 @@ public interface JsonParsable<T> {
      *
      * @param jsonObject the JSON representation to be parsed.
      * @param dittoHeaders the headers of the command to be parsed.
-     * @param registry the JSON parsable registry to parse parts of the JSON recursively.
+     * @param parseInnerJson the function to parse inner JSON.
      * @return the parsed instance of {@link T}
      * @throws JsonTypeNotParsableException if the {@code jsonObject}'s {@code type} was unknown to the parser.
      */
-    default T parse(JsonObject jsonObject, DittoHeaders dittoHeaders, AbstractJsonParsableRegistry<?> registry) {
+    default T parse(JsonObject jsonObject, DittoHeaders dittoHeaders, ParseInnerJson parseInnerJson) {
         return parse(jsonObject, dittoHeaders);
     }
 
@@ -64,4 +67,19 @@ public interface JsonParsable<T> {
      */
     T parse(JsonObject jsonObject, DittoHeaders dittoHeaders);
 
+    /**
+     * Functional interface to parse inner JSON for nested Jsonifiable.
+     */
+    @FunctionalInterface
+    interface ParseInnerJson {
+
+        /**
+         * Function to parse inner JSON object.
+         *
+         * @param jsonObject the inner JSON object.
+         * @return the deserialized Jsonifiable object.
+         * @throws NotSerializableException if inner JSON cannot be deserialized.
+         */
+        Jsonifiable<?> parseInnerJson(final JsonObject jsonObject) throws NotSerializableException;
+    }
 }

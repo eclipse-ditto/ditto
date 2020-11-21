@@ -21,6 +21,7 @@ import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.api.LocalAcksChanged;
+import org.eclipse.ditto.services.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.ack.GroupedSnapshot;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
@@ -83,13 +84,14 @@ public final class Subscriber<T> extends AbstractActor {
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
-                .match(messageClass, this::broadcastToLocalSubscribers)
+                .match(PublishSignal.class, this::broadcastToLocalSubscribers)
                 .match(SubscriptionsReader.class, this::updateLocalSubscriptions)
                 .match(LocalAcksChanged.class, this::updateLocalAcks)
                 .build();
     }
 
-    private void broadcastToLocalSubscribers(final T message) {
+    private void broadcastToLocalSubscribers(final PublishSignal command) {
+        final T message = messageClass.cast(command.getSignal());
         final Collection<String> topics = topicExtractor.getTopics(message);
         final Set<ActorRef> localSubscribers = localSubscriptions.getSubscribers(topics);
         if (localSubscribers.isEmpty()) {

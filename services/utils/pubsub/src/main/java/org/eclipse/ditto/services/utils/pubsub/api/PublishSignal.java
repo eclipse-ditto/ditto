@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.api;
 
+import java.io.NotSerializableException;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -24,15 +25,17 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.base.AbstractJsonParsableRegistry;
+import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
+import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
  * Command from Publisher to Subscriber to publish a signal to local subscribers.
@@ -76,20 +79,39 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
      * Deserialize this command.
      *
      * @param jsonObject the JSON representation of this command.
-     * @param dittoHeaders the Ditto headers of the underlying signal.
-     * @param registry the registry to deserialize the underlying signal.
+     * @param dittoHeaders the Ditto headers of the underlying signal. Used by reflection. Do not delete.
+     * @param parseInnerJson function to parse the inner JSON.
      * @return the deserialized command.
      */
     public static PublishSignal fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders,
-            final AbstractJsonParsableRegistry<Signal<?>> registry) {
+            final JsonParsable.ParseInnerJson parseInnerJson) {
 
-        final Signal<?> signal = registry.parse(jsonObject.getValueOrThrow(JsonFields.SIGNAL), dittoHeaders);
-        final List<String> groups = jsonObject.getValueOrThrow(JsonFields.GROUPS)
-                .stream()
-                .map(JsonValue::asString)
-                .collect(Collectors.toList());
-        return new PublishSignal(signal, groups);
+        try {
+            final Signal<?> signal =
+                    (Signal<?>) parseInnerJson.parseInnerJson(jsonObject.getValueOrThrow(JsonFields.SIGNAL));
+            final List<String> groups = jsonObject.getValueOrThrow(JsonFields.GROUPS)
+                    .stream()
+                    .map(JsonValue::asString)
+                    .collect(Collectors.toList());
+            return new PublishSignal(signal, groups);
+        } catch (final NotSerializableException e) {
+            throw new JsonParseException(e.getMessage());
+        }
+    }
+
+    /**
+     * @return the signal to be published.
+     */
+    public Signal<?> getSignal() {
+        return signal;
+    }
+
+    /**
+     * @return the groups in which the signal is to be published.
+     */
+    public List<String> getGroups() {
+        return groups;
     }
 
     @Override
@@ -97,7 +119,7 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
             final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
 
-        jsonObjectBuilder.set(JsonFields.SIGNAL, signal.toJson(schemaVersion, predicate))
+        jsonObjectBuilder.set(JsonFields.SIGNAL, signalToJson(schemaVersion, predicate))
                 .set(JsonFields.GROUPS, groups.stream().map(JsonValue::of).collect(JsonCollectors.valuesToArray()));
     }
 
@@ -149,6 +171,15 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[signal=" + signal + ", groups=" + groups + "]";
+    }
+
+    private JsonObject signalToJson(final JsonSchemaVersion jsonSchemaVersion, final Predicate<JsonField> predicate) {
+        final JsonObject signalJson = signal.toJson(jsonSchemaVersion, predicate);
+        if (signalJson.contains(Command.JsonFields.TYPE.getPointer())) {
+            return signalJson;
+        } else {
+            return signalJson.toBuilder().set(Command.JsonFields.TYPE, signal.getType()).build();
+        }
     }
 
     private static final class JsonFields {

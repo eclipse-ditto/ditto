@@ -29,6 +29,7 @@ import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
+import org.eclipse.ditto.services.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.services.utils.pubsub.api.RemoteAcksChanged;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.ack.Grouped;
@@ -150,13 +151,13 @@ public final class Publisher extends AbstractActor {
         }
     }
 
-    private Collection<ActorRef> doPublish(final Collection<java.lang.String> topics, final Object message) {
+    private Collection<ActorRef> doPublish(final Collection<java.lang.String> topics, final Signal<?> message) {
         messageCounter.increment();
         topicCounter.increment(topics.size());
         final List<Long> hashes = topics.stream().map(ddataReader::approximate).collect(Collectors.toList());
         final ActorRef sender = getSender();
         final Collection<ActorRef> subscribers = getSubscribers(hashes);
-        subscribers.forEach(subscriber -> subscriber.tell(message, sender));
+        subscribers.forEach(subscriber -> subscriber.tell(PublishSignal.of(message, List.of()), sender));
         return subscribers;
     }
 
