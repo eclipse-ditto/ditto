@@ -70,7 +70,8 @@ public final class SubUpdater<T> extends AbstractUpdater<ActorRef, T, Subscripti
     @Override
     protected void subscribe(final Subscribe subscribe) {
         final boolean changed =
-                subscriptions.subscribe(subscribe.getSubscriber(), subscribe.getTopics(), subscribe.getFilter(), null);
+                subscriptions.subscribe(subscribe.getSubscriber(), subscribe.getTopics(), subscribe.getFilter(),
+                        subscribe.getGroup().orElse(null));
         enqueueRequest(subscribe, changed, getSender(), awaitUpdate, awaitUpdateMetric);
         if (changed) {
             getContext().watch(subscribe.getSubscriber());

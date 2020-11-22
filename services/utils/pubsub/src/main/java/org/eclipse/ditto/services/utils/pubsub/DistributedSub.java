@@ -16,6 +16,8 @@ import java.util.Collection;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.pubsub.api.SubAck;
 
@@ -32,10 +34,11 @@ public interface DistributedSub {
      * @param topics the topics.
      * @param subscriber who is subscribing.
      * @param filter a local topic filter.
+     * @param group the subscriber's group, if any.
      * @return a future that completes after subscription becomes effective on all nodes.
      */
-    CompletionStage<SubAck> subscribeWithFilterAndAck(Collection<String> topics,
-            ActorRef subscriber, Predicate<Collection<String>> filter);
+    CompletionStage<SubAck> subscribeWithFilterAndGroup(Collection<String> topics,
+            ActorRef subscriber, Predicate<Collection<String>> filter, @Nullable final String group);
 
     /**
      * Subscribe for a collection of topics.

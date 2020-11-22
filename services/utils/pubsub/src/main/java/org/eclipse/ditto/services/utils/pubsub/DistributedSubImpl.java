@@ -12,12 +12,16 @@
  */
 package org.eclipse.ditto.services.utils.pubsub;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.pubsub.api.RemoveSubscriber;
@@ -51,11 +55,15 @@ final class DistributedSubImpl implements DistributedSub {
     }
 
     @Override
-    public CompletionStage<SubAck> subscribeWithFilterAndAck(final Collection<String> topics,
-            final ActorRef subscriber, final Predicate<Collection<String>> filter) {
-        // TODO: check group is non-empty if non-null
+    public CompletionStage<SubAck> subscribeWithFilterAndGroup(final Collection<String> topics,
+            final ActorRef subscriber,
+            final Predicate<Collection<String>> filter,
+            @Nullable final String group) {
+        if (group != null) {
+            checkNotEmpty(group, "group");
+        }
         final Subscribe subscribe =
-                Subscribe.of(new HashSet<>(topics), subscriber, writeAll, true, filter, null);
+                Subscribe.of(new HashSet<>(topics), subscriber, writeAll, true, filter, group);
         return askSubSupervisor(subscribe);
     }
 

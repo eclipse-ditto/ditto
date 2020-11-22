@@ -63,8 +63,8 @@ public final class Publisher extends AbstractActor {
     private final Counter messageCounter = DittoMetrics.counter("pubsub-published-messages");
     private final Counter topicCounter = DittoMetrics.counter("pubsub-published-topics");
 
-    private Map<ActorRef, Set<Long>> topicSubscribers = Map.of();
-    private Map<Address, Set<java.lang.String>> declaredAcks = Map.of();
+    private PublisherIndex<Long> publisherIndex = PublisherIndex.empty();
+    private Map<Address, Set<String>> declaredAcks = Map.of();
     private Set<java.lang.String> allDeclaredAcks = Set.of();
 
     @SuppressWarnings("unused")
@@ -151,14 +151,14 @@ public final class Publisher extends AbstractActor {
         }
     }
 
-    private Collection<ActorRef> doPublish(final Collection<java.lang.String> topics, final Signal<?> message) {
+    private Collection<ActorRef> doPublish(final Collection<java.lang.String> topics, final Signal<?> signal) {
         messageCounter.increment();
         topicCounter.increment(topics.size());
         final List<Long> hashes = topics.stream().map(ddataReader::approximate).collect(Collectors.toList());
         final ActorRef sender = getSender();
-        final Collection<ActorRef> subscribers = getSubscribers(hashes);
-        subscribers.forEach(subscriber -> subscriber.tell(PublishSignal.of(message, List.of()), sender));
-        return subscribers;
+        final List<Pair<ActorRef, PublishSignal>> subscribers = publisherIndex.allotGroupsToSubscribers(signal, hashes);
+        subscribers.forEach(pair -> pair.first().tell(pair.second(), sender));
+        return subscribers.stream().map(Pair::first).collect(Collectors.toList());
     }
 
     private void declaredAcksChanged(final RemoteAcksChanged event) {
@@ -171,28 +171,21 @@ public final class Publisher extends AbstractActor {
     private void topicSubscribersChanged(final Replicator.Changed<?> event) {
         final Map<ActorRef, scala.collection.immutable.Set<String>> mmap =
                 CollectionConverters.asJava(event.get(ddataReader.getKey()).entries());
-        topicSubscribers = mmap.entrySet()
+        final Map<ActorRef, List<Grouped<Long>>> deserializedMMap = mmap.entrySet()
                 .stream()
                 .map(entry -> Pair.create(entry.getKey(), deserializeGroupedHashes(entry.getValue())))
                 .collect(Collectors.toMap(Pair::first, Pair::second));
+        publisherIndex = PublisherIndex.fromDeserializedMMap(deserializedMMap);
     }
 
     private void logUnhandled(final Object message) {
         log.warning("Unhandled: <{}>", message);
     }
 
-    private Set<ActorRef> getSubscribers(final Collection<Long> hashes) {
-        return topicSubscribers.entrySet()
-                .stream()
-                .filter(entry -> hashes.stream().anyMatch(entry.getValue()::contains))
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toSet());
-    }
-
-    private static Set<Long> deserializeGroupedHashes(final scala.collection.immutable.Set<String> strings) {
+    private static List<Grouped<Long>> deserializeGroupedHashes(final scala.collection.immutable.Set<String> strings) {
         return CollectionConverters.asJava(strings).stream()
-                .flatMap(string -> Grouped.fromJson(JsonObject.of(string), JsonValue::asLong).getValues().stream())
-                .collect(Collectors.toSet());
+                .map(string -> Grouped.fromJson(JsonObject.of(string), JsonValue::asLong))
+                .collect(Collectors.toList());
     }
 
     /**

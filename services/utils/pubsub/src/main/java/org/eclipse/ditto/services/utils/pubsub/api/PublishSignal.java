@@ -13,8 +13,8 @@
 package org.eclipse.ditto.services.utils.pubsub.api;
 
 import java.io.NotSerializableException;
-import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -56,9 +56,9 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
     private static final String TYPE = TYPE_PREFIX + NAME;
 
     private final Signal<?> signal;
-    private final List<String> groups;
+    private final Set<String> groups;
 
-    private PublishSignal(final Signal<?> signal, final List<String> groups) {
+    private PublishSignal(final Signal<?> signal, final Set<String> groups) {
         super(TYPE, signal.getDittoHeaders(), Category.MODIFY);
         this.signal = signal;
         this.groups = groups;
@@ -71,7 +71,7 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
      * @param groups the groups where the signal is published to.
      * @return the command to do it.
      */
-    public static PublishSignal of(final Signal<?> signal, final List<String> groups) {
+    public static PublishSignal of(final Signal<?> signal, final Set<String> groups) {
         return new PublishSignal(signal, groups);
     }
 
@@ -79,10 +79,11 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
      * Deserialize this command.
      *
      * @param jsonObject the JSON representation of this command.
-     * @param dittoHeaders the Ditto headers of the underlying signal. Used by reflection. Do not delete.
+     * @param dittoHeaders the Ditto headers of the underlying signal.
      * @param parseInnerJson function to parse the inner JSON.
      * @return the deserialized command.
      */
+    @SuppressWarnings("unused") // called by reflection
     public static PublishSignal fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders,
             final JsonParsable.ParseInnerJson parseInnerJson) {
@@ -90,10 +91,10 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
         try {
             final Signal<?> signal =
                     (Signal<?>) parseInnerJson.parseInnerJson(jsonObject.getValueOrThrow(JsonFields.SIGNAL));
-            final List<String> groups = jsonObject.getValueOrThrow(JsonFields.GROUPS)
+            final Set<String> groups = jsonObject.getValueOrThrow(JsonFields.GROUPS)
                     .stream()
                     .map(JsonValue::asString)
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toSet());
             return new PublishSignal(signal, groups);
         } catch (final NotSerializableException e) {
             throw new JsonParseException(e.getMessage());
@@ -110,7 +111,7 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
     /**
      * @return the groups in which the signal is to be published.
      */
-    public List<String> getGroups() {
+    public Set<String> getGroups() {
         return groups;
     }
 

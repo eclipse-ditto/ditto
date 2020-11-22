@@ -515,6 +515,36 @@ public final class PubSubFactoryTest {
         }};
     }
 
+    @Test
+    public void publishToEachMemberOfDistributedGroup() {
+        new TestKit(system1) {{
+            final TestProbe publisher = TestProbe.apply("publisher", system1);
+            final TestProbe subscriber1 = TestProbe.apply("subscriber1", system1);
+            final TestProbe subscriber2 = TestProbe.apply("subscriber2", system2);
+
+            final DistributedPub<Acknowledgement> pub = factory1.startDistributedPub();
+            final DistributedSub sub1 = factory1.startDistributedSub();
+            final DistributedSub sub2 = factory2.startDistributedSub();
+
+            // GIVEN: subscribers subscribe to the same topic as a group
+            final String topic = "topic";
+            await(sub1.subscribeWithFilterAndGroup(List.of(topic), subscriber1.ref(), x -> true, "group"));
+            await(sub2.subscribeWithFilterAndGroup(List.of(topic), subscriber2.ref(), x -> true, "group"));
+
+            // WHEN: 2 signals are published with different entity IDs differing by 1 in the last byte
+            pub.publish(signal(topic, 0), publisher.ref());
+            pub.publish(signal(topic, 1), publisher.ref());
+
+            // THEN: exactly 1 subscriber gets each message.
+            final Acknowledgement received1 = subscriber1.expectMsgClass(Acknowledgement.class);
+            final Acknowledgement received2 = subscriber2.expectMsgClass(Acknowledgement.class);
+            assertThat((CharSequence) received1.getEntityId()).isNotEqualTo(received2.getEntityId());
+
+            // THEN: either subscriber receives no further messages.
+            subscriber1.expectNoMessage();
+        }};
+    }
+
     private void disableLogging() {
         system1.eventStream().setLogLevel(Attributes.logLevelOff());
         system2.eventStream().setLogLevel(Attributes.logLevelOff());
@@ -570,6 +600,11 @@ public final class PubSubFactoryTest {
 
     private static Acknowledgement signal(final String string) {
         return Acknowledgement.of(AcknowledgementLabel.of(string), ThingId.dummy(), HttpStatusCode.OK,
+                DittoHeaders.empty());
+    }
+
+    private static Acknowledgement signal(final String string, final int seq) {
+        return Acknowledgement.of(AcknowledgementLabel.of(string), ThingId.of("ns:" + seq), HttpStatusCode.OK,
                 DittoHeaders.empty());
     }
 }

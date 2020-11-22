@@ -63,7 +63,7 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
         final CompletionStage<?> nop = CompletableFuture.completedFuture(null);
         return partitionByStreamingTypes(types,
                 liveTypes -> !liveTypes.isEmpty()
-                        ? liveSignalSub.subscribeWithFilterAndAck(topics, subscriber, toFilter(liveTypes))
+                        ? liveSignalSub.subscribeWithFilterAndGroup(topics, subscriber, toFilter(liveTypes), null)
                         : nop,
                 hasTwinEvents -> hasTwinEvents
                         ? twinEventSub.subscribeWithAck(topics, subscriber)
@@ -84,7 +84,7 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
 
         return partitionByStreamingTypes(types,
                 liveTypes -> !liveTypes.isEmpty()
-                        ? liveSignalSub.subscribeWithFilterAndAck(topics, subscriber, toFilter(liveTypes))
+                        ? liveSignalSub.subscribeWithFilterAndGroup(topics, subscriber, toFilter(liveTypes), null)
                         : liveSignalSub.unsubscribeWithAck(topics, subscriber),
                 hasTwinEvents -> CompletableFuture.completedFuture(null)
         );
