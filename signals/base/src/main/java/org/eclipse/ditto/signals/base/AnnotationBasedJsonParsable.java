@@ -102,7 +102,11 @@ final class AnnotationBasedJsonParsable<T> implements JsonParsable<T> {
     public T parse(final JsonObject jsonObject, final DittoHeaders dittoHeaders,
             final ParseInnerJson parseInnerJson) {
         try {
-            return (T) parseMethod.invoke(null, jsonObject, dittoHeaders, parseInnerJson);
+            if (parseMethod.getParameterCount() == 3) {
+                return (T) parseMethod.invoke(null, jsonObject, dittoHeaders, parseInnerJson);
+            } else {
+                return (T) parseMethod.invoke(null, jsonObject, dittoHeaders);
+            }
         } catch (final ClassCastException | IllegalAccessException e) {
             throw buildDittoJsonException(e, jsonObject, dittoHeaders);
         } catch (final InvocationTargetException e) {

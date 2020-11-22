@@ -27,7 +27,7 @@ import org.atteo.classindex.ClassIndex;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
-import org.eclipse.ditto.signals.base.AbstractJsonParsableRegistry;
+import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.junit.Before;
 import org.junit.Test;
@@ -135,7 +135,7 @@ public abstract class GlobalCommandRegistryTestCases {
 
         try {
             assertThat(cls.getMethod(annotation.method(), JsonObject.class, DittoHeaders.class,
-                    AbstractJsonParsableRegistry.class))
+                    JsonParsable.ParseInnerJson.class))
                     .as("Check that JsonParsableCommand of '%s' has correct method name.", cls.getName())
                     .isNotNull();
         } catch (final NoSuchMethodException e) {
