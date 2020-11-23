@@ -172,6 +172,21 @@ public final class PoliciesModelFactory {
     }
 
     /**
+     * Returns a new {@link Subject} with the specified {@code subjectId} and {@code subjectType}.
+     *
+     * @param subjectId the ID of the new Subject to create.
+     * @param subjectType the SubjectType of the new Subject to create.
+     * @param subjectExpiry the expiry timestamp of the new Subject.
+     * @return the new {@link Subject}.
+     * @throws NullPointerException if the {@code subjectId} or {@code subjectType} argument is {@code null}.
+     * @since 1.5.0
+     */
+    public static Subject newSubject(final SubjectId subjectId, final SubjectType subjectType,
+            @Nullable final SubjectExpiry subjectExpiry) {
+        return ImmutableSubject.of(subjectId, subjectType, subjectExpiry);
+    }
+
+    /**
      * Returns a new immutable {@link Subject} based on the given JSON object.
      *
      * @param subjectIssuerWithId the Subject issuer + Subject ID (separated with a "{@value

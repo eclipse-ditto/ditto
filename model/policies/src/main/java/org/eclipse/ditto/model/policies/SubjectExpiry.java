@@ -14,12 +14,15 @@ package org.eclipse.ditto.model.policies;
 
 import java.time.Instant;
 
+import javax.annotation.concurrent.Immutable;
+
 /**
  * Represents a {@link Subject} expiry timestamp indicating the instant when a Subject is automatically removed from a
  * Policy entry.
  *
  * @since 1.5.0
  */
+@Immutable
 public interface SubjectExpiry extends CharSequence {
 
     /**
