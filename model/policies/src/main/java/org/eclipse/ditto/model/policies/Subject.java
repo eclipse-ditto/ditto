@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.model.policies;
 
+import java.util.Optional;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -116,6 +118,15 @@ public interface Subject extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
     SubjectType getType();
 
     /**
+     * Returns the optional expiry timestamp of this Subject.
+     * Once this time was reached, the Subjects is automatically removed from the Policy entry.
+     *
+     * @return the expiry timestamp of this Subject.
+     * @since 1.5.0
+     */
+    Optional<SubjectExpiry> getExpiry();
+
+    /**
      * Returns all non hidden marked fields of this Subject.
      *
      * @return a JSON object representation of this Subject including only non hidden marked fields.
@@ -148,6 +159,13 @@ public interface Subject extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
          */
         public static final JsonFieldDefinition<String> TYPE =
                 JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the Subject's expiry time.
+         * @since 1.5.0
+         */
+        public static final JsonFieldDefinition<String> EXPIRY =
+                JsonFactory.newStringFieldDefinition("expiry", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

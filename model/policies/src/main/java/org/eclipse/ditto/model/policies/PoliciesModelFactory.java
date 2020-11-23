@@ -17,6 +17,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -119,6 +120,32 @@ public final class PoliciesModelFactory {
         return ImmutableSubjectType.of(subjectType);
     }
 
+    /**
+     * Returns a new {@link SubjectExpiry} with the specified {@code expiry} CharSequence interpreted as
+     * ISO-8601 timestamp.
+     *
+     * @param expiry the expiration timestamp as ISO-8601 formatted CharSequence.
+     * @return the new {@link SubjectExpiry}.
+     * @throws NullPointerException if {@code expiry} is {@code null}.
+     * @throws SubjectExpiryInvalidException if the provided {@code expiry} could not be parsed.
+     * @since 1.5.0
+     */
+    public static SubjectExpiry newSubjectExpiry(final CharSequence expiry) {
+        return ImmutableSubjectExpiry.of(expiry);
+    }
+
+    /**
+     * Returns a new {@link SubjectExpiry} with the specified {@code expiry} Instant.
+     *
+     * @param expiry the expiration timestamp.
+     * @return the new {@link SubjectExpiry}.
+     * @throws NullPointerException if {@code expiry} is {@code null}.
+     * @since 1.5.0
+     */
+    public static SubjectExpiry newSubjectExpiry(final Instant expiry) {
+        return ImmutableSubjectExpiry.of(expiry);
+    }
+
 
     /**
      * Returns a new {@code Subject} object with the given {@code subjectId} and
@@ -153,6 +180,7 @@ public final class PoliciesModelFactory {
      * @return the new Subject.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.model.base.exceptions.DittoJsonException if {@code jsonObject} cannot be parsed.
+     * @throws SubjectExpiryInvalidException if the provided {@code expiry} could not be parsed as ISO-8601 timestamp.
      */
     public static Subject newSubject(final CharSequence subjectIssuerWithId, final JsonObject jsonObject) {
         return ImmutableSubject.fromJson(subjectIssuerWithId, jsonObject);
