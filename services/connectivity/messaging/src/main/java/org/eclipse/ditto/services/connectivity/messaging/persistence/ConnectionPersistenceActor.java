@@ -20,7 +20,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -55,6 +54,7 @@ import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
+import org.eclipse.ditto.services.connectivity.messaging.ClientActorRefs;
 import org.eclipse.ditto.services.connectivity.messaging.OutboundMappingProcessorActor;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
@@ -196,7 +196,7 @@ public final class ConnectionPersistenceActor
      * While false, target-issued acknowledgements are disabled.
      */
     private boolean ackLabelsDeclared = false;
-    private final Set<AcknowledgementLabel> declaredAckLabels = new HashSet<>();
+    private final ClientActorRefs clientActorRefs = ClientActorRefs.empty();
 
     ConnectionPersistenceActor(final ConnectionId connectionId,
             final DittoProtocolSub dittoProtocolSub,
@@ -507,6 +507,9 @@ public final class ConnectionPersistenceActor
                 .matchEquals(Control.DECLARE_ACKNOWLEDGEMENT_LABELS, this::declareAcknowledgementLabels)
                 .matchEquals(Control.ACKNOWLEDGEMENT_LABELS_DECLARED, this::acknowledgementLabelsAreConsideredDeclared)
                 .match(AcknowledgementLabelNotUniqueException.class, this::acknowledgementLabelNotUnique)
+
+                // maintain client actor refs
+                .match(ActorRef.class, this::addClientActor)
 
                 .matchAny(message -> log.warning("Unknown message: {}", message))
                 .build();
@@ -1045,12 +1048,22 @@ public final class ConnectionPersistenceActor
     }
 
     private void stopClientActors() {
+        clientActorRefs.clear();
         if (clientActorRouter != null) {
             connectionClosedAt = Instant.now();
             log.debug("Stopping the client actor.");
             stopChildActor(clientActorRouter);
             clientActorRouter = null;
         }
+    }
+
+    private void addClientActor(final ActorRef newClientActor) {
+        clientActorRefs.add(newClientActor);
+        final List<ActorRef> otherClientActors = clientActorRefs.getOtherActors(newClientActor);
+        otherClientActors.forEach(otherClientActor -> {
+            otherClientActor.tell(newClientActor, ActorRef.noSender());
+            newClientActor.tell(otherClientActor, ActorRef.noSender());
+        });
     }
 
     private void stopChildActor(final ActorRef actor) {
@@ -1136,8 +1149,6 @@ public final class ConnectionPersistenceActor
             final CompletionStage<Object> replyFuture =
                     dittoProtocolSub.declareAcknowledgementLabels(acknowledgementLabels, getSelf(), null)
                             .<Object>thenApply(_void -> {
-                                declaredAckLabels.clear();
-                                declaredAckLabels.addAll(acknowledgementLabels);
                                 log.info("Acknowledgement label declaration successful for labels: <{}>",
                                         acknowledgementLabels);
                                 return Control.ACKNOWLEDGEMENT_LABELS_DECLARED;

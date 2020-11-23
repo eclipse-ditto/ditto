@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.services.utils.pubsub.PubSubFactory;
 import org.eclipse.ditto.services.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.ack.Grouped;
@@ -101,9 +102,7 @@ final class PublisherIndex<T> {
             });
         }
         // choose a subscriber for each group consistently according to the entity ID of the signal
-        // use string hashCode to guarantee the last byte to influence the subscriber selection
-        // Math.max needed because Math.abs(Integer.MIN_VALUE) < 0
-        final int entityIdHash = Math.max(0, Math.abs(signal.getEntityId().toString().hashCode()));
+        final int entityIdHash = PubSubFactory.hashForPubSub(signal.getEntityId());
         groupToSubscribers.forEach((group, subscribers) -> {
             subscribers.sort(ActorRef::compareTo);
             final int groupDivisor = chosenGroups == null ? 1 : Math.max(1, chosenGroups.get(group));

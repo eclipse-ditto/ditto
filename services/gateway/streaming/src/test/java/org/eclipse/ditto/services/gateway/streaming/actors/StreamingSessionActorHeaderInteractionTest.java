@@ -139,7 +139,7 @@ public final class StreamingSessionActorHeaderInteractionTest {
 
     @Before
     public void setup() {
-        when(dittoProtocolSub.declareAcknowledgementLabels(any(), any(), null))
+        when(dittoProtocolSub.declareAcknowledgementLabels(any(), any(), any()))
                 .thenReturn(CompletableFuture.completedFuture(null));
     }
 

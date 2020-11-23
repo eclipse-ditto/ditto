@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.pubsub;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.signals.base.Signal;
 
 /**
@@ -41,4 +42,17 @@ public interface PubSubFactory<T extends Signal<?>> {
      * @return the given DistributedAcks.
      */
     DistributedAcks getDistributedAcks();
+
+    /**
+     * Hash an entity ID for pubsub.
+     * A subscriber of each group is chosen according to this hash.
+     *
+     * @param entityId the entity ID
+     * @return the hash code for pubsub.
+     */
+    static int hashForPubSub(final EntityId entityId) {
+        // Using the string hashcode to ensure that the final byte affects the hash code additively.
+        // Math.max needed because Math.abs(Integer.MIN_VALUE) < 0
+        return Math.max(0, Math.abs(entityId.toString().hashCode()));
+    }
 }

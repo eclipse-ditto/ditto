@@ -195,7 +195,8 @@ public final class BaseClientActorTest {
             final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
-            final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate);
+            final Props props =
+                    DummyClientActor.props(connection, actorSystem.deadLetters(), getRef(), getRef(), delegate);
 
             final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
@@ -402,8 +403,8 @@ public final class BaseClientActorTest {
         private final BaseClientActor delegate;
 
         public DummyClientActor(final Connection connection,
-                @Nullable final ActorRef proxyActor,
                 final ActorRef connectionActor,
+                @Nullable final ActorRef proxyActor,
                 final ActorRef publisherActor,
                 final BaseClientActor delegate) {
 

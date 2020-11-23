@@ -149,6 +149,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ActorRef subscriptionManager;
     private final ReconnectTimeoutStrategy reconnectTimeoutStrategy;
     private final SupervisorStrategy supervisorStrategy;
+    private final ClientActorRefs clientActorRefs;
 
     // counter for all child actors ever started to disambiguate between them
     private int childActorCount = 0;
@@ -195,6 +196,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 startInboundMappingProcessorActor(connection, protocolAdapter, inboundDispatcher);
         subscriptionManager = startSubscriptionManager(this.proxyActor);
         supervisorStrategy = createSupervisorStrategy(getSelf());
+        clientActorRefs = ClientActorRefs.empty();
 
         // Send init message to allow for unsafe initialization of subclasses.
         getSelf().tell(Init.INSTANCE, getSelf());
@@ -230,9 +232,16 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         onTransition(this::onTransition);
 
-        whenUnhandled(inAnyState().anyEvent(this::onUnknownEvent));
+        whenUnhandled(inAnyState()
+                .event(ActorRef.class, this::onOtherClientActorStartup)
+                .anyEvent(this::onUnknownEvent));
 
         initialize();
+
+        // inform connection actor of my presence if there are other client actors
+        if (connection.getClientCount() > 1) {
+            connectionActor.tell(getSelf(), getSelf());
+        }
     }
 
     @Override
@@ -378,6 +387,12 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             // should never happen, every JDK must support US_ASCII
             throw new IllegalStateException(e);
         }
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> onOtherClientActorStartup(final ActorRef otherClientActor,
+            final BaseClientData data) {
+        clientActorRefs.add(otherClientActor);
+        return stay();
     }
 
     /**
