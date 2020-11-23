@@ -270,7 +270,6 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
     }
 
     private void failSubscribe(final ActorRef sender) {
-        // TODO: explain other reasons of declaration failure
         final Throwable error = AcknowledgementLabelNotUniqueException.getInstance();
         sender.tell(error, getSelf());
     }

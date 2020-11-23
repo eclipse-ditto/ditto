@@ -15,6 +15,8 @@ package org.eclipse.ditto.services.models.concierge.pubsub;
 import java.util.Collection;
 import java.util.concurrent.CompletionStage;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
@@ -35,7 +37,22 @@ public interface DittoProtocolSub {
      * @param subscriber who is subscribing.
      * @return future that completes or fails according to the acknowledgement.
      */
-    CompletionStage<Void> subscribe(Collection<StreamingType> types, Collection<String> topics, ActorRef subscriber);
+    default CompletionStage<Void> subscribe(Collection<StreamingType> types, Collection<String> topics,
+            ActorRef subscriber) {
+        return subscribe(types, topics, subscriber, null);
+    }
+
+    /**
+     * Subscribe for each streaming type the same collection of topics.
+     *
+     * @param types the streaming types.
+     * @param topics the topics.
+     * @param subscriber who is subscribing.
+     * @param group the group the subscriber belongs to, or null.
+     * @return future that completes or fails according to the acknowledgement.
+     */
+    CompletionStage<Void> subscribe(Collection<StreamingType> types, Collection<String> topics, ActorRef subscriber,
+            @Nullable String group);
 
     /**
      * Remove a subscriber.
@@ -73,12 +90,13 @@ public interface DittoProtocolSub {
      *
      * @param acknowledgementLabels the acknowledgement labels to declare.
      * @param subscriber the subscriber making the declaration.
+     * @param group any group the subscriber belongs to, or null.
      * @return a future that completes successfully when the initial declaration succeeds and fails if duplicate labels
      * are known. Subscribers losing a race against remote subscribers may receive an
      * {@code AcknowledgementLabelNotUniqueException} later.
      */
     CompletionStage<Void> declareAcknowledgementLabels(Collection<AcknowledgementLabel> acknowledgementLabels,
-            ActorRef subscriber);
+            ActorRef subscriber, @Nullable String group);
 
     /**
      * Relinquish any acknowledgement labels declared by a subscriber.

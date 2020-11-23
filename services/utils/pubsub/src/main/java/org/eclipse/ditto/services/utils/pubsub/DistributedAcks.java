@@ -57,15 +57,13 @@ public interface DistributedAcks {
      * Each subscriber's declared acknowledgment labels must be different from the labels declared by other subscribers.
      * Subscribers relinquish their declared labels when they terminate.
      *
-     * @param group the group in which the actor belongs.
      * @param acknowledgementLabels the acknowledgement labels to declare.
      * @param subscriber the subscriber.
+     * @param group the group in which the actor belongs.
      * @return a future SubAck if the declaration succeeded, or a failed future if it failed.
      */
     CompletionStage<AcksDeclared> declareAcknowledgementLabels(
-            @Nullable String group,
-            Collection<AcknowledgementLabel> acknowledgementLabels,
-            ActorRef subscriber);
+            Collection<AcknowledgementLabel> acknowledgementLabels, ActorRef subscriber, @Nullable String group);
 
     /**
      * Declare labels of acknowledgements that a subscriber may send.
@@ -80,7 +78,7 @@ public interface DistributedAcks {
             Collection<AcknowledgementLabel> acknowledgementLabels,
             ActorRef subscriber) {
 
-        return declareAcknowledgementLabels(null, acknowledgementLabels, subscriber);
+        return declareAcknowledgementLabels(acknowledgementLabels, subscriber, null);
     }
 
     /**

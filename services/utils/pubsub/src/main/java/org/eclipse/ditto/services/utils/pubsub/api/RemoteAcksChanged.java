@@ -27,7 +27,6 @@ import akka.japi.Pair;
  */
 public final class RemoteAcksChanged {
 
-    // TODO: store in format for fast lookups by Publisher
     private final Map<Address, List<Grouped<String>>> mmap;
 
     private RemoteAcksChanged(final Map<Address, List<Grouped<String>>> mmap) {
@@ -44,7 +43,8 @@ public final class RemoteAcksChanged {
         return new RemoteAcksChanged(mmap);
     }
 
-    // TODO: replace this method to deliver groups along with declared acks
+    // TODO: group acks in order to send weak acks according to group
+    // TODO: send weak acks only for the chosen groups on the subscriber side.
     public Map<Address, Set<String>> getMultiMap() {
         return mmap.entrySet()
                 .stream()

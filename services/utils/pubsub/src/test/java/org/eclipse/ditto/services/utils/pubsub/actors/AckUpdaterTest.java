@@ -87,7 +87,6 @@ public final class AckUpdaterTest {
 
             // THEN: a different group of ack labels may not be declared with the same group name
             underTest.tell(DeclareAcks.of(s2.ref(), "g1", Set.of("a2", "a3")), getRef());
-            // TODO: switch to the right exception
             expectMsgClass(AcknowledgementLabelNotUniqueException.class);
 
             // THEN: intersecting ack labels may not be declared without any group
@@ -117,7 +116,6 @@ public final class AckUpdaterTest {
 
             // THEN: it is an error to declare different ack labels under the same group name.
             underTest.tell(DeclareAcks.of(s1.ref(), "g1", Set.of("a2", "a3")), getRef());
-            // TODO: switch to the right exception
             expectMsgClass(AcknowledgementLabelNotUniqueException.class);
 
             // THEN: it is an error to declare intersecting ack labels without a group.

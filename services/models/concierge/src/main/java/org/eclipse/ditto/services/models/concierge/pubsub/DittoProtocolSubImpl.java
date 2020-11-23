@@ -22,6 +22,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.things.ThingEventPubSubFactory;
@@ -59,14 +61,15 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
     @Override
     public CompletionStage<Void> subscribe(final Collection<StreamingType> types,
             final Collection<String> topics,
-            final ActorRef subscriber) {
+            final ActorRef subscriber,
+            @Nullable final String group) {
         final CompletionStage<?> nop = CompletableFuture.completedFuture(null);
         return partitionByStreamingTypes(types,
                 liveTypes -> !liveTypes.isEmpty()
-                        ? liveSignalSub.subscribeWithFilterAndGroup(topics, subscriber, toFilter(liveTypes), null)
+                        ? liveSignalSub.subscribeWithFilterAndGroup(topics, subscriber, toFilter(liveTypes), group)
                         : nop,
                 hasTwinEvents -> hasTwinEvents
-                        ? twinEventSub.subscribeWithAck(topics, subscriber)
+                        ? twinEventSub.subscribeWithFilterAndGroup(topics, subscriber, null, group)
                         : nop
         );
     }
@@ -98,7 +101,8 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
     @Override
     public CompletionStage<Void> declareAcknowledgementLabels(
             final Collection<AcknowledgementLabel> acknowledgementLabels,
-            final ActorRef subscriber) {
+            final ActorRef subscriber,
+            @Nullable final String group) {
         if (acknowledgementLabels.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         }
@@ -107,8 +111,8 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
         // via the actor supervision strategy
         ensureAcknowledgementLabelsAreFullyResolved(acknowledgementLabels);
 
-        return distributedAcks.declareAcknowledgementLabels(acknowledgementLabels, subscriber).thenApply(ack -> null);
-        // no need to declare the labels for liveSignalSub because acks distributed data does not start there
+        return distributedAcks.declareAcknowledgementLabels(acknowledgementLabels, subscriber, group)
+                .thenApply(ack -> null);
     }
 
     private static void ensureAcknowledgementLabelsAreFullyResolved(final Collection<AcknowledgementLabel> ackLabels) {

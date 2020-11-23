@@ -1192,7 +1192,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             // GIVEN: ack label declaration succeeds
             doAnswer(invocation -> CompletableFuture.completedStage(null))
                     .when(dittoProtocolSubMock)
-                    .declareAcknowledgementLabels(any(), any());
+                    .declareAcknowledgementLabels(any(), any(), null);
 
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
@@ -1240,7 +1240,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             // GIVEN: ack label declaration succeeds
             doAnswer(invocation -> CompletableFuture.completedStage(null))
                     .when(dittoProtocolSubMock)
-                    .declareAcknowledgementLabels(any(), any());
+                    .declareAcknowledgementLabels(any(), any(), null);
 
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
@@ -1306,7 +1306,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             // GIVEN: declaration of target-issued ack label succeeds
             doAnswer(invocation -> CompletableFuture.completedStage(null))
                     .when(dittoProtocolSubMock)
-                    .declareAcknowledgementLabels(any(), any());
+                    .declareAcknowledgementLabels(any(), any(), null);
 
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
@@ -1359,7 +1359,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             // GIVEN: ack declaration always fails
             doAnswer(invocation -> CompletableFuture.failedStage(AcknowledgementLabelNotUniqueException.getInstance()))
                     .when(dittoProtocolSubMock)
-                    .declareAcknowledgementLabels(any(), any());
+                    .declareAcknowledgementLabels(any(), any(), null);
 
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
@@ -1406,7 +1406,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             // GIVEN: ack label declaration succeeds
             doAnswer(invocation -> CompletableFuture.completedStage(null))
                     .when(dittoProtocolSubMock)
-                    .declareAcknowledgementLabels(any(), any());
+                    .declareAcknowledgementLabels(any(), any(), null);
 
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
@@ -1648,7 +1648,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     }
 
     private void expectDeclareAcknowledgementLabels() {
-        verify(dittoProtocolSubMock, timeout(500)).declareAcknowledgementLabels(eq(Set.of(getTestAck())), any());
+        verify(dittoProtocolSubMock, timeout(500)).declareAcknowledgementLabels(eq(Set.of(getTestAck())), any(), null);
     }
 
     private static void shutdown(@Nullable final ActorSystem system) {

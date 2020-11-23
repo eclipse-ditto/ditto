@@ -101,9 +101,8 @@ final class DistributedAcksImpl implements DistributedAcks {
 
     @Override
     public CompletionStage<AcksDeclared> declareAcknowledgementLabels(
-            @Nullable final String group,
-            final Collection<AcknowledgementLabel> acknowledgementLabels,
-            final ActorRef subscriber) {
+            final Collection<AcknowledgementLabel> acknowledgementLabels, final ActorRef subscriber,
+            @Nullable final String group) {
         if (group != null) {
             ConditionChecker.checkNotEmpty(group, "group");
         }

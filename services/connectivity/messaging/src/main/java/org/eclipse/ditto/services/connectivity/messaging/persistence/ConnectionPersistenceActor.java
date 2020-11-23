@@ -1134,7 +1134,7 @@ public final class ConnectionPersistenceActor
         } else {
             log.info("Declaring acknowledgement labels <{}>", acknowledgementLabels);
             final CompletionStage<Object> replyFuture =
-                    dittoProtocolSub.declareAcknowledgementLabels(acknowledgementLabels, getSelf())
+                    dittoProtocolSub.declareAcknowledgementLabels(acknowledgementLabels, getSelf(), null)
                             .<Object>thenApply(_void -> {
                                 declaredAckLabels.clear();
                                 declaredAckLabels.addAll(acknowledgementLabels);

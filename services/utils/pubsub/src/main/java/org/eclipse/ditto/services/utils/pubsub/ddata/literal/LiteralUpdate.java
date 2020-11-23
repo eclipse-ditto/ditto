@@ -14,22 +14,23 @@
 package org.eclipse.ditto.services.utils.pubsub.ddata.literal;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.services.utils.pubsub.ddata.AbstractSubscriptionsUpdate;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataUpdate;
 
 /**
- * Updates of uncompressed DData.
+ * Updates in the form of a set of strings.
  */
 @NotThreadSafe
-public final class LiteralUpdate extends AbstractSubscriptionsUpdate<String, LiteralUpdate>
-        implements DDataUpdate<String> {
+public final class LiteralUpdate implements DDataUpdate<String> {
+
+    private final Set<String> inserts;
 
     private LiteralUpdate(final Set<String> inserts) {
-        super(inserts);
+        this.inserts = inserts;
     }
 
     /**
@@ -51,7 +52,29 @@ public final class LiteralUpdate extends AbstractSubscriptionsUpdate<String, Lit
     }
 
     @Override
-    public LiteralUpdate snapshot() {
-        return new LiteralUpdate(Set.copyOf(getInserts()));
+    public Set<String> getInserts() {
+        return inserts;
+    }
+
+    @Override
+    public boolean equals(final Object other) {
+        if (getClass().isInstance(other)) {
+            final LiteralUpdate that = getClass().cast(other);
+            return Objects.equals(inserts, that.inserts);
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(inserts);
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" +
+                "inserts=" + inserts +
+                "]";
     }
 }
