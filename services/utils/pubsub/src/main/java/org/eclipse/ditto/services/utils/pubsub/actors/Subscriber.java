@@ -108,12 +108,14 @@ public final class Subscriber<T extends Signal<?>> extends AbstractActor {
                 localSubscriber.tell(message, getSender());
             }
         }
-        replyWeakAck(message, localSubscribers, getSender());
+        replyWeakAck(message, command, localSubscribers, getSender());
     }
 
-    private void replyWeakAck(final T message, final Set<ActorRef> localSubscribers, final ActorRef sender) {
+    private void replyWeakAck(final T message, final PublishSignal command, final Set<ActorRef> localSubscribers,
+            final ActorRef sender) {
+        final Set<String> responsibleAcks = declaredAcks.getValues(command.getGroups().keySet());
         final Collection<AcknowledgementLabel> declaredCustomAcks =
-                ackExtractor.getDeclaredCustomAcksRequestedBy(message, declaredAcks::containsValue);
+                ackExtractor.getDeclaredCustomAcksRequestedBy(message, responsibleAcks::contains);
         final Collection<AcknowledgementLabel> declaredCustomAcksWithoutSubscribers = declaredCustomAcks.stream()
                 .filter(label -> disjoint(localSubscribers, declaredAcks.getKeys(label.toString())))
                 .collect(Collectors.toList());

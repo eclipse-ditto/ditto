@@ -560,7 +560,7 @@ public final class PubSubFactoryTest {
     }
 
     @Test
-    public void publishToSubscribersWithoutGroup() {
+    public void publishToSubscribersWithAndWithoutGroup() {
         new TestKit(system1) {{
             final TestProbe publisher = TestProbe.apply("publisher", system1);
             final TestProbe subscriber1 = TestProbe.apply("subscriber1", system1);
@@ -572,14 +572,22 @@ public final class PubSubFactoryTest {
             final DistributedSub sub1 = factory1.startDistributedSub();
             final DistributedSub sub2 = factory2.startDistributedSub();
 
-            // GIVEN: subscribers subscribe to the same topic as a group
+            // GIVEN: some subscribers subscribe to the topic as a group, others without a group
             final String topic = "topic";
+            await(distributedAcks1.declareAcknowledgementLabels(acks("ack"), subscriber1.ref(), "group"));
+            await(distributedAcks2.declareAcknowledgementLabels(acks("ack"), subscriber2.ref(), "group"));
             await(sub1.subscribeWithFilterAndGroup(List.of(topic), subscriber1.ref(), null, "group"));
             await(sub2.subscribeWithFilterAndGroup(List.of(topic), subscriber2.ref(), null, "group"));
             await(sub1.subscribeWithAck(List.of(topic), subscriber3.ref()));
             await(sub2.subscribeWithAck(List.of(topic), subscriber4.ref()));
 
             // WHEN: signals are published with different entity IDs differing by 1 in the last byte
+            final ThingId thingId = ThingId.of("thing:id");
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().acknowledgementRequest(
+                    AcknowledgementRequest.parseAcknowledgementRequest("ack")
+            ).build();
+            thingIdMap.put(topic, thingId);
+            dittoHeadersMap.put(topic, dittoHeaders);
             pub.publish(signal(topic, 0), publisher.ref());
             pub.publish(signal(topic, 1), publisher.ref());
 
@@ -589,10 +597,13 @@ public final class PubSubFactoryTest {
             assertThat((CharSequence) received1.getEntityId()).isNotEqualTo(received2.getEntityId());
 
             // THEN: subscribers without groups receive both messages
-            subscriber3.expectMsgClass(Acknowledgement.class);
-            subscriber3.expectMsgClass(Acknowledgement.class);
-            subscriber4.expectMsgClass(Acknowledgement.class);
-            subscriber4.expectMsgClass(Acknowledgement.class);
+            for (int i = 0; i < 2; ++i) {
+                subscriber3.expectMsgClass(Acknowledgement.class);
+                subscriber4.expectMsgClass(Acknowledgement.class);
+            }
+
+            // THEN: publisher receives no weak acknowledgement
+            publisher.expectNoMessage();
         }};
     }
 

@@ -39,7 +39,6 @@ import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
-import akka.actor.Address;
 import akka.actor.Props;
 import akka.cluster.ddata.Replicator;
 import akka.japi.Pair;
@@ -64,8 +63,7 @@ public final class Publisher extends AbstractActor {
     private final Counter topicCounter = DittoMetrics.counter("pubsub-published-topics");
 
     private PublisherIndex<Long> publisherIndex = PublisherIndex.empty();
-    private Map<Address, Set<String>> declaredAcks = Map.of();
-    private Set<java.lang.String> allDeclaredAcks = Set.of();
+    private RemoteAcksChanged remoteAcks = RemoteAcksChanged.of(Map.of());
 
     @SuppressWarnings("unused")
     private Publisher(final DDataReader<ActorRef, String> ddataReader, final DistributedAcks distributedAcks) {
@@ -133,14 +131,19 @@ public final class Publisher extends AbstractActor {
     }
 
     private void publishWithAck(final PublishWithAck publishWithAck) {
-        final Collection<ActorRef> subscribers = doPublish(publishWithAck.topics, publishWithAck.message);
-        final Set<java.lang.String> subscriberDeclaredAcks = subscribers.stream()
-                .map(subscriber -> declaredAcks.getOrDefault(subscriber.path().address(), Set.of()))
-                .flatMap(Set::stream)
+        final List<Pair<ActorRef, PublishSignal>> subscribers =
+                doPublish(publishWithAck.topics, publishWithAck.message);
+
+        final Set<String> subscriberDeclaredAcks = subscribers.stream()
+                .flatMap(pair -> {
+                    final ActorRef subscriber = pair.first();
+                    final Set<String> groups = pair.second().getGroups().keySet();
+                    return remoteAcks.streamDeclaredAcksForGroup(subscriber.path().address(), groups);
+                })
                 .collect(Collectors.toSet());
 
         final Collection<AcknowledgementLabel> requestedCustomAcks =
-                AckExtractor.getRequestedAndDeclaredCustomAcks(publishWithAck.ackRequests, allDeclaredAcks::contains);
+                AckExtractor.getRequestedAndDeclaredCustomAcks(publishWithAck.ackRequests, remoteAcks::contains);
 
         final List<AcknowledgementLabel> labelsWithoutAuthorizedSubscribers = requestedCustomAcks.stream()
                 .filter(label -> !subscriberDeclaredAcks.contains(label.toString()))
@@ -151,21 +154,19 @@ public final class Publisher extends AbstractActor {
         }
     }
 
-    private Collection<ActorRef> doPublish(final Collection<java.lang.String> topics, final Signal<?> signal) {
+    private List<Pair<ActorRef, PublishSignal>> doPublish(final Collection<java.lang.String> topics,
+            final Signal<?> signal) {
         messageCounter.increment();
         topicCounter.increment(topics.size());
         final List<Long> hashes = topics.stream().map(ddataReader::approximate).collect(Collectors.toList());
         final ActorRef sender = getSender();
         final List<Pair<ActorRef, PublishSignal>> subscribers = publisherIndex.allotGroupsToSubscribers(signal, hashes);
         subscribers.forEach(pair -> pair.first().tell(pair.second(), sender));
-        return subscribers.stream().map(Pair::first).collect(Collectors.toList());
+        return subscribers;
     }
 
     private void declaredAcksChanged(final RemoteAcksChanged event) {
-        declaredAcks = event.getMultiMap();
-        allDeclaredAcks = declaredAcks.values().stream()
-                .flatMap(Set::stream)
-                .collect(Collectors.toSet());
+        remoteAcks = event;
     }
 
     private void topicSubscribersChanged(final Replicator.Changed<?> event) {

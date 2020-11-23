@@ -71,7 +71,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
     private final java.util.Set<ActorRef> ddataChangeRecipients;
     private final java.util.Set<ActorRef> localChangeRecipients;
 
-    private Set<String> remoteAckLabels = Set.of();
+    private Map<String, Set<String>> remoteAckLabels = Map.of();
     private Map<String, Set<String>> remoteGroups = Map.of();
 
     // TODO: add metrics
@@ -152,7 +152,8 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
     }
 
     private boolean isAllowedRemotely(@Nullable final String group, final Set<String> ackLabels) {
-        return isAllowedRemotelyBy(group, ackLabels, remoteGroups, remoteAckLabels::contains);
+        return isAllowedRemotelyBy(group, ackLabels, remoteGroups,
+                conflictWithOtherGroups(group, remoteAckLabels));
     }
 
     private boolean isAllowedRemotelyBy(final Grouped<String> groupedLabels,
@@ -226,10 +227,19 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
         return Collections.unmodifiableMap(result);
     }
 
-    private Set<String> getRemoteAckLabels(final List<Grouped<String>> remoteGroupedAckLabels) {
-        return remoteGroupedAckLabels.stream()
-                .flatMap(Grouped<String>::streamValues)
-                .collect(Collectors.toSet());
+    private Map<String, Set<String>> getRemoteAckLabels(final List<Grouped<String>> remoteGroupedAckLabels) {
+        final Map<String, Set<String>> remoteAckLabelsToGroup = new HashMap<>();
+        for (final Grouped<String> grouped : remoteGroupedAckLabels) {
+            final String groupKey = grouped.getGroup().orElse("");
+            for (final String label : grouped.getValues()) {
+                remoteAckLabelsToGroup.compute(label, (k, groups) -> {
+                    final Set<String> nonNullSet = groups == null ? new HashSet<>() : groups;
+                    nonNullSet.add(groupKey);
+                    return nonNullSet;
+                });
+            }
+        }
+        return remoteAckLabelsToGroup;
     }
 
     private void logUnhandled(final Object message) {
@@ -263,7 +273,8 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
     }
 
     private LiteralUpdate createDDataUpdate() {
-        final Set<String> groupedAckLabels = localAckLabels.streamGroupedValues()
+        final Set<String> groupedAckLabels = localAckLabels.exportValuesByGroup()
+                .stream()
                 .map(Grouped::toJsonString)
                 .collect(Collectors.toSet());
         return LiteralUpdate.replaceAll(groupedAckLabels);
@@ -282,11 +293,12 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
         final List<Grouped<String>> moreImportantGroupedAckLabels =
                 getRemoteGroupedAckLabelsOrderByAddress(moreImportantEntries);
         final Map<String, Set<String>> moreImportantRemoteGroups = getRemoteGroups(moreImportantGroupedAckLabels);
-        final Set<String> moreImportantAckLabels = getRemoteAckLabels(moreImportantGroupedAckLabels);
+        final Map<String, Set<String>> moreImportantAckLabels = getRemoteAckLabels(moreImportantGroupedAckLabels);
         return localAckLabels.entrySet()
                 .stream()
                 .filter(entry -> !isAllowedRemotelyBy(entry.getValue(), moreImportantRemoteGroups,
-                        moreImportantAckLabels::contains))
+                        conflictWithOtherGroups(entry.getValue().getGroup().orElse(null),
+                                moreImportantAckLabels)))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
     }
@@ -303,6 +315,18 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
 
     private static <T> Comparator<Map.Entry<Address, T>> entryKeyAddressComparator() {
         return (left, right) -> Address.addressOrdering().compare(left.getKey(), right.getKey());
+    }
+
+    private static Predicate<String> conflictWithOtherGroups(@Nullable final String group,
+            final Map<String, Set<String>> topicToGroup) {
+        if (group == null) {
+            return topicToGroup::containsKey;
+        } else {
+            return topic -> {
+                final Set<String> groups = topicToGroup.getOrDefault(topic, Set.of());
+                return !(groups.isEmpty() || groups.size() == 1 && groups.contains(group));
+            };
+        }
     }
 
     private enum Clock {

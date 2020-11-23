@@ -12,9 +12,11 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata.ack;
 
+import java.util.Collection;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Snapshot of {@link GroupedRelation}
@@ -23,11 +25,11 @@ import java.util.Set;
 public final class GroupedSnapshot<K, V> {
 
     private final Map<V, Set<K>> v2k;
-    private final Map<K, String> k2g;
+    private final Map<String, Set<V>> g2v;
 
-    GroupedSnapshot(final Map<V, Set<K>> v2k, final Map<K, String> k2g) {
+    GroupedSnapshot(final Map<V, Set<K>> v2k, final Map<String, Set<V>> g2v) {
         this.v2k = v2k;
-        this.k2g = k2g;
+        this.g2v = g2v;
     }
 
     /**
@@ -42,16 +44,6 @@ public final class GroupedSnapshot<K, V> {
     }
 
     /**
-     * Check if a value is associated with any key.
-     *
-     * @param value the value.
-     * @return whether the value is associated with a key.
-     */
-    public boolean containsValue(final V value) {
-        return v2k.containsKey(value);
-    }
-
-    /**
      * Get all keys associated with a value.
      *
      * @param value the value.
@@ -62,12 +54,18 @@ public final class GroupedSnapshot<K, V> {
     }
 
     /**
-     * Get the group a key belongs to, if any.
+     * Get all values associated with some group in the given collection and values associated with no group.
      *
-     * @param key the key.
-     * @return the group the key belongs to, or an empty optional if the key belongs to no group.
+     * @return all specified values.
      */
-    public Optional<String> getGroup(final K key) {
-        return Optional.ofNullable(k2g.get(key));
+    public Set<V> getValues(final Collection<String> groups) {
+        if (groups.isEmpty()) {
+            return g2v.getOrDefault("", Set.of());
+        } else {
+            return Stream.concat(Stream.of(""), groups.stream())
+                    .flatMap(group -> g2v.getOrDefault(group, Set.of()).stream())
+                    .collect(Collectors.toSet());
+        }
     }
+
 }

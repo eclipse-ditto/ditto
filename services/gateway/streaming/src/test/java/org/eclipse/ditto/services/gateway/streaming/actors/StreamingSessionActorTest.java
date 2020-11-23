@@ -105,7 +105,7 @@ public final class StreamingSessionActorTest {
     public StreamingSessionActorTest() {
         actorSystem = ActorSystem.create();
         mockSub = mock(DittoProtocolSub.class);
-        when(mockSub.declareAcknowledgementLabels(any(), any(), null))
+        when(mockSub.declareAcknowledgementLabels(any(), any(), any()))
                 .thenReturn(CompletableFuture.completedFuture(null));
         commandRouterProbe = TestProbe.apply("commandRouter", actorSystem);
         final Sink<SessionedJsonifiable, TestSubscriber.Probe<SessionedJsonifiable>> sink =
@@ -259,7 +259,7 @@ public final class StreamingSessionActorTest {
     }
 
     private void onDeclareAckLabels(final CompletionStage<Void> answer) {
-        doAnswer(invocation -> answer).when(mockSub).declareAcknowledgementLabels(any(), any(), null);
+        doAnswer(invocation -> answer).when(mockSub).declareAcknowledgementLabels(any(), any(), any());
     }
 
     private void setUpMockForTwinEventsSubscription() {

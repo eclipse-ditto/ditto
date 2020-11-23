@@ -12,13 +12,14 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata.ack;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -78,16 +79,6 @@ public final class GroupedRelation<K, V> {
     }
 
     /**
-     * Retrieve grouped values associated with a key.
-     *
-     * @param key the key.
-     * @return the grouped values associated with it, or an empty optional if no values are associated.
-     */
-    public Optional<Grouped<V>> getValues(K key) {
-        return Optional.ofNullable(k2v.get(key));
-    }
-
-    /**
      * Retrieve the values associated to a key by the group the key belongs to.
      *
      * @param group the group.
@@ -113,16 +104,28 @@ public final class GroupedRelation<K, V> {
      * @return the snapshot.
      */
     public GroupedSnapshot<K, V> export() {
-        return new GroupedSnapshot<>(indexKeysByValue(), indexGroupsByKey());
+        return new GroupedSnapshot<>(indexKeysByValue(), indexValuesByGroup());
     }
 
     /**
-     * Stream all grouped values.
+     * Stream all grouped values collected by group names.
      *
      * @return the grouped values.
      */
-    public Stream<Grouped<V>> streamGroupedValues() {
-        return k2v.values().stream();
+    public Collection<Grouped<V>> exportValuesByGroup() {
+        final Map<String, Grouped<V>> map = new HashMap<>();
+        k2v.values().forEach(grouped -> {
+            final String key = grouped.getGroup().orElse("");
+            map.compute(key, (k, v) -> {
+                if (v == null) {
+                    return Grouped.of(grouped.getGroup().orElse(null), new HashSet<>(grouped.getValues()));
+                } else {
+                    v.getValues().addAll(grouped.getValues());
+                    return v;
+                }
+            });
+        });
+        return map.values();
     }
 
     /**
@@ -187,10 +190,17 @@ public final class GroupedRelation<K, V> {
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> Set.copyOf(entry.getValue().getValues())));
     }
 
-    private Map<K, String> indexGroupsByKey() {
-        return k2v.entrySet()
+    private Map<String, Set<V>> indexValuesByGroup() {
+        final Map<String, Set<V>> map = new HashMap<>(g2v);
+        final Set<V> valuesWithoutGroup = v2k.entrySet()
                 .stream()
-                .filter(entry -> entry.getValue().getGroup().isPresent())
-                .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().getGroup().orElseThrow()));
+                .filter(entry -> entry.getValue().getGroup().isEmpty())
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+        if (!valuesWithoutGroup.isEmpty()) {
+            map.put("", valuesWithoutGroup);
+        }
+        return Collections.unmodifiableMap(map);
     }
+
 }
