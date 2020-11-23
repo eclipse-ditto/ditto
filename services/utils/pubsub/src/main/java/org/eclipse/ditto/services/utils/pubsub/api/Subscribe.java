@@ -27,16 +27,15 @@ import akka.cluster.ddata.Replicator;
  */
 public final class Subscribe extends AbstractRequest {
 
-    private static final Predicate<Collection<String>> CONSTANT_TRUE = topics -> true;
-
-    private final Predicate<Collection<String>> filter;
+    @Nullable private final Predicate<Collection<String>> filter;
     @Nullable private final String group;
 
     private Subscribe(final Set<String> topics,
             final ActorRef subscriber,
             final Replicator.WriteConsistency writeConsistency,
             final boolean acknowledge,
-            final Predicate<Collection<String>> filter, @Nullable final String group) {
+            @Nullable final Predicate<Collection<String>> filter,
+            @Nullable final String group) {
         super(topics, subscriber, writeConsistency, acknowledge);
         this.filter = filter;
         this.group = group;
@@ -57,7 +56,7 @@ public final class Subscribe extends AbstractRequest {
             final Replicator.WriteConsistency writeConsistency,
             final boolean acknowledge,
             @Nullable final String group) {
-        return new Subscribe(topics, subscriber, writeConsistency, acknowledge, CONSTANT_TRUE, group);
+        return new Subscribe(topics, subscriber, writeConsistency, acknowledge, null, group);
     }
 
     /**
@@ -75,7 +74,7 @@ public final class Subscribe extends AbstractRequest {
             final ActorRef subscriber,
             final Replicator.WriteConsistency writeConsistency,
             final boolean acknowledge,
-            final Predicate<Collection<String>> filter,
+            @Nullable final Predicate<Collection<String>> filter,
             @Nullable final String group) {
         return new Subscribe(topics, subscriber, writeConsistency, acknowledge, filter, group);
     }
@@ -83,6 +82,7 @@ public final class Subscribe extends AbstractRequest {
     /**
      * @return Filter for incoming messages.
      */
+    @Nullable
     public Predicate<Collection<String>> getFilter() {
         return filter;
     }

@@ -57,7 +57,7 @@ final class DistributedSubImpl implements DistributedSub {
     @Override
     public CompletionStage<SubAck> subscribeWithFilterAndGroup(final Collection<String> topics,
             final ActorRef subscriber,
-            final Predicate<Collection<String>> filter,
+            @Nullable final Predicate<Collection<String>> filter,
             @Nullable final String group) {
         if (group != null) {
             checkNotEmpty(group, "group");

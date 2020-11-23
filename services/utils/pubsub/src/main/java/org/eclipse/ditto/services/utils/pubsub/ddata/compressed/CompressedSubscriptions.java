@@ -46,7 +46,7 @@ public final class CompressedSubscriptions extends AbstractSubscriptions<Long, S
     private CompressedSubscriptions(
             final Collection<Integer> seeds,
             final Map<ActorRef, SubscriberData> subscriberDataMap,
-            final Map<String, TopicData<Long>> topicToData) {
+            final Map<String, TopicData> topicToData) {
         super(subscriberDataMap, topicToData);
         this.seeds = seeds;
     }
@@ -59,11 +59,6 @@ public final class CompressedSubscriptions extends AbstractSubscriptions<Long, S
      */
     public static CompressedSubscriptions of(final Collection<Integer> seeds) {
         return new CompressedSubscriptions(seeds, new HashMap<>(), new HashMap<>());
-    }
-
-    @Override
-    public Long hashTopic(final String topic) {
-        return hashAsLong(topic);
     }
 
     @Override

@@ -27,10 +27,12 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.ack.GroupedSnapshot;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -38,7 +40,7 @@ import akka.japi.pf.ReceiveBuilder;
  *
  * @param <T> type of messages.
  */
-public final class Subscriber<T> extends AbstractActor {
+public final class Subscriber<T extends Signal<?>> extends AbstractActor {
 
     /**
      * Prefix of this actor's name.
@@ -52,7 +54,7 @@ public final class Subscriber<T> extends AbstractActor {
     private final Counter truePositiveCounter = DittoMetrics.counter("pubsub-true-positive");
     private final Counter falsePositiveCounter = DittoMetrics.counter("pubsub-false-positive");
 
-    private SubscriptionsReader localSubscriptions = SubscriptionsReader.empty();
+    private PublisherIndex<String> publisherIndex = PublisherIndex.empty();
     private GroupedSnapshot<ActorRef, String> declaredAcks = GroupedSnapshot.empty();
 
     @SuppressWarnings("unused")
@@ -93,7 +95,11 @@ public final class Subscriber<T> extends AbstractActor {
     private void broadcastToLocalSubscribers(final PublishSignal command) {
         final T message = messageClass.cast(command.getSignal());
         final Collection<String> topics = topicExtractor.getTopics(message);
-        final Set<ActorRef> localSubscribers = localSubscriptions.getSubscribers(topics);
+        final Set<ActorRef> localSubscribers =
+                publisherIndex.allotGroupsToSubscribers(message, topics, command.getGroups())
+                        .stream()
+                        .map(Pair::first)
+                        .collect(Collectors.toSet());
         if (localSubscribers.isEmpty()) {
             falsePositiveCounter.increment();
         } else {
@@ -118,8 +124,8 @@ public final class Subscriber<T> extends AbstractActor {
         }
     }
 
-    private void updateLocalSubscriptions(final SubscriptionsReader localSubscriptions) {
-        this.localSubscriptions = localSubscriptions;
+    private void updateLocalSubscriptions(final SubscriptionsReader subscriptionsReader) {
+        this.publisherIndex = PublisherIndex.fromSubscriptionsReader(subscriptionsReader);
     }
 
     private void updateLocalAcks(final LocalAcksChanged localAcksChanged) {

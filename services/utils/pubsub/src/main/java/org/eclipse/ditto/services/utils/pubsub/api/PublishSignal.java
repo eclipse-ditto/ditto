@@ -13,12 +13,11 @@
 package org.eclipse.ditto.services.utils.pubsub.api;
 
 import java.io.NotSerializableException;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
@@ -56,9 +55,9 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
     private static final String TYPE = TYPE_PREFIX + NAME;
 
     private final Signal<?> signal;
-    private final Set<String> groups;
+    private final Map<String, Integer> groups;
 
-    private PublishSignal(final Signal<?> signal, final Set<String> groups) {
+    private PublishSignal(final Signal<?> signal, final Map<String, Integer> groups) {
         super(TYPE, signal.getDittoHeaders(), Category.MODIFY);
         this.signal = signal;
         this.groups = groups;
@@ -71,7 +70,7 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
      * @param groups the groups where the signal is published to.
      * @return the command to do it.
      */
-    public static PublishSignal of(final Signal<?> signal, final Set<String> groups) {
+    public static PublishSignal of(final Signal<?> signal, final Map<String, Integer> groups) {
         return new PublishSignal(signal, groups);
     }
 
@@ -91,10 +90,9 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
         try {
             final Signal<?> signal =
                     (Signal<?>) parseInnerJson.parseInnerJson(jsonObject.getValueOrThrow(JsonFields.SIGNAL));
-            final Set<String> groups = jsonObject.getValueOrThrow(JsonFields.GROUPS)
+            final Map<String, Integer> groups = jsonObject.getValueOrThrow(JsonFields.GROUPS)
                     .stream()
-                    .map(JsonValue::asString)
-                    .collect(Collectors.toSet());
+                    .collect(Collectors.toMap(JsonField::getKeyName, field -> field.getValue().asInt()));
             return new PublishSignal(signal, groups);
         } catch (final NotSerializableException e) {
             throw new JsonParseException(e.getMessage());
@@ -111,7 +109,7 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
     /**
      * @return the groups in which the signal is to be published.
      */
-    public Set<String> getGroups() {
+    public Map<String, Integer> getGroups() {
         return groups;
     }
 
@@ -121,7 +119,10 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
             final Predicate<JsonField> predicate) {
 
         jsonObjectBuilder.set(JsonFields.SIGNAL, signalToJson(schemaVersion, predicate))
-                .set(JsonFields.GROUPS, groups.stream().map(JsonValue::of).collect(JsonCollectors.valuesToArray()));
+                .set(JsonFields.GROUPS, groups.entrySet()
+                        .stream()
+                        .map(entry -> JsonField.newInstance(entry.getKey(), JsonValue.of(entry.getValue())))
+                        .collect(JsonCollectors.fieldsToObject()));
     }
 
     @Override
@@ -188,6 +189,7 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
         private static final JsonFieldDefinition<JsonObject> SIGNAL =
                 JsonFactory.newJsonObjectFieldDefinition("signal");
 
-        private static final JsonFieldDefinition<JsonArray> GROUPS = JsonFactory.newJsonArrayFieldDefinition("groups");
+        private static final JsonFieldDefinition<JsonObject> GROUPS =
+                JsonFactory.newJsonObjectFieldDefinition("groups");
     }
 }

@@ -46,7 +46,7 @@ public abstract class AbstractSubscriptions<S, R, T extends DDataUpdate<R>> impl
     /**
      * Map from topic to subscriber count and pre-computed hashes.
      */
-    protected final Map<String, TopicData<S>> topicDataMap;
+    protected final Map<String, TopicData> topicDataMap;
 
     /**
      * Construct subscriptions using the given maps.
@@ -57,23 +57,15 @@ public abstract class AbstractSubscriptions<S, R, T extends DDataUpdate<R>> impl
      */
     protected AbstractSubscriptions(
             final Map<ActorRef, SubscriberData> subscriberDataMap,
-            final Map<String, TopicData<S>> topicDataMap) {
+            final Map<String, TopicData> topicDataMap) {
         this.subscriberDataMap = subscriberDataMap;
         this.topicDataMap = topicDataMap;
     }
 
-    /**
-     * Hash a topic.
-     *
-     * @param topic the topic.
-     * @return the hash codes of the topic.
-     */
-    public abstract S hashTopic(String topic);
-
     @Override
     public boolean subscribe(final ActorRef subscriber,
             final Set<String> topics,
-            final Predicate<Collection<String>> filter,
+            @Nullable final Predicate<Collection<String>> filter,
             @Nullable final String group) {
         if (!topics.isEmpty()) {
             // box the 'changed' flag in an array so that it can be assigned inside a closure.
@@ -82,7 +74,7 @@ public abstract class AbstractSubscriptions<S, R, T extends DDataUpdate<R>> impl
             // add topics and filter.
             final SubscriberData subscriberData = SubscriberData.of(topics, filter, group);
             subscriberDataMap.merge(subscriber, subscriberData, (oldData, newData) -> {
-                changed[0] = oldData.getFilter() != newData.getFilter();
+                changed[0] = oldData.getFilter().equals(newData.getFilter());
                 return newData.withTopics(unionSet(oldData.getTopics(), newData.getTopics()));
             });
 
@@ -91,7 +83,7 @@ public abstract class AbstractSubscriptions<S, R, T extends DDataUpdate<R>> impl
                 topicDataMap.compute(topic, (k, previousData) -> {
                     if (previousData == null) {
                         changed[0] = true;
-                        return TopicData.firstSubscriber(subscriber, hashTopic(topic));
+                        return TopicData.firstSubscriber(subscriber);
                     } else {
                         // no short-circuit evaluation for OR: subscriber should always be added.
                         changed[0] |= previousData.addSubscriber(subscriber);
@@ -156,13 +148,13 @@ public abstract class AbstractSubscriptions<S, R, T extends DDataUpdate<R>> impl
 
     @Override
     public SubscriptionsReader snapshot() {
-        return SubscriptionsReader.fromImmutableMaps(exportTopicData(), exportSubscriberToFilter());
+        return SubscriptionsReader.fromSubscriberData(exportSubscriberData());
     }
 
-    private Map<ActorRef, Predicate<Collection<String>>> exportSubscriberToFilter() {
+    private Map<ActorRef, SubscriberData> exportSubscriberData() {
         return subscriberDataMap.entrySet()
                 .stream()
-                .map(entry -> Pair.create(entry.getKey(), entry.getValue().getFilter()))
+                .map(entry -> Pair.create(entry.getKey(), entry.getValue().export()))
                 .collect(Collectors.toMap(Pair::first, Pair::second));
     }
 

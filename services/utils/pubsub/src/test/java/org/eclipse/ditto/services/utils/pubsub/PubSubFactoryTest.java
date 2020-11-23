@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.pubsub.api.LocalAcksChanged;
@@ -516,11 +517,13 @@ public final class PubSubFactoryTest {
     }
 
     @Test
-    public void publishToEachMemberOfDistributedGroup() {
+    public void publishToEachMemberOfAGroup() {
         new TestKit(system1) {{
             final TestProbe publisher = TestProbe.apply("publisher", system1);
             final TestProbe subscriber1 = TestProbe.apply("subscriber1", system1);
             final TestProbe subscriber2 = TestProbe.apply("subscriber2", system2);
+            final TestProbe subscriber3 = TestProbe.apply("subscriber3", system1);
+            final TestProbe subscriber4 = TestProbe.apply("subscriber4", system2);
 
             final DistributedPub<Acknowledgement> pub = factory1.startDistributedPub();
             final DistributedSub sub1 = factory1.startDistributedSub();
@@ -528,20 +531,68 @@ public final class PubSubFactoryTest {
 
             // GIVEN: subscribers subscribe to the same topic as a group
             final String topic = "topic";
-            await(sub1.subscribeWithFilterAndGroup(List.of(topic), subscriber1.ref(), x -> true, "group"));
-            await(sub2.subscribeWithFilterAndGroup(List.of(topic), subscriber2.ref(), x -> true, "group"));
+            await(sub1.subscribeWithFilterAndGroup(List.of(topic), subscriber1.ref(), null, "group"));
+            await(sub2.subscribeWithFilterAndGroup(List.of(topic), subscriber2.ref(), null, "group"));
+            await(sub1.subscribeWithFilterAndGroup(List.of(topic), subscriber3.ref(), null, "group"));
+            await(sub2.subscribeWithFilterAndGroup(List.of(topic), subscriber4.ref(), null, "group"));
 
-            // WHEN: 2 signals are published with different entity IDs differing by 1 in the last byte
+            // WHEN: signals are published with different entity IDs differing by 1 in the last byte
             pub.publish(signal(topic, 0), publisher.ref());
             pub.publish(signal(topic, 1), publisher.ref());
+            pub.publish(signal(topic, 2), publisher.ref());
+            pub.publish(signal(topic, 3), publisher.ref());
 
             // THEN: exactly 1 subscriber gets each message.
             final Acknowledgement received1 = subscriber1.expectMsgClass(Acknowledgement.class);
             final Acknowledgement received2 = subscriber2.expectMsgClass(Acknowledgement.class);
+            final Acknowledgement received3 = subscriber3.expectMsgClass(Acknowledgement.class);
+            final Acknowledgement received4 = subscriber4.expectMsgClass(Acknowledgement.class);
+            final Set<EntityId> thingIdSet =
+                    Set.of(received1.getEntityId(), received2.getEntityId(), received3.getEntityId(),
+                            received4.getEntityId());
+            assertThat(thingIdSet.size())
+                    .describedAs("Signals received by subscribers should have distinct entity IDs")
+                    .isEqualTo(4);
+
+            // THEN: any subscriber receives no further messages.
+            subscriber1.expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void publishToSubscribersWithoutGroup() {
+        new TestKit(system1) {{
+            final TestProbe publisher = TestProbe.apply("publisher", system1);
+            final TestProbe subscriber1 = TestProbe.apply("subscriber1", system1);
+            final TestProbe subscriber2 = TestProbe.apply("subscriber2", system2);
+            final TestProbe subscriber3 = TestProbe.apply("subscriber3", system1);
+            final TestProbe subscriber4 = TestProbe.apply("subscriber4", system2);
+
+            final DistributedPub<Acknowledgement> pub = factory1.startDistributedPub();
+            final DistributedSub sub1 = factory1.startDistributedSub();
+            final DistributedSub sub2 = factory2.startDistributedSub();
+
+            // GIVEN: subscribers subscribe to the same topic as a group
+            final String topic = "topic";
+            await(sub1.subscribeWithFilterAndGroup(List.of(topic), subscriber1.ref(), null, "group"));
+            await(sub2.subscribeWithFilterAndGroup(List.of(topic), subscriber2.ref(), null, "group"));
+            await(sub1.subscribeWithAck(List.of(topic), subscriber3.ref()));
+            await(sub2.subscribeWithAck(List.of(topic), subscriber4.ref()));
+
+            // WHEN: signals are published with different entity IDs differing by 1 in the last byte
+            pub.publish(signal(topic, 0), publisher.ref());
+            pub.publish(signal(topic, 1), publisher.ref());
+
+            // THEN: exactly 1 subscriber in the group gets each message.
+            final Acknowledgement received1 = subscriber1.expectMsgClass(Acknowledgement.class);
+            final Acknowledgement received2 = subscriber2.expectMsgClass(Acknowledgement.class);
             assertThat((CharSequence) received1.getEntityId()).isNotEqualTo(received2.getEntityId());
 
-            // THEN: either subscriber receives no further messages.
-            subscriber1.expectNoMessage();
+            // THEN: subscribers without groups receive both messages
+            subscriber3.expectMsgClass(Acknowledgement.class);
+            subscriber3.expectMsgClass(Acknowledgement.class);
+            subscriber4.expectMsgClass(Acknowledgement.class);
+            subscriber4.expectMsgClass(Acknowledgement.class);
         }};
     }
 

@@ -28,10 +28,11 @@ import javax.annotation.concurrent.NotThreadSafe;
 public final class SubscriberData {
 
     private final Set<String> topics;
-    private final Predicate<Collection<String>> filter;
+    @Nullable private final Predicate<Collection<String>> filter;
     @Nullable private final String group;
 
-    private SubscriberData(final Set<String> topics, final Predicate<Collection<String>> filter,
+    private SubscriberData(final Set<String> topics,
+            @Nullable final Predicate<Collection<String>> filter,
             @Nullable final String group) {
         this.topics = topics;
         this.filter = filter;
@@ -46,9 +47,19 @@ public final class SubscriberData {
      * @param group the group the subscriber belongs to, if any.
      * @return the subscriber data.
      */
-    public static SubscriberData of(final Set<String> topics, final Predicate<Collection<String>> filter,
+    public static SubscriberData of(final Set<String> topics,
+            @Nullable final Predicate<Collection<String>> filter,
             @Nullable final String group) {
         return new SubscriberData(topics, filter, group);
+    }
+
+    /**
+     * Create an immutable copy of this object.
+     *
+     * @return the immutable copy.
+     */
+    public SubscriberData export() {
+        return new SubscriberData(Set.copyOf(topics), filter, group);
     }
 
     /**
@@ -67,7 +78,7 @@ public final class SubscriberData {
      * @param filter the new filter.
      * @return the new subscriber data.
      */
-    public SubscriberData withFilter(final Predicate<Collection<String>> filter) {
+    public SubscriberData withFilter(@Nullable final Predicate<Collection<String>> filter) {
         return new SubscriberData(topics, filter, group);
     }
 
@@ -81,8 +92,8 @@ public final class SubscriberData {
     /**
      * @return the filter of the subscriber.
      */
-    public Predicate<Collection<String>> getFilter() {
-        return filter;
+    public Optional<Predicate<Collection<String>>> getFilter() {
+        return Optional.ofNullable(filter);
     }
 
     /**

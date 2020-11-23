@@ -34,7 +34,7 @@ public final class LiteralSubscriptions extends AbstractSubscriptions<String, St
 
     private LiteralSubscriptions(
             final Map<ActorRef, SubscriberData> subscriberDataMap,
-            final Map<String, TopicData<String>> topicToData,
+            final Map<String, TopicData> topicToData,
             final LiteralUpdate updates) {
         super(subscriberDataMap, topicToData);
         this.updates = updates;
@@ -47,11 +47,6 @@ public final class LiteralSubscriptions extends AbstractSubscriptions<String, St
      */
     public static LiteralSubscriptions newInstance() {
         return new LiteralSubscriptions(new HashMap<>(), new HashMap<>(), LiteralUpdate.empty());
-    }
-
-    @Override
-    public String hashTopic(final String topic) {
-        return topic;
     }
 
     @Override

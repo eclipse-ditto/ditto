@@ -51,7 +51,8 @@ public interface Subscriptions<T> {
      * @param group any group the subscriber belongs to, or null.
      * @return whether subscriptions changed.
      */
-    boolean subscribe(ActorRef subscriber, Set<String> topics, Predicate<Collection<String>> filter,
+    boolean subscribe(ActorRef subscriber, Set<String> topics,
+            @Nullable Predicate<Collection<String>> filter,
             @Nullable final String group);
 
     /**
@@ -63,7 +64,7 @@ public interface Subscriptions<T> {
      * @return whether subscriptions changed.
      */
     default boolean subscribe(final ActorRef subscriber, final Set<String> topics, @Nullable final String group) {
-        return subscribe(subscriber, topics, ts -> true, group);
+        return subscribe(subscriber, topics, null, group);
     }
 
     /**

@@ -19,9 +19,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.services.utils.pubsub.api.PublishSignal;
+import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.ack.Grouped;
 import org.eclipse.ditto.signals.base.Signal;
 
@@ -35,48 +40,62 @@ import akka.japi.Pair;
  */
 final class PublisherIndex<T> {
 
-    private final Map<T, Map<ActorRef, Set<String>>> index;
+    private final Predicate<Collection<T>> constantTrue = topics -> true;
 
-    private PublisherIndex(final Map<T, Map<ActorRef, Set<String>>> index) {
+    private final Map<T, Map<ActorRef, Set<String>>> index;
+    private final Map<ActorRef, Predicate<Collection<T>>> filterMap;
+
+    private PublisherIndex(final Map<T, Map<ActorRef, Set<String>>> index,
+            final Map<ActorRef, Predicate<Collection<T>>> filterMap) {
         this.index = index;
+        this.filterMap = filterMap;
     }
 
     static <T> PublisherIndex<T> empty() {
-        return new PublisherIndex<>(Map.of());
+        return new PublisherIndex<>(Map.of(), Map.of());
     }
 
     static PublisherIndex<Long> fromDeserializedMMap(final Map<ActorRef, List<Grouped<Long>>> mmap) {
-        final Map<Long, Map<ActorRef, Set<String>>> result = new HashMap<>();
-        mmap.forEach((subscriber, groupedList) -> groupedList.forEach(grouped -> {
-            final String group = grouped.getGroup().orElse("");
-            grouped.getValues().forEach(topic -> result.compute(topic, (v, map) -> {
-                final Map<ActorRef, Set<String>> nonNullMap = map == null ? new HashMap<>() : map;
-                nonNullMap.compute(subscriber, (s, groups) -> {
-                    final Set<String> nonNullGroups = groups == null ? new HashSet<>() : groups;
-                    nonNullGroups.add(group);
-                    return nonNullGroups;
-                });
-                return nonNullMap;
-            }));
-        }));
-        return new PublisherIndex<>(result);
+        final Map<Long, Map<ActorRef, Set<String>>> index = new HashMap<>();
+        mmap.forEach((subscriber, groupedList) ->
+                groupedList.forEach(grouped -> grouped.getValues()
+                        .forEach(computeIndex(index, subscriber, grouped.getGroup().orElse("")))
+                ));
+        return new PublisherIndex<>(index, Map.of());
+    }
+
+    static PublisherIndex<String> fromSubscriptionsReader(final SubscriptionsReader reader) {
+        final Map<String, Map<ActorRef, Set<String>>> index = new HashMap<>();
+        final Map<ActorRef, Predicate<Collection<String>>> filterMap = new HashMap<>();
+        reader.getSubscriberDataMap().forEach((subscriber, data) -> {
+            data.getFilter().ifPresent(filter -> filterMap.put(subscriber, filter));
+            data.getTopics().forEach(computeIndex(index, subscriber, data.getGroup().orElse("")));
+        });
+        return new PublisherIndex<>(index, filterMap);
     }
 
     List<Pair<ActorRef, PublishSignal>> allotGroupsToSubscribers(final Signal<?> signal, final Collection<T> topics) {
+        return allotGroupsToSubscribers(signal, topics, null);
+    }
+
+    List<Pair<ActorRef, PublishSignal>> allotGroupsToSubscribers(final Signal<?> signal, final Collection<T> topics,
+            @Nullable final Map<String, Integer> chosenGroups) {
         final Map<String, List<ActorRef>> groupToSubscribers = new HashMap<>();
-        final Map<ActorRef, Set<String>> subscriberToChosenGroups = new HashMap<>();
+        final Map<ActorRef, Map<String, Integer>> subscriberToChosenGroups = new HashMap<>();
         // compute groupToSubscribers and allot subscribers with the empty group
         for (final T topic : topics) {
             index.getOrDefault(topic, Map.of()).forEach((subscriber, groups) -> {
-                for (final String group : groups) {
-                    if (group.isEmpty()) {
-                        subscriberToChosenGroups.putIfAbsent(subscriber, new HashSet<>());
-                    } else {
-                        groupToSubscribers.compute(group, (g, list) -> {
-                            final List<ActorRef> nonNullList = list == null ? new ArrayList<>() : list;
-                            nonNullList.add(subscriber);
-                            return nonNullList;
-                        });
+                if (filterMap.getOrDefault(subscriber, constantTrue).test(topics)) {
+                    for (final String group : groups) {
+                        if (group.isEmpty()) {
+                            subscriberToChosenGroups.putIfAbsent(subscriber, new HashMap<>());
+                        } else if (chosenGroups == null || chosenGroups.containsKey(group)) {
+                            groupToSubscribers.compute(group, (g, list) -> {
+                                final List<ActorRef> nonNullList = list == null ? new ArrayList<>() : list;
+                                nonNullList.add(subscriber);
+                                return nonNullList;
+                            });
+                        }
                     }
                 }
             });
@@ -87,10 +106,11 @@ final class PublisherIndex<T> {
         final int entityIdHash = Math.max(0, Math.abs(signal.getEntityId().toString().hashCode()));
         groupToSubscribers.forEach((group, subscribers) -> {
             subscribers.sort(ActorRef::compareTo);
-            final ActorRef chosenSubscriber = subscribers.get(entityIdHash % subscribers.size());
+            final int groupDivisor = chosenGroups == null ? 1 : Math.max(1, chosenGroups.get(group));
+            final ActorRef chosenSubscriber = subscribers.get((entityIdHash / groupDivisor) % subscribers.size());
             subscriberToChosenGroups.compute(chosenSubscriber, (s, groups) -> {
-                final Set<String> nonNullGroups = groups == null ? new HashSet<>() : groups;
-                nonNullGroups.add(group);
+                final Map<String, Integer> nonNullGroups = groups == null ? new HashMap<>() : groups;
+                nonNullGroups.put(group, subscribers.size());
                 return nonNullGroups;
             });
         });
@@ -99,6 +119,19 @@ final class PublisherIndex<T> {
                 .stream()
                 .map(entry -> Pair.create(entry.getKey(), PublishSignal.of(signal, entry.getValue())))
                 .collect(Collectors.toList());
+    }
+
+    private static <T> Consumer<T> computeIndex(final Map<T, Map<ActorRef, Set<String>>> index,
+            final ActorRef subscriber, final String group) {
+        return topic -> index.compute(topic, (v, map) -> {
+            final Map<ActorRef, Set<String>> nonNullMap = map == null ? new HashMap<>() : map;
+            nonNullMap.compute(subscriber, (s, groups) -> {
+                final Set<String> nonNullGroups = groups == null ? new HashSet<>() : groups;
+                nonNullGroups.add(group);
+                return nonNullGroups;
+            });
+            return nonNullMap;
+        });
     }
 
 }
