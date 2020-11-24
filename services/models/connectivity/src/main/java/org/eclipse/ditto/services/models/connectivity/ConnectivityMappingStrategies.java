@@ -90,6 +90,7 @@ public final class ConnectivityMappingStrategies extends MappingStrategies {
         final MappingStrategies specialStrategies = MappingStrategiesBuilder.newInstance()
                 .add(OutboundSignal.class,
                         jsonObject -> OutboundSignalFactory.outboundSignalFromJson(jsonObject, strategies)) // do not replace with lambda!
+                .add(InboundSignal.class, jsonObject -> InboundSignal.fromJson(jsonObject, strategies))
                 .add("UnmappedOutboundSignal",
                         jsonObject -> OutboundSignalFactory.outboundSignalFromJson(jsonObject, strategies))
                 .build();// do not replace with lambda!

@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.NotThreadSafe;
@@ -85,7 +86,11 @@ public final class ClientActorRefs {
      * @param entityId the entity ID.
      * @return the client actor responsible for it.
      */
-    public ActorRef lookUp(final EntityId entityId) {
-        return sortedRefs.get(PubSubFactory.hashForPubSub(entityId) % sortedRefs.size());
+    public Optional<ActorRef> lookup(final EntityId entityId) {
+        if (sortedRefs.isEmpty()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(sortedRefs.get(PubSubFactory.hashForPubSub(entityId) % sortedRefs.size()));
+        }
     }
 }

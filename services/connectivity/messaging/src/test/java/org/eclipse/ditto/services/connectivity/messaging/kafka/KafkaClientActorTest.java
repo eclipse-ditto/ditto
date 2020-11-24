@@ -15,13 +15,10 @@ package org.eclipse.ditto.services.connectivity.messaging.kafka;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
-import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -37,7 +34,6 @@ import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActor
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
@@ -49,7 +45,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -162,16 +157,12 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
             kafkaClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
-            final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(Collections.emptyList());
+            final ThingModifiedEvent<?> thingModifiedEvent =
+                    TestConstants.thingModified(TARGET.getAuthorizationContext().getAuthorizationSubjects());
             final String expectedJson = TestConstants.signalToDittoProtocolJsonString(thingModifiedEvent);
 
             LOGGER.info("Sending thing modified message: {}", thingModifiedEvent);
-            final OutboundSignal.Mapped mappedSignal = Mockito.mock(OutboundSignal.Mapped.class);
-            when(mappedSignal.getTargets()).thenReturn(singletonList(TARGET));
-            when(mappedSignal.getSource()).thenReturn(thingModifiedEvent);
-            final OutboundSignal.MultiMapped multiMapped =
-                    OutboundSignalFactory.newMultiMappedOutboundSignal(List.of(mappedSignal), getRef());
-            kafkaClientActor.tell(multiMapped, getRef());
+            kafkaClientActor.tell(thingModifiedEvent, getRef());
 
             final OutboundSignal.MultiMapped message =
                     probe.expectMsgClass(OutboundSignal.MultiMapped.class);

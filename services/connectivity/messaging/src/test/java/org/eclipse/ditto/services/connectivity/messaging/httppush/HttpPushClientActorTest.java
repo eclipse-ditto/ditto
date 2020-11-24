@@ -19,6 +19,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
 
@@ -36,8 +37,6 @@ import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
@@ -252,14 +251,14 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
             final ThingModifiedEvent<?> thingModifiedEvent = TestConstants.thingModified(Collections.emptyList())
                     .setDittoHeaders(DittoHeaders.newBuilder()
                             .correlationId("internal-correlation-id")
+                            .readGrantedSubjects(HTTP_TARGET.getAuthorizationContext().getAuthorizationSubjects())
                             .putHeader(customHeaderKey, customHeaderValue)
                             .build());
-            final OutboundSignal outboundSignal =
-                    OutboundSignalFactory.newOutboundSignal(thingModifiedEvent, singletonList(HTTP_TARGET));
-            underTest.tell(outboundSignal, getRef());
+            underTest.tell(thingModifiedEvent, getRef());
 
             // THEN: a POST-request is forwarded to the path defined in the target
-            final HttpRequest thingModifiedRequest = requestQueue.take();
+            final HttpRequest thingModifiedRequest = requestQueue.poll(10L, TimeUnit.SECONDS);
+            assertThat(thingModifiedRequest).isNotNull();
             responseQueue.offer(HttpResponse.create().withStatus(StatusCodes.OK));
             assertThat(thingModifiedRequest.method()).isEqualTo(HttpMethods.POST);
             assertThat(thingModifiedRequest.getUri().getPathString()).isEqualTo("/target/address");
@@ -288,18 +287,17 @@ public final class HttpPushClientActorTest extends AbstractBaseClientActorTest {
 
         new TestKit(actorSystem) {{
             // GIVEN: local HTTP connection is connected
-            final ActorRef underTest = actorSystem.actorOf(createClientActor(getRef(), getConnection(false)));
+            final ActorRef underTest = actorSystem.actorOf(createClientActor(getRef(), connection));
             underTest.tell(OpenConnection.of(connection.getId(), DittoHeaders.empty()), getRef());
             expectMsg(new Status.Success(BaseClientState.CONNECTED));
 
             // WHEN: a thing event is sent to a target with header mapping content-type=application/json
-            final ThingModifiedEvent<?> thingModifiedEvent = TestConstants.thingModified(Collections.emptyList());
-            final OutboundSignal outboundSignal =
-                    OutboundSignalFactory.newOutboundSignal(thingModifiedEvent, singletonList(target));
-            underTest.tell(outboundSignal, getRef());
+            final ThingModifiedEvent<?> thingModifiedEvent =
+                    TestConstants.thingModified(target.getAuthorizationContext().getAuthorizationSubjects());
+            underTest.tell(thingModifiedEvent, getRef());
 
             // THEN: a POST-request is forwarded to the path defined in the target
-            final HttpRequest thingModifiedRequest = requestQueue.take();
+            final HttpRequest thingModifiedRequest = requestQueue.poll(10, TimeUnit.SECONDS);
             responseQueue.offer(HttpResponse.create().withStatus(StatusCodes.OK));
             assertThat(thingModifiedRequest.getUri().getPathString()).isEqualTo("/target:ditto/thing@twin");
         }};

@@ -12,12 +12,9 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
-import static org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator.resolveConnectionIdPlaceholder;
-
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -26,7 +23,6 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -35,20 +31,14 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
-import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
-import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
-import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
-import org.eclipse.ditto.services.connectivity.mapping.MessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.mappingoutcome.MappingOutcome;
-import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
-import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -56,6 +46,7 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.base.Signal;
 
+import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 
 /**
@@ -103,29 +94,21 @@ public final class OutboundMappingProcessor extends AbstractMappingProcessor<Out
             final ProtocolAdapter protocolAdapter,
             final ThreadSafeDittoLoggingAdapter logger) {
 
-        final ConnectionId connectionId = connection.getId();
-        final ConnectionType connectionType = connection.getConnectionType();
-        final PayloadMappingDefinition mappingDefinition = connection.getPayloadMappingDefinition();
-        final Set<AcknowledgementLabel> sourceDeclaredAcks =
-                ConnectionValidator.getSourceDeclaredAcknowledgementLabels(connectionId, connection.getSources())
-                        .collect(Collectors.toSet());
-        final Set<AcknowledgementLabel> targetIssuedAcks =
-                ConnectionValidator.getTargetIssuedAcknowledgementLabels(connectionId, connection.getTargets())
-                        // live response does not require a weak ack
-                        .filter(ackLabel -> !DittoAcknowledgementLabel.LIVE_RESPONSE.equals(ackLabel))
-                        .collect(Collectors.toSet());
+        final ActorSelection deadLetterSelection = actorSystem.actorSelection(actorSystem.deadLetters().path());
+        return of(OutboundMappingSettings.of(connection, actorSystem, deadLetterSelection, connectivityConfig,
+                protocolAdapter, logger));
+    }
 
-        final ThreadSafeDittoLoggingAdapter loggerWithConnectionId =
-                logger.withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
-
-        final MessageMapperFactory messageMapperFactory =
-                DefaultMessageMapperFactory.of(connectionId, actorSystem, connectivityConfig.getMappingConfig(),
-                        loggerWithConnectionId);
-        final MessageMapperRegistry registry =
-                messageMapperFactory.registryOf(DittoMessageMapper.CONTEXT, mappingDefinition);
-
-        return new OutboundMappingProcessor(connectionId, connectionType, registry, loggerWithConnectionId,
-                protocolAdapter, sourceDeclaredAcks, targetIssuedAcks);
+    /**
+     * Create an {@code OutboundMappingProcessor} from its settings.
+     *
+     * @param settings Settings of an outbound mapping processor.
+     * @return the processor.
+     */
+    public static OutboundMappingProcessor of(final OutboundMappingSettings settings) {
+        return new OutboundMappingProcessor(settings.getConnectionId(), settings.getConnectionType(),
+                settings.getRegistry(), settings.getLogger(), settings.getProtocolAdapter(),
+                settings.getSourceDeclaredAcks(), settings.getTargetIssuedAcks());
     }
 
     boolean isSourceDeclaredAck(final AcknowledgementLabel label) {

@@ -92,8 +92,6 @@ import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActor
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -673,24 +671,27 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                         TopicPath.Channel.TWIN.getName();
 
         new TestKit(actorSystem) {{
+            final Connection connectionWithTarget = connection.toBuilder()
+                    .setTargets(List.of(
+                            ConnectivityModelFactory.newTargetBuilder()
+                                    .address(TestConstants.Targets.TARGET_WITH_PLACEHOLDER.getAddress())
+                                    .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
+                                    .topics(Topic.TWIN_EVENTS)
+                                    .build()
+                    ))
+                    .build();
             final Props props =
-                    AmqpClientActor.propsForTests(connection, getRef(), getRef(),
+                    AmqpClientActor.propsForTests(connectionWithTarget, getRef(), getRef(),
                             (ac, el, connectionLogger) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
             expectMsg(CONNECTED_SUCCESS);
 
-            final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(Collections.emptyList());
+            final ThingModifiedEvent<?> thingModifiedEvent =
+                    TestConstants.thingModified(Authorization.AUTHORIZATION_CONTEXT.getAuthorizationSubjects());
 
-            final OutboundSignal outboundSignal = OutboundSignalFactory.newOutboundSignal(thingModifiedEvent,
-                    singletonList(ConnectivityModelFactory.newTargetBuilder()
-                            .address(TestConstants.Targets.TARGET_WITH_PLACEHOLDER.getAddress())
-                            .authorizationContext(Authorization.AUTHORIZATION_CONTEXT)
-                            .topics(Topic.TWIN_EVENTS)
-                            .build()));
-
-            amqpClientActor.tell(outboundSignal, getRef());
+            amqpClientActor.tell(thingModifiedEvent, getRef());
 
             final ArgumentCaptor<JmsMessage> messageCaptor = ArgumentCaptor.forClass(JmsMessage.class);
             final MessageProducer messageProducer = getProducerForAddress(expectedAddress);
@@ -916,12 +917,14 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             throws JMSException {
 
         final String uuid = UUID.randomUUID().toString();
-        final ThingModifiedEvent thingModifiedEvent =
-                TestConstants.thingModified(Collections.emptyList(), Attributes.newBuilder().set("uuid", uuid).build())
-                        .setDittoHeaders(DittoHeaders.newBuilder().putHeader("reply-to", target.getAddress()).build());
-        final OutboundSignal outboundSignal =
-                OutboundSignalFactory.newOutboundSignal(thingModifiedEvent, singletonList(target));
-        amqpClientActor.tell(outboundSignal, ActorRef.noSender());
+        final ThingModifiedEvent<?> thingModifiedEvent =
+                TestConstants.thingModified(List.of(), Attributes.newBuilder().set("uuid", uuid).build())
+                        .setDittoHeaders(DittoHeaders.newBuilder()
+                                .putHeader("reply-to", target.getAddress())
+                                .readGrantedSubjects(target.getAuthorizationContext().getAuthorizationSubjects())
+                                .build());
+
+        amqpClientActor.tell(thingModifiedEvent, ActorRef.noSender());
 
         final ArgumentCaptor<JmsMessage> messageCaptor = ArgumentCaptor.forClass(JmsMessage.class);
         final MessageProducer messageProducer = messageProducerSupplier.get();

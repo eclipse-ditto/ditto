@@ -62,6 +62,7 @@ import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.Publish
 import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
+import org.eclipse.ditto.services.models.connectivity.InboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
@@ -640,39 +641,41 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
             final ActorRef inboundMappingProcessorActor =
                     createInboundMappingProcessorActor(this, outboundMappingProcessorActor);
+            final TestProbe sender = TestProbe.apply("sender", actorSystem);
 
             // Acknowledgement
             final AcknowledgementLabel label = AcknowledgementLabel.of("label");
             final Acknowledgement acknowledgement =
                     Acknowledgement.of(label, KNOWN_THING_ID, HttpStatusCode.BAD_REQUEST,
                             DittoHeaders.empty(), JsonValue.of("payload"));
-            inboundMappingProcessorActor.tell(toExternalMessage(acknowledgement), getRef());
-            final Acknowledgement receivedAck = connectionActorProbe.expectMsgClass(Acknowledgement.class);
+            inboundMappingProcessorActor.tell(toExternalMessage(acknowledgement), sender.ref());
+            final Acknowledgement receivedAck = (Acknowledgement) expectMsgClass(InboundSignal.class).getSignal();
             assertThat(receivedAck.getDittoHeaders().get(DittoHeaderDefinition.CONNECTION_ID.getKey()))
                     .isEqualTo(CONNECTION_ID.toString());
-            assertThat(connectionActorProbe.sender()).isEqualTo(outboundMappingProcessorActor);
+            assertThat(getLastSender()).isEqualTo(outboundMappingProcessorActor);
 
             // Acknowledgements
             final Signal<?> acknowledgements = Acknowledgements.of(List.of(acknowledgement), DittoHeaders.empty());
-            inboundMappingProcessorActor.tell(toExternalMessage(acknowledgements), getRef());
-            final Acknowledgements receivedAcks = connectionActorProbe.expectMsgClass(Acknowledgements.class);
+            inboundMappingProcessorActor.tell(toExternalMessage(acknowledgements), sender.ref());
+            final Acknowledgements receivedAcks = (Acknowledgements) expectMsgClass(InboundSignal.class).getSignal();
             assertThat(receivedAcks.getAcknowledgement(label)
                     .orElseThrow()
                     .getDittoHeaders()
                     .get(DittoHeaderDefinition.CONNECTION_ID.getKey()))
                     .isEqualTo(CONNECTION_ID.toString());
-            assertThat(connectionActorProbe.sender()).isEqualTo(outboundMappingProcessorActor);
+            assertThat(getLastSender()).isEqualTo(outboundMappingProcessorActor);
 
             // Live response
             final Signal<?> liveResponse = DeleteThingResponse.of(KNOWN_THING_ID, DittoHeaders.newBuilder()
                     .channel(TopicPath.Channel.LIVE.getName())
                     .build());
-            inboundMappingProcessorActor.tell(toExternalMessage(liveResponse), getRef());
-            final DeleteThingResponse receivedResponse = connectionActorProbe.expectMsgClass(DeleteThingResponse.class);
+            inboundMappingProcessorActor.tell(toExternalMessage(liveResponse), sender.ref());
+            final DeleteThingResponse receivedResponse =
+                    (DeleteThingResponse) expectMsgClass(InboundSignal.class).getSignal();
             assertThat(receivedResponse.getDittoHeaders().getChannel()).contains(TopicPath.Channel.LIVE.getName());
             assertThat(receivedResponse.getDittoHeaders().get(DittoHeaderDefinition.CONNECTION_ID.getKey()))
                     .isEqualTo(CONNECTION_ID.toString());
-            assertThat(connectionActorProbe.sender()).isEqualTo(actorSystem.deadLetters());
+            assertThat(getLastSender()).isEqualTo(actorSystem.deadLetters());
         }};
     }
 
@@ -739,7 +742,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
     public void inboundQueryCommandDoesNotRequestAcknowledgements() {
         new TestKit(actorSystem) {{
             final ActorRef inboundMappingProcessorActor =
-                    createInboundMappingProcessorActor(actorSystem.deadLetters(), actorSystem.deadLetters());
+                    createInboundMappingProcessorActor(actorSystem.deadLetters(), actorSystem.deadLetters(), this);
 
             // WHEN: inbound mapping processor receives a query command with acknowledgement requests
             final RetrieveFeature retrieveFeature = RetrieveFeature.of(ThingId.of("thing:id"), "featureId",
