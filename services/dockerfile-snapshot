@@ -13,8 +13,6 @@ EXPOSE 8080
 
 RUN mkdir -p $DITTO_HOME
 
-COPY ${TARGET_DIR}/${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar $DITTO_HOME
-
 RUN set -x \
     && apk upgrade --update-cache \
     && apk add --no-cache tini openssl \
@@ -30,3 +28,5 @@ USER ditto
 WORKDIR $DITTO_HOME
 ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["java", "-jar", "/opt/ditto/starter.jar"]
+
+COPY ${TARGET_DIR}/${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar $DITTO_HOME
