@@ -41,13 +41,14 @@ public final class TestPubSubFactory extends AbstractPubSubFactory<Acknowledgeme
             final PubSubTopicExtractor<Acknowledgement> topicExtractor,
             final AckExtractor<Acknowledgement> ackExtractor,
             final DistributedAcks distributedAcks) {
-        super(context, Acknowledgement.class, topicExtractor, PROVIDER, ackExtractor, distributedAcks);
+        super(context, context.system(), Acknowledgement.class, topicExtractor, PROVIDER, ackExtractor,
+                distributedAcks);
         final PubSubConfig config = PubSubConfig.of(context.system().settings().config().getConfig("ditto.pubsub"));
         seeds = Hashes.digestStringsToIntegers(config.getSeed(), Hashes.HASH_FAMILY_SIZE);
     }
 
     static DistributedAcks startDistributedAcks(final ActorContext context) {
-        return DistributedAcksImpl.create(context, "dc-default", ACKS_PROVIDER);
+        return DistributedAcksImpl.create(context, context.system(), "dc-default", ACKS_PROVIDER);
     }
 
     static TestPubSubFactory of(final ActorContext context, final AckExtractor<Acknowledgement> ackExtractor,

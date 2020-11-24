@@ -34,6 +34,8 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDData;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
+import akka.actor.ActorRefFactory;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.pattern.Patterns;
 
@@ -53,17 +55,22 @@ final class DistributedAcksImpl implements DistributedAcks {
     }
 
     static DistributedAcks create(final ActorContext actorContext) {
-        final LiteralDDataProvider provider = LiteralDDataProvider.of(CLUSTER_ROLE, "acks");
-        return create(actorContext, CLUSTER_ROLE, provider);
+        return create(actorContext, actorContext.system());
     }
 
-    static DistributedAcks create(final ActorContext actorContext,
+    static DistributedAcks create(final ActorRefFactory actorRefFactory, final ActorSystem actorSystem) {
+        final LiteralDDataProvider provider = LiteralDDataProvider.of(CLUSTER_ROLE, "acks");
+        return create(actorRefFactory, actorSystem, CLUSTER_ROLE, provider);
+    }
+
+    static DistributedAcks create(final ActorRefFactory actorRefFactory,
+            final ActorSystem system,
             final String clusterRole,
             final LiteralDDataProvider provider) {
         final String supervisorName = clusterRole + "-ack-supervisor";
-        final Props props = AckSupervisor.props(LiteralDData.of(actorContext.system(), provider));
-        final ActorRef supervisor = actorContext.actorOf(props, supervisorName);
-        final DistributedDataConfig config = provider.getConfig(actorContext.system());
+        final Props props = AckSupervisor.props(LiteralDData.of(system, provider));
+        final ActorRef supervisor = actorRefFactory.actorOf(props, supervisorName);
+        final DistributedDataConfig config = provider.getConfig(system);
         return new DistributedAcksImpl(config, supervisor);
     }
 

@@ -22,6 +22,7 @@ import org.eclipse.ditto.services.utils.pubsub.api.AcksDeclared;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
 
 /**
  * Interface to access the local and distributed data of declared acknowledgement labels.
@@ -97,6 +98,17 @@ public interface DistributedAcks {
      */
     static DistributedAcks create(final ActorContext context) {
         return DistributedAcksImpl.create(context);
+    }
+
+    /**
+     * Start AcksSupervisor under the user guardian and expose a DistributedAcks interface.
+     * Precondition: the cluster member has the role {@code "acks-aware"}.
+     *
+     * @param system the actor system.
+     * @return the DistributedAcks interface.
+     */
+    static DistributedAcks create(final ActorSystem system) {
+        return DistributedAcksImpl.create(system, system);
     }
 
     /**

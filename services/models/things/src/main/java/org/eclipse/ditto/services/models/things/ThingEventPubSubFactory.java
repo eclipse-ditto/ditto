@@ -25,6 +25,8 @@ import org.eclipse.ditto.services.utils.pubsub.extractors.ShardIdExtractor;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.ActorContext;
+import akka.actor.ActorRefFactory;
+import akka.actor.ActorSystem;
 
 /**
  * Pub-sub factory for thing events.
@@ -37,12 +39,13 @@ public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEv
     private static final DDataProvider PROVIDER = DDataProvider.of("thing-event-aware");
 
     @SuppressWarnings({"unchecked"})
-    private ThingEventPubSubFactory(final ActorContext context,
+    private ThingEventPubSubFactory(final ActorRefFactory actorRefFactory,
+            final ActorSystem actorSystem,
             final PubSubTopicExtractor<ThingEvent<?>> topicExtractor,
             final DistributedAcks distributedAcks) {
 
-        super(context, (Class<ThingEvent<?>>) (Object) ThingEvent.class, topicExtractor, PROVIDER, ACK_EXTRACTOR,
-                distributedAcks);
+        super(actorRefFactory, actorSystem, (Class<ThingEvent<?>>) (Object) ThingEvent.class, topicExtractor, PROVIDER,
+                ACK_EXTRACTOR, distributedAcks);
     }
 
     /**
@@ -57,19 +60,20 @@ public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEv
             final ShardRegionExtractor shardRegionExtractor,
             final DistributedAcks distributedAcks) {
 
-        return new ThingEventPubSubFactory(context, toTopicExtractor(shardRegionExtractor), distributedAcks);
+        return new ThingEventPubSubFactory(context, context.system(), toTopicExtractor(shardRegionExtractor),
+                distributedAcks);
     }
 
     /**
      * Create a pubsub factory for thing events ignoring shard ID topics.
      *
-     * @param context context of the actor under which publisher and subscriber actors are created.
+     * @param system the actor system.
      * @param distributedAcks the distributed acks interface.
      * @return the thing event pub-sub factory.
      */
-    public static ThingEventPubSubFactory readSubjectsOnly(final ActorContext context,
+    public static ThingEventPubSubFactory readSubjectsOnly(final ActorSystem system,
             final DistributedAcks distributedAcks) {
-        return new ThingEventPubSubFactory(context, readSubjectOnlyExtractor(), distributedAcks);
+        return new ThingEventPubSubFactory(system, system, readSubjectOnlyExtractor(), distributedAcks);
     }
 
     /**
@@ -85,7 +89,7 @@ public final class ThingEventPubSubFactory extends AbstractPubSubFactory<ThingEv
 
         final PubSubTopicExtractor<ThingEvent<?>> topicExtractor =
                 shardIdOnlyExtractor(ShardRegionExtractor.of(numberOfShards, context.system()));
-        return new ThingEventPubSubFactory(context, topicExtractor, distributedAcks);
+        return new ThingEventPubSubFactory(context, context.system(), topicExtractor, distributedAcks);
     }
 
     private static PubSubTopicExtractor<ThingEvent<?>> readSubjectOnlyExtractor() {

@@ -50,27 +50,29 @@ public abstract class AbstractPubSubFactory<T extends Signal<?>> implements PubS
 
     /**
      * Create a pub-sub factory.
-     *  @param context context of the actor under which publisher and subscriber actors are created.
+     * @param actorRefFactory context of the actor under which publisher and subscriber actors are created.
+     * @param actorSystem the actor system.
      * @param messageClass the class of messages to publish and subscribe for.
      * @param topicExtractor a function extracting from each message the topics it was published at.
      * @param provider provider of the underlying ddata extension.
      * @param ackExtractor extractor of acknowledgement-related information from a message.
      * @param distributedAcks a second ddata for declared acknowledgement labels.
      */
-    protected AbstractPubSubFactory(final ActorContext context,
+    protected AbstractPubSubFactory(final ActorRefFactory actorRefFactory,
+            final ActorSystem actorSystem,
             final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
             final DDataProvider provider,
             final AckExtractor<T> ackExtractor,
             final DistributedAcks distributedAcks) {
 
-        this.actorRefFactory = context;
+        this.actorRefFactory = actorRefFactory;
         this.messageClass = messageClass;
         factoryId = provider.clusterRole;
         this.topicExtractor = topicExtractor;
         this.ackExtractor = ackExtractor;
-        ddataConfig = provider.getConfig(context.system());
-        ddata = CompressedDData.of(context.system(), provider);
+        ddataConfig = provider.getConfig(actorSystem);
+        ddata = CompressedDData.of(actorSystem, provider);
         this.distributedAcks = distributedAcks;
     }
 

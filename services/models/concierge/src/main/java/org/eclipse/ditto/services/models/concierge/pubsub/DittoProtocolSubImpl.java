@@ -30,8 +30,10 @@ import org.eclipse.ditto.services.models.things.ThingEventPubSubFactory;
 import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.DistributedSub;
 
-import akka.actor.ActorContext;
+import akka.actor.AbstractExtensionId;
 import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.actor.ExtendedActorSystem;
 
 /**
  * Default implementation of {@link DittoProtocolSub}.
@@ -50,11 +52,11 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
         this.distributedAcks = distributedAcks;
     }
 
-    static DittoProtocolSubImpl of(final ActorContext context, final DistributedAcks distributedAcks) {
+    static DittoProtocolSubImpl of(final ActorSystem system, final DistributedAcks distributedAcks) {
         final DistributedSub liveSignalSub =
-                LiveSignalPubSubFactory.of(context, distributedAcks).startDistributedSub();
+                LiveSignalPubSubFactory.of(system, distributedAcks).startDistributedSub();
         final DistributedSub twinEventSub =
-                ThingEventPubSubFactory.readSubjectsOnly(context, distributedAcks).startDistributedSub();
+                ThingEventPubSubFactory.readSubjectsOnly(system, distributedAcks).startDistributedSub();
         return new DittoProtocolSubImpl(liveSignalSub, twinEventSub, distributedAcks);
     }
 
@@ -154,4 +156,16 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
         return topics -> topics.stream().anyMatch(streamingTypeTopics::contains);
     }
 
+    static final class ExtensionId extends AbstractExtensionId<DittoProtocolSub> {
+
+        static final ExtensionId INSTANCE = new ExtensionId();
+
+        private ExtensionId() {}
+
+        @Override
+        public DittoProtocolSub createExtension(final ExtendedActorSystem system) {
+            final DistributedAcks distributedAcks = DistributedAcks.create(system);
+            return of(system, distributedAcks);
+        }
+    }
 }

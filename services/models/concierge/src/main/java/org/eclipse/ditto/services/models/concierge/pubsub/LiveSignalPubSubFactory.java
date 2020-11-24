@@ -25,6 +25,8 @@ import org.eclipse.ditto.services.utils.pubsub.extractors.ReadSubjectExtractor;
 import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.ActorContext;
+import akka.actor.ActorRefFactory;
+import akka.actor.ActorSystem;
 
 /**
  * Pub-sub factory for live signals.
@@ -37,21 +39,34 @@ final class LiveSignalPubSubFactory extends AbstractPubSubFactory<Signal<?>> {
     private static final DDataProvider PROVIDER = DDataProvider.of("live-signal-aware");
 
     @SuppressWarnings("unchecked")
-    private LiveSignalPubSubFactory(final ActorContext context, final PubSubTopicExtractor<Signal<?>> topicExtractor,
+    private LiveSignalPubSubFactory(final ActorRefFactory actorRefFactory,
+            final ActorSystem actorSystem,
+            final PubSubTopicExtractor<Signal<?>> topicExtractor,
             final DistributedAcks distributedAcks) {
-        super(context, (Class<Signal<?>>) (Object) Signal.class, topicExtractor, PROVIDER, ACK_EXTRACTOR,
-                distributedAcks);
+        super(actorRefFactory, actorSystem, (Class<Signal<?>>) (Object) Signal.class, topicExtractor, PROVIDER,
+                ACK_EXTRACTOR, distributedAcks);
     }
 
     /**
-     * Create a pubsub factory for live signals from an actor system and its shard region extractor.
+     * Create a pubsub factory for live signals from an actor context.
      *
      * @param context context of the actor under which the publisher and subscriber actors are started.
      * @param distributedAcks the distributed acks interface.
      * @return the thing
      */
     public static LiveSignalPubSubFactory of(final ActorContext context, final DistributedAcks distributedAcks) {
-        return new LiveSignalPubSubFactory(context, topicExtractor(), distributedAcks);
+        return new LiveSignalPubSubFactory(context, context.system(), topicExtractor(), distributedAcks);
+    }
+
+    /**
+     * Create a pubsub factory for live signals from an actor system.
+     *
+     * @param system the actor system.
+     * @param distributedAcks the distributed acks interface.
+     * @return the thing
+     */
+    public static LiveSignalPubSubFactory of(final ActorSystem system, final DistributedAcks distributedAcks) {
+        return new LiveSignalPubSubFactory(system, system, topicExtractor(), distributedAcks);
     }
 
     private static Collection<String> getStreamingTypeTopic(final Signal<?> signal) {

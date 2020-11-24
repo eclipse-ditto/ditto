@@ -87,8 +87,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
         final ActorRef proxyActor =
                 startChildActor(ConnectivityProxyActor.ACTOR_NAME, ConnectivityProxyActor.props(conciergeForwarder));
 
-        final DittoProtocolSub dittoProtocolSub =
-                DittoProtocolSub.of(getContext(), DistributedAcks.create(getContext()));
+        final DittoProtocolSub dittoProtocolSub = DittoProtocolSub.get(actorSystem);
         final Props connectionSupervisorProps =
                 getConnectionSupervisorProps(dittoProtocolSub, proxyActor, commandValidator, pubSubMediator);
 
