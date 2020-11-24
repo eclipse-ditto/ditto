@@ -24,7 +24,7 @@ import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import com.typesafe.config.Config;
 
 /**
- * Default implementation of {@link org.eclipse.ditto.services.connectivity.messaging.config.MonitoringLoggerConfig}.
+ * Default implementation of {@link MonitoringLoggerConfig}.
  */
 @Immutable
 public final class DefaultMonitoringLoggerConfig implements MonitoringLoggerConfig {
@@ -47,7 +47,7 @@ public final class DefaultMonitoringLoggerConfig implements MonitoringLoggerConf
     }
 
     /**
-     * Returns {@link org.eclipse.ditto.services.connectivity.messaging.config.MonitoringLoggerConfig}.
+     * Returns {@link org.eclipse.ditto.services.connectivity.config.MonitoringLoggerConfig}.
      *
      * @param config is supposed to provide the settings of the connection config at {@value #CONFIG_PATH}.
      * @return the instance.
