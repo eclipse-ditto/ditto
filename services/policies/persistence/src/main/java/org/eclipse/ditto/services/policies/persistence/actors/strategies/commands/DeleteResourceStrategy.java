@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
+import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.modify.DeleteResource;
@@ -40,8 +41,8 @@ import org.eclipse.ditto.signals.events.policies.ResourceDeleted;
  */
 final class DeleteResourceStrategy extends AbstractPolicyCommandStrategy<DeleteResource> {
 
-    DeleteResourceStrategy() {
-        super(DeleteResource.class);
+    DeleteResourceStrategy(final PolicyConfig policyConfig) {
+        super(DeleteResource.class, policyConfig);
     }
 
     @Override

@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.policies.persistence.actors.strategies.commands;
 
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
@@ -27,6 +28,8 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyTooLargeException;
+import org.eclipse.ditto.services.models.policies.PoliciesValidator;
+import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
@@ -40,8 +43,8 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
  */
 final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<ModifyPolicyEntries> {
 
-    ModifyPolicyEntriesStrategy() {
-        super(ModifyPolicyEntries.class);
+    ModifyPolicyEntriesStrategy(final PolicyConfig policyConfig) {
+        super(ModifyPolicyEntries.class, policyConfig);
     }
 
     @Override
@@ -67,13 +70,22 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
             return ResultFactory.newErrorResult(e, command);
         }
 
-        final PolicyId policyId = context.getState();
-        final PolicyEntriesModified policyEntriesModified = PolicyEntriesModified.of(policyId, policyEntries,
-                nextRevision, getEventTimestamp(), dittoHeaders);
-        final WithDittoHeaders response =
-                appendETagHeaderIfProvided(command, ModifyPolicyEntriesResponse.of(policyId, dittoHeaders), entity);
+        final Set<PolicyEntry> adjustedEntries = potentiallyAdjustPolicyEntries(policyEntries);
 
-        return ResultFactory.newMutationResult(command, policyEntriesModified, response);
+        final PoliciesValidator validator = PoliciesValidator.newInstance(adjustedEntries);
+
+        if (validator.isValid()) {
+            final PolicyId policyId = context.getState();
+            final PolicyEntriesModified policyEntriesModified = PolicyEntriesModified.of(policyId, adjustedEntries,
+                    nextRevision, getEventTimestamp(), dittoHeaders);
+            final WithDittoHeaders response =
+                    appendETagHeaderIfProvided(command, ModifyPolicyEntriesResponse.of(policyId, dittoHeaders), entity);
+
+            return ResultFactory.newMutationResult(command, policyEntriesModified, response);
+        } else {
+            return ResultFactory.newErrorResult(
+                    policyInvalid(context.getState(), validator.getReason().orElse(null), dittoHeaders), command);
+        }
     }
 
     @Override

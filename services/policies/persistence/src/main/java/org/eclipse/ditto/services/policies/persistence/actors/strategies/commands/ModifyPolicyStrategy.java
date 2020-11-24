@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.policies.persistence.actors.strategies.comman
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -22,10 +23,13 @@ import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
+import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyTooLargeException;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
+import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
@@ -40,8 +44,8 @@ import org.eclipse.ditto.signals.events.policies.PolicyModified;
  */
 final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPolicy> {
 
-    ModifyPolicyStrategy() {
-        super(ModifyPolicy.class);
+    ModifyPolicyStrategy(final PolicyConfig policyConfig) {
+        super(ModifyPolicy.class, policyConfig);
     }
 
     @Override
@@ -52,10 +56,13 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
             @Nullable final Metadata metadata) {
 
         final Instant eventTs = getEventTimestamp();
-        final Policy modifiedPolicy = command.getPolicy().toBuilder()
+        final Set<PolicyEntry> adjustedEntries = potentiallyAdjustPolicyEntries(command.getPolicy().getEntriesSet());
+        final Policy modifiedPolicy = PoliciesModelFactory.newPolicyBuilder(
+                command.getPolicy().getEntityId().orElseThrow(), adjustedEntries)
                 .setModified(eventTs)
                 .setRevision(nextRevision)
                 .build();
+
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final JsonObject modifiedPolicyJsonObject = modifiedPolicy.toJson();

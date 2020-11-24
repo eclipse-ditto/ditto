@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyTooLargeException;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
+import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
@@ -45,8 +46,8 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 @NotThreadSafe
 final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<ModifyPolicyEntry> {
 
-    ModifyPolicyEntryStrategy() {
-        super(ModifyPolicyEntry.class);
+    ModifyPolicyEntryStrategy(final PolicyConfig policyConfig) {
+        super(ModifyPolicyEntry.class, policyConfig);
     }
 
     @Override
@@ -84,7 +85,8 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
             return ResultFactory.newErrorResult(e, command);
         }
 
-        final PoliciesValidator validator = PoliciesValidator.newInstance(nonNullPolicy.setEntry(policyEntry));
+        final PolicyEntry adjustedPolicyEntry = potentiallyAdjustPolicyEntry(policyEntry);
+        final PoliciesValidator validator = PoliciesValidator.newInstance(nonNullPolicy.setEntry(adjustedPolicyEntry));
         final PolicyId policyId = context.getState();
 
         if (validator.isValid()) {
@@ -92,14 +94,15 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
             final ModifyPolicyEntryResponse createdOrModifiedResponse;
             if (nonNullPolicy.contains(label)) {
                 eventToPersist =
-                        PolicyEntryModified.of(policyId, policyEntry, nextRevision, getEventTimestamp(),
+                        PolicyEntryModified.of(policyId, adjustedPolicyEntry, nextRevision, getEventTimestamp(),
                                 dittoHeaders);
                 createdOrModifiedResponse = ModifyPolicyEntryResponse.modified(policyId, label, dittoHeaders);
             } else {
                 eventToPersist =
-                        PolicyEntryCreated.of(policyId, policyEntry, nextRevision, getEventTimestamp(),
+                        PolicyEntryCreated.of(policyId, adjustedPolicyEntry, nextRevision, getEventTimestamp(),
                                 dittoHeaders);
-                createdOrModifiedResponse = ModifyPolicyEntryResponse.created(policyId, policyEntry, dittoHeaders);
+                createdOrModifiedResponse = ModifyPolicyEntryResponse.created(policyId, adjustedPolicyEntry,
+                        dittoHeaders);
             }
             final WithDittoHeaders response =
                     appendETagHeaderIfProvided(command, createdOrModifiedResponse, nonNullPolicy);

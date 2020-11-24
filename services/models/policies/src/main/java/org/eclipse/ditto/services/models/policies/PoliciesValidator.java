@@ -24,6 +24,8 @@ import org.eclipse.ditto.model.base.common.Validator;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.Subjects;
 
 /**
@@ -36,6 +38,9 @@ public final class PoliciesValidator implements Validator {
 
     private static final String NO_AUTH_SUBJECT_PATTERN =
             "It must contain at least one Subject with permission(s) <{0}> on resource <{1}>!";
+
+    private static final String SUBJECT_EXPIRY_NOT_IN_PAST_PATTERN =
+            "The 'expiry' of a Policy Subject may not be in the past, but it was: <{0}>.";
 
     private final Iterable<PolicyEntry> policyEntries;
     private boolean validationResult;
@@ -51,7 +56,7 @@ public final class PoliciesValidator implements Validator {
      * Creates a new {@code PoliciesValidator} instance.
      *
      * @param policyEntries the policyEntries to be validated.
-     * @return a new {@code AclValidator} object.
+     * @return a new {@code PoliciesValidator} object.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static PoliciesValidator newInstance(final Iterable<PolicyEntry> policyEntries) {
@@ -62,14 +67,27 @@ public final class PoliciesValidator implements Validator {
 
     @Override
     public boolean isValid() {
-        final Set<Subjects> withPermissionGranted = StreamSupport.stream(policyEntries.spliterator(), false) //
-                .filter(this::hasPermissionGranted) //
-                .map(PolicyEntry::getSubjects) //
+        final Optional<SubjectExpiry> alreadyExpiredSubject = StreamSupport.stream(policyEntries.spliterator(), false)
+                .map(PolicyEntry::getSubjects)
+                .flatMap(Subjects::stream)
+                .map(Subject::getExpiry)
+                .flatMap(Optional::stream)
+                .filter(SubjectExpiry::isExpired)
+                .findFirst();
+        if (alreadyExpiredSubject.isPresent()) {
+            validationResult = false;
+            reason = MessageFormat.format(SUBJECT_EXPIRY_NOT_IN_PAST_PATTERN, alreadyExpiredSubject.get());
+            return false;
+        }
+
+        final Set<Subjects> withPermissionGranted = StreamSupport.stream(policyEntries.spliterator(), false)
+                .filter(this::hasPermissionGranted)
+                .map(PolicyEntry::getSubjects)
                 .collect(Collectors.toSet());
 
-        final Set<Subjects> withPermissionRevoked = StreamSupport.stream(policyEntries.spliterator(), false) //
-                .filter(this::hasPermissionRevoked) //
-                .map(PolicyEntry::getSubjects) //
+        final Set<Subjects> withPermissionRevoked = StreamSupport.stream(policyEntries.spliterator(), false)
+                .filter(this::hasPermissionRevoked)
+                .map(PolicyEntry::getSubjects)
                 .collect(Collectors.toSet());
 
         withPermissionGranted.removeAll(withPermissionRevoked);
@@ -85,7 +103,7 @@ public final class PoliciesValidator implements Validator {
     }
 
     private boolean hasPermissionGranted(final PolicyEntry policyEntry) {
-        return policyEntry.getResources().stream() //
+        return policyEntry.getResources().stream()
                 .anyMatch(resource -> {
                     final boolean isRootResource = ROOT_RESOURCE.equals(resource.getResourceKey());
                     final boolean containsGrantedPermissions = resource.getEffectedPermissions()
@@ -97,7 +115,7 @@ public final class PoliciesValidator implements Validator {
     }
 
     private boolean hasPermissionRevoked(final PolicyEntry policyEntry) {
-        return policyEntry.getResources().stream() //
+        return policyEntry.getResources().stream()
                 .anyMatch(resource -> {
                     final boolean isRootResource = ROOT_RESOURCE.equals(resource.getResourceKey());
                     final boolean containsRevokedPermissions = resource.getEffectedPermissions()

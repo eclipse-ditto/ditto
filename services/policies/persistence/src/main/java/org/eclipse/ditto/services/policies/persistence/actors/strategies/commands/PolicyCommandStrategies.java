@@ -12,8 +12,11 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.strategies.commands;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.commands.AbstractCommandStrategies;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
@@ -28,58 +31,67 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 public final class PolicyCommandStrategies
         extends AbstractCommandStrategies<Command, Policy, PolicyId, Result<PolicyEvent>> {
 
-    private static final PolicyCommandStrategies INSTANCE = new PolicyCommandStrategies();
-    private static final CreatePolicyStrategy CREATE_POLICY_STRATEGY = new CreatePolicyStrategy();
+    @Nullable private static PolicyCommandStrategies instance;
+    @Nullable private static CreatePolicyStrategy createPolicyStrategy;
 
-    private PolicyCommandStrategies() {
+    private PolicyCommandStrategies(final PolicyConfig policyConfig) {
         super(Command.class);
 
         // Policy level
-        addStrategy(new PolicyConflictStrategy());
-        addStrategy(new ModifyPolicyStrategy());
-        addStrategy(new RetrievePolicyStrategy());
-        addStrategy(new DeletePolicyStrategy());
+        addStrategy(new PolicyConflictStrategy(policyConfig));
+        addStrategy(new ModifyPolicyStrategy(policyConfig));
+        addStrategy(new RetrievePolicyStrategy(policyConfig));
+        addStrategy(new DeletePolicyStrategy(policyConfig));
 
         // Policy Entries
-        addStrategy(new ModifyPolicyEntriesStrategy());
-        addStrategy(new RetrievePolicyEntriesStrategy());
+        addStrategy(new ModifyPolicyEntriesStrategy(policyConfig));
+        addStrategy(new RetrievePolicyEntriesStrategy(policyConfig));
 
         // Policy Entry
-        addStrategy(new ModifyPolicyEntryStrategy());
-        addStrategy(new RetrievePolicyEntryStrategy());
-        addStrategy(new DeletePolicyEntryStrategy());
+        addStrategy(new ModifyPolicyEntryStrategy(policyConfig));
+        addStrategy(new RetrievePolicyEntryStrategy(policyConfig));
+        addStrategy(new DeletePolicyEntryStrategy(policyConfig));
 
         // Subjects
-        addStrategy(new ModifySubjectsStrategy());
-        addStrategy(new ModifySubjectStrategy());
-        addStrategy(new RetrieveSubjectsStrategy());
-        addStrategy(new RetrieveSubjectStrategy());
-        addStrategy(new DeleteSubjectStrategy());
+        addStrategy(new ModifySubjectsStrategy(policyConfig));
+        addStrategy(new ModifySubjectStrategy(policyConfig));
+        addStrategy(new RetrieveSubjectsStrategy(policyConfig));
+        addStrategy(new RetrieveSubjectStrategy(policyConfig));
+        addStrategy(new DeleteSubjectStrategy(policyConfig));
 
         // Resources
-        addStrategy(new ModifyResourcesStrategy());
-        addStrategy(new ModifyResourceStrategy());
-        addStrategy(new RetrieveResourcesStrategy());
-        addStrategy(new RetrieveResourceStrategy());
-        addStrategy(new DeleteResourceStrategy());
+        addStrategy(new ModifyResourcesStrategy(policyConfig));
+        addStrategy(new ModifyResourceStrategy(policyConfig));
+        addStrategy(new RetrieveResourcesStrategy(policyConfig));
+        addStrategy(new RetrieveResourceStrategy(policyConfig));
+        addStrategy(new DeleteResourceStrategy(policyConfig));
 
         // Sudo
-        addStrategy(new SudoRetrievePolicyStrategy());
-        addStrategy(new SudoRetrievePolicyRevisionStrategy());
+        addStrategy(new SudoRetrievePolicyStrategy(policyConfig));
+        addStrategy(new SudoRetrievePolicyRevisionStrategy(policyConfig));
     }
 
     /**
+     * @param policyConfig the PolicyConfig of the Policy service to apply.
      * @return command strategies for policy persistence actor.
      */
-    public static PolicyCommandStrategies getInstance() {
-        return INSTANCE;
+    public static PolicyCommandStrategies getInstance(final PolicyConfig policyConfig) {
+        if (null == instance) {
+            instance = new PolicyCommandStrategies(policyConfig);
+        }
+        return instance;
     }
 
     /**
+     * @param policyConfig the PolicyConfig of the Policy service to apply.
      * @return command strategy to create a policy.
      */
-    public static CommandStrategy<CreatePolicy, Policy, PolicyId, Result<PolicyEvent>> getCreatePolicyStrategy() {
-        return CREATE_POLICY_STRATEGY;
+    public static CommandStrategy<CreatePolicy, Policy, PolicyId, Result<PolicyEvent>> getCreatePolicyStrategy(
+            final PolicyConfig policyConfig) {
+        if (null == createPolicyStrategy) {
+            createPolicyStrategy = new CreatePolicyStrategy(policyConfig);
+        }
+        return createPolicyStrategy;
     }
 
     @Override

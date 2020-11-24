@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
+import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifySubject;
@@ -40,8 +41,8 @@ import org.eclipse.ditto.signals.events.policies.SubjectModified;
  */
 final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySubject> {
 
-    ModifySubjectStrategy() {
-        super(ModifySubject.class);
+    ModifySubjectStrategy(final PolicyConfig policyConfig) {
+        super(ModifySubject.class, policyConfig);
     }
 
     @Override
@@ -60,20 +61,21 @@ final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySu
         final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(label);
         if (optionalEntry.isPresent()) {
             final PolicyEntry policyEntry = optionalEntry.get();
+            final Subject adjustedSubject = potentiallyAdjustSubject(subject);
             final PoliciesValidator validator =
-                    PoliciesValidator.newInstance(nonNullPolicy.setSubjectFor(label, subject));
+                    PoliciesValidator.newInstance(nonNullPolicy.setSubjectFor(label, adjustedSubject));
 
             if (validator.isValid()) {
                 final PolicyEvent event;
                 final ModifySubjectResponse rawResponse;
 
-                if (policyEntry.getSubjects().getSubject(subject.getId()).isPresent()) {
-                    rawResponse = ModifySubjectResponse.modified(policyId, label, subject.getId(), dittoHeaders);
-                    event = SubjectModified.of(policyId, label, subject, nextRevision, getEventTimestamp(),
+                if (policyEntry.getSubjects().getSubject(adjustedSubject.getId()).isPresent()) {
+                    rawResponse = ModifySubjectResponse.modified(policyId, label, adjustedSubject.getId(), dittoHeaders);
+                    event = SubjectModified.of(policyId, label, adjustedSubject, nextRevision, getEventTimestamp(),
                             command.getDittoHeaders());
                 } else {
-                    rawResponse = ModifySubjectResponse.created(policyId, label, subject, dittoHeaders);
-                    event = SubjectCreated.of(policyId, label, subject, nextRevision, getEventTimestamp(),
+                    rawResponse = ModifySubjectResponse.created(policyId, label, adjustedSubject, dittoHeaders);
+                    event = SubjectCreated.of(policyId, label, adjustedSubject, nextRevision, getEventTimestamp(),
                             command.getDittoHeaders());
                 }
                 return ResultFactory.newMutationResult(command, event,

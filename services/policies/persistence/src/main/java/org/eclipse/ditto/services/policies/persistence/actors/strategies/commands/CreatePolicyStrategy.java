@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.policies.persistence.actors.strategies.comman
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -24,9 +25,11 @@ import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyBuilder;
+import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyLifecycle;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
+import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
@@ -40,8 +43,8 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
  */
 final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePolicy> {
 
-    CreatePolicyStrategy() {
-        super(CreatePolicy.class);
+    CreatePolicyStrategy(final PolicyConfig policyConfig) {
+        super(CreatePolicy.class, policyConfig);
     }
 
     @Override
@@ -54,7 +57,9 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
         // Policy not yet created - do so ..
         final Policy newPolicy = command.getPolicy();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final PolicyBuilder newPolicyBuilder = PoliciesModelFactory.newPolicyBuilder(newPolicy);
+        final Set<PolicyEntry> adjustedEntries = potentiallyAdjustPolicyEntries(command.getPolicy().getEntriesSet());
+        final PolicyBuilder newPolicyBuilder = PoliciesModelFactory.newPolicyBuilder(
+                newPolicy.getEntityId().orElseThrow(), adjustedEntries);
 
         if (newPolicy.getLifecycle().isEmpty()) {
             newPolicyBuilder.setLifecycle(PolicyLifecycle.ACTIVE);

@@ -20,6 +20,7 @@ import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
@@ -32,8 +33,8 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
  */
 final class PolicyConflictStrategy extends AbstractPolicyCommandStrategy<CreatePolicy> {
 
-    PolicyConflictStrategy() {
-        super(CreatePolicy.class);
+    PolicyConflictStrategy(final PolicyConfig policyConfig) {
+        super(CreatePolicy.class, policyConfig);
     }
 
     @Override
