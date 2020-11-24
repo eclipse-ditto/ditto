@@ -10,15 +10,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.utils.akka;
+package org.eclipse.ditto.services.utils.akka.actors;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
 
 import javax.annotation.Nullable;
-
-import org.eclipse.ditto.services.utils.akka.actors.AbstractActorWithStashWithTimers;
 
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
