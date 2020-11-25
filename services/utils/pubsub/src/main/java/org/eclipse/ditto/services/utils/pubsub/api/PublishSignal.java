@@ -67,7 +67,7 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
      * Create a PublishSignal command from a signal and the groups it is published to.
      *
      * @param signal the signal to publish.
-     * @param groups the groups where the signal is published to.
+     * @param groups relation between the groups where the signal is published to and the size of each group.
      * @return the command to do it.
      */
     public static PublishSignal of(final Signal<?> signal, final Map<String, Integer> groups) {
@@ -107,7 +107,11 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
     }
 
     /**
-     * @return the groups in which the signal is to be published.
+     * Return the groups to which a signal is published, and the size of each group on the cluster level.
+     * The cluster-level subscriber of each instance requires the group size in order to distribute signals
+     * evenly among local subscribers.
+     *
+     * @return relation between the groups in which the signal is to be published and the size of each group.
      */
     public Map<String, Integer> getGroups() {
         return groups;
