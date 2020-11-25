@@ -25,6 +25,7 @@ import org.eclipse.ditto.services.utils.pubsub.PubSubFactory;
 
 import akka.actor.ActorPath;
 import akka.actor.ActorRef;
+import akka.actor.ActorRefFactory;
 
 /**
  * Collection of all client actor refs of a connection actor.
@@ -53,7 +54,12 @@ public final class ClientActorRefs {
      */
     public void add(final ActorRef newClientActor) {
         refsByPath.put(newClientActor.path(), newClientActor);
-        sortedRefs = refsByPath.values().stream().sorted(ActorRef::compareTo).collect(Collectors.toList());
+        sortedRefs = sort(refsByPath);
+    }
+
+    public void remove(final ActorRef deadClientActor) {
+        refsByPath.remove(deadClientActor.path());
+        sortedRefs = sort(refsByPath);
     }
 
     /**
@@ -92,5 +98,9 @@ public final class ClientActorRefs {
         } else {
             return Optional.of(sortedRefs.get(PubSubFactory.hashForPubSub(entityId) % sortedRefs.size()));
         }
+    }
+
+    private static List<ActorRef> sort(final Map<ActorPath, ActorRef> refsByPath) {
+        return refsByPath.values().stream().sorted(ActorRef::compareTo).collect(Collectors.toList());
     }
 }

@@ -109,6 +109,7 @@ import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.Status;
 import akka.actor.SupervisorStrategy;
+import akka.actor.Terminated;
 import akka.cluster.pubsub.DistributedPubSub;
 import akka.japi.Pair;
 import akka.japi.pf.DeciderBuilder;
@@ -154,6 +155,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ReconnectTimeoutStrategy reconnectTimeoutStrategy;
     private final SupervisorStrategy supervisorStrategy;
     private final ClientActorRefs clientActorRefs;
+    private final Duration clientActorRefsNotificationDelay;
 
     // counter for all child actors ever started to disambiguate between them
     private int childActorCount = 0;
@@ -203,9 +205,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         subscriptionManager = startSubscriptionManager(this.proxyActor);
         supervisorStrategy = createSupervisorStrategy(getSelf());
         clientActorRefs = ClientActorRefs.empty();
+        clientActorRefsNotificationDelay = randomize(clientConfig.getClientActorRefsNotificationDelay());
 
         // Send init message to allow for unsafe initialization of subclasses.
-        getSelf().tell(Init.INSTANCE, getSelf());
+        getSelf().tell(Control.INIT, getSelf());
     }
 
     @Override
@@ -239,7 +242,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         onTransition(this::onTransition);
 
         whenUnhandled(inAnyState()
-                .event(ActorRef.class, this::onOtherClientActorStartup)
                 .anyEvent(this::onUnknownEvent));
 
         initialize();
@@ -247,6 +249,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         // inform connection actor of my presence if there are other client actors
         if (connection.getClientCount() > 1) {
             connectionActor.tell(getSelf(), getSelf());
+            startTimerWithFixedDelay(Control.REFRESH_CLIENT_ACTOR_REFS.name(), Control.REFRESH_CLIENT_ACTOR_REFS,
+                    clientActorRefsNotificationDelay);
         }
         clientActorRefs.add(getSelf());
     }
@@ -368,7 +372,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .event(InboundSignal.class, this::handleInboundSignal)
                 .event(PublishMappedMessage.class, this::publishMappedMessage)
                 .event(ConnectivityCommand.class, this::onUnknownEvent) // relevant connectivity commands were handled
-                .event(Signal.class, this::handleSignal);
+                .event(Signal.class, this::handleSignal)
+                .event(ActorRef.class, this::onOtherClientActorStartup)
+                .event(Terminated.class, this::otherClientActorTerminated)
+                .eventEquals(Control.REFRESH_CLIENT_ACTOR_REFS, this::refreshClientActorRefs);
     }
 
     /**
@@ -397,6 +404,19 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private FSM.State<BaseClientState, BaseClientData> onOtherClientActorStartup(final ActorRef otherClientActor,
             final BaseClientData data) {
         clientActorRefs.add(otherClientActor);
+        getContext().watch(otherClientActor);
+        return stay();
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> otherClientActorTerminated(final Terminated terminated,
+            final BaseClientData data) {
+        clientActorRefs.remove(terminated.getActor());
+        return stay();
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> refreshClientActorRefs(final Control refreshClientActorRefs,
+            final BaseClientData data) {
+        connectionActor.tell(getSelf(), getSelf());
         return stay();
     }
 
@@ -513,7 +533,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private FSMStateFunctionBuilder<BaseClientState, BaseClientData> inUnknownState() {
-        return matchEventEquals(Init.INSTANCE, (init, baseClientData) -> init())
+        return matchEventEquals(Control.INIT, (init, baseClientData) -> init())
                 .anyEvent((o, baseClientData) -> {
                     stash();
                     return stay();
@@ -1404,6 +1424,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         );
     }
 
+    private static Duration randomize(final Duration base) {
+        return base.plus(Duration.ofMillis((long) (base.toMillis() * Math.random())));
+    }
+
     /**
      * Reconnect timeout strategy that provides increasing timeouts for reconnecting the client.
      * On timeout, increase the next timeout so that backoff happens when connecting to a drop-all firewall.
@@ -1609,8 +1633,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     }
 
-    protected enum Init {
-        INSTANCE
+    private enum Control {
+        INIT,
+        REFRESH_CLIENT_ACTOR_REFS
     }
 
 }

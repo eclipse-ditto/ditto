@@ -79,6 +79,9 @@ public final class DefaultClientConfigTest {
         softly.assertThat(underTest.getMaxBackoff())
                 .as(ClientConfig.ClientConfigValue.MAX_BACKOFF.getConfigPath())
                 .isEqualTo(ClientConfig.ClientConfigValue.MAX_BACKOFF.getDefaultValue());
+        softly.assertThat(underTest.getClientActorRefsNotificationDelay())
+                .as(ClientConfig.ClientConfigValue.CLIENT_ACTOR_REFS_NOTIFICATION_DELAY.getConfigPath())
+                .isEqualTo(ClientConfig.ClientConfigValue.CLIENT_ACTOR_REFS_NOTIFICATION_DELAY.getDefaultValue());
     }
 
     @Test
@@ -103,6 +106,9 @@ public final class DefaultClientConfigTest {
         softly.assertThat(underTest.getMaxBackoff())
                 .as(ClientConfig.ClientConfigValue.MAX_BACKOFF.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(7L));
+        softly.assertThat(underTest.getClientActorRefsNotificationDelay())
+                .as(ClientConfig.ClientConfigValue.CLIENT_ACTOR_REFS_NOTIFICATION_DELAY.getConfigPath())
+                .isEqualTo(Duration.ofMinutes(8L));
     }
 
 }

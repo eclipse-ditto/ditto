@@ -117,6 +117,7 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.actor.Terminated;
 import akka.cluster.routing.ClusterRouterPool;
 import akka.cluster.routing.ClusterRouterPoolSettings;
 import akka.japi.pf.ReceiveBuilder;
@@ -489,6 +490,7 @@ public final class ConnectionPersistenceActor
 
                 // maintain client actor refs
                 .match(ActorRef.class, this::addClientActor)
+                .match(Terminated.class, this::removeClientActor)
 
                 .matchAny(message -> log.warning("Unknown message: {}", message))
                 .build();
@@ -927,12 +929,17 @@ public final class ConnectionPersistenceActor
     }
 
     private void addClientActor(final ActorRef newClientActor) {
+        getContext().watch(newClientActor);
         clientActorRefs.add(newClientActor);
         final List<ActorRef> otherClientActors = clientActorRefs.getOtherActors(newClientActor);
         otherClientActors.forEach(otherClientActor -> {
             otherClientActor.tell(newClientActor, ActorRef.noSender());
             newClientActor.tell(otherClientActor, ActorRef.noSender());
         });
+    }
+
+    private void removeClientActor(final Terminated terminated) {
+        clientActorRefs.remove(terminated.getActor());
     }
 
     private void stopChildActor(final ActorRef actor) {
