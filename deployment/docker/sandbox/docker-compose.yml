@@ -12,7 +12,7 @@ version: '2.4'
 
 services:
   mongodb:
-    image: docker.io/mongo:3.6
+    image: docker.io/mongo:4.2
     networks:
       default:
         aliases:
