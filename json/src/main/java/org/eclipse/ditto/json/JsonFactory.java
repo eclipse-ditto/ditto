@@ -290,6 +290,7 @@ public final class JsonFactory {
      * @param jsonObject1 the json object to merge, overrides conflicting fields.
      * @param jsonObject2 the json object to merge.
      * @return returns a new object merged the given {code jsonObject1} and {code jsonObject2}.
+     * @since 1.5.0
      */
     public static JsonObject newObject(final JsonObject jsonObject1, final JsonObject jsonObject2) {
         return JsonObjectMerger.mergeJsonObjects(jsonObject1, jsonObject2);
