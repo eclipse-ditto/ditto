@@ -44,7 +44,9 @@ final class MongoContainerFactory {
     private final DockerClient dockerClient;
 
     private MongoContainerFactory() {
-        final DefaultDockerClientConfig config = DefaultDockerClientConfig.createDefaultConfigBuilder().build();
+        final String dockerHost = OsDetector.isWindows() ? "tcp://localhost:2375": "unix:///var/run/docker.sock";
+        final DefaultDockerClientConfig config =
+                DefaultDockerClientConfig.createDefaultConfigBuilder().withDockerHost(dockerHost).build();
         final ZerodepDockerHttpClient httpClient = new ZerodepDockerHttpClient.Builder()
                 .dockerHost(config.getDockerHost())
                 .sslConfig(config.getSSLConfig())
