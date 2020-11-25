@@ -65,18 +65,21 @@ final class DockerContainer {
     int getPort(final int privatePort) {
         final Container container = getContainer();
         return Arrays.stream(container.getPorts())
-                .filter(containerPort -> {
-                    final Integer containerPrivatePort = containerPort.getPrivatePort();
-                    return containerPrivatePort != null && containerPrivatePort == privatePort &&
-                            containerPort.getPublicPort() != null;
-                })
+                .filter(containerPort -> isPrivatePortBoundToPublicPort(privatePort, containerPort))
                 .findAny()
                 .map(ContainerPort::getPublicPort)
                 .orElseThrow(() -> {
                     final String message =
-                            String.format("No internal port <%d> exposed in this docker container", privatePort);
+                            String.format("No private port <%d> exposed in this docker container.", privatePort);
                     return new IllegalArgumentException(message);
                 });
+    }
+
+    private static boolean isPrivatePortBoundToPublicPort(final int privatePort, final ContainerPort containerPort) {
+        final Integer containerPrivatePort = containerPort.getPrivatePort();
+        return containerPrivatePort != null &&
+                containerPrivatePort == privatePort &&
+                containerPort.getPublicPort() != null;
     }
 
     String getHostname() {

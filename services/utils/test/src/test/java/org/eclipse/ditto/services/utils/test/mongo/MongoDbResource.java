@@ -26,6 +26,7 @@ public final class MongoDbResource extends ExternalResource {
     private static final int MONGO_INTERNAL_PORT = 27017;
     private static final String MONGO_CONTAINER_NOT_STARTED = "Mongo container hast not been started, yet";
     private static final String MONGO_CONTAINER_ALREADY_STARTED = "Mongo container has already been started.";
+
     @Nullable private DockerContainer mongoContainer;
 
     @Override
@@ -55,7 +56,6 @@ public final class MongoDbResource extends ExternalResource {
             throw new IllegalStateException(MONGO_CONTAINER_NOT_STARTED);
         }
         return mongoContainer.getPort(MONGO_INTERNAL_PORT);
-
     }
 
     /**
@@ -66,7 +66,6 @@ public final class MongoDbResource extends ExternalResource {
             throw new IllegalStateException(MONGO_CONTAINER_NOT_STARTED);
         }
         return mongoContainer.getHostname();
-
     }
 
 }
