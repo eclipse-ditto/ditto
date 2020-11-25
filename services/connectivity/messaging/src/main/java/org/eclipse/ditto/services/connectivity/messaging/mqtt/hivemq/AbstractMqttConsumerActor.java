@@ -244,7 +244,8 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
             inboundAcknowledgedMonitor.success(externalMessage, "Sending success acknowledgement");
         } catch (final IllegalStateException e) {
             // this message was acknowledged by another consumer actor due to overlapping topic
-            inboundAcknowledgedMonitor.exception(externalMessage, "Acknowledgement of incoming message at topic <{0}> failed " +
+            inboundAcknowledgedMonitor.exception(externalMessage,
+                    "Acknowledgement of incoming message at topic <{0}> failed " +
                             "because it was acknowledged already by another source.",
                     getTopic(message));
         }

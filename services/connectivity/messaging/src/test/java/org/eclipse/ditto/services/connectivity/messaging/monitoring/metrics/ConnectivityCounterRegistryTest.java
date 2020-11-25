@@ -49,8 +49,7 @@ import org.junit.Test;
  */
 public class ConnectivityCounterRegistryTest {
 
-    private static final ConnectivityCounterRegistry COUNTER_REGISTRY =
-            ConnectivityCounterRegistry.fromConfig(TestConstants.MONITORING_CONFIG.counter());
+    private static final ConnectivityCounterRegistry COUNTER_REGISTRY = ConnectivityCounterRegistry.newInstance();
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
     private static final String SOURCE = "source1";
     private static final String TARGET = "target1";

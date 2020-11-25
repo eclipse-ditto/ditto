@@ -23,10 +23,10 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.config.KafkaConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientData;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.KafkaConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientConnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconnected;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
@@ -213,5 +213,4 @@ public final class KafkaClientActor extends BaseClientActor {
             getSelf().tell(new Status.Failure(exception), getSelf());
         }
     }
-
 }

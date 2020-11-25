@@ -20,7 +20,6 @@ import org.slf4j.Logger;
  * This interface defines the means to put and remove entries to or from the MDC of a logger.
  *
  * @param <L> the type of the logger that implements this interface.
- *
  * @since 1.4.0
  */
 public interface WithMdcEntry<L extends Logger> {
@@ -83,7 +82,7 @@ public interface WithMdcEntry<L extends Logger> {
      * @return this or a new logger instance for method chaining.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    L withMdcEntry(MdcEntry mdcEntry, MdcEntry ... furtherMdcEntries);
+    L withMdcEntry(MdcEntry mdcEntry, MdcEntry... furtherMdcEntries);
 
     /**
      * Removes the diagnostic context value identified by the specified key.

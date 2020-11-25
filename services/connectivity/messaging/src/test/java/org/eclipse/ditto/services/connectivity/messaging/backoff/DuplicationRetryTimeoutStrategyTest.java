@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 
+import org.eclipse.ditto.services.connectivity.config.TimeoutConfig;
 import org.junit.Test;
 
 

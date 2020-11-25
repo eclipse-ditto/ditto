@@ -75,7 +75,8 @@ public interface MappingOutcome<T> {
      * @param <T> type of any mapped message.
      * @return the outcome.
      */
-    static <T> MappingOutcome<T> error(final CharSequence mapperId, final Exception error, @Nullable final TopicPath topicPath,
+    static <T> MappingOutcome<T> error(final CharSequence mapperId, final Exception error,
+            @Nullable final TopicPath topicPath,
             @Nullable final ExternalMessage externalMessage) {
         return new ErrorOutcome<>(mapperId, error, topicPath, externalMessage);
     }
@@ -108,7 +109,8 @@ public interface MappingOutcome<T> {
          * @param externalMessage the external message for incoming mapping, or null for outgoing mapping.
          * @return the evaluation result.
          */
-        R apply(String mapperId, Exception error, @Nullable TopicPath topicPath, @Nullable ExternalMessage externalMessage);
+        R apply(String mapperId, Exception error, @Nullable TopicPath topicPath,
+                @Nullable ExternalMessage externalMessage);
     }
 
     /**
@@ -156,7 +158,8 @@ public interface MappingOutcome<T> {
          * @param externalMessage the external message for incoming mapping, or null for outgoing mapping.
          * @return the result.
          */
-        R onError(String mapperId, Exception error, @Nullable TopicPath topicPath, @Nullable ExternalMessage externalMessage);
+        R onError(String mapperId, Exception error, @Nullable TopicPath topicPath,
+                @Nullable ExternalMessage externalMessage);
     }
 
     /**

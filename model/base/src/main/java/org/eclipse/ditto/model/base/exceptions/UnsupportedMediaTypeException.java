@@ -98,7 +98,7 @@
      }
 
      @Override
-    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+     public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
          return new Builder()
                  .message(getMessage())
                  .description(getDescription().orElse(null))

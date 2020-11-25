@@ -82,5 +82,9 @@
       "description": "The `extra` object contains the `extraFields` which have optionally been selected to additionally be included."
     }
   },
-  "required": [ "topic", "headers", "path" ]
+  "required": [
+    "topic",
+    "headers",
+    "path"
+  ]
 }

@@ -36,6 +36,7 @@ import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
+import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 
 import akka.actor.ActorSystem;
 import akka.actor.DynamicAccess;
@@ -127,7 +128,7 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
         final MessageMapperConfiguration options =
                 DefaultMessageMapperConfiguration.of(mapperId, configuredAndDefaultOptions,
                         configuredIncomingConditions, configuredOutgoingConditions);
-        return mapper.flatMap(m -> configureInstance(m, options));
+        return mapper.map(WrappingMessageMapper::wrap).flatMap(m -> configureInstance(m, options));
     }
 
     private MergedJsonObjectMap mergeMappingOptions(final JsonObject defaultOptions,
@@ -140,7 +141,6 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
             final PayloadMappingDefinition payloadMappingDefinition) {
 
         final MessageMapper defaultMapper = mapperOf("default", defaultContext)
-                .map(WrappingMessageMapper::wrap)
                 .orElseThrow(() -> new IllegalArgumentException("No default mapper found: " + defaultContext));
 
         final Map<String, MessageMapper> mappersFromConnectionConfig =
@@ -166,11 +166,11 @@ public final class DefaultMessageMapperFactory implements MessageMapperFactory {
                 .map(e -> {
                     final String alias = e.getKey();
                     final MessageMapper messageMapper =
-                            mapperOf(alias, e.getValue()).map(WrappingMessageMapper::wrap).orElse(null);
+                            mapperOf(alias, e.getValue()).orElse(null);
                     return new SimpleImmutableEntry<>(alias, messageMapper);
                 })
                 .filter(e -> null != e.getValue())
-                .collect(Collectors.toMap(SimpleImmutableEntry::getKey, SimpleImmutableEntry::getValue));
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     private static Map<String, Class<?>> tryToLoadPayloadMappers() {

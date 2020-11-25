@@ -20,7 +20,9 @@ import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.services.base.config.ThrottlingConfig;
-import org.eclipse.ditto.services.connectivity.messaging.backoff.BackOffConfig;
+import org.eclipse.ditto.services.connectivity.config.Amqp10Config;
+import org.eclipse.ditto.services.connectivity.config.BackOffConfig;
+import org.eclipse.ditto.services.connectivity.config.DefaultAmqp10Config;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;

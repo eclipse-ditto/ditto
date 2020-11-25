@@ -28,14 +28,14 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
+import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProvider;
+import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProviderFactory;
+import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.DefaultMessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.DittoMessageMapper;
-import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperFactory;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.Resolvers;
-import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorSystem;
 
@@ -145,9 +145,10 @@ public abstract class AbstractProtocolValidator {
      */
     protected void validatePayloadMappings(final Connection connection, final ActorSystem actorSystem,
             final DittoHeaders dittoHeaders) {
-        final MappingConfig mappingConfig = DittoConnectivityConfig.of(
-                DefaultScopedConfig.dittoScoped(actorSystem.settings().config())
-        ).getMappingConfig();
+        final ConnectivityConfigProvider connectivityConfigProvider =
+                ConnectivityConfigProviderFactory.getInstance(actorSystem);
+        final MappingConfig mappingConfig =
+                connectivityConfigProvider.getConnectivityConfig(connection.getId()).getMappingConfig();
         final MessageMapperFactory messageMapperFactory =
                 DefaultMessageMapperFactory.of(connection.getId(), actorSystem, mappingConfig, actorSystem.log());
 

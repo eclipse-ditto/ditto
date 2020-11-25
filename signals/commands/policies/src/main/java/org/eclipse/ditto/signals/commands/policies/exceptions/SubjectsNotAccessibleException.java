@@ -95,7 +95,9 @@ public class SubjectsNotAccessibleException extends DittoRuntimeException implem
     public static SubjectsNotAccessibleException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
-    }    @Override
+    }
+
+    @Override
     public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
         return new Builder()
                 .message(getMessage())

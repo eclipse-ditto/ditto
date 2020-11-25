@@ -18,6 +18,8 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument
 import java.time.Duration;
 import java.util.function.Predicate;
 
+import org.eclipse.ditto.services.connectivity.config.TimeoutConfig;
+
 /**
  * Implements {@code timeout = minTimeout * 2^x} until max timeout is reached.
  */

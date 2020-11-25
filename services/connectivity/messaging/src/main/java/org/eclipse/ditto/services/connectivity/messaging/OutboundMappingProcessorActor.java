@@ -61,11 +61,11 @@ import org.eclipse.ditto.model.query.things.ThingPredicateVisitor;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.base.config.limits.DefaultLimitsConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
+import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.config.MonitoringConfig;
+import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.ConnectivitySignalEnrichmentProvider;
-import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BaseClientActor.PublishMappedMessage;
-import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.mappingoutcome.MappingOutcome;
@@ -99,6 +99,7 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
+import akka.japi.pf.ReceiveBuilder;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -124,7 +125,6 @@ public final class OutboundMappingProcessorActor
     private final ThreadSafeDittoLoggingAdapter logger;
 
     private final ActorRef clientActor;
-    private final OutboundMappingProcessor outboundMappingProcessor;
     private final ConnectionId connectionId;
     private final MappingConfig mappingConfig;
     private final DefaultConnectionMonitorRegistry connectionMonitorRegistry;
@@ -134,6 +134,9 @@ public final class OutboundMappingProcessorActor
     private final SignalEnrichmentFacade signalEnrichmentFacade;
     private final int processorPoolSize;
     private final DittoRuntimeExceptionToErrorResponseFunction toErrorResponseFunction;
+
+    // not final because it may change when the underlying config changed
+    private OutboundMappingProcessor outboundMappingProcessor;
 
     @SuppressWarnings("unused")
     private OutboundMappingProcessorActor(final ActorRef clientActor,
@@ -258,6 +261,15 @@ public final class OutboundMappingProcessorActor
         return mappingConfig.getBufferSize();
     }
 
+    @Override
+    protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
+        receiveBuilder
+                .match(BaseClientActor.ReplaceOutboundMappingProcessor.class, replaceProcessor -> {
+                    logger.info("Replacing the OutboundMappingProcessor with a modified one.");
+                    this.outboundMappingProcessor = replaceProcessor.getOutboundMappingProcessor();
+                });
+    }
+
     private Object handleNotExpectedAcknowledgement(final Acknowledgement acknowledgement) {
         // acknowledgements are not published to targets or reply-targets. this one is mis-routed.
         logger.withCorrelationId(acknowledgement)
@@ -302,7 +314,7 @@ public final class OutboundMappingProcessorActor
      * Create a flow that splits 1 outbound signal into many as follows.
      * <ol>
      * <li>
-     *   Targets with matching filtered topics without extra fields are grouped into 1 outbound signal, followed by
+     * Targets with matching filtered topics without extra fields are grouped into 1 outbound signal, followed by
      * </li>
      * <li>one outbound signal for each target with a matching filtered topic with extra fields.</li>
      * </ol>

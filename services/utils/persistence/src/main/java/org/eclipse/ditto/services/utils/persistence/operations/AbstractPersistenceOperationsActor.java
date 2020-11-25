@@ -80,7 +80,7 @@ public abstract class AbstractPersistenceOperationsActor extends AbstractActor {
         }
         this.namespaceOps = namespaceOps;
         this.entitiesOps = entitiesOps;
-        this.toCloseWhenStopped = Collections.unmodifiableCollection(toCloseWhenStopped);
+        this.toCloseWhenStopped = List.copyOf(toCloseWhenStopped);
         materializer = Materializer.createMaterializer(this::getContext);
         delayAfterPersistenceActorShutdown = persistenceOperationsConfig.getDelayAfterPersistenceActorShutdown();
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
