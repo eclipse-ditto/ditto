@@ -45,7 +45,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.apache.commons.compress.utils.Sets;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -142,7 +141,7 @@ import scala.concurrent.duration.FiniteDuration;
  */
 public final class ConnectionPersistenceActorTest extends WithMockServers {
 
-    private static final Set<String> SUBJECTS = Sets.newHashSet(TestConstants.Authorization.SUBJECT_ID,
+    private static final Set<String> SUBJECTS = Set.of(TestConstants.Authorization.SUBJECT_ID,
             TestConstants.Authorization.UNAUTHORIZED_SUBJECT_ID);
     private static final Set<StreamingType> TWIN_AND_LIVE_EVENTS =
             EnumSet.of(StreamingType.EVENTS, StreamingType.LIVE_EVENTS);

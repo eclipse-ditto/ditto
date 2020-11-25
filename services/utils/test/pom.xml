@@ -31,10 +31,14 @@
             <artifactId>ditto-model-base</artifactId>
             <scope>test</scope>
         </dependency>
-
         <dependency>
-            <groupId>de.flapdoodle.embed</groupId>
-            <artifactId>de.flapdoodle.embed.mongo</artifactId>
+            <groupId>com.github.docker-java</groupId>
+            <artifactId>docker-java-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.docker-java</groupId>
+            <artifactId>docker-java-transport-zerodep</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
