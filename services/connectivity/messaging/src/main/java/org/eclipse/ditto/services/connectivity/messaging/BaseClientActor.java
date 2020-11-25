@@ -75,6 +75,7 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.Connect
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectivityCounterRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceActor;
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
@@ -109,6 +110,7 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
+import org.eclipse.ditto.signals.commands.thingsearch.WithSubscriptionId;
 
 import akka.Done;
 import akka.actor.AbstractFSMWithStash;
@@ -168,6 +170,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ClientActorRefs clientActorRefs;
     private final Duration clientActorRefsNotificationDelay;
     private final DittoProtocolSub dittoProtocolSub;
+    private final int subscriptioniIdPrefixLength;
 
     // counter for all child actors ever started to disambiguate between them
     private int childActorCount = 0;
@@ -219,6 +222,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         clientActorRefs = ClientActorRefs.empty();
         clientActorRefsNotificationDelay = randomize(clientConfig.getClientActorRefsNotificationDelay());
         dittoProtocolSub = DittoProtocolSub.get(getContext().getSystem());
+        subscriptioniIdPrefixLength =
+                ConnectionPersistenceActor.getSubscriptionPrefixLength(connection.getClientCount());
 
         // Send init message to allow for unsafe initialization of subclasses.
         getSelf().tell(Control.INIT, getSelf());
@@ -1209,13 +1214,37 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final BaseClientData data) {
         // dispatch signal to other client actors according to entity ID
         final Signal<?> signal = inboundSignal.getSignal();
-        final ActorRef recipient = clientActorRefs.lookup(signal.getEntityId()).orElseThrow();
-        if (getSelf().equals(recipient)) {
-            outboundDispatchingActor.tell(inboundSignal, getSender());
+        if (signal instanceof WithSubscriptionId<?>) {
+            dispatchSearchCommand((WithSubscriptionId<?>) signal);
         } else {
-            recipient.tell(inboundSignal, getSender());
+            final ActorRef recipient = clientActorRefs.lookup(signal.getEntityId()).orElseThrow();
+            if (getSelf().equals(recipient)) {
+                outboundDispatchingActor.tell(inboundSignal, getSender());
+            } else {
+                recipient.tell(inboundSignal, getSender());
+            }
         }
         return stay();
+    }
+
+    private void dispatchSearchCommand(final WithSubscriptionId<?> searchCommand) {
+        final String subscriptionId = searchCommand.getSubscriptionId();
+        if (subscriptionId.length() <= subscriptioniIdPrefixLength) {
+            // command is invalid or outdated, dropping.
+            logger.info("Dropping search command with invalid subscription ID: <{}>", searchCommand);
+            connectionLogger.failure(InfoProviderFactory.forSignal(searchCommand),
+                    "Dropping search command with invalid subscription ID: " +
+                            searchCommand.getSubscriptionId());
+        } else {
+            final String prefix = subscriptionId.substring(0, subscriptioniIdPrefixLength);
+            final ActorRef receiver = clientActorRefs.lookup(prefix).orElseThrow();
+            if (getSelf().equals(receiver)) {
+                forwardThingSearchCommand(searchCommand, stateData());
+            } else {
+                // sender is overwritten at the client actor responsible for the subscription ID prefix.
+                receiver.tell(searchCommand, ActorRef.noSender());
+            }
+        }
     }
 
     private Instant getInConnectionStatusSince() {
@@ -1459,12 +1488,17 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     }
 
     private CompletionStage<Void> subscribeAndDeclareAcknowledgementLabels() {
-        final String group = getPubsubGroup();
-        final CompletionStage<Void> subscribe =
-                dittoProtocolSub.subscribe(getUniqueStreamingTypes(), getTargetAuthSubjects(), getSelf(), group);
-        final CompletionStage<Void> declare =
-                dittoProtocolSub.declareAcknowledgementLabels(getDeclaredAcks(), getSelf(), group);
-        return declare.thenCompose(_void -> subscribe);
+        if (isDryRun()) {
+            // no point writing to the distributed data in a dry run - this actor will stop right away
+            return CompletableFuture.completedFuture(null);
+        } else {
+            final String group = getPubsubGroup();
+            final CompletionStage<Void> subscribe =
+                    dittoProtocolSub.subscribe(getUniqueStreamingTypes(), getTargetAuthSubjects(), getSelf(), group);
+            final CompletionStage<Void> declare =
+                    dittoProtocolSub.declareAcknowledgementLabels(getDeclaredAcks(), getSelf(), group);
+            return declare.thenCompose(_void -> subscribe);
+        }
     }
 
     private Set<AcknowledgementLabel> getDeclaredAcks() {

@@ -20,6 +20,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
@@ -91,10 +93,7 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
 
 import akka.actor.ActorRef;
@@ -231,6 +230,16 @@ public final class ConnectionPersistenceActor
         return Props.create(ConnectionPersistenceActor.class, connectionId, proxyActor, propsFactory, commandValidator,
                 // TODO: make client actor per node configurable
                 CLIENT_ACTORS_PER_NODE);
+    }
+
+    /**
+     * Compute the length of the subscription ID prefix to identify the client actor owning a search session.
+     *
+     * @param clientCount the client count of the connection.
+     * @return the length of the subscription prefix.
+     */
+    public static int getSubscriptionPrefixLength(final int clientCount) {
+        return Integer.toHexString(clientCount).length();
     }
 
     @Override
@@ -444,7 +453,7 @@ public final class ConnectionPersistenceActor
     @Override
     protected Receive matchAnyAfterInitialization() {
         return ReceiveBuilder.create()
-                .match(ThingSearchCommand.class, this::forwardThingSearchCommandToClientActors)
+                .match(CreateSubscription.class, this::startThingSearchSession)
                 .matchEquals(Control.CHECK_LOGGING_ACTIVE, this::checkLoggingEnabled)
 
                 // maintain client actor refs
@@ -475,7 +484,7 @@ public final class ConnectionPersistenceActor
      *
      * @param command the command to route.
      */
-    private void forwardThingSearchCommandToClientActors(final ThingSearchCommand<?> command) {
+    private void startThingSearchSession(final CreateSubscription command) {
         if (clientActorRouter == null) {
             logDroppedSignal(command, command.getType(), "Client actor not ready.");
             return;
@@ -485,50 +494,25 @@ public final class ConnectionPersistenceActor
             return;
         }
         log.debug("Forwarding <{}> to client actors.", command);
-        if (command instanceof CreateSubscription) {
-            // compute the next prefix according to subscriptionCounter and the currently configured client actor count
-            // ignore any "prefix" field from the command
-            augmentWithPrefixAndForward(clientActorRouter, (CreateSubscription) command);
-        } else if (command instanceof RequestFromSubscription) {
-            // forward the command to a client actor according to the prefix of the subscription ID
-            computeEnvelopeAndForward(clientActorRouter, ((RequestFromSubscription) command).getSubscriptionId(),
-                    command);
-        } else if (command instanceof CancelSubscription) {
-            // same as RequestSubscription
-            computeEnvelopeAndForward(clientActorRouter, ((CancelSubscription) command).getSubscriptionId(), command);
-        } else {
-            // should not happen
-            log.withCorrelationId(command)
-                    .error("Unknown search command, dropping: <{}>", command);
-        }
+        // compute the next prefix according to subscriptionCounter and the currently configured client actor count
+        // ignore any "prefix" field from the command
+        augmentWithPrefixAndForward(command, entity.getClientCount(), clientActorRouter);
     }
 
-    private void augmentWithPrefixAndForward(final ActorRef receiver, final CreateSubscription createSubscription) {
+    private void augmentWithPrefixAndForward(final CreateSubscription createSubscription, final int clientCount,
+            final ActorRef clientActorRouter) {
         subscriptionCounter = (subscriptionCounter + 1) % Math.max(1, getClientCount());
-        final int prefixLength = getSubscriptionPrefixLength();
+        final int prefixLength = getSubscriptionPrefixLength(clientCount);
         final String prefix = String.format("%0" + prefixLength + "X", subscriptionCounter);
-        final CreateSubscription commandToForward = createSubscription.setPrefix(prefix);
-        receiver.tell(consistentHashableEnvelope(commandToForward, prefix), ActorRef.noSender());
-    }
-
-    private void computeEnvelopeAndForward(final ActorRef receiver, final String subscriptionId,
-            final ThingSearchCommand<?> command) {
-        final int prefixLength = getSubscriptionPrefixLength();
-        if (subscriptionId.length() <= prefixLength) {
-            // command is invalid or outdated, dropping.
-            logDroppedSignal(command, command.getType(), "Invalid subscription ID");
-            return;
+        final Optional<ActorRef> receiver = clientActorRefs.lookup(prefix);
+        final CreateSubscription commandWithPrefix = createSubscription.setPrefix(prefix);
+        if (clientCount == 1) {
+            clientActorRouter.tell(consistentHashableEnvelope(commandWithPrefix, prefix), ActorRef.noSender());
+        } else if (receiver.isPresent()) {
+            receiver.get().tell(commandWithPrefix, ActorRef.noSender());
+        } else {
+            logDroppedSignal(createSubscription, createSubscription.getType(), "Client actor not ready.");
         }
-        final String prefix = subscriptionId.substring(0, prefixLength);
-        receiver.tell(consistentHashableEnvelope(command, prefix), ActorRef.noSender());
-    }
-
-    private Object consistentHashableEnvelope(final Object message, final String hashKey) {
-        return new ConsistentHashingRouter.ConsistentHashableEnvelope(message, hashKey);
-    }
-
-    private int getSubscriptionPrefixLength() {
-        return Integer.toHexString(getClientCount()).length();
     }
 
     private void checkLoggingEnabled(final Control message) {
@@ -669,6 +653,10 @@ public final class ConnectionPersistenceActor
         return processClientAskResult(Patterns.ask(clientActorRouter, msg, clientActorAskTimeout));
     }
 
+    private Object consistentHashableEnvelope(final Object message, final String hashKey) {
+        return new ConsistentHashingRouter.ConsistentHashableEnvelope(message, hashKey);
+    }
+
     private void broadcastToClientActorsIfStarted(final Command<?> cmd, final ActorRef sender) {
         if (clientActorRouter != null && entity != null) {
             clientActorRouter.tell(new Broadcast(cmd), sender);
@@ -796,8 +784,8 @@ public final class ConnectionPersistenceActor
             log.info("Starting ClientActor for connection <{}> with <{}> clients.", entityId, clientCount);
             final Props props = propsFactory.getActorPropsForType(entity, proxyActor, getSelf());
             final ClusterRouterPoolSettings clusterRouterPoolSettings =
-                    new ClusterRouterPoolSettings(clientCount, clientActorsPerNode, true,
-                            Collections.singleton(CLUSTER_ROLE));
+                    new ClusterRouterPoolSettings(clientCount, Math.min(clientCount, clientActorsPerNode), true,
+                            Set.of(CLUSTER_ROLE));
             final Pool pool = new ConsistentHashingPool(clientCount);
             final Props clusterRouterPoolProps =
                     new ClusterRouterPool(pool, clusterRouterPoolSettings).props(props);

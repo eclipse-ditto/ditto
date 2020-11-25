@@ -82,7 +82,8 @@ import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
+import org.eclipse.ditto.signals.commands.thingsearch.WithSubscriptionId;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -337,7 +338,8 @@ public final class InboundDispatchingActor extends AbstractActor
                         .match(CommandResponse.class, ProtocolAdapter::isLiveSignal, liveResponse ->
                                 forwardToClientActor(liveResponse, ActorRef.noSender())
                         )
-                        .match(ThingSearchCommand.class, cmd -> forwardToConnectionActor(cmd, sender))
+                        .match(CreateSubscription.class, cmd -> forwardToConnectionActor(cmd, sender))
+                        .match(WithSubscriptionId.class, cmd -> forwardToClientActor(cmd, sender))
                         .matchAny(baseSignal -> ackregatorStarter.preprocess(baseSignal,
                                 (signal, isAckRequesting) -> Stream.of(new IncomingSignal(signal,
                                         getReturnAddress(sender, isAckRequesting, signal),
@@ -465,10 +467,8 @@ public final class InboundDispatchingActor extends AbstractActor
         return Stream.empty();
     }
 
-    private <T> Stream<T> forwardToConnectionActor(final ThingSearchCommand<?> searchCommand,
-            @Nullable final ActorRef sender) {
-        // TODO: only forward CreateSubscription to connection actor; dispatch commands with prefix directly
-        connectionActor.tell(searchCommand, sender);
+    private <T> Stream<T> forwardToConnectionActor(final CreateSubscription command, @Nullable final ActorRef sender) {
+        connectionActor.tell(command, sender);
         return Stream.empty();
     }
 

@@ -76,7 +76,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
@@ -711,7 +711,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
     }
 
     @Test
-    public void forwardsSearchCommandsToConnectionActor() {
+    public void forwardsCreateSubscriptionToConnectionActor() {
         new TestKit(actorSystem) {{
             final ActorRef outboundMappingProcessorActor = createOutboundMappingProcessorActor(this);
             final ActorRef inboundMappingProcessorActor =
@@ -719,11 +719,12 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             final Map<String, String> headers = new HashMap<>();
             headers.put("content-type", "application/json");
             final AuthorizationContext context =
-                    AuthorizationModelFactory.newAuthContext(AuthorizationModelFactory.newAuthSubject("ditto:ditto"));
-            final CancelSubscription searchCommand =
-                    CancelSubscription.of("sub-" + UUID.randomUUID(), DittoHeaders.empty());
+                    AuthorizationModelFactory.newAuthContext(
+                            DittoAuthorizationContextType.UNSPECIFIED,
+                            AuthorizationModelFactory.newAuthSubject("ditto:ditto"));
+            final CreateSubscription createSubscription = CreateSubscription.of(DittoHeaders.empty());
             final JsonifiableAdaptable adaptable = ProtocolFactory
-                    .wrapAsJsonifiableAdaptable(DITTO_PROTOCOL_ADAPTER.toAdaptable(searchCommand));
+                    .wrapAsJsonifiableAdaptable(DITTO_PROTOCOL_ADAPTER.toAdaptable(createSubscription));
             final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(headers)
                     .withTopicPath(adaptable.getTopicPath())
                     .withText(adaptable.toJsonString())
@@ -733,8 +734,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
 
             inboundMappingProcessorActor.tell(externalMessage, getRef());
 
-            final CancelSubscription received = connectionActorProbe.expectMsgClass(CancelSubscription.class);
-            assertThat(received.getSubscriptionId()).isEqualTo(searchCommand.getSubscriptionId());
+            connectionActorProbe.expectMsgClass(CreateSubscription.class);
         }};
     }
 

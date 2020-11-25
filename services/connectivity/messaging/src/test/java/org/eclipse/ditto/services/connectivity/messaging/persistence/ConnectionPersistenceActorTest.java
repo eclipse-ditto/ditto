@@ -93,9 +93,7 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 import org.eclipse.ditto.signals.events.things.AttributeModified;
 import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.hamcrest.CoreMatchers;
@@ -342,11 +340,11 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     public void manageConnectionWith2Clients() throws Exception {
         startSecondActorSystemAndJoinCluster();
         new TestKit(actorSystem) {{
+            final TestProbe gossipProbe = TestProbe.apply("gossip", actorSystem);
             final TestProbe probe = TestProbe.apply(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
-                            proxyActor,
-                            (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()));
+                            proxyActor, (a, b, c) -> MockClientActor.props(probe.ref(), gossipProbe.ref()));
             watch(underTest);
 
             // create closed connection
@@ -355,6 +353,10 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
             // open connection: only local client actor is asked for a response.
             underTest.tell(openConnection, getRef());
+            // perform gossip protocol on client actor startup
+            underTest.tell(gossipProbe.expectMsgClass(ActorRef.class), ActorRef.noSender());
+            underTest.tell(gossipProbe.expectMsgClass(ActorRef.class), ActorRef.noSender());
+            // one client actor receives the command
             probe.expectMsg(openConnection);
             expectMsgClass(OpenConnectionResponse.class);
 
@@ -1387,19 +1389,25 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     public void forwardSearchCommands() {
         new TestKit(actorSystem) {{
             final ConnectionId myConnectionId = ConnectionId.of(UUID.randomUUID().toString());
+            final TestProbe gossipProbe = TestProbe.apply("gossip", actorSystem);
             final TestProbe clientActorsProbe = TestProbe.apply("clientActors", actorSystem);
             final TestProbe proxyActorProbe = TestProbe.apply("proxyActor", actorSystem);
             // Mock the client actors so that they forward all signals to clientActorsProbe with their own reference
-            final ClientActorPropsFactory propsFactory = (a, b, c) -> Props.create(AbstractActor.class, () ->
-                    new AbstractActor() {
+            final ClientActorPropsFactory propsFactory = (a, b, connectionActor) ->
+                    Props.create(AbstractActor.class, () -> new AbstractActor() {
                         @Override
                         public Receive createReceive() {
                             return ReceiveBuilder.create()
-                                    .match(WithDittoHeaders.class, message ->
-                                            clientActorsProbe.ref()
-                                                    .tell(WithSender.of(message, getSelf()), getSender())
-                                    )
+                                    .match(WithDittoHeaders.class, message -> clientActorsProbe.ref()
+                                            .tell(WithSender.of(message, getSelf()), getSender()))
+                                    .match(ActorRef.class, actorRef ->
+                                            gossipProbe.ref().forward(actorRef, getContext()))
                                     .build();
+                        }
+
+                        @Override
+                        public void preStart() {
+                            connectionActor.tell(getSelf(), getSelf());
                         }
                     });
             final Props connectionActorProps = Props.create(ConnectionPersistenceActor.class, () ->
@@ -1417,6 +1425,10 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             clientActorsProbe.reply(new Status.Success("connected"));
             expectMsgClass(OpenConnectionResponse.class);
 
+            // wait until gossip protocol completes
+            gossipProbe.expectMsgClass(ActorRef.class);
+            gossipProbe.expectMsgClass(ActorRef.class);
+
             // WHEN: 2 CreateSubscription commands are received
             // THEN: The 2 commands land in different client actors
             underTest.tell(CreateSubscription.of(DittoHeaders.empty()), getRef());
@@ -1425,21 +1437,22 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final WithSender<?> createSubscription2 = clientActorsProbe.expectMsgClass(WithSender.class);
             assertThat(createSubscription1.getSender()).isNotEqualTo(createSubscription2.getSender());
 
-            // WHEN: RequestSubscription command is sent with the prefix of a received CreateSubscription command
-            // THEN: The command lands in the same client actor
-            final String subscriptionId1 =
-                    ((CreateSubscription) createSubscription1.getMessage()).getPrefix().orElseThrow() + "-suffix";
-            underTest.tell(RequestFromSubscription.of(subscriptionId1, 99L, DittoHeaders.empty()), getRef());
-            final WithSender<?> requestSubscription1 = clientActorsProbe.expectMsgClass(WithSender.class);
-            assertThat(requestSubscription1.getMessage()).isInstanceOf(RequestFromSubscription.class);
-            assertThat(requestSubscription1.getSender()).isEqualTo(createSubscription1.getSender());
-
-            // Same for CancelSubscription
-            final String subscriptionId2 =
-                    ((CreateSubscription) createSubscription2.getMessage()).getPrefix().orElseThrow() + "-suffix";
-            underTest.tell(CancelSubscription.of(subscriptionId2, DittoHeaders.empty()), getRef());
-            final WithSender<?> cancelSubscription2 = clientActorsProbe.expectMsgClass(WithSender.class);
-            assertThat(cancelSubscription2.getSender()).isEqualTo(createSubscription2.getSender());
+            // TODO: move this part to client actor test
+//            // WHEN: RequestSubscription command is sent with the prefix of a received CreateSubscription command
+//            // THEN: The command lands in the same client actor
+//            final String subscriptionId1 =
+//                    ((CreateSubscription) createSubscription1.getMessage()).getPrefix().orElseThrow() + "-suffix";
+//            underTest.tell(RequestFromSubscription.of(subscriptionId1, 99L, DittoHeaders.empty()), getRef());
+//            final WithSender<?> requestSubscription1 = clientActorsProbe.expectMsgClass(WithSender.class);
+//            assertThat(requestSubscription1.getMessage()).isInstanceOf(RequestFromSubscription.class);
+//            assertThat(requestSubscription1.getSender()).isEqualTo(createSubscription1.getSender());
+//
+//            // Same for CancelSubscription
+//            final String subscriptionId2 =
+//                    ((CreateSubscription) createSubscription2.getMessage()).getPrefix().orElseThrow() + "-suffix";
+//            underTest.tell(CancelSubscription.of(subscriptionId2, DittoHeaders.empty()), getRef());
+//            final WithSender<?> cancelSubscription2 = clientActorsProbe.expectMsgClass(WithSender.class);
+//            assertThat(cancelSubscription2.getSender()).isEqualTo(createSubscription2.getSender());
         }};
     }
 

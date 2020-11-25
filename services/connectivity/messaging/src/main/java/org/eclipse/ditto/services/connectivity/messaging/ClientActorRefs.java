@@ -20,12 +20,10 @@ import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
-import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.services.utils.pubsub.PubSubFactory;
 
 import akka.actor.ActorPath;
 import akka.actor.ActorRef;
-import akka.actor.ActorRefFactory;
 
 /**
  * Collection of all client actor refs of a connection actor.
@@ -83,20 +81,20 @@ public final class ClientActorRefs {
     }
 
     /**
-     * Get the client actor responsible for an entity ID.
+     * Get the client actor responsible for a hash key, usually the entity ID of a signal.
      * Only works if:
      * - All client actors have started and have not crashed,
      * - All client actors know about all other client actors,
      * - All client actors run on the same Connectivity instance, or no more than 1 client actor runs on an instance.
      *
-     * @param entityId the entity ID.
+     * @param hashKey the hash key to determine.
      * @return the client actor responsible for it.
      */
-    public Optional<ActorRef> lookup(final EntityId entityId) {
+    public Optional<ActorRef> lookup(final CharSequence hashKey) {
         if (sortedRefs.isEmpty()) {
             return Optional.empty();
         } else {
-            return Optional.of(sortedRefs.get(PubSubFactory.hashForPubSub(entityId) % sortedRefs.size()));
+            return Optional.of(sortedRefs.get(PubSubFactory.hashForPubSub(hashKey) % sortedRefs.size()));
         }
     }
 
