@@ -40,11 +40,13 @@ final class MongoContainerFactory {
     private static final List<String> MONGO_COMMANDS = Arrays.asList("mongod", "--storageEngine", "wiredTiger");
 
     private static final MongoContainerFactory INSTANCE = new MongoContainerFactory();
+    private static final String UNIX_DOCKER_HOST = "unix:///var/run/docker.sock";
+    private static final String WINDOWS_DOCKER_HOST = "tcp://localhost:2375";
 
     private final DockerClient dockerClient;
 
     private MongoContainerFactory() {
-        final String dockerHost = OsDetector.isWindows() ? "tcp://localhost:2375": "unix:///var/run/docker.sock";
+        final String dockerHost = OsDetector.isWindows() ? WINDOWS_DOCKER_HOST : UNIX_DOCKER_HOST;
         final DefaultDockerClientConfig config =
                 DefaultDockerClientConfig.createDefaultConfigBuilder().withDockerHost(dockerHost).build();
         final ZerodepDockerHttpClient httpClient = new ZerodepDockerHttpClient.Builder()

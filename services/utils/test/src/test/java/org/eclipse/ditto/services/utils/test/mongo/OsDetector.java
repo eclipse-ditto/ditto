@@ -14,9 +14,13 @@
 
  final class OsDetector {
 
+     private OsDetector() {
+         // No-Op because this is a utility class.
+     }
+
      private static final String OS = System.getProperty("os.name").toLowerCase();
 
-     public static boolean isWindows() {
+     static boolean isWindows() {
          return OS.contains("win");
      }
 
