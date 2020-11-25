@@ -831,10 +831,9 @@ public final class TestConstants {
 
     public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
-            final ActorRef proxyActor,
-            final DittoProtocolSub dittoProtocolSub) {
+            final ActorRef proxyActor) {
         return createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
-                mockClientActorPropsFactory, dittoProtocolSub, TestProbe.apply(actorSystem).ref());
+                mockClientActorPropsFactory, TestProbe.apply(actorSystem).ref());
     }
 
     public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
@@ -843,7 +842,7 @@ public final class TestConstants {
             final ActorRef proxyActor,
             final ClientActorPropsFactory clientActorPropsFactory) {
         return createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
-                clientActorPropsFactory, dummyDittoProtocolSub(pubSubMediator), pubSubMediator);
+                clientActorPropsFactory, pubSubMediator);
     }
 
     public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
@@ -852,17 +851,15 @@ public final class TestConstants {
             final ActorRef proxyActor) {
 
         return createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
-                mockClientActorPropsFactory, dummyDittoProtocolSub(pubSubMediator), pubSubMediator);
+                mockClientActorPropsFactory, pubSubMediator);
     }
 
     public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final ActorRef proxyActor,
             final ClientActorPropsFactory clientActorPropsFactory,
-            final DittoProtocolSub dittoProtocolSub,
             final ActorRef pubSubMediator) {
-        final Props props = ConnectionSupervisorActor.props(dittoProtocolSub, proxyActor,
-                clientActorPropsFactory, null, pubSubMediator);
+        final Props props = ConnectionSupervisorActor.props(proxyActor, clientActorPropsFactory, null, pubSubMediator);
 
         final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId.toString());
 

@@ -80,6 +80,7 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
     public void removeSubscriber(final ActorRef subscriber) {
         liveSignalSub.removeSubscriber(subscriber);
         twinEventSub.removeSubscriber(subscriber);
+        distributedAcks.removeSubscriber(subscriber);
     }
 
     @Override

@@ -16,27 +16,14 @@ import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.MockClientActor.mockClientActorPropsFactory;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.INSTANT;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyCollection;
-import static org.mockito.ArgumentMatchers.anySet;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -45,13 +32,11 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.apache.commons.compress.utils.Sets;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredException;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -71,8 +56,6 @@ import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory
 import org.eclipse.ditto.services.connectivity.messaging.MockClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.WithMockServers;
-import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
-import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
@@ -120,7 +103,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
@@ -143,12 +125,6 @@ import scala.concurrent.duration.FiniteDuration;
  */
 public final class ConnectionPersistenceActorTest extends WithMockServers {
 
-    private static final Set<String> SUBJECTS = Sets.newHashSet(TestConstants.Authorization.SUBJECT_ID,
-            TestConstants.Authorization.UNAUTHORIZED_SUBJECT_ID);
-    private static final Set<StreamingType> TWIN_AND_LIVE_EVENTS =
-            EnumSet.of(StreamingType.EVENTS, StreamingType.LIVE_EVENTS);
-    private static final Set<StreamingType> TWIN_AND_LIVE_EVENTS_AND_MESSAGES =
-            EnumSet.of(StreamingType.EVENTS, StreamingType.LIVE_EVENTS, StreamingType.MESSAGES);
     private ActorSystem actorSystem;
     private ActorRef pubSubMediator;
     private ActorRef proxyActor;
@@ -176,7 +152,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     private RetrieveConnectionStatusResponse retrieveConnectionStatusOpenResponse;
     private ConnectionNotAccessibleException connectionNotAccessibleException;
     private ThingModifiedEvent<?> thingModified;
-    private DittoProtocolSub dittoProtocolSubMock;
 
     // second actor system to test multiple client actors
     private ActorSystem actorSystem2;
@@ -247,7 +222,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                         .build();
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
         thingModified = TestConstants.thingModified(Collections.singleton(TestConstants.Authorization.SUBJECT));
-        dittoProtocolSubMock = Mockito.mock(DittoProtocolSub.class);
     }
 
     @Test
@@ -317,7 +291,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(
                     connectionId, actorSystem, proxyActor,
                     (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()),
-                    TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock),
                     pubSubMediator
             );
             watch(underTest);
@@ -326,14 +299,11 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             underTest.tell(createConnection, getRef());
             probe.expectMsg(openConnection);
             expectMsg(createConnectionResponse);
-            expectRemoveSubscriber(1);
-            expectSubscribe(TWIN_AND_LIVE_EVENTS, SUBJECTS);
 
             // close connection
             underTest.tell(closeConnection, getRef());
             probe.expectMsg(closeConnection);
             expectMsg(closeConnectionResponse);
-            expectRemoveSubscriber(2);
 
             // delete connection
             underTest.tell(deleteConnection, getRef());
@@ -350,7 +320,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final ActorRef underTest = TestConstants.createConnectionSupervisorActor(
                     connectionId, actorSystem, proxyActor,
                     (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()),
-                    TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock),
                     pubSubMediator
             );
             watch(underTest);
@@ -359,13 +328,10 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             underTest.tell(createConnection, getRef());
             probe.expectMsg(openConnection);
             expectMsg(createConnectionResponse);
-            expectRemoveSubscriber(1);
-            expectSubscribe(TWIN_AND_LIVE_EVENTS, SUBJECTS);
 
             // delete connection
             underTest.tell(deleteConnection, getRef());
             expectMsg(deleteConnectionResponse);
-            expectRemoveSubscriber(2);
             probe.expectNoMessage();
             expectTerminated(underTest);
         }};
@@ -393,8 +359,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             expectMsgClass(OpenConnectionResponse.class);
 
             // forward signal once
-            underTest.tell(thingModified, getRef());
-            probe.expectMsg(thingModified);
+            underTest.tell(CreateSubscription.of(DittoHeaders.empty()), getRef());
+            probe.expectMsgClass(CreateSubscription.class); // is not the exact command because prefix is added
 
             // close connection: at least 1 client actor gets the command; the other may or may not be started.
             underTest.tell(closeConnection, getRef());
@@ -681,7 +647,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                                 latestConnection.set(connection);
                                 return MockClientActor.props(mockClientProbe.ref());
                             },
-                            TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock),
                             pubSubMediator);
 
             // create connection
@@ -691,15 +656,12 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
             final ActorRef clientActor = watch(mockClientProbe.sender());
 
-            expectSubscribe(TWIN_AND_LIVE_EVENTS, SUBJECTS);
-
             // modify connection
             underTest.tell(modifyConnection, commandSender.ref());
             // modify triggers a CloseConnection
             mockClientProbe.expectMsg(CloseConnection.of(connectionId, DittoHeaders.empty()));
 
             // unsubscribe is called for topics of unmodified connection
-            expectRemoveSubscriber(1);
             expectTerminated(clientActor);
 
             // and sends an open connection (if desired state is open)
@@ -708,8 +670,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             commandSender.expectMsg(modifyConnectionResponse);
 
             // modified connection contains an additional target for messages
-            expectSubscribe(TWIN_AND_LIVE_EVENTS_AND_MESSAGES, SUBJECTS);
-
             Awaitility.await().untilAtomic(latestConnection, CoreMatchers.is(modifyConnection.getConnection()));
         }};
     }
@@ -759,22 +719,16 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     public void recoverModifiedConnection() {
         new TestKit(actorSystem) {{
 
-            ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
-                    proxyActor, TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock));
+            ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, proxyActor);
             watch(underTest);
 
             // create connection
             underTest.tell(createConnection, getRef());
             expectMsg(createConnectionResponse);
 
-            expectRemoveSubscriber(1);
-            expectSubscribe(TWIN_AND_LIVE_EVENTS, SUBJECTS);
-
             // modify connection
             underTest.tell(modifyConnection, getRef());
             expectMsg(modifyConnectionResponse);
-
-            expectRemoveSubscriber(2);
 
             // stop actor
             getSystem().stop(underTest);
@@ -783,8 +737,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             // recover actor
             underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, pubSubMediator,
                     proxyActor);
-
-            expectSubscribe(TWIN_AND_LIVE_EVENTS_AND_MESSAGES, SUBJECTS);
 
             // retrieve connection status
             underTest.tell(retrieveConnection, getRef());
@@ -865,7 +817,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         new TestKit(actorSystem) {{
             final Props connectionActorProps =
                     ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
-                            TestConstants.dummyDittoProtocolSub(pubSubMediator), proxyActor,
+                            proxyActor,
                             (connection, proxyActor, connectionActor) -> {
                                 throw ConnectionConfigurationInvalidException.newBuilder("validation failed...")
                                         .build();
@@ -890,7 +842,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         new TestKit(actorSystem) {{
             final Props connectionActorProps =
                     ConnectionPersistenceActor.props(TestConstants.createRandomConnectionId(),
-                            TestConstants.dummyDittoProtocolSub(pubSubMediator), proxyActor,
+                            proxyActor,
                             mockClientActorPropsFactory,
                             (command, connection) -> {
                                 throw ConnectionUnavailableException.newBuilder(connectionId)
@@ -1135,7 +1087,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
                             (connection, concierge, connectionActor) -> MockClientActor.props(probe.ref()),
-                            TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock), pubSubMediator);
+                            pubSubMediator);
             watch(underTest);
 
             // create connection
@@ -1144,8 +1096,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             expectMsg(createConnectionResponse);
 
             // Wait until connection is established
-            expectAnySubscribe();
-
             // enable connection logs
             underTest.tell(enableConnectionLogs, getRef());
             probe.expectMsg(enableConnectionLogs);
@@ -1194,24 +1144,16 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     public void testHandleSignalWithAcknowledgementRequest() {
         new TestKit(actorSystem) {{
             // GIVEN: ack label declaration succeeds
-            doAnswer(invocation -> CompletableFuture.completedStage(null))
-                    .when(dittoProtocolSubMock)
-                    .declareAcknowledgementLabels(any(), any(), any());
-
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
                             (connection, connectionActor, proxyActor) -> TestActor.props(probe),
-                            TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock), pubSubMediator);
+                            pubSubMediator);
             watch(underTest);
 
             // create connection
             underTest.tell(createConnectionWithTestAck(), getRef());
             expectMsgClass(CreateConnectionResponse.class);
-
-            // Wait until connection is established
-            expectAnySubscribe();
-            expectDeclareAcknowledgementLabels();
 
             final AcknowledgementLabel acknowledgementLabel = getTestAck();
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
@@ -1243,15 +1185,12 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     public void testHandleSignalWithPlaceholderDeclaredAcknowledgement() {
         new TestKit(actorSystem) {{
             // GIVEN: ack label declaration succeeds
-            doAnswer(invocation -> CompletableFuture.completedStage(null))
-                    .when(dittoProtocolSubMock)
-                    .declareAcknowledgementLabels(any(), any(), any());
 
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
                             (connection, connectionActor, proxyActor) -> TestActor.props(probe),
-                            TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock), pubSubMediator);
+                            pubSubMediator);
             watch(underTest);
 
             // create connection
@@ -1259,8 +1198,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             expectMsgClass(CreateConnectionResponse.class);
 
             // Wait until connection is established
-            expectAnySubscribe();
-            expectDeclareAcknowledgementLabels();
 
             final AcknowledgementLabel acknowledgementLabel = getTestAck();
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
@@ -1310,15 +1247,12 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     public void testTargetIssuedAcknowledgement() {
         new TestKit(actorSystem) {{
             // GIVEN: declaration of target-issued ack label succeeds
-            doAnswer(invocation -> CompletableFuture.completedStage(null))
-                    .when(dittoProtocolSubMock)
-                    .declareAcknowledgementLabels(any(), any(), any());
 
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
                             (connection, connectionActor, proxyActor) -> TestActor.props(probe),
-                            TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock), pubSubMediator);
+                            pubSubMediator);
             watch(underTest);
 
             // create connection
@@ -1326,8 +1260,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             expectMsgClass(CreateConnectionResponse.class);
 
             // Wait until connection is established
-            expectAnySubscribe();
-            expectDeclareAcknowledgementLabels();
 
             final AcknowledgementLabel acknowledgementLabel = getTestAck();
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
@@ -1364,15 +1296,12 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     public void failToDeclareAckLabels() {
         new TestKit(actorSystem) {{
             // GIVEN: ack declaration always fails
-            doAnswer(invocation -> CompletableFuture.failedStage(AcknowledgementLabelNotUniqueException.getInstance()))
-                    .when(dittoProtocolSubMock)
-                    .declareAcknowledgementLabels(any(), any(), any());
 
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
                             (connection, connectionActor, proxyActor) -> TestActor.props(probe),
-                            TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock), pubSubMediator);
+                            pubSubMediator);
             watch(underTest);
 
             // create connection
@@ -1380,8 +1309,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             expectMsgClass(CreateConnectionResponse.class);
 
             // Wait until connection is established
-            expectAnySubscribe();
-            expectDeclareAcknowledgementLabels();
 
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                     .acknowledgementRequest(AcknowledgementRequest.of(getTestAck()))
@@ -1412,15 +1339,12 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     public void sendAckWithNotDeclaredLabel() {
         new TestKit(actorSystem) {{
             // GIVEN: ack label declaration succeeds
-            doAnswer(invocation -> CompletableFuture.completedStage(null))
-                    .when(dittoProtocolSubMock)
-                    .declareAcknowledgementLabels(any(), any(), any());
 
             final TestKit probe = new TestKit(actorSystem);
             final ActorRef underTest =
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
                             (connection, connectionActor, proxyActor) -> TestActor.props(probe),
-                            TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock), pubSubMediator);
+                            pubSubMediator);
             watch(underTest);
 
             // create connection
@@ -1428,8 +1352,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             expectMsgClass(CreateConnectionResponse.class);
 
             // Wait until connection is established
-            expectAnySubscribe();
-            expectDeclareAcknowledgementLabels();
 
             // WHEN: signal is received with not-declared acknowledgement request
             final AcknowledgementLabel acknowledgementLabel = AcknowledgementLabel.of(connectionId + ":not-declared");
@@ -1480,10 +1402,8 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                                     .build();
                         }
                     });
-            final DittoProtocolSub dittoProtocolSub = Mockito.mock(DittoProtocolSub.class);
-            when(dittoProtocolSub.subscribe(any(), any(), any())).thenReturn(CompletableFuture.completedStage(null));
             final Props connectionActorProps = Props.create(ConnectionPersistenceActor.class, () ->
-                    new ConnectionPersistenceActor(myConnectionId, dittoProtocolSub, proxyActorProbe.ref(),
+                    new ConnectionPersistenceActor(myConnectionId, proxyActorProbe.ref(),
                             propsFactory, null, 999
                     ));
 
@@ -1535,15 +1455,12 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                     TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
                             proxyActor,
                             (connection, conciergeForwarder, connectionActor) -> TestActor.props(probe),
-                            TestConstants.dummyDittoProtocolSub(pubSubMediator, dittoProtocolSubMock), pubSubMediator);
+                            pubSubMediator);
             watch(underTest);
 
             // create connection
             underTest.tell(createConnection, getRef());
             expectMsgClass(CreateConnectionResponse.class);
-
-            // wait until connection actor is subscribed otherwise the signal won't be forwarded
-            expectAnySubscribe();
 
             underTest.tell(signal, getRef());
 
@@ -1637,26 +1554,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                     .match(OpenConnection.class, cc -> sender().tell(new Status.Success("connected"), self()))
                     .matchAny(m -> probe.getRef().forward(m, context())).build();
         }
-    }
-
-    private void expectSubscribe(final Collection<StreamingType> streamingTypes, final Set<String> subjects) {
-        verify(dittoProtocolSubMock, timeout(500))
-                .subscribe(argThat(argument -> streamingTypes.equals(new HashSet<>(argument))),
-                        eq(subjects),
-                        any(ActorRef.class));
-    }
-
-    // expect any call to subscribe, just to wait for the subscription
-    private void expectAnySubscribe() {
-        verify(dittoProtocolSubMock, timeout(500)).subscribe(anyCollection(), anySet(), any(ActorRef.class));
-    }
-
-    private void expectRemoveSubscriber(final int howManyTimes) {
-        verify(dittoProtocolSubMock, timeout(500).times(howManyTimes)).removeSubscriber(any(ActorRef.class));
-    }
-
-    private void expectDeclareAcknowledgementLabels() {
-        verify(dittoProtocolSubMock, timeout(500)).declareAcknowledgementLabels(eq(Set.of(getTestAck())), any(), any());
     }
 
     private static void shutdown(@Nullable final ActorSystem system) {

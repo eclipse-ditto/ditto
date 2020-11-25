@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.things.ThingId;
@@ -74,6 +75,7 @@ final class OutboundDispatchingActor extends AbstractActor {
                 .match(InboundSignal.class, this::inboundSignal)
                 .match(CommandResponse.class, this::forwardWithoutCheck)
                 .match(SubscriptionEvent.class, this::forwardWithoutCheck)
+                .match(DittoRuntimeException.class, this::forwardWithoutCheck)
                 .match(Signal.class, this::handleSignal)
                 .matchAny(message -> logger.warning("Unknown message: <{}>", message))
                 .build();

@@ -34,13 +34,18 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -49,10 +54,13 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
+import org.eclipse.ditto.model.connectivity.FilteredTopic;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.SourceMetrics;
+import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
+import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
 import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
@@ -67,7 +75,10 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.Connect
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectivityCounterRegistry;
+import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
+import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.models.connectivity.InboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -156,6 +167,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final SupervisorStrategy supervisorStrategy;
     private final ClientActorRefs clientActorRefs;
     private final Duration clientActorRefsNotificationDelay;
+    private final DittoProtocolSub dittoProtocolSub;
 
     // counter for all child actors ever started to disambiguate between them
     private int childActorCount = 0;
@@ -206,6 +218,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         supervisorStrategy = createSupervisorStrategy(getSelf());
         clientActorRefs = ClientActorRefs.empty();
         clientActorRefsNotificationDelay = randomize(clientConfig.getClientActorRefsNotificationDelay());
+        dittoProtocolSub = DittoProtocolSub.get(getContext().getSystem());
 
         // Send init message to allow for unsafe initialization of subclasses.
         getSelf().tell(Control.INIT, getSelf());
@@ -375,7 +388,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .event(Signal.class, this::handleSignal)
                 .event(ActorRef.class, this::onOtherClientActorStartup)
                 .event(Terminated.class, this::otherClientActorTerminated)
-                .eventEquals(Control.REFRESH_CLIENT_ACTOR_REFS, this::refreshClientActorRefs);
+                .eventEquals(Control.REFRESH_CLIENT_ACTOR_REFS, this::refreshClientActorRefs)
+                .event(AcknowledgementLabelNotUniqueException.class, this::failConnectionDueToAckLabelConflict);
     }
 
     /**
@@ -417,6 +431,19 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private FSM.State<BaseClientState, BaseClientData> refreshClientActorRefs(final Control refreshClientActorRefs,
             final BaseClientData data) {
         connectionActor.tell(getSelf(), getSelf());
+        return stay();
+    }
+
+    private FSM.State<BaseClientState, BaseClientData> failConnectionDueToAckLabelConflict(
+            final AcknowledgementLabelNotUniqueException ackLabelNotUnique,
+            final BaseClientData data) {
+
+        final String description = "The connection experienced a transient failure in the distributed " +
+                "publish/subscribe infrastructure. Failing the connection to try again later.";
+        getSelf().tell(
+                // not setting "cause" to put the description literally in the error log
+                new ImmutableConnectionFailure(null, null, description),
+                getSelf());
         return stay();
     }
 
@@ -670,6 +697,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         final ActorRef sender = getSender();
         doDisconnectClient(data.getConnection(), sender);
+        dittoProtocolSub.removeSubscriber(getSelf());
         return goToDisconnecting().using(setSession(data, sender, closeConnection.getDittoHeaders())
                 .setDesiredConnectionStatus(ConnectivityStatus.CLOSED)
                 .setConnectionStatusDetails("closing or deleting connection at " + Instant.now()));
@@ -836,10 +864,15 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     protected CompletionStage<InitializationResult> startPublisherAndConsumerActors(
             @Nullable final ClientConnected clientConnected) {
 
-        return startPublisherActor()
-                .thenRun(() -> logger.info("Publisher started. Now starting consumers."))
-                .thenCompose(unused -> startConsumerActors(clientConnected)) // then start consumers
-                .thenRun(() -> logger.info("Consumers started. Client actor is now ready to process messages."))
+        final CompletionStage<Void> startPublisherAndConsumerActors =
+                startPublisherActor()
+                        .thenRun(() -> logger.info("Publisher started. Now starting consumers."))
+                        .thenCompose(unused -> startConsumerActors(clientConnected)) // then start consumers
+                        .thenRun(
+                                () -> logger.info("Consumers started. Client actor is now ready to process messages."));
+        final CompletionStage<Void> setupPubsub = subscribeAndDeclareAcknowledgementLabels();
+
+        return startPublisherAndConsumerActors.thenCompose(_void -> setupPubsub)
                 .thenApply(unused -> InitializationResult.success())
                 .exceptionally(InitializationResult::failed);
     }
@@ -937,6 +970,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private State<BaseClientState, BaseClientData> backoffAfterFailure(final ConnectionFailure event,
             final BaseClientData data) {
 
+        dittoProtocolSub.removeSubscriber(getSelf());
         if (ConnectivityStatus.OPEN.equals(data.getDesiredConnectionStatus())) {
             if (reconnectTimeoutStrategy.canReconnect()) {
                 final Duration nextBackoff = reconnectTimeoutStrategy.getNextBackoff();
@@ -1422,6 +1456,54 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                             return (SupervisorStrategy.Directive) SupervisorStrategy.stop();
                         }).build()
         );
+    }
+
+    private CompletionStage<Void> subscribeAndDeclareAcknowledgementLabels() {
+        final String group = getPubsubGroup();
+        final CompletionStage<Void> subscribe =
+                dittoProtocolSub.subscribe(getUniqueStreamingTypes(), getTargetAuthSubjects(), getSelf(), group);
+        final CompletionStage<Void> declare =
+                dittoProtocolSub.declareAcknowledgementLabels(getDeclaredAcks(), getSelf(), group);
+        return declare.thenCompose(_void -> subscribe);
+    }
+
+    private Set<AcknowledgementLabel> getDeclaredAcks() {
+        return ConnectionValidator.getAcknowledgementLabelsToDeclare(connection).collect(Collectors.toSet());
+    }
+
+    private String getPubsubGroup() {
+        return connectionId().toString();
+    }
+
+    private Set<String> getTargetAuthSubjects() {
+        return connection.getTargets()
+                .stream()
+                .map(Target::getAuthorizationContext)
+                .map(AuthorizationContext::getAuthorizationSubjectIds)
+                .flatMap(List::stream)
+                .collect(Collectors.toSet());
+    }
+
+    private Set<StreamingType> getUniqueStreamingTypes() {
+        return connection.getTargets().stream()
+                .flatMap(target -> target.getTopics().stream()
+                        .map(FilteredTopic::getTopic)
+                        .map(BaseClientActor::toStreamingTypes))
+                .collect(Collectors.toSet());
+    }
+
+    private static StreamingType toStreamingTypes(final Topic topic) {
+        switch (topic) {
+            case LIVE_EVENTS:
+                return StreamingType.LIVE_EVENTS;
+            case LIVE_COMMANDS:
+                return StreamingType.LIVE_COMMANDS;
+            case LIVE_MESSAGES:
+                return StreamingType.MESSAGES;
+            case TWIN_EVENTS:
+            default:
+                return StreamingType.EVENTS;
+        }
     }
 
     private static Duration randomize(final Duration base) {

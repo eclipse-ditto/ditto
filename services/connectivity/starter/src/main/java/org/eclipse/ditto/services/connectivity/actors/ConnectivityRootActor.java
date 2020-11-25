@@ -29,7 +29,6 @@ import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionP
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionSupervisorActor;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
-import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.models.connectivity.ConnectivityMessagingConstants;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
@@ -44,7 +43,6 @@ import org.eclipse.ditto.services.utils.health.config.PersistenceConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
-import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 
@@ -87,9 +85,8 @@ public final class ConnectivityRootActor extends DittoRootActor {
         final ActorRef proxyActor =
                 startChildActor(ConnectivityProxyActor.ACTOR_NAME, ConnectivityProxyActor.props(conciergeForwarder));
 
-        final DittoProtocolSub dittoProtocolSub = DittoProtocolSub.get(actorSystem);
         final Props connectionSupervisorProps =
-                getConnectionSupervisorProps(dittoProtocolSub, proxyActor, commandValidator, pubSubMediator);
+                getConnectionSupervisorProps(proxyActor, commandValidator, pubSubMediator);
 
         // Create persistence streaming actor (with no cache) and make it known to pubSubMediator.
         final ActorRef persistenceStreamingActor =
@@ -196,15 +193,13 @@ public final class ConnectivityRootActor extends DittoRootActor {
                         conciergeForwarderSignalTransformer));
     }
 
-    private static Props getConnectionSupervisorProps(final DittoProtocolSub dittoProtocolSub,
-            final ActorRef proxyActor,
+    private static Props getConnectionSupervisorProps(final ActorRef proxyActor,
             @Nullable final ConnectivityCommandInterceptor commandValidator,
             final ActorRef pubSubMediator) {
 
         final ClientActorPropsFactory clientActorPropsFactory = DefaultClientActorPropsFactory.getInstance();
 
-        return ConnectionSupervisorActor.props(dittoProtocolSub, proxyActor,
-                clientActorPropsFactory, commandValidator, pubSubMediator);
+        return ConnectionSupervisorActor.props(proxyActor, clientActorPropsFactory, commandValidator, pubSubMediator);
     }
 
     private static ActorRef getConnectionShardRegion(final ActorSystem actorSystem,

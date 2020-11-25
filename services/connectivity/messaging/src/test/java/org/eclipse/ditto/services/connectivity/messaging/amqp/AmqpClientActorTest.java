@@ -39,6 +39,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -72,7 +73,7 @@ import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.assertj.core.api.ThrowableAssert;
 import org.awaitility.Awaitility;
-import org.awaitility.Duration;
+import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -91,6 +92,8 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization;
+import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -165,6 +168,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                 .toBuilder()
                 .connectionStatus(ConnectivityStatus.CLOSED)
                 .build();
+        // instantiate the pubsub extension now to prevent flapping tests due to the delay
+        DittoProtocolSub.get(actorSystem);
     }
 
     @AfterClass
@@ -946,8 +951,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     private MessageProducer getProducerForAddress(final String address) {
         // it may take some time until the producers have been created
         return Awaitility.await()
-                .atMost(Duration.TWO_SECONDS)
-                .pollInterval(Duration.TWO_HUNDRED_MILLISECONDS)
+                .atMost(org.awaitility.Duration.TWO_SECONDS)
+                .pollInterval(org.awaitility.Duration.TWO_HUNDRED_MILLISECONDS)
                 .until(() -> mockProducers.stream()
                         .filter(p -> address.equals(wrapThrowable(p::getDestination).toString()))
                         // we only want the latest producer (required to test session recovery)

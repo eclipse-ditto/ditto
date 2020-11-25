@@ -131,7 +131,7 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
         final ConnectivityCommandInterceptor dummyInterceptor = (command, connectionSupplier) -> {};
         final ClientActorPropsFactory entityActorFactory = DefaultClientActorPropsFactory.getInstance();
         final Props props =
-                ConnectionSupervisorActor.props(nopSub(), proxyActorProbe.ref(), entityActorFactory,
+                ConnectionSupervisorActor.props(proxyActorProbe.ref(), entityActorFactory,
                         dummyInterceptor, pubSubMediator);
 
         return system.actorOf(props, String.valueOf(id));
