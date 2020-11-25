@@ -61,15 +61,15 @@ import akka.testkit.javadsl.TestKit;
  */
 public abstract class AbstractThingSearchPersistenceITBase {
 
+    @ClassRule
+    public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
+
     protected static final List<String> KNOWN_SUBJECTS = Collections.singletonList("abc:mySid");
 
     protected static final CriteriaFactory cf = new CriteriaFactoryImpl();
     protected static final ThingsFieldExpressionFactory fef = new ThingsFieldExpressionFactoryImpl();
 
     protected static QueryBuilderFactory qbf;
-
-    @ClassRule
-    public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
 
     private static DittoMongoClient mongoClient;
 
