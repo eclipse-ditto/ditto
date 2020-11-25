@@ -174,7 +174,8 @@ public final class AuthenticationChain {
                 final AuthenticationProvider<?> authenticationProvider) {
             if (successResult == null && authenticationProvider.isApplicable(requestContext)) {
                 return authenticationProvider.authenticate(requestContext, dittoHeaders)
-                        .thenApplyAsync(result -> appendResult(authenticationProvider, result), authenticationDispatcher);
+                        .thenApplyAsync(result -> appendResult(authenticationProvider, result),
+                                authenticationDispatcher);
             } else {
                 return CompletableFuture.completedFuture(this);
             }

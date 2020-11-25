@@ -626,7 +626,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             probe.expectMsg(openConnection);
             expectMsg(createConnectionResponse);
 
-            // create connection
+            // close connection
             underTest.tell(closeConnection, getRef());
             probe.expectMsg(closeConnection);
             expectMsg(closeConnectionResponse);
@@ -1582,7 +1582,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         return CreateConnection.of(
                 createConnection.getConnection()
                         .toBuilder()
-                        .targets(createConnection.getConnection().getTargets().stream()
+                        .setTargets(createConnection.getConnection().getTargets().stream()
                                 .map(target -> {
                                     if (target.getTopics().stream()
                                             .anyMatch(ft -> ft.getTopic().equals(Topic.LIVE_EVENTS))) {

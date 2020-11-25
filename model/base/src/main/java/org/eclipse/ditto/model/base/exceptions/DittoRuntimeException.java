@@ -185,6 +185,7 @@ public class DittoRuntimeException extends RuntimeException
 
     /**
      * Read the href field from the json object.
+     *
      * @param jsonObject the object.
      * @return Optional containing the href if it was part of the json object.
      * @throws NullPointerException if {@code jsonObject} was null.
@@ -198,6 +199,7 @@ public class DittoRuntimeException extends RuntimeException
 
     /**
      * Read the message field from the json object.
+     *
      * @param jsonObject the object.
      * @return the message.
      * @throws NullPointerException if {@code jsonObject} was null.
@@ -214,6 +216,7 @@ public class DittoRuntimeException extends RuntimeException
 
     /**
      * Read the description field from the json object.
+     *
      * @param jsonObject the object.
      * @return Optional containing the description if it was part of the json object.
      * @throws NullPointerException if {@code jsonObject} was null.
@@ -395,7 +398,8 @@ public class DittoRuntimeException extends RuntimeException
         // empty per default
     }
 
-    protected <T extends DittoRuntimeException> DittoRuntimeExceptionBuilder<T> toBuilder(final DittoRuntimeExceptionBuilder<T> builder) {
+    protected <T extends DittoRuntimeException> DittoRuntimeExceptionBuilder<T> toBuilder(
+            final DittoRuntimeExceptionBuilder<T> builder) {
         builder.message(getMessage());
         builder.dittoHeaders(getDittoHeaders());
         builder.cause(getCause());

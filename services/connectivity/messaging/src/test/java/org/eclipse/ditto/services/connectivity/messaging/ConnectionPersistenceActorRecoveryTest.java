@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.INSTANT;
-import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -36,10 +35,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Mockito;
 
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueFactory;
 
 import akka.actor.ActorRef;
@@ -71,14 +67,10 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
     private ConnectionDeleted connectionDeleted;
 
     private static final ConnectionMongoSnapshotAdapter SNAPSHOT_ADAPTER = new ConnectionMongoSnapshotAdapter();
-    private static ConfigValue blockedHosts;
 
     @BeforeClass
     public static void setUp() {
-        blockedHosts = Mockito.spy(ConfigValueFactory.fromAnyRef(""));
-        final Config config =
-                TestConstants.CONFIG.withValue("ditto.connectivity.connection.blocked-hostnames", blockedHosts);
-        actorSystem = ActorSystem.create("AkkaTestSystem", config);
+        actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         pubSubMediator = DistributedPubSub.get(actorSystem).mediator();
         proxyActor = actorSystem.actorOf(TestConstants.ProxyActorMock.props());
     }
@@ -90,7 +82,6 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
 
     @Before
     public void init() {
-        when(blockedHosts.unwrapped()).thenCallRealMethod();
         connectionId = TestConstants.createRandomConnectionId();
         final Connection connection = TestConstants.createConnection(connectionId);
         connectionCreated = ConnectionCreated.of(connection, INSTANT, DittoHeaders.empty());
@@ -104,7 +95,6 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
     @Test
     public void testRecoveryOfDeletedConnectionsWithoutSnapshot() {
         new TestKit(actorSystem) {{
-
             final Queue<ConnectivityEvent> existingEvents
                     = new LinkedList<>(Arrays.asList(connectionCreated, connectionDeleted));
             final Props fakeProps = FakePersistenceActor.props(connectionId, getRef(), existingEvents);
@@ -130,28 +120,33 @@ public final class ConnectionPersistenceActorRecoveryTest extends WithMockServer
 
     @Test
     public void testRecoveryOfConnectionWithBlockedHost() {
+        final ActorSystem akkaTestSystem =
+                ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG.withValue("ditto.connectivity.connection" +
+                        ".blocked-hostnames", ConfigValueFactory.fromAnyRef("127.0.0.1")));
+        final ActorRef mediator = DistributedPubSub.get(akkaTestSystem).mediator();
+        final ActorRef proxyActor = actorSystem.actorOf(TestConstants.ProxyActorMock.props());
 
-        // enable blocklist for this test
-        when(blockedHosts.unwrapped()).thenReturn("127.0.0.1");
+        try {
+            new TestKit(akkaTestSystem) {{
+                final Queue<ConnectivityEvent> existingEvents = new LinkedList<>(List.of(connectionCreated));
+                final Props fakeProps = FakePersistenceActor.props(connectionId, getRef(), existingEvents);
 
-        new TestKit(actorSystem) {{
+                akkaTestSystem.actorOf(fakeProps);
+                expectMsgEquals("persisted");
 
-            final Queue<ConnectivityEvent> existingEvents = new LinkedList<>(List.of(connectionCreated));
-            final Props fakeProps = FakePersistenceActor.props(connectionId, getRef(), existingEvents);
+                final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, akkaTestSystem,
+                        mediator, proxyActor);
 
-            actorSystem.actorOf(fakeProps);
-            expectMsgEquals("persisted");
+                underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
 
-            final ActorRef underTest = TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
-                    pubSubMediator, proxyActor);
-
-            underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-
-            final ConnectionConfigurationInvalidException exception =
-                    expectMsgClass(ConnectionConfigurationInvalidException.class);
-            assertThat(exception)
-                    .hasMessageContaining("The configured host '127.0.0.1' may not be used for the connection");
-        }};
+                final ConnectionConfigurationInvalidException exception =
+                        expectMsgClass(ConnectionConfigurationInvalidException.class);
+                assertThat(exception)
+                        .hasMessageContaining("The configured host '127.0.0.1' may not be used for the connection");
+            }};
+        } finally {
+            TestKit.shutdownActorSystem(akkaTestSystem);
+        }
     }
 
     private Connection setLifecycleDeleted(final Connection connection) {

@@ -25,7 +25,8 @@ final class MappedOutcome<T> implements MappingOutcome<T> {
     private final TopicPath topicPath;
     @Nullable private final ExternalMessage externalMessage;
 
-    MappedOutcome(final CharSequence mapperId, final T mapped, final TopicPath topicPath, @Nullable final ExternalMessage externalMessage) {
+    MappedOutcome(final CharSequence mapperId, final T mapped, final TopicPath topicPath,
+            @Nullable final ExternalMessage externalMessage) {
         this.mapperId = mapperId;
         this.mapped = mapped;
         this.topicPath = topicPath;

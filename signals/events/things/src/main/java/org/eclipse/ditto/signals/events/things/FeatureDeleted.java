@@ -204,12 +204,13 @@ public final class FeatureDeleted extends AbstractThingEvent<FeatureDeleted> imp
      * 'FeatureDeleted' format.
      */
     public static FeatureDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<FeatureDeleted>(TYPE, jsonObject).deserialize((revision, timestamp, metadata) -> {
+        return new EventJsonDeserializer<FeatureDeleted>(TYPE, jsonObject).deserialize(
+                (revision, timestamp, metadata) -> {
             final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final String extractedFeatureId = jsonObject.getValueOrThrow(JsonFields.FEATURE_ID);
 
-            return of(thingId, extractedFeatureId, revision, timestamp, dittoHeaders, metadata);
+                    return of(thingId, extractedFeatureId, revision, timestamp, dittoHeaders, metadata);
         });
     }
 

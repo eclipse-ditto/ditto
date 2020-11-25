@@ -66,6 +66,11 @@
             <artifactId>ditto-services-connectivity-util</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-connectivity-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -234,6 +239,12 @@
         <dependency>
             <groupId>com.github.dnvriend</groupId>
             <artifactId>akka-persistence-inmemory_${scala.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-connectivity-common</artifactId>
+            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
     </dependencies>

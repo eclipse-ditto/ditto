@@ -37,7 +37,7 @@ import javax.naming.NamingException;
 
 import org.apache.qpid.jms.JmsConnection;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.services.connectivity.messaging.config.Amqp10Config;
+import org.eclipse.ditto.services.connectivity.config.Amqp10Config;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.slf4j.LoggerFactory;

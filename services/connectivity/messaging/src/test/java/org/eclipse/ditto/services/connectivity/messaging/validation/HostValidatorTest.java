@@ -23,8 +23,8 @@ import java.util.List;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.validation.HostValidator.HostValidationResult;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,7 +42,7 @@ public class HostValidatorTest {
     private LoggingAdapter loggingAdapter;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         connectivityConfig = mock(ConnectivityConfig.class);
         connectionConfig = mock(ConnectionConfig.class);
         when(connectivityConfig.getConnectionConfig()).thenReturn(connectionConfig);

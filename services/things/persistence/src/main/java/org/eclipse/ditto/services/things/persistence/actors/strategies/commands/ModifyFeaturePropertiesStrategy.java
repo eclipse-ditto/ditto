@@ -106,8 +106,9 @@ final class ModifyFeaturePropertiesStrategy extends AbstractThingCommandStrategy
         final String featureId = command.getFeatureId();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final ThingEvent<?> event = FeaturePropertiesModified.of(thingId, featureId, command.getProperties(), nextRevision,
-                getEventTimestamp(), dittoHeaders, metadata);
+        final ThingEvent<?> event =
+                FeaturePropertiesModified.of(thingId, featureId, command.getProperties(), nextRevision,
+                        getEventTimestamp(), dittoHeaders, metadata);
         final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
                 ModifyFeaturePropertiesResponse.modified(context.getState(), featureId, dittoHeaders), thing);
 

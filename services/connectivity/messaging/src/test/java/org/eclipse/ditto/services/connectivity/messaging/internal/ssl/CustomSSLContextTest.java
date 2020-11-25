@@ -26,7 +26,6 @@ import javax.net.ssl.TrustManagerFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.Credentials;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 
 /**
  * Tests an {@link SSLContext} created from a {@link TrustManagerFactory} and {@link KeyManagerFactory} using the

@@ -13,8 +13,6 @@
 package org.eclipse.ditto.model.placeholders;
 
 
-import org.eclipse.ditto.model.placeholders.Placeholder;
-
 /**
  * A {@link Placeholder} that requires a {@code String}
  * (a {@link org.eclipse.ditto.model.connectivity.Source} {@code address}) to resolve its placeholders.

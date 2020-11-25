@@ -15,6 +15,8 @@ package org.eclipse.ditto.services.connectivity.mapping;
 import java.util.Collection;
 import java.util.Map;
 
+import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
+
 /**
  * Abstract implementation of {@link MessageMapper} which adds an id field and also its initialization from mapping
  * configuration (id is not passed as constructor argument because the mappers are created by reflection).

@@ -196,7 +196,8 @@ public final class SubjectsModified extends AbstractPolicyEvent<SubjectsModified
      * format.
      */
     public static SubjectsModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<SubjectsModified>(TYPE, jsonObject).deserialize((revision, timestamp, metadata) -> {
+        return new EventJsonDeserializer<SubjectsModified>(TYPE, jsonObject).deserialize(
+                (revision, timestamp, metadata) -> {
             final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
