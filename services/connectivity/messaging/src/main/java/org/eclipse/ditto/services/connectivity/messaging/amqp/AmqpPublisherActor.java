@@ -48,11 +48,11 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.connectivity.config.Amqp10Config;
+import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ProducerClosedStatusReport;
 import org.eclipse.ditto.services.connectivity.messaging.backoff.BackOffActor;
-import org.eclipse.ditto.services.connectivity.messaging.config.Amqp10Config;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
@@ -118,7 +118,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                         OverflowStrategy.dropNew())
                         .mapAsync(config.getPublisherParallelism(), msg -> triggerPublishAsync(msg, jmsDispatcher))
                         .recover(new PFBuilder<Throwable, Object>()
-                                .matchAny(x -> Done.getInstance()) // the "Done" instance is not used, this just means to not fail the stream for any Throwables
+                                .matchAny(
+                                        x -> Done.getInstance()) // the "Done" instance is not used, this just means to not fail the stream for any Throwables
                                 .build()
                         )
                         .viaMat(KillSwitches.single(), Keep.both())
@@ -308,6 +309,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         return message -> {
             try {
                 final Message jmsMessage = toJmsMessage(message);
+
                 final ThreadSafeDittoLoggingAdapter l;
                 if (logger.isDebugEnabled()) {
                     l = logger.withCorrelationId(message.getInternalHeaders());

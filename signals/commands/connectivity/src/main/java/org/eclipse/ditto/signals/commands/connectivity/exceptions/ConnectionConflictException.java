@@ -76,7 +76,8 @@ public final class ConnectionConflictException extends DittoRuntimeException imp
      * @return the new ConnectionConflictException.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static ConnectionConflictException fromMessage(@Nullable final String message, final DittoHeaders dittoHeaders) {
+    public static ConnectionConflictException fromMessage(@Nullable final String message,
+            final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 

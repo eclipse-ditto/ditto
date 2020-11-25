@@ -17,6 +17,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.OptionalLong;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Pattern;
 
@@ -50,6 +51,7 @@ import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpCharset;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
+import akka.http.javadsl.model.RequestEntity;
 import akka.http.javadsl.server.PathMatchers;
 import akka.http.javadsl.server.RequestContext;
 import akka.http.javadsl.server.Route;
@@ -261,7 +263,7 @@ final class MessagesRoute extends AbstractRoute {
                     .timestamp(OffsetDateTime.now())
                     .build();
 
-            final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers);
+            final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers, httpRequest);
             return SendThingMessage.of(thingId, messageBuilder.build(), enhanceHeaders(dittoHeaders, timeout));
         };
     }
@@ -287,7 +289,7 @@ final class MessagesRoute extends AbstractRoute {
                     .timestamp(OffsetDateTime.now())
                     .build();
 
-            final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers);
+            final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers, httpRequest);
             return SendFeatureMessage.of(thingId, featureId, messageBuilder.build(),
                     enhanceHeaders(dittoHeaders, timeout));
         };
@@ -316,7 +318,7 @@ final class MessagesRoute extends AbstractRoute {
                     .timestamp(OffsetDateTime.now())
                     .build();
 
-            final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers);
+            final MessageBuilder<Object> messageBuilder = initMessageBuilder(payload, contentType, headers, ctx.getRequest());
             return SendClaimMessage.of(thingId, messageBuilder.build(), enhanceHeaders(dittoHeaders, timeout));
         };
     }
@@ -335,9 +337,21 @@ final class MessagesRoute extends AbstractRoute {
     }
 
     private static MessageBuilder<Object> initMessageBuilder(final ByteBuffer payload, final ContentType contentType,
-            final MessageHeaders headers) {
+            final MessageHeaders headers, final HttpRequest request) {
 
-        // reset bytebuffer offset, otherwise payload will not be appended
+        if (hasZeroContentLength(request)) {
+            // don't define any payload if a message has explicit content-length of 0.
+            return createMessageBuilderWithoutPayload(headers);
+        }
+
+        return createMessageBuilderWithPayload(payload, contentType, headers);
+    }
+
+    private static MessageBuilder<Object> createMessageBuilderWithoutPayload(final MessageHeaders headers) {
+        return MessagesModelFactory.newMessageBuilder(headers);
+    }
+
+    private static MessageBuilder<Object> createMessageBuilderWithPayload(final ByteBuffer payload, final ContentType contentType,  final MessageHeaders headers) {
         final ByteBuffer payloadWithoutOffset = ByteBuffer.wrap(payload.array());
 
         MessageCommandSizeValidator.getInstance().ensureValidSize(() ->
@@ -388,6 +402,21 @@ final class MessagesRoute extends AbstractRoute {
             throw TimeoutInvalidException.newBuilder(timeout, maxClaimTimeout).build();
         }
         return timeout;
+    }
+
+    /**
+     * Check if the request has a Content-Length of {@code 0}, indicating it has no payload. The non-existence of
+     * Content-Length in a message will return {@code false}, as the akka documentation states that "in many cases
+     * it's dangerous to rely on the (non-)existence of a content-length" (see {@link RequestEntity#getContentLengthOption()}).
+     *
+     * @param request The request.
+     * @return {@code true} if the message contains Content-Length {@code 0}; {@code false} if no Content-Length is found or
+     * it isn't {@code 0}.
+     * @see RequestEntity#getContentLengthOption()
+     */
+    private static boolean hasZeroContentLength(final HttpRequest request) {
+        final OptionalLong contentLengthOption = request.entity().getContentLengthOption();
+        return contentLengthOption.isPresent() && 0 == contentLengthOption.getAsLong();
     }
 
 }

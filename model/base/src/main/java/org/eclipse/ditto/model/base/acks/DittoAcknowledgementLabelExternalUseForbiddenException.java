@@ -113,7 +113,8 @@ public final class DittoAcknowledgementLabelExternalUseForbiddenException extend
      * A mutable builder with a fluent API for a {@link DittoAcknowledgementLabelExternalUseForbiddenException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<DittoAcknowledgementLabelExternalUseForbiddenException> {
+    public static final class Builder
+            extends DittoRuntimeExceptionBuilder<DittoAcknowledgementLabelExternalUseForbiddenException> {
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
@@ -126,7 +127,8 @@ public final class DittoAcknowledgementLabelExternalUseForbiddenException extend
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
 
-            return new DittoAcknowledgementLabelExternalUseForbiddenException(dittoHeaders, message, description, cause, href);
+            return new DittoAcknowledgementLabelExternalUseForbiddenException(dittoHeaders, message, description, cause,
+                    href);
         }
 
     }

@@ -12,27 +12,41 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.things;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.KNOWN_FEATURE_ID;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.KNOWN_SUBJECT_WITH_SLASHES;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.KNOWN_THING_ID;
 import static org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants.UNKNOWN_PATH;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.signals.commands.messages.MessageCommand;
+import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
 import akka.actor.ActorSystem;
+import akka.http.javadsl.model.HttpEntity;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.TestRoute;
 import akka.http.javadsl.testkit.TestRouteResult;
+import akka.http.javadsl.unmarshalling.Unmarshaller;
+import akka.stream.Materializer;
+import scala.Function1;
+import scala.PartialFunction;
+import scala.concurrent.ExecutionContext;
+import scala.concurrent.Future;
 
 /**
  * Tests {@link MessagesRoute}.
@@ -52,6 +66,7 @@ public final class MessagesRouteTest extends EndpointTestBase {
             OUTBOX_MESSAGES_PATH + "/" + EndpointTestConstants.KNOWN_SUBJECT;
     private static final String OUTBOX_MESSAGES_SUBJECT_WITH_SLASHES_PATH = OUTBOX_MESSAGES_PATH + "/" +
             KNOWN_SUBJECT_WITH_SLASHES;
+    private static final String MESSAGE_PAYLOAD = "bumlux";
 
     @Rule
     public final TestName testName = new TestName();
@@ -81,8 +96,10 @@ public final class MessagesRouteTest extends EndpointTestBase {
 
     @Test
     public void postThingsClaimMessage() {
-        final TestRouteResult result = thingsMessagesTestRoute.run(HttpRequest.POST(INBOX_CLAIM_PATH));
+        final TestRouteResult result = thingsMessagesTestRoute.run(HttpRequest.POST(INBOX_CLAIM_PATH)
+                .withEntity(MESSAGE_PAYLOAD));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        assertMessageCommandHasPayload(result, MESSAGE_PAYLOAD);
     }
 
     @Test
@@ -100,8 +117,10 @@ public final class MessagesRouteTest extends EndpointTestBase {
 
     @Test
     public void postThingsInboxMessage() {
-        final TestRouteResult result = thingsMessagesTestRoute.run(HttpRequest.POST(INBOX_MESSAGES_SUBJECT_PATH));
+        final TestRouteResult result = thingsMessagesTestRoute.run(HttpRequest.POST(INBOX_MESSAGES_SUBJECT_PATH)
+                .withEntity(MESSAGE_PAYLOAD));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        assertMessageCommandHasPayload(result, MESSAGE_PAYLOAD);
     }
 
     @Test
@@ -119,8 +138,10 @@ public final class MessagesRouteTest extends EndpointTestBase {
 
     @Test
     public void postThingsOutboxMessage() {
-        final TestRouteResult result = thingsMessagesTestRoute.run(HttpRequest.POST(OUTBOX_MESSAGES_SUBJECT_PATH));
+        final TestRouteResult result = thingsMessagesTestRoute.run(HttpRequest.POST(OUTBOX_MESSAGES_SUBJECT_PATH)
+                .withEntity(MESSAGE_PAYLOAD));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        assertMessageCommandHasPayload(result, MESSAGE_PAYLOAD);
     }
 
     @Test
@@ -144,8 +165,10 @@ public final class MessagesRouteTest extends EndpointTestBase {
 
     @Test
     public void postFeaturesInboxMessage() {
-        final TestRouteResult result = featuresMessagesTestRoute.run(HttpRequest.POST(INBOX_MESSAGES_SUBJECT_PATH));
+        final TestRouteResult result = featuresMessagesTestRoute.run(HttpRequest.POST(INBOX_MESSAGES_SUBJECT_PATH)
+                .withEntity(MESSAGE_PAYLOAD));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        assertMessageCommandHasPayload(result, MESSAGE_PAYLOAD);
     }
 
     @Test
@@ -163,8 +186,10 @@ public final class MessagesRouteTest extends EndpointTestBase {
 
     @Test
     public void postFeaturesOutboxMessage() {
-        final TestRouteResult result = featuresMessagesTestRoute.run(HttpRequest.POST(OUTBOX_MESSAGES_SUBJECT_PATH));
+        final TestRouteResult result = featuresMessagesTestRoute.run(HttpRequest.POST(OUTBOX_MESSAGES_SUBJECT_PATH)
+                .withEntity(MESSAGE_PAYLOAD));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        assertMessageCommandHasPayload(result, MESSAGE_PAYLOAD);
     }
 
     @Test
@@ -191,4 +216,55 @@ public final class MessagesRouteTest extends EndpointTestBase {
         final TestRouteResult result = thingsMessagesTestRoute.run(HttpRequest.POST(INBOX_MESSAGES_PATH + "32"));
         result.assertStatusCode(StatusCodes.NOT_FOUND);
     }
+
+    @Test
+    public void postThingClaimMessageWithoutContent() {
+        final TestRouteResult result = thingsMessagesTestRoute.run(HttpRequest.POST(INBOX_CLAIM_PATH));
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        assertMessageCommandHasNoPayloadField(result);
+    }
+
+    @Test
+    public void postThingInboxWithoutContent() {
+        final TestRouteResult result = thingsMessagesTestRoute.run(HttpRequest.POST(INBOX_MESSAGES_SUBJECT_PATH));
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        assertMessageCommandHasNoPayloadField(result);
+    }
+
+    @Test
+    public void postThingOutboxWithoutContent() {
+        final TestRouteResult result = thingsMessagesTestRoute.run(HttpRequest.POST(OUTBOX_MESSAGES_SUBJECT_PATH));
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        assertMessageCommandHasNoPayloadField(result);
+    }
+
+    @Test
+    public void postFeaturesInboxWithoutContent() {
+        final TestRouteResult result = featuresMessagesTestRoute.run(HttpRequest.POST(INBOX_MESSAGES_SUBJECT_PATH));
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        assertMessageCommandHasNoPayloadField(result);
+    }
+
+    @Test
+    public void postFeaturesOutboxWithoutContent() {
+        final TestRouteResult result = featuresMessagesTestRoute.run(HttpRequest.POST(OUTBOX_MESSAGES_SUBJECT_PATH));
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+        assertMessageCommandHasNoPayloadField(result);
+    }
+
+    private static void assertMessageCommandHasPayload(final TestRouteResult routeResult, final String expectedPayload) {
+        final JsonObject message = JsonFactory.newObject(routeResult.entityString());
+        assertThat(message.getValueOrThrow(MessageCommand.JsonFields.JSON_MESSAGE)
+                .getValue(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD)
+                .map(JsonValue::asString))
+                .contains(expectedPayload);
+    }
+
+    private static void assertMessageCommandHasNoPayloadField(final TestRouteResult routeResult) {
+        final JsonObject message = JsonFactory.newObject(routeResult.entityString());
+        assertThat(message.getValueOrThrow(MessageCommand.JsonFields.JSON_MESSAGE)
+                .getValue(MessageCommand.JsonFields.JSON_MESSAGE_PAYLOAD))
+                .isEmpty();
+    }
+
 }

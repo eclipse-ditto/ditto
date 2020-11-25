@@ -29,14 +29,14 @@ johannes_schneider:
     web: https://github.com/jokraehe
 
 yufei_cai:
-    name: Yufei Cai
-    email: yufei.cai@bosch.io
-    web: https://github.com/yufei-cai
+  name: Yufei Cai
+  email: yufei.cai@bosch.io
+  web: https://github.com/yufei-cai
 
 yannic_klem:
-    name: Yannic Klem
-    email: yannic.klem@bosch.io
-    web: https://github.com/Yannic92
+  name: Yannic Klem
+  email: yannic.klem@bosch.io
+  web: https://github.com/Yannic92
 
 david_joos:
     name: David Joos

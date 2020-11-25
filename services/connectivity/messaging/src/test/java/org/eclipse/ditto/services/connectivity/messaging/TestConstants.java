@@ -97,13 +97,13 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.ClientConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.ReconnectConfig;
+import org.eclipse.ditto.services.connectivity.config.ClientConfig;
+import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.config.MonitoringConfig;
+import org.eclipse.ditto.services.connectivity.config.ReconnectConfig;
+import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectivityCounterRegistry;
@@ -179,6 +179,11 @@ public final class TestConstants {
     public static final int VALID_NUMBER_OF_TARGET_PAYLOAD_MAPPINGS =
             MAPPING_CONFIG.getMapperLimitsConfig().getMaxTargetMappers();
     public static final int INVALID_NUMBER_OF_TARGET_PAYLOAD_MAPPINGS = VALID_NUMBER_OF_TARGET_PAYLOAD_MAPPINGS + 1;
+
+    private static final int VALID_NUMBER_OF_SOURCES = CONNECTION_CONFIG.getMaxNumberOfSources();
+    public static final int INVALID_NUMBER_OF_SOURCES = VALID_NUMBER_OF_SOURCES + 1;
+    private static final int VALID_NUMBER_OF_TARGETS = CONNECTION_CONFIG.getMaxNumberOfTargets();
+    public static final int INVALID_NUMBER_OF_TARGETS = VALID_NUMBER_OF_TARGETS + 1;
 
     /**
      * Disable logging for 1 test to hide stacktrace or other logs on level ERROR. Comment out to debug the test.
@@ -546,7 +551,7 @@ public final class TestConstants {
         private static final Instant LAST_MESSAGE_AT = Instant.now().truncatedTo(ChronoUnit.MILLIS);
 
         private static final ConnectivityCounterRegistry COUNTER_REGISTRY =
-                ConnectivityCounterRegistry.fromConfig(MONITORING_CONFIG.counter());
+                ConnectivityCounterRegistry.newInstance();
 
         public static final ConnectionId ID = ConnectionId.of("myConnectionId");
 
