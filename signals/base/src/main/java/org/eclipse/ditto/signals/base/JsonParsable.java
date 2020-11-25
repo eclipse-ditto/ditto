@@ -80,6 +80,6 @@ public interface JsonParsable<T> {
          * @return the deserialized Jsonifiable object.
          * @throws NotSerializableException if inner JSON cannot be deserialized.
          */
-        Jsonifiable<?> parseInnerJson(final JsonObject jsonObject) throws NotSerializableException;
+        Jsonifiable<?> parseInnerJson(JsonObject jsonObject) throws NotSerializableException;
     }
 }

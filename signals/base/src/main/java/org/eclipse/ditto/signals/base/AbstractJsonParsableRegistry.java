@@ -96,7 +96,7 @@ public abstract class AbstractJsonParsableRegistry<T> implements JsonParsableReg
             try {
                 return jsonObjectParsable.parse(jsonObject, dittoHeaders, inner);
             } catch (final JsonRuntimeException jre) {
-                final JsonExceptionBuilder builder = JsonRuntimeException.newBuilder(jre.getErrorCode())
+                final JsonExceptionBuilder<?> builder = JsonRuntimeException.newBuilder(jre.getErrorCode())
                         .message("Error when parsing Json type '" + type + "': " + jre.getMessage())
                         .cause(jre.getCause());
                 jre.getDescription().ifPresent(builder::description);

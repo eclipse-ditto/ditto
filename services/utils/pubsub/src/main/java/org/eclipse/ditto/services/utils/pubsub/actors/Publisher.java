@@ -160,7 +160,8 @@ public final class Publisher extends AbstractActor {
         topicCounter.increment(topics.size());
         final List<Long> hashes = topics.stream().map(ddataReader::approximate).collect(Collectors.toList());
         final ActorRef sender = getSender();
-        final List<Pair<ActorRef, PublishSignal>> subscribers = publisherIndex.allotGroupsToSubscribers(signal, hashes);
+        final List<Pair<ActorRef, PublishSignal>> subscribers =
+                publisherIndex.assignGroupsToSubscribers(signal, hashes);
         subscribers.forEach(pair -> pair.first().tell(pair.second(), sender));
         return subscribers;
     }

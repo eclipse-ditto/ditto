@@ -75,11 +75,11 @@ final class PublisherIndex<T> {
         return new PublisherIndex<>(index, filterMap);
     }
 
-    List<Pair<ActorRef, PublishSignal>> allotGroupsToSubscribers(final Signal<?> signal, final Collection<T> topics) {
-        return allotGroupsToSubscribers(signal, topics, null);
+    List<Pair<ActorRef, PublishSignal>> assignGroupsToSubscribers(final Signal<?> signal, final Collection<T> topics) {
+        return assignGroupsToSubscribers(signal, topics, null);
     }
 
-    List<Pair<ActorRef, PublishSignal>> allotGroupsToSubscribers(final Signal<?> signal, final Collection<T> topics,
+    List<Pair<ActorRef, PublishSignal>> assignGroupsToSubscribers(final Signal<?> signal, final Collection<T> topics,
             @Nullable final Map<String, Integer> chosenGroups) {
         final Map<String, List<ActorRef>> groupToSubscribers = new HashMap<>();
         final Map<ActorRef, Map<String, Integer>> subscriberToChosenGroups = new HashMap<>();
