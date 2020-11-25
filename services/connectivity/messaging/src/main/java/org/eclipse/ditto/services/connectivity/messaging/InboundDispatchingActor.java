@@ -337,7 +337,7 @@ public final class InboundDispatchingActor extends AbstractActor
                         .match(CommandResponse.class, ProtocolAdapter::isLiveSignal, liveResponse ->
                                 forwardToClientActor(liveResponse, ActorRef.noSender())
                         )
-                        .match(ThingSearchCommand.class, cmd -> forwardToClientActor(cmd, sender))
+                        .match(ThingSearchCommand.class, cmd -> forwardToConnectionActor(cmd, sender))
                         .matchAny(baseSignal -> ackregatorStarter.preprocess(baseSignal,
                                 (signal, isAckRequesting) -> Stream.of(new IncomingSignal(signal,
                                         getReturnAddress(sender, isAckRequesting, signal),
@@ -460,13 +460,15 @@ public final class InboundDispatchingActor extends AbstractActor
      */
     private <T> Stream<T> forwardToClientActor(final Signal<?> signal,
             @Nullable final ActorRef sender) {
+        // wrap response or search command for dispatching by entity ID
+        getContext().parent().tell(InboundSignal.of(signal), sender);
+        return Stream.empty();
+    }
+
+    private <T> Stream<T> forwardToConnectionActor(final ThingSearchCommand<?> searchCommand,
+            @Nullable final ActorRef sender) {
         // TODO: only forward CreateSubscription to connection actor; dispatch commands with prefix directly
-        if (signal instanceof ThingSearchCommand) {
-            connectionActor.tell(signal, sender);
-        } else {
-            // wrap response or search command for dispatching by entity ID
-            getContext().parent().tell(InboundSignal.of(signal), sender);
-        }
+        connectionActor.tell(searchCommand, sender);
         return Stream.empty();
     }
 

@@ -35,6 +35,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
+import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -71,7 +72,8 @@ final class OutboundDispatchingActor extends AbstractActor {
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(InboundSignal.class, this::inboundSignal)
-                .match(CommandResponse.class, this::commandResponse)
+                .match(CommandResponse.class, this::forwardWithoutCheck)
+                .match(SubscriptionEvent.class, this::forwardWithoutCheck)
                 .match(Signal.class, this::handleSignal)
                 .matchAny(message -> logger.warning("Unknown message: <{}>", message))
                 .build();
@@ -81,7 +83,7 @@ final class OutboundDispatchingActor extends AbstractActor {
         handleInboundResponseOrAcknowledgement(inboundSignal.getSignal());
     }
 
-    private void commandResponse(final Object message) {
+    private void forwardWithoutCheck(final Object message) {
         outboundMappingProcessorActor.tell(message, getSender());
     }
 
