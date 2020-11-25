@@ -12,45 +12,49 @@
  */
 package org.eclipse.ditto.services.utils.config.raw;
 
+import javax.annotation.Nullable;
+
 /**
  * An enumeration of the known hosting environments.
  */
 enum HostingEnvironment {
 
     /**
-     * Used when hosting environment is set to "docker".
+     * Used when hosting environment is set to "production", or one of the deprecated "docker", "cloud".
      * This will use no additional config file in addition to $servicename.conf
      */
-    DOCKER("-docker"),
+    PRODUCTION,
 
     /**
      * Used when no (known) hosting environment is specified.
      * This will use the config file $servicename-dev.conf
      */
-    DEVELOPMENT("-dev"),
+    DEVELOPMENT,
 
     /**
      * Used when hosting environment is set to "filebased".
      * This will use the config file specified by the environment variable: HOSTING_ENVIRONMENT_FILE_LOCATION.
      */
-    FILE_BASED("");
+    FILE_BASED;
 
-    public static final String CONFIG_PATH = "hosting.environment";
-
-    private final String configFileSuffix;
-
-    HostingEnvironment(final String suffix) {
-        configFileSuffix = suffix;
+    static HostingEnvironment fromHostingEnvironmentName(@Nullable final String hostingEnvironmentName) {
+        if (hostingEnvironmentName == null) {
+            return DEVELOPMENT;
+        }
+        switch (hostingEnvironmentName.toLowerCase()) {
+            case "docker":  // deprecated but support for backward compatibility reasons
+            case "cloud":   // deprecated but support for backward compatibility reasons
+            case "production":
+                return HostingEnvironment.PRODUCTION;
+            case "filebased":
+                return HostingEnvironment.FILE_BASED;
+            default:
+                return HostingEnvironment.DEVELOPMENT;
+        }
     }
 
-    /**
-     * Returns the suffix that distinguishes the config file for this particular hosting environment from the base
-     * config file.
-     *
-     * @return the suffix.
-     */
-    public String getConfigFileSuffix() {
-        return configFileSuffix;
+    @Override
+    public String toString() {
+        return name();
     }
-
 }
