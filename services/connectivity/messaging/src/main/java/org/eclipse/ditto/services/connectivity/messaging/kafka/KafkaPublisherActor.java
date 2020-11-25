@@ -284,7 +284,8 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             if (metadata == null || !isDebugEnabled()) {
                 return Acknowledgement.of(autoAckLabel, id, HttpStatusCode.NO_CONTENT, signal.getDittoHeaders());
             } else {
-                return Acknowledgement.of(autoAckLabel, id, HttpStatusCode.OK, signal.getDittoHeaders(), toPayload(metadata));
+                return Acknowledgement.of(autoAckLabel, id, HttpStatusCode.OK, signal.getDittoHeaders(),
+                        toPayload(metadata));
             }
         }
 

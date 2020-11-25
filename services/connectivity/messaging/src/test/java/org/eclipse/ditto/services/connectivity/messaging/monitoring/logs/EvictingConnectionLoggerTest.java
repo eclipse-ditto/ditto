@@ -363,7 +363,7 @@ public final class EvictingConnectionLoggerTest {
     }
 
     private String formatString(final String format, final String value) {
-        return new MessageFormat(format).format(new Object[] {value});
+        return new MessageFormat(format).format(new Object[]{value});
     }
 
     private LogEntry getFirstAndOnlyEntry(final ConnectionLogger logger) {

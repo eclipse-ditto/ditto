@@ -88,7 +88,7 @@ public final class ExecutePiggybackCommand extends AbstractDevOpsCommand<Execute
      * @param piggybackCommand the command to execute.
      * @param targetActorSelection the ActorSelection path as string where to send the piggybackCommand to.
      * @param dittoHeaders the headers of the request.
-     * @return a new ChangeLogLevel command.
+     * @return a new ExecutePiggybackCommand command.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ExecutePiggybackCommand of(@Nullable final String serviceName, @Nullable final String instance,
@@ -103,7 +103,7 @@ public final class ExecutePiggybackCommand extends AbstractDevOpsCommand<Execute
      * @param piggybackCommand the command to execute.
      * @param targetActorSelection the ActorSelection path as string where to send the piggybackCommand to.
      * @param dittoHeaders the headers of the request.
-     * @return a new ChangeLogLevel command.
+     * @return a new ExecutePiggybackCommand command.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ExecutePiggybackCommand of(@Nullable final String serviceName, final String targetActorSelection,
@@ -117,7 +117,7 @@ public final class ExecutePiggybackCommand extends AbstractDevOpsCommand<Execute
      * @param targetActorSelection the ActorSelection path as string where to send the piggybackCommand to.
      * @param piggybackCommand the command to execute.
      * @param dittoHeaders the headers of the request.
-     * @return a new ChangeLogLevel command.
+     * @return a new ExecutePiggybackCommand command.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ExecutePiggybackCommand of(final String targetActorSelection, final JsonObject piggybackCommand,
@@ -130,7 +130,7 @@ public final class ExecutePiggybackCommand extends AbstractDevOpsCommand<Execute
      *
      * @param jsonString contains the data of the ExecutePiggybackCommand command.
      * @param dittoHeaders the headers of the request.
-     * @return the ChangeLogLevel command which is based on the data of {@code jsonString}.
+     * @return the ExecutePiggybackCommand command which is based on the data of {@code jsonString}.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.

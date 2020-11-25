@@ -107,7 +107,8 @@ public final class FeaturePropertyModified extends AbstractThingEvent<FeaturePro
             final long revision,
             final DittoHeaders dittoHeaders) {
 
-        return of(ThingId.of(thingId), featureId, propertyJsonPointer, propertyValue, revision, null, dittoHeaders, null);
+        return of(ThingId.of(thingId), featureId, propertyJsonPointer, propertyValue, revision, null, dittoHeaders,
+                null);
     }
 
     /**

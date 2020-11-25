@@ -22,7 +22,7 @@ import java.util.Map;
 
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.services.connectivity.messaging.config.KafkaConfig;
+import org.eclipse.ditto.services.connectivity.config.KafkaConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 
 import com.typesafe.config.Config;

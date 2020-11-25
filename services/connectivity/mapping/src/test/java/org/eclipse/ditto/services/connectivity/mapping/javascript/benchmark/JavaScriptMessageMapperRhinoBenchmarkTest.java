@@ -25,8 +25,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.junit.Test;
 
 /**
- * Simple Test executing the benchmark scenarios for
- * {@link org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperRhino}.
+ * Simple Test executing the benchmark scenarios for {@code JavaScriptMessageMapperRhino}.
  */
 public class JavaScriptMessageMapperRhinoBenchmarkTest {
 

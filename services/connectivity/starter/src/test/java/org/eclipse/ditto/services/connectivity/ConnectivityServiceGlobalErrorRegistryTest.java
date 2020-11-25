@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.things.AclEntryInvalidException;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.protocoladapter.UnknownCommandException;
+import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigUnavailableException;
 import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
@@ -58,7 +59,8 @@ public final class ConnectivityServiceGlobalErrorRegistryTest extends GlobalErro
                 ThingIdInvalidException.class,
                 PolicyIdInvalidException.class,
                 AcknowledgementLabelInvalidException.class,
-                AcknowledgementCorrelationIdMissingException.class);
+                AcknowledgementCorrelationIdMissingException.class,
+                ConnectivityConfigUnavailableException.class);
     }
 
 }

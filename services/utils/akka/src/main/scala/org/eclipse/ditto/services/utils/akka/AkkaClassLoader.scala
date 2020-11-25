@@ -24,26 +24,26 @@ import scala.reflect.ClassTag
 object AkkaClassLoader {
 
   /** Dynamically instantiate a class with its zero-argument public constructor.
-   *
-   *  @param actorSystem   Actor system to create the object in.
-   *  @param superclass    A superclass of the instantiated class.
-   *  @param canonicalName Canonical name of the class. Must have a zero-argument public constructor.
-   *  @tparam T the superclass.
-   *  @return The instantiated object.
-   */
+    *
+    * @param actorSystem   Actor system to create the object in.
+    * @param superclass    A superclass of the instantiated class.
+    * @param canonicalName Canonical name of the class. Must have a zero-argument public constructor.
+    * @tparam T the superclass.
+    * @return The instantiated object.
+    */
   def instantiate[T](actorSystem: ActorSystem, superclass: Class[T], canonicalName: String): T =
     instantiate(actorSystem, superclass, canonicalName, Collections.emptyList(), Collections.emptyList())
 
   /** Dynamically instantiate a class with a public constructor.
-   *
-   *  @param actorSystem   Actor system to create the object in.
-   *  @param superclass    A superclass of the instantiated class.
-   *  @param canonicalName Canonical name of the class.
-   *  @param argTypes      Classes of the constructor arguments.
-   *  @param args          Constructor arguments.
-   *  @tparam T the superclass.
-   *  @return The instantiated object.
-   */
+    *
+    * @param actorSystem   Actor system to create the object in.
+    * @param superclass    A superclass of the instantiated class.
+    * @param canonicalName Canonical name of the class.
+    * @param argTypes      Classes of the constructor arguments.
+    * @param args          Constructor arguments.
+    * @tparam T the superclass.
+    * @return The instantiated object.
+    */
   def instantiate[T](actorSystem: ActorSystem, superclass: Class[T],
                      canonicalName: String,
                      argTypes: java.util.List[Class[_]],

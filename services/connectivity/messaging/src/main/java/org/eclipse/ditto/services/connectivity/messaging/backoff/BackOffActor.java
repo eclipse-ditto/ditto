@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging.backoff;
 
 import java.time.Duration;
 
+import org.eclipse.ditto.services.connectivity.config.BackOffConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 
 import akka.actor.AbstractActor;

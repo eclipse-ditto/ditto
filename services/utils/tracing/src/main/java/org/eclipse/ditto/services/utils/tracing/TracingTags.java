@@ -23,7 +23,7 @@ public final class TracingTags {
     public static final String COMMAND_TYPE_PREFIX = PREFIX + "command.typePrefix";
     public static final String COMMAND_CATEGORY = PREFIX + "command.category";
     public static final String CONNECTION_ID =  PREFIX + "connection.id";
-    public static final String CONNECTION_TYPE =  PREFIX + "connection.type";
+    public static final String CONNECTION_TYPE = PREFIX + "connection.type";
 
     //HTTP round trip tags
     public static final String STATUS_CODE = PREFIX + "statusCode";

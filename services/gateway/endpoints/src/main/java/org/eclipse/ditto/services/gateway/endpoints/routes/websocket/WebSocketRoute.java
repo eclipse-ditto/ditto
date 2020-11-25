@@ -175,6 +175,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private WebSocketSupervisor webSocketSupervisor;
     @Nullable private GatewaySignalEnrichmentProvider signalEnrichmentProvider;
     private HeaderTranslator headerTranslator;
+    private WebSocketConfigProvider webSocketConfigProvider;
 
     private WebSocketRoute(final ActorRef streamingActor, final StreamingConfig streamingConfig,
             final Materializer materializer) {
@@ -187,6 +188,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         outgoingMessageSniffer = noOpEventSniffer;
         authorizationEnforcer = new NoOpAuthorizationEnforcer();
         webSocketSupervisor = new NoOpWebSocketSupervisor();
+        webSocketConfigProvider = new NoOpWebSocketConfigProvider();
         signalEnrichmentProvider = null;
         headerTranslator = HeaderTranslator.empty();
         this.materializer = materializer;
@@ -242,6 +244,12 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         return this;
     }
 
+    @Override
+    public WebSocketRouteBuilder withWebSocketConfigProvider(final WebSocketConfigProvider webSocketConfigProvider) {
+        this.webSocketConfigProvider = checkNotNull(webSocketConfigProvider, "webSocketConfigProvider");
+        return this;
+    }
+
     /**
      * Builds the {@code /ws} route.
      *
@@ -281,17 +289,25 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(connectionCorrelationId);
         logger.info("Creating WebSocket for connection authContext: <{}>", authContext);
 
-        return retrieveWebsocketConfig().thenApply(websocketConfig -> {
-            final Pair<Connect, Flow<DittoRuntimeException, Message, NotUsed>> outgoing =
-                    createOutgoing(version, connectionCorrelationId, dittoHeaders, adapter, request,
-                            websocketConfig, signalEnrichmentFacade, logger);
+        return retrieveWebsocketConfig()
+                .thenApply(overwriteWebSocketConfig(dittoHeaders))
+                .thenApply(websocketConfig -> {
+                    final Pair<Connect, Flow<DittoRuntimeException, Message, NotUsed>> outgoing =
+                            createOutgoing(version, connectionCorrelationId, dittoHeaders, adapter, request,
+                                    websocketConfig, signalEnrichmentFacade, logger);
 
-            final Flow<Message, DittoRuntimeException, NotUsed> incoming =
-                    createIncoming(version, connectionCorrelationId, authContext, dittoHeaders, adapter, request,
-                            websocketConfig, outgoing.first(), logger);
+                    final Flow<Message, DittoRuntimeException, NotUsed> incoming =
+                            createIncoming(version, connectionCorrelationId, authContext, dittoHeaders, adapter,
+                                    request,
+                                    websocketConfig, outgoing.first(), logger);
 
-            return upgradeToWebSocket.handleMessagesWith(incoming.via(outgoing.second()));
-        });
+                    return upgradeToWebSocket.handleMessagesWith(incoming.via(outgoing.second()));
+                });
+    }
+
+    private java.util.function.Function<WebsocketConfig, WebsocketConfig> overwriteWebSocketConfig(
+            final DittoHeaders dittoHeaders) {
+        return wsConfig -> webSocketConfigProvider.apply(dittoHeaders, wsConfig);
     }
 
     /* Incoming flow:
@@ -827,4 +843,16 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
         }
     }
 
+    /**
+     * Null implementation for {@link WebSocketConfigProvider} which does nothing.
+     */
+    private static final class NoOpWebSocketConfigProvider implements WebSocketConfigProvider {
+
+        @Override
+        public WebsocketConfig apply(final DittoHeaders DittoHeaders,
+                final WebsocketConfig websocketConfig) {
+            // given websocketConfig is not touched
+            return websocketConfig;
+        }
+    }
 }

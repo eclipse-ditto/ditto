@@ -1,4 +1,15 @@
-FROM adoptopenjdk/openjdk11-openj9:x86_64-alpine-jdk-11.0.8_10_openj9-0.21.0-slim
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+
+FROM adoptopenjdk/openjdk11-openj9:jdk-11.0.9_11_openj9-0.23.0-alpine-slim
 
 ARG TARGET_DIR
 ARG SERVICE_STARTER
@@ -12,8 +23,6 @@ ENV HTTP_PORT=8080 \
 EXPOSE 8080
 
 RUN mkdir -p $DITTO_HOME
-
-COPY ${TARGET_DIR}/${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar $DITTO_HOME
 
 RUN set -x \
     && apk upgrade --update-cache \
@@ -30,3 +39,5 @@ USER ditto
 WORKDIR $DITTO_HOME
 ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["java", "-jar", "/opt/ditto/starter.jar"]
+
+COPY ${TARGET_DIR}/${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar $DITTO_HOME

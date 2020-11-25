@@ -221,7 +221,7 @@ final class DefaultDittoDiagnosticLoggingAdapter extends DittoDiagnosticLoggingA
 
         currentLogger = autoDiscardingLoggingAdapter;
         currentLogger.putMdcEntry(mdcEntry.getKey(), mdcEntry.getValueOrNull());
-        for(final MdcEntry furtherMdcEntry : furtherMdcEntries) {
+        for (final MdcEntry furtherMdcEntry : furtherMdcEntries) {
             currentLogger.putMdcEntry(furtherMdcEntry.getKey(), furtherMdcEntry.getValueOrNull());
         }
         return this;

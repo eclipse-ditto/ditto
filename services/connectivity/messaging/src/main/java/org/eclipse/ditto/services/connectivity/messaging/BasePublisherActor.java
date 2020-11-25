@@ -53,11 +53,11 @@ import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringLoggerConfig;
+import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.config.MonitoringConfig;
+import org.eclipse.ditto.services.connectivity.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
@@ -187,7 +187,7 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
                     final Collection<Acknowledgement> acknowledgements = new ArrayList<>();
                     final Collection<CommandResponse<?>> nonAcknowledgements = new ArrayList<>();
                     responsesList.forEach(response -> {
-                        if (response instanceof Acknowledgement){
+                        if (response instanceof Acknowledgement) {
                             final Acknowledgement acknowledgement = (Acknowledgement) response;
                             if (shouldPublishAcknowledgement(acknowledgement)) {
                                 acknowledgements.add(acknowledgement);

@@ -173,7 +173,8 @@ public interface Payload extends Jsonifiable<JsonObject> {
          *
          * @since 1.3.0
          */
-        public static final JsonFieldDefinition<JsonObject> METADATA = JsonFactory.newJsonObjectFieldDefinition("metadata");
+        public static final JsonFieldDefinition<JsonObject> METADATA =
+                JsonFactory.newJsonObjectFieldDefinition("metadata");
 
         /**
          * JSON field containing the fields.

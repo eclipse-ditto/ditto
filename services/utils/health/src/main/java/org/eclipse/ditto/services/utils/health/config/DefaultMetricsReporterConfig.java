@@ -60,16 +60,14 @@ public final class DefaultMetricsReporterConfig implements MetricsReporterConfig
         return history;
     }
 
+
     @Override
     public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
         final DefaultMetricsReporterConfig that = (DefaultMetricsReporterConfig) o;
-        return resolution == that.resolution && Objects.equals(history, that.history);
+        return history == that.history &&
+                Objects.equals(resolution, that.resolution);
     }
 
     @Override

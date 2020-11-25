@@ -75,7 +75,8 @@ final class DeleteThingDefinitionStrategy
                 DeleteThingDefinitionResponse.of(thingId, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command,
-                ThingDefinitionDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders, metadata), response);
+                ThingDefinitionDeleted.of(thingId, nextRevision, getEventTimestamp(), dittoHeaders, metadata),
+                response);
     }
 
     @Override

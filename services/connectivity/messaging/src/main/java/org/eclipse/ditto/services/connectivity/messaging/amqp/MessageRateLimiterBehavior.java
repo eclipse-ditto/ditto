@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
 import java.time.Duration;
 
-import org.eclipse.ditto.services.connectivity.messaging.config.Amqp10Config;
+import org.eclipse.ditto.services.connectivity.config.Amqp10Config;
 
 import akka.actor.AbstractActor;
 import akka.actor.Actor;

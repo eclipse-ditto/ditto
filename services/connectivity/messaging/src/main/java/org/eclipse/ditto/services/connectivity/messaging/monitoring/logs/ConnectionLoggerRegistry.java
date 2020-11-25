@@ -41,7 +41,7 @@ import org.eclipse.ditto.model.connectivity.LogEntry;
 import org.eclipse.ditto.model.connectivity.LogType;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringLoggerConfig;
+import org.eclipse.ditto.services.connectivity.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
@@ -329,6 +329,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     public ConnectionLogger forInboundDropped(final ConnectionId connectionId, final String source) {
         return getLogger(connectionId, LogCategory.SOURCE, LogType.DROPPED, source);
     }
+
     @Override
     public ConnectionLogger forInboundAcknowledged(final ConnectionId connectionId, final String source) {
         return getLogger(connectionId, LogCategory.SOURCE, LogType.ACKNOWLEDGED, source);
@@ -442,7 +443,7 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
                 final Collection<LogEntry> logs) {
             this.enabledSince = enabledSince;
             this.enabledUntil = enabledUntil;
-            this.logs = Collections.unmodifiableCollection(new ArrayList<>(logs));
+            this.logs = List.copyOf(logs);
         }
 
         /**

@@ -23,8 +23,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
@@ -60,10 +60,12 @@ public final class InboundMappingProcessorActor
 
     private final ThreadSafeDittoLoggingAdapter logger;
 
-    private final InboundMappingProcessor inboundMappingProcessor;
     private final MappingConfig mappingConfig;
     private final int processorPoolSize;
     private final ActorRef inboundDispatchingActor;
+
+    // not final because it may change when the underlying config changed
+    private InboundMappingProcessor inboundMappingProcessor;
 
     @SuppressWarnings("unused")
     private InboundMappingProcessorActor(final InboundMappingProcessor inboundMappingProcessor,
@@ -129,9 +131,14 @@ public final class InboundMappingProcessorActor
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        receiveBuilder.match(Status.Failure.class, f ->
-                logger.warning("Got failure with cause {}: {}",
-                        f.cause().getClass().getSimpleName(), f.cause().getMessage()));
+        receiveBuilder
+                .match(Status.Failure.class, f ->
+                        logger.warning("Got failure with cause {}: {}",
+                                f.cause().getClass().getSimpleName(), f.cause().getMessage()))
+                .match(BaseClientActor.ReplaceInboundMappingProcessor.class, replaceProcessor -> {
+                    logger.info("Replacing the InboundMappingProcessor with a modified one.");
+                    this.inboundMappingProcessor = replaceProcessor.getInboundMappingProcessor();
+                });
     }
 
     @Override
