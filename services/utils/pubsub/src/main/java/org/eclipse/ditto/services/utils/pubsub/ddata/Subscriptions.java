@@ -53,7 +53,7 @@ public interface Subscriptions<T> {
      */
     boolean subscribe(ActorRef subscriber, Set<String> topics,
             @Nullable Predicate<Collection<String>> filter,
-            @Nullable final String group);
+            @Nullable String group);
 
     /**
      * Subscribe for all messages published at any of the given topics.

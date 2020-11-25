@@ -53,7 +53,7 @@ public final class Publisher extends AbstractActor {
     /**
      * Prefix of this actor's name.
      */
-    public static final java.lang.String ACTOR_NAME_PREFIX = "publisher";
+    public static final String ACTOR_NAME_PREFIX = "publisher";
 
     private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
@@ -92,7 +92,7 @@ public final class Publisher extends AbstractActor {
      * @param message the message to publish.
      * @return a publish message.
      */
-    public static Request publish(final Collection<java.lang.String> topics, final Signal<?> message) {
+    public static Request publish(final Collection<String> topics, final Signal<?> message) {
         return new Publish(topics, message);
     }
 
@@ -106,7 +106,7 @@ public final class Publisher extends AbstractActor {
      * @param dittoHeaders the Ditto headers of any weak acknowledgements to send back.
      * @return the request.
      */
-    public static Request publishWithAck(final Collection<java.lang.String> topics,
+    public static Request publishWithAck(final Collection<String> topics,
             final Signal<?> message,
             final Set<AcknowledgementRequest> ackRequests,
             final EntityIdWithType entityId,
@@ -154,7 +154,7 @@ public final class Publisher extends AbstractActor {
         }
     }
 
-    private List<Pair<ActorRef, PublishSignal>> doPublish(final Collection<java.lang.String> topics,
+    private List<Pair<ActorRef, PublishSignal>> doPublish(final Collection<String> topics,
             final Signal<?> signal) {
         messageCounter.increment();
         topicCounter.increment(topics.size());
@@ -200,10 +200,10 @@ public final class Publisher extends AbstractActor {
      */
     private static final class Publish implements Request {
 
-        private final Collection<java.lang.String> topics;
+        private final Collection<String> topics;
         private final Signal<?> message;
 
-        private Publish(final Collection<java.lang.String> topics, final Signal<?> message) {
+        private Publish(final Collection<String> topics, final Signal<?> message) {
             this.topics = topics;
             this.message = message;
         }
@@ -217,13 +217,13 @@ public final class Publisher extends AbstractActor {
         private static final AckExtractor<PublishWithAck> ACK_EXTRACTOR =
                 AckExtractor.of(p -> p.entityId, p -> p.dittoHeaders);
 
-        private final Collection<java.lang.String> topics;
+        private final Collection<String> topics;
         private final Signal<?> message;
         private final Set<AcknowledgementRequest> ackRequests;
         private final EntityIdWithType entityId;
         private final DittoHeaders dittoHeaders;
 
-        private PublishWithAck(final Collection<java.lang.String> topics,
+        private PublishWithAck(final Collection<String> topics,
                 final Signal<?> message,
                 final Set<AcknowledgementRequest> ackRequests,
                 final EntityIdWithType entityId,

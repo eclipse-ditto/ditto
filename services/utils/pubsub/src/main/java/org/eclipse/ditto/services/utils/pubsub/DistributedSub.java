@@ -38,7 +38,7 @@ public interface DistributedSub {
      * @return a future that completes after subscription becomes effective on all nodes.
      */
     CompletionStage<SubAck> subscribeWithFilterAndGroup(Collection<String> topics,
-            ActorRef subscriber, @Nullable Predicate<Collection<String>> filter, @Nullable final String group);
+            ActorRef subscriber, @Nullable Predicate<Collection<String>> filter, @Nullable String group);
 
     /**
      * Subscribe for a collection of topics.

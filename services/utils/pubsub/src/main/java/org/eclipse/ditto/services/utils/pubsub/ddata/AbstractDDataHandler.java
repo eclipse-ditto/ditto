@@ -24,7 +24,6 @@ import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
-import akka.actor.Address;
 import akka.cluster.Cluster;
 import akka.cluster.ddata.Key;
 import akka.cluster.ddata.ORMultiMap;
@@ -55,12 +54,6 @@ public abstract class AbstractDDataHandler<K, S, T extends DDataUpdate<S>>
         this.selfUniqueAddress = SelfUniqueAddress.apply(Cluster.get(actorSystem).selfUniqueAddress());
         ddataMetrics = DittoMetrics.gauge("pubsub-ddata-entries").tag("topic", topicType);
     }
-
-    @Override
-    public abstract CompletionStage<Void> removeAddress(Address address, Replicator.WriteConsistency writeConsistency);
-
-    @Override
-    public abstract long approximate(final String topic);
 
     @Override
     public CompletionStage<Map<K, scala.collection.immutable.Set<S>>> read(
