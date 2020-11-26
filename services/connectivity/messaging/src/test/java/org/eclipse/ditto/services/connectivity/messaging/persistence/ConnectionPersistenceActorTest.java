@@ -22,24 +22,15 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
 import org.awaitility.Awaitility;
-import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredException;
-import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -50,18 +41,13 @@ import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
-import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.MockClientActor;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.WithMockServers;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.controlflow.WithSender;
 import org.eclipse.ditto.services.utils.test.Retry;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
-import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
@@ -94,12 +80,9 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionR
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.events.things.AttributeModified;
-import org.eclipse.ditto.signals.events.things.ThingModifiedEvent;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -112,7 +95,6 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
-import akka.japi.Creator;
 import akka.japi.pf.ReceiveBuilder;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -149,7 +131,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     private RetrieveConnectionResponse retrieveModifiedConnectionResponse;
     private RetrieveConnectionStatusResponse retrieveConnectionStatusOpenResponse;
     private ConnectionNotAccessibleException connectionNotAccessibleException;
-    private ThingModifiedEvent<?> thingModified;
 
     // second actor system to test multiple client actors
     private ActorSystem actorSystem2;
@@ -219,7 +200,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                                         "target1", "publisher started")))
                         .build();
         connectionNotAccessibleException = ConnectionNotAccessibleException.newBuilder(connectionId).build();
-        thingModified = TestConstants.thingModified(Collections.singleton(TestConstants.Authorization.SUBJECT));
     }
 
     @Test
@@ -870,42 +850,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     }
 
     @Test
-    @Ignore("TODO: move to OutboundDispatchingActor")
-    public void testThingEventWithAuthorizedSubjectExpectIsForwarded() {
-        final Set<AuthorizationSubject> valid = Collections.singleton(TestConstants.Authorization.SUBJECT);
-        testForwardThingEvent(true, TestConstants.thingModified(valid));
-    }
-
-    @Test
-    @Ignore("TODO: move to OutboundDispatchingActor")
-    public void testThingEventIsForwardedToFilteredTarget() {
-        final Connection connection = TestConstants.createConnection(connectionId,
-                TestConstants.Targets.TARGET_WITH_PLACEHOLDER);
-
-        // expect that address is still with placeholders (as replacement was moved to MessageMappingProcessorActor
-        final Target expectedTarget = ConnectivityModelFactory.newTarget(TestConstants.Targets.TARGET_WITH_PLACEHOLDER,
-                TestConstants.Targets.TARGET_WITH_PLACEHOLDER.getAddress(), null);
-
-        final CreateConnection createConnection = CreateConnection.of(connection, DittoHeaders.empty());
-        testForwardThingEvent(createConnection, true, thingModified, expectedTarget);
-    }
-
-    @Test
-    @Ignore("TODO: move to OutboundDispatchingActor")
-    public void testThingEventWithUnauthorizedSubjectExpectIsNotForwarded() {
-        final Set<AuthorizationSubject> invalid =
-                Collections.singleton(AuthorizationModelFactory.newAuthSubject("iot:user"));
-        testForwardThingEvent(false, TestConstants.thingModified(invalid));
-    }
-
-    @Test
-    @Ignore("TODO: move to OutboundDispatchingActor")
-    public void testLiveMessageWithAuthorizedSubjectExpectIsNotForwarded() {
-        final Set<AuthorizationSubject> valid = Collections.singleton(TestConstants.Authorization.SUBJECT);
-        testForwardThingEvent(false, TestConstants.sendThingMessage(valid));
-    }
-
-    @Test
     public void testResetConnectionMetrics() {
         new TestKit(actorSystem) {{
             final TestProbe probe = TestProbe.apply(actorSystem);
@@ -1142,250 +1086,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
     }
 
     @Test
-    @Ignore("TODO: move to OutboundDispatchingActor")
-    public void testHandleSignalWithAcknowledgementRequest() {
-        new TestKit(actorSystem) {{
-            // GIVEN: ack label declaration succeeds
-            final TestKit probe = new TestKit(actorSystem);
-            final ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
-                            (connection, connectionActor, proxyActor) -> TestActor.props(probe),
-                            pubSubMediator);
-            watch(underTest);
-
-            // create connection
-            underTest.tell(createConnectionWithTestAck(), getRef());
-            expectMsgClass(CreateConnectionResponse.class);
-
-            final AcknowledgementLabel acknowledgementLabel = getTestAck();
-            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                    .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
-                    .readGrantedSubjects(Collections.singleton(TestConstants.Authorization.SUBJECT))
-                    .timeout("2s")
-                    .randomCorrelationId()
-                    .build();
-
-            final AttributeModified attributeModified = AttributeModified.of(
-                    TestConstants.Things.THING_ID, JsonPointer.of("hello"), JsonValue.of("world!"), 5L,
-                    null, dittoHeaders, null);
-            underTest.tell(attributeModified, getRef());
-
-            final OutboundSignal unmappedOutboundSignal = probe.expectMsgClass(OutboundSignal.class);
-            assertThat(unmappedOutboundSignal.getSource()).isEqualTo(attributeModified);
-
-            final Acknowledgement acknowledgement =
-                    Acknowledgement.of(acknowledgementLabel, TestConstants.Things.THING_ID, HttpStatusCode.OK,
-                            dittoHeaders);
-            underTest.tell(acknowledgement, getRef());
-
-            expectMsg(acknowledgement);
-        }};
-    }
-
-    @Test
-    @Ignore("TODO: move to OutboundDispatchingActor")
-    public void testHandleSignalWithPlaceholderDeclaredAcknowledgement() {
-        new TestKit(actorSystem) {{
-            // GIVEN: ack label declaration succeeds
-
-            final TestKit probe = new TestKit(actorSystem);
-            final ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
-                            (connection, connectionActor, proxyActor) -> TestActor.props(probe),
-                            pubSubMediator);
-            watch(underTest);
-
-            // create connection
-            underTest.tell(createConnectionWithPlaceholderAck(), getRef());
-            expectMsgClass(CreateConnectionResponse.class);
-
-            // Wait until connection is established
-
-            final AcknowledgementLabel acknowledgementLabel = getTestAck();
-            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                    .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
-                    .readGrantedSubjects(Collections.singleton(TestConstants.Authorization.SUBJECT))
-                    .timeout("2s")
-                    .randomCorrelationId()
-                    .build();
-
-            final AttributeModified attributeModified = AttributeModified.of(
-                    TestConstants.Things.THING_ID, JsonPointer.of("hello"), JsonValue.of("world!"), 5L, null,
-                    dittoHeaders, null);
-            underTest.tell(attributeModified, getRef());
-
-            final OutboundSignal unmappedOutboundSignal = probe.expectMsgClass(OutboundSignal.class);
-            assertThat(unmappedOutboundSignal.getSource()).isEqualTo(attributeModified);
-
-            final Acknowledgement acknowledgement =
-                    Acknowledgement.of(acknowledgementLabel, TestConstants.Things.THING_ID, HttpStatusCode.OK,
-                            dittoHeaders);
-            underTest.tell(acknowledgement, getRef());
-
-            expectMsg(acknowledgement);
-        }};
-    }
-
-    private CreateConnection createConnectionWithPlaceholderAck() {
-        return CreateConnection.of(
-                createConnection.getConnection()
-                        .toBuilder()
-                        .sources(createConnection.getConnection().getSources().stream()
-                                .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
-                                        .declaredAcknowledgementLabels(Set.of(getPlaceholderAck()))
-                                        .build())
-                                .collect(Collectors.toList()))
-                        .build(),
-                createConnection.getDittoHeaders()
-        );
-    }
-
-    private AcknowledgementLabel getPlaceholderAck() {
-        return AcknowledgementLabel.of("{{connection:id}}:test-ack");
-    }
-
-    @Test
-    @Ignore("TODO: move to OutboundDispatchingActor")
-    public void testTargetIssuedAcknowledgement() {
-        new TestKit(actorSystem) {{
-            // GIVEN: declaration of target-issued ack label succeeds
-
-            final TestKit probe = new TestKit(actorSystem);
-            final ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
-                            (connection, connectionActor, proxyActor) -> TestActor.props(probe),
-                            pubSubMediator);
-            watch(underTest);
-
-            // create connection
-            underTest.tell(createConnectionWithTargetIssuedAck(), getRef());
-            expectMsgClass(CreateConnectionResponse.class);
-
-            // Wait until connection is established
-
-            final AcknowledgementLabel acknowledgementLabel = getTestAck();
-            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                    .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
-                    .readGrantedSubjects(Collections.singleton(TestConstants.Authorization.SUBJECT))
-                    .timeout("2s")
-                    .randomCorrelationId()
-                    .build();
-
-            // WHEN: connection persistence actor receives event with matching acknowledgement request
-            final AttributeModified attributeModified = AttributeModified.of(
-                    TestConstants.Things.THING_ID, JsonPointer.of("hello"), JsonValue.of("world!"), 5L, null,
-                    dittoHeaders, null);
-            underTest.tell(attributeModified, getRef());
-
-            // THEN: then event is forwarded
-            final OutboundSignal unmappedOutboundSignal = probe.expectMsgClass(OutboundSignal.class);
-            assertThat(unmappedOutboundSignal.getSource()).isEqualTo(attributeModified);
-
-            // WHEN: an acknowledgement of matching correlation ID is sent to the connection actor, which should not
-            // happen as target-issued acks bypass the connection persistence actor
-            final Acknowledgement acknowledgement =
-                    Acknowledgement.of(acknowledgementLabel, TestConstants.Things.THING_ID, HttpStatusCode.OK,
-                            dittoHeaders);
-            underTest.tell(acknowledgement, getRef());
-
-            // THEN: an error is received
-            expectMsgClass(AcknowledgementLabelNotDeclaredException.class);
-        }};
-    }
-
-    @Test
-    @Ignore("TODO: move to OutboundDispatchingActor")
-    public void failToDeclareAckLabels() {
-        new TestKit(actorSystem) {{
-            // GIVEN: ack declaration always fails
-
-            final TestKit probe = new TestKit(actorSystem);
-            final ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
-                            (connection, connectionActor, proxyActor) -> TestActor.props(probe),
-                            pubSubMediator);
-            watch(underTest);
-
-            // create connection
-            underTest.tell(createConnectionWithTestAck(), getRef());
-            expectMsgClass(CreateConnectionResponse.class);
-
-            // Wait until connection is established
-
-            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                    .acknowledgementRequest(AcknowledgementRequest.of(getTestAck()))
-                    .readGrantedSubjects(Collections.singleton(TestConstants.Authorization.SUBJECT))
-                    .timeout("2s")
-                    .randomCorrelationId()
-                    .build();
-
-            // WHEN: connection persistence actor receives a signal for which it subscribed
-            final AttributeModified attributeModified = AttributeModified.of(
-                    TestConstants.Things.THING_ID, JsonPointer.of("hello"), JsonValue.of("world!"), 5L, null,
-                    dittoHeaders, null);
-            underTest.tell(attributeModified, getRef());
-
-            // THEN: acknowledgement requests are removed from the signal
-            final OutboundSignal unmappedOutboundSignal = probe.expectMsgClass(OutboundSignal.class);
-            final AttributeModified attributeModifiedWithoutRequestedAcks = attributeModified.setDittoHeaders(
-                    dittoHeaders.toBuilder()
-                            .acknowledgementRequests(Set.of())
-                            .build()
-            );
-            assertThat(unmappedOutboundSignal.getSource()).isEqualTo(attributeModifiedWithoutRequestedAcks);
-        }};
-    }
-
-    @Test
-    @Ignore("TODO: move to OutboundDispatchingActor")
-    public void sendAckWithNotDeclaredLabel() {
-        new TestKit(actorSystem) {{
-            // GIVEN: ack label declaration succeeds
-
-            final TestKit probe = new TestKit(actorSystem);
-            final ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
-                            (connection, connectionActor, proxyActor) -> TestActor.props(probe),
-                            pubSubMediator);
-            watch(underTest);
-
-            // create connection
-            underTest.tell(createConnectionWithTestAck(), getRef());
-            expectMsgClass(CreateConnectionResponse.class);
-
-            // Wait until connection is established
-
-            // WHEN: signal is received with not-declared acknowledgement request
-            final AcknowledgementLabel acknowledgementLabel = AcknowledgementLabel.of(connectionId + ":not-declared");
-            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
-                    .acknowledgementRequest(AcknowledgementRequest.of(acknowledgementLabel))
-                    .readGrantedSubjects(Collections.singleton(TestConstants.Authorization.SUBJECT))
-                    .timeout("2s")
-                    .randomCorrelationId()
-                    .build();
-
-            final AttributeModified attributeModified = AttributeModified.of(
-                    TestConstants.Things.THING_ID, JsonPointer.of("hello"), JsonValue.of("world!"), 5L, null,
-                    dittoHeaders, null);
-            underTest.tell(attributeModified, getRef());
-
-            // THEN: the acknowledgement request is removed from the signal
-            final OutboundSignal eventOutboundSignal = probe.expectMsgClass(OutboundSignal.class);
-            final AttributeModified expectedEvent = attributeModified.setDittoHeaders(dittoHeaders.toBuilder()
-                    .acknowledgementRequests(Set.of())
-                    .build());
-            assertThat(eventOutboundSignal.getSource()).isEqualTo(expectedEvent);
-
-            // THEN: acknowledgements of non-declared labels are answered by AcknowledgementLabelNotDeclaredException
-            final Acknowledgement acknowledgement =
-                    Acknowledgement.of(acknowledgementLabel, TestConstants.Things.THING_ID, HttpStatusCode.OK,
-                            dittoHeaders);
-            underTest.tell(acknowledgement, getRef());
-            expectMsg(AcknowledgementLabelNotDeclaredException.of(acknowledgementLabel, dittoHeaders));
-        }};
-    }
-
-    @Test
     public void forwardSearchCommands() {
         new TestKit(actorSystem) {{
             final ConnectionId myConnectionId = ConnectionId.of(UUID.randomUUID().toString());
@@ -1436,58 +1136,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             final WithSender<?> createSubscription1 = clientActorsProbe.expectMsgClass(WithSender.class);
             final WithSender<?> createSubscription2 = clientActorsProbe.expectMsgClass(WithSender.class);
             assertThat(createSubscription1.getSender()).isNotEqualTo(createSubscription2.getSender());
-
-            // TODO: move this part to client actor test
-//            // WHEN: RequestSubscription command is sent with the prefix of a received CreateSubscription command
-//            // THEN: The command lands in the same client actor
-//            final String subscriptionId1 =
-//                    ((CreateSubscription) createSubscription1.getMessage()).getPrefix().orElseThrow() + "-suffix";
-//            underTest.tell(RequestFromSubscription.of(subscriptionId1, 99L, DittoHeaders.empty()), getRef());
-//            final WithSender<?> requestSubscription1 = clientActorsProbe.expectMsgClass(WithSender.class);
-//            assertThat(requestSubscription1.getMessage()).isInstanceOf(RequestFromSubscription.class);
-//            assertThat(requestSubscription1.getSender()).isEqualTo(createSubscription1.getSender());
-//
-//            // Same for CancelSubscription
-//            final String subscriptionId2 =
-//                    ((CreateSubscription) createSubscription2.getMessage()).getPrefix().orElseThrow() + "-suffix";
-//            underTest.tell(CancelSubscription.of(subscriptionId2, DittoHeaders.empty()), getRef());
-//            final WithSender<?> cancelSubscription2 = clientActorsProbe.expectMsgClass(WithSender.class);
-//            assertThat(cancelSubscription2.getSender()).isEqualTo(createSubscription2.getSender());
-        }};
-    }
-
-    private void testForwardThingEvent(final boolean isForwarded, final Signal<?> signal) {
-        testForwardThingEvent(createConnection, isForwarded, signal, TestConstants.Targets.TWIN_TARGET);
-    }
-
-    private void testForwardThingEvent(final CreateConnection createConnection, final boolean isForwarded,
-            final Signal<?> signal, final Target expectedTarget) {
-        new TestKit(actorSystem) {{
-            final TestKit probe = new TestKit(actorSystem);
-            final ActorRef underTest =
-                    TestConstants.createConnectionSupervisorActor(connectionId, actorSystem,
-                            proxyActor,
-                            (connection, conciergeForwarder, connectionActor) -> TestActor.props(probe),
-                            pubSubMediator);
-            watch(underTest);
-
-            // create connection
-            underTest.tell(createConnection, getRef());
-            expectMsgClass(CreateConnectionResponse.class);
-
-            underTest.tell(signal, getRef());
-
-            if (isForwarded) {
-                final OutboundSignal unmappedOutboundSignal =
-                        probe.expectMsgClass(OutboundSignal.class);
-                assertThat(unmappedOutboundSignal.getSource()).isEqualTo(signal);
-
-                // check target address only due to live migration
-                assertThat(unmappedOutboundSignal.getTargets().stream().map(Target::getAddress))
-                        .containsExactly(expectedTarget.getAddress());
-            } else {
-                probe.expectNoMessage();
-            }
         }};
     }
 
@@ -1501,72 +1149,6 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
         cluster1.join(cluster1.selfAddress());
         cluster2.join(cluster1.selfAddress());
         latch.await();
-    }
-
-    private CreateConnection createConnectionWithTestAck() {
-        return CreateConnection.of(
-                createConnection.getConnection()
-                        .toBuilder()
-                        .sources(createConnection.getConnection().getSources().stream()
-                                .map(source -> ConnectivityModelFactory.newSourceBuilder(source)
-                                        .declaredAcknowledgementLabels(Set.of(getTestAck()))
-                                        .build())
-                                .collect(Collectors.toList()))
-                        .build(),
-                createConnection.getDittoHeaders()
-        );
-    }
-
-    private CreateConnection createConnectionWithTargetIssuedAck() {
-        return CreateConnection.of(
-                createConnection.getConnection()
-                        .toBuilder()
-                        .targets(createConnection.getConnection().getTargets().stream()
-                                .map(target -> {
-                                    if (target.getTopics().stream()
-                                            .anyMatch(ft -> ft.getTopic().equals(Topic.LIVE_EVENTS))) {
-                                        return ConnectivityModelFactory.newTargetBuilder(target)
-                                                .issuedAcknowledgementLabel(getTestAck())
-                                                .build();
-                                    } else {
-                                        return target;
-                                    }
-                                })
-                                .collect(Collectors.toList()))
-                        .build(),
-                createConnection.getDittoHeaders()
-        );
-    }
-
-    private AcknowledgementLabel getTestAck() {
-        return AcknowledgementLabel.of(connectionId + ":test-ack");
-    }
-
-    static final class TestActor extends AbstractActor {
-
-        private final TestKit probe;
-
-        private TestActor(final TestKit probe) {
-            this.probe = probe;
-        }
-
-        static Props props(final TestKit probe) {
-            return Props.create(TestActor.class, new Creator<>() {
-                private static final long serialVersionUID = 1L;
-
-                @Override
-                public TestActor create() {
-                    return new TestActor(probe);
-                }
-            });
-        }
-
-        @Override
-        public Receive createReceive() {
-            return receiveBuilder()
-                    .match(OpenConnection.class, cc -> sender().tell(new Status.Success("connected"), self()))
-                    .matchAny(m -> probe.getRef().forward(m, context())).build();
-        }
     }
 
     private static void shutdown(@Nullable final ActorSystem system) {

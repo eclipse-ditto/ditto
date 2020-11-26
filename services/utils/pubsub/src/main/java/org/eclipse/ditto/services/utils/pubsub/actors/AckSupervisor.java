@@ -71,7 +71,7 @@ public final class AckSupervisor extends AbstractPubSubSupervisor {
     @Override
     protected void startChildren() {
         final Props acksUpdaterProps = AckUpdater.props(config, selfAddress, ackDData);
-        ackUpdater = getContext().watch(startChild(acksUpdaterProps, AckUpdater.ACTOR_NAME_PREFIX));
+        ackUpdater = startChild(acksUpdaterProps, AckUpdater.ACTOR_NAME_PREFIX);
     }
 
     private boolean isAckUpdaterAvailable() {

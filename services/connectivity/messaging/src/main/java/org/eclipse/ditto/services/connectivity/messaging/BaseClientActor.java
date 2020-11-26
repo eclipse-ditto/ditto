@@ -1236,22 +1236,25 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private void dispatchSearchCommand(final WithSubscriptionId<?> searchCommand) {
         final String subscriptionId = searchCommand.getSubscriptionId();
-        if (subscriptionId.length() <= subscriptioniIdPrefixLength) {
-            // command is invalid or outdated, dropping.
-            logger.info("Dropping search command with invalid subscription ID: <{}>", searchCommand);
-            connectionLogger.failure(InfoProviderFactory.forSignal(searchCommand),
-                    "Dropping search command with invalid subscription ID: " +
-                            searchCommand.getSubscriptionId());
-        } else {
+        if (subscriptionId.length() > subscriptioniIdPrefixLength) {
             final String prefix = subscriptionId.substring(0, subscriptioniIdPrefixLength);
-            final ActorRef receiver = clientActorRefs.lookup(prefix).orElseThrow();
-            if (getSelf().equals(receiver)) {
-                forwardThingSearchCommand(searchCommand, stateData());
-            } else {
-                // sender is overwritten at the client actor responsible for the subscription ID prefix.
-                receiver.tell(searchCommand, ActorRef.noSender());
+            final Optional<Integer> index = parseHexString(prefix);
+            if (index.isPresent()) {
+                final ActorRef receiver = clientActorRefs.get(index.get()).orElseThrow();
+                if (getSelf().equals(receiver)) {
+                    forwardThingSearchCommand(searchCommand, stateData());
+                } else {
+                    // sender is overwritten at the client actor responsible for the subscription ID prefix.
+                    receiver.tell(searchCommand, ActorRef.noSender());
+                }
+                return;
             }
         }
+        // command is invalid or outdated, dropping.
+        logger.info("Dropping search command with invalid subscription ID: <{}>", searchCommand);
+        connectionLogger.failure(InfoProviderFactory.forSignal(searchCommand),
+                "Dropping search command with invalid subscription ID: " +
+                        searchCommand.getSubscriptionId());
     }
 
     private Instant getInConnectionStatusSince() {
@@ -1551,6 +1554,14 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private static Duration randomize(final Duration base) {
         return base.plus(Duration.ofMillis((long) (base.toMillis() * Math.random())));
+    }
+
+    private static Optional<Integer> parseHexString(final String hexString) {
+        try {
+            return Optional.of(Integer.parseUnsignedInt(hexString, 16));
+        } catch (final NumberFormatException e) {
+            return Optional.empty();
+        }
     }
 
     /**

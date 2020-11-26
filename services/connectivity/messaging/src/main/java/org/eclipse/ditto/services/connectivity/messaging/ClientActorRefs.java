@@ -91,10 +91,21 @@ public final class ClientActorRefs {
      * @return the client actor responsible for it.
      */
     public Optional<ActorRef> lookup(final CharSequence hashKey) {
+        return get(PubSubFactory.hashForPubSub(hashKey));
+    }
+
+    /**
+     * Get the i-th client actor.
+     *
+     * @param index the index number of the client actor.
+     * @return the i-th client actor, or an empty optional if none exists.
+     */
+    public Optional<ActorRef> get(final int index) {
         if (sortedRefs.isEmpty()) {
             return Optional.empty();
         } else {
-            return Optional.of(sortedRefs.get(PubSubFactory.hashForPubSub(hashKey) % sortedRefs.size()));
+            final int i = Math.max(0, Math.abs(index));
+            return Optional.of(sortedRefs.get(i % sortedRefs.size()));
         }
     }
 

@@ -504,7 +504,7 @@ public final class ConnectionPersistenceActor
         subscriptionCounter = (subscriptionCounter + 1) % Math.max(1, getClientCount());
         final int prefixLength = getSubscriptionPrefixLength(clientCount);
         final String prefix = String.format("%0" + prefixLength + "X", subscriptionCounter);
-        final Optional<ActorRef> receiver = clientActorRefs.lookup(prefix);
+        final Optional<ActorRef> receiver = clientActorRefs.get(subscriptionCounter);
         final CreateSubscription commandWithPrefix = createSubscription.setPrefix(prefix);
         if (clientCount == 1) {
             clientActorRouter.tell(consistentHashableEnvelope(commandWithPrefix, prefix), ActorRef.noSender());
