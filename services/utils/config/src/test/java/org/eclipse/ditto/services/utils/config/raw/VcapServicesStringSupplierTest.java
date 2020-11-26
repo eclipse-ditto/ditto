@@ -66,11 +66,7 @@ public final class VcapServicesStringSupplierTest {
     @Test
     public void tryToGetInstanceWhenVcapLocationSystemEnvWasNotSet() {
         environmentVariables.clear(VCAP_LOCATION_ENV_VARIABLE_NAME);
-
-        assertThatExceptionOfType(DittoConfigError.class)
-                .isThrownBy(VcapServicesStringSupplier::getInstance)
-                .withMessage("<null> did not denote a valid path!")
-                .withCause(new NullPointerException("The system environment variable <VCAP_LOCATION> was not set!"));
+        assertThat(VcapServicesStringSupplier.getInstance()).isNotPresent();
     }
 
     @Test
@@ -83,7 +79,7 @@ public final class VcapServicesStringSupplierTest {
 
     @Test
     public void getReturnsExpected() {
-        final VcapServicesStringSupplier underTest = VcapServicesStringSupplier.getInstance();
+        final VcapServicesStringSupplier underTest = VcapServicesStringSupplier.getInstance().get();
 
         assertThat(underTest.get()).hasValueSatisfying(s -> assertThat(s).contains("Krimkram"));
     }
@@ -96,7 +92,7 @@ public final class VcapServicesStringSupplierTest {
         final Path notExistingFilePath = Paths.get(parentDirPath.toString(), notExistingFileName);
         environmentVariables.set(VCAP_LOCATION_ENV_VARIABLE_NAME, notExistingFilePath.toString());
 
-        final VcapServicesStringSupplier underTest = VcapServicesStringSupplier.getInstance();
+        final VcapServicesStringSupplier underTest = VcapServicesStringSupplier.getInstance().get();
 
         assertThatExceptionOfType(DittoConfigError.class)
                 .isThrownBy(underTest::get)

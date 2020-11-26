@@ -20,6 +20,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.services.connectivity.config.DefaultBackOffConfig;
+import org.eclipse.ditto.services.connectivity.config.TimeoutConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;

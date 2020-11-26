@@ -190,15 +190,15 @@ public final class RootRoute extends AllDirectives {
                                         /* handling the rejections is done by akka automatically, but if we
                                            do it here explicitly, we are able to log the status code for the
                                            rejection (e.g. 404 or 405) in a wrapping directive. */
-                                            handleRejections(rejectionHandler, () ->
+                                        handleRejections(rejectionHandler, () ->
                                                 /* the inner handleExceptions is for handling exceptions
                                                    occurring in the route route. It makes sure that the
                                                    wrapping directives such as addSecurityResponseHeaders are
                                                    even called in an error case in the route route. */
-                                                    handleExceptions(exceptionHandler, () ->
-                                                            rootRoute.apply(correlationId)
-                                                    )
-                                            )
+                                                handleExceptions(exceptionHandler, () ->
+                                                        rootRoute.apply(correlationId)
+                                                )
+                                        )
                                 )
                         )
                 );

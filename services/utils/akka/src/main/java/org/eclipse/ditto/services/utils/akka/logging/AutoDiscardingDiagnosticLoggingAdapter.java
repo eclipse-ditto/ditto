@@ -127,7 +127,8 @@ final class AutoDiscardingDiagnosticLoggingAdapter extends AbstractDiagnosticLog
     }
 
     @Override
-    public AutoDiscardingDiagnosticLoggingAdapter putMdcEntry(final CharSequence key, @Nullable final CharSequence value) {
+    public AutoDiscardingDiagnosticLoggingAdapter putMdcEntry(final CharSequence key,
+            @Nullable final CharSequence value) {
         loggingAdapter.putMdcEntry(key, value);
         return this;
     }

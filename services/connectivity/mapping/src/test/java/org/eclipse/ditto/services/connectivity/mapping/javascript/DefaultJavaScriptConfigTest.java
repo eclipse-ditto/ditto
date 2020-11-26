@@ -19,6 +19,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
+import org.eclipse.ditto.services.connectivity.config.javascript.DefaultJavaScriptConfig;
+import org.eclipse.ditto.services.connectivity.config.javascript.JavaScriptConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -29,7 +31,7 @@ import com.typesafe.config.ConfigFactory;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.connectivity.mapping.javascript.DefaultJavaScriptConfig}.
+ * Unit test for {@link DefaultJavaScriptConfig}.
  */
 public final class DefaultJavaScriptConfigTest {
 

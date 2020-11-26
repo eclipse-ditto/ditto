@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;

@@ -141,7 +141,8 @@
                 <configuration>
                     <excludePackageNames>
                         org.eclipse.ditto.services.utils.akka.logging;
-                        org.eclipse.ditto.services.utils.akka.controlflow
+                        org.eclipse.ditto.services.utils.akka.controlflow;
+                        org.eclipse.ditto.services.utils.akka.actors
                     </excludePackageNames>
                 </configuration>
             </plugin>

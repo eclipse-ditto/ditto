@@ -116,7 +116,7 @@ public final class FeatureDefinitionModified extends AbstractThingEvent<FeatureD
      * @deprecated Use {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.things.FeatureDefinition, long, java.time.Instant, org.eclipse.ditto.model.base.headers.DittoHeaders, org.eclipse.ditto.model.base.entity.metadata.Metadata)}
      * instead.
      */
-     @Deprecated
+    @Deprecated
     public static FeatureDefinitionModified of(final ThingId thingId,
             final String featureId,
             final FeatureDefinition definition,

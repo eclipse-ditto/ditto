@@ -19,7 +19,6 @@ import static org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.Json
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Optional;
 import java.util.function.Supplier;
 
 import javax.annotation.Nullable;

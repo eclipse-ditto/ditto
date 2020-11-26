@@ -500,7 +500,8 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 "    \"the-ack-label\": { \"status\": 508,\"headers\":{\"response-required\":false} }\n" +
                 "  },\n" +
                 "  \"status\": 424,\n" +
-                "  \"headers\": { \"content-type\": \"" + DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE + "\",\"response-required\":false }\n" +
+                "  \"headers\": { \"content-type\": \"" + DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE +
+                "\",\"response-required\":false }\n" +
                 "}"));
 
         final Signal<?> acknowledgement = underTest.fromAdaptable(adaptable);

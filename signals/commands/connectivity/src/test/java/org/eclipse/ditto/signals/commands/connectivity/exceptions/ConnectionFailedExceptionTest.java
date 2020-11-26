@@ -44,9 +44,6 @@ public final class ConnectionFailedExceptionTest {
         final ConnectionFailedException failedExceptionFromJson =
                 ConnectionFailedException.fromJson(JsonFactory.readFrom(jsonString).asObject(), DittoHeaders.empty());
 
-        System.out.println(failedException.toJsonString());
-        System.out.println(failedExceptionFromJson.toJsonString());
-
         assertThat(failedExceptionFromJson.toJsonString()).isEqualTo(failedException.toJsonString());
     }
 

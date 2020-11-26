@@ -128,10 +128,12 @@ public final class AcknowledgementLabelInvalidException extends DittoRuntimeExce
 
     @NotThreadSafe
     private static class Builder extends DittoRuntimeExceptionBuilder<AcknowledgementLabelInvalidException> {
+
         private Builder() {
             description(DEFAULT_DESCRIPTION);
             href(DEFAULT_HREF);
         }
+
         @Override
         protected AcknowledgementLabelInvalidException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message, @Nullable final String description, @Nullable final Throwable cause,

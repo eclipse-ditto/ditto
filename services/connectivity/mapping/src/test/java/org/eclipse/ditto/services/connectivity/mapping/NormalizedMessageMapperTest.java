@@ -39,6 +39,7 @@ import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.services.connectivity.config.mapping.DefaultMappingConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;

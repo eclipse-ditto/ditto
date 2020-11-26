@@ -14,24 +14,24 @@
 
 
  import java.text.MessageFormat;
-import java.util.Set;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.stream.StreamSupport;
+ import java.util.Set;
+ import java.util.function.Predicate;
+ import java.util.function.Supplier;
+ import java.util.stream.StreamSupport;
 
-import org.eclipse.ditto.model.base.exceptions.UnsupportedMediaTypeException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
+ import org.eclipse.ditto.model.base.exceptions.UnsupportedMediaTypeException;
+ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+ import org.eclipse.ditto.model.base.headers.DittoHeaders;
+ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+ import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 
-import akka.http.javadsl.model.ContentType;
-import akka.http.javadsl.model.HttpHeader;
-import akka.http.javadsl.model.HttpRequest;
-import akka.http.javadsl.model.MediaType;
-import akka.http.javadsl.model.RequestEntity;
-import akka.http.javadsl.server.RequestContext;
-import akka.http.javadsl.server.Route;
+ import akka.http.javadsl.model.ContentType;
+ import akka.http.javadsl.model.HttpHeader;
+ import akka.http.javadsl.model.HttpRequest;
+ import akka.http.javadsl.model.MediaType;
+ import akka.http.javadsl.model.RequestEntity;
+ import akka.http.javadsl.server.RequestContext;
+ import akka.http.javadsl.server.Route;
 
  /**
   * Used to validate the content-type of a http request.
