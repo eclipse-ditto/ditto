@@ -68,7 +68,6 @@ public final class PubSubTerminatedException extends DittoRuntimeException imple
      * A mutable builder for this exception.
      *
      * @return the builder.
-     * @throws NullPointerException if {@code timeout} is {@code null}.
      */
     public static Builder newBuilder() {
         return new Builder();

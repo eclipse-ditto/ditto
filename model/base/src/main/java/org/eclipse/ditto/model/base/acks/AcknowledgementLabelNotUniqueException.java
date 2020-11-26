@@ -71,7 +71,6 @@ public final class AcknowledgementLabelNotUniqueException extends DittoRuntimeEx
      * A mutable builder for a {@code AcknowledgementLabelNotUniqueException}.
      *
      * @return the builder.
-     * @throws NullPointerException if {@code timeout} is {@code null}.
      */
     public static Builder newBuilder() {
         return new Builder();
