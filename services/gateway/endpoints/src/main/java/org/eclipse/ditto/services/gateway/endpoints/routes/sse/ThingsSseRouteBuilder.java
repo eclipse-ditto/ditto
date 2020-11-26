@@ -65,6 +65,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.http.javadsl.marshalling.sse.EventStreamMarshalling;
 import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.MediaTypes;
@@ -314,7 +315,7 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
 
                     final SearchSourceBuilder searchSourceBuilder = SearchSource.newBuilder()
                             .pubSubMediator(pubSubMediator)
-                            .conciergeForwarder(proxyActor)
+                            .conciergeForwarder(ActorSelection.apply(proxyActor, ""))
                             .filter(parameters.get(PARAM_FILTER))
                             .options(parameters.get(PARAM_OPTION))
                             .fields(parameters.get(PARAM_FIELDS))

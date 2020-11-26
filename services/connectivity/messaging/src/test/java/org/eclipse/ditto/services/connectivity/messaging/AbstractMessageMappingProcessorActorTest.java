@@ -337,7 +337,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 protocolAdapter,
                 logger);
         final Props inboundDispatchingActorProps = InboundDispatchingActor.props(CONNECTION,
-                protocolAdapter.headerTranslator(), proxyActor, connectionActorProbe.ref(),
+                protocolAdapter.headerTranslator(), ActorSelection.apply(proxyActor, ""), connectionActorProbe.ref(),
                 outboundMappingProcessorActor);
         final ActorRef inboundDispatchingActor = testKit.childActorOf(inboundDispatchingActorProps);
 

@@ -38,6 +38,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.pattern.AskTimeoutException;
@@ -220,7 +221,7 @@ public final class SubscriptionManagerTest {
     private ActorRef createSubscriptionManager() {
         return actorSystem.actorOf(Props.create(SubscriptionManager.class, () ->
                 new SubscriptionManager(Duration.ofMinutes(5L), pubSubMediatorProbe.ref(),
-                        conciergeForwarderProbe.ref(), materializer))
+                        ActorSelection.apply(conciergeForwarderProbe.ref(), ""), materializer))
         );
     }
 }

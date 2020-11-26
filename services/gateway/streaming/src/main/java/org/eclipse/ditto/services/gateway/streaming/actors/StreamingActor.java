@@ -36,6 +36,7 @@ import com.typesafe.config.Config;
 
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.OneForOneStrategy;
 import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
@@ -92,9 +93,10 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
         streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
         jwtValidator = jwtAuthenticationFactory.getJwtValidator();
         jwtAuthenticationResultProvider = jwtAuthenticationFactory.newJwtAuthenticationResultProvider();
+        final ActorSelection conciergeForwarderSelection = ActorSelection.apply(conciergeForwarder, "");
         subscriptionManagerProps =
-                SubscriptionManager.props(streamingConfig.getSearchIdleTimeout(), pubSubMediator, conciergeForwarder,
-                        Materializer.createMaterializer(getContext()));
+                SubscriptionManager.props(streamingConfig.getSearchIdleTimeout(), pubSubMediator,
+                        conciergeForwarderSelection, Materializer.createMaterializer(getContext()));
         scheduleScrapeStreamSessionsCounter();
     }
 

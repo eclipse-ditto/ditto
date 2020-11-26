@@ -157,7 +157,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final Connection connection;
     private final ActorRef connectionActor;
     private final ProtocolAdapterProvider protocolAdapterProvider;
-    private final ActorRef proxyActor;
+    private final ActorSelection proxyActorSelection;
     private final Gauge clientGauge;
     private final Gauge clientConnectingGauge;
     private final ConnectionLoggerRegistry connectionLoggerRegistry;
@@ -188,8 +188,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         connectivityConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()));
         clientConfig = connectivityConfig.getClientConfig();
-        this.proxyActor =
-                Optional.ofNullable(proxyActor).orElse(getContext().getSystem().deadLetters());
+        proxyActorSelection = getLocalActorOfSamePath(proxyActor);
         protocolAdapterProvider =
                 ProtocolAdapterProvider.load(connectivityConfig.getProtocolConfig(), getContext().getSystem());
 
@@ -217,7 +216,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 startInboundDispatchingActor(connection, protocolAdapter, actorPair.second());
         inboundMappingProcessorActor =
                 startInboundMappingProcessorActor(connection, protocolAdapter, inboundDispatcher);
-        subscriptionManager = startSubscriptionManager(this.proxyActor);
+        subscriptionManager = startSubscriptionManager(this.proxyActorSelection);
         supervisorStrategy = createSupervisorStrategy(getSelf());
         clientActorRefs = ClientActorRefs.empty();
         clientActorRefsNotificationDelay = randomize(clientConfig.getClientActorRefsNotificationDelay());
@@ -1288,13 +1287,10 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         final OutboundMappingSettings settings;
         final OutboundMappingProcessor outboundMappingProcessor;
         try {
-            // TODO: use proxyActorOnThisInstance for all uses of proxyActor.
-            final ActorSelection proxyActorOnThisInstance =
-                    getContext().getSystem().actorSelection(proxyActor.path().toStringWithoutAddress());
             // this one throws DittoRuntimeExceptions when the mapper could not be configured
             settings = OutboundMappingSettings.of(connection,
                     getContext().getSystem(),
-                    proxyActorOnThisInstance,
+                    proxyActorSelection,
                     connectivityConfig,
                     protocolAdapter,
                     logger);
@@ -1333,7 +1329,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             final ActorRef outboundMappingProcessorActor) {
 
         final Props inboundDispatchingActorProps =
-                InboundDispatchingActor.props(connection, protocolAdapter.headerTranslator(), proxyActor,
+                InboundDispatchingActor.props(connection, protocolAdapter.headerTranslator(), proxyActorSelection,
                         connectionActor, outboundMappingProcessorActor);
 
         return getContext().actorOf(inboundDispatchingActorProps, InboundDispatchingActor.ACTOR_NAME);
@@ -1385,7 +1381,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      *
      * @return reference of the subscription manager.
      */
-    private ActorRef startSubscriptionManager(final ActorRef proxyActor) {
+    private ActorRef startSubscriptionManager(final ActorSelection proxyActor) {
         final ActorRef pubSubMediator = DistributedPubSub.get(getContext().getSystem()).mediator();
         final Materializer mat = Materializer.createMaterializer(this::getContext);
         final Props props = SubscriptionManager.props(clientConfig.getSubscriptionManagerTimeout(), pubSubMediator,
@@ -1457,6 +1453,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             answerToPublish = status;
         }
         return answerToPublish;
+    }
+
+    private ActorSelection getLocalActorOfSamePath(@Nullable final ActorRef exampleActor) {
+        final ActorRef actorRef = Optional.ofNullable(exampleActor).orElse(getContext().getSystem().deadLetters());
+        return getContext().getSystem().actorSelection(actorRef.path().toStringWithoutAddress());
     }
 
     private static String describeEventualCause(@Nullable final Throwable throwable) {

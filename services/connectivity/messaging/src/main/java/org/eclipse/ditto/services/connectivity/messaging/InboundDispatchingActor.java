@@ -87,6 +87,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscri
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.Props;
 import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
@@ -113,7 +114,7 @@ public final class InboundDispatchingActor extends AbstractActor
 
     private final HeaderTranslator headerTranslator;
     private final ConnectionId connectionId;
-    private final ActorRef proxyActor;
+    private final ActorSelection proxyActor;
     private final ActorRef connectionActor;
     private final DefaultConnectionMonitorRegistry connectionMonitorRegistry;
     private final ConnectionMonitor responseMappedMonitor;
@@ -126,7 +127,7 @@ public final class InboundDispatchingActor extends AbstractActor
     private InboundDispatchingActor(
             final Connection connection,
             final HeaderTranslator headerTranslator,
-            final ActorRef proxyActor,
+            final ActorSelection proxyActor,
             final ActorRef connectionActor,
             final ActorRef outboundMessageMappingProcessorActor) {
 
@@ -172,7 +173,7 @@ public final class InboundDispatchingActor extends AbstractActor
      */
     public static Props props(final Connection connection,
             final HeaderTranslator headerTranslator,
-            final ActorRef proxyActor,
+            final ActorSelection proxyActor,
             final ActorRef connectionActor,
             final ActorRef outboundMessageMappingProcessorActor) {
 

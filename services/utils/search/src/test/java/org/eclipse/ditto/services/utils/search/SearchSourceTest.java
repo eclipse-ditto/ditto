@@ -35,6 +35,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.japi.Pair;
 import akka.stream.Attributes;
@@ -212,7 +213,7 @@ public final class SearchSourceTest {
             @Nullable final JsonArray sortValues) {
         final SearchSource underTest = SearchSource.newBuilder()
                 .pubSubMediator(pubSubMediatorProbe.ref())
-                .conciergeForwarder(conciergeForwarderProbe.ref())
+                .conciergeForwarder(ActorSelection.apply(conciergeForwarderProbe.ref(), ""))
                 .thingsAskTimeout(Duration.ofSeconds(3L))
                 .searchAskTimeout(Duration.ofSeconds(3L))
                 .fields(fields)

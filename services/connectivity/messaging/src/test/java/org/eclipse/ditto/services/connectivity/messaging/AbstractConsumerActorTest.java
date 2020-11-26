@@ -68,6 +68,7 @@ import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.testkit.TestProbe;
@@ -385,7 +386,8 @@ public abstract class AbstractConsumerActorTest<M> {
         final ActorRef outboundProcessorActor = actorSystem.actorOf(props,
                 OutboundMappingProcessorActor.ACTOR_NAME + "-" + name.getMethodName());
         final Props inboundDispatchingActorProps = InboundDispatchingActor.props(CONNECTION,
-                protocolAdapter.headerTranslator(), proxyActor, connectionActorProbe.ref(), outboundProcessorActor);
+                protocolAdapter.headerTranslator(), ActorSelection.apply(proxyActor, ""), connectionActorProbe.ref(),
+                outboundProcessorActor);
         final ActorRef inboundDispatchingActor = actorSystem.actorOf(inboundDispatchingActorProps,
                 InboundDispatchingActor.ACTOR_NAME + "-" + name.getMethodName());
         final Props messageMappingProcessorProps =
