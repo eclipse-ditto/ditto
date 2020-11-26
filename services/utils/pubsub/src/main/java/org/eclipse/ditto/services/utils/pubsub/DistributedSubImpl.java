@@ -68,12 +68,6 @@ final class DistributedSubImpl implements DistributedSub {
     }
 
     @Override
-    public CompletionStage<SubAck> subscribeWithAck(final Collection<String> topics,
-            final ActorRef subscriber) {
-        return askSubSupervisor(Subscribe.of(new HashSet<>(topics), subscriber, writeAll, true, null));
-    }
-
-    @Override
     public CompletionStage<SubAck> unsubscribeWithAck(final Collection<String> topics,
             final ActorRef subscriber) {
         return askSubSupervisor(Unsubscribe.of(new HashSet<>(topics), subscriber, writeAll, true));

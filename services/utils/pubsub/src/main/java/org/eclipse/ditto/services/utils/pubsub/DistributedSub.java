@@ -41,15 +41,6 @@ public interface DistributedSub {
             ActorRef subscriber, @Nullable Predicate<Collection<String>> filter, @Nullable String group);
 
     /**
-     * Subscribe for a collection of topics.
-     *
-     * @param topics the topics.
-     * @param subscriber who is subscribing.
-     * @return a future that completes after subscription becomes effective on all nodes.
-     */
-    CompletionStage<SubAck> subscribeWithAck(Collection<String> topics, ActorRef subscriber);
-
-    /**
      * Unsubscribe for a collection of topics.
      *
      * @param topics the topics.
