@@ -62,26 +62,20 @@ final class VcapServicesStringSupplier implements Supplier<Optional<String>> {
      *
      * @return the instance.
      * @throws DittoConfigError if the system environment variable
-     * {@value #VCAP_LOCATION_ENV_VARIABLE_NAME} was either not set or is not a valid {@link java.nio.file.Path}.
+     * {@value #VCAP_LOCATION_ENV_VARIABLE_NAME} is not a valid {@link java.nio.file.Path}.
      */
-    static VcapServicesStringSupplier getInstance() {
-        return of(tryToGetAsPath(System.getenv(VCAP_LOCATION_ENV_VARIABLE_NAME)));
+    static Optional<VcapServicesStringSupplier> getInstance() {
+        return Optional.ofNullable(System.getenv(VCAP_LOCATION_ENV_VARIABLE_NAME))
+                .map(VcapServicesStringSupplier::tryToGetAsPath)
+                .map(VcapServicesStringSupplier::of);
     }
 
     private static Path tryToGetAsPath(final String vcapLocation) {
         try {
-            return getAsPath(vcapLocation);
-        } catch (final NullPointerException | InvalidPathException e) {
+            return Paths.get(vcapLocation);
+        } catch (final InvalidPathException e) {
             throw new DittoConfigError(MessageFormat.format("<{0}> did not denote a valid path!", vcapLocation), e);
         }
-    }
-
-    private static Path getAsPath(final String vcapLocation) {
-        if (null == vcapLocation) {
-            final String msgPattern = "The system environment variable <{0}> was not set!";
-            throw new NullPointerException(MessageFormat.format(msgPattern, VCAP_LOCATION_ENV_VARIABLE_NAME));
-        }
-        return Paths.get(vcapLocation);
     }
 
     /**

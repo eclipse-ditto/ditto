@@ -23,20 +23,6 @@ import com.typesafe.config.ConfigFactory;
 
 /**
  * Determines the {@link Config} to use based on the environment we are running in.
- * Applies a simple logic:
- * <ul>
- * <li>
- *     If environment variable {@value ServiceSpecificEnvironmentConfigSupplier#CF_VCAP_SERVICES_ENV_VARIABLE_NAME}
- *     is present - CloudFoundry profile - loading "resourceBasename{@code -cloud}" config.
- * </li>
- * <li>
- *     If environment variable {@value ServiceSpecificEnvironmentConfigSupplier#HOSTING_ENVIRONMENT_ENV_VARIABLE_NAME}
- *     is set to "{@code docker}" - Docker profile - loading "resourceBasename{@code -docker}" config.
- * </li>
- * <li>
- *     If nothing else is detected - Development profile - loading "resourceBasename{@code -dev}" config.
- * </li>
- * </ul>
  */
 @Immutable
 public final class RawConfigSupplier implements Supplier<Config> {
@@ -60,13 +46,14 @@ public final class RawConfigSupplier implements Supplier<Config> {
         return new RawConfigSupplier(checkNotNull(serviceName, "service name"));
     }
 
+    /**
+     * 1. Service specific environment config (e. g. concierge-dev.conf)
+     * 2. Service specific base config (e. g. concierge.conf)
+     * 3. Common Ditto services config (ditto-service-base.conf)
+     */
     @Override
     public Config get() {
-        /*
-         * 1. Service specific environment config (e. g. concierge-docker.conf)
-         * 2. Service specific base config (e. g. concierge.conf)
-         * 3. Common Ditto services config (ditto-service-base.conf)
-         */
+
         final Config serviceSpecificEnvironmentConfig = getServiceSpecificEnvironmentConfig();
 
         final Config configWithFallbacks = serviceSpecificEnvironmentConfig
@@ -83,11 +70,11 @@ public final class RawConfigSupplier implements Supplier<Config> {
     }
 
     private Config getServiceSpecificBaseConfig() {
-        return ConfigFactory.parseResourcesAnySyntax(serviceName);
+        return DittoConfigFactory.fromResource(serviceName);
     }
 
     private static Config getCommonDittoServicesConfig() {
-        return ConfigFactory.parseResourcesAnySyntax(DITTO_BASE_CONFIG_NAME);
+        return DittoConfigFactory.fromResource(DITTO_BASE_CONFIG_NAME);
     }
 
 }
