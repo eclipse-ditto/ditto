@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
+import org.eclipse.ditto.model.base.acks.PubSubTerminatedException;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.pubsub.api.AcksDeclared;
@@ -250,7 +251,16 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
         final ActorRef terminatedActor = terminated.actor();
         doRemoveSubscriber(terminatedActor);
         ddataChangeRecipients.remove(terminatedActor);
-        localChangeRecipients.remove(terminatedActor);
+        if (localChangeRecipients.remove(terminatedActor)) {
+            reportLocalDataLoss();
+        }
+    }
+
+    private void reportLocalDataLoss() {
+        // local SubUpdater terminated. Request all known subscribers to terminate.
+        localAckLabels.entrySet()
+                .forEach(entry -> entry.getKey().tell(PubSubTerminatedException.getInstance(), getSelf()));
+        localAckLabels.clear();
     }
 
     private void removeSubscriber(final RemoveSubscriberAcks request) {

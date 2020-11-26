@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
+import org.eclipse.ditto.model.base.acks.FatalPubSubException;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
@@ -352,7 +353,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     checkAuthorizationContextAndStartSessionTimer(refreshSession);
                 })
                 .match(InvalidJwt.class, invalidJwtToken -> cancelSessionTimeout())
-                .match(DittoRuntimeException.class, this::isAckLabelNotUnique, this::ackLabelDeclarationFailed)
+                .match(FatalPubSubException.class, this::pubsubFailed)
                 .match(Terminated.class, this::handleTerminated)
                 .matchEquals(Control.TERMINATED, this::handleTerminated)
                 .build();
@@ -397,12 +398,9 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         return signal.getDittoHeaders().getOrigin().stream().anyMatch(connectionCorrelationId::equals);
     }
 
-    private boolean isAckLabelNotUnique(final DittoRuntimeException exception) {
-        return AcknowledgementLabelNotUniqueException.ERROR_CODE.equals(exception.getErrorCode());
-    }
-
-    private void ackLabelDeclarationFailed(final DittoRuntimeException exception) {
-        logger.withCorrelationId(exception).info("ackLabelDeclarationFailed cause=<{}>", exception.getCause());
+    private void pubsubFailed(final FatalPubSubException fatalPubSubException) {
+        final DittoRuntimeException exception = fatalPubSubException.asDittoRuntimeException();
+        logger.withCorrelationId(exception).info("pubsubFailed cause=<{}>", exception);
         eventAndResponsePublisher.offer(SessionedJsonifiable.error(exception));
         terminateWebsocketStream();
     }

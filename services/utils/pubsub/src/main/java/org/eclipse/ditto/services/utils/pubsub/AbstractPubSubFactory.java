@@ -24,7 +24,6 @@ import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.signals.base.Signal;
 
-import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;

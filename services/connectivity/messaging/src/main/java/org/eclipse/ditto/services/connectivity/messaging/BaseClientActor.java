@@ -44,7 +44,8 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
+import org.eclipse.ditto.model.base.acks.FatalPubSubException;
+import org.eclipse.ditto.model.base.acks.PubSubTerminatedException;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -393,7 +394,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                 .event(ActorRef.class, this::onOtherClientActorStartup)
                 .event(Terminated.class, this::otherClientActorTerminated)
                 .eventEquals(Control.REFRESH_CLIENT_ACTOR_REFS, this::refreshClientActorRefs)
-                .event(AcknowledgementLabelNotUniqueException.class, this::failConnectionDueToAckLabelConflict);
+                .event(FatalPubSubException.class, this::failConnectionDueToPubSubException);
     }
 
     /**
@@ -438,16 +439,23 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         return stay();
     }
 
-    private FSM.State<BaseClientState, BaseClientData> failConnectionDueToAckLabelConflict(
-            final AcknowledgementLabelNotUniqueException ackLabelNotUnique,
+    private FSM.State<BaseClientState, BaseClientData> failConnectionDueToPubSubException(
+            final FatalPubSubException exception,
             final BaseClientData data) {
 
-        final String description = "The connection experienced a transient failure in the distributed " +
-                "publish/subscribe infrastructure. Failing the connection to try again later.";
-        getSelf().tell(
-                // not setting "cause" to put the description literally in the error log
-                new ImmutableConnectionFailure(null, null, description),
-                getSelf());
+        final boolean isPubSubTerminated = exception instanceof PubSubTerminatedException;
+        if (isPubSubTerminated && stateName() != CONNECTED) {
+            // Do not fail connection on abnormal termination of any pubsub actor while not in connected state.
+            // Each surviving pubsub actor will send an error. It suffices to react to the first error.
+            logger.error(exception.asDittoRuntimeException(), "BugAlert Bug found in Ditto pubsub");
+        } else {
+            final String description = "The connection experienced a transient failure in the distributed " +
+                    "publish/subscribe infrastructure. Failing the connection to try again later.";
+            getSelf().tell(
+                    // not setting "cause" to put the description literally in the error log
+                    new ImmutableConnectionFailure(null, exception.asDittoRuntimeException(), description),
+                    getSelf());
+        }
         return stay();
     }
 

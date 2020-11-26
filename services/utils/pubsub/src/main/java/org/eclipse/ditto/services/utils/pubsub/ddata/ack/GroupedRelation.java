@@ -89,22 +89,21 @@ public final class GroupedRelation<K, V> {
     }
 
     /**
-     * Retrieve the set of keys associated with a value with an optional group name.
-     *
-     * @param value the value.
-     * @return the grouped set of keys.
-     */
-    public Optional<Grouped<K>> getKeys(V value) {
-        return Optional.ofNullable(v2k.get(value));
-    }
-
-    /**
      * Create an immutable snapshot of this mutable relation.
      *
      * @return the snapshot.
      */
     public GroupedSnapshot<K, V> export() {
         return new GroupedSnapshot<>(indexKeysByValue(), indexValuesByGroup());
+    }
+
+    /**
+     * Delete all known tuples in this relation.
+     */
+    public void clear() {
+        k2v.clear();
+        v2k.clear();
+        g2v.clear();
     }
 
     /**

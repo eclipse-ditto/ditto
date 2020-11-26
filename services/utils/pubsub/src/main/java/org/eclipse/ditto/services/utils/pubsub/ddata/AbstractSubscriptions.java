@@ -63,6 +63,17 @@ public abstract class AbstractSubscriptions<S, R, T extends DDataUpdate<R>> impl
     }
 
     @Override
+    public void clear() {
+        subscriberDataMap.clear();
+        topicDataMap.clear();
+    }
+
+    @Override
+    public Set<ActorRef> getSubscribers() {
+        return subscriberDataMap.keySet();
+    }
+
+    @Override
     public boolean subscribe(final ActorRef subscriber,
             final Set<String> topics,
             @Nullable final Predicate<Collection<String>> filter,

@@ -12,16 +12,22 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.actors;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.api.LocalAcksChanged;
 import org.eclipse.ditto.services.utils.pubsub.api.PublishSignal;
+import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.ack.GroupedSnapshot;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
@@ -29,9 +35,10 @@ import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
 
-import akka.actor.AbstractActor;
+import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.Terminated;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
 
@@ -40,7 +47,7 @@ import akka.japi.pf.ReceiveBuilder;
  *
  * @param <T> type of messages.
  */
-public final class Subscriber<T extends Signal<?>> extends AbstractActor {
+public final class Subscriber<T extends Signal<?>> extends AbstractActorWithTimers {
 
     /**
      * Prefix of this actor's name.
@@ -50,12 +57,16 @@ public final class Subscriber<T extends Signal<?>> extends AbstractActor {
     private final Class<T> messageClass;
     private final PubSubTopicExtractor<T> topicExtractor;
     private final AckExtractor<T> ackExtractor;
+    private final DistributedAcks distributedAcks;
 
     private final Counter truePositiveCounter = DittoMetrics.counter("pubsub-true-positive");
     private final Counter falsePositiveCounter = DittoMetrics.counter("pubsub-false-positive");
+    private final DittoDiagnosticLoggingAdapter logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private PublisherIndex<String> publisherIndex = PublisherIndex.empty();
     private GroupedSnapshot<ActorRef, String> declaredAcks = GroupedSnapshot.empty();
+    @Nullable private ActorRef ackUpdater = null;
+    @Nullable private ActorRef subUpdater = null;
 
     @SuppressWarnings("unused")
     private Subscriber(final Class<T> messageClass,
@@ -65,6 +76,7 @@ public final class Subscriber<T extends Signal<?>> extends AbstractActor {
         this.messageClass = messageClass;
         this.topicExtractor = topicExtractor;
         this.ackExtractor = ackExtractor;
+        this.distributedAcks = distributedAcks;
         distributedAcks.receiveLocalDeclaredAcks(getSelf());
     }
 
@@ -89,7 +101,31 @@ public final class Subscriber<T extends Signal<?>> extends AbstractActor {
                 .match(PublishSignal.class, this::broadcastToLocalSubscribers)
                 .match(SubscriptionsReader.class, this::updateLocalSubscriptions)
                 .match(LocalAcksChanged.class, this::updateLocalAcks)
+                .match(Terminated.class, this::terminated)
+                .matchEquals(ActorEvent.ACK_UPDATER_NOT_AVAILABLE, this::scheduleReceiveLocalDeclaredAcks)
+                .matchEquals(Control.RECEIVE_LOCAL_DECLARED_ACKS, this::receiveLocalDeclaredAcks)
                 .build();
+    }
+
+    private void scheduleReceiveLocalDeclaredAcks(final ActorEvent ackUpdaterNotAvailable) {
+        if (!timers().isTimerActive(Control.RECEIVE_LOCAL_DECLARED_ACKS)) {
+            timers().startSingleTimer(Control.RECEIVE_LOCAL_DECLARED_ACKS, Control.RECEIVE_LOCAL_DECLARED_ACKS,
+                    getRestartDelayWithBuffer());
+        }
+    }
+
+    private void receiveLocalDeclaredAcks(final Control receiveLocalDeclaredAcks) {
+        distributedAcks.receiveLocalDeclaredAcks(getSelf());
+    }
+
+    private void terminated(final Terminated terminated) {
+        if (terminated.getActor().equals(ackUpdater)) {
+            logger.error("Notifying SubUpdater <{}> of AckUpdater termination: <{}>", subUpdater, terminated);
+            if (subUpdater != null) {
+                subUpdater.tell(ActorEvent.PUBSUB_TERMINATED, getSelf());
+            }
+            scheduleReceiveLocalDeclaredAcks(ActorEvent.ACK_UPDATER_NOT_AVAILABLE);
+        }
     }
 
     private void broadcastToLocalSubscribers(final PublishSignal command) {
@@ -128,10 +164,21 @@ public final class Subscriber<T extends Signal<?>> extends AbstractActor {
 
     private void updateLocalSubscriptions(final SubscriptionsReader subscriptionsReader) {
         this.publisherIndex = PublisherIndex.fromSubscriptionsReader(subscriptionsReader);
+
+        // no need to watch the subUpdater -- the supervisor takes care of restarting on termination.
+        subUpdater = getSender();
     }
 
     private void updateLocalAcks(final LocalAcksChanged localAcksChanged) {
         declaredAcks = localAcksChanged.getSnapshot();
+        ackUpdater = getSender();
+        getContext().watch(ackUpdater);
+    }
+
+    private Duration getRestartDelayWithBuffer() {
+        final long bufferFactor = 4;
+        final Duration configuredRestartDelay = PubSubConfig.of(getContext().getSystem()).getRestartDelay();
+        return configuredRestartDelay.plus(configuredRestartDelay.dividedBy(bufferFactor));
     }
 
     private static <T> boolean disjoint(final Set<T> set1, final Set<T> set2) {
@@ -145,6 +192,10 @@ public final class Subscriber<T extends Signal<?>> extends AbstractActor {
             bigger = set1;
         }
         return smaller.stream().noneMatch(bigger::contains);
+    }
+
+    private enum Control {
+        RECEIVE_LOCAL_DECLARED_ACKS
     }
 
 }

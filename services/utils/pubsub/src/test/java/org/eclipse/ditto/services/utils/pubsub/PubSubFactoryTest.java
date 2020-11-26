@@ -33,14 +33,17 @@ import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.PubSubTerminatedException;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.utils.pubsub.actors.ActorEvent;
 import org.eclipse.ditto.services.utils.pubsub.api.LocalAcksChanged;
 import org.eclipse.ditto.services.utils.pubsub.api.SubAck;
 import org.eclipse.ditto.services.utils.pubsub.api.Subscribe;
 import org.eclipse.ditto.services.utils.pubsub.api.Unsubscribe;
+import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
@@ -55,6 +58,7 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.cluster.Cluster;
@@ -604,6 +608,55 @@ public final class PubSubFactoryTest {
 
             // THEN: publisher receives no weak acknowledgement
             publisher.expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void ackUpdaterInformOfSubUpdaterTermination() throws Exception {
+        new TestKit(system1) {{
+            final TestProbe subscriber = TestProbe.apply("subscriber", system1);
+            final DistributedSubImpl sub = (DistributedSubImpl) factory1.startDistributedSub();
+
+            // GIVEN: subscriber declares ack labels and subscribe for a topic
+            await(distributedAcks1.declareAcknowledgementLabels(acks("ack"), subscriber.ref(), "group"));
+            await(sub.subscribeWithFilterAndGroup(List.of("topic"), subscriber.ref(), null, "group"));
+
+            // WHEN: children of SubSupervisor terminate
+            sub.subSupervisor.tell(ActorEvent.DEBUG_KILL_CHILDREN, getRef());
+
+            // THEN: subscriber is informed of the error
+            subscriber.expectMsg(PubSubTerminatedException.getInstance());
+
+            // THEN: distributed pubsub recovers after restart
+            TimeUnit.MILLISECONDS.sleep(PubSubConfig.of(system1).getRestartDelay().multipliedBy(3L).toMillis());
+            await(distributedAcks1.declareAcknowledgementLabels(acks("ack"), subscriber.ref(), "group"));
+            await(sub.subscribeWithFilterAndGroup(List.of("topic"), subscriber.ref(), null, "group"));
+        }};
+    }
+
+    @Test
+    public void subUpdaterInformOfAckUpdaterTermination() throws Exception {
+        new TestKit(system1) {{
+            final TestProbe subscriber = TestProbe.apply("subscriber", system1);
+            final DistributedSub sub = factory1.startDistributedSub();
+
+            // GIVEN: subscriber declares ack labels and subscribe for a topic
+            await(distributedAcks1.declareAcknowledgementLabels(acks("ack"), subscriber.ref(), "group"));
+            await(sub.subscribeWithFilterAndGroup(List.of("topic"), subscriber.ref(), null, "group"));
+
+            // WHEN: ackUpdater terminates
+            final TestProbe localUpdateProbe = TestProbe.apply("localUpdate", system1);
+            distributedAcks1.receiveLocalDeclaredAcks(localUpdateProbe.ref());
+            localUpdateProbe.expectMsgClass(LocalAcksChanged.class);
+            localUpdateProbe.lastSender().tell(PoisonPill.getInstance(), getRef());
+
+            // THEN: subscriber is informed of the error
+            subscriber.expectMsg(PubSubTerminatedException.getInstance());
+
+            // THEN: distributed pubsub recovers after restart
+            TimeUnit.MILLISECONDS.sleep(PubSubConfig.of(system1).getRestartDelay().multipliedBy(3L).toMillis());
+            await(distributedAcks1.declareAcknowledgementLabels(acks("ack"), subscriber.ref(), "group"));
+            await(sub.subscribeWithFilterAndGroup(List.of("topic"), subscriber.ref(), null, "group"));
         }};
     }
 

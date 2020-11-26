@@ -69,6 +69,7 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
     private final AckExtractor<T> ackExtractor;
     private final DistributedAcks distributedAcks;
 
+    @Nullable private ActorRef subscriber;
     @Nullable private ActorRef updater;
 
     @SuppressWarnings("unused")
@@ -77,7 +78,6 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
             final DData<ActorRef, ?, U> topicsDData,
             final AckExtractor<T> ackExtractor,
             final DistributedAcks distributedAcks) {
-        super();
         this.messageClass = messageClass;
         this.topicExtractor = topicExtractor;
         this.topicsDData = topicsDData;
@@ -112,32 +112,44 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
         return ReceiveBuilder.create()
                 .match(Request.class, this::isUpdaterAvailable, this::request)
                 .match(Request.class, this::updaterUnavailable)
-                .match(Terminated.class, this::subscriberTerminated)
+                .match(Terminated.class, this::childTerminated)
+                .matchEquals(ActorEvent.DEBUG_KILL_CHILDREN, this::debugKillChildren)
                 .build();
     }
 
     @Override
-    protected void onChildFailure() {
-        // if this ever happens, consider adding a recovery mechanism in SubUpdater.postStop.
+    protected void onChildFailure(final ActorRef failingChild) {
+        if (updater != null && !failingChild.equals(updater)) {
+            // Updater survived. Ask it to inform known subscribers of local data loss.
+            updater.tell(ActorEvent.PUBSUB_TERMINATED, getSelf());
+        }
         updater = null;
+        subscriber = null;
         log.error("All local subscriptions lost.");
     }
 
     @Override
     protected void startChildren() {
-        final ActorRef subscriber =
-                startChild(Subscriber.props(messageClass, topicExtractor, ackExtractor, distributedAcks),
-                        Subscriber.ACTOR_NAME_PREFIX);
-        getContext().watch(subscriber);
-
-        final Props updaterProps = SubUpdater.props(config, subscriber, topicsDData);
-        updater = startChild(updaterProps, SubUpdater.ACTOR_NAME_PREFIX);
+        subscriber = startChild(Subscriber.props(messageClass, topicExtractor, ackExtractor, distributedAcks),
+                Subscriber.ACTOR_NAME_PREFIX);
+        updater = startChild(SubUpdater.props(config, subscriber, topicsDData), SubUpdater.ACTOR_NAME_PREFIX);
     }
 
-    private void subscriberTerminated(final Terminated terminated) {
-        log.error("Subscriber terminated. Removing subscriber from DData: <{}>", terminated.getActor());
-        topicsDData.getWriter().removeSubscriber(terminated.getActor(),
-                (Replicator.WriteConsistency) Replicator.writeLocal());
+    private void debugKillChildren(final ActorEvent debugKillChildren) {
+        log.warning("Killing children on request. DO NOT do this in production!");
+        getContext().getChildren().forEach(getContext()::stop);
+    }
+
+    private void childTerminated(final Terminated terminated) {
+        if (terminated.getActor().equals(subscriber) || terminated.getActor().equals(updater)) {
+            log.error("Child actor terminated. Removing subscriber from DData: <{}>", terminated.getActor());
+            topicsDData.getWriter().removeSubscriber(terminated.getActor(),
+                    (Replicator.WriteConsistency) Replicator.writeLocal());
+            getContext().getChildren().forEach(getContext()::stop);
+            subscriber = null;
+            updater = null;
+            scheduleRestartChildren();
+        }
     }
 
     private boolean isUpdaterAvailable() {

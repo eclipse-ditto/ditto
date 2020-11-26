@@ -66,8 +66,10 @@ abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers implemen
 
     /**
      * Callback for when a child failed.
+     *
+     * @param failingChild the child who failed.
      */
-    protected abstract void onChildFailure();
+    protected abstract void onChildFailure(final ActorRef failingChild);
 
     /**
      * Start children without regard for previous children.
@@ -92,7 +94,7 @@ abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers implemen
                     log.error(error, "Child <{}> crashed. Restarting all children after <{}>",
                             getSender(), restartDelay);
                     scheduleRestartChildren();
-                    onChildFailure();
+                    onChildFailure(getSender());
                     return (SupervisorStrategy.Directive) SupervisorStrategy.stop();
                 }).build());
     }
@@ -108,7 +110,9 @@ abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers implemen
      * Schedule restart for all children.
      */
     protected void scheduleRestartChildren() {
-        getTimers().startSingleTimer(Control.RESTART, Control.RESTART, config.getRestartDelay());
+        if (!getTimers().isTimerActive(Control.RESTART)) {
+            getTimers().startSingleTimer(Control.RESTART, Control.RESTART, config.getRestartDelay());
+        }
     }
 
     /**
@@ -121,7 +125,7 @@ abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers implemen
      */
     protected ActorRef startChild(final Props props, final String namePrefix) {
         final String actorName = namePrefix + ++childCounter;
-        return getContext().actorOf(props, actorName);
+        return getContext().watch(getContext().actorOf(props, actorName));
     }
 
     private void restartChildren(final Control restart) {

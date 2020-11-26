@@ -81,12 +81,12 @@ final class DistributedAcksImpl implements DistributedAcks {
 
     @Override
     public void receiveLocalDeclaredAcks(final ActorRef receiver) {
-        ackSupervisor.tell(ReceiveLocalAcks.of(receiver), ActorRef.noSender());
+        ackSupervisor.tell(ReceiveLocalAcks.of(receiver), receiver);
     }
 
     @Override
     public void receiveDistributedDeclaredAcks(final ActorRef receiver) {
-        ackSupervisor.tell(ReceiveRemoteAcks.of(receiver), ActorRef.noSender());
+        ackSupervisor.tell(ReceiveRemoteAcks.of(receiver), receiver);
     }
 
     @Override

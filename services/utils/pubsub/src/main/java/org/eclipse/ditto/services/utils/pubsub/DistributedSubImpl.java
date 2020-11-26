@@ -41,8 +41,10 @@ final class DistributedSubImpl implements DistributedSub {
 
     private static final long ACK_DELAY_OFFSET_MILLIS = 250;
 
+    // package-private for unit tests
+    final ActorRef subSupervisor;
+
     private final DistributedDataConfig config;
-    private final ActorRef subSupervisor;
     private final Replicator.WriteConsistency writeAll;
     private final long ackDelayInMillis;
 

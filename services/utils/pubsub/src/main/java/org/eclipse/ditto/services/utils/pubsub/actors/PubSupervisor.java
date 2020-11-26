@@ -79,7 +79,7 @@ public final class PubSupervisor extends AbstractPubSubSupervisor {
     }
 
     @Override
-    protected void onChildFailure() {
+    protected void onChildFailure(final ActorRef failingChild) {
         publisher = null;
     }
 

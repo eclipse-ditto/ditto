@@ -26,36 +26,33 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 
 /**
- * Thrown if any declared acknowledgement label was taken by another subscriber.
+ * Thrown if any actor involved in the pubsub infrastructure terminated abnormally, losing information about local
+ * subscribers.
  *
- * @since 1.4.0
+ * @since 1.5.0
  */
 @Immutable
-@JsonParsableException(errorCode = AcknowledgementLabelNotUniqueException.ERROR_CODE)
-public final class AcknowledgementLabelNotUniqueException extends DittoRuntimeException
-        implements AcknowledgementException, FatalPubSubException {
+@JsonParsableException(errorCode = PubSubTerminatedException.ERROR_CODE)
+public final class PubSubTerminatedException extends DittoRuntimeException implements FatalPubSubException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "label.not.unique";
+    public static final String ERROR_CODE = "pubsub:abnormal.termination";
 
-    private static final String DEFAULT_MESSAGE =
-            "One or more declared acknowledgement labels are taken by other subscribers.";
+    private static final String DEFAULT_MESSAGE = "The signal pubsub infrastructure terminated abnormally.";
 
-    private static final String DEFAULT_DESCRIPTION =
-            "Please ensure all other subscribers with the declared acknowledgement labels are offline.";
+    private static final String DEFAULT_DESCRIPTION = "Please try again later.";
 
-    private static final AcknowledgementLabelNotUniqueException INSTANCE =
-            AcknowledgementLabelNotUniqueException.newBuilder().build();
+    private static final PubSubTerminatedException INSTANCE = PubSubTerminatedException.newBuilder().build();
 
-    private AcknowledgementLabelNotUniqueException(final DittoHeaders dittoHeaders,
+    private PubSubTerminatedException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
 
-        super(ERROR_CODE, HttpStatusCode.CONFLICT, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatusCode.INTERNAL_SERVER_ERROR, dittoHeaders, message, description, cause, href);
     }
 
     /**
@@ -63,12 +60,12 @@ public final class AcknowledgementLabelNotUniqueException extends DittoRuntimeEx
      *
      * @return the instance.
      */
-    public static AcknowledgementLabelNotUniqueException getInstance() {
+    public static PubSubTerminatedException getInstance() {
         return INSTANCE;
     }
 
     /**
-     * A mutable builder for a {@code AcknowledgementLabelNotUniqueException}.
+     * A mutable builder for this exception.
      *
      * @return the builder.
      * @throws NullPointerException if {@code timeout} is {@code null}.
@@ -87,7 +84,7 @@ public final class AcknowledgementLabelNotUniqueException extends DittoRuntimeEx
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} is missing required JSON fields.
      * @throws org.eclipse.ditto.json.JsonParseException if {@code jsonObject} contains unexpected value types.
      */
-    public static AcknowledgementLabelNotUniqueException fromJson(final JsonObject jsonObject,
+    public static PubSubTerminatedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
@@ -110,10 +107,10 @@ public final class AcknowledgementLabelNotUniqueException extends DittoRuntimeEx
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link AcknowledgementLabelNotUniqueException}.
+     * A mutable builder with a fluent API for a {@link PubSubTerminatedException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<AcknowledgementLabelNotUniqueException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<PubSubTerminatedException> {
 
         private Builder() {
             message(DEFAULT_MESSAGE);
@@ -121,13 +118,13 @@ public final class AcknowledgementLabelNotUniqueException extends DittoRuntimeEx
         }
 
         @Override
-        protected AcknowledgementLabelNotUniqueException doBuild(final DittoHeaders dittoHeaders,
+        protected PubSubTerminatedException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
 
-            return new AcknowledgementLabelNotUniqueException(dittoHeaders, message, description, cause, href);
+            return new PubSubTerminatedException(dittoHeaders, message, description, cause, href);
         }
 
     }

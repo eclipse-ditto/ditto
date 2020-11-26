@@ -28,6 +28,18 @@ import akka.actor.ActorRef;
 public interface Subscriptions<T> {
 
     /**
+     * Remove all known bindings from this data structure.
+     */
+    void clear();
+
+    /**
+     * Get the set of all known subscribers.
+     *
+     * @return the set of subscribers.
+     */
+    Set<ActorRef> getSubscribers();
+
+    /**
      * Get the total number of topics with active subscriptions.
      *
      * @return the number of topics.

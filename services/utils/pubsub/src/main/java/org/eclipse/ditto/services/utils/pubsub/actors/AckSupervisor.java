@@ -21,6 +21,7 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 import akka.actor.ActorRef;
 import akka.actor.Address;
 import akka.actor.Props;
+import akka.actor.Terminated;
 import akka.cluster.Cluster;
 import akka.japi.pf.ReceiveBuilder;
 
@@ -32,7 +33,7 @@ public final class AckSupervisor extends AbstractPubSubSupervisor {
     private final Address selfAddress;
     private final DData<Address, String, LiteralUpdate> ackDData;
 
-    @Nullable private ActorRef acksUpdater;
+    @Nullable private ActorRef ackUpdater;
 
     @SuppressWarnings("unused")
     private AckSupervisor(final DData<Address, String, LiteralUpdate> ackDData) {
@@ -56,34 +57,43 @@ public final class AckSupervisor extends AbstractPubSubSupervisor {
         return ReceiveBuilder.create()
                 .match(AckRequest.class, this::isAckUpdaterAvailable, this::forwardRequest)
                 .match(AckRequest.class, this::ackUpdaterUnavailable)
+                .match(Terminated.class, this::ackUpdaterTerminated)
                 .build();
     }
 
     @Override
-    protected void onChildFailure() {
+    protected void onChildFailure(final ActorRef failingChild) {
         // if this ever happens, consider adding a recovery mechanism in SubUpdater.postStop.
-        acksUpdater = null;
+        ackUpdater = null;
         log.error("All local subscriptions lost.");
     }
 
     @Override
     protected void startChildren() {
         final Props acksUpdaterProps = AckUpdater.props(config, selfAddress, ackDData);
-        acksUpdater = startChild(acksUpdaterProps, AckUpdater.ACTOR_NAME_PREFIX);
+        ackUpdater = getContext().watch(startChild(acksUpdaterProps, AckUpdater.ACTOR_NAME_PREFIX));
     }
 
     private boolean isAckUpdaterAvailable() {
-        return acksUpdater != null;
+        return ackUpdater != null;
     }
 
     @SuppressWarnings("ConstantConditions")
     private void forwardRequest(final AckRequest request) {
-        acksUpdater.tell(request, getSender());
+        ackUpdater.tell(request, getSender());
     }
 
     private void ackUpdaterUnavailable(final AckRequest request) {
-        log.error("AcksUpdater unavailable. Failing <{}>", request);
-        getSender().tell(new IllegalStateException("AcksUpdater not available"), getSelf());
+        log.error("AckUpdater unavailable. Failing <{}>", request);
+        getSender().tell(ActorEvent.ACK_UPDATER_NOT_AVAILABLE, getSelf());
+    }
+
+    private void ackUpdaterTerminated(final Terminated terminated) {
+        if (terminated.getActor().equals(ackUpdater)) {
+            onChildFailure(ackUpdater);
+            ackUpdater = null;
+            scheduleRestartChildren();
+        }
     }
 
 }

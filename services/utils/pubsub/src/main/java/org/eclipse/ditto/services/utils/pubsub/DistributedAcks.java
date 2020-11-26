@@ -32,8 +32,9 @@ public interface DistributedAcks {
     /**
      * Receive a snapshot of local acknowledgement declarations on each update.
      * Subscription terminates when the receiver terminates.
+     * Treat termination of the receiver as the loss of local subscription data.
      *
-     * @param receiver receiver of local acknowledgement declarations.
+     * @param receiver receiver of local acknowledgement declarations; the node-level subscriber actor.
      */
     void receiveLocalDeclaredAcks(final ActorRef receiver);
 
@@ -41,7 +42,7 @@ public interface DistributedAcks {
      * Receive a snapshot of the distributed data of acknowledgement label declarations on each change.
      * Subscription terminates when the receiver terminates.
      *
-     * @param receiver receiver of distributed acknowledgement label declarations.
+     * @param receiver receiver of distributed acknowledgement label declarations; the node-level publisher actor.
      */
     void receiveDistributedDeclaredAcks(final ActorRef receiver);
 

@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.utils.pubsub.ddata.literal;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -30,14 +29,10 @@ import akka.actor.ActorRef;
 @NotThreadSafe
 public final class LiteralSubscriptions extends AbstractSubscriptions<String, String, LiteralUpdate> {
 
-    private final LiteralUpdate updates;
-
     private LiteralSubscriptions(
             final Map<ActorRef, SubscriberData> subscriberDataMap,
-            final Map<String, TopicData> topicToData,
-            final LiteralUpdate updates) {
+            final Map<String, TopicData> topicToData) {
         super(subscriberDataMap, topicToData);
-        this.updates = updates;
     }
 
     /**
@@ -46,7 +41,7 @@ public final class LiteralSubscriptions extends AbstractSubscriptions<String, St
      * @return the subscriptions object.
      */
     public static LiteralSubscriptions newInstance() {
-        return new LiteralSubscriptions(new HashMap<>(), new HashMap<>(), LiteralUpdate.empty());
+        return new LiteralSubscriptions(new HashMap<>(), new HashMap<>());
     }
 
     @Override
@@ -54,18 +49,4 @@ public final class LiteralSubscriptions extends AbstractSubscriptions<String, St
         return LiteralUpdate.replaceAll(topicDataMap.keySet());
     }
 
-    @Override
-    public boolean equals(final Object other) {
-        if (other instanceof LiteralSubscriptions) {
-            final LiteralSubscriptions that = (LiteralSubscriptions) other;
-            return updates.equals(that.updates) && super.equals(other);
-        } else {
-            return false;
-        }
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(updates, super.hashCode());
-    }
 }
