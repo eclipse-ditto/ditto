@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.health.status;
 
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 import org.eclipse.ditto.services.utils.akka.SimpleCommand;
 import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
@@ -26,8 +26,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.PatternsCS;
-import akka.util.Timeout;
+import akka.pattern.Patterns;
 
 /**
  * Actor supplying "status" and "health" information of an ActorSystem. Has to be started as "root" actor so that
@@ -85,9 +84,9 @@ public final class StatusSupplierActor extends AbstractActor {
                         command -> {
                             final ActorRef sender = getSender();
                             final ActorRef self = getSelf();
-                            PatternsCS.ask(getContext().system().actorSelection("/user/" + rootActorName + "/" +
+                            Patterns.ask(getContext().system().actorSelection("/user/" + rootActorName + "/" +
                                             AbstractHealthCheckingActor.ACTOR_NAME),
-                                    RetrieveHealth.newInstance(), Timeout.apply(2, TimeUnit.SECONDS))
+                                    RetrieveHealth.newInstance(), Duration.ofSeconds(2))
                                     .thenAccept(health -> {
                                         log.info("Sending the health of this system as requested: {}", health);
                                         sender.tell(health, self);

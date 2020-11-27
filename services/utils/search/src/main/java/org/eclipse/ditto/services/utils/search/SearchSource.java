@@ -60,7 +60,7 @@ import akka.stream.javadsl.Source;
  */
 public final class SearchSource {
 
-    private final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory.getThreadSafeLogger(SearchSource.class);
+    private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory.getThreadSafeLogger(SearchSource.class);
 
     private final ActorRef pubSubMediator;
     private final ActorSelection conciergeForwarder;
@@ -217,7 +217,7 @@ public final class SearchSource {
         final CompletionStage<Object> responseFuture =
                 Patterns.ask(conciergeForwarder, retrieveThing, thingsAskTimeout);
 
-        return Source.fromCompletionStage(responseFuture)
+        return Source.completionStage(responseFuture)
                 .via(expectMsgClass(RetrieveThingResponse.class))
                 .map(response -> response.getEntity().asObject());
     }

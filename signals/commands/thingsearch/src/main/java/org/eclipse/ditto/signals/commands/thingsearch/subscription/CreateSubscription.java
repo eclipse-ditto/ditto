@@ -267,10 +267,6 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
      */
     public static final class JsonFields {
 
-        private JsonFields() {
-            throw new AssertionError();
-        }
-
         /**
          * Optional JSON field for the filter.
          */

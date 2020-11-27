@@ -71,10 +71,10 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
     private final SupervisorStrategy strategy = new OneForOneStrategy(true, DeciderBuilder
             .match(Throwable.class, e -> {
                 logger.error(e, "Escalating above actor!");
-                return SupervisorStrategy.escalate();
+                return (SupervisorStrategy.Directive) SupervisorStrategy.escalate();
             }).matchAny(e -> {
                 logger.error("Unknown message:'{}'! Escalating above actor!", e);
-                return SupervisorStrategy.escalate();
+                return (SupervisorStrategy.Directive) SupervisorStrategy.escalate();
             }).build());
 
     @SuppressWarnings("unused")
