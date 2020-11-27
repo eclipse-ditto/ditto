@@ -176,7 +176,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final ClientActorRefs clientActorRefs;
     private final Duration clientActorRefsNotificationDelay;
     private final DittoProtocolSub dittoProtocolSub;
-    private final int subscriptioniIdPrefixLength;
+    private final int subscriptionIdPrefixLength;
     private final ProtocolAdapter protocolAdapter;
 
     private final ConnectivityConfigProvider connectivityConfigProvider;
@@ -237,7 +237,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         clientActorRefs = ClientActorRefs.empty();
         clientActorRefsNotificationDelay = randomize(clientConfig.getClientActorRefsNotificationDelay());
         dittoProtocolSub = DittoProtocolSub.get(getContext().getSystem());
-        subscriptioniIdPrefixLength =
+        subscriptionIdPrefixLength =
                 ConnectionPersistenceActor.getSubscriptionPrefixLength(connection.getClientCount());
 
         // Send init message to allow for unsafe initialization of subclasses.
@@ -1295,8 +1295,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     private void dispatchSearchCommand(final WithSubscriptionId<?> searchCommand) {
         final String subscriptionId = searchCommand.getSubscriptionId();
-        if (subscriptionId.length() > subscriptioniIdPrefixLength) {
-            final String prefix = subscriptionId.substring(0, subscriptioniIdPrefixLength);
+        if (subscriptionId.length() > subscriptionIdPrefixLength) {
+            final String prefix = subscriptionId.substring(0, subscriptionIdPrefixLength);
             final Optional<Integer> index = parseHexString(prefix);
             if (index.isPresent()) {
                 final ActorRef receiver = clientActorRefs.get(index.get()).orElseThrow();
@@ -1310,7 +1310,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
             }
         }
         // command is invalid or outdated, dropping.
-        logger.info("Dropping search command with invalid subscription ID: <{}>", searchCommand);
+        logger.withCorrelationId(searchCommand)
+                .info("Dropping search command with invalid subscription ID: <{}>", searchCommand);
         connectionLogger.failure(InfoProviderFactory.forSignal(searchCommand),
                 "Dropping search command with invalid subscription ID: " +
                         searchCommand.getSubscriptionId());

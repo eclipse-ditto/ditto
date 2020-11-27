@@ -501,7 +501,7 @@ public final class ConnectionPersistenceActor
 
     private void augmentWithPrefixAndForward(final CreateSubscription createSubscription, final int clientCount,
             final ActorRef clientActorRouter) {
-        subscriptionCounter = (subscriptionCounter + 1) % Math.max(1, getClientCount());
+        subscriptionCounter = (subscriptionCounter + 1) % Math.max(1, clientCount);
         final int prefixLength = getSubscriptionPrefixLength(clientCount);
         final String prefix = String.format("%0" + prefixLength + "X", subscriptionCounter);
         final Optional<ActorRef> receiver = clientActorRefs.get(subscriptionCounter);

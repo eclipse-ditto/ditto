@@ -221,7 +221,7 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
         getNamespaces().ifPresent(presentOptions -> jsonObjectBuilder.set(JsonFields.NAMESPACES, presentOptions.stream()
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray()), predicate));
-        getPrefix().ifPresent(prefix -> jsonObjectBuilder.set(JsonFields.PREFIX, prefix));
+        getPrefix().ifPresent(thePrefix -> jsonObjectBuilder.set(JsonFields.PREFIX, thePrefix));
     }
 
     @Override
@@ -266,6 +266,10 @@ public final class CreateSubscription extends AbstractCommand<CreateSubscription
      * Json fields of this command.
      */
     public static final class JsonFields {
+
+        private JsonFields() {
+            throw new AssertionError();
+        }
 
         /**
          * Optional JSON field for the filter.
