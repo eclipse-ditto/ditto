@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.services.connectivity.messaging.config.HttpPushConfig;
+import org.eclipse.ditto.services.connectivity.config.HttpPushConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 
 import akka.actor.ActorSystem;

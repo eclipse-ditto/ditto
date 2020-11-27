@@ -209,13 +209,14 @@ public final class AclEntryModified extends AbstractThingEvent<AclEntryModified>
      * 'AclEntryModified' format.
      */
     public static AclEntryModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<AclEntryModified>(TYPE, jsonObject).deserialize((revision, timestamp, metadata) -> {
+        return new EventJsonDeserializer<AclEntryModified>(TYPE, jsonObject).deserialize(
+                (revision, timestamp, metadata) -> {
             final String extractedThingId = jsonObject.getValueOrThrow(JsonFields.THING_ID);
             final ThingId thingId = ThingId.of(extractedThingId);
             final JsonObject aclEntryJsonObject = jsonObject.getValueOrThrow(JSON_ACL_ENTRY);
             final AclEntry extractedAclEntry = ThingsModelFactory.newAclEntry(aclEntryJsonObject);
 
-            return of(thingId, extractedAclEntry, revision, timestamp, dittoHeaders, metadata);
+                    return of(thingId, extractedAclEntry, revision, timestamp, dittoHeaders, metadata);
         });
     }
 

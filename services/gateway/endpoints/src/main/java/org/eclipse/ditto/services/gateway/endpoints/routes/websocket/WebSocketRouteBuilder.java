@@ -86,6 +86,16 @@ public interface WebSocketRouteBuilder {
     WebSocketRouteBuilder withHeaderTranslator(HeaderTranslator headerTranslator);
 
     /**
+     * Set the custom {@link WebSocketConfigProvider}.
+     * If not set, the default websocket config is used.
+     *
+     * @param webSocketConfigProvider the provider that can overwrite the default web socket config.
+     * @return this builder instance to allow method chaining.
+     * @throws NullPointerException if {@code webSocketConfigProvider} is {@code null}.
+     */
+    WebSocketRouteBuilder withWebSocketConfigProvider(WebSocketConfigProvider webSocketConfigProvider);
+
+    /**
      * Creates the Akka HTTP route for websocket.
      *
      * @param version the WS API version.

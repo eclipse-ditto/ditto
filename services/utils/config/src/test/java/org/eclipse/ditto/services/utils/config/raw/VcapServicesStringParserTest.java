@@ -56,7 +56,7 @@ public final class VcapServicesStringParserTest {
         ENVIRONMENT_VARIABLES.set(VcapServicesStringSupplier.VCAP_LOCATION_ENV_VARIABLE_NAME,
                 vcapConfigFilePath.toString());
 
-        final VcapServicesStringSupplier vcapConfigStringSupplier = VcapServicesStringSupplier.getInstance();
+        final VcapServicesStringSupplier vcapConfigStringSupplier = VcapServicesStringSupplier.getInstance().get();
         knownSystemVcapServicesString = vcapConfigStringSupplier.get().orElseThrow(IllegalStateException::new);
     }
 

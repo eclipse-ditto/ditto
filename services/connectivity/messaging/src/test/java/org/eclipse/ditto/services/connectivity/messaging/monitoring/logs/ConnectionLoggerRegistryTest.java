@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.connectivity.messaging.monitoring.logs;
 
 import static nl.jqno.equalsverifier.EqualsVerifier.forClass;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -46,9 +47,9 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.LogEntry;
 import org.eclipse.ditto.model.connectivity.LogLevel;
 import org.eclipse.ditto.model.connectivity.Source;
+import org.eclipse.ditto.services.connectivity.config.DefaultMonitoringLoggerConfig;
+import org.eclipse.ditto.services.connectivity.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
-import org.eclipse.ditto.services.connectivity.messaging.config.DefaultMonitoringLoggerConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.MonitoringLoggerConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry.ConnectionLogs;
 import org.junit.Test;
@@ -406,7 +407,7 @@ public final class ConnectionLoggerRegistryTest {
     }
 
     private ConnectionId connectionId() {
-        return ConnectionId.of( "loggerRegistryTest-" + UUID.randomUUID().toString());
+        return ConnectionId.of("loggerRegistryTest-" + UUID.randomUUID().toString());
     }
 
     private Connection connection(final ConnectionId connectionId) {
@@ -421,7 +422,9 @@ public final class ConnectionLoggerRegistryTest {
 
     @Test
     public void testImmutabilityOfCollectionLogs() {
-        assertInstancesOf(ConnectionLogs.class, areImmutable(), provided(LogEntry.class).isAlsoImmutable());
+        assertInstancesOf(ConnectionLogs.class, areImmutable(),
+                assumingFields("logs").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements(),
+                provided(LogEntry.class).isAlsoImmutable());
     }
 
     @Test

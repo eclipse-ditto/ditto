@@ -23,8 +23,7 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 
 /**
- * JMH Benchmark for {@link org.eclipse.ditto.services.connectivity.mapping.javascript.JavaScriptMessageMapperRhino}
- * mappings.
+ * JMH Benchmark for {@code JavaScriptMessageMapperRhino} mappings.
  */
 @State(Scope.Benchmark)
 public class JavaScriptMessageMapperRhinoBenchmark {

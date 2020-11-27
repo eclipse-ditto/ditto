@@ -19,11 +19,11 @@ import javax.jms.JMSRuntimeException;
 import javax.naming.NamingException;
 
 import org.eclipse.ditto.services.base.actors.DittoRootActor;
+import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectivityProxyActor;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceOperationsActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionSupervisorActor;

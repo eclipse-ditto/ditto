@@ -23,8 +23,9 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationFailedException;
 import org.eclipse.ditto.protocoladapter.Adaptable;
+import org.eclipse.ditto.services.connectivity.config.javascript.JavaScriptConfig;
+import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.AbstractMessageMapper;
-import org.eclipse.ditto.services.connectivity.mapping.MappingConfig;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperConfiguration;
 import org.eclipse.ditto.services.connectivity.mapping.PayloadMapper;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;

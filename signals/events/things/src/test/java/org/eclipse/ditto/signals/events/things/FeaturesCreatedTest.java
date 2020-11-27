@@ -120,7 +120,7 @@ public final class FeaturesCreatedTest {
         final FeaturesCreated underTest =
                 FeaturesCreated.of(TestConstants.Thing.THING_ID, TestConstants.Feature.FEATURES,
                         TestConstants.Thing.REVISION_NUMBER,
-                TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
+                        TestConstants.TIMESTAMP, TestConstants.EMPTY_DITTO_HEADERS, TestConstants.METADATA);
 
         assertThat(underTest.getResourcePath()).isEqualTo(expectedResourcePath);
     }

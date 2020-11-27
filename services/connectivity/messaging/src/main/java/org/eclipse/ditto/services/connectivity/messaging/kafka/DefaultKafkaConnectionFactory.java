@@ -19,7 +19,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.services.connectivity.messaging.config.KafkaConfig;
+import org.eclipse.ditto.services.connectivity.config.KafkaConfig;
 
 /**
  * Creates Kafka sinks.

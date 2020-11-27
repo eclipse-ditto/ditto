@@ -299,7 +299,7 @@ public interface Enforcer {
         if (isAuthorizationSubjectRelevant) {
             final JsonObject inputJsonObject = JsonFactory.newObject(jsonFields);
             final JsonObject allowedJsonView = inputJsonObject.get(allowlist);
-            return new JsonObjectMerger().apply(allowedJsonView, enforcedJsonView);
+            return JsonFactory.newObject(allowedJsonView, enforcedJsonView);
         } else {
             return enforcedJsonView;
         }

@@ -16,6 +16,9 @@
 # specified services (SERVICES).                                               #
 ################################################################################
 
+# Directory of the script
+SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
 # Array of the services to build Docker images for.
 # The pattern is MODULE_NAME:IMAGE_NAME as both can differ from each other.
 SERVICES=(
@@ -26,12 +29,13 @@ SERVICES=(
   "thingsearch:things-search"
   "connectivity:connectivity"
 )
-HTTP_PROXY_LOCAL=$HTTP_PROXY
-HTTPS_PROXY_LOCAL=$HTTPS_PROXY
-DOCKER_BIN=docker
-DOCKERFILE="dockerfile-snapshot"
-DOCKER_BUILD_CONTEXT="."
-SERVICE_VERSION="0-SNAPSHOT"
+: "${HTTP_PROXY_LOCAL:=$HTTP_PROXY}"
+: "${HTTPS_PROXY_LOCAL:=$HTTPS_PROXY}"
+: "${CONTAINER_REGISTRY:=eclipse}"
+: "${DOCKER_BIN:=docker}"
+: "${DOCKERFILE:="dockerfile-snapshot"}"
+: "${SERVICE_VERSION:="0-SNAPSHOT"}"
+: "${IMAGE_VERSION:="${SERVICE_VERSION}"}"
 
 print_usage() {
   printf "%s [-p HTTP(S) PROXY HOST:PORT]\n" "$1"
@@ -45,19 +49,19 @@ print_used_proxies() {
 build_docker_image() {
   module_name_base=$(echo "$1" | awk -F ":" '{ print $1 }')
   module_name=$(printf "ditto-services-%s" "$module_name_base")
-  image_tag=$(printf "eclipse/ditto-%s" "$(echo "$1" | awk -F ":" '{ print $2 }')")
+  image_tag=$(printf "${CONTAINER_REGISTRY}/ditto-%s" "$(echo "$1" | awk -F ":" '{ print $2 }')")
   printf "\nBuilding Docker image <%s> for service module <%s>\n" \
     "$image_tag" \
     "$module_name"
 
-    $DOCKER_BIN build --pull -f $DOCKERFILE \
+    $DOCKER_BIN build --pull -f $SCRIPTDIR/$DOCKERFILE \
       --build-arg HTTP_PROXY="$HTTP_PROXY_LOCAL" \
       --build-arg HTTPS_PROXY="$HTTPS_PROXY_LOCAL" \
       --build-arg TARGET_DIR="$module_name_base"/starter/target \
       --build-arg SERVICE_STARTER="$module_name"-starter \
       --build-arg SERVICE_VERSION=$SERVICE_VERSION \
-      -t "$image_tag":$SERVICE_VERSION \
-      $DOCKER_BUILD_CONTEXT
+      -t "$image_tag":$IMAGE_VERSION \
+      "$SCRIPTDIR"
 }
 
 build_all_docker_images() {

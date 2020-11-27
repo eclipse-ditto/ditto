@@ -574,7 +574,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             probe.expectMsg(openConnection);
             expectMsg(createConnectionResponse);
 
-            // create connection
+            // close connection
             underTest.tell(closeConnection, getRef());
             probe.expectMsg(closeConnection);
             expectMsg(closeConnectionResponse);

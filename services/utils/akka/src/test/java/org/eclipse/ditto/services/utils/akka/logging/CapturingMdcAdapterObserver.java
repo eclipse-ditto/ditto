@@ -26,7 +26,7 @@ import org.slf4j.impl.ObservableMdcAdapter;
 /**
  * This {@link org.slf4j.impl.ObservableMdcAdapter.MdcAdapterObserver} captures put entries and removed keys for later
  * test assertions.
- *
+ * <p>
  * since 1.3.0
  */
 @ThreadSafe

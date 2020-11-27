@@ -48,11 +48,14 @@ import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.services.connectivity.config.Amqp10Config;
+import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
+import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigModifiedBehavior;
+import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProvider;
+import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProviderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.status.ConsumerClosedStatusReport;
-import org.eclipse.ditto.services.connectivity.messaging.config.Amqp10Config;
-import org.eclipse.ditto.services.connectivity.messaging.config.ConnectionConfig;
-import org.eclipse.ditto.services.connectivity.messaging.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
@@ -63,7 +66,6 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 
 import akka.actor.ActorRef;
@@ -75,7 +77,8 @@ import akka.pattern.Patterns;
 /**
  * Actor which receives message from an AMQP source and forwards them to a {@code MessageMappingProcessorActor}.
  */
-final class AmqpConsumerActor extends BaseConsumerActor implements MessageListener, MessageRateLimiterBehavior<String> {
+final class AmqpConsumerActor extends BaseConsumerActor implements MessageListener,
+        MessageRateLimiterBehavior<String>, ConnectivityConfigModifiedBehavior {
 
     /**
      * The name prefix of this Actor in the ActorSystem.
@@ -85,7 +88,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
 
-    private final MessageRateLimiter<String> messageRateLimiter;
+    private MessageRateLimiter<String> messageRateLimiter;
 
     // Access to the actor who performs JMS tasks in own thread
     private final ActorRef jmsActor;
@@ -94,6 +97,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     private ConsumerData consumerData;
     @Nullable
     private MessageConsumer messageConsumer;
+    private ConnectivityConfig connectivityConfig;
 
     @SuppressWarnings("unused")
     private AmqpConsumerActor(final ConnectionId connectionId, final ConsumerData consumerData,
@@ -103,10 +107,11 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 inboundMappingProcessor,
                 consumerData.getSource(),
                 ConnectionType.AMQP_10);
-        final ConnectionConfig connectionConfig =
-                DittoConnectivityConfig.of(
-                        DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
-                        .getConnectionConfig();
+
+        final ConnectivityConfigProvider connectivityConfigProvider =
+                ConnectivityConfigProviderFactory.getInstance(getContext().getSystem());
+        connectivityConfig = connectivityConfigProvider.getConnectivityConfig(connectionId);
+        final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
         final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
         this.messageConsumer = consumerData.getMessageConsumer();
         this.consumerData = consumerData;
@@ -154,12 +159,14 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 }).build();
         return messageHandlingBehavior
                 .orElse(rateLimiterBehavior)
+                .orElse(connectivityConfigModifiedBehavior())
                 .orElse(matchAnyBehavior);
     }
 
     @Override
     public void preStart() throws JMSException {
         initMessageConsumer();
+        registerForConfigChanges(connectionId);
     }
 
     @Override
@@ -416,6 +423,26 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     @Override
     public DittoDiagnosticLoggingAdapter log() {
         return log;
+    }
+
+    @Override
+    public void onConnectivityConfigModified(final ConnectivityConfig connectivityConfig) {
+        this.connectivityConfig = connectivityConfig;
+        final Amqp10Config amqp10Config = connectivityConfig.getConnectionConfig().getAmqp10Config();
+        if (hasMessageRateLimiterConfigChanged(amqp10Config)) {
+            this.messageRateLimiter = MessageRateLimiter.of(amqp10Config, messageRateLimiter);
+            log.info("Built new rate limiter from existing one with modified config: {}", amqp10Config);
+        } else {
+            log.debug("Relevant config for MessageRateLimiter unchanged, do nothing.");
+        }
+    }
+
+    private boolean hasMessageRateLimiterConfigChanged(final Amqp10Config amqp10Config) {
+        return messageRateLimiter != null
+                && (messageRateLimiter.getMaxPerPeriod() != amqp10Config.getConsumerThrottlingLimit()
+                || messageRateLimiter.getMaxInFlight() != amqp10Config.getConsumerMaxInFlight()
+                || messageRateLimiter.getRedeliveryExpectationTimeout() !=
+                amqp10Config.getConsumerRedeliveryExpectationTimeout());
     }
 
     /**
