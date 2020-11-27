@@ -13,8 +13,7 @@
 package org.eclipse.ditto.services.utils.config.raw;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.eclipse.ditto.services.utils.config.raw.FileBasedConfigSupplier.HOSTING_ENV_FILE_LOCATION_ENV_VARIABLE_NAME;
-import static org.eclipse.ditto.services.utils.config.raw.ServiceSpecificEnvironmentConfigSupplier.HOSTING_ENVIRONMENT_ENV_VARIABLE_NAME;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.services.utils.config.raw.VcapServicesStringSupplier.VCAP_LOCATION_ENV_VARIABLE_NAME;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -30,6 +29,7 @@ import org.junit.Test;
 import org.junit.contrib.java.lang.system.EnvironmentVariables;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigException;
 
 /**
  * Unit test for {@link ServiceSpecificEnvironmentConfigSupplier}.
@@ -39,6 +39,9 @@ public final class ServiceSpecificEnvironmentConfigSupplierTest {
     private static final String SERVICE_NAME = "test-service";
     private static final String KNOWN_CONFIG_FILE_NAME = "/vcap_services_test.json";
     private static final String TEST_CONFIG_KEY = "test.value";
+    private static final String HOSTING_ENV_FILE_LOCATION_ENV_VARIABLE_NAME = "HOSTING_ENVIRONMENT_FILE_LOCATION";
+    private static final String HOSTING_ENVIRONMENT_ENV_VARIABLE_NAME = "HOSTING_ENVIRONMENT";
+    private static final String CONFIG_PATH = "hosting.environment";
 
     private static Path vcapServicesFilePath;
 
@@ -64,25 +67,9 @@ public final class ServiceSpecificEnvironmentConfigSupplierTest {
 
         final Config actualConfig = underTest.get();
 
-        assertThat(actualConfig.getIsNull(HostingEnvironment.CONFIG_PATH)).isTrue();
+        assertThat(actualConfig.getIsNull(CONFIG_PATH)).isTrue();
         assertThat(actualConfig.getString(TEST_CONFIG_KEY)).isEqualTo("dev");
         assertThat(actualConfig.hasPath("vcap")).isFalse();
-    }
-
-    @Test
-    public void hostingEnvironmentIsCloudIfSet() {
-        environmentVariables.set(HOSTING_ENVIRONMENT_ENV_VARIABLE_NAME, "cloud");
-        environmentVariables.set(VCAP_LOCATION_ENV_VARIABLE_NAME, vcapServicesFilePath.toString());
-
-        final ServiceSpecificEnvironmentConfigSupplier underTest =
-                ServiceSpecificEnvironmentConfigSupplier.of(SERVICE_NAME);
-
-        final Config actualConfig = underTest.get();
-
-        assertThat(actualConfig.getString(HostingEnvironment.CONFIG_PATH)).isEqualTo("cloud");
-        assertThat(actualConfig.getString(TEST_CONFIG_KEY)).isEqualTo("cloud");
-        assertThat(actualConfig.getString("vcap.MongoDB-Service.ditto-mongodb-staging.name"))
-                .isEqualTo("ditto-mongodb-staging");
     }
 
     @Test
@@ -94,8 +81,9 @@ public final class ServiceSpecificEnvironmentConfigSupplierTest {
 
         final Config actualConfig = underTest.get();
 
-        assertThat(actualConfig.getString(HostingEnvironment.CONFIG_PATH)).isEqualTo("docker");
-        assertThat(actualConfig.getString(TEST_CONFIG_KEY)).isEqualTo("docker");
+        assertThat(actualConfig.getString(CONFIG_PATH)).isEqualTo("docker");
+        assertThatExceptionOfType(ConfigException.Missing.class)
+                .isThrownBy(() -> actualConfig.getString(TEST_CONFIG_KEY));
         assertThat(actualConfig.hasPath("vcap")).isFalse();
     }
 
@@ -113,7 +101,7 @@ public final class ServiceSpecificEnvironmentConfigSupplierTest {
 
         final Config actualConfig = underTest.get();
 
-        assertThat(actualConfig.getString(HostingEnvironment.CONFIG_PATH)).isEqualTo("filebased");
+        assertThat(actualConfig.getString(CONFIG_PATH)).isEqualTo("filebased");
         assertThat(actualConfig.getString(TEST_CONFIG_KEY)).isEqualTo("filebased");
         assertThat(actualConfig.getString("vcap.MongoDB-Service.ditto-mongodb-staging.name"))
                 .isEqualTo("ditto-mongodb-staging");
