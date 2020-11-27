@@ -43,11 +43,13 @@ final class DefaultKafkaConnectionFactory implements KafkaConnectionFactory {
      *
      * @param connection the Kafka connection.
      * @param kafkaConfig the Kafka configuration settings.
+     * @param clientId the client ID.
      * @return an Kafka connection factory.
      */
-    static DefaultKafkaConnectionFactory getInstance(final Connection connection, final KafkaConfig kafkaConfig) {
+    static DefaultKafkaConnectionFactory getInstance(final Connection connection, final KafkaConfig kafkaConfig,
+            final String clientId) {
         final ProducerPropertiesFactory settingsFactory =
-                ProducerPropertiesFactory.getInstance(connection, kafkaConfig);
+                ProducerPropertiesFactory.getInstance(connection, kafkaConfig, clientId);
 
         return new DefaultKafkaConnectionFactory(connection, settingsFactory.getProducerProperties());
     }

@@ -339,7 +339,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                 if (target != null) {
                     declarationStatus.put(target,
                             ConnectivityModelFactory.newTargetStatus(
-                                    InstanceIdentifierSupplier.getInstance().get(),
+                                    getInstanceIdentifier(),
                                     ConnectivityStatus.FAILED,
                                     target.getAddress(),
                                     "Exchange '" + exchange + "' was missing at " + Instant.now()));

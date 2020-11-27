@@ -113,9 +113,9 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
                 .match(ReceiveLocalAcks.class, this::onReceiveLocalChanges)
                 .matchEquals(Clock.TICK, this::tick)
                 .match(Replicator.Changed.class, this::onChanged)
-                .matchAny(this::logUnhandled)
                 .build()
-                .orElse(receiveClusterMemberRemoved());
+                .orElse(receiveClusterMemberRemoved())
+                .orElse(ReceiveBuilder.create().matchAny(this::logUnhandled).build());
     }
 
     @Override

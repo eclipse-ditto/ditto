@@ -1112,7 +1112,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
                     });
             final Props connectionActorProps = Props.create(ConnectionPersistenceActor.class, () ->
                     new ConnectionPersistenceActor(myConnectionId, proxyActorProbe.ref(),
-                            propsFactory, null, 999
+                            propsFactory, null, Trilean.TRUE
                     ));
 
             // GIVEN: connection persistence actor created with 2 client actors that are allowed to start on same node

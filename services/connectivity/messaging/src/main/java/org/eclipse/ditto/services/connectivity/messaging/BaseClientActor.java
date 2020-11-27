@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
@@ -146,6 +147,13 @@ import akka.stream.Materializer;
 public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientState, BaseClientData> implements
         ConnectivityConfigModifiedBehavior {
 
+    private static final Set<String> NO_ADDRESS_REPORTING_CHILD_NAMES = Set.of(
+            InboundMappingProcessorActor.ACTOR_NAME,
+            InboundDispatchingActor.ACTOR_NAME,
+            OutboundMappingProcessorActor.ACTOR_NAME,
+            OutboundDispatchingActor.ACTOR_NAME
+    );
+
     protected static final Status.Success DONE = new Status.Success(Done.getInstance());
 
     private static final String DITTO_STATE_TIMEOUT_TIMER = "dittoStateTimeout";
@@ -178,6 +186,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private final DittoProtocolSub dittoProtocolSub;
     private final int subscriptionIdPrefixLength;
     private final ProtocolAdapter protocolAdapter;
+    private final String actorUUID;
 
     private final ConnectivityConfigProvider connectivityConfigProvider;
 
@@ -189,6 +198,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
         this.connection = checkNotNull(connection, "connection");
         this.connectionActor = connectionActor;
+        actorUUID = UUID.randomUUID().toString();
 
         checkNotNull(connection, "connection");
 
@@ -321,6 +331,17 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
                     getSelf());
         }
         this.connectivityConfig = modifiedConfig;
+    }
+
+    /**
+     * Compute the client ID for this actor. The format of the client ID is prefix-uuid, where the uuid is unique to
+     * each incarnation of this actor.
+     *
+     * @param prefix the prefix.
+     * @return the client ID.
+     */
+    protected String getClientId(final CharSequence prefix) {
+        return prefix + "-" + actorUUID;
     }
 
     private boolean hasInboundMapperConfigChanged(final ConnectivityConfig connectivityConfig) {
@@ -1100,11 +1121,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         // send to all children (consumers, publishers, except mapping actor)
         getContext().getChildren().forEach(child -> {
             final String childName = child.path().name();
-            if (!(InboundMappingProcessorActor.ACTOR_NAME.equals(childName) ||
-                    OutboundMappingProcessorActor.ACTOR_NAME.equals(childName) ||
-                    InboundDispatchingActor.ACTOR_NAME.equals(childName)
-            )) {
-
+            if (!NO_ADDRESS_REPORTING_CHILD_NAMES.contains(childName)) {
                 logger.withCorrelationId(command)
                         .debug("Forwarding RetrieveAddressStatus to child <{}>.", child.path());
                 child.tell(RetrieveAddressStatus.getInstance(), getSender());

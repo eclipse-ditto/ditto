@@ -136,12 +136,9 @@ public final class ConnectionPersistenceActor
 
     private static final Duration DEFAULT_RETRIEVE_STATUS_TIMEOUT = Duration.ofMillis(500L);
 
-    // number of client actors to start per node
-    private static final int CLIENT_ACTORS_PER_NODE = 1;
-
     private final ActorRef proxyActor;
     private final ClientActorPropsFactory propsFactory;
-    private final int clientActorsPerNode;
+    private final boolean allClientActorsOnOneNode;
     private final ConnectivityCommandInterceptor commandValidator;
     private final ConnectionLogger connectionLogger;
     private final Duration clientActorAskTimeout;
@@ -160,18 +157,18 @@ public final class ConnectionPersistenceActor
             final ActorRef proxyActor,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor customCommandValidator,
-            final int clientActorsPerNode) {
+            final Trilean allClientActorsOnOneNode) {
 
         super(connectionId, new ConnectionMongoSnapshotAdapter());
 
         this.proxyActor = proxyActor;
         this.propsFactory = propsFactory;
-        this.clientActorsPerNode = clientActorsPerNode;
 
         final ActorSystem actorSystem = getContext().getSystem();
         final ConnectivityConfigProvider configProvider = ConnectivityConfigProviderFactory.getInstance(actorSystem);
         final ConnectivityConfig connectivityConfig = configProvider.getConnectivityConfig(connectionId);
         config = connectivityConfig.getConnectionConfig();
+        this.allClientActorsOnOneNode = allClientActorsOnOneNode.orElse(config.areAllClientActorsOnOneNode());
 
         final ConnectionValidator connectionValidator =
                 ConnectionValidator.of(
@@ -228,8 +225,7 @@ public final class ConnectionPersistenceActor
             @Nullable final ConnectivityCommandInterceptor commandValidator
     ) {
         return Props.create(ConnectionPersistenceActor.class, connectionId, proxyActor, propsFactory, commandValidator,
-                // TODO: make client actor per node configurable
-                CLIENT_ACTORS_PER_NODE);
+                Trilean.UNKNOWN);
     }
 
     /**
@@ -784,7 +780,7 @@ public final class ConnectionPersistenceActor
             log.info("Starting ClientActor for connection <{}> with <{}> clients.", entityId, clientCount);
             final Props props = propsFactory.getActorPropsForType(entity, proxyActor, getSelf());
             final ClusterRouterPoolSettings clusterRouterPoolSettings =
-                    new ClusterRouterPoolSettings(clientCount, Math.min(clientCount, clientActorsPerNode), true,
+                    new ClusterRouterPoolSettings(clientCount, clientActorsPerNode(clientCount), true,
                             Set.of(CLUSTER_ROLE));
             final Pool pool = new ConsistentHashingPool(clientCount);
             final Props clusterRouterPoolProps =
@@ -797,6 +793,10 @@ public final class ConnectionPersistenceActor
         } else {
             log.error(new IllegalStateException(), "Trying to start client actor without a connection");
         }
+    }
+
+    private int clientActorsPerNode(final int clientCount) {
+        return allClientActorsOnOneNode ? clientCount : 1;
     }
 
     private int getClientCount() {

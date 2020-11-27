@@ -39,7 +39,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -73,7 +72,6 @@ import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.apache.qpid.proton.amqp.Symbol;
 import org.assertj.core.api.ThrowableAssert;
 import org.awaitility.Awaitility;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -93,7 +91,6 @@ import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActor
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization;
 import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
-import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.utils.test.Retry;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -149,7 +146,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     @Mock
     private final JmsConnection mockConnection = Mockito.mock(JmsConnection.class);
     private final JmsConnectionFactory jmsConnectionFactory =
-            (connection1, exceptionListener, connectionLogger) -> mockConnection;
+            (c, e, l, i) -> mockConnection;
     @Mock
     private final JmsSession mockSession = Mockito.mock(JmsSession.class);
     @Mock
@@ -243,7 +240,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         new TestKit(actorSystem) {{
             final Props props =
                     AmqpClientActor.propsForTests(connection, getRef(), getRef(),
-                            (theConnection, exceptionListener, connectionLogger) -> {
+                            (c, e, l, i) -> {
                                 throw JMS_EXCEPTION;
                             });
             final ActorRef connectionActor = actorSystem.actorOf(props);
@@ -260,8 +257,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             final TestProbe aggregator = new TestProbe(actorSystem);
 
             final Props props =
-                    AmqpClientActor.propsForTests(connection, getRef(), getRef(),
-                            (connection1, exceptionListener, connectionLogger) -> mockConnection);
+                    AmqpClientActor.propsForTests(connection, getRef(), getRef(), (c, e, l, i) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
             watch(amqpClientActor);
 
@@ -283,8 +279,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     public void testReconnect() {
         new TestKit(actorSystem) {{
             final Props props =
-                    AmqpClientActor.propsForTests(connection, getRef(), getRef(),
-                            (connection1, exceptionListener, connectionLogger) -> mockConnection);
+                    AmqpClientActor.propsForTests(connection, getRef(), getRef(), (c, e, l, i) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
             watch(amqpClientActor);
 
@@ -311,8 +306,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             final TestProbe aggregator = new TestProbe(actorSystem);
 
             final Props props =
-                    AmqpClientActor.propsForTests(connection,
-                            getRef(), getRef(), (connection1, exceptionListener, connectionLogger) -> mockConnection);
+                    AmqpClientActor.propsForTests(connection, getRef(), getRef(), (c, e, l, i) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
             watch(amqpClientActor);
 
@@ -351,9 +345,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     public void sendCommandDuringInit() {
         new TestKit(actorSystem) {{
             final CountDownLatch latch = new CountDownLatch(1);
-            final Props props =
-                    AmqpClientActor.propsForTests(connection,
-                            getRef(), getRef(), (ac, el, cl) -> waitForLatchAndReturn(latch, mockConnection));
+            final Props props = AmqpClientActor.propsForTests(connection, getRef(), getRef(),
+                    (c, e, l, i) -> waitForLatchAndReturn(latch, mockConnection));
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
             watch(amqpClientActor);
 
@@ -369,8 +362,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     public void sendConnectCommandWhenAlreadyConnected() throws JMSException {
         new TestKit(actorSystem) {{
             final Props props =
-                    AmqpClientActor.propsForTests(connection, getRef(), getRef(),
-                            (ac, el, connectionLogger) -> mockConnection);
+                    AmqpClientActor.propsForTests(connection, getRef(), getRef(), (c, e, l, i) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
@@ -388,8 +380,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     public void sendDisconnectWhenAlreadyDisconnected() {
         new TestKit(actorSystem) {{
             final Props props =
-                    AmqpClientActor.propsForTests(connection, getRef(),
-                            getRef(), (ac, el, connectionLogger) -> mockConnection);
+                    AmqpClientActor.propsForTests(connection, getRef(), getRef(), (c, e, l, i) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
@@ -403,8 +394,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         new TestKit(actorSystem) {{
             doThrow(JMS_EXCEPTION).when(mockConnection).start();
             final Props props =
-                    AmqpClientActor.propsForTests(connection, getRef(),
-                            getRef(), (ac, el, connectionLogger) -> mockConnection);
+                    AmqpClientActor.propsForTests(connection, getRef(), getRef(), (c, e, l, i) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
@@ -417,8 +407,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         new TestKit(actorSystem) {{
             when(mockConnection.createSession(anyInt())).thenThrow(JMS_EXCEPTION);
             final Props props =
-                    AmqpClientActor.propsForTests(connection, getRef(),
-                            getRef(), (ac, el, connectionLogger) -> mockConnection);
+                    AmqpClientActor.propsForTests(connection, getRef(), getRef(), (c, e, l, i) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
@@ -432,8 +421,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             doReturn(mockSession).when(mockConnection).createSession(anyInt());
             when(mockSession.createConsumer(any())).thenThrow(JMS_EXCEPTION);
             final Props props =
-                    AmqpClientActor.propsForTests(connection, getRef(),
-                            getRef(), (ac, el, connectionLogger) -> mockConnection);
+                    AmqpClientActor.propsForTests(connection, getRef(), getRef(), (c, e, l, i) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
@@ -446,8 +434,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         new TestKit(actorSystem) {{
             doThrow(JMS_EXCEPTION).when(mockConnection).close();
             final Props props =
-                    AmqpClientActor.propsForTests(connection, getRef(),
-                            getRef(), (ac, el, connectionLogger) -> mockConnection);
+                    AmqpClientActor.propsForTests(connection, getRef(), getRef(), (c, e, l, i) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
@@ -474,8 +461,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
         new TestKit(actorSystem) {{
             final Props props =
-                    AmqpClientActor.propsForTests(connection, getRef(), getRef(),
-                            (ac, el, connectionLogger) -> mockConnection);
+                    AmqpClientActor.propsForTests(connection, getRef(), getRef(), (c, e, l, i) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             // connect
@@ -567,8 +553,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
         new TestKit(actorSystem) {{
             final Props props =
-                    AmqpClientActor.propsForTests(connection, getRef(), getRef(),
-                            (ac, el, connectionLogger) -> mockConnection);
+                    AmqpClientActor.propsForTests(connection, getRef(), getRef(), (c, e, l, i) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
@@ -632,8 +617,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
         new TestKit(actorSystem) {{
             final Props props =
-                    AmqpClientActor.propsForTests(connection, getRef(), getRef(),
-                            (ac, el, connectionLogger) -> mockConnection);
+                    AmqpClientActor.propsForTests(connection, getRef(), getRef(), (c, e, l, i) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
@@ -687,7 +671,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                     .build();
             final Props props =
                     AmqpClientActor.propsForTests(connectionWithTarget, getRef(), getRef(),
-                            (ac, el, connectionLogger) -> mockConnection);
+                            (c, e, l, i) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
@@ -712,7 +696,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         final Target target = TestConstants.Targets.TWIN_TARGET;
         new TestKit(actorSystem) {{
             final Props props = AmqpClientActor.propsForTests(connection, getRef(), getRef(),
-                    (ac, el, connectionLogger) -> mockConnection);
+                    (c, e, l, i) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
@@ -727,7 +711,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
         new TestKit(actorSystem) {{
             final Props props =
                     AmqpClientActor.propsForTests(singleConsumerConnection(), getRef(), getRef(),
-                            (ac, el, connectionLogger) -> mockConnection);
+                            (c, e, l, i) -> mockConnection);
             final TestActorRef<AmqpClientActor> amqpClientActorRef = TestActorRef.apply(props, actorSystem);
             final AmqpClientActor amqpClientActor = amqpClientActorRef.underlyingActor();
 
@@ -843,8 +827,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     public void testTestConnection() {
         new TestKit(actorSystem) {{
             final Props props =
-                    AmqpClientActor.propsForTests(connection, getRef(), getRef(),
-                            (ac, el, connectionLogger) -> mockConnection);
+                    AmqpClientActor.propsForTests(connection, getRef(), getRef(), (c, e, l, i) -> mockConnection);
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -860,8 +843,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
                 when(mockConnection.createSession(anyInt()))
                         .thenAnswer(invocationOnMock -> waitForLatchAndReturn(latch, mockSession));
                 final Props props =
-                        AmqpClientActor.propsForTests(connection, getRef(), getRef(),
-                                (ac, el, connectionLogger) -> mockConnection);
+                        AmqpClientActor.propsForTests(connection, getRef(), getRef(), (c, e, l, i) -> mockConnection);
                 final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
                 amqpClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
@@ -901,8 +883,7 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
     @Override
     protected Props createClientActor(final ActorRef proxyActor, final Connection connection) {
-        return AmqpClientActor.propsForTests(connection, proxyActor, connectionActor,
-                (ac, el, connectionLogger) -> mockConnection);
+        return AmqpClientActor.propsForTests(connection, proxyActor, connectionActor, (c, e, l, i) -> mockConnection);
     }
 
     @Override

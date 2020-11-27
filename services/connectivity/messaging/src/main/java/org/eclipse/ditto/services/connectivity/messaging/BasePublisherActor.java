@@ -536,15 +536,21 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     }
 
     /**
+     * Get the identifier of the connectivity instance.
+     * TODO: is this necessary?
+     *
+     * @return
+     */
+    protected static String getInstanceIdentifier() {
+        return InstanceIdentifierSupplier.getInstance().get();
+    }
+
+    /**
      * Resolve target address.
      * If not resolvable, the returned Optional will be empty.
      */
     private static Optional<String> resolveTargetAddress(final ExpressionResolver resolver, final String value) {
         return resolver.resolve(value).toOptional();
-    }
-
-    private static String getInstanceIdentifier() {
-        return InstanceIdentifierSupplier.getInstance().get();
     }
 
     private static Charset determineCharset(final CharSequence contentType) {
