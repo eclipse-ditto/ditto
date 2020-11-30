@@ -341,7 +341,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * @return the client ID.
      */
     protected String getClientId(final CharSequence prefix) {
-        return prefix + "-" + actorUUID;
+        if (connection.getClientCount() == 1) {
+            return prefix.toString();
+        } else {
+            return prefix + "-" + actorUUID;
+        }
     }
 
     private boolean hasInboundMapperConfigChanged(final ConnectivityConfig connectivityConfig) {

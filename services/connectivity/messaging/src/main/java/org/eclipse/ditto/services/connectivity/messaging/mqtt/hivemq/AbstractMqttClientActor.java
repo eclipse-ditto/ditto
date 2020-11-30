@@ -488,7 +488,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
     }
 
     private String distinguishClientIdIfNecessary(final String configuredClientId) {
-        if (connection.getClientCount() == 1 || configuredClientId.isEmpty()) {
+        if (configuredClientId.isEmpty()) {
             return configuredClientId;
         } else {
             return getClientId(configuredClientId);
