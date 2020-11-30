@@ -12,12 +12,13 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata.compressed;
 
+import java.util.List;
+
 import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
-import org.eclipse.ditto.services.utils.pubsub.ddata.Subscriptions;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 
 import akka.actor.ActorRef;
@@ -67,9 +68,13 @@ public final class CompressedDData implements DData<ActorRef, String, LiteralUpd
         return handler;
     }
 
-    @Override
-    public Subscriptions<LiteralUpdate> createSubscriptions() {
-        return CompressedSubscriptions.of(handler.getSeeds());
+    /**
+     * Get the hash seeds of the compressed DData.
+     *
+     * @return the hash seeds.
+     */
+    public List<Integer> getSeeds() {
+        return handler.getSeeds();
     }
 
     /**

@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.utils.pubsub.ddata.literal;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
-import org.eclipse.ditto.services.utils.pubsub.ddata.Subscriptions;
 
 import akka.actor.ActorSystem;
 import akka.actor.Address;
@@ -61,11 +60,6 @@ public final class LiteralDData implements DData<Address, String, LiteralUpdate>
     @Override
     public DDataWriter<Address, LiteralUpdate> getWriter() {
         return handler;
-    }
-
-    @Override
-    public Subscriptions<LiteralUpdate> createSubscriptions() {
-        return LiteralSubscriptions.newInstance();
     }
 
 }

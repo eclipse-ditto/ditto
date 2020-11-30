@@ -17,7 +17,6 @@ import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.pubsub.actors.PubSupervisor;
 import org.eclipse.ditto.services.utils.pubsub.actors.SubSupervisor;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
-import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.compressed.CompressedDData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.compressed.CompressedDDataHandler;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
@@ -43,12 +42,13 @@ public abstract class AbstractPubSubFactory<T extends Signal<?>> implements PubS
     protected final PubSubTopicExtractor<T> topicExtractor;
 
     protected final DistributedDataConfig ddataConfig;
-    protected final DData<ActorRef, ?, ?> ddata;
+    protected final CompressedDData ddata;
     protected final AckExtractor<T> ackExtractor;
     protected final DistributedAcks distributedAcks;
 
     /**
      * Create a pub-sub factory.
+     *
      * @param actorRefFactory context of the actor under which publisher and subscriber actors are created.
      * @param actorSystem the actor system.
      * @param messageClass the class of messages to publish and subscribe for.

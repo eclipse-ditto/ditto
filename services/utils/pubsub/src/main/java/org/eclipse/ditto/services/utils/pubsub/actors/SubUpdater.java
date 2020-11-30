@@ -36,10 +36,12 @@ import org.eclipse.ditto.services.utils.pubsub.api.SubAck;
 import org.eclipse.ditto.services.utils.pubsub.api.Subscribe;
 import org.eclipse.ditto.services.utils.pubsub.api.Unsubscribe;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
-import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Subscriptions;
 import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriptionsReader;
+import org.eclipse.ditto.services.utils.pubsub.ddata.compressed.CompressedDData;
+import org.eclipse.ditto.services.utils.pubsub.ddata.compressed.CompressedSubscriptions;
+import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -54,10 +56,8 @@ import akka.japi.pf.ReceiveBuilder;
  * acknowledgement from distributed data. There is no transaction---all subscriptions are eventually distributed in
  * the cluster once requested. Local subscribers should most likely not to get any published message before they
  * receive acknowledgement.
- *
- * @param <T> type of representations of topics in the distributed data.
  */
-public final class SubUpdater<T> extends akka.actor.AbstractActorWithTimers {
+public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
 
     /**
      * Prefix of this actor's name.
@@ -65,8 +65,8 @@ public final class SubUpdater<T> extends akka.actor.AbstractActorWithTimers {
     public static final String ACTOR_NAME_PREFIX = "subUpdater";
 
     private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
-    private final Subscriptions<T> subscriptions;
-    private final DDataWriter<ActorRef, T> topicsWriter;
+    private final Subscriptions<LiteralUpdate> subscriptions;
+    private final DDataWriter<ActorRef, LiteralUpdate> topicsWriter;
     private final ActorRef subscriber;
     private final Gauge topicSizeMetric;
     private final Gauge awaitUpdateMetric;
@@ -96,8 +96,8 @@ public final class SubUpdater<T> extends akka.actor.AbstractActorWithTimers {
     @SuppressWarnings("unused")
     private SubUpdater(final PubSubConfig config,
             final ActorRef subscriber,
-            final Subscriptions<T> subscriptions,
-            final DDataWriter<ActorRef, T> topicsWriter) {
+            final Subscriptions<LiteralUpdate> subscriptions,
+            final DDataWriter<ActorRef, LiteralUpdate> topicsWriter) {
         this.subscriber = subscriber;
         this.subscriptions = subscriptions;
         this.topicsWriter = topicsWriter;
@@ -120,10 +120,8 @@ public final class SubUpdater<T> extends akka.actor.AbstractActorWithTimers {
      * @param topicsDData access to the distributed data of topics.
      * @return the Props object.
      */
-    public static <T> Props props(final PubSubConfig config, final ActorRef subscriber,
-            final DData<ActorRef, ?, T> topicsDData) {
-
-        return Props.create(SubUpdater.class, config, subscriber, topicsDData.createSubscriptions(),
+    public static Props props(final PubSubConfig config, final ActorRef subscriber, final CompressedDData topicsDData) {
+        return Props.create(SubUpdater.class, config, subscriber, CompressedSubscriptions.of(topicsDData.getSeeds()),
                 topicsDData.getWriter());
     }
 
@@ -221,7 +219,7 @@ public final class SubUpdater<T> extends akka.actor.AbstractActorWithTimers {
             topicSizeMetric.set(0L);
         } else {
             // export before taking snapshot so that implementations may output incremental update.
-            final T ddata = subscriptions.export();
+            final LiteralUpdate ddata = subscriptions.export();
             // take snapshot to give to the subscriber; clear accumulated incremental changes.
             snapshot = subscriptions.snapshot();
             ddataOp = topicsWriter.put(subscriber, ddata, writeConsistency);

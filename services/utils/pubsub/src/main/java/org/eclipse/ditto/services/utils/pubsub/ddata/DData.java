@@ -31,9 +31,4 @@ public interface DData<K, R, W> {
      */
     DDataWriter<K, W> getWriter();
 
-    /**
-     * @return a new, empty subscriptions object.
-     */
-    Subscriptions<W> createSubscriptions();
-
 }
