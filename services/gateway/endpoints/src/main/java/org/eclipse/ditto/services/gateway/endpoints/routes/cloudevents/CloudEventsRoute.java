@@ -20,11 +20,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonArray;
-import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.exceptions.CloudEventNotParsableException;
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.exceptions.CloudEventMissingPayloadException;
+import org.eclipse.ditto.model.base.exceptions.CloudEventNotParsableException;
 import org.eclipse.ditto.model.base.exceptions.CloudEventUnsupportedDataSchemaException;
 import org.eclipse.ditto.model.base.exceptions.UnsupportedMediaTypeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -42,8 +42,6 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
-
-import com.eclipsesource.json.Json;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -65,16 +63,15 @@ import io.cloudevents.rw.CloudEventRWException;
  */
 public final class CloudEventsRoute extends AbstractRoute {
 
-    private static final ThreadSafeDittoLogger LOGGER =
-            DittoLoggerFactory.getThreadSafeLogger(CloudEventsRoute.class);
+    private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory.getThreadSafeLogger(CloudEventsRoute.class);
 
     /**
      * Public endpoint of cloud events.
      */
     public static final String PATH_CLOUDEVENTS = "cloudevents";
 
-    // use empty header translator to pass along the ditto-auth-context information
-    private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.of(HeaderTranslator.empty());
+    private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
+    private static final String DATA_SCHEMA_SCHEME = "ditto";
 
     /**
      * Constructs the cloud events route builder.
@@ -110,7 +107,7 @@ public final class CloudEventsRoute extends AbstractRoute {
         );
     }
 
-    protected Route acceptCloudEvent(final RequestContext ctx, final DittoHeaders dittoHeaders) {
+    private Route acceptCloudEvent(final RequestContext ctx, final DittoHeaders dittoHeaders) {
 
         return extractDataBytes(payloadSource -> {
 
@@ -127,7 +124,8 @@ public final class CloudEventsRoute extends AbstractRoute {
                     .map(cloudEvent -> {
                         try {
                             // DON'T replace this try-catch by .recover: The supervising strategy is called before recovery!
-                            final Optional<Signal<?>> optionalSignal = jsonToDittoSignal(cloudEvent.getData(), dittoHeaders);
+                            final Optional<Signal<?>> optionalSignal =
+                                    jsonToDittoSignal(cloudEvent.getData(), dittoHeaders);
                             if (optionalSignal.isEmpty()) {
                                 return new Status.Failure(CloudEventMissingPayloadException
                                         .withDetailedInformationBuilder()
@@ -149,27 +147,24 @@ public final class CloudEventsRoute extends AbstractRoute {
                             AbstractHttpRequestActor.COMPLETE_MESSAGE))
             );
 
-            // return with future
-
             return completeWithFuture(httpResponseFuture);
-
         });
-
     }
 
     /**
      * Convert the request and payload to a cloud event.
      *
      * @param ctx The request context.
+     * @param dittoHeaders the DittoHeaders to apply to the parsed Ditto Signal.
      * @param payload The binary payload, this may contain the cloud event payload, or the fully encoded cloud
-     *         event structure.
+     * event structure.
      * @return The cloud event
      */
-    private CloudEvent toCloudEvent(final RequestContext ctx, final DittoHeaders dittoHeaders, final ByteString payload) {
+    private CloudEvent toCloudEvent(final RequestContext ctx, final DittoHeaders dittoHeaders,
+            final ByteString payload) {
 
         if (LOGGER.isTraceEnabled()) {
-
-            final StringBuilder headers = new StringBuilder("Raw HTTP Headers:");
+            final StringBuilder headers = new StringBuilder("CloudEvent raw HTTP Headers:");
             ctx.getRequest().getHeaders()
                     .forEach(header -> headers
                             .append("\n\t")
@@ -177,13 +172,11 @@ public final class CloudEventsRoute extends AbstractRoute {
                             .append(" = ")
                             .append(header.value()));
 
-            LOGGER
-                    .withCorrelationId(dittoHeaders)
+            LOGGER.withCorrelationId(dittoHeaders)
                     .trace(headers.toString());
 
-            LOGGER
-                    .withCorrelationId(dittoHeaders)
-                    .trace("Ditto: {}", dittoHeaders);
+            LOGGER.withCorrelationId(dittoHeaders)
+                    .trace("CloudEvent Ditto Headers: {}", dittoHeaders);
         }
 
         // create a reader for the message
@@ -203,7 +196,8 @@ public final class CloudEventsRoute extends AbstractRoute {
 
             if (!sawContentType.get()) {
                 // we didn't see the content type in the header, so extract it from akka's request
-                acceptor.accept(DittoHeaderDefinition.CONTENT_TYPE.getKey(), ctx.getRequest().entity().getContentType().mediaType().toString());
+                acceptor.accept(DittoHeaderDefinition.CONTENT_TYPE.getKey(),
+                        ctx.getRequest().entity().getContentType().mediaType().toString());
             }
         }, payload.toArray());
 
@@ -216,7 +210,8 @@ public final class CloudEventsRoute extends AbstractRoute {
         }
     }
 
-    private CloudEvent validateCloudEvent(final CloudEvent cloudEvent, final RequestContext ctx, final DittoHeaders dittoHeaders) {
+    private CloudEvent validateCloudEvent(final CloudEvent cloudEvent, final RequestContext ctx,
+            final DittoHeaders dittoHeaders) {
 
         if (cloudEvent.getData() == null) {
             throw CloudEventMissingPayloadException
@@ -225,9 +220,8 @@ public final class CloudEventsRoute extends AbstractRoute {
                     .build();
         }
 
-        LOGGER
-                .withCorrelationId(dittoHeaders)
-                .debug("Cloud event: {}", cloudEvent);
+        LOGGER.withCorrelationId(dittoHeaders)
+                .debug("CloudEvent: {}", cloudEvent);
 
         ensureDataContentType(cloudEvent.getDataContentType(), ctx, dittoHeaders);
         ensureDataSchema(cloudEvent.getDataSchema(), ctx, dittoHeaders);
@@ -235,7 +229,8 @@ public final class CloudEventsRoute extends AbstractRoute {
         return cloudEvent;
     }
 
-    private Optional<Signal<?>> jsonToDittoSignal(@Nullable final CloudEventData data, final DittoHeaders dittoHeaders) {
+    private Optional<Signal<?>> jsonToDittoSignal(@Nullable final CloudEventData data,
+            final DittoHeaders dittoHeaders) {
         if (data == null) {
             return Optional.empty();
         }
@@ -244,56 +239,34 @@ public final class CloudEventsRoute extends AbstractRoute {
             return Optional.empty();
         }
 
-        JsonObject jsonObject = JsonObject.of(payload);
-        LOGGER
-                .withCorrelationId(dittoHeaders)
-                .debug("JSON: {}", jsonObject);
+        final JsonObject jsonObject = JsonObject.of(payload);
+        LOGGER.withCorrelationId(dittoHeaders)
+                .debug("CloudEvent payload JSON: {}", jsonObject);
 
-        final JsonObject headers = jsonObject.getField("headers")
-
-                // get value
-                .map(JsonField::getValue)
-
-                // convert to JsonObject, or "empty"
-                .flatMap(value -> {
-                    if (value.isObject()) {
-                        return Optional.of(value.asObject());
-                     } else {
-                        return Optional.empty();
-                    }
-                })
-
-                // get existing or new
-                .orElseGet(JsonObject::empty)
-
-                // never require a response
-                .setValue("response-required", false)
-                .setValue("requested-acks", JsonArray.newBuilder().add("twin-persisted").build());
-
-        jsonObject = jsonObject.setValue("headers", headers);
-
-        LOGGER
-                .withCorrelationId(dittoHeaders)
-                .debug("Updated JSON: {}", jsonObject);
+        final DittoHeaders adjustedHeaders = dittoHeaders.toBuilder()
+                .responseRequired(false)
+                .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED))
+                .build();
 
         final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
         return Optional.of(PROTOCOL_ADAPTER
                 .fromAdaptable(jsonifiableAdaptable)
-                .setDittoHeaders(dittoHeaders));
+                .setDittoHeaders(adjustedHeaders));
     }
 
     private void ensureDataContentType(@Nullable final String dataContentType,
-                                       final RequestContext ctx,
-                                       final DittoHeaders dittoHeaders) {
+            final RequestContext ctx,
+            final DittoHeaders dittoHeaders) {
 
         if (dataContentType == null || !mediaTypeJsonWithFallbacks.contains(dataContentType)) {
             if (LOGGER.isInfoEnabled()) {
                 LOGGER.withCorrelationId(dittoHeaders)
-                        .info("Request rejected: unsupported data-content-type: <{}>  request: <{}>", dataContentType,
-                                requestToLogString(ctx.getRequest()));
+                        .info("CloudEvent request rejected: unsupported data-content-type: <{}>  request: <{}>",
+                                dataContentType, requestToLogString(ctx.getRequest()));
             }
             throw UnsupportedMediaTypeException
-                    .withDetailedInformationBuilder(dataContentType != null ? dataContentType : "<none>", mediaTypeJsonWithFallbacks)
+                    .withDetailedInformationBuilder(dataContentType != null ? dataContentType : "none",
+                            mediaTypeJsonWithFallbacks)
                     .dittoHeaders(dittoHeaders)
                     .build();
         }
@@ -307,17 +280,17 @@ public final class CloudEventsRoute extends AbstractRoute {
      * @param dittoHeaders The ditto headers.
      */
     private void ensureDataSchema(@Nullable final URI dataSchema,
-                                  final RequestContext ctx,
-                                  final DittoHeaders dittoHeaders) {
+            final RequestContext ctx,
+            final DittoHeaders dittoHeaders) {
 
-        if (dataSchema == null || !dataSchema.getScheme().equals("ditto")) {
+        if (dataSchema == null || !dataSchema.getScheme().equals(DATA_SCHEMA_SCHEME)) {
             if (LOGGER.isInfoEnabled()) {
                 LOGGER.withCorrelationId(dittoHeaders)
-                        .info("Request rejected: unsupported data-schema: <{}>  request: <{}>", dataSchema,
-                                requestToLogString(ctx.getRequest()));
+                        .info("CloudEvent request rejected: unsupported data-schema: <{}>  request: <{}>",
+                                dataSchema, requestToLogString(ctx.getRequest()));
             }
             throw CloudEventUnsupportedDataSchemaException
-                    .withDetailedInformationBuilder(dataSchema != null ? dataSchema.toString() : "<none>")
+                    .withDetailedInformationBuilder(dataSchema != null ? dataSchema.toString() : "none")
                     .dittoHeaders(dittoHeaders)
                     .build();
         }

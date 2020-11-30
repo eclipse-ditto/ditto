@@ -25,7 +25,7 @@
  import org.eclipse.ditto.model.base.json.JsonParsableException;
 
  /**
-  * Thrown if a request with an unparsable cloud event is made.
+  * Thrown if a request with an unparsable CloudEvent is made.
   *
   * @since 1.5.0
   */
@@ -36,12 +36,14 @@
      /**
       * Error code of this exception.
       */
-     public static final String ERROR_CODE = "cloudevents.unparsable";
+     public static final String ERROR_CODE = "cloudevent.unparsable";
 
      private static final String DEFAULT_MESSAGE = "The event could not be parsed.";
      private static final String MESSAGE_PATTERN = "The system was unable to parse the event: {0}";
-     private static final String DESCRIPTION = "Ensure that the event is being transmitted according to the Cloud Events HTTP binding specification v1.0.";
-     private static final URI DEFAULT_URI = URI.create("https://github.com/cloudevents/spec/blob/v1.0/http-protocol-binding.md");
+     private static final String DESCRIPTION =
+             "Ensure that the event is being transmitted according to the Cloud Events HTTP binding specification v1.0.";
+     private static final URI DEFAULT_URI =
+             URI.create("https://github.com/cloudevents/spec/blob/v1.0/http-protocol-binding.md");
 
      private static final HttpStatusCode STATUS_CODE = HttpStatusCode.BAD_REQUEST;
 
@@ -56,10 +58,10 @@
       * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
       */
      private CloudEventNotParsableException(final DittoHeaders dittoHeaders,
-                                            @Nullable final String message,
-                                            @Nullable final String description,
-                                            @Nullable final Throwable cause,
-                                            @Nullable final URI href) {
+             @Nullable final String message,
+             @Nullable final String description,
+             @Nullable final Throwable cause,
+             @Nullable final URI href) {
          super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href == null ? DEFAULT_URI : href);
      }
 
@@ -67,7 +69,7 @@
       * A mutable builder for a {@code CloudEventNotParsableException} where the message contains detailed information
       * about the parse error.
       *
-      * @param details the unsupported data schema used in the call.
+      * @param details the details about why the CloudEvent could not be parsed.
       * @return the new CloudEventNotParsableException.
       */
      public static DittoRuntimeExceptionBuilder<CloudEventNotParsableException> withDetailedInformationBuilder(
@@ -89,12 +91,13 @@
       * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
       * format.
       */
-     public static CloudEventNotParsableException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+     public static CloudEventNotParsableException fromJson(final JsonObject jsonObject,
+             final DittoHeaders dittoHeaders) {
          return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
      }
 
      @Override
-    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+     public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
          return new Builder()
                  .message(getMessage())
                  .description(getDescription().orElse(null))
@@ -116,10 +119,10 @@
 
          @Override
          protected CloudEventNotParsableException doBuild(final DittoHeaders dittoHeaders,
-                                                          @Nullable final String message,
-                                                          @Nullable final String description,
-                                                          @Nullable final Throwable cause,
-                                                          @Nullable final URI href) {
+                 @Nullable final String message,
+                 @Nullable final String description,
+                 @Nullable final Throwable cause,
+                 @Nullable final URI href) {
 
              return new CloudEventNotParsableException(dittoHeaders, message, description, cause, href);
          }

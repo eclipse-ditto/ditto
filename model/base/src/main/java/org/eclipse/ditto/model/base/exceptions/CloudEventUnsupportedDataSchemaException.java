@@ -25,7 +25,7 @@
  import org.eclipse.ditto.model.base.json.JsonParsableException;
 
  /**
-  * Thrown if a request with an unsupported data schema is made.
+  * Thrown if a CloudEvent request with an unsupported dataschema is made.
   *
   * @since 1.5.0
   */
@@ -36,11 +36,12 @@
      /**
       * Error code of this exception.
       */
-     public static final String ERROR_CODE = "cloudevents.dataschema.unsupported";
+     public static final String ERROR_CODE = "cloudevent.dataschema.unsupported";
 
      private static final String DEFAULT_MESSAGE = "The data schema is not supported.";
-     private static final String MESSAGE_PATTERN = "The data schema <{0}> is not supported for this Resource.";
-     private static final String DESCRIPTION = "Must start with 'ditto:'";
+     private static final String MESSAGE_PATTERN = "The data schema <{0}> is not supported for this resource.";
+     private static final String DESCRIPTION = "Ensure that the URI's scheme is 'ditto', so the complete dataschema " +
+             "starts with 'ditto:'";
 
      private static final HttpStatusCode STATUS_CODE = HttpStatusCode.BAD_REQUEST;
 
@@ -55,10 +56,10 @@
       * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
       */
      private CloudEventUnsupportedDataSchemaException(final DittoHeaders dittoHeaders,
-                                                      @Nullable final String message,
-                                                      @Nullable final String description,
-                                                      @Nullable final Throwable cause,
-                                                      @Nullable final URI href) {
+             @Nullable final String message,
+             @Nullable final String description,
+             @Nullable final Throwable cause,
+             @Nullable final URI href) {
          super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
      }
 
@@ -89,12 +90,13 @@
       * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
       * format.
       */
-     public static CloudEventUnsupportedDataSchemaException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+     public static CloudEventUnsupportedDataSchemaException fromJson(final JsonObject jsonObject,
+             final DittoHeaders dittoHeaders) {
          return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
      }
 
      @Override
-    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+     public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
          return new Builder()
                  .message(getMessage())
                  .description(getDescription().orElse(null))
@@ -116,10 +118,10 @@
 
          @Override
          protected CloudEventUnsupportedDataSchemaException doBuild(final DittoHeaders dittoHeaders,
-                                                                    @Nullable final String message,
-                                                                    @Nullable final String description,
-                                                                    @Nullable final Throwable cause,
-                                                                    @Nullable final URI href) {
+                 @Nullable final String message,
+                 @Nullable final String description,
+                 @Nullable final Throwable cause,
+                 @Nullable final URI href) {
 
              return new CloudEventUnsupportedDataSchemaException(dittoHeaders, message, description, cause, href);
          }

@@ -24,7 +24,7 @@
  import org.eclipse.ditto.model.base.json.JsonParsableException;
 
  /**
-  * Thrown if a request with missing payload is being made.
+  * Thrown if a CloudEvent request with missing payload is being made.
   *
   * @since 1.5.0
   */
@@ -35,15 +35,15 @@
      /**
       * Error code of this exception.
       */
-     public static final String ERROR_CODE = "cloudevents.payload.missing";
+     public static final String ERROR_CODE = "cloudevent.payload.missing";
 
-     private static final String DEFAULT_MESSAGE = "The payload is missing.";
-     private static final String DEFAULT_DESCRIPTION = "The request is missing payload.";
+     private static final String DEFAULT_MESSAGE = "The cloud event's payload is missing.";
+     private static final String DEFAULT_DESCRIPTION = "Ensure to provide payload in the cloud event.";
 
      private static final HttpStatusCode STATUS_CODE = HttpStatusCode.BAD_REQUEST;
 
      /**
-      * Constructs a new {@code MissingPayloadException} object.
+      * Constructs a new {@code CloudEventMissingPayloadException} object.
       *
       * @param dittoHeaders the headers with which this Exception should be reported back to the user.
       * @param message the detail message for later retrieval with {@link #getMessage()}.
@@ -53,42 +53,43 @@
       * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
       */
      private CloudEventMissingPayloadException(final DittoHeaders dittoHeaders,
-                                               @Nullable final String message,
-                                               @Nullable final String description,
-                                               @Nullable final Throwable cause,
-                                               @Nullable final URI href) {
+             @Nullable final String message,
+             @Nullable final String description,
+             @Nullable final Throwable cause,
+             @Nullable final URI href) {
          super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
      }
 
      /**
-      * A mutable builder for a {@code MissingPayloadException} where the message contains detailed information
+      * A mutable builder for a {@code CloudEventMissingPayloadException} where the message contains detailed information
       * about the actual used data schema and the description information about data schemas are supported for the
       * requested resource.
       *
-      * @return the new MissingPayloadException.
+      * @return the new CloudEventMissingPayloadException.
       */
      public static DittoRuntimeExceptionBuilder<CloudEventMissingPayloadException> withDetailedInformationBuilder() {
          return new Builder().message(DEFAULT_MESSAGE).description(DEFAULT_DESCRIPTION);
      }
 
      /**
-      * Constructs a new {@code MissingPayloadException} object with the exception message extracted from the
+      * Constructs a new {@code CloudEventMissingPayloadException} object with the exception message extracted from the
       * given JSON object.
       *
       * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
       * @param dittoHeaders the headers of the command which resulted in this exception.
-      * @return the new MissingPayloadException.
+      * @return the new CloudEventMissingPayloadException.
       * @throws NullPointerException if any argument is {@code null}.
       * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
       * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
       * format.
       */
-     public static CloudEventMissingPayloadException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+     public static CloudEventMissingPayloadException fromJson(final JsonObject jsonObject,
+             final DittoHeaders dittoHeaders) {
          return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
      }
 
      @Override
-    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+     public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
          return new Builder()
                  .message(getMessage())
                  .description(getDescription().orElse(null))
@@ -110,10 +111,10 @@
 
          @Override
          protected CloudEventMissingPayloadException doBuild(final DittoHeaders dittoHeaders,
-                                                             @Nullable final String message,
-                                                             @Nullable final String description,
-                                                             @Nullable final Throwable cause,
-                                                             @Nullable final URI href) {
+                 @Nullable final String message,
+                 @Nullable final String description,
+                 @Nullable final Throwable cause,
+                 @Nullable final URI href) {
 
              return new CloudEventMissingPayloadException(dittoHeaders, message, description, cause, href);
          }
