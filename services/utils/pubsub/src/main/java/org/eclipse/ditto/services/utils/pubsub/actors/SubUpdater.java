@@ -92,6 +92,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
      */
     private boolean localSubscriptionsChanged = false;
     private int seqNr = 0;
+    private LiteralUpdate previousUpdate = LiteralUpdate.empty();
 
     @SuppressWarnings("unused")
     private SubUpdater(final PubSubConfig config,
@@ -219,10 +220,11 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
             topicSizeMetric.set(0L);
         } else {
             // export before taking snapshot so that implementations may output incremental update.
-            final LiteralUpdate ddata = subscriptions.export();
+            final LiteralUpdate nextUpdate = subscriptions.export();
             // take snapshot to give to the subscriber; clear accumulated incremental changes.
             snapshot = subscriptions.snapshot();
-            ddataOp = topicsWriter.put(subscriber, ddata, writeConsistency);
+            ddataOp = topicsWriter.put(subscriber, nextUpdate.diff(previousUpdate), writeConsistency);
+            previousUpdate = nextUpdate;
             topicSizeMetric.set(subscriptions.estimateSize());
         }
         return ddataOp.thenApply(_void -> snapshot);

@@ -77,6 +77,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
 
     private Map<String, Set<String>> remoteAckLabels = Map.of();
     private Map<String, Set<String>> remoteGroups = Map.of();
+    private LiteralUpdate previousUpdate = LiteralUpdate.empty();
 
     protected AckUpdater(final PubSubConfig config,
             final Address ownAddress,
@@ -275,9 +276,11 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
         getContext().unwatch(subscriber);
     }
 
+    // NOT thread-safe
     private void writeLocalDData() {
+        final LiteralUpdate diff = createAndSetDDataUpdate();
         ackDData.getWriter()
-                .put(ownAddress, createDDataUpdate(), (Replicator.WriteConsistency) Replicator.writeLocal())
+                .put(ownAddress, diff, (Replicator.WriteConsistency) Replicator.writeLocal())
                 .whenComplete((_void, error) -> {
                     if (error != null) {
                         log.error(error, "Failed to update local DData");
@@ -285,12 +288,16 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
                 });
     }
 
-    private LiteralUpdate createDDataUpdate() {
+    // NOT thread-safe
+    private LiteralUpdate createAndSetDDataUpdate() {
         final Set<String> groupedAckLabels = localAckLabels.exportValuesByGroup()
                 .stream()
                 .map(Grouped::toJsonString)
                 .collect(Collectors.toSet());
-        return LiteralUpdate.replaceAll(groupedAckLabels);
+        final LiteralUpdate nextUpdate = LiteralUpdate.replaceAll(groupedAckLabels);
+        final LiteralUpdate diff = nextUpdate.diff(previousUpdate);
+        previousUpdate = nextUpdate;
+        return diff;
     }
 
     private void failSubscribe(final ActorRef sender) {

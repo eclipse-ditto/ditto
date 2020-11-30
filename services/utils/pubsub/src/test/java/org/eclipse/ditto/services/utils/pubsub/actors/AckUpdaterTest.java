@@ -12,13 +12,16 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.actors;
 
+import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.services.utils.pubsub.LiteralDDataProvider;
 import org.eclipse.ditto.services.utils.pubsub.api.AcksDeclared;
 import org.eclipse.ditto.services.utils.pubsub.api.DeclareAcks;
+import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.AbstractConfigAwareDDataProvider;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDData;
@@ -34,7 +37,6 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Address;
 import akka.cluster.Cluster;
-import akka.cluster.ddata.Replicator;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
@@ -112,7 +114,7 @@ public final class AckUpdaterTest {
             s2.expectMsgClass(AcksDeclared.class);
 
             // WHEN: ddata is replicated
-            waitForHeartBeats(system1, ddata1);
+            waitForHeartBeats(system1, this);
 
             // THEN: it is an error to declare different ack labels under the same group name.
             underTest.tell(DeclareAcks.of(s1.ref(), "g1", Set.of("a2", "a3")), getRef());
@@ -156,14 +158,14 @@ public final class AckUpdaterTest {
         return ConfigFactory.load("pubsub-factory-test.conf");
     }
 
-    private static void waitForHeartBeats(final ActorSystem system, final DData<?, ?, ?> ackDData) {
+    private static void waitForHeartBeats(final ActorSystem system, final TestKit kit) {
         final int howManyHeartBeats = 5;
-        final TestProbe probe = TestProbe.apply(system);
-        ackDData.getReader().receiveChanges(probe.ref());
-        for (int i = 0; i < howManyHeartBeats; ++i) {
-            probe.expectMsgClass(Replicator.Changed.class);
+        final Duration heartbeatInterval = kit.dilated(PubSubConfig.of(system).getUpdateInterval());
+        try {
+            TimeUnit.MILLISECONDS.sleep(heartbeatInterval.multipliedBy(howManyHeartBeats).toMillis());
+        } catch (final Exception e) {
+            throw new AssertionError(e);
         }
-        system.stop(probe.ref());
     }
 
 }

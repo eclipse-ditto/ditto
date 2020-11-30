@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.utils.pubsub.ddata;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 
@@ -72,11 +73,23 @@ public abstract class AbstractDDataHandler<K, S, T extends DDataUpdate<S>>
     }
 
     @Override
-    public CompletionStage<Void> put(final K ownSubscriber, final T topics,
+    public CompletionStage<Void> put(final K ownSubscriber, final T update,
             final Replicator.WriteConsistency writeConsistency) {
 
-        // complete replacement
-        return update(writeConsistency, mmap -> mmap.put(selfUniqueAddress, ownSubscriber, topics.getInserts()));
+        if (update.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        } else {
+            return update(writeConsistency, initialMMap -> {
+                ORMultiMap<K, S> mmap = initialMMap;
+                for (final S delete : update.getDeletes()) {
+                    mmap = mmap.removeBinding(selfUniqueAddress, ownSubscriber, delete);
+                }
+                for (final S insert : update.getInserts()) {
+                    mmap = mmap.addBinding(selfUniqueAddress, ownSubscriber, insert);
+                }
+                return mmap;
+            });
+        }
     }
 
     @Override

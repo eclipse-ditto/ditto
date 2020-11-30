@@ -28,4 +28,22 @@ public interface DDataUpdate<S> {
      * @return Inserted elements.
      */
     Set<S> getInserts();
+
+    /**
+     * @return Deleted elements.
+     */
+    Set<S> getDeletes();
+
+    /**
+     * Compute the difference between 2 DDataUpdates as another update.
+     *
+     * @param previousState the previous DDataUpdate.
+     * @return the difference.
+     */
+    DDataUpdate<S> diff(DDataUpdate<S> previousState);
+
+    /**
+     * @return whether this update is empty.
+     */
+    boolean isEmpty();
 }
