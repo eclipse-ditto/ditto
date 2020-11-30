@@ -346,7 +346,7 @@ public final class BaseClientActorTest {
                     .build();
             final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate);
 
-            final ActorRef underTest = watch(actorSystem.actorOf(props, "zToBeSmallerThanTestProbes"));
+            final ActorRef underTest = watch(actorSystem.actorOf(props, "zToBeLargerThanTestProbeRefs"));
             expectMsg(underTest);
 
             final List<TestProbe> probes = new ArrayList<>(clientCount - 1);
@@ -363,6 +363,26 @@ public final class BaseClientActorTest {
                 underTest.tell(InboundSignal.of(command), getRef());
                 probes.get(i).expectMsg(command);
             }
+        }};
+    }
+
+    @Test
+    public void doesNotDispatchSearchCommandsWithInvalidSubscriptionId() {
+        new TestKit(actorSystem) {{
+            final ConnectionId connectionId = TestConstants.createRandomConnectionId();
+            final Connection connection = TestConstants.createConnection(connectionId).toBuilder()
+                    .clientCount(2)
+                    .build();
+            final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate);
+
+            final ActorRef underTest = watch(actorSystem.actorOf(props, "underTest"));
+            expectMsg(underTest);
+
+            final String prefix = Integer.toHexString(5); // out-of-bound
+            final String subscriptionId = prefix + "-subscription-id";
+            final CancelSubscription command = CancelSubscription.of(subscriptionId, DittoHeaders.empty());
+            underTest.tell(InboundSignal.of(command), getRef());
+            expectNoMessage();
         }};
     }
 

@@ -537,9 +537,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
 
     /**
      * Get the identifier of the connectivity instance.
-     * TODO: is this necessary?
+     * TODO: is this necessary? Instance identifier is pod ID.
      *
-     * @return
+     * @return the instance identifier.
      */
     protected static String getInstanceIdentifier() {
         return InstanceIdentifierSupplier.getInstance().get();

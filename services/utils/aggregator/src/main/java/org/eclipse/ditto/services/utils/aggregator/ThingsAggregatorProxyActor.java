@@ -199,12 +199,6 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                         .log("retrieve-thing-response", log)
                         .recoverWithRetries(1, new PFBuilder<Throwable, Source<PlainJson, NotUsed>>()
                                 .match(NoSuchElementException.class, nsee -> Source.single(PlainJson.empty()))
-                                .match(IllegalStateException.class, ise -> {
-                                    // TODO: remove this workaround after akka/akka#28852 is resolved.
-                                    // It prevents spurious failures due to upstream crashing but also
-                                    // hides legitimate errors.
-                                    return Source.single(PlainJson.empty());
-                                })
                                 .build()
                         )
                         .runWith(Sink.seq(), materializer);

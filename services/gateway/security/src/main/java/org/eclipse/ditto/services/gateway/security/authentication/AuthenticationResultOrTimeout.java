@@ -26,12 +26,11 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationP
 /**
  * Waits for the future holding an {@link AuthenticationResult} and returns a failed authentication result with
  * {@link GatewayAuthenticationProviderUnavailableException} as reason if this takes longer than defined in
- * {@link AuthenticationResultWaiter#AWAIT_AUTH_TIMEOUT}.
+ * {@link AuthenticationResultOrTimeout#AWAIT_AUTH_TIMEOUT}.
  * <p>
- * TODO: rename this class to reflect that no actual waiting happens
  */
 @ThreadSafe
-public final class AuthenticationResultWaiter<R extends AuthenticationResult>
+public final class AuthenticationResultOrTimeout<R extends AuthenticationResult>
         implements Supplier<CompletableFuture<R>> {
 
     private static final Duration AWAIT_AUTH_TIMEOUT = Duration.ofSeconds(5L);
@@ -40,7 +39,7 @@ public final class AuthenticationResultWaiter<R extends AuthenticationResult>
     private final DittoHeaders dittoHeaders;
     private final Duration awaitAuthTimeout;
 
-    private AuthenticationResultWaiter(final CompletableFuture<R> authenticationResultFuture,
+    private AuthenticationResultOrTimeout(final CompletableFuture<R> authenticationResultFuture,
             final DittoHeaders dittoHeaders, final Duration awaitAuthTimeout) {
 
         this.authenticationResultFuture = authenticationResultFuture;
@@ -56,10 +55,10 @@ public final class AuthenticationResultWaiter<R extends AuthenticationResult>
      * @param <R> the type of the AuthenticationResult.
      * @return the created instance.
      */
-    public static <R extends AuthenticationResult> AuthenticationResultWaiter<R> of(
+    public static <R extends AuthenticationResult> AuthenticationResultOrTimeout<R> of(
             final CompletableFuture<R> authenticationResultFuture, final DittoHeaders dittoHeaders) {
 
-        return new AuthenticationResultWaiter<>(authenticationResultFuture, dittoHeaders, AWAIT_AUTH_TIMEOUT);
+        return new AuthenticationResultOrTimeout<>(authenticationResultFuture, dittoHeaders, AWAIT_AUTH_TIMEOUT);
     }
 
     /**
@@ -67,7 +66,7 @@ public final class AuthenticationResultWaiter<R extends AuthenticationResult>
      *
      * @return the authentication result
      * @throws GatewayAuthenticationProviderUnavailableException if this takes longer than defined in
-     * {@link AuthenticationResultWaiter#awaitAuthTimeout}.
+     * {@link AuthenticationResultOrTimeout#awaitAuthTimeout}.
      */
     @Override
     public CompletableFuture<R> get() {
