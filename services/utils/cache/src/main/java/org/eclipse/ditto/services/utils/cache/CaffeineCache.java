@@ -55,7 +55,7 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
             this.metricStatsCounter = null;
         }
         asyncLoad = loader != null ? loader::asyncLoad : (k, e) -> CompletableFuture.completedFuture(null);
-        this.asyncCache = caffeine.buildAsync();
+        this.asyncCache = loader != null ? caffeine.buildAsync(loader) : caffeine.buildAsync();
         this.synchronousCacheView = asyncCache.synchronous();
     }
 
