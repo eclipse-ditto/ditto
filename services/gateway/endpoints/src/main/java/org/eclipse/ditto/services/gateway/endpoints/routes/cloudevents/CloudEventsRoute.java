@@ -249,9 +249,10 @@ public final class CloudEventsRoute extends AbstractRoute {
                 .build();
 
         final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
-        return Optional.of(PROTOCOL_ADAPTER
-                .fromAdaptable(jsonifiableAdaptable)
-                .setDittoHeaders(adjustedHeaders));
+        final Signal<?> signal = PROTOCOL_ADAPTER.fromAdaptable(jsonifiableAdaptable);
+        final Signal<?> signalWithAdjustedHeaders = signal.setDittoHeaders(
+                        signal.getDittoHeaders().toBuilder().putHeaders(adjustedHeaders).build());
+        return Optional.of(signalWithAdjustedHeaders);
     }
 
     private void ensureDataContentType(@Nullable final String dataContentType,
