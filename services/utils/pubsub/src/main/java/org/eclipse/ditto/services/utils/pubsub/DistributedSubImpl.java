@@ -40,8 +40,6 @@ import akka.pattern.Patterns;
  */
 final class DistributedSubImpl implements DistributedSub {
 
-    private static final long DDATA_CLUSTER_DELAY_FACTOR = 2;
-
     // package-private for unit tests
     final ActorRef subSupervisor;
 
@@ -55,8 +53,7 @@ final class DistributedSubImpl implements DistributedSub {
         this.writeConsistency = (Replicator.WriteConsistency) Replicator.writeLocal();
         // make an optimistic delay estimation that should hold in the absence of excessive load
         final Duration clusterReplicationDelayEstimate = config.getAkkaReplicatorConfig().getNotifySubscribersInterval()
-                .plus(config.getAkkaReplicatorConfig().getGossipInterval())
-                .multipliedBy(DDATA_CLUSTER_DELAY_FACTOR);
+                .plus(config.getAkkaReplicatorConfig().getGossipInterval());
         ddataDelayInMillis = clusterReplicationDelayEstimate.toMillis();
     }
 
