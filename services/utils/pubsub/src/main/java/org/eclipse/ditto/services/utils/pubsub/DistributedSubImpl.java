@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.pubsub;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
@@ -39,21 +40,24 @@ import akka.pattern.Patterns;
  */
 final class DistributedSubImpl implements DistributedSub {
 
-    private static final long ACK_DELAY_OFFSET_MILLIS = 250;
+    private static final long DDATA_CLUSTER_DELAY_FACTOR = 2;
 
     // package-private for unit tests
     final ActorRef subSupervisor;
 
     private final DistributedDataConfig config;
-    private final Replicator.WriteConsistency writeAll;
-    private final long ackDelayInMillis;
+    private final Replicator.WriteConsistency writeConsistency;
+    private final long ddataDelayInMillis;
 
     DistributedSubImpl(final DistributedDataConfig config, final ActorRef subSupervisor) {
         this.config = config;
         this.subSupervisor = subSupervisor;
-        this.writeAll = new Replicator.WriteAll(config.getWriteTimeout());
-        ackDelayInMillis =
-                config.getAkkaReplicatorConfig().getNotifySubscribersInterval().toMillis() + ACK_DELAY_OFFSET_MILLIS;
+        this.writeConsistency = (Replicator.WriteConsistency) Replicator.writeLocal();
+        // make an optimistic delay estimation that should hold in the absence of excessive load
+        final Duration clusterReplicationDelayEstimate = config.getAkkaReplicatorConfig().getNotifySubscribersInterval()
+                .plus(config.getAkkaReplicatorConfig().getGossipInterval())
+                .multipliedBy(DDATA_CLUSTER_DELAY_FACTOR);
+        ddataDelayInMillis = clusterReplicationDelayEstimate.toMillis();
     }
 
     @Override
@@ -65,14 +69,14 @@ final class DistributedSubImpl implements DistributedSub {
             checkNotEmpty(group, "group");
         }
         final Subscribe subscribe =
-                Subscribe.of(new HashSet<>(topics), subscriber, writeAll, true, filter, group);
+                Subscribe.of(new HashSet<>(topics), subscriber, writeConsistency, true, filter, group);
         return askSubSupervisor(subscribe);
     }
 
     @Override
     public CompletionStage<SubAck> unsubscribeWithAck(final Collection<String> topics,
             final ActorRef subscriber) {
-        return askSubSupervisor(Unsubscribe.of(new HashSet<>(topics), subscriber, writeAll, true));
+        return askSubSupervisor(Unsubscribe.of(new HashSet<>(topics), subscriber, writeConsistency, true));
     }
 
     private CompletionStage<SubAck> askSubSupervisor(final Request request) {
@@ -80,7 +84,7 @@ final class DistributedSubImpl implements DistributedSub {
                 .thenCompose(DistributedSubImpl::processAskResponse)
                 .thenCompose(result -> {
                     final CompletableFuture<SubAck> resultFuture = new CompletableFuture<>();
-                    resultFuture.completeOnTimeout(result, ackDelayInMillis, TimeUnit.MILLISECONDS);
+                    resultFuture.completeOnTimeout(result, ddataDelayInMillis, TimeUnit.MILLISECONDS);
                     return resultFuture;
                 });
     }

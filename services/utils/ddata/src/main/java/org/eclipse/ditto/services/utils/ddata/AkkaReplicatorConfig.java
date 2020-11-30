@@ -41,6 +41,13 @@ public interface AkkaReplicatorConfig {
     String getRole();
 
     /**
+     * Returns the interval with which cluster members initiate gossip.
+     *
+     * @return the gossip interval.
+     */
+    Duration getGossipInterval();
+
+    /**
      * Returns the interval subscribers are notified.
      *
      * @return the duration.
@@ -69,6 +76,11 @@ public interface AkkaReplicatorConfig {
          * The role to be used for the {@link akka.cluster.ddata.Replicator}.
          */
         ROLE("role", ""),
+
+        /**
+         * How often distributed data changes are deseminated in the cluster.
+         */
+        GOSSIP_INTERVAL("gossip-interval", "2 s"),
 
         /**
          * the interval subscribers are notified.
