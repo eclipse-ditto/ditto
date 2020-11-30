@@ -326,10 +326,10 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                         } else if (parsedResponse instanceof MessageCommandResponse) {
                             result = parsedResponse;
                         } else {
-                            result = null;
+                            result = Acknowledgement.of(NO_ACK_LABEL, entityIdWithType, statusCode, dittoHeaders, body);
                         }
                     } else {
-                        result = null;
+                        result = Acknowledgement.of(NO_ACK_LABEL, entityIdWithType, statusCode, dittoHeaders, body);
                     }
                 } else {
                     // There is an issued ack declared but its not live-response => handle response as acknowledgement.
