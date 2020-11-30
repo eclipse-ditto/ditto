@@ -35,7 +35,7 @@ import akka.actor.ActorRef;
  * Local subscriptions for distribution of subscribed topics as hash code sequences.
  */
 @NotThreadSafe
-public final class CompressedSubscriptions extends AbstractSubscriptions<Long, String, LiteralUpdate>
+public final class CompressedSubscriptions extends AbstractSubscriptions<String, LiteralUpdate>
         implements Hashes {
 
     /**
@@ -64,6 +64,20 @@ public final class CompressedSubscriptions extends AbstractSubscriptions<Long, S
     @Override
     public Collection<Integer> getSeeds() {
         return seeds;
+    }
+
+    @Override
+    public long estimateSize() {
+        return subscriberDataMap.values()
+                .stream()
+                .mapToLong(subscriberData -> {
+                    final long bytesPerLong = 8;
+                    final long valueBytes = bytesPerLong * subscriberData.getTopics().size();
+                    // group bytes estimated by string length because group names should be ASCII
+                    final long groupBytes = subscriberData.getGroup().map(String::length).orElse(0);
+                    return valueBytes + groupBytes;
+                })
+                .sum();
     }
 
     @Override

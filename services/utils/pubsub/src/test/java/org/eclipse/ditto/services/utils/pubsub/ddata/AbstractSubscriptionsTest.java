@@ -32,7 +32,7 @@ import akka.actor.ActorRef;
  * @param <T> type of distributed updates.
  * @param <S> type of subscriptions objects.
  */
-public abstract class AbstractSubscriptionsTest<H, T extends DDataUpdate<H>, S extends AbstractSubscriptions<H, H, T>> {
+public abstract class AbstractSubscriptionsTest<H, T extends DDataUpdate<H>, S extends AbstractSubscriptions<H, T>> {
 
     protected static final ActorRef ACTOR1 = new MockActorRef("actor1");
     protected static final ActorRef ACTOR2 = new MockActorRef("actor2");
@@ -58,14 +58,14 @@ public abstract class AbstractSubscriptionsTest<H, T extends DDataUpdate<H>, S e
     @Test
     public void createEmptySubscriptions() {
         final int hashFamilySize = 8;
-        final AbstractSubscriptions<H, H, T> underTest = newSubscriptions();
+        final AbstractSubscriptions<H, T> underTest = newSubscriptions();
         assertThat(underTest.subscriberDataMap.isEmpty()).isTrue();
         assertThat(underTest.topicDataMap.isEmpty()).isTrue();
     }
 
     @Test
     public void testVennDiagramMembership() {
-        final AbstractSubscriptions<H, H, T> underTest = getVennDiagram();
+        final AbstractSubscriptions<H, T> underTest = getVennDiagram();
         final SubscriptionsReader reader = underTest.snapshot();
         assertThat(reader.getSubscribers(singleton("1"))).containsExactlyInAnyOrder(ACTOR1);
         assertThat(reader.getSubscribers(singleton("2"))).containsExactlyInAnyOrder(ACTOR1, ACTOR2);
@@ -80,7 +80,7 @@ public abstract class AbstractSubscriptionsTest<H, T extends DDataUpdate<H>, S e
 
     @Test
     public void testVennDiagramWithFilter() {
-        final AbstractSubscriptions<H, H, T> underTest = getVennDiagram();
+        final AbstractSubscriptions<H, T> underTest = getVennDiagram();
         underTest.subscribe(ACTOR1, Collections.emptySet(), topics -> topics.contains("1"), null);
         underTest.subscribe(ACTOR2, Collections.emptySet(), topics -> !topics.contains("6"), null);
         final SubscriptionsReader reader = underTest.snapshot();
@@ -95,7 +95,7 @@ public abstract class AbstractSubscriptionsTest<H, T extends DDataUpdate<H>, S e
 
     @Test
     public void testVennDiagramMembershipAfterRotation() {
-        final AbstractSubscriptions<H, H, T> underTest = getVennDiagram();
+        final AbstractSubscriptions<H, T> underTest = getVennDiagram();
         underTest.subscribe(ACTOR1, singleton("3"), null);
         underTest.subscribe(ACTOR1, singleton("6"), null);
         underTest.subscribe(ACTOR2, singleton("4"), null);
@@ -120,7 +120,7 @@ public abstract class AbstractSubscriptionsTest<H, T extends DDataUpdate<H>, S e
 
     @Test
     public void testVennDiagramMembershipAfterAnotherRotation() {
-        final AbstractSubscriptions<H, H, T> underTest = getVennDiagram();
+        final AbstractSubscriptions<H, T> underTest = getVennDiagram();
         underTest.subscribe(ACTOR1, singleton("3"), null);
         underTest.unsubscribe(ACTOR1, singleton("1"));
         underTest.unsubscribe(ACTOR1, singleton("4"));
@@ -145,7 +145,7 @@ public abstract class AbstractSubscriptionsTest<H, T extends DDataUpdate<H>, S e
 
     @Test
     public void testSubscriberRemoval() {
-        final AbstractSubscriptions<H, H, T> underTest = getVennDiagram();
+        final AbstractSubscriptions<H, T> underTest = getVennDiagram();
         underTest.removeSubscriber(ACTOR1);
         underTest.removeSubscriber(ACTOR2);
         final SubscriptionsReader reader = underTest.snapshot();
@@ -163,7 +163,7 @@ public abstract class AbstractSubscriptionsTest<H, T extends DDataUpdate<H>, S e
     @Test
     public void testSnapshot() {
         // GIVEN: A snapshot is taken
-        final AbstractSubscriptions<H, H, T> underTest = getVennDiagram();
+        final AbstractSubscriptions<H, T> underTest = getVennDiagram();
         final SubscriptionsReader snapshot = underTest.snapshot();
 
         // THEN: snapshot cannot be modified but can be queried
@@ -183,7 +183,7 @@ public abstract class AbstractSubscriptionsTest<H, T extends DDataUpdate<H>, S e
 
     @Test
     public void changeDetectionIsAccurate() {
-        final AbstractSubscriptions<H, H, T> underTest = getVennDiagram();
+        final AbstractSubscriptions<H, T> underTest = getVennDiagram();
 
         assertThat(underTest.subscribe(ACTOR1, asSet("1", "2"), null)).isFalse();
         assertThat(underTest.subscribe(ACTOR1, asSet("2", "3"), null)).isTrue();

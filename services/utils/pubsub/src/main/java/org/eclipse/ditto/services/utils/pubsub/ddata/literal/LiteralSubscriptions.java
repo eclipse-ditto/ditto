@@ -24,10 +24,10 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.TopicData;
 import akka.actor.ActorRef;
 
 /**
- * Local subscriptions for distribution of subscribed topics as hash code sequences.
+ * Local subscriptions for distribution of declared acknowledgement labels as string literals.
  */
 @NotThreadSafe
-public final class LiteralSubscriptions extends AbstractSubscriptions<String, String, LiteralUpdate> {
+public final class LiteralSubscriptions extends AbstractSubscriptions<String, LiteralUpdate> {
 
     private LiteralSubscriptions(
             final Map<ActorRef, SubscriberData> subscriberDataMap,
@@ -42,6 +42,19 @@ public final class LiteralSubscriptions extends AbstractSubscriptions<String, St
      */
     public static LiteralSubscriptions newInstance() {
         return new LiteralSubscriptions(new HashMap<>(), new HashMap<>());
+    }
+
+    @Override
+    public long estimateSize() {
+        return subscriberDataMap.values()
+                .stream()
+                .mapToLong(subscriberData -> {
+                    // value and group bytes estimated by string length because both should consist of ASCII characters
+                    final long valueBytes = subscriberData.getTopics().stream().mapToLong(String::length).sum();
+                    final long groupBytes = subscriberData.getGroup().map(String::length).orElse(0);
+                    return valueBytes + groupBytes;
+                })
+                .sum();
     }
 
     @Override

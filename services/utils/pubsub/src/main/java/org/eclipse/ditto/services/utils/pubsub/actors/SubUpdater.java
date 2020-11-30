@@ -68,7 +68,7 @@ public final class SubUpdater<T> extends akka.actor.AbstractActorWithTimers {
     private final Subscriptions<T> subscriptions;
     private final DDataWriter<ActorRef, T> topicsWriter;
     private final ActorRef subscriber;
-    private final Gauge topicMetric;
+    private final Gauge topicSizeMetric;
     private final Gauge awaitUpdateMetric;
     private final Gauge awaitSubAckMetric;
 
@@ -105,7 +105,7 @@ public final class SubUpdater<T> extends akka.actor.AbstractActorWithTimers {
         // tag metrics by parent name + this name prefix
         // so that the tag is finite and distinct between twin and live topics and declared ack labels.
         final String tagName = getContext().getParent().path().name() + "/" + ACTOR_NAME_PREFIX;
-        this.topicMetric = DittoMetrics.gauge("pubsub-topics").tag("name", tagName);
+        this.topicSizeMetric = DittoMetrics.gauge("pubsub-topics-size-bytes").tag("name", tagName);
         this.awaitUpdateMetric = DittoMetrics.gauge("pubsub-await-update").tag("name", tagName);
         this.awaitSubAckMetric = DittoMetrics.gauge("pubsub-await-acknowledge").tag("name", tagName);
 
@@ -218,14 +218,14 @@ public final class SubUpdater<T> extends akka.actor.AbstractActorWithTimers {
         } else if (subscriptions.isEmpty()) {
             snapshot = subscriptions.snapshot();
             ddataOp = topicsWriter.removeSubscriber(subscriber, writeConsistency);
-            topicMetric.set(0L);
+            topicSizeMetric.set(0L);
         } else {
             // export before taking snapshot so that implementations may output incremental update.
             final T ddata = subscriptions.export();
             // take snapshot to give to the subscriber; clear accumulated incremental changes.
             snapshot = subscriptions.snapshot();
             ddataOp = topicsWriter.put(subscriber, ddata, writeConsistency);
-            topicMetric.set((long) subscriptions.countTopics());
+            topicSizeMetric.set(subscriptions.estimateSize());
         }
         return ddataOp.thenApply(_void -> snapshot);
     }

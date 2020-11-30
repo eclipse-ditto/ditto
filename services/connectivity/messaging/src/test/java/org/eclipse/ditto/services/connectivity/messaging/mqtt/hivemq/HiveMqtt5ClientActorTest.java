@@ -24,9 +24,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
-import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 
 import akka.actor.ActorRef;
@@ -34,14 +32,12 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.testkit.javadsl.TestKit;
 
-public class HiveMqtt5ClientActorTest extends AbstractMqttClientActorTest<Mqtt5Publish> {
+public final class HiveMqtt5ClientActorTest extends AbstractMqttClientActorTest<Mqtt5Publish> {
 
     private MockHiveMqtt5ClientFactory mockHiveMqtt5ClientFactory;
 
     @Before
     public void initClient() {
-        // init Mqtt5Client in before because this takes several minutes and causes test timeouts if done on demand
-        Mockito.mock(Mqtt5Client.class);
         mockHiveMqtt5ClientFactory = new MockHiveMqtt5ClientFactory();
     }
 

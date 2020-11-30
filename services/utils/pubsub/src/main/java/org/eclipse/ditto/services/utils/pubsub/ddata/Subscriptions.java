@@ -44,7 +44,7 @@ public interface Subscriptions<T> {
      *
      * @return the number of topics.
      */
-    int countTopics();
+    long estimateSize();
 
     /**
      * Check if an actor subscribes to any topic.
@@ -114,6 +114,6 @@ public interface Subscriptions<T> {
      * @return whether there are no subscribers.
      */
     default boolean isEmpty() {
-        return countTopics() <= 0;
+        return estimateSize() <= 0;
     }
 }

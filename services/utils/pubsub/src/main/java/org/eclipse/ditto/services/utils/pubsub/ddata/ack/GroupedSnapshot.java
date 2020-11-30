@@ -68,4 +68,17 @@ public final class GroupedSnapshot<K, V> {
         }
     }
 
+    /**
+     * Estimate the size of this snapshot in bytes in the distributed data.
+     *
+     * @return the estimated size.
+     */
+    public long estimateSize() {
+        return g2v.entrySet()
+                .stream()
+                .mapToLong(entry -> entry.getKey().length() +
+                        entry.getValue().stream().mapToLong(value -> value.toString().length()).sum())
+                .sum();
+    }
+
 }

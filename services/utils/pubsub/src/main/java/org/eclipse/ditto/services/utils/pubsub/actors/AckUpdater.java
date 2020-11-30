@@ -30,6 +30,8 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.acks.PubSubTerminatedException;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.services.utils.pubsub.api.AcksDeclared;
 import org.eclipse.ditto.services.utils.pubsub.api.DeclareAcks;
 import org.eclipse.ditto.services.utils.pubsub.api.LocalAcksChanged;
@@ -71,11 +73,10 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
     private final DData<Address, String, LiteralUpdate> ackDData;
     private final java.util.Set<ActorRef> ddataChangeRecipients;
     private final java.util.Set<ActorRef> localChangeRecipients;
+    private final Gauge ackSizeMetric;
 
     private Map<String, Set<String>> remoteAckLabels = Map.of();
     private Map<String, Set<String>> remoteGroups = Map.of();
-
-    // TODO: add metrics
 
     protected AckUpdater(final PubSubConfig config,
             final Address ownAddress,
@@ -85,6 +86,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
         localAckLabels = GroupedRelation.create();
         ddataChangeRecipients = new HashSet<>();
         localChangeRecipients = new HashSet<>();
+        ackSizeMetric = DittoMetrics.gauge("pubsub-ack-size-bytes");
         subscribeForClusterMemberRemovedAware();
         ackDData.getReader().receiveChanges(getSelf());
         getTimers().startTimerAtFixedRate(Clock.TICK, Clock.TICK, config.getUpdateInterval());
@@ -185,6 +187,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
         writeLocalDData();
         final LocalAcksChanged changed = LocalAcksChanged.of(localAckLabels.export());
         localChangeRecipients.forEach(recipient -> recipient.tell(changed, getSelf()));
+        ackSizeMetric.set(changed.getSnapshot().estimateSize());
     }
 
     private void onChanged(final Replicator.Changed<?> event) {

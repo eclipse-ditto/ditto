@@ -36,14 +36,12 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.testkit.javadsl.TestKit;
 
-public class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<Mqtt3Publish> {
+public final class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<Mqtt3Publish> {
 
     private MockHiveMqtt3ClientFactory mockHiveMqtt3ClientFactory;
 
     @Before
     public void initClient() {
-        // init Mqtt3Client in before because this takes several minutes and causes test timeouts if done on demand
-        Mockito.mock(Mqtt3Client.class);
         mockHiveMqtt3ClientFactory = new MockHiveMqtt3ClientFactory();
     }
 

@@ -32,11 +32,11 @@ import akka.japi.Pair;
 /**
  * Consistence-maintenance part of all subscriptions.
  *
- * @param <S> type of representation of a topic in the distributed data.
+ * @param <R> type of representation of a topic in the distributed date.
  * @param <T> type of approximations of subscriptions for distributed update.
  */
 @NotThreadSafe
-public abstract class AbstractSubscriptions<S, R, T extends DDataUpdate<R>> implements Subscriptions<T> {
+public abstract class AbstractSubscriptions<R, T extends DDataUpdate<R>> implements Subscriptions<T> {
 
     /**
      * Map from local subscribers to topics they subscribe to.
@@ -153,11 +153,6 @@ public abstract class AbstractSubscriptions<S, R, T extends DDataUpdate<R>> impl
     }
 
     @Override
-    public int countTopics() {
-        return topicDataMap.size();
-    }
-
-    @Override
     public SubscriptionsReader snapshot() {
         return SubscriptionsReader.fromSubscriberData(exportSubscriberData());
     }
@@ -200,7 +195,7 @@ public abstract class AbstractSubscriptions<S, R, T extends DDataUpdate<R>> impl
     @Override
     public boolean equals(final Object other) {
         if (other instanceof AbstractSubscriptions) {
-            final AbstractSubscriptions<?, ?, ?> that = (AbstractSubscriptions<?, ?, ?>) other;
+            final AbstractSubscriptions<?, ?> that = (AbstractSubscriptions<?, ?>) other;
             return subscriberDataMap.equals(that.subscriberDataMap) &&
                     topicDataMap.equals(that.topicDataMap);
         } else {
