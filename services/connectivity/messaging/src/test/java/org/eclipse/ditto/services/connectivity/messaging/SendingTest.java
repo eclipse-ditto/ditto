@@ -215,23 +215,16 @@ public final class SendingTest {
         final var issuedAckLabel = DittoAcknowledgementLabel.LIVE_RESPONSE;
         Mockito.when(autoAckTarget.getIssuedAcknowledgementLabel()).thenReturn(Optional.of(issuedAckLabel));
         final CommandResponse<?> commandResponse = Mockito.mock(CommandResponse.class);
-        final var commandResponsePayload = JsonObject.newBuilder().set("foo", "bar").build();
         final var commandResponseStatusCode = HttpStatusCode.CONFLICT;
         Mockito.when(commandResponse.getStatusCode()).thenReturn(commandResponseStatusCode);
-        Mockito.when(commandResponse.toJson()).thenReturn(commandResponsePayload);
-        final var expectedException = MessageSendingFailedException.newBuilder()
-                .statusCode(commandResponseStatusCode)
-                .message("Received negative acknowledgement for label <" + issuedAckLabel + ">.")
-                .description("Payload: " + commandResponsePayload)
-                .build();
         final Sending underTest =
                 new Sending(sendingContext, CompletableFuture.completedStage(commandResponse), connectionIdResolver,
                         logger);
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
 
-        Mockito.verifyNoInteractions(publishedMonitor);
-        Mockito.verify(acknowledgedMonitor).failure(externalMessage, expectedException);
+        Mockito.verify(publishedMonitor).success(externalMessage);
+        Mockito.verify(acknowledgedMonitor).success(externalMessage);
         assertThat(result)
                 .hasValueSatisfying(resultFuture -> assertThat(resultFuture).isCompletedWithValue(commandResponse));
     }
