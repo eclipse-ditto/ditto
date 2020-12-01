@@ -10,14 +10,12 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.models.concierge.streaming;
+package org.eclipse.ditto.services.utils.pubsub;
 
 import java.util.Arrays;
 import java.util.Optional;
 
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
@@ -27,10 +25,31 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  */
 public enum StreamingType {
 
+    /**
+     * Streaming type of thing events.
+     */
     EVENTS(ThingEvent.TYPE_PREFIX),
-    MESSAGES(MessageCommand.TYPE_PREFIX),
+
+    /**
+     * Streaming type of message commands. The pubsub topic must be equal to the type prefix of message commands.
+     */
+    MESSAGES("messages.commands:"),
+
+    /**
+     * Streaming type of live commands.
+     */
     LIVE_COMMANDS("things-live-commands"),
+
+    /**
+     * Streaming type of live events.
+     */
     LIVE_EVENTS("things-live-events");
+
+    /**
+     * Equal to TopicPath.Channel.LIVE.getName().
+     * Not referencing TopicPath in order not to depend on ditto-protocol-adapter.
+     */
+    private static final String LIVE_CHANNEL_NAME = "live";
 
     private final String distributedPubSubTopic;
 
@@ -66,7 +85,7 @@ public enum StreamingType {
      * @return whether it is a live signal.
      */
     public static boolean isLiveSignal(final Signal signal) {
-        return signal.getDittoHeaders().getChannel().filter(TopicPath.Channel.LIVE.getName()::equals).isPresent();
+        return signal.getDittoHeaders().getChannel().filter(LIVE_CHANNEL_NAME::equals).isPresent();
     }
 
     /**
@@ -77,17 +96,18 @@ public enum StreamingType {
      */
     public static Optional<StreamingType> fromSignal(final Signal signal) {
         final StreamingType result;
+        final boolean isThingEvent = signal.getType().startsWith(EVENTS.getDistributedPubSubTopic());
         if (isLiveSignal(signal)) {
-            if (signal instanceof ThingEvent) {
+            if (isThingEvent) {
                 result = LIVE_EVENTS;
-            } else if (signal instanceof MessageCommand) {
+            } else if (signal.getType().startsWith(MESSAGES.getDistributedPubSubTopic())) {
                 result = MESSAGES;
             } else if (signal instanceof ThingCommand) {
                 result = LIVE_COMMANDS;
             } else {
                 result = null;
             }
-        } else if (signal instanceof ThingEvent) {
+        } else if (isThingEvent) {
             result = EVENTS;
         } else {
             result = null;

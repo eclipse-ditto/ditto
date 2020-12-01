@@ -19,7 +19,7 @@ import java.util.Objects;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
+import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 
 /**
  * Message indicating a demand to receive entities of a specified {@link StreamingType} via a "streaming" connection.

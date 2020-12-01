@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.things.starter;
 import static org.eclipse.ditto.services.models.things.ThingsMessagingConstants.CLUSTER_ROLE;
 
 import org.eclipse.ditto.services.base.actors.DittoRootActor;
-import org.eclipse.ditto.services.models.things.ThingEventPubSubFactory;
+import org.eclipse.ditto.services.utils.pubsub.ThingEventPubSubFactory;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.things.common.config.ThingsConfig;
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActorPropsFactory;

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.models.concierge.pubsub;
+package org.eclipse.ditto.services.utils.pubsub;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -25,10 +25,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
-import org.eclipse.ditto.services.models.things.ThingEventPubSubFactory;
-import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
-import org.eclipse.ditto.services.utils.pubsub.DistributedSub;
 
 import akka.actor.AbstractExtensionId;
 import akka.actor.ActorRef;

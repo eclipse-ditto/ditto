@@ -23,7 +23,7 @@ import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidat
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.util.config.streaming.DefaultStreamingConfig;
 import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
-import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.utils.akka.actors.ModifyConfigBehavior;
 import org.eclipse.ditto.services.utils.akka.actors.RetrieveConfigBehavior;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;

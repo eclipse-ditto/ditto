@@ -57,7 +57,7 @@ import org.eclipse.ditto.services.gateway.util.config.streaming.GatewaySignalEnr
 import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
-import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;

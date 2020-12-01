@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.models.things.ThingEventPubSubFactory;
+import org.eclipse.ditto.services.utils.pubsub.ThingEventPubSubFactory;
 import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig;
 import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;

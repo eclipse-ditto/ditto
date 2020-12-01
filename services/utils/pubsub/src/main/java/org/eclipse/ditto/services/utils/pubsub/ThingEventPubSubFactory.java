@@ -10,13 +10,11 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.models.things;
+package org.eclipse.ditto.services.utils.pubsub;
 
 import java.util.Arrays;
 
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
-import org.eclipse.ditto.services.utils.pubsub.AbstractPubSubFactory;
-import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.ConstantTopics;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;

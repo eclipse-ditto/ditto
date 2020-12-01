@@ -10,10 +10,8 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.models.concierge.pubsub;
+package org.eclipse.ditto.services.utils.pubsub;
 
-import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
-import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.events.base.Event;
