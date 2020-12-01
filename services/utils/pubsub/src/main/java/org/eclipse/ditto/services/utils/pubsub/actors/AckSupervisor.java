@@ -65,7 +65,8 @@ public final class AckSupervisor extends AbstractPubSubSupervisor {
     protected void onChildFailure(final ActorRef failingChild) {
         // if this ever happens, consider adding a recovery mechanism in SubUpdater.postStop.
         ackUpdater = null;
-        log.error("All local subscriptions lost.");
+        log.error("All local declared acknowledgement labels lost.");
+        ackDData.getWriter().removeAddress(selfAddress, ClusterMemberRemovedAware.writeLocal());
     }
 
     @Override

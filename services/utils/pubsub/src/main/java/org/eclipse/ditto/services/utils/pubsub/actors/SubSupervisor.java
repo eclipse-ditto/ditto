@@ -16,16 +16,13 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.api.Request;
-import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.compressed.CompressedDData;
-import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Terminated;
-import akka.cluster.ddata.Replicator;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -143,8 +140,7 @@ public final class SubSupervisor<T> extends AbstractPubSubSupervisor {
     private void childTerminated(final Terminated terminated) {
         if (terminated.getActor().equals(subscriber) || terminated.getActor().equals(updater)) {
             log.error("Child actor terminated. Removing subscriber from DData: <{}>", terminated.getActor());
-            topicsDData.getWriter().removeSubscriber(terminated.getActor(),
-                    (Replicator.WriteConsistency) Replicator.writeLocal());
+            topicsDData.getWriter().removeSubscriber(terminated.getActor(), ClusterMemberRemovedAware.writeLocal());
             getContext().getChildren().forEach(getContext()::stop);
             subscriber = null;
             updater = null;

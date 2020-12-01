@@ -19,6 +19,7 @@ import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.Terminated;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -51,6 +52,7 @@ public final class PubSupervisor extends AbstractPubSubSupervisor {
     private final DistributedAcks distributedAcks;
 
     @Nullable private ActorRef publisher;
+    @Nullable private ActorRef updater;
 
     @SuppressWarnings("unused")
     private PubSupervisor(final DData<ActorRef, ?, ?> ddata, final DistributedAcks distributedAcks) {
@@ -75,6 +77,7 @@ public final class PubSupervisor extends AbstractPubSubSupervisor {
         return ReceiveBuilder.create()
                 .match(Publisher.Request.class, this::isPublisherAvailable, this::publish)
                 .match(Publisher.Request.class, this::publisherUnavailable)
+                .match(Terminated.class, this::childTerminated)
                 .build();
     }
 
@@ -85,7 +88,7 @@ public final class PubSupervisor extends AbstractPubSubSupervisor {
 
     @Override
     protected void startChildren() {
-        startChild(PubUpdater.props(ddata.getWriter()), PubUpdater.ACTOR_NAME_PREFIX);
+        updater = startChild(PubUpdater.props(ddata.getWriter()), PubUpdater.ACTOR_NAME_PREFIX);
         publisher = startChild(Publisher.props(ddata.getReader(), distributedAcks), Publisher.ACTOR_NAME_PREFIX);
     }
 
@@ -100,5 +103,18 @@ public final class PubSupervisor extends AbstractPubSubSupervisor {
 
     private void publisherUnavailable(final Publisher.Request publish) {
         log.error("Publisher unavailable. Dropping <{}>", publish);
+    }
+
+    private void childTerminated(final Terminated terminated) {
+        if (terminated.getActor().equals(updater)) {
+            log.error("Updater terminated, restart scheduled: <{}>", terminated.getActor());
+            updater = null;
+            scheduleRestartChildren();
+        } else if (terminated.getActor().equals(publisher)) {
+            log.error("Publisher terminated, restart scheduled: <{}>", terminated.getActor());
+            publisher = null;
+            scheduleRestartChildren();
+        }
+        // let the other child actor run until scheduled restart.
     }
 }
