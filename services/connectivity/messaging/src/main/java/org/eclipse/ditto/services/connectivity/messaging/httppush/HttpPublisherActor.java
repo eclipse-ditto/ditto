@@ -336,7 +336,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                     result = Acknowledgement.of(label, entityIdWithType, statusCode, dittoHeaders, body);
                 }
 
-                if (result != null && isMessageCommand) {
+                if (result instanceof MessageCommandResponse && isMessageCommand) {
                     // Do only return command response for live commands with a correct response.
                     validateLiveResponse(result, (MessageCommand<?, ?>) signal);
                 }

@@ -271,6 +271,63 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
     }
 
     @Test
+    public void testMessageCommandHttpPushWithNonLiveResponseIssuedAcknowledgement() {
+        new TestKit(actorSystem) {{
+            final String contentType = "application/json";
+            final StatusCode statusCode = StatusCodes.IM_A_TEAPOT;
+            final JsonValue jsonResponse = JsonFactory.readFrom("{ \"foo\": true }");
+            httpPushFactory = mockHttpPushFactory(contentType, statusCode, jsonResponse.toString());
+            final AcknowledgementLabel autoAckLabel = AcknowledgementLabel.of("foo:bar");
+            final Target target = ConnectivityModelFactory.newTargetBuilder()
+                    .address(getOutboundAddress())
+                    .originalAddress(getOutboundAddress())
+                    .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
+                    .headerMapping(TestConstants.HEADER_MAPPING)
+                    .issuedAcknowledgementLabel(autoAckLabel)
+                    .topics(Topic.LIVE_MESSAGES)
+                    .build();
+
+            final Props props = getPublisherActorProps();
+            final ActorRef publisherActor = childActorOf(props);
+            publisherCreated(this, publisherActor);
+
+            final MessageDirection messageDirection = MessageDirection.FROM;
+            final String messageSubject = "please-respond";
+            final Message<?> message = Message.newBuilder(
+                    MessageHeaders.newBuilder(messageDirection, TestConstants.Things.THING_ID, messageSubject)
+                            .build()
+            ).build();
+            final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                    .correlationId(TestConstants.CORRELATION_ID)
+                    .putHeader("device_id", "ditto:thing")
+                    .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE),
+                            AcknowledgementRequest.of(autoAckLabel))
+                    .build();
+            final Signal<?> source = SendThingMessage.of(TestConstants.Things.THING_ID, message, dittoHeaders);
+            final OutboundSignal outboundSignal =
+                    OutboundSignalFactory.newOutboundSignal(source, Collections.singletonList(target));
+            final ExternalMessage externalMessage =
+                    ExternalMessageFactory.newExternalMessageBuilder(Collections.emptyMap())
+                            .withText("payload")
+                            .build();
+            final Adaptable adaptable = DittoProtocolAdapter.newInstance().toAdaptable(source);
+            final OutboundSignal.Mapped mapped =
+                    OutboundSignalFactory.newMappedOutboundSignal(outboundSignal, adaptable, externalMessage);
+
+            publisherActor.tell(
+                    OutboundSignalFactory.newMultiMappedOutboundSignal(Collections.singletonList(mapped), getRef()),
+                    getRef());
+
+            final Acknowledgements acknowledgements = expectMsgClass(Acknowledgements.class);
+            assertThat(acknowledgements).hasSize(1);
+            final Acknowledgement acknowledgement = acknowledgements.getAcknowledgement(autoAckLabel).get();
+            assertThat(acknowledgement).isNotNull();
+            assertThat(acknowledgement.getStatusCode().toInt()).isEqualTo(statusCode.intValue());
+            assertThat(acknowledgement.getEntityId().toString()).hasToString(TestConstants.Things.THING_ID.toString());
+        }};
+    }
+
+    @Test
     public void testMessageCommandHttpPushCreatesCommandResponseFromProtocolMessage() {
         new TestKit(actorSystem) {{
             final String customContentType = "application/vnd.org.eclipse.ditto.foobar+json";
