@@ -76,13 +76,17 @@ final class Sending implements SendingOrDropped {
     public Optional<CompletionStage<CommandResponse>> monitorAndAcknowledge(
             final ExceptionToAcknowledgementConverter exceptionConverter) {
 
-        return Optional.of(futureResponse
-                .thenApply(response -> acknowledge(response, exceptionConverter))
-                .thenApply(this::monitor)
-                .exceptionally(error -> {
-                    final Acknowledgement result = handleException(getRootCause(error), exceptionConverter);
-                    monitor(result);
-                    return result;
+        return Optional.of(futureResponse.thenApply(response -> acknowledge(response, exceptionConverter))
+                .handle((response, error) -> {
+                    if (error != null) {
+                        final Acknowledgement errorAck = handleException(getRootCause(error), exceptionConverter);
+                        if (errorAck != null) {
+                            monitorAcknowledgementWitFailedSending(errorAck);
+                        }
+                        return errorAck;
+                    } else {
+                        return this.monitor(response);
+                    }
                 }));
     }
 
@@ -132,7 +136,11 @@ final class Sending implements SendingOrDropped {
     }
 
     private void monitorAcknowledgement(final Acknowledgement acknowledgement) {
-        new AcknowledgementMonitoring(acknowledgement).monitor();
+        new AcknowledgementMonitoring(acknowledgement, true).monitor();
+    }
+
+    private void monitorAcknowledgementWitFailedSending(final Acknowledgement acknowledgement) {
+        new AcknowledgementMonitoring(acknowledgement, false).monitor();
     }
 
     private boolean isTargetIssuesLiveResponse() {
@@ -246,14 +254,20 @@ final class Sending implements SendingOrDropped {
 
     private final class AcknowledgementMonitoring extends CommandResponseMonitoring<Acknowledgement> {
 
-        AcknowledgementMonitoring(final Acknowledgement acknowledgement) {
+        private final boolean sendSuccess;
+
+        AcknowledgementMonitoring(final Acknowledgement acknowledgement, final boolean sendSuccess) {
             super(acknowledgement);
+            this.sendSuccess = sendSuccess;
         }
 
         @Override
         void monitor() {
             final HttpStatusCode statusCode = cmdResponse.getStatusCode();
             if (statusCode.isInternalError()) {
+                if (sendSuccess) {
+                    monitorSendSuccess();
+                }
                 monitorAckFailure();
             } else if (statusCode.isClientError()) {
                 monitorSendSuccess();
