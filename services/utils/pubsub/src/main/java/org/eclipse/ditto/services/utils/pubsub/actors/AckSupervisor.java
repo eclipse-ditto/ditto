@@ -91,7 +91,6 @@ public final class AckSupervisor extends AbstractPubSubSupervisor {
     private void ackUpdaterTerminated(final Terminated terminated) {
         if (terminated.getActor().equals(ackUpdater)) {
             onChildFailure(ackUpdater);
-            ackUpdater = null;
             scheduleRestartChildren();
         }
     }

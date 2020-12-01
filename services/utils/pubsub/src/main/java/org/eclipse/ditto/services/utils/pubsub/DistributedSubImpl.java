@@ -54,7 +54,9 @@ final class DistributedSubImpl implements DistributedSub {
         // make an optimistic delay estimation that should hold in the absence of excessive load
         final Duration clusterReplicationDelayEstimate = config.getAkkaReplicatorConfig().getNotifySubscribersInterval()
                 .plus(config.getAkkaReplicatorConfig().getGossipInterval());
-        ddataDelayInMillis = clusterReplicationDelayEstimate.toMillis();
+        final long expectedDelayInMillis = clusterReplicationDelayEstimate.toMillis();
+        // add 50% buffer after expected replication
+        ddataDelayInMillis = expectedDelayInMillis + expectedDelayInMillis / 2;
     }
 
     @Override
