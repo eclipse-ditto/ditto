@@ -251,6 +251,9 @@ entries:
           - title: WebSocket protocol binding
             url: /httpapi-protocol-bindings-websocket.html
             output: web
+          - title: Cloud Events HTTP protocol binding
+            url: /httpapi-protocol-bindings-cloudevents.html
+            output: web
           - title: Server sent events
             url: /httpapi-sse.html
             output: web

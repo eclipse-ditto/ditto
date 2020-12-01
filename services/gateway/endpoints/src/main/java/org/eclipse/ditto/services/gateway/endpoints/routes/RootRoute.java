@@ -38,6 +38,7 @@ import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDire
 import org.eclipse.ditto.services.gateway.endpoints.directives.RequestResultLoggingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.RequestTimeoutHandlingDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.routes.cloudevents.CloudEventsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute;
@@ -90,6 +91,7 @@ public final class RootRoute extends AllDirectives {
     private final WebSocketRouteBuilder websocketRouteBuilder;
     private final StatsRoute statsRoute;
     private final WhoamiRoute whoamiRoute;
+    private final CloudEventsRoute cloudEventsRoute;
 
     private final CustomApiRoutesProvider customApiRoutesProvider;
     private final GatewayAuthenticationDirective apiAuthenticationDirective;
@@ -118,6 +120,7 @@ public final class RootRoute extends AllDirectives {
         websocketRouteBuilder = builder.websocketRouteBuilder;
         statsRoute = builder.statsRoute;
         whoamiRoute = builder.whoamiRoute;
+        cloudEventsRoute = builder.cloudEventsRoute;
         customApiRoutesProvider = builder.customApiRoutesProvider;
         apiAuthenticationDirective = builder.httpAuthenticationDirective;
         wsAuthenticationDirective = builder.wsAuthenticationDirective;
@@ -275,7 +278,9 @@ public final class RootRoute extends AllDirectives {
                 // /api/{apiVersion}/search/things
                 thingSearchRoute.buildSearchRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/whoami
-                whoamiRoute.buildWhoamiRoute(ctx, dittoHeaders)
+                whoamiRoute.buildWhoamiRoute(ctx, dittoHeaders),
+                // /api/{apiVersion}/cloudevents
+                cloudEventsRoute.buildCloudEventsRoute(ctx, dittoHeaders)
         ).orElse(customApiSubRoutes);
     }
 
@@ -391,6 +396,7 @@ public final class RootRoute extends AllDirectives {
         private WebSocketRouteBuilder websocketRouteBuilder;
         private StatsRoute statsRoute;
         private WhoamiRoute whoamiRoute;
+        private CloudEventsRoute cloudEventsRoute;
 
         private CustomApiRoutesProvider customApiRoutesProvider;
         private GatewayAuthenticationDirective httpAuthenticationDirective;
@@ -471,6 +477,12 @@ public final class RootRoute extends AllDirectives {
         @Override
         public RootRouteBuilder whoamiRoute(final WhoamiRoute route) {
             whoamiRoute = route;
+            return this;
+        }
+
+        @Override
+        public RootRouteBuilder cloudEventsRoute(final CloudEventsRoute route) {
+            cloudEventsRoute = route;
             return this;
         }
 

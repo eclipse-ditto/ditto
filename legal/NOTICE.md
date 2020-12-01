@@ -28,6 +28,7 @@ SPDX-License-Identifier: EPL-2.0
 * Copyright 2019 Kiwigrid GmbH
 * Copyright 2020 Bosch.IO GmbH
 * Copyright 2020 DevBoost GmbH
+* Copyright 2020 Red Hat Inc
 
 All content is the property of the respective authors or their employers.
 For more information regarding authorship of content, please consult the

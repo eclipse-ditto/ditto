@@ -24,6 +24,7 @@ import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthen
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.routes.RootRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.cloudevents.CloudEventsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute;
@@ -282,6 +283,7 @@ final class GatewayRootActor extends DittoRootActor {
                 .thingSearchRoute(
                         new ThingSearchRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
                 .whoamiRoute(new WhoamiRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
+                .cloudEventsRoute(new CloudEventsRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
                 .websocketRoute(WebSocketRoute.getInstance(streamingActor, streamingConfig, materializer)
                         .withSignalEnrichmentProvider(signalEnrichmentProvider)
                         .withHeaderTranslator(headerTranslator))

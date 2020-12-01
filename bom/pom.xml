@@ -56,6 +56,7 @@
         <amqp-client.version>5.7.3</amqp-client.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <netty.version>4.1.50.Final</netty.version>
+        <cloundevents.version>2.0.0.RC1</cloundevents.version>
 
         <slf4j.version>1.7.28</slf4j.version>
         <logback.version>1.2.3</logback.version>
@@ -324,6 +325,12 @@
                 <groupId>io.jsonwebtoken</groupId>
                 <artifactId>jjwt-impl</artifactId>
                 <version>${jjwt.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.cloudevents</groupId>
+                <artifactId>cloudevents-http-basic</artifactId>
+                <version>${cloundevents.version}</version>
             </dependency>
 
             <!-- ### Indirect "runtime" dependencies we want to pin to a common version -->
