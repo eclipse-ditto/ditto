@@ -50,13 +50,13 @@ final class DistributedSubImpl implements DistributedSub {
     DistributedSubImpl(final DistributedDataConfig config, final ActorRef subSupervisor) {
         this.config = config;
         this.subSupervisor = subSupervisor;
-        this.writeConsistency = (Replicator.WriteConsistency) Replicator.writeLocal();
+        this.writeConsistency = new Replicator.WriteAll(config.getWriteTimeout());
         // make an optimistic delay estimation that should hold in the absence of excessive load
-        final Duration clusterReplicationDelayEstimate = config.getAkkaReplicatorConfig().getNotifySubscribersInterval()
-                .plus(config.getAkkaReplicatorConfig().getGossipInterval());
+        final Duration clusterReplicationDelayEstimate =
+                config.getAkkaReplicatorConfig().getNotifySubscribersInterval();
         final long expectedDelayInMillis = clusterReplicationDelayEstimate.toMillis();
-        // add 50% buffer after expected replication
-        ddataDelayInMillis = expectedDelayInMillis + expectedDelayInMillis / 2;
+        // add buffer after expected replication
+        ddataDelayInMillis = expectedDelayInMillis + 250;
     }
 
     @Override
