@@ -12,9 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.test.mongo;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import com.github.dockerjava.api.DockerClient;
