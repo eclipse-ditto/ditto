@@ -14,7 +14,10 @@ package org.eclipse.ditto.json;
 
 import static java.util.Objects.requireNonNull;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Collection;
@@ -36,6 +39,9 @@ import javax.annotation.concurrent.Immutable;
  */
 @Immutable
 public final class JsonFactory {
+
+    private static final String NULL_STRING = "null";
+    private static final byte[] NULL_DATA = NULL_STRING.getBytes(StandardCharsets.UTF_8);
 
     /*
      * This utility class is not meant to be instantiated.
@@ -255,8 +261,42 @@ public final class JsonFactory {
         }
     }
 
+    /**
+     * Creates a JSON object from the given byte array.
+     *
+     * @param jsonData the byte array that represents the JSON object.
+     * @return the JSON object that has been created from the data.
+     * @throws NullPointerException if {@code jsonData} is {@code null}.
+     * @throws IllegalArgumentException if {@code jsonData} is empty.
+     * @throws JsonParseException if {@code jsonData} does not contain a valid JSON object.
+     * @since 1.5.0
+     */
+    public static JsonObject newObject(final byte[] jsonData) {
+        requireNonNull(jsonData, "The JSON data to create a JSON object from must not be null!");
+        if (jsonData.length == 0) {
+            throw new IllegalArgumentException("The JSON data to create a JSON object from must not be empty!");
+        }
+
+        if (isJsonNullLiteralData(jsonData)) {
+            return nullObject();
+        } else {
+            final Reader reader = new InputStreamReader(new ByteArrayInputStream(jsonData));
+            final JsonValue jsonValue = JsonValueParser.fromReader().apply(reader);
+            if (!jsonValue.isObject()) {
+                final String msgPattern = "<{0}> is not a valid JSON object!";
+                throw JsonParseException.newBuilder()
+                        .message(MessageFormat.format(msgPattern, jsonValue)).build();
+            }
+            return jsonValue.asObject();
+        }
+    }
+
     private static boolean isJsonNullLiteralString(final String s) {
-        return "null".equals(s);
+        return NULL_STRING.equals(s);
+    }
+
+    private static boolean isJsonNullLiteralData(final byte[] data) {
+        return Arrays.equals(NULL_DATA, data);
     }
 
     /**

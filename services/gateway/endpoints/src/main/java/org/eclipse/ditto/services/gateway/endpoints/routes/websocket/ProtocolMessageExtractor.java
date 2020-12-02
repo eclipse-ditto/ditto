@@ -30,6 +30,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.services.gateway.streaming.Jwt;
 import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
@@ -137,6 +138,7 @@ final class ProtocolMessageExtractor implements Function<String, Optional<Stream
                 .withNamespaces(getNamespaces(params.get(PARAM_NAMESPACES)))
                 .withFilter(params.get(PARAM_FILTER))
                 .withExtraFields(getExtraFields(params.get(PARAM_EXTRA_FIELDS)))
+                .withCorrelationId(params.get(DittoHeaderDefinition.CORRELATION_ID.getKey()))
                 .build();
     }
 

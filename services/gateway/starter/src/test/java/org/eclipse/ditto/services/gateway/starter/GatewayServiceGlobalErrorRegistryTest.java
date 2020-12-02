@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.gateway.starter;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
+import org.eclipse.ditto.model.base.exceptions.CloudEventNotParsableException;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.jwt.JwtAudienceInvalidException;
@@ -25,6 +26,8 @@ import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.things.AclEntryInvalidException;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.protocoladapter.UnknownCommandException;
+import org.eclipse.ditto.model.base.exceptions.CloudEventMissingPayloadException;
+import org.eclipse.ditto.model.base.exceptions.CloudEventUnsupportedDataSchemaException;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.PublicKeyProviderUnavailableException;
 import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
@@ -60,7 +63,11 @@ public final class GatewayServiceGlobalErrorRegistryTest extends GlobalErrorRegi
                 PolicyIdInvalidException.class,
                 PublicKeyProviderUnavailableException.class,
                 AcknowledgementLabelInvalidException.class,
-                AcknowledgementCorrelationIdMissingException.class);
+                AcknowledgementCorrelationIdMissingException.class,
+                CloudEventMissingPayloadException.class,
+                CloudEventUnsupportedDataSchemaException.class,
+                CloudEventNotParsableException.class
+        );
     }
 
 }

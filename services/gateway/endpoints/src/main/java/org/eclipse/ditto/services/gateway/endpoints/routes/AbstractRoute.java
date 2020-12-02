@@ -91,12 +91,12 @@ public abstract class AbstractRoute extends AllDirectives {
 
     protected final ActorRef proxyActor;
     protected final ActorSystem actorSystem;
+    protected final Set<String> mediaTypeJsonWithFallbacks;
 
     private final HttpConfig httpConfig;
     private final CommandConfig commandConfig;
     private final HeaderTranslator headerTranslator;
     private final HttpRequestActorPropsFactory httpRequestActorPropsFactory;
-    private final Set<String> mediaTypeJsonWithFallbacks;
     private final Attributes supervisionStrategy;
 
     /**
