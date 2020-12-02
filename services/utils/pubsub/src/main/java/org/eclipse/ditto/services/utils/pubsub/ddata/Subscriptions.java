@@ -40,9 +40,9 @@ public interface Subscriptions<T> {
     Set<ActorRef> getSubscribers();
 
     /**
-     * Get the total number of topics with active subscriptions.
+     * Estimate the size of the subscription data in bytes in the distributed data.
      *
-     * @return the number of topics.
+     * @return the estimated subscription data size in bytes.
      */
     long estimateSize();
 
