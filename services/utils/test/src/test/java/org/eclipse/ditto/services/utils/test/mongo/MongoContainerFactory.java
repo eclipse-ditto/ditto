@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.test.mongo;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import com.github.dockerjava.api.DockerClient;
@@ -37,7 +38,7 @@ final class MongoContainerFactory {
     private static final int MONGO_INTERNAL_PORT = 27017;
     private static final PortBinding MONGO_PORT_BINDING_TO_RANDOM_PORT =
             new PortBinding(Ports.Binding.empty(), ExposedPort.tcp(MONGO_INTERNAL_PORT));
-    private static final List<String> MONGO_COMMANDS = Arrays.asList("mongod", "--storageEngine", "wiredTiger");
+    private static final List<String> MONGO_COMMANDS = List.of("mongod", "--storageEngine", "wiredTiger");
 
     private static final MongoContainerFactory INSTANCE = new MongoContainerFactory();
     private static final String UNIX_DOCKER_HOST = "unix:///var/run/docker.sock";

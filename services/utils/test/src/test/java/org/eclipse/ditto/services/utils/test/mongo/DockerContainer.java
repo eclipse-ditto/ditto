@@ -32,6 +32,7 @@ final class DockerContainer {
     private static final Logger LOGGER = LoggerFactory.getLogger(DockerContainer.class);
     private static final Integer DOCKER_STOP_TIMEOUT_SECONDS = 5;
     private static final String DEFAULT_DOCKER_HOST = "172.17.0.1";
+    private static final String DOCKER_BRIDGE_NETWORK = "bridge";
     private static final String LOCALHOST = "localhost";
     private final DockerClient dockerClient;
     private final String containerId;
@@ -87,7 +88,7 @@ final class DockerContainer {
     String getHostname() {
         return Optional.ofNullable(getContainer().getNetworkSettings())
                 .map(ContainerNetworkSettings::getNetworks)
-                .map(networks -> networks.get("bridge"))
+                .map(networks -> networks.get(DOCKER_BRIDGE_NETWORK))
                 .map(ContainerNetwork::getGateway)
                 .map(hostname -> OsDetector.isWindows() && DEFAULT_DOCKER_HOST.equals(hostname) ? LOCALHOST : hostname)
                 .orElseThrow(
