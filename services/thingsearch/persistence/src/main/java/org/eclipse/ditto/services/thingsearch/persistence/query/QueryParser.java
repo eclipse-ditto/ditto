@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.rql.ParserException;
 import org.eclipse.ditto.model.thingsearchparser.RqlOptionParser;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.SudoCountThings;
 import org.eclipse.ditto.services.models.thingsearch.query.filter.ParameterOptionVisitor;
+import org.eclipse.ditto.services.thingsearch.persistence.query.validation.QueryCriteriaValidator;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
@@ -40,14 +41,17 @@ public final class QueryParser {
     private final ThingsFieldExpressionFactory fieldExpressionFactory;
     private final QueryBuilderFactory queryBuilderFactory;
     private final RqlOptionParser rqlOptionParser;
+    private final QueryCriteriaValidator queryCriteriaValidator;
 
     private QueryParser(final CriteriaFactory criteriaFactory,
             final ThingsFieldExpressionFactory fieldExpressionFactory,
-            final QueryBuilderFactory queryBuilderFactory) {
+            final QueryBuilderFactory queryBuilderFactory,
+            final QueryCriteriaValidator queryCriteriaValidator) {
 
         this.queryFilterCriteriaFactory = new QueryFilterCriteriaFactory(criteriaFactory, fieldExpressionFactory);
         this.fieldExpressionFactory = fieldExpressionFactory;
         this.queryBuilderFactory = queryBuilderFactory;
+        this.queryCriteriaValidator = queryCriteriaValidator;
         rqlOptionParser = new RqlOptionParser();
     }
 
@@ -61,9 +65,10 @@ public final class QueryParser {
      */
     public static QueryParser of(final CriteriaFactory criteriaFactory,
             final ThingsFieldExpressionFactory fieldExpressionFactory,
-            final QueryBuilderFactory queryBuilderFactory) {
+            final QueryBuilderFactory queryBuilderFactory,
+            final QueryCriteriaValidator queryCriteriaValidator) {
 
-        return new QueryParser(criteriaFactory, fieldExpressionFactory, queryBuilderFactory);
+        return new QueryParser(criteriaFactory, fieldExpressionFactory, queryBuilderFactory, queryCriteriaValidator);
     }
 
     /**
@@ -73,7 +78,7 @@ public final class QueryParser {
      * @return the query.
      */
     public Query parse(final ThingSearchQueryCommand<?> command) {
-        final Criteria criteria = parseCriteria(command);
+        final Criteria criteria = queryCriteriaValidator.parseCriteria(command, queryFilterCriteriaFactory);
         if (command instanceof QueryThings) {
             final QueryThings queryThings = (QueryThings) command;
             final QueryBuilder queryBuilder = queryBuilderFactory.newBuilder(criteria);
@@ -109,17 +114,6 @@ public final class QueryParser {
      */
     public CriteriaFactory getCriteriaFactory() {
         return queryFilterCriteriaFactory.toCriteriaFactory();
-    }
-
-    private Criteria parseCriteria(final ThingSearchQueryCommand<?> command) {
-        final DittoHeaders headers = command.getDittoHeaders();
-        final Set<String> namespaces = command.getNamespaces().orElse(null);
-        final String filter = command.getFilter().orElse(null);
-        if (namespaces == null) {
-            return queryFilterCriteriaFactory.filterCriteria(filter, command.getDittoHeaders());
-        } else {
-            return queryFilterCriteriaFactory.filterCriteriaRestrictedByNamespaces(filter, headers, namespaces);
-        }
     }
 
     private void setOptions(final String options, final QueryBuilder queryBuilder, final DittoHeaders headers) {

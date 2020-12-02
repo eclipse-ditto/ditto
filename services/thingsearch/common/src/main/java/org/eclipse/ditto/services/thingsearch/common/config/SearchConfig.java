@@ -33,6 +33,16 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
     Optional<String> getMongoHintsByNamespace();
 
     /**
+     * Returns the {@code QueryCriteriaValidator} to be used for validation and decoding
+     * {@link org.eclipse.ditto.model.query.criteria.Criteria} of a
+     * {@link org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand}.
+     *
+     * @return the config.
+     * @since 1.5.0
+     */
+    String getQueryValidator();
+
+    /**
      * Returns the configuration settings of the "delete" section.
      *
      * @return the config.
@@ -69,7 +79,16 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
         /**
          * Default value is {@code null}.
          */
-        MONGO_HINTS_BY_NAMESPACE("mongo-hints-by-namespace", null);
+        MONGO_HINTS_BY_NAMESPACE("mongo-hints-by-namespace", null),
+
+        /**
+         * The {@code QueryCriteriaValidator} used for decoding and validating {@link org.eclipse.ditto.model.query.criteria.Criteria}
+         * of a {@link org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand}.
+         *
+         * @since 1.5.0
+         */
+        QUERY_CRITERIA_VALIDATOR("query-criteria-validator",
+                "org.eclipse.ditto.services.thingsearch.persistence.query.validation.DefaultQueryCriteriaValidator");
 
         private final String path;
         private final Object defaultValue;
