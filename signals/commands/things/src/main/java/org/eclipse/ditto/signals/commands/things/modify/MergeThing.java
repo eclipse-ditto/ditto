@@ -22,6 +22,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -32,6 +33,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
+import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 
 /**
  * TODO javadoc
@@ -111,7 +113,20 @@ public class MergeThing extends AbstractCommand<MergeThing> implements ThingModi
     /**
      * TODO javadoc
      */
-    static class JsonFields {
+    public static MergeThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<MergeThing>(TYPE, jsonObject).deserialize(() -> {
+            final String thingId = jsonObject.getValueOrThrow(JsonFields.JSON_THING_ID);
+            final String path = jsonObject.getValueOrThrow(JsonFields.JSON_PATH);
+            final JsonValue jsonValue = jsonObject.getValueOrThrow(JsonFields.JSON_VALUE);
+
+            return of(ThingId.of(thingId), JsonPointer.of(path), jsonValue, dittoHeaders);
+        });
+    }
+
+    /**
+     * TODO javadoc
+     */
+    public static class JsonFields {
 
         static final JsonFieldDefinition<String> JSON_THING_ID =
                 JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR, JsonSchemaVersion.V_1,

@@ -22,6 +22,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -30,8 +31,11 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
+import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
 /**
  * Response to a {@link MergeThing} command.
@@ -39,7 +43,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
  * @since TODO replace-with-correct-version
  */
 @Immutable
-@JsonParsableCommandResponse(type = ModifyThingResponse.TYPE)
+@JsonParsableCommandResponse(type = MergeThingResponse.TYPE)
 public class MergeThingResponse extends AbstractCommandResponse<MergeThingResponse>
         implements ThingModifyCommandResponse<MergeThingResponse> {
 
@@ -91,7 +95,21 @@ public class MergeThingResponse extends AbstractCommandResponse<MergeThingRespon
         jsonObjectBuilder.set(MergeThingResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(MergeThingResponse.JsonFields.JSON_PATH, path.toString(), predicate);
         jsonObjectBuilder.set(MergeThingResponse.JsonFields.JSON_VALUE, value, predicate);
+    }
 
+    /**
+     * TODO javadoc
+     */
+    public static MergeThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandResponseJsonDeserializer<MergeThingResponse>(TYPE, jsonObject)
+                .deserialize(statusCode -> {
+                    final String extractedThingId =
+                            jsonObject.getValueOrThrow(JsonFields.JSON_THING_ID);
+                    final String path = jsonObject.getValueOrThrow(JsonFields.JSON_PATH);
+                    final JsonValue value = jsonObject.getValueOrThrow(JsonFields.JSON_VALUE);
+
+                    return new MergeThingResponse(ThingId.of(extractedThingId), JsonPointer.of(path), value, dittoHeaders);
+                });
     }
 
     /**

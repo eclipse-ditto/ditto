@@ -24,6 +24,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -32,7 +33,10 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
  * This event is emitted after a {@link org.eclipse.ditto.model.things.Thing} was merged.
@@ -72,6 +76,17 @@ public class ThingMerged extends AbstractThingEvent<ThingMerged>
             final long revision, @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders, @Nullable final Metadata metadata) {
         return new ThingMerged(thingId, path, value, revision, timestamp, dittoHeaders, metadata);
+    }
+
+    public static ThingMerged fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new EventJsonDeserializer<ThingMerged>(TYPE, jsonObject).deserialize(
+                (revision, timestamp, metadata) -> {
+                    final String thingId = jsonObject.getValueOrThrow(JsonFields.JSON_THING_ID);
+                    final String path = jsonObject.getValueOrThrow(JsonFields.JSON_PATH);
+                    final JsonValue value = jsonObject.getValueOrThrow(JsonFields.JSON_VALUE);
+
+                    return of(ThingId.of(thingId),JsonPointer.of(path), value, revision, timestamp, dittoHeaders, metadata);
+                });
     }
 
     @Override
