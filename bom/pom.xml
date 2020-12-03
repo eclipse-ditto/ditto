@@ -98,7 +98,7 @@
         <jmh.version>1.21</jmh.version>
 
         <scalatest.version>3.1.2</scalatest.version>
-        <flapdoodle.version>3.0.0</flapdoodle.version>
+        <docker-java.version>3.2.6</docker-java.version>
         <system-rules.version>1.19.0</system-rules.version>
     </properties>
 
@@ -1008,14 +1008,18 @@
                 <version>${akka-persistence-inmemory.version}</version>
                 <scope>test</scope>
             </dependency>
-
             <dependency>
-                <groupId>de.flapdoodle.embed</groupId>
-                <artifactId>de.flapdoodle.embed.mongo</artifactId>
-                <version>${flapdoodle.version}</version>
+                <groupId>com.github.docker-java</groupId>
+                <artifactId>docker-java-core</artifactId>
+                <version>${docker-java.version}</version>
                 <scope>test</scope>
             </dependency>
-
+            <dependency>
+                <groupId>com.github.docker-java</groupId>
+                <artifactId>docker-java-transport-zerodep</artifactId>
+                <version>${docker-java.version}</version>
+                <scope>test</scope>
+            </dependency>
             <dependency>
                 <groupId>org.openjdk.jmh</groupId>
                 <artifactId>jmh-core</artifactId>

@@ -36,8 +36,8 @@ import org.eclipse.ditto.signals.commands.common.purge.PurgeEntitiesResponse;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.TestName;
 import org.mockito.Mockito;
@@ -62,10 +62,8 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
 
     protected static MongoDbConfig mongoDbConfig;
 
-    /**
-     * Embedded MongoDB resource.
-     */
-    private static MongoDbResource mongoDbResource;
+    @ClassRule
+    public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
     protected static String mongoDbUri;
     protected static PersistenceOperationsConfig persistenceOperationsConfig;
 
@@ -75,10 +73,7 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
 
     @BeforeClass
     public static void startMongoDb() {
-        mongoDbResource = new MongoDbResource("localhost");
-        mongoDbResource.start();
-
-        mongoDbUri = String.format("mongodb://%s:%s/test", mongoDbResource.getBindIp(), mongoDbResource.getPort());
+        mongoDbUri = String.format("mongodb://%s:%s/test", MONGO_RESOURCE.getBindIp(), MONGO_RESOURCE.getPort());
 
         mongoDbConfig = DefaultMongoDbConfig.of(getConfig());
         persistenceOperationsConfig = mock(PersistenceOperationsConfig.class);
@@ -90,14 +85,6 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
         Config mongoDbTestConfig = ConfigFactory.parseMap(Collections.singletonMap("mongodb.uri", mongoDbUri));
         mongoDbTestConfig = mongoDbTestConfig.withFallback(ConfigFactory.parseResources("mongodb_test"));
         return mongoDbTestConfig;
-    }
-
-    @AfterClass
-    public static void tearDown() {
-        if (null != mongoDbResource) {
-            mongoDbResource.stop();
-            mongoDbResource = null;
-        }
     }
 
     @After
