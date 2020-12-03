@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.services.utils.pubsub.ddata.literal;
 
 import java.util.Collection;
@@ -46,12 +45,12 @@ public final class LiteralUpdate implements DDataUpdate<String> {
     }
 
     /**
-     * Replace everything associated with a subscriber in the distributed data.
+     * Create a new LiteralUpdate with the passed {@code inserts} associated with a subscriber in the distributed data.
      *
      * @param inserts topics to insert.
      * @return an immutable update object.
      */
-    public static LiteralUpdate replaceAll(final Set<String> inserts) {
+    public static LiteralUpdate withInserts(final Set<String> inserts) {
         final Set<String> copyOfInserts = Set.copyOf(inserts);
         return new LiteralUpdate(copyOfInserts, Set.of());
     }
@@ -101,7 +100,7 @@ public final class LiteralUpdate implements DDataUpdate<String> {
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "inserts=" + inserts +
-                "deletes=" + deletes +
+                ", deletes=" + deletes +
                 "]";
     }
 

@@ -294,7 +294,7 @@ public final class AckUpdater extends AbstractActorWithTimers implements Cluster
                 .stream()
                 .map(Grouped::toJsonString)
                 .collect(Collectors.toSet());
-        final LiteralUpdate nextUpdate = LiteralUpdate.replaceAll(groupedAckLabels);
+        final LiteralUpdate nextUpdate = LiteralUpdate.withInserts(groupedAckLabels);
         final LiteralUpdate diff = nextUpdate.diff(previousUpdate);
         previousUpdate = nextUpdate;
         return diff;

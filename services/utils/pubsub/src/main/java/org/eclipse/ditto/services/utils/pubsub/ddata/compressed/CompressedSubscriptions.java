@@ -91,7 +91,7 @@ public final class CompressedSubscriptions extends AbstractSubscriptions<String,
             final Grouped<Long> groupedHashes = Grouped.of(data.getGroup().orElse(null), topicHashes);
             serializedGroupedTopics.add(groupedHashes.toJsonString());
         });
-        return LiteralUpdate.replaceAll(serializedGroupedTopics);
+        return LiteralUpdate.withInserts(serializedGroupedTopics);
     }
 
     @Override
