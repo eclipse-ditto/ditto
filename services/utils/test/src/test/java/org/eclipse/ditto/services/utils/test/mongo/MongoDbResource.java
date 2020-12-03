@@ -12,251 +12,60 @@
  */
 package org.eclipse.ditto.services.utils.test.mongo;
 
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.SocketException;
-import java.net.URI;
-import java.util.Optional;
-import java.util.function.Supplier;
-
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
 
-import org.junit.Assume;
 import org.junit.rules.ExternalResource;
-import org.slf4j.Logger;
-
-import de.flapdoodle.embed.mongo.Command;
-import de.flapdoodle.embed.mongo.MongodExecutable;
-import de.flapdoodle.embed.mongo.MongodProcess;
-import de.flapdoodle.embed.mongo.MongodStarter;
-import de.flapdoodle.embed.mongo.config.Defaults;
-import de.flapdoodle.embed.mongo.config.MongoCmdOptions;
-import de.flapdoodle.embed.mongo.config.MongodConfig;
-import de.flapdoodle.embed.mongo.config.Net;
-import de.flapdoodle.embed.mongo.distribution.Version;
-import de.flapdoodle.embed.process.config.io.ProcessOutput;
-import de.flapdoodle.embed.process.config.store.HttpProxyFactory;
-import de.flapdoodle.embed.process.config.store.ImmutableDownloadConfig;
-import de.flapdoodle.embed.process.io.progress.StandardConsoleProgressListener;
 
 /**
  * External Mongo DB resource for utilization within tests.
  */
+@NotThreadSafe
 public final class MongoDbResource extends ExternalResource {
 
-    /**
-     * Environment variable key for a HTTP Proxy.
-     */
-    private static final String HTTP_PROXY_ENV_KEY = "HTTP_PROXY";
+    private static final int MONGO_INTERNAL_PORT = 27017;
+    private static final String MONGO_CONTAINER_NOT_STARTED = "Mongo container hast not been started, yet";
+    private static final String MONGO_CONTAINER_ALREADY_STARTED = "Mongo container has already been started.";
 
-    /**
-     * Environment variable key for the port number of the MongoDB process.
-     */
-    private static final String MONGO_PORT_ENV_KEY = "MONGO_PORT";
-
-    private final String bindIp;
-    private final Integer defaultPort;
-    private final Logger logger;
-
-    /**
-     * The MongoDB executable.
-     */
-    private MongodExecutable mongodExecutable;
-
-    /**
-     * The MongoDB process.
-     */
-    private MongodProcess mongodProcess;
-
-    /**
-     * Constructs a new {@code MongoDbResource} object.
-     *
-     * @param bindIp the IP to bind the DB on
-     */
-    public MongoDbResource(final String bindIp) {
-        this(bindIp, null, null);
-    }
-
-    /**
-     * Constructs a new {@code MongoDbResource} object.
-     *
-     * @param bindIp the IP to bind the DB on
-     * @param logger the logger used for mongod output, may be {@code null} (logging turned off)
-     */
-    public MongoDbResource(final String bindIp, final Logger logger) {
-        this(bindIp, null, logger);
-    }
-
-    /**
-     * Constructs a new {@code MongoDbResource} object.
-     *
-     * @param bindIp the IP to bind the DB on
-     * @param defaultPort the default listening port. Bind a random port if it is {@code null}.
-     * @param logger the logger used for mongod output, may be {@code null} (logging turned off)
-     */
-    public MongoDbResource(final String bindIp, final Integer defaultPort, final Logger logger) {
-        this.bindIp = bindIp;
-        this.defaultPort = defaultPort;
-        this.logger = logger;
-        mongodExecutable = null;
-        mongodProcess = null;
-    }
-
-    public void start() {
-        before();
-    }
-
-    public void stop() {
-        after();
-    }
+    @Nullable private DockerContainer mongoContainer;
 
     @Override
     protected void before() {
-        final Optional<String> proxyUppercase = Optional.ofNullable(System.getenv(HTTP_PROXY_ENV_KEY));
-        final Optional<String> proxyLowercase = Optional.ofNullable(System.getenv(HTTP_PROXY_ENV_KEY.toLowerCase()));
-        final Optional<String> httpProxy = proxyUppercase.isPresent() ? proxyUppercase : proxyLowercase;
-        @Nullable final HttpProxyFactory proxyFactory = httpProxy
-                .map(URI::create)
-                .map(proxyURI -> new HttpProxyFactory(proxyURI.getHost(), proxyURI.getPort()))
-                .orElse(null);
-
-        final int mongoDbPort = defaultPort != null
-                ? defaultPort
-                : System.getenv(MONGO_PORT_ENV_KEY) != null
-                ? Integer.parseInt(System.getenv(MONGO_PORT_ENV_KEY))
-                : findFreePort();
-
-        mongodExecutable = tryToConfigureMongoDb(bindIp, mongoDbPort, proxyFactory, logger);
-        mongodProcess = tryToStartMongoDb(mongodExecutable);
-        Assume.assumeTrue("MongoDB resource failed to start.", isHealthy());
+        if (mongoContainer != null) {
+            throw new IllegalStateException(MONGO_CONTAINER_ALREADY_STARTED);
+        }
+        mongoContainer = MongoContainerFactory.getInstance().createMongoContainer();
+        mongoContainer.start();
     }
 
     @Override
     protected void after() {
-        if (mongodProcess != null) {
-            mongodProcess.stop();
+        if (mongoContainer == null) {
+            throw new IllegalStateException(MONGO_CONTAINER_NOT_STARTED);
         }
-        if (mongodExecutable != null) {
-            mongodExecutable.stop();
-        }
-    }
-
-    /**
-     * @return whether mongodb started successfully.
-     */
-    public boolean isHealthy() {
-        return mongodProcess != null && mongodExecutable != null;
+        mongoContainer.stop();
+        mongoContainer.remove();
+        mongoContainer = null;
     }
 
     /**
      * @return the port on which the db listens.
      */
     public int getPort() {
-        return mongodProcess.getConfig().net().getPort();
+        if (mongoContainer == null) {
+            throw new IllegalStateException(MONGO_CONTAINER_NOT_STARTED);
+        }
+        return mongoContainer.getPort(MONGO_INTERNAL_PORT);
     }
 
     /**
      * @return the IP on which the db was bound.
      */
     public String getBindIp() {
-        return mongodProcess.getConfig().net().getBindIp();
-    }
-
-    /**
-     * This method will return a free port number.
-     *
-     * @return the port number.
-     * @throws IllegalStateException if no free port available.
-     */
-    private static int findFreePort() {
-        final Supplier<Integer> freePortFinder = new FreePortFinder();
-        return freePortFinder.get();
-    }
-
-    private static MongodExecutable tryToConfigureMongoDb(final String bindIp,
-            final int mongoDbPort,
-            @Nullable final HttpProxyFactory proxyFactory,
-            final Logger logger) {
-
-        try {
-            return configureMongoDb(bindIp, mongoDbPort, proxyFactory, logger);
-        } catch (final Throwable e) {
-            return null;
+        if (mongoContainer == null) {
+            throw new IllegalStateException(MONGO_CONTAINER_NOT_STARTED);
         }
-    }
-
-    private static MongodExecutable configureMongoDb(final String bindIp,
-            final int mongoDbPort,
-            @Nullable final HttpProxyFactory proxyFactory,
-            final Logger logger) throws IOException {
-
-        final Command command = Command.MongoD;
-
-        final ProcessOutput processOutput;
-        if (logger != null) {
-            processOutput = ProcessOutput.getInstance("mongod", logger);
-        } else {
-            processOutput = ProcessOutput.getDefaultInstanceSilent();
-        }
-
-        final ImmutableDownloadConfig.Builder downloadConfigBuilder =
-                Defaults.downloadConfigFor(command).progressListener(new StandardConsoleProgressListener());
-        if (proxyFactory != null) {
-            downloadConfigBuilder.proxyFactory(proxyFactory);
-        }
-
-        final MongodStarter mongodStarter = MongodStarter.getInstance(Defaults.runtimeConfigFor(command)
-                .processOutput(processOutput)
-                .artifactStore(Defaults.extractedArtifactStoreFor(command)
-                        .withDownloadConfig(downloadConfigBuilder.build()))
-                .build());
-
-        return mongodStarter.prepare(MongodConfig.builder()
-                .net(new Net(bindIp, mongoDbPort, false))
-                .version(Version.Main.V3_6)
-                .cmdOptions(MongoCmdOptions.builder()
-                        .storageEngine("wiredTiger")
-                        .useNoJournal(false)
-                        .build())
-                .build());
-    }
-
-    private static MongodProcess tryToStartMongoDb(final MongodExecutable mongodExecutable) {
-        try {
-            return mongodExecutable.start();
-        } catch (final IOException e) {
-            throw new IllegalStateException("Failed to start MongoDB!", e);
-        }
-    }
-
-    private static final class FreePortFinder implements Supplier<Integer> {
-
-        @Override
-        public Integer get() {
-            try (final ServerSocket socket = tryToCreateServerSocket()) {
-                tryToSetReuseAddress(socket);
-                return socket.getLocalPort();
-            } catch (final IOException e) {
-                throw new IllegalStateException("Failed to close server socket!", e);
-            }
-        }
-
-        private static ServerSocket tryToCreateServerSocket() {
-            try {
-                return new ServerSocket(0);
-            } catch (final IOException e) {
-                throw new IllegalStateException("Failed to create a ServerSocket object!", e);
-            }
-        }
-
-        private static void tryToSetReuseAddress(final ServerSocket serverSocket) {
-            try {
-                serverSocket.setReuseAddress(true);
-            } catch (final SocketException e) {
-                throw new IllegalStateException("Failed to set reuse address to server socket!", e);
-            }
-        }
-
+        return mongoContainer.getHostname();
     }
 
 }

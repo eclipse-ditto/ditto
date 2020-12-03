@@ -39,6 +39,20 @@ public interface JsonObject extends JsonValue, JsonValueContainer<JsonField> {
     }
 
     /**
+     * Creates a {@code JsonObject} from the given byte array.
+     *
+     * @param jsonData the byte array that represents the JSON object.
+     * @return the JSON object that has been created from the data.
+     * @throws NullPointerException if {@code jsonData} is {@code null}.
+     * @throws IllegalArgumentException if {@code jsonData} is empty.
+     * @throws JsonParseException if {@code jsonData} does not represent a valid JSON object.
+     * @since 1.5.0
+     */
+    static JsonObject of(final byte[] jsonData) {
+        return JsonFactory.newObject(jsonData);
+    }
+
+    /**
      * Returns a new mutable builder with a fluent API for a {@code JsonObject}.
      *
      * @return the builder.

@@ -24,3 +24,4 @@ The following connection types are supported:
 * [MQTT 5](connectivity-protocol-bindings-mqtt5.html)
 * [HTTP 1.1](connectivity-protocol-bindings-http.html)
 * [Kafka 2.x](connectivity-protocol-bindings-kafka2.html)
+

@@ -27,5 +27,6 @@ The gateway service has no persistence by its own.
 * translate [Ditto Protocol](protocol-overview.html) messages incoming via the [WebSocket](httpapi-protocol-bindings-websocket.html)
   to [commands](basic-signals-command.html) and translates [command responses](basic-signals-commandresponse.html) back
   to [Ditto Protocol](protocol-overview.html) response messages
+* accepts [Ditto Protocol](protocol-overview.html) messages incoming via the [Cloud Events HTTP Binding](httpapi-protocol-bindings-cloudevents.html)
 * subscribe for [events](basic-signals-event.html) in Ditto cluster and emits [change notifications](basic-changenotifications.html)
   via connected [WebSocket](httpapi-protocol-bindings-websocket.html) clients or via [SSEs](httpapi-sse.html)

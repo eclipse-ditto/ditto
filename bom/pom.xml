@@ -56,6 +56,7 @@
         <amqp-client.version>5.7.3</amqp-client.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <netty.version>4.1.50.Final</netty.version>
+        <cloundevents.version>2.0.0.RC1</cloundevents.version>
 
         <slf4j.version>1.7.28</slf4j.version>
         <logback.version>1.2.3</logback.version>
@@ -97,7 +98,7 @@
         <jmh.version>1.21</jmh.version>
 
         <scalatest.version>3.1.2</scalatest.version>
-        <flapdoodle.version>3.0.0</flapdoodle.version>
+        <docker-java.version>3.2.6</docker-java.version>
         <system-rules.version>1.19.0</system-rules.version>
     </properties>
 
@@ -324,6 +325,12 @@
                 <groupId>io.jsonwebtoken</groupId>
                 <artifactId>jjwt-impl</artifactId>
                 <version>${jjwt.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.cloudevents</groupId>
+                <artifactId>cloudevents-http-basic</artifactId>
+                <version>${cloundevents.version}</version>
             </dependency>
 
             <!-- ### Indirect "runtime" dependencies we want to pin to a common version -->
@@ -1001,14 +1008,18 @@
                 <version>${akka-persistence-inmemory.version}</version>
                 <scope>test</scope>
             </dependency>
-
             <dependency>
-                <groupId>de.flapdoodle.embed</groupId>
-                <artifactId>de.flapdoodle.embed.mongo</artifactId>
-                <version>${flapdoodle.version}</version>
+                <groupId>com.github.docker-java</groupId>
+                <artifactId>docker-java-core</artifactId>
+                <version>${docker-java.version}</version>
                 <scope>test</scope>
             </dependency>
-
+            <dependency>
+                <groupId>com.github.docker-java</groupId>
+                <artifactId>docker-java-transport-zerodep</artifactId>
+                <version>${docker-java.version}</version>
+                <scope>test</scope>
+            </dependency>
             <dependency>
                 <groupId>org.openjdk.jmh</groupId>
                 <artifactId>jmh-core</artifactId>

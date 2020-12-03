@@ -38,6 +38,7 @@ public final class StartStreaming implements StreamControlMessage {
     private final List<String> namespaces;
     @Nullable private final String filter;
     @Nullable private final JsonFieldSelector extraFields;
+    @Nullable private final CharSequence correlationId;
 
     private StartStreaming(final StartStreamingBuilder builder) {
         streamingType = builder.streamingType;
@@ -47,6 +48,7 @@ public final class StartStreaming implements StreamControlMessage {
         namespaces = null != namespacesFromBuilder ? List.copyOf(namespacesFromBuilder) : Collections.emptyList();
         filter = Objects.toString(builder.filter, null);
         extraFields = builder.extraFields;
+        correlationId = builder.correlationId;
     }
 
     /**
@@ -77,6 +79,10 @@ public final class StartStreaming implements StreamControlMessage {
 
     public AuthorizationContext getAuthorizationContext() {
         return authorizationContext;
+    }
+
+    public Optional<CharSequence> getCorrelationId() {
+        return Optional.ofNullable(correlationId);
     }
 
     /**
@@ -151,6 +157,7 @@ public final class StartStreaming implements StreamControlMessage {
         @Nullable private Collection<String> namespaces;
         @Nullable private CharSequence filter;
         @Nullable private JsonFieldSelector extraFields;
+        @Nullable private CharSequence correlationId;
 
         private StartStreamingBuilder(final StreamingType streamingType, final CharSequence connectionCorrelationId,
                 final AuthorizationContext authorizationContext) {
@@ -195,6 +202,17 @@ public final class StartStreaming implements StreamControlMessage {
          */
         public StartStreamingBuilder withExtraFields(@Nullable final JsonFieldSelector extraFields) {
             this.extraFields = extraFields;
+            return this;
+        }
+
+        /**
+         * Determines the correlation-id of the request.
+         *
+         * @param correlationId the correlationId read from the parameters.
+         * @return this builder instance to allow method chaining.
+         */
+        public StartStreamingBuilder withCorrelationId(@Nullable final CharSequence correlationId) {
+            this.correlationId = correlationId;
             return this;
         }
 
