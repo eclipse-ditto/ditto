@@ -243,7 +243,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         } catch (final JMSException jmsException) {
             // target producer not creatable; stop self and request restart by parent
             final String errorMessage = String.format("Failed to create target '%s'", destination);
-            logger.error(errorMessage, jmsException);
+            logger.error(jmsException, errorMessage);
             final ConnectionFailure failure = new ImmutableConnectionFailure(getSelf(), jmsException, errorMessage);
             final ActorContext context = getContext();
             context.getParent().tell(failure, getSelf());
