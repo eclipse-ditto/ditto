@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.api;
 
+import java.util.Collection;
 import java.util.Set;
 
 import akka.actor.ActorRef;
@@ -27,12 +28,12 @@ abstract class AbstractRequest implements Request {
     private final Replicator.WriteConsistency writeConsistency;
     private final boolean acknowledge;
 
-    protected AbstractRequest(final Set<String> topics,
+    protected AbstractRequest(final Collection<String> topics,
             final ActorRef subscriber,
             final Replicator.WriteConsistency writeConsistency,
             final boolean acknowledge) {
 
-        this.topics = topics;
+        this.topics = Set.copyOf(topics);
         this.subscriber = subscriber;
         this.writeConsistency = writeConsistency;
         this.acknowledge = acknowledge;

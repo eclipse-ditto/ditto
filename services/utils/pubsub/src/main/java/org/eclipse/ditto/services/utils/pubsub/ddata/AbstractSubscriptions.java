@@ -85,7 +85,7 @@ public abstract class AbstractSubscriptions<R, T extends DDataUpdate<R>> impleme
             // add topics and filter.
             final SubscriberData subscriberData = SubscriberData.of(topics, filter, group);
             subscriberDataMap.merge(subscriber, subscriberData, (oldData, newData) -> {
-                changed[0] = oldData.getFilter().equals(newData.getFilter());
+                changed[0] = !oldData.getFilter().equals(newData.getFilter());
                 return newData.withTopics(unionSet(oldData.getTopics(), newData.getTopics()));
             });
 

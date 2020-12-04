@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.api;
 
-import java.util.Set;
+import java.util.Collection;
 
 import akka.actor.ActorRef;
 import akka.cluster.ddata.Replicator;
@@ -22,7 +22,7 @@ import akka.cluster.ddata.Replicator;
  */
 public final class Unsubscribe extends AbstractRequest {
 
-    private Unsubscribe(final Set<String> topics,
+    private Unsubscribe(final Collection<String> topics,
             final ActorRef subscriber,
             final Replicator.WriteConsistency writeConsistency,
             final boolean acknowledge) {
@@ -38,7 +38,7 @@ public final class Unsubscribe extends AbstractRequest {
      * @param acknowledge whether acknowledgement is desired.
      * @return the request.
      */
-    public static Unsubscribe of(final Set<String> topics,
+    public static Unsubscribe of(final Collection<String> topics,
             final ActorRef subscriber,
             final Replicator.WriteConsistency writeConsistency,
             final boolean acknowledge) {

@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.utils.pubsub.api;
 
 import java.util.Collection;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -30,7 +29,7 @@ public final class Subscribe extends AbstractRequest {
     @Nullable private final Predicate<Collection<String>> filter;
     @Nullable private final String group;
 
-    private Subscribe(final Set<String> topics,
+    private Subscribe(final Collection<String> topics,
             final ActorRef subscriber,
             final Replicator.WriteConsistency writeConsistency,
             final boolean acknowledge,
@@ -44,14 +43,14 @@ public final class Subscribe extends AbstractRequest {
     /**
      * Create a "subscribe" request.
      *
-     * @param topics the set of topics to subscribe.
+     * @param topics the topics to subscribe to.
      * @param subscriber who is subscribing.
      * @param writeConsistency with which write consistency should this subscription be updated.
      * @param acknowledge whether acknowledgement is desired.
      * @param group any group the subscriber belongs to, or null.
      * @return the request.
      */
-    public static Subscribe of(final Set<String> topics,
+    public static Subscribe of(final Collection<String> topics,
             final ActorRef subscriber,
             final Replicator.WriteConsistency writeConsistency,
             final boolean acknowledge,
@@ -62,7 +61,7 @@ public final class Subscribe extends AbstractRequest {
     /**
      * Create a "subscribe" request.
      *
-     * @param topics the set of topics to subscribe.
+     * @param topics the topics to subscribe to.
      * @param subscriber who is subscribing.
      * @param writeConsistency with which write consistency should this subscription be updated.
      * @param acknowledge whether acknowledgement is desired.
@@ -70,7 +69,7 @@ public final class Subscribe extends AbstractRequest {
      * @param group any group the subscriber belongs to, or null.
      * @return the request.
      */
-    public static Subscribe of(final Set<String> topics,
+    public static Subscribe of(final Collection<String> topics,
             final ActorRef subscriber,
             final Replicator.WriteConsistency writeConsistency,
             final boolean acknowledge,

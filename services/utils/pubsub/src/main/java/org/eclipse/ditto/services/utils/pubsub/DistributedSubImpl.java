@@ -16,7 +16,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty
 
 import java.time.Duration;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
@@ -68,15 +67,14 @@ final class DistributedSubImpl implements DistributedSub {
         if (group != null) {
             checkNotEmpty(group, "group");
         }
-        final Subscribe subscribe =
-                Subscribe.of(new HashSet<>(topics), subscriber, writeConsistency, true, filter, group);
+        final Subscribe subscribe = Subscribe.of(topics, subscriber, writeConsistency, true, filter, group);
         return askSubSupervisor(subscribe);
     }
 
     @Override
     public CompletionStage<SubAck> unsubscribeWithAck(final Collection<String> topics,
             final ActorRef subscriber) {
-        return askSubSupervisor(Unsubscribe.of(new HashSet<>(topics), subscriber, writeConsistency, true));
+        return askSubSupervisor(Unsubscribe.of(topics, subscriber, writeConsistency, true));
     }
 
     private CompletionStage<SubAck> askSubSupervisor(final Request request) {
@@ -92,7 +90,7 @@ final class DistributedSubImpl implements DistributedSub {
     @Override
     public void subscribeWithoutAck(final Collection<String> topics, final ActorRef subscriber) {
         final Request request =
-                Subscribe.of(new HashSet<>(topics), subscriber,
+                Subscribe.of(topics, subscriber,
                         (Replicator.WriteConsistency) Replicator.writeLocal(), false, null);
         subSupervisor.tell(request, subscriber);
     }
@@ -100,7 +98,7 @@ final class DistributedSubImpl implements DistributedSub {
     @Override
     public void unsubscribeWithoutAck(final Collection<String> topics, final ActorRef subscriber) {
         final Request request =
-                Unsubscribe.of(new HashSet<>(topics), subscriber,
+                Unsubscribe.of(topics, subscriber,
                         (Replicator.WriteConsistency) Replicator.writeLocal(), false);
         subSupervisor.tell(request, subscriber);
     }
@@ -108,8 +106,7 @@ final class DistributedSubImpl implements DistributedSub {
     @Override
     public void removeSubscriber(final ActorRef subscriber) {
         final Request request =
-                RemoveSubscriber.of(subscriber, (Replicator.WriteConsistency) Replicator.writeLocal(),
-                        false);
+                RemoveSubscriber.of(subscriber, (Replicator.WriteConsistency) Replicator.writeLocal(), false);
         subSupervisor.tell(request, subscriber);
     }
 
