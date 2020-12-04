@@ -36,6 +36,7 @@ import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.services.gateway.endpoints.actors.AbstractHttpRequestActor;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.CloudEventsConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
@@ -46,6 +47,8 @@ import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Status;
+import akka.http.javadsl.model.ContentType;
+import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.server.RequestContext;
@@ -73,6 +76,8 @@ public final class CloudEventsRoute extends AbstractRoute {
     private static final DittoProtocolAdapter PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final String DATA_SCHEMA_SCHEME = "ditto";
 
+    private final CloudEventsConfig cloudEventsConfig;
+
     /**
      * Constructs the cloud events route builder.
      *
@@ -81,6 +86,7 @@ public final class CloudEventsRoute extends AbstractRoute {
      * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
      * @param commandConfig the configuration settings for incoming commands (via HTTP requests) in the gateway.
      * @param headerTranslator translates headers from external sources or to external sources.
+     * @param cloudEventsConfig the configuration settings for cloud events.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public CloudEventsRoute(
@@ -88,9 +94,11 @@ public final class CloudEventsRoute extends AbstractRoute {
             final ActorSystem actorSystem,
             final HttpConfig httpConfig,
             final CommandConfig commandConfig,
-            final HeaderTranslator headerTranslator
+            final HeaderTranslator headerTranslator,
+            final CloudEventsConfig cloudEventsConfig
     ) {
         super(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
+        this.cloudEventsConfig = cloudEventsConfig;
     }
 
 
@@ -251,7 +259,7 @@ public final class CloudEventsRoute extends AbstractRoute {
         final JsonifiableAdaptable jsonifiableAdaptable = ProtocolFactory.jsonifiableAdaptableFromJson(jsonObject);
         final Signal<?> signal = PROTOCOL_ADAPTER.fromAdaptable(jsonifiableAdaptable);
         final Signal<?> signalWithAdjustedHeaders = signal.setDittoHeaders(
-                        signal.getDittoHeaders().toBuilder().putHeaders(adjustedHeaders).build());
+                signal.getDittoHeaders().toBuilder().putHeaders(adjustedHeaders).build());
         return Optional.of(signalWithAdjustedHeaders);
     }
 
@@ -259,7 +267,7 @@ public final class CloudEventsRoute extends AbstractRoute {
             final RequestContext ctx,
             final DittoHeaders dittoHeaders) {
 
-        if (dataContentType == null || !mediaTypeJsonWithFallbacks.contains(dataContentType)) {
+        if (!isCorrectDataType(dataContentType)) {
             if (LOGGER.isInfoEnabled()) {
                 LOGGER.withCorrelationId(dittoHeaders)
                         .info("CloudEvent request rejected: unsupported data-content-type: <{}>  request: <{}>",
@@ -267,10 +275,33 @@ public final class CloudEventsRoute extends AbstractRoute {
             }
             throw UnsupportedMediaTypeException
                     .withDetailedInformationBuilder(dataContentType != null ? dataContentType : "none",
-                            mediaTypeJsonWithFallbacks)
+                            cloudEventsConfig.getDataTypes())
                     .dittoHeaders(dittoHeaders)
                     .build();
         }
+    }
+
+    /**
+     * Test if the data type is acceptable.
+     * <p>
+     * A missing, empty or malformed data type is not acceptable.
+     *
+     * @param dataContentType The content type to check.
+     * @return {@code true} if the content type is acceptable, {@code false} otherwise.
+     */
+    private boolean isCorrectDataType(@Nullable final String dataContentType) {
+        if (dataContentType == null) {
+            // no content type
+            return false;
+        }
+
+        final ContentType type = ContentTypes.parse(dataContentType);
+        if (type == null) {
+            // failed to parse content type
+            return false;
+        }
+
+        return this.cloudEventsConfig.getDataTypes().contains(type.mediaType().toString());
     }
 
     /**
@@ -283,6 +314,11 @@ public final class CloudEventsRoute extends AbstractRoute {
     private void ensureDataSchema(@Nullable final URI dataSchema,
             final RequestContext ctx,
             final DittoHeaders dittoHeaders) {
+
+        if (dataSchema == null && cloudEventsConfig.isEmptySchemaAllowed()) {
+            // early return, no schema, but no requirement to have one
+            return;
+        }
 
         if (dataSchema == null || !dataSchema.getScheme().equals(DATA_SCHEMA_SCHEME)) {
             if (LOGGER.isInfoEnabled()) {

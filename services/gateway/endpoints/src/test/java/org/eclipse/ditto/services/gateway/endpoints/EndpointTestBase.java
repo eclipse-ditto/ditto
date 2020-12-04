@@ -38,8 +38,10 @@ import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthent
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthorizationSubjectsProviderFactory;
 import org.eclipse.ditto.services.gateway.security.utils.DefaultHttpClientFacade;
 import org.eclipse.ditto.services.gateway.security.utils.HttpClientFacade;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.CloudEventsConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultClaimMessageConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultCloudEventsConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultCommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultMessageConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultPublicHealthConfig;
@@ -98,6 +100,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
     protected static StreamingConfig streamingConfig;
     protected static PublicHealthConfig publicHealthConfig;
     protected static ProtocolConfig protocolConfig;
+    protected static CloudEventsConfig cloudEventsConfig;
     protected static JwtAuthenticationFactory jwtAuthenticationFactory;
     protected static HttpClientFacade httpClientFacade;
     protected static JwtAuthorizationSubjectsProviderFactory authorizationSubjectsProviderFactory;
@@ -117,6 +120,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         streamingConfig = DefaultStreamingConfig.of(gatewayScopedConfig);
         publicHealthConfig = DefaultPublicHealthConfig.of(gatewayScopedConfig);
         protocolConfig = DefaultProtocolConfig.of(dittoScopedConfig);
+        cloudEventsConfig = DefaultCloudEventsConfig.of(gatewayScopedConfig);
         httpClientFacade = DefaultHttpClientFacade.getInstance(ActorSystem.create(EndpointTestBase.class.getSimpleName()),
                 DefaultHttpProxyConfig.ofProxy(DefaultScopedConfig.empty("/")));
         authorizationSubjectsProviderFactory = DittoJwtAuthorizationSubjectsProvider::of;
