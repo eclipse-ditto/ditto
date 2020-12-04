@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.utils.pubsub;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
 
-import java.time.Duration;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -39,6 +38,13 @@ import akka.pattern.Patterns;
  */
 final class DistributedSubImpl implements DistributedSub {
 
+    /**
+     * Time buffer for distribution of ddata change on nodes.
+     * Should be larger than akka.cluster.distributed-data.notify-subscribers-interval
+     * in order for subscribers to have a high chance of receiving events immediately after acknowledgement.
+     */
+    private static final long LOCAL_NOTIFICATION_DELAY_BUFFER_MS = 1000;
+
     // package-private for unit tests
     final ActorRef subSupervisor;
 
@@ -49,14 +55,8 @@ final class DistributedSubImpl implements DistributedSub {
     DistributedSubImpl(final DistributedDataConfig config, final ActorRef subSupervisor) {
         this.config = config;
         this.subSupervisor = subSupervisor;
-        // only require local write consistency - let the ddata replicator gossip at its leisure
-        this.writeConsistency = (Replicator.WriteConsistency) Replicator.writeLocal();
-        // make an optimistic delay estimation that should hold in the absence of excessive load
-        final Duration clusterReplicationDelayEstimate = config.getAkkaReplicatorConfig().getNotifySubscribersInterval()
-                .plus(config.getAkkaReplicatorConfig().getGossipInterval());
-        final long expectedDelayInMillis = clusterReplicationDelayEstimate.toMillis();
-        // add 100% buffer after expected replication
-        ddataDelayInMillis = 2*expectedDelayInMillis;
+        this.writeConsistency = new Replicator.WriteAll(config.getWriteTimeout());
+        ddataDelayInMillis = LOCAL_NOTIFICATION_DELAY_BUFFER_MS;
     }
 
     @Override
@@ -68,7 +68,13 @@ final class DistributedSubImpl implements DistributedSub {
             checkNotEmpty(group, "group");
         }
         final Subscribe subscribe = Subscribe.of(topics, subscriber, writeConsistency, true, filter, group);
-        return askSubSupervisor(subscribe);
+        return askSubSupervisor(subscribe)
+                .thenCompose(result -> {
+                    // delay completion to account for dissemination delay between ddata replicator and change recipient
+                    final CompletableFuture<SubAck> resultFuture = new CompletableFuture<>();
+                    resultFuture.completeOnTimeout(result, ddataDelayInMillis, TimeUnit.MILLISECONDS);
+                    return resultFuture;
+                });
     }
 
     @Override
@@ -79,12 +85,7 @@ final class DistributedSubImpl implements DistributedSub {
 
     private CompletionStage<SubAck> askSubSupervisor(final Request request) {
         return Patterns.ask(subSupervisor, request, config.getWriteTimeout())
-                .thenCompose(DistributedSubImpl::processAskResponse)
-                .thenCompose(result -> {
-                    final CompletableFuture<SubAck> resultFuture = new CompletableFuture<>();
-                    resultFuture.completeOnTimeout(result, ddataDelayInMillis, TimeUnit.MILLISECONDS);
-                    return resultFuture;
-                });
+                .thenCompose(DistributedSubImpl::processAskResponse);
     }
 
     @Override
