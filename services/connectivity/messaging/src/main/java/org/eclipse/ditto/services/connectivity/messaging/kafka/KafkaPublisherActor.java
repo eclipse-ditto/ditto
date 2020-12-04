@@ -69,9 +69,9 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
 
     @SuppressWarnings("unused")
     private KafkaPublisherActor(final Connection connection, final KafkaConnectionFactory factory,
-            final boolean dryRun) {
+            final boolean dryRun, final String clientId) {
 
-        super(connection);
+        super(connection, clientId);
         this.dryRun = dryRun;
         connectionFactory = factory;
 
@@ -85,11 +85,13 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
      * @param connection the connection this publisher belongs to.
      * @param factory the factory to create Kafka connections with.
      * @param dryRun whether this publisher is only created for a test or not.
+     * @param clientId identifier of the client actor.
      * @return the Akka configuration Props object.
      */
-    static Props props(final Connection connection, final KafkaConnectionFactory factory, final boolean dryRun) {
+    static Props props(final Connection connection, final KafkaConnectionFactory factory, final boolean dryRun,
+            final String clientId) {
 
-        return Props.create(KafkaPublisherActor.class, connection, factory, dryRun);
+        return Props.create(KafkaPublisherActor.class, connection, factory, dryRun, clientId);
     }
 
     @Override

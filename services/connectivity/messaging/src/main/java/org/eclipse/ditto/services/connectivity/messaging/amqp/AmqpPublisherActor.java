@@ -104,9 +104,9 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     @SuppressWarnings("unused")
     private AmqpPublisherActor(final Connection connection, final Session session,
-            final ConnectionConfig connectionConfig) {
+            final ConnectionConfig connectionConfig, final String clientId) {
 
-        super(connection);
+        super(connection, clientId);
         this.session = checkNotNull(session, "session");
 
         final Executor jmsDispatcher = JMSConnectionHandlingActor.getOwnDispatcher(getContext().system());
@@ -162,10 +162,12 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      * @param connection the connection this publisher belongs to
      * @param session the jms session
      * @param connectionConfig configuration for all connections.
+     * @param clientId identifier of the client actor.
      * @return the Akka configuration Props object.
      */
-    static Props props(final Connection connection, final Session session, final ConnectionConfig connectionConfig) {
-        return Props.create(AmqpPublisherActor.class, connection, session, connectionConfig);
+    static Props props(final Connection connection, final Session session, final ConnectionConfig connectionConfig,
+            final String clientId) {
+        return Props.create(AmqpPublisherActor.class, connection, session, connectionConfig, clientId);
     }
 
     @Override

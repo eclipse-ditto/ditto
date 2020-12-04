@@ -84,8 +84,6 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.Conn
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceActor;
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
-import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.models.connectivity.InboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
@@ -96,6 +94,8 @@ import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
@@ -200,11 +200,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         this.connectionActor = connectionActor;
         actorUUID = UUID.randomUUID().toString();
 
-        checkNotNull(connection, "connection");
-
         final ConnectionId connectionId = connection.getId();
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
+        // log the default client ID for tracing
+        logger.info("Using default client ID <{}>", getDefaultClientId());
 
         connectivityConfig = DittoConnectivityConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()));
@@ -346,6 +346,15 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         } else {
             return prefix + "-" + actorUUID;
         }
+    }
+
+    /**
+     * Get the default client ID, which identifies this actor regardless of configuration.
+     *
+     * @return the default client ID.
+     */
+    protected String getDefaultClientId() {
+        return getClientId(connection.getId());
     }
 
     private boolean hasInboundMapperConfigChanged(final ConnectivityConfig connectivityConfig) {

@@ -164,7 +164,8 @@ public final class KafkaClientActor extends BaseClientActor {
                 .info("Starting Kafka publisher actor.");
         // ensure no previous publisher stays in memory
         stopPublisherActor();
-        final Props publisherActorProps = publisherActorFactory.props(connection(), connectionFactory, dryRun);
+        final Props publisherActorProps =
+                publisherActorFactory.props(connection(), connectionFactory, dryRun, getDefaultClientId());
         kafkaPublisherActor = startChildActorConflictFree(publisherActorFactory.getActorName(), publisherActorProps);
         pendingStatusReportsFromStreams.add(kafkaPublisherActor);
     }

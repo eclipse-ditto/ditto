@@ -35,8 +35,9 @@ public final class HiveMqtt3PublisherActor extends AbstractMqttPublisherActor<Mq
     static final String NAME = "HiveMqtt3PublisherActor";
 
     @SuppressWarnings("squid:UnusedPrivateConstructor") // used by akka
-    private HiveMqtt3PublisherActor(final Connection connection, final Mqtt3Client client, final boolean dryRun) {
-        super(connection, client.toAsync()::publish, dryRun);
+    private HiveMqtt3PublisherActor(final Connection connection, final Mqtt3Client client, final boolean dryRun,
+            final String clientId) {
+        super(connection, client.toAsync()::publish, dryRun, clientId);
     }
 
     /**
@@ -45,10 +46,12 @@ public final class HiveMqtt3PublisherActor extends AbstractMqttPublisherActor<Mq
      * @param connection the connection the publisher actor belongs to.
      * @param client the HiveMQ client.
      * @param dryRun whether this publisher is only created for a test or not.
+     * @param clientId identifier of the client actor.
      * @return the Props object.
      */
-    public static Props props(final Connection connection, final Mqtt3Client client, final boolean dryRun) {
-        return Props.create(HiveMqtt3PublisherActor.class, connection, client, dryRun);
+    public static Props props(final Connection connection, final Mqtt3Client client, final boolean dryRun,
+            final String clientId) {
+        return Props.create(HiveMqtt3PublisherActor.class, connection, client, dryRun, clientId);
     }
 
     @Override

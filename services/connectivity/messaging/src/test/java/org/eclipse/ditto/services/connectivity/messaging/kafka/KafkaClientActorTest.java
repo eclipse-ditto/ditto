@@ -227,7 +227,8 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
                     }
 
                     @Override
-                    public Props props(final Connection c, final KafkaConnectionFactory factory, final boolean dryRun) {
+                    public Props props(final Connection c, final KafkaConnectionFactory factory, final boolean dryRun,
+                            final String clientId) {
                         return MockKafkaPublisherActor.props(ref, status);
                     }
                 });
