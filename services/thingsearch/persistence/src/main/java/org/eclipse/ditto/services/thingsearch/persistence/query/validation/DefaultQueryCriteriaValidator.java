@@ -19,18 +19,20 @@ import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand;
 
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+
 /**
  * Default {@link org.eclipse.ditto.services.thingsearch.persistence.query.validation.QueryCriteriaValidator},
  * who parses QueryCriteria without additional validation
  */
-public class DefaultQueryCriteriaValidator extends QueryCriteriaValidator {
+public final class DefaultQueryCriteriaValidator extends QueryCriteriaValidator {
 
     /**
      * Instantiate this provider. Called by reflection.
      */
-    @SuppressWarnings("unused")
-    public DefaultQueryCriteriaValidator() {
-        // Nothing to initialize
+    public DefaultQueryCriteriaValidator(final ActorSystem actorSystem, final ActorRef pubSubMediator) {
+        // Nothing to initialize.
     }
 
     @Override

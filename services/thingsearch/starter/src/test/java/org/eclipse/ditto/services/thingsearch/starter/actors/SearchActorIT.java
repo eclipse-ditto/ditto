@@ -84,7 +84,8 @@ public final class SearchActorIT {
     @BeforeClass
     public static void startMongoResource() {
         queryParser = SearchRootActor.getQueryParser(DefaultLimitsConfig.of(ConfigFactory.empty()),
-                ActorSystem.create("test-system", ConfigFactory.load("actors-test.conf")));
+                ActorSystem.create("test-system", ConfigFactory.load("actors-test.conf")),
+                ActorRef.noSender());
         mongoResource = new MongoDbResource("localhost");
         mongoResource.start();
         mongoClient = provideClientWrapper();

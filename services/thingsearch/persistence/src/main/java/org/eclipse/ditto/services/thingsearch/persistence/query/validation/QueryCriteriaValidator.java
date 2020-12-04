@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.query.validation;
 
+import java.util.Arrays;
+
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
@@ -21,6 +23,7 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand;
 
 import akka.actor.AbstractExtensionId;
+import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.ExtendedActorSystem;
 import akka.actor.Extension;
@@ -28,7 +31,11 @@ import akka.actor.Extension;
 /**
  * Search Query Validator to be loaded by reflection.
  * Can be used as an extension point to use custom validation of search queries.
- * Implementations MUST have a public constructor.
+ * Implementations MUST have a public constructor taking the following parameters as arguments:
+ * <ul>
+ * <li>ActorSystem actorSystem: actor system in which this provider is loaded,</li>
+ * <li>ActorRef pubSubMediator: the mediator via which system-wide communication can be done</li>
+ * </ul>
  */
 public abstract class QueryCriteriaValidator implements Extension {
 
@@ -47,10 +54,11 @@ public abstract class QueryCriteriaValidator implements Extension {
      * Load a {@code QueryCriteriaValidator} dynamically according to the search configuration.
      *
      * @param actorSystem The actor system in which to load the validator.
+     * @param pubSubMediator the mediator via which system-wide communication can be done.
      * @return The validator.
      */
-    public static QueryCriteriaValidator get(final ActorSystem actorSystem) {
-        return ExtensionId.INSTANCE.get(actorSystem);
+    public static QueryCriteriaValidator get(final ActorSystem actorSystem, ActorRef pubSubMediator) {
+        return new ExtensionId(pubSubMediator).get(actorSystem);
     }
 
     /**
@@ -58,15 +66,23 @@ public abstract class QueryCriteriaValidator implements Extension {
      */
     private static final class ExtensionId extends AbstractExtensionId<QueryCriteriaValidator> {
 
-        private static final ExtensionId INSTANCE = new ExtensionId();
+        private final ActorRef pubSubMediator;
+
+        ExtensionId(final ActorRef pubSubMediator) {
+            super();
+            this.pubSubMediator = pubSubMediator;
+        }
 
         @Override
         public QueryCriteriaValidator createExtension(final ExtendedActorSystem system) {
             final SearchConfig searchConfig =
                     DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(
                             system.settings().config()));
+
             return AkkaClassLoader.instantiate(system, QueryCriteriaValidator.class,
-                    searchConfig.getQueryValidator());
+                    searchConfig.getQueryValidator(),
+                    Arrays.asList(ActorSystem.class, ActorRef.class),
+                    Arrays.asList(system, pubSubMediator));
         }
     }
 }
