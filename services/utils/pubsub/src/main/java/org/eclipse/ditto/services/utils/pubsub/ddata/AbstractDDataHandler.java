@@ -19,8 +19,6 @@ import java.util.concurrent.Executor;
 
 import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
-import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
@@ -43,7 +41,6 @@ public abstract class AbstractDDataHandler<K, S, T extends DDataUpdate<S>>
     protected final SelfUniqueAddress selfUniqueAddress;
 
     private final String topicType;
-    private final Gauge ddataMetrics;
 
     protected AbstractDDataHandler(final DistributedDataConfig config,
             final ActorRefFactory actorRefFactory,
@@ -53,7 +50,6 @@ public abstract class AbstractDDataHandler<K, S, T extends DDataUpdate<S>>
         super(config, actorRefFactory, ddataExecutor);
         this.topicType = topicType;
         this.selfUniqueAddress = SelfUniqueAddress.apply(Cluster.get(actorSystem).selfUniqueAddress());
-        ddataMetrics = DittoMetrics.gauge("pubsub-ddata-entries").tag("topic", topicType);
     }
 
     @Override
@@ -63,10 +59,8 @@ public abstract class AbstractDDataHandler<K, S, T extends DDataUpdate<S>>
         return get(readConsistency).thenApply(optional -> {
             if (optional.isPresent()) {
                 final ORMultiMap<K, S> mmap = optional.get();
-                ddataMetrics.set((long) mmap.size());
                 return CollectionConverters.asJava(mmap.entries());
             } else {
-                ddataMetrics.set(0L);
                 return Map.of();
             }
         });

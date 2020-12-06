@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
@@ -58,7 +59,7 @@ public final class HiveMqtt5ClientActorTest extends AbstractMqttClientActorTest<
             final ActorRef mqttClientActor = actorSystem.actorOf(props, "mqttClientActor-testSubscribeFails");
 
             mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsgClass(Status.Failure.class);
+            expectMsgClass(Duration.ofSeconds(10L), Status.Failure.class);
 
             mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);
