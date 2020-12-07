@@ -111,7 +111,7 @@ public final class HttpPublisherErrorTest {
         new TestKit(actorSystem) {{
             final HttpPushFactory factory = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
                     mock(ConnectionLogger.class));
-            final Props props = HttpPublisherActor.props(connection, factory);
+            final Props props = HttpPublisherActor.props(connection, factory, "clientId");
             final ActorRef underTest = watch(childActorOf(props));
 
             // WHEN: it is asked to publish events with delay between them larger than connection pool timeout
@@ -142,7 +142,7 @@ public final class HttpPublisherErrorTest {
             // GIVEN: An HTTP-push connection is established against localhost.
             final HttpPushFactory factory = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
                     mock(ConnectionLogger.class));
-            final Props props = HttpPublisherActor.props(connection, factory);
+            final Props props = HttpPublisherActor.props(connection, factory, "clientId");
             final ActorRef underTest = watch(childActorOf(props));
 
             // GIVEN: The connection is working.

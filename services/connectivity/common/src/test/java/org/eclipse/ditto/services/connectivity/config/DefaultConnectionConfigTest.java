@@ -144,6 +144,10 @@ public final class DefaultConnectionConfigTest {
         softly.assertThat(underTest.getAckLabelDeclareInterval())
                 .as(ConnectionConfig.ConnectionConfigValue.ACK_LABEL_DECLARE_INTERVAL.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(99L));
+
+        softly.assertThat(underTest.areAllClientActorsOnOneNode())
+                .as(ConnectionConfig.ConnectionConfigValue.ALL_CLIENT_ACTORS_ON_ONE_NODE.getConfigPath())
+                .isEqualTo(true);
     }
 
 }

@@ -22,106 +22,79 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import akka.actor.ActorRef;
+import akka.japi.Pair;
 
 /**
  * Consistence-maintenance part of all subscriptions.
  *
- * @param <S> type of representation of a topic in the distributed data.
+ * @param <R> type of representation of a topic in the distributed date.
  * @param <T> type of approximations of subscriptions for distributed update.
  */
 @NotThreadSafe
-public abstract class AbstractSubscriptions<S, T extends IndelUpdate<S, T>> implements Subscriptions<T> {
+public abstract class AbstractSubscriptions<R, T extends DDataUpdate<R>> implements Subscriptions<T> {
 
     /**
      * Map from local subscribers to topics they subscribe to.
      */
-    protected final Map<ActorRef, Set<String>> subscriberToTopic;
-
-    /**
-     * Map from local subscribers to their topic filters.
-     */
-    protected final Map<ActorRef, Predicate<Collection<String>>> subscriberToFilter;
+    protected final Map<ActorRef, SubscriberData> subscriberDataMap;
 
     /**
      * Map from topic to subscriber count and pre-computed hashes.
      */
-    protected final Map<String, TopicData<S>> topicToData;
+    protected final Map<String, TopicData> topicDataMap;
 
     /**
      * Construct subscriptions using the given maps.
      * Consistency between the maps is not checked.
      *
-     * @param subscriberToTopic map from subscribers to topics.
-     * @param subscriberToFilter map from subscribers to filters.
-     * @param topicToData map from topics to their data.
+     * @param subscriberDataMap map from subscribers to topics.
+     * @param topicDataMap map from topics to their data.
      */
     protected AbstractSubscriptions(
-            final Map<ActorRef, Set<String>> subscriberToTopic,
-            final Map<ActorRef, Predicate<Collection<String>>> subscriberToFilter,
-            final Map<String, TopicData<S>> topicToData) {
-        this.subscriberToTopic = subscriberToTopic;
-        this.subscriberToFilter = subscriberToFilter;
-        this.topicToData = topicToData;
+            final Map<ActorRef, SubscriberData> subscriberDataMap,
+            final Map<String, TopicData> topicDataMap) {
+        this.subscriberDataMap = subscriberDataMap;
+        this.topicDataMap = topicDataMap;
     }
 
-    /**
-     * Hash a topic.
-     *
-     * @param topic the topic.
-     * @return the hash codes of the topic.
-     */
-    protected abstract S hashTopic(String topic);
-
-    /**
-     * Callback on each new topic introduced into the subscriptions.
-     *
-     * @param newTopic the new topic.
-     */
-    protected abstract void onNewTopic(TopicData<S> newTopic);
-
-    /**
-     * Callback on each topic removed from the subscriptions as a whole.
-     *
-     * @param removedTopic the new topic.
-     */
-    protected abstract void onRemovedTopic(TopicData<S> removedTopic);
+    @Override
+    public void clear() {
+        subscriberDataMap.clear();
+        topicDataMap.clear();
+    }
 
     @Override
-    public Stream<ActorRef> streamSubscribers(final String topic) {
-        final TopicData<S> topicData = topicToData.get(topic);
-        return topicData != null ? topicData.streamSubscribers() : Stream.empty();
+    public Set<ActorRef> getSubscribers() {
+        return subscriberDataMap.keySet();
     }
 
     @Override
     public boolean subscribe(final ActorRef subscriber,
             final Set<String> topics,
-            final Predicate<Collection<String>> filter) {
+            @Nullable final Predicate<Collection<String>> filter,
+            @Nullable final String group) {
         if (!topics.isEmpty()) {
             // box the 'changed' flag in an array so that it can be assigned inside a closure.
             final boolean[] changed = new boolean[1];
 
-            // change filter.
-            subscriberToFilter.compute(subscriber, (k, previousFilter) -> {
-                changed[0] = previousFilter != filter;
-                return filter;
+            // add topics and filter.
+            final SubscriberData subscriberData = SubscriberData.of(topics, filter, group);
+            subscriberDataMap.merge(subscriber, subscriberData, (oldData, newData) -> {
+                changed[0] = !oldData.getFilter().equals(newData.getFilter());
+                return newData.withTopics(unionSet(oldData.getTopics(), newData.getTopics()));
             });
-
-            // add topics to subscriber
-            subscriberToTopic.merge(subscriber, topics, AbstractSubscriptions::unionSet);
 
             // add subscriber for each new topic; detect whether there is any change.
             for (final String topic : topics) {
-                topicToData.compute(topic, (k, previousData) -> {
+                topicDataMap.compute(topic, (k, previousData) -> {
                     if (previousData == null) {
                         changed[0] = true;
-                        final TopicData<S> newTopic = TopicData.firstSubscriber(subscriber, hashTopic(topic));
-                        onNewTopic(newTopic);
-                        return newTopic;
+                        return TopicData.firstSubscriber(subscriber);
                     } else {
                         // no short-circuit evaluation for OR: subscriber should always be added.
                         changed[0] |= previousData.addSubscriber(subscriber);
@@ -132,12 +105,7 @@ public abstract class AbstractSubscriptions<S, T extends IndelUpdate<S, T>> impl
             return changed[0];
         } else {
             // update filter if there are any existing topic subscribed
-            if (subscriberToTopic.containsKey(subscriber)) {
-                subscriberToFilter.put(subscriber, filter);
-                return true;
-            } else {
-                return false;
-            }
+            return null != subscriberDataMap.computeIfPresent(subscriber, (k, data) -> data.withFilter(filter));
         }
     }
 
@@ -145,7 +113,8 @@ public abstract class AbstractSubscriptions<S, T extends IndelUpdate<S, T>> impl
     public boolean unsubscribe(final ActorRef subscriber, final Set<String> topics) {
         // box 'changed' flag for assignment inside closure
         final boolean[] changed = new boolean[1];
-        subscriberToTopic.computeIfPresent(subscriber, (k, previousTopics) -> {
+        subscriberDataMap.computeIfPresent(subscriber, (k, subscriberData) -> {
+            final Set<String> previousTopics = subscriberData.getTopics();
             final List<String> removed = new ArrayList<>();
             final Set<String> remaining = new HashSet<>();
             for (final String topic : previousTopics) {
@@ -159,10 +128,9 @@ public abstract class AbstractSubscriptions<S, T extends IndelUpdate<S, T>> impl
             removeSubscriberForTopics(subscriber, removed);
             if (remaining.isEmpty()) {
                 // subscriber is removed
-                subscriberToFilter.remove(subscriber);
                 return null;
             } else {
-                return remaining;
+                return subscriberData.withTopics(remaining);
             }
         });
         return changed[0];
@@ -172,35 +140,32 @@ public abstract class AbstractSubscriptions<S, T extends IndelUpdate<S, T>> impl
     public boolean removeSubscriber(final ActorRef subscriber) {
         // box 'changed' flag in array for assignment inside closure
         final boolean[] changed = new boolean[1];
-        subscriberToTopic.computeIfPresent(subscriber, (k, topics) -> {
-            changed[0] = removeSubscriberForTopics(subscriber, topics);
+        subscriberDataMap.computeIfPresent(subscriber, (k, data) -> {
+            changed[0] = removeSubscriberForTopics(subscriber, data.getTopics());
             return null;
         });
-        subscriberToFilter.remove(subscriber);
         return changed[0];
     }
 
     @Override
     public boolean contains(final ActorRef subscriber) {
-        return subscriberToTopic.containsKey(subscriber);
-    }
-
-    @Override
-    public int countTopics() {
-        return topicToData.size();
+        return subscriberDataMap.containsKey(subscriber);
     }
 
     @Override
     public SubscriptionsReader snapshot() {
-        return SubscriptionsReader.fromImmutableMaps(exportTopicData(), exportSubscriberToFilter());
+        return SubscriptionsReader.fromSubscriberData(exportSubscriberData());
     }
 
-    private Map<ActorRef, Predicate<Collection<String>>> exportSubscriberToFilter() {
-        return Map.copyOf(subscriberToFilter);
+    private Map<ActorRef, SubscriberData> exportSubscriberData() {
+        return subscriberDataMap.entrySet()
+                .stream()
+                .map(entry -> Pair.create(entry.getKey(), entry.getValue().export()))
+                .collect(Collectors.toMap(Pair::first, Pair::second));
     }
 
     private Map<String, Set<ActorRef>> exportTopicData() {
-        return Collections.unmodifiableMap(topicToData.entrySet()
+        return Collections.unmodifiableMap(topicDataMap.entrySet()
                 .stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().exportSubscribers())));
     }
@@ -209,10 +174,9 @@ public abstract class AbstractSubscriptions<S, T extends IndelUpdate<S, T>> impl
         // box 'changed' flag for assignment inside closure
         final boolean[] changed = new boolean[1];
         for (final String topic : topics) {
-            topicToData.computeIfPresent(topic, (k, data) -> {
+            topicDataMap.computeIfPresent(topic, (k, data) -> {
                 changed[0] |= data.removeSubscriber(subscriber);
                 if (data.isEmpty()) {
-                    onRemovedTopic(data);
                     return null;
                 } else {
                     return data;
@@ -232,9 +196,8 @@ public abstract class AbstractSubscriptions<S, T extends IndelUpdate<S, T>> impl
     public boolean equals(final Object other) {
         if (other instanceof AbstractSubscriptions) {
             final AbstractSubscriptions<?, ?> that = (AbstractSubscriptions<?, ?>) other;
-            return subscriberToTopic.equals(that.subscriberToTopic) &&
-                    subscriberToFilter.equals(that.subscriberToFilter) &&
-                    topicToData.equals(that.topicToData);
+            return subscriberDataMap.equals(that.subscriberDataMap) &&
+                    topicDataMap.equals(that.topicDataMap);
         } else {
             return false;
         }
@@ -242,7 +205,7 @@ public abstract class AbstractSubscriptions<S, T extends IndelUpdate<S, T>> impl
 
     @Override
     public int hashCode() {
-        return Objects.hash(subscriberToTopic, subscriberToFilter, topicToData);
+        return Objects.hash(subscriberDataMap, topicDataMap);
     }
 
 }

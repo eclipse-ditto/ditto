@@ -72,12 +72,12 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
 
     @Override
     public JmsConnection createConnection(final Connection connection, final ExceptionListener exceptionListener,
-            final ConnectionLogger connectionLogger) throws JMSException, NamingException {
+            final ConnectionLogger connectionLogger, final String clientId) throws JMSException, NamingException {
 
         checkNotNull(connection, "Connection");
         checkNotNull(exceptionListener, "Exception Listener");
 
-        final Context ctx = createContext(connection);
+        final Context ctx = createContext(connection, clientId);
         final org.apache.qpid.jms.JmsConnectionFactory cf =
                 (org.apache.qpid.jms.JmsConnectionFactory) ctx.lookup(connection.getId().toString());
 
@@ -91,8 +91,8 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
         return jmsConnection;
     }
 
-    private Context createContext(final Connection connection) throws NamingException {
-        final String connectionUri = buildAmqpConnectionUriFromConnection(connection, amqp10Config);
+    private Context createContext(final Connection connection, final String clientId) throws NamingException {
+        final String connectionUri = buildAmqpConnectionUriFromConnection(connection, amqp10Config, clientId);
         @SuppressWarnings("squid:S1149") final Hashtable<Object, Object> env = new Hashtable<>();
         env.put(Context.INITIAL_CONTEXT_FACTORY, "org.apache.qpid.jms.jndi.JmsInitialContextFactory");
         env.put("connectionfactory." + connection.getId(), connectionUri);
@@ -102,7 +102,11 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
 
     public static String buildAmqpConnectionUriFromConnection(final Connection connection,
             @Nullable final Amqp10Config amqp10Config) {
-        final String id = connection.getId().toString();
+        return buildAmqpConnectionUriFromConnection(connection, amqp10Config, connection.getId().toString());
+    }
+
+    public static String buildAmqpConnectionUriFromConnection(final Connection connection,
+            @Nullable final Amqp10Config amqp10Config, final String clientId) {
         final String username = connection.getUsername().orElse(null);
         final String password = connection.getPassword().orElse(null);
         final String protocol = connection.getProtocol();
@@ -122,7 +126,7 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
         final String nestedUri = baseUri + parameters.stream().collect(Collectors.joining("&", "?", ""));
 
         final List<String> globalParameters =
-                new ArrayList<>(getJmsParameters(id, username, password, amqp10Config, specificConfig));
+                new ArrayList<>(getJmsParameters(clientId, username, password, amqp10Config, specificConfig));
         final String connectionUri;
         if (failoverEnabled) {
             globalParameters.addAll(getFailoverParameters(specificConfig));
@@ -131,7 +135,7 @@ public final class ConnectionBasedJmsConnectionFactory implements JmsConnectionF
         } else {
             connectionUri = nestedUri + globalParameters.stream().collect(Collectors.joining("&", "&", ""));
         }
-        LOGGER.debug("[{}] URI: {}", id, connectionUri);
+        LOGGER.debug("[{}] URI: {}", clientId, connectionUri);
         return connectionUri;
     }
 

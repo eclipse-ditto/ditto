@@ -107,7 +107,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return HttpPublisherActor.props(TestConstants.createConnection(), httpPushFactory);
+        return HttpPublisherActor.props(TestConstants.createConnection(), httpPushFactory, "clientId");
     }
 
     @Override

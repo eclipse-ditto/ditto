@@ -56,20 +56,27 @@ import org.eclipse.ditto.signals.events.things.ThingEventToThingConverter;
  * <li>removing those targets that are not allowed to read a signal</li>
  * </ul>
  */
-final class SignalFilter {
+public final class SignalFilter {
 
     private final Connection connection;
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
+
+    SignalFilter(final Connection connection,
+            final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry) {
+        this.connection = connection;
+        this.connectionMonitorRegistry = connectionMonitorRegistry;
+    }
 
     /**
      * Constructs a new SignalFilter instance with the given {@code connection}.
      *
      * @param connection the connection to filter the signals on.
+     * @param connectionMonitorRegistry the monitor registry.
+     * @return the signal filter.
      */
-    SignalFilter(final Connection connection,
+    public static SignalFilter of(final Connection connection,
             final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry) {
-        this.connection = connection;
-        this.connectionMonitorRegistry = connectionMonitorRegistry;
+        return new SignalFilter(connection, connectionMonitorRegistry);
     }
 
     /**
@@ -82,7 +89,7 @@ final class SignalFilter {
      * Target cannot be mapped to a valid criterion
      */
     @SuppressWarnings("squid:S3864")
-    List<Target> filter(final Signal<?> signal) {
+    public List<Target> filter(final Signal<?> signal) {
         return connection.getTargets().stream()
                 .filter(t -> isTargetAuthorized(t, signal)) // this is cheaper, so check this first
                 .filter(t -> isTargetSubscribedForTopicGenerally(t, signal))

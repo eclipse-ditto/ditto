@@ -33,7 +33,7 @@ import akka.japi.pf.ReceiveBuilder;
  * Supervisor of actors dealing with pub-sub featuring an all-for-one supervision strategy with delayed restart
  * and child actor name disambiguation.
  */
-public abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers implements Hashes {
+abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers implements Hashes {
 
     /**
      * Logger of this actor.
@@ -54,7 +54,7 @@ public abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers i
      */
     protected AbstractPubSubSupervisor() {
         this.config = PubSubConfig.of(getContext().getSystem());
-        seeds = Hashes.digestStringsToIntegers(config.getSeed(), config.getHashFamilySize());
+        seeds = Hashes.digestStringsToIntegers(config.getSeed(), Hashes.HASH_FAMILY_SIZE);
     }
 
     /**
@@ -66,8 +66,10 @@ public abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers i
 
     /**
      * Callback for when a child failed.
+     *
+     * @param failingChild the child who failed.
      */
-    protected abstract void onChildFailure();
+    protected abstract void onChildFailure(final ActorRef failingChild);
 
     /**
      * Start children without regard for previous children.
@@ -92,7 +94,7 @@ public abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers i
                     log.error(error, "Child <{}> crashed. Restarting all children after <{}>",
                             getSender(), restartDelay);
                     scheduleRestartChildren();
-                    onChildFailure();
+                    onChildFailure(getSender());
                     return (SupervisorStrategy.Directive) SupervisorStrategy.stop();
                 }).build());
     }
@@ -108,7 +110,9 @@ public abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers i
      * Schedule restart for all children.
      */
     protected void scheduleRestartChildren() {
-        getTimers().startSingleTimer(Control.RESTART, Control.RESTART, config.getRestartDelay());
+        if (!getTimers().isTimerActive(Control.RESTART)) {
+            getTimers().startSingleTimer(Control.RESTART, Control.RESTART, config.getRestartDelay());
+        }
     }
 
     /**
@@ -121,7 +125,7 @@ public abstract class AbstractPubSubSupervisor extends AbstractActorWithTimers i
      */
     protected ActorRef startChild(final Props props, final String namePrefix) {
         final String actorName = namePrefix + ++childCounter;
-        return getContext().actorOf(props, actorName);
+        return getContext().watch(getContext().actorOf(props, actorName));
     }
 
     private void restartChildren(final Control restart) {

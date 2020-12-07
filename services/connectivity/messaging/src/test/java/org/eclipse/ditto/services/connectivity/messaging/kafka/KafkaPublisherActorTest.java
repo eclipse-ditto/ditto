@@ -107,11 +107,12 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return KafkaPublisherActor.props(TestConstants.createConnection(), connectionFactory, false);
+        return KafkaPublisherActor.props(TestConstants.createConnection(), connectionFactory, false, "clientId");
     }
 
     protected Props getPublisherActorPropsWithDebugEnabled() {
-        return KafkaPublisherActor.props(TestConstants.createConnectionWithDebugEnabled(), connectionFactory, false);
+        return KafkaPublisherActor.props(TestConstants.createConnectionWithDebugEnabled(), connectionFactory, false,
+                "clientId");
     }
 
     @Override

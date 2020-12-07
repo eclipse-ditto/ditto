@@ -38,7 +38,6 @@ import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
-import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 
 import akka.actor.ActorRef;
@@ -197,7 +196,8 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
 
     /**
      * Create the client ID for this client actor. Default to connection ID.
-     * For connections with more than 1 client count, the client ID
+     * For connections with more than 1 client count, the client ID has the format CONFIGURED_CLIENT_ID-UUID,
+     * where UUID is unique to each client actor.
      * Override this method to customize client IDs further.
      *
      * @param connection the connection.
@@ -207,7 +207,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
      */
     protected String resolveMqttClientId(final Connection connection, final MqttSpecificConfig mqttSpecificConfig) {
         final String singleClientId = mqttSpecificConfig.getMqttClientId().orElse(connection.getId().toString());
-        return appendInstanceIdForNonEmptyClientId(singleClientId, connection);
+        return distinguishClientIdIfNecessary(singleClientId);
     }
 
     /**
@@ -224,7 +224,7 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
         final String publisherId = config.getMqttPublisherId()
                 .or(() -> config.getMqttClientId().map(cId -> cId + "p"))
                 .orElseGet(() -> connection.getId().toString() + "p");
-        return appendInstanceIdForNonEmptyClientId(publisherId, connection);
+        return distinguishClientIdIfNecessary(publisherId);
     }
 
     /**
@@ -487,11 +487,11 @@ abstract class AbstractMqttClientActor<S, P, Q, R> extends BaseClientActor {
         return subscriptionHandler;
     }
 
-    private static String appendInstanceIdForNonEmptyClientId(final String clientId, final Connection connection) {
-        if (connection.getClientCount() == 1 || clientId.isEmpty()) {
-            return clientId;
+    private String distinguishClientIdIfNecessary(final String configuredClientId) {
+        if (configuredClientId.isEmpty()) {
+            return configuredClientId;
         } else {
-            return clientId + "_" + InstanceIdentifierSupplier.getInstance().get();
+            return getClientId(configuredClientId);
         }
     }
 

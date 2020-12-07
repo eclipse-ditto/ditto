@@ -53,6 +53,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     private final Integer maxNumberOfTargets;
     private final Integer maxNumberOfSources;
     private final Duration ackLabelDeclareInterval;
+    private final boolean allClientActorsOnOneNode;
 
     private DefaultConnectionConfig(final ConfigWithFallback config) {
         clientActorAskTimeout = config.getDuration(ConnectionConfigValue.CLIENT_ACTOR_ASK_TIMEOUT.getConfigPath());
@@ -70,6 +71,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         maxNumberOfTargets = config.getInt(ConnectionConfigValue.MAX_TARGET_NUMBER.getConfigPath());
         maxNumberOfSources = config.getInt(ConnectionConfigValue.MAX_SOURCE_NUMBER.getConfigPath());
         ackLabelDeclareInterval = config.getDuration(ConnectionConfigValue.ACK_LABEL_DECLARE_INTERVAL.getConfigPath());
+        allClientActorsOnOneNode =
+                config.getBoolean(ConnectionConfigValue.ALL_CLIENT_ACTORS_ON_ONE_NODE.getConfigPath());
     }
 
     /**
@@ -161,6 +164,11 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
     }
 
     @Override
+    public boolean areAllClientActorsOnOneNode() {
+        return allClientActorsOnOneNode;
+    }
+
+    @Override
     public ActivityCheckConfig getActivityCheckConfig() {
         return activityCheckConfig;
     }
@@ -188,7 +196,8 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
                 Objects.equals(maxNumberOfTargets, that.maxNumberOfTargets) &&
                 Objects.equals(maxNumberOfSources, that.maxNumberOfSources) &&
-                Objects.equals(ackLabelDeclareInterval, that.ackLabelDeclareInterval);
+                Objects.equals(ackLabelDeclareInterval, that.ackLabelDeclareInterval) &&
+                allClientActorsOnOneNode == that.allClientActorsOnOneNode;
     }
 
     @Override
@@ -196,7 +205,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
         return Objects.hash(clientActorAskTimeout, allowedHostnames, blockedHostnames, supervisorConfig, snapshotConfig,
                 acknowledgementConfig, maxNumberOfTargets, maxNumberOfSources,
                 activityCheckConfig, amqp10Config, amqp091Config, mqttConfig, kafkaConfig,
-                httpPushConfig, ackLabelDeclareInterval);
+                httpPushConfig, ackLabelDeclareInterval, allClientActorsOnOneNode);
     }
 
     @Override
@@ -217,6 +226,7 @@ public final class DefaultConnectionConfig implements ConnectionConfig {
                 ", maxNumberOfTargets=" + maxNumberOfTargets +
                 ", maxNumberOfSources=" + maxNumberOfSources +
                 ", ackLabelDeclareInterval=" + ackLabelDeclareInterval +
+                ", allClientActorsOnOneNode=" + allClientActorsOnOneNode +
                 "]";
     }
 

@@ -92,11 +92,12 @@ public final class MappingStrategiesBuilder {
      * @return this builder instance to allow Method Chaining.
      * @throws NullPointerException if {@code jsonParsableRegistry} is {@code null}.
      */
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public MappingStrategiesBuilder add(final JsonParsableRegistry<? extends Jsonifiable> jsonParsableRegistry) {
         checkNotNull(jsonParsableRegistry, "jsonParsableRegistry");
         final BiFunction<JsonObject, DittoHeaders, Jsonifiable<?>> jsonDeserializer = jsonParsableRegistry::parse;
         for (final String type : jsonParsableRegistry.getTypes()) {
-            add(type, jsonDeserializer);
+            add(type, (JsonParsable<Jsonifiable<?>>) jsonParsableRegistry);
         }
         return this;
     }
@@ -128,7 +129,7 @@ public final class MappingStrategiesBuilder {
             final BiFunction<JsonObject, DittoHeaders, Jsonifiable<?>> jsonDeserializer) {
 
         checkNotNull(clazz, "class");
-        return add(clazz.getSimpleName(), jsonDeserializer);
+        return add(clazz.getSimpleName(), jsonDeserializer::apply);
     }
 
     /**
@@ -152,18 +153,17 @@ public final class MappingStrategiesBuilder {
      * Adds the given JSON deserialization function for the given type to this builder.
      *
      * @param type the key for {@code jsonDeserializer}.
-     * @param jsonDeserializer a function for creating a particular Jsonifiable based on a JSON object.
+     * @param jsonParsable a function for creating a particular Jsonifiable based on a JSON object.
      * @return this builder instance to allow Method Chaining.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public MappingStrategiesBuilder add(final String type,
-            final BiFunction<JsonObject, DittoHeaders, Jsonifiable<?>> jsonDeserializer) {
+    public MappingStrategiesBuilder add(final String type, final JsonParsable<Jsonifiable<?>> jsonParsable) {
 
         checkNotNull(type, "type");
-        checkNotNull(jsonDeserializer, ERROR_MESSAGE_JSON_DESERIALIZATION_FUNCTION);
+        checkNotNull(jsonParsable, ERROR_MESSAGE_JSON_DESERIALIZATION_FUNCTION);
 
         // Translate simple Function to BiFunction ignoring the command headers
-        strategies.put(type, jsonDeserializer::apply);
+        strategies.put(type, jsonParsable);
         return this;
     }
 

@@ -16,10 +16,8 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authorization.AUTHORIZATION_CONTEXT;
 import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.disableLogging;
-import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -31,6 +29,7 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -46,8 +45,6 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
@@ -61,7 +58,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -390,15 +386,12 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
             underTest.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), controlProbe.ref());
             controlProbe.expectMsg(CONNECTED_SUCCESS);
 
-            final ThingModifiedEvent thingModifiedEvent = TestConstants.thingModified(Collections.emptyList());
+            final ThingModifiedEvent<?> thingModifiedEvent =
+                    TestConstants.thingModified(TARGET.getAuthorizationContext().getAuthorizationSubjects());
             final String expectedJson = TestConstants.signalToDittoProtocolJsonString(thingModifiedEvent);
 
             LOGGER.info("Sending thing modified message: {}", thingModifiedEvent);
-            final OutboundSignal.Mapped mappedSignal =
-                    Mockito.mock(OutboundSignal.Mapped.class);
-            when(mappedSignal.getTargets()).thenReturn(singletonList(TARGET));
-            when(mappedSignal.getSource()).thenReturn(thingModifiedEvent);
-            underTest.tell(mappedSignal, getRef());
+            underTest.tell(thingModifiedEvent, getRef());
 
             final M receivedMessage = expectMsgClass(getMessageClass());
             assertThat(extractTopic(receivedMessage)).isEqualTo(TARGET.getAddress());
@@ -424,15 +417,14 @@ public abstract class AbstractMqttClientActorTest<M> extends AbstractBaseClientA
 
             final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                     .replyTarget(0)
+                    .expectedResponseTypes(ResponseType.values())
                     .build();
             final DeleteThingResponse deleteThingResponse =
                     DeleteThingResponse.of(ThingId.of("thing", "id"), dittoHeaders);
 
             LOGGER.info("Sending DeleteThingResponse: {}", deleteThingResponse);
-            final Object outboundSignal =
-                    OutboundSignalFactory.newOutboundSignal(deleteThingResponse, Collections.emptyList());
 
-            underTest.tell(outboundSignal, getRef());
+            underTest.tell(deleteThingResponse, getRef());
 
             final M receivedMessage = expectMsgClass(getMessageClass());
             assertThat(extractTopic(receivedMessage)).isEqualTo("replyTarget/thing:id");

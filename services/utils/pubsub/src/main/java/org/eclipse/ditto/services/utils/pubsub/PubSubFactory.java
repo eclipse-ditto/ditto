@@ -12,12 +12,14 @@
  */
 package org.eclipse.ditto.services.utils.pubsub;
 
+import org.eclipse.ditto.signals.base.Signal;
+
 /**
  * Interface for pub-sub factory.
  *
  * @param <T> type of messages.
  */
-public interface PubSubFactory<T> {
+public interface PubSubFactory<T extends Signal<?>> {
 
     /**
      * Start a pub-supervisor under the user guardian. Will fail when called a second time in an actor system.
@@ -39,4 +41,17 @@ public interface PubSubFactory<T> {
      * @return the given DistributedAcks.
      */
     DistributedAcks getDistributedAcks();
+
+    /**
+     * Hash a key for pubsub.
+     * A subscriber of each group is chosen according to this hash.
+     *
+     * @param hashKey the hash key.
+     * @return the hash code for pubsub.
+     */
+    static int hashForPubSub(final CharSequence hashKey) {
+        // Using the string hashcode to ensure that the final byte affects the hash code additively.
+        // Math.max needed because Math.abs(Integer.MIN_VALUE) < 0
+        return Math.max(0, Math.abs(hashKey.toString().hashCode()));
+    }
 }

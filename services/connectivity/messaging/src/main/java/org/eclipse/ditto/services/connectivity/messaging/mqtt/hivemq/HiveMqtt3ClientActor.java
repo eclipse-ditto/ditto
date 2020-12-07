@@ -96,7 +96,8 @@ public final class HiveMqtt3ClientActor
 
     @Override
     ActorRef startPublisherActor(final Connection connection, final Mqtt3AsyncClient client) {
-        final Props publisherActorProps = HiveMqtt3PublisherActor.props(connection, client, isDryRun());
+        final Props publisherActorProps =
+                HiveMqtt3PublisherActor.props(connection, client, isDryRun(), getDefaultClientId());
         return startChildActorConflictFree(HiveMqtt3PublisherActor.NAME, publisherActorProps);
     }
 

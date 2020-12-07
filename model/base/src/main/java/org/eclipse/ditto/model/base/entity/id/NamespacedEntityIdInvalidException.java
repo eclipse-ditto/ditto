@@ -115,7 +115,6 @@ public final class NamespacedEntityIdInvalidException extends DittoRuntimeExcept
                 .build();
     }
 
-    // TODO: equals and hashcode
     /**
      * A mutable builder with a fluent API for a {@link NamespacedEntityIdInvalidException}.
      */

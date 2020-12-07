@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
@@ -109,8 +110,14 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
         try {
             return doMap(externalMessage);
         } catch (final Exception e) {
+            final DittoHeaders dittoHeaders;
+            if (e instanceof WithDittoHeaders) {
+                dittoHeaders = ((WithDittoHeaders<?>) e).getDittoHeaders();
+            } else {
+                dittoHeaders = externalMessage.getInternalHeaders();
+            }
             // we don't want to throw an exception in case something went wrong during the mapping
-            LOGGER.withCorrelationId(externalMessage.getInternalHeaders())
+            LOGGER.withCorrelationId(dittoHeaders)
                     .info("Error occurred during mapping: <{}>: {}", e.getClass().getSimpleName(), e.getMessage());
             return EMPTY_RESULT;
         }

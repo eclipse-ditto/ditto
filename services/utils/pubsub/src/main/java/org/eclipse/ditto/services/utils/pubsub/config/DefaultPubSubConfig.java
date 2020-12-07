@@ -37,17 +37,13 @@ final class DefaultPubSubConfig implements PubSubConfig {
     private static final String CONFIG_PATH = "pubsub";
 
     private final String seed;
-    private final int hashFamilySize;
     private final Duration restartDelay;
     private final Duration updateInterval;
-    private final double forceUpdateProbability;
 
     private DefaultPubSubConfig(final ConfigWithFallback config) {
         seed = config.getString(ConfigValue.SEED.getConfigPath());
-        hashFamilySize = config.getInt(ConfigValue.HASH_FAMILY_SIZE.getConfigPath());
         restartDelay = config.getDuration(ConfigValue.RESTART_DELAY.getConfigPath());
         updateInterval = config.getDuration(ConfigValue.UPDATE_INTERVAL.getConfigPath());
-        forceUpdateProbability = config.getDouble(ConfigValue.FORCE_UPDATE_PROBABILITY.getConfigPath());
     }
 
     static PubSubConfig of(final Config config) {
@@ -60,11 +56,6 @@ final class DefaultPubSubConfig implements PubSubConfig {
     }
 
     @Override
-    public int getHashFamilySize() {
-        return hashFamilySize;
-    }
-
-    @Override
     public Duration getRestartDelay() {
         return restartDelay;
     }
@@ -74,21 +65,12 @@ final class DefaultPubSubConfig implements PubSubConfig {
         return updateInterval;
     }
 
-    @Override
-    public double getForceUpdateProbability() {
-        return forceUpdateProbability;
-    }
-
     private String[] getFieldNames() {
-        return new String[]{
-                "seed", "hashFamilySize", "restartDelay", "updateInterval", "forceUpdateProbability"
-        };
+        return new String[]{"seed", "restartDelay", "updateInterval"};
     }
 
     private Object[] getFieldValues() {
-        return new Object[]{
-                seed, hashFamilySize, restartDelay, updateInterval, forceUpdateProbability
-        };
+        return new Object[]{seed, restartDelay, updateInterval};
     }
 
     @Override

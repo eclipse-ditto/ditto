@@ -30,6 +30,11 @@ import scala.util.hashing.MurmurHash3$;
 public interface Hashes {
 
     /**
+     * Hash family size is fixed at 2 to fit hash code into a long int.
+     */
+    int HASH_FAMILY_SIZE = 2;
+
+    /**
      * Get seeds for the family of hash functions.
      *
      * @return the seeds.
@@ -44,6 +49,17 @@ public interface Hashes {
      */
     default List<Integer> getHashes(final String string) {
         return getSeeds().stream().map(seed -> murmurHash(string, seed)).collect(Collectors.toList());
+    }
+
+    /**
+     * Hash a string topic into a long integer.
+     *
+     * @param topic the topic.
+     * @return the hashed topic.
+     */
+    default Long hashAsLong(final String topic) {
+        final List<Integer> hashes = getHashes(topic);
+        return ((long) hashes.get(0)) << 32 | hashes.get(1) & 0xffffffffL;
     }
 
     /**

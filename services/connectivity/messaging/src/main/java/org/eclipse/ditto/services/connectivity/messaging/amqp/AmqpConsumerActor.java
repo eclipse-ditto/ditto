@@ -383,7 +383,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             } else {
                 inboundAcknowledgedMonitor.exception("Sending negative acknowledgement: <{0}>", ackTypeName);
             }
-        } catch (final JMSException e) {
+        } catch (final Exception e) {
             log.withCorrelationId(correlationId).error(e, "Failed to ack an AMQP message");
         }
     }

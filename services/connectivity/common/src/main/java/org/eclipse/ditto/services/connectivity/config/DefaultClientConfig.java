@@ -39,6 +39,7 @@ public final class DefaultClientConfig implements ClientConfig {
     private final Duration testingTimeout;
     private final Duration minBackoff;
     private final Duration maxBackoff;
+    private final Duration clientActorRefsNotificationDelay;
 
     private DefaultClientConfig(final ScopedConfig config) {
         initTimeout = config.getDuration(ClientConfigValue.INIT_TIMEOUT.getConfigPath());
@@ -49,6 +50,8 @@ public final class DefaultClientConfig implements ClientConfig {
         testingTimeout = config.getDuration(ClientConfigValue.TESTING_TIMEOUT.getConfigPath());
         minBackoff = config.getDuration(ClientConfigValue.MIN_BACKOFF.getConfigPath());
         maxBackoff = config.getDuration(ClientConfigValue.MAX_BACKOFF.getConfigPath());
+        clientActorRefsNotificationDelay =
+                config.getDuration(ClientConfigValue.CLIENT_ACTOR_REFS_NOTIFICATION_DELAY.getConfigPath());
     }
 
     /**
@@ -88,6 +91,11 @@ public final class DefaultClientConfig implements ClientConfig {
     }
 
     @Override
+    public Duration getClientActorRefsNotificationDelay() {
+        return clientActorRefsNotificationDelay;
+    }
+
+    @Override
     public Duration getMinBackoff() {
         return minBackoff;
     }
@@ -113,13 +121,14 @@ public final class DefaultClientConfig implements ClientConfig {
                 Objects.equals(testingTimeout, that.testingTimeout) &&
                 Objects.equals(minBackoff, that.minBackoff) &&
                 Objects.equals(maxBackoff, that.maxBackoff) &&
-                Objects.equals(subscriptionManagerTimeout, that.subscriptionManagerTimeout);
+                Objects.equals(subscriptionManagerTimeout, that.subscriptionManagerTimeout) &&
+                Objects.equals(clientActorRefsNotificationDelay, that.clientActorRefsNotificationDelay);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(initTimeout, connectingMinTimeout, connectingMaxTimeout, connectingMaxTries,
-                testingTimeout, minBackoff, maxBackoff, subscriptionManagerTimeout);
+                testingTimeout, minBackoff, maxBackoff, subscriptionManagerTimeout, clientActorRefsNotificationDelay);
     }
 
     @Override
@@ -130,9 +139,10 @@ public final class DefaultClientConfig implements ClientConfig {
                 ", connectingMaxTimeout=" + connectingMaxTimeout +
                 ", connectingMaxTries=" + connectingMaxTries +
                 ", testingTimeout=" + testingTimeout +
-                ", minBackoff" + minBackoff +
-                ", maxBackoff" + maxBackoff +
-                ", subscriptionManagerTimeout" + subscriptionManagerTimeout +
+                ", minBackoff=" + minBackoff +
+                ", maxBackoff=" + maxBackoff +
+                ", subscriptionManagerTimeout=" + subscriptionManagerTimeout +
+                ", clientActorRefsNotificationDelay=" + clientActorRefsNotificationDelay +
                 "]";
     }
 

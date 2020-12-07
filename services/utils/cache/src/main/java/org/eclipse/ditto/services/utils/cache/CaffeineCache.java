@@ -23,10 +23,9 @@ import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
+import com.github.benmanes.caffeine.cache.AsyncCache;
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
-import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Policy;
 
 
@@ -38,29 +37,26 @@ import com.github.benmanes.caffeine.cache.Policy;
  */
 public class CaffeineCache<K, V> implements Cache<K, V> {
 
-    private static final AsyncCacheLoader<?, ?> NULL_CACHE_LOADER =
-            (k, executor) -> CompletableFuture.completedFuture(null);
-    @Nullable
-    private final MetricsStatsCounter metricStatsCounter;
-    private final AsyncLoadingCache<K, V> asyncLoadingCache;
-    private final LoadingCache<K, V> synchronousCacheView;
+    @Nullable private final MetricsStatsCounter metricStatsCounter;
+    private final BiFunction<? super K, Executor, CompletableFuture<V>> asyncLoad;
+    private final AsyncCache<K, V> asyncCache;
+    private final com.github.benmanes.caffeine.cache.Cache<K, V> synchronousCacheView;
 
 
     private CaffeineCache(final Caffeine<? super K, ? super V> caffeine,
-            final AsyncCacheLoader<K, V> loader,
+            @Nullable final AsyncCacheLoader<K, V> loader,
             @Nullable final String cacheName) {
 
         if (cacheName != null) {
             this.metricStatsCounter =
                     MetricsStatsCounter.of(cacheName, this::getMaxCacheSize, this::getCurrentCacheSize);
             caffeine.recordStats(() -> metricStatsCounter);
-            this.asyncLoadingCache = caffeine.buildAsync(loader);
-            this.synchronousCacheView = asyncLoadingCache.synchronous();
         } else {
-            this.asyncLoadingCache = caffeine.buildAsync(loader);
-            this.synchronousCacheView = asyncLoadingCache.synchronous();
             this.metricStatsCounter = null;
         }
+        asyncLoad = loader != null ? loader::asyncLoad : (k, e) -> CompletableFuture.completedFuture(null);
+        this.asyncCache = loader != null ? caffeine.buildAsync(loader) : caffeine.buildAsync();
+        this.synchronousCacheView = asyncCache.synchronous();
     }
 
     @SuppressWarnings({"squid:S2583", "ConstantConditions"})
@@ -111,8 +107,7 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
     public static <K, V> CaffeineCache<K, V> of(final Caffeine<? super K, ? super V> caffeine) {
         requireNonNull(caffeine);
 
-        final AsyncCacheLoader<K, V> cacheLoader = getTypedNullCacheLoader();
-        return new CaffeineCache<>(caffeine, cacheLoader, null);
+        return new CaffeineCache<>(caffeine, null, null);
     }
 
     /**
@@ -128,8 +123,7 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
             @Nullable final String cacheName) {
         requireNonNull(caffeine);
 
-        final AsyncCacheLoader<K, V> cacheLoader = getTypedNullCacheLoader();
-        return new CaffeineCache<>(caffeine, cacheLoader, cacheName);
+        return new CaffeineCache<>(caffeine, null, cacheName);
     }
 
     /**
@@ -155,7 +149,7 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
     public CompletableFuture<Optional<V>> get(final K key) {
         requireNonNull(key);
 
-        return asyncLoadingCache.get(key).thenApply(Optional::ofNullable);
+        return asyncCache.get(key, asyncLoad).thenApply(Optional::ofNullable);
     }
 
     /**
@@ -169,14 +163,14 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
     public CompletableFuture<V> get(final K key,
             final BiFunction<K, Executor, CompletableFuture<V>> mappingFunction) {
 
-        return asyncLoadingCache.get(key, mappingFunction);
+        return asyncCache.get(key, mappingFunction);
     }
 
     @Override
     public CompletableFuture<Optional<V>> getIfPresent(final K key) {
         requireNonNull(key);
 
-        final CompletableFuture<V> future = asyncLoadingCache.getIfPresent(key);
+        final CompletableFuture<V> future = asyncCache.getIfPresent(key);
 
         return future == null
                 ? CompletableFuture.completedFuture(Optional.empty())
@@ -187,15 +181,14 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
     public Optional<V> getBlocking(final K key) {
         requireNonNull(key);
 
-        final V value = synchronousCacheView.get(key);
-        return Optional.ofNullable(value);
+        return get(key).join();
     }
 
     @Override
     public boolean invalidate(final K key) {
         requireNonNull(key);
 
-        final boolean currentlyExisting = asyncLoadingCache.getIfPresent(key) != null;
+        final boolean currentlyExisting = asyncCache.getIfPresent(key) != null;
         synchronousCacheView.invalidate(key);
 
         if (metricStatsCounter != null) {
@@ -221,7 +214,7 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
 
         // non-blocking.
         // synchronousCacheView.put has same implementation with extra null check on value.
-        asyncLoadingCache.put(key, CompletableFuture.completedFuture(value));
+        asyncCache.put(key, CompletableFuture.completedFuture(value));
     }
 
     @Override
@@ -229,11 +222,4 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         return synchronousCacheView.asMap();
     }
 
-    // TODO: replace uses of this method by caffeine.buildAsync()
-    // TODO: split this into 2 classes for the loading cache case and non-loading-cache case
-    private static <K, V> AsyncCacheLoader<K, V> getTypedNullCacheLoader() {
-        @SuppressWarnings("unchecked") final AsyncCacheLoader<K, V> nullCacheLoader =
-                (AsyncCacheLoader<K, V>) NULL_CACHE_LOADER;
-        return nullCacheLoader;
-    }
 }

@@ -33,8 +33,7 @@ import org.eclipse.ditto.model.things.Thing;
 /**
  * Visitor to evaluate a criteria against a partial thing with unknown fields.
  */
-final class Thing3ValuePredicateVisitor
-        implements CriteriaVisitor<Function<Thing, Thing3ValuePredicateVisitor.Trilean>> {
+final class Thing3ValuePredicateVisitor implements CriteriaVisitor<Function<Thing, Trilean>> {
 
     private final Set<JsonPointer> unknownFields;
 
@@ -143,75 +142,4 @@ final class Thing3ValuePredicateVisitor
 
     }
 
-    /**
-     * Kleene's strong logic of indeterminacy: extension of Boolean logic with UNKNOWN.
-     */
-    enum Trilean {
-        TRUE,
-        FALSE,
-        UNKNOWN;
-
-        /**
-         * Lift a Boolean into a trilean.
-         *
-         * @param bool the Boolean.
-         * @return the corresponding trilean.
-         */
-        private static Trilean lift(final boolean bool) {
-            return bool ? Trilean.TRUE : Trilean.FALSE;
-        }
-
-        /**
-         * Negate a Kleene trilean.
-         *
-         * @param trilean the trilean.
-         * @return its negation.
-         */
-        private static Trilean not(final Trilean trilean) {
-            switch (trilean) {
-                case TRUE:
-                    return FALSE;
-                case FALSE:
-                    return TRUE;
-                default:
-                    return UNKNOWN;
-            }
-        }
-
-        /**
-         * Compute the conjunction of 2 Kleene trilean.
-         *
-         * @param t1 the first trilean.
-         * @param t2 the second trilean.
-         * @return their conjunction.
-         */
-        private static Trilean or(final Trilean t1, final Trilean t2) {
-            switch (t1) {
-                case TRUE:
-                    return TRUE;
-                case FALSE:
-                    return t2;
-                default:
-                    return t2 == TRUE ? TRUE : UNKNOWN;
-            }
-        }
-
-        /**
-         * Compute the disjunction of 2 Kleene trilean.
-         *
-         * @param t1 the first trilean.
-         * @param t2 the second trilean.
-         * @return their disjunction.
-         */
-        private static Trilean and(final Trilean t1, final Trilean t2) {
-            switch (t1) {
-                case TRUE:
-                    return t2;
-                case FALSE:
-                    return FALSE;
-                default:
-                    return t2 == FALSE ? FALSE : UNKNOWN;
-            }
-        }
-    }
 }

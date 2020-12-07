@@ -21,6 +21,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import javax.jms.JMSException;
@@ -56,7 +57,7 @@ import akka.testkit.javadsl.TestKit;
 @RunWith(MockitoJUnitRunner.class)
 public class JmsConnectionHandlingActorTest extends WithMockServers {
 
-    @SuppressWarnings("NullableProblems") private static ActorSystem actorSystem;
+    private static ActorSystem actorSystem;
 
     private static final ConnectionId connectionId = TestConstants.createRandomConnectionId();
     private static Connection connection;
@@ -64,8 +65,7 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
     @Mock private final Session mockSession = mock(Session.class);
     @Mock private final JmsConnection mockConnection = mock(JmsConnection.class);
     @Mock private final ConnectionLogger connectionLogger = mock(ConnectionLogger.class);
-    private final JmsConnectionFactory jmsConnectionFactory =
-            (connection1, exceptionListener, connectionLogger) -> mockConnection;
+    private final JmsConnectionFactory jmsConnectionFactory = (c, e, l, i) -> mockConnection;
 
     @BeforeClass
     public static void setUp() {
@@ -96,8 +96,8 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
             final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
 
             final TestProbe origin = TestProbe.apply(actorSystem);
-
-            connectionHandlingActor.tell(new AmqpClientActor.JmsConnect(origin.ref()), getRef());
+            final String clientId = UUID.randomUUID().toString();
+            connectionHandlingActor.tell(new AmqpClientActor.JmsConnect(origin.ref(), clientId), getRef());
 
             final ConnectionFailure connectionFailure1 = expectMsgClass(ConnectionFailure.class);
             assertThat(connectionFailure1.getOrigin()).contains(origin.ref());
@@ -117,8 +117,8 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
             final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
 
             final TestProbe origin = TestProbe.apply(actorSystem);
-
-            connectionHandlingActor.tell(new AmqpClientActor.JmsConnect(origin.ref()), getRef());
+            final String clientId = UUID.randomUUID().toString();
+            connectionHandlingActor.tell(new AmqpClientActor.JmsConnect(origin.ref(), clientId), getRef());
 
             final ConnectionFailure connectionFailure1 = expectMsgClass(ConnectionFailure.class);
             assertThat(connectionFailure1.getOrigin()).contains(origin.ref());
@@ -135,8 +135,8 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
             final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
 
             final TestProbe origin = TestProbe.apply(actorSystem);
-
-            connectionHandlingActor.tell(new AmqpClientActor.JmsConnect(origin.ref()), getRef());
+            final String clientId = UUID.randomUUID().toString();
+            connectionHandlingActor.tell(new AmqpClientActor.JmsConnect(origin.ref(), clientId), getRef());
 
             final ClientConnected connected = expectMsgClass(ClientConnected.class);
             assertThat(connected.getOrigin()).contains(origin.ref());
@@ -209,7 +209,6 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
             final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
 
             final TestProbe origin = TestProbe.apply(actorSystem);
-
             connectionHandlingActor.tell(new AmqpClientActor.JmsDisconnect(origin.ref(), mockConnection), getRef());
 
             final ClientDisconnected disconnected = expectMsgClass(ClientDisconnected.class);
@@ -231,7 +230,6 @@ public class JmsConnectionHandlingActorTest extends WithMockServers {
             final ActorRef connectionHandlingActor = watch(actorSystem.actorOf(props));
 
             final TestProbe origin = TestProbe.apply(actorSystem);
-
             connectionHandlingActor.tell(new AmqpClientActor.JmsDisconnect(origin.ref(), mockConnection), getRef());
 
             final ClientDisconnected disconnected = expectMsgClass(ClientDisconnected.class);
