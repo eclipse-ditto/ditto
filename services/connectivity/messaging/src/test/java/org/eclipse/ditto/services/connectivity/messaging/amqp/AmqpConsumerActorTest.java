@@ -142,7 +142,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
             assertThat(ackType).describedAs("Expect failure settlement without redelivery")
                     .isEqualTo(shouldRedeliver
                             ? JmsMessageSupport.MODIFIED_FAILED
-                            : JmsMessageSupport.MODIFIED_FAILED_UNDELIVERABLE
+                            : JmsMessageSupport.REJECTED
                     );
         }
     }
