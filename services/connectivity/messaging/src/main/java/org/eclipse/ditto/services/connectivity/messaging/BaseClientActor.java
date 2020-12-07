@@ -344,7 +344,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         if (connection.getClientCount() == 1) {
             return prefix.toString();
         } else {
-            return prefix + "-" + actorUUID;
+            return prefix + "_" + actorUUID;
         }
     }
 
