@@ -74,6 +74,14 @@ public class MergeThing extends AbstractCommand<MergeThing> implements ThingModi
         return new MergeThing(thingId, path, value, dittoHeaders);
     }
 
+    public JsonPointer getPath() {
+        return path;
+    }
+
+    public JsonValue getValue() {
+        return value;
+    }
+
     @Override
     public ThingId getThingEntityId() {
         return thingId;
