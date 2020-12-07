@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
@@ -49,6 +50,7 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingDefinition;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAcl;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
@@ -202,17 +204,15 @@ public final class ThingsRoute extends AbstractRoute {
      */
     private Route things(final RequestContext ctx, final DittoHeaders dittoHeaders) {
         return pathEndOrSingleSlash(() ->
-                concat( //
-                        get(() -> // GET /things?ids=<idsString>&fields=<fieldsString>
-                                buildRetrieveThingsRoute(ctx, dittoHeaders)
-                        ),
-                        post(() -> // POST /things
-                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
-                                        payloadSource ->
-                                        handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                thingJson -> CreateThing.of(createThingForPost(thingJson),
-                                                        createInlinePolicyJson(thingJson), getCopyPolicyFrom(thingJson),
-                                                        dittoHeaders)
+                concat(
+                        // GET /things?ids=<idsString>&fields=<fieldsString>
+                        get(() -> buildRetrieveThingsRoute(ctx, dittoHeaders)),
+                        // POST /things
+                        post(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                        thingJson -> CreateThing.of(createThingForPost(thingJson),
+                                                createInlinePolicyJson(thingJson), getCopyPolicyFrom(thingJson),
+                                                dittoHeaders)
                                         )
                                 )
                         )
@@ -246,29 +246,35 @@ public final class ThingsRoute extends AbstractRoute {
     private Route thingsEntry(final RequestContext ctx, final DittoHeaders dittoHeaders, final ThingId thingId) {
         return pathEndOrSingleSlash(() ->
                 concat(
-                        get(() -> // GET /things/<thingId>?fields=<fieldsString>
-                                parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
+                        // GET /things/<thingId>?fields=<fieldsString>
+                        get(() -> parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
                                         handlePerRequest(ctx, RetrieveThing.getBuilder(thingId, dittoHeaders)
-                                                .withSelectedFields(calculateSelectedFields(fieldsString).orElse(null))
+                                                .withSelectedFields(calculateSelectedFields(fieldsString)
+                                                        .orElse(null))
                                                 .build())
                                 )
                         ),
-                        put(() -> // PUT /things/<thingId>
-                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
-                                        payloadSource ->
-                                                handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                        thingJson -> ModifyThing.of(thingId,
-                                                                ThingsModelFactory.newThingBuilder(
-                                                                        createThingJsonObjectForPut(thingJson,
-                                                                                thingId.toString()))
-                                                                        .build(),
-                                                                createInlinePolicyJson(thingJson),
-                                                                getCopyPolicyFrom(thingJson),
-                                                                dittoHeaders)))
+                        // PUT /things/<thingId>
+                        put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                        thingJson -> ModifyThing.of(thingId,
+                                                ThingsModelFactory.newThingBuilder(
+                                                        createThingJsonObjectForPut(thingJson, thingId.toString()))
+                                                        .build(),
+                                                createInlinePolicyJson(thingJson),
+                                                getCopyPolicyFrom(thingJson),
+                                                dittoHeaders)))
                         ),
-                        delete(() -> // DELETE /things/<thingId>
-                                handlePerRequest(ctx, DeleteThing.of(thingId, dittoHeaders))
-                        )
+                        // PATCH /things/<thingId>
+                        patch(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                        thingJson -> MergeThing.of(thingId, JsonFactory.emptyPointer(),
+                                                DittoJsonException.wrapJsonRuntimeException(() ->
+                                                        JsonFactory.readFrom(thingJson)),
+                                                dittoHeaders)))
+                        ),
+                        // DELETE /things/<thingId>
+                        delete(() -> handlePerRequest(ctx, DeleteThing.of(thingId, dittoHeaders)))
                 )
         );
     }
@@ -280,22 +286,20 @@ public final class ThingsRoute extends AbstractRoute {
      */
     private Route thingsEntryPolicyId(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-        return path(PATH_POLICY_ID, () -> // /things/<thingId>/policyId
+        // /things/<thingId>/policyId
+        return path(PATH_POLICY_ID, () ->
                 concat(
-                        get(() -> // GET /things/<thingId>/policyId
-                                handlePerRequest(ctx, RetrievePolicyId.of(thingId, dittoHeaders))
-                        ),
-                        put(() -> // PUT /things/<thingId>/policyId
-                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
-                                        payloadSource ->
-                                                handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                        policyIdJson -> ModifyPolicyId.of(thingId,
-                                                                PolicyId.of(
-                                                                        Optional.of(JsonFactory.readFrom(policyIdJson))
-                                                                                .filter(JsonValue::isString)
-                                                                                .map(JsonValue::asString)
-                                                                                .orElse(policyIdJson)), dittoHeaders)
-                                                )
+                        // GET /things/<thingId>/policyId
+                        get(() -> handlePerRequest(ctx, RetrievePolicyId.of(thingId, dittoHeaders))),
+                        // PUT /things/<thingId>/policyId
+                        put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                        policyIdJson -> ModifyPolicyId.of(thingId,
+                                                PolicyId.of(Optional.of(JsonFactory.readFrom(policyIdJson))
+                                                        .filter(JsonValue::isString)
+                                                        .map(JsonValue::asString)
+                                                        .orElse(policyIdJson)),
+                                                dittoHeaders))
                                 )
                         )
                 )
@@ -308,19 +312,16 @@ public final class ThingsRoute extends AbstractRoute {
      * @return {@code /things/<thingId>/acl} route.
      */
     private Route thingsEntryAcl(final RequestContext ctx, final DittoHeaders dittoHeaders, final ThingId thingId) {
-        return rawPathPrefix(PathMatchers.slash().concat(PATH_ACL), () -> // /things/<thingId>/acl
+        // /things/<thingId>/acl
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_ACL), () ->
                 pathEndOrSingleSlash(() ->
                         concat(
-                                get(() -> // GET /things/<thingId>/acl
-                                        handlePerRequest(ctx, RetrieveAcl.of(thingId, dittoHeaders))
-                                ),
-                                put(() -> // PUT /things/<thingId>/acl
-                                        ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
-                                                payloadSource ->
-                                                        handlePerRequest(ctx, dittoHeaders, payloadSource, aclJson ->
-                                                                ModifyAcl.of(thingId,
-                                                                        ThingsModelFactory.newAcl(aclJson),
-                                                                        dittoHeaders))
+                                // GET /things/<thingId>/acl
+                                get(() -> handlePerRequest(ctx, RetrieveAcl.of(thingId, dittoHeaders))),
+                                // PUT /things/<thingId>/acl
+                                put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                        payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource, aclJson ->
+                                                ModifyAcl.of(thingId, ThingsModelFactory.newAcl(aclJson), dittoHeaders))
                                         )
                                 )
                         )
@@ -339,37 +340,28 @@ public final class ThingsRoute extends AbstractRoute {
                 rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), subject ->
                         pathEndOrSingleSlash(() ->
                                 concat(
-                                        get(() -> // GET
-                                                // /things/<thingId>/acl/<authorizationSubject>?fields=<fieldsString>
-                                                parameterOptional(ThingsParameter.FIELDS.toString(),
-                                                        fieldsString ->
-                                                                handlePerRequest(ctx, RetrieveAclEntry
-                                                                        .of(thingId,
-                                                                                AuthorizationModelFactory.newAuthSubject(
-                                                                                        subject),
-                                                                                calculateSelectedFields(
-                                                                                        fieldsString).orElse(
-                                                                                        null), dittoHeaders))
+                                        // GET /things/<thingId>/acl/<authorizationSubject>?fields=<fieldsString>
+                                        get(() -> parameterOptional(ThingsParameter.FIELDS.toString(),
+                                                fieldsString -> handlePerRequest(ctx, RetrieveAclEntry.of(thingId,
+                                                        AuthorizationModelFactory.newAuthSubject(subject),
+                                                        calculateSelectedFields(fieldsString).orElse(null),
+                                                        dittoHeaders))
                                                 )
                                         ),
-                                        put(() -> // PUT /things/<thingId>/acl/<authorizationSubject>
-                                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
-                                                        dittoHeaders,
-                                                        payloadSource ->
-                                                                handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                                        aclEntryJson ->
-                                                                                ModifyAclEntry.of(thingId,
-                                                                                        ThingsModelFactory
-                                                                                                .newAclEntry(subject,
-                                                                                                        JsonFactory.readFrom(
-                                                                                                                aclEntryJson)),
-                                                                                        dittoHeaders))
+                                        // PUT /things/<thingId>/acl/<authorizationSubject>
+                                        put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
+                                                dittoHeaders, payloadSource ->
+                                                        handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                                aclEntryJson -> ModifyAclEntry.of(thingId,
+                                                                        ThingsModelFactory.newAclEntry(subject,
+                                                                                JsonFactory.readFrom(aclEntryJson)),
+                                                                        dittoHeaders))
                                                 )
                                         ),
-                                        delete(() -> // DELETE /things/<thingId>/acl/<authorizationSubject>
-                                                handlePerRequest(ctx, DeleteAclEntry
-                                                        .of(thingId, AuthorizationModelFactory.newAuthSubject(
-                                                                subject), dittoHeaders))
+                                        // DELETE /things/<thingId>/acl/<authorizationSubject>
+                                        delete(() -> handlePerRequest(ctx, DeleteAclEntry.of(thingId,
+                                                AuthorizationModelFactory.newAuthSubject(subject),
+                                                dittoHeaders))
                                         )
                                 )
                         )
@@ -388,28 +380,33 @@ public final class ThingsRoute extends AbstractRoute {
         return rawPathPrefix(PathMatchers.slash().concat(PATH_ATTRIBUTES), () ->
                 pathEndOrSingleSlash(() ->
                         concat(
-                                get(() -> // GET /things/<thingId>/attributes?fields=<fieldsString>
-                                        parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
-                                                handlePerRequest(ctx, RetrieveAttributes
-                                                        .of(thingId,
-                                                                calculateSelectedFields(fieldsString).orElse(
-                                                                        null), dittoHeaders))
+                                // GET /things/<thingId>/attributes?fields=<fieldsString>
+                                get(() -> parameterOptional(ThingsParameter.FIELDS.toString(), fieldsString ->
+                                                handlePerRequest(ctx, RetrieveAttributes.of(thingId,
+                                                        calculateSelectedFields(fieldsString).orElse(null),
+                                                        dittoHeaders))
                                         )
                                 ),
-                                put(() -> // PUT /things/<thingId>/attributes
-                                        ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
-                                                payloadSource ->
-                                                        handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                                attributesJson ->
-                                                                        ModifyAttributes.of(thingId,
-                                                                                ThingsModelFactory.newAttributes(
-                                                                                        attributesJson),
-                                                                                dittoHeaders))
+                                // PUT /things/<thingId>/attributes
+                                put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                        payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                attributesJson -> ModifyAttributes.of(thingId,
+                                                        ThingsModelFactory.newAttributes(attributesJson),
+                                                        dittoHeaders))
                                         )
                                 ),
-                                delete(() -> // DELETE /things/<thingId>/attributes
-                                        handlePerRequest(ctx, DeleteAttributes.of(thingId, dittoHeaders))
-                                )
+                                // PATCH /things/<thingId>/attributes
+                                patch(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                        payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                attributesJson -> MergeThing.of(thingId,
+                                                        JsonFactory.newPointer(JsonKey.of(PATH_ATTRIBUTES)),
+                                                        DittoJsonException.wrapJsonRuntimeException(
+                                                                () -> JsonFactory.readFrom(attributesJson)),
+                                                        dittoHeaders))
+                                        )
+                                ),
+                                // DELETE /things/<thingId>/attributes
+                                delete(() -> handlePerRequest(ctx, DeleteAttributes.of(thingId, dittoHeaders)))
                         )
                 )
         );
@@ -437,26 +434,39 @@ public final class ThingsRoute extends AbstractRoute {
                         .map(path -> UriEncoding.decode(path, UriEncoding.EncodingType.RFC3986))
                         .map(path -> "/" + path), // Prepend slash to path to fail request with double slashes
                 jsonPointerString -> concat(
-                        get(() -> // GET /things/<thingId>/attributes/<attributePointerStr>
-                                handlePerRequest(ctx,
-                                        RetrieveAttribute.of(thingId, JsonFactory.newPointer(jsonPointerString),
-                                                dittoHeaders))
+                        // GET /things/<thingId>/attributes/<attributePointerStr>
+                        get(() ->
+                                handlePerRequest(ctx, RetrieveAttribute.of(thingId,
+                                        JsonFactory.newPointer(jsonPointerString),
+                                        dittoHeaders))
                         ),
-                        put(() -> // PUT /things/<thingId>/attributes/<attributePointerStr>
-                                ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
-                                        payloadSource ->
-                                                handlePerRequest(ctx, dittoHeaders, payloadSource, attributeValueJson ->
-                                                        ModifyAttribute.of(thingId,
-                                                                JsonFactory.newPointer(jsonPointerString),
-                                                                DittoJsonException.wrapJsonRuntimeException(() ->
-                                                                        JsonFactory.readFrom(attributeValueJson)),
-                                                                dittoHeaders))
+                        // PUT /things/<thingId>/attributes/<attributePointerStr>
+                        put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                payloadSource ->
+                                        handlePerRequest(ctx, dittoHeaders, payloadSource, attributeValueJson ->
+                                                ModifyAttribute.of(thingId,
+                                                        JsonFactory.newPointer(jsonPointerString),
+                                                        DittoJsonException.wrapJsonRuntimeException(() ->
+                                                                JsonFactory.readFrom(attributeValueJson)),
+                                                        dittoHeaders))
                                 )
                         ),
-                        delete(() -> // DELETE /things/<thingId>/attributes/<attributePointerStr>
-                                handlePerRequest(ctx,
-                                        DeleteAttribute.of(thingId, JsonFactory.newPointer(jsonPointerString),
-                                                dittoHeaders))
+                        // PATCH /things/<thingId>/attributes/<attributePointerStr>
+                        patch(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                payloadSource ->
+                                        handlePerRequest(ctx, dittoHeaders, payloadSource, attributeValueJson ->
+                                                MergeThing.of(thingId,
+                                                        JsonFactory.newPointer(jsonPointerString),
+                                                        DittoJsonException.wrapJsonRuntimeException(() ->
+                                                                JsonFactory.readFrom(attributeValueJson)),
+                                                        dittoHeaders)
+                                        )
+                                )
+                        ),
+                        // DELETE /things/<thingId>/attributes/<attributePointerStr>
+                        delete(() -> handlePerRequest(ctx, DeleteAttribute.of(thingId,
+                                JsonFactory.newPointer(jsonPointerString),
+                                dittoHeaders))
                         )
                 )
         );
@@ -473,28 +483,34 @@ public final class ThingsRoute extends AbstractRoute {
         return rawPathPrefix(PathMatchers.slash().concat(PATH_THING_DEFINITION), () ->
                 pathEndOrSingleSlash(() ->
                         concat(
-                                get(() -> // GET /things/<thingId>/definition
-
-                                        handlePerRequest(ctx, RetrieveThingDefinition
-                                                .of(thingId, dittoHeaders)
+                                // GET /things/<thingId>/definition
+                                get(() -> handlePerRequest(ctx, RetrieveThingDefinition.of(thingId, dittoHeaders)
                                         )
                                 ),
-                                put(() -> // PUT /things/<thingId>/definition
-                                        ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
-                                                payloadSource ->
-                                                        pathEnd(() -> // PUT /things/<thingId>/definition/
-                                                                handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                                        definitionJson ->
-                                                                                ModifyThingDefinition.of(thingId,
-                                                                                        getDefinitionFromJson(
-                                                                                                definitionJson),
-                                                                                        dittoHeaders))
-                                                        )
+                                // PUT /things/<thingId>/definition
+                                put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                        payloadSource ->
+                                                pathEnd(() -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                        definitionJson -> ModifyThingDefinition.of(thingId,
+                                                                getDefinitionFromJson(definitionJson),
+                                                                dittoHeaders))
+                                                )
                                         )
                                 ),
-                                delete(() -> // DELETE /things/<thingId>/definition
-                                        handlePerRequest(ctx, DeleteThingDefinition.of(thingId, dittoHeaders))
-                                )
+                                // PATCH /things/<thingId>/definition
+                                patch(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                        payloadSource ->
+                                                pathEnd(() -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                                        definitionJson -> MergeThing.of(thingId,
+                                                                JsonFactory.newPointer(JsonKey.of(PATH_THING_DEFINITION)),
+                                                                DittoJsonException.wrapJsonRuntimeException(() ->
+                                                                        JsonFactory.readFrom(definitionJson)),
+                                                                dittoHeaders))
+                                                )
+                                        )
+                                ),
+                                // DELETE /things/<thingId>/definition
+                                delete(() -> handlePerRequest(ctx, DeleteThingDefinition.of(thingId, dittoHeaders)))
                         )
                 )
         );
@@ -518,7 +534,9 @@ public final class ThingsRoute extends AbstractRoute {
      */
     private Route thingsEntryFeatures(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
-        return featuresRoute.buildFeaturesRoute(ctx, dittoHeaders, thingId); // /things/<thingId>/features
+
+        // /things/<thingId>/features
+        return featuresRoute.buildFeaturesRoute(ctx, dittoHeaders, thingId);
     }
 
     /*
@@ -529,8 +547,8 @@ public final class ThingsRoute extends AbstractRoute {
     private Route thingsEntryInboxOutbox(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final ThingId thingId) {
 
-        return messagesRoute.buildThingsInboxOutboxRoute(ctx, dittoHeaders,
-                thingId); // /things/<thingId>/<inbox|outbox>
+        // /things/<thingId>/<inbox|outbox>
+        return messagesRoute.buildThingsInboxOutboxRoute(ctx, dittoHeaders, thingId);
     }
 
 }

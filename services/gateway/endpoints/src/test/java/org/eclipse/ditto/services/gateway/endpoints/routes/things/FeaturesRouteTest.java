@@ -48,7 +48,7 @@ import akka.http.javadsl.testkit.TestRouteResult;
  */
 public final class FeaturesRouteTest extends EndpointTestBase {
 
-    private static final String FEATURES_PATH = "/" + FeaturesRoute.PATH_PREFIX;
+    private static final String FEATURES_PATH = "/" + FeaturesRoute.PATH_FEATURES;
 
     private static final String FEATURE_ENTRY_PATH = FEATURES_PATH + "/" + EndpointTestConstants.KNOWN_FEATURE_ID;
 
@@ -61,15 +61,14 @@ public final class FeaturesRouteTest extends EndpointTestBase {
     private static final String FEATURE_ENTRY_DESIRED_PROPERTIES_PATH =
             FEATURE_ENTRY_PATH + "/" + FeaturesRoute.PATH_DESIRED_PROPERTIES;
 
-    private static final String FEATURE_ENTRY_PROPERTIES_ENTRY_PATH = FEATURE_ENTRY_PROPERTIES_PATH + "/" +
-            "knownJsonPointer";
+    private static final String FEATURE_ENTRY_PROPERTIES_ENTRY_PATH =
+            FEATURE_ENTRY_PROPERTIES_PATH + "/" + "knownJsonPointer";
 
     private static final String FEATURE_ENTRY_DESIRED_PROPERTIES_ENTRY_PATH =
-            FEATURE_ENTRY_DESIRED_PROPERTIES_PATH + "/" +
-                    "knownJsonPointer";
+            FEATURE_ENTRY_DESIRED_PROPERTIES_PATH + "/" + "knownJsonPointer";
 
-    private static final String FEATURE_ENTRY_INBOX_MESSAGES_PATH = FEATURE_ENTRY_PATH + "/" +
-            MessagesRoute.PATH_INBOX + "/" + MessagesRoute.PATH_MESSAGES;
+    private static final String FEATURE_ENTRY_INBOX_MESSAGES_PATH =
+            FEATURE_ENTRY_PATH + "/" + MessagesRoute.PATH_INBOX + "/" + MessagesRoute.PATH_MESSAGES;
 
     @Rule
     public final TestName testName = new TestName();
@@ -110,8 +109,7 @@ public final class FeaturesRouteTest extends EndpointTestBase {
     @Test
     public void putFeatures() {
         final Features features = ThingsModelFactory.emptyFeatures();
-        final TestRouteResult result =
-                underTest.run(HttpRequest.PUT(FEATURES_PATH)
+        final TestRouteResult result = underTest.run(HttpRequest.PUT(FEATURES_PATH)
                         .withEntity(ContentTypes.APPLICATION_JSON, features.toJsonString()));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
@@ -244,9 +242,9 @@ public final class FeaturesRouteTest extends EndpointTestBase {
 
     @Test
     public void putFeatureEntryPropertiesEntry() {
-        final JsonValue featurePropertiesEntry = JsonFactory.readFrom("\"notImportantHere\"");
+        final String featurePropertiesEntry = "\"notImportantHere\"";
         final TestRouteResult result = underTest.run(HttpRequest.PUT(FEATURE_ENTRY_PROPERTIES_ENTRY_PATH).withEntity
-                (ContentTypes.APPLICATION_JSON, featurePropertiesEntry.toString()));
+                (ContentTypes.APPLICATION_JSON, featurePropertiesEntry));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 
@@ -325,10 +323,10 @@ public final class FeaturesRouteTest extends EndpointTestBase {
 
     @Test
     public void putFeatureEntryDesiredPropertiesEntry() {
-        final JsonValue featureDesiredPropertiesEntry = JsonFactory.readFrom("\"notImportantHere\"");
+        final String featureDesiredPropertiesEntry = "\"notImportantHere\"";
         final TestRouteResult result =
                 underTest.run(HttpRequest.PUT(FEATURE_ENTRY_DESIRED_PROPERTIES_ENTRY_PATH).withEntity
-                        (ContentTypes.APPLICATION_JSON, featureDesiredPropertiesEntry.toString()));
+                        (ContentTypes.APPLICATION_JSON, featureDesiredPropertiesEntry));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 
@@ -386,9 +384,8 @@ public final class FeaturesRouteTest extends EndpointTestBase {
     @Test
     public void getPropertiesWithTrailingSlash() {
         final HttpRequest request = HttpRequest.GET(FEATURE_ENTRY_PROPERTIES_PATH + "/");
-        final TestRouteResult result =
-                underTest.run(request);
-        result.assertStatusCode(StatusCodes.OK);
+        final TestRouteResult result = underTest.run(request);
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
         final String entityString = result.entityString();
         assertThat(entityString).contains(RetrieveFeatureProperties.TYPE);
     }
@@ -396,8 +393,7 @@ public final class FeaturesRouteTest extends EndpointTestBase {
     @Test
     public void getPropertiesWithoutSlashButOtherText() {
         final HttpRequest request = HttpRequest.GET(FEATURE_ENTRY_PROPERTIES_PATH + "sfsdgsdg");
-        final TestRouteResult result =
-                underTest.run(request);
+        final TestRouteResult result = underTest.run(request);
         result.assertStatusCode(StatusCodes.NOT_FOUND);
     }
 
@@ -405,9 +401,94 @@ public final class FeaturesRouteTest extends EndpointTestBase {
     public void putPropertyWithEmptyPointer() {
         final HttpRequest request = HttpRequest.PUT(FEATURE_ENTRY_PROPERTIES_PATH + "//bar")
                 .withEntity(ContentTypes.APPLICATION_JSON, "\"bumlux\"");
-        final TestRouteResult result =
-                underTest.run(request);
+        final TestRouteResult result = underTest.run(request);
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
+    @Test
+    public void patchFeatureEntryPropertiesEntry() {
+        final String featurePropertiesEntry = "\"notImportantHere\"";
+        final TestRouteResult result = underTest.run(HttpRequest.PATCH(FEATURE_ENTRY_PROPERTIES_ENTRY_PATH).withEntity
+                (ContentTypes.APPLICATION_JSON, featurePropertiesEntry));
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+
+    @Test
+    public void patchFeatureEntryPropertiesEntryWithJsonException() {
+        final String tooLongNumber = "89314404000484999942";
+        final TestRouteResult result = underTest.run(HttpRequest.PATCH(FEATURE_ENTRY_PROPERTIES_ENTRY_PATH).withEntity
+                (ContentTypes.APPLICATION_JSON, tooLongNumber));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
+    public void patchPropertiesSuccessfully() {
+        final String featurePropertiesJson = "{\"property\":\"value1\"}";
+        final TestRouteResult result =
+                underTest.run(HttpRequest.PATCH(FEATURE_ENTRY_PROPERTIES_PATH)
+                        .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, featurePropertiesJson)));
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+
+    @Test
+    public void patchPropertiesWithJsonPointerException() {
+        final String featurePropertiesJson = "{\"/wrongProperty\":\"withMissingClosingCurlyBracket\"";
+        final TestRouteResult result =
+                underTest.run(HttpRequest.PATCH(FEATURE_ENTRY_PROPERTIES_PATH)
+                        .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, featurePropertiesJson)));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
+    public void patchPropertySuccessfully() {
+        final String featurePropertyJson = "\"value1\"";
+        final TestRouteResult result =
+                underTest.run(HttpRequest.PATCH(FEATURE_ENTRY_PROPERTIES_ENTRY_PATH)
+                        .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, featurePropertyJson)));
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+
+    @Test
+    public void patchPropertyWithJsonPointerException() {
+        final String featureJson = "{\"/wrongProperty\":\"withMissingClosingCurlyBracket\"";
+        final TestRouteResult result =
+                underTest.run(HttpRequest.PATCH(FEATURE_ENTRY_PROPERTIES_ENTRY_PATH)
+                        .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, featureJson)));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
+    public void patchFeatureEntryDesiredPropertiesEntrySuccessfully() {
+        final String featureDesiredPropertiesEntry = "{\"desiredProperty\":\"value0815\"}";
+        final TestRouteResult result =
+                underTest.run(HttpRequest.PATCH(FEATURE_ENTRY_DESIRED_PROPERTIES_ENTRY_PATH).withEntity
+                        (ContentTypes.APPLICATION_JSON, featureDesiredPropertiesEntry));
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+
+    @Test
+    public void patchFeatureEntryDesiredPropertiesEntryWithJsonException() {
+        final String nestedFeatureDesiredPropertiesEntry =
+                "{\"nestedDesiredProperty\": {\"desiredProperty\":\"value0815\"}";
+        final TestRouteResult result =
+                underTest.run(HttpRequest.PATCH(FEATURE_ENTRY_DESIRED_PROPERTIES_ENTRY_PATH).withEntity
+                        (ContentTypes.APPLICATION_JSON, nestedFeatureDesiredPropertiesEntry));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
+    public void patchFeatureEntryDefinitionSuccessfully() {
+        final String featureDefinition = "\"org.eclipse.ditto:vorto:0.1.0\"";
+        final TestRouteResult result = underTest.run(HttpRequest.PATCH(FEATURE_ENTRY_DEFINITION_PATH)
+                        .withEntity(ContentTypes.APPLICATION_JSON, featureDefinition));
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+
+    @Test
+    public void patchFeatureEntryDefinitionWithJsonException() {
+        final String featureDefinition = "org.eclipse.ditto:vorto:0.1.0";
+        final TestRouteResult result = underTest.run(HttpRequest.PATCH(FEATURE_ENTRY_DEFINITION_PATH)
+                .withEntity(ContentTypes.APPLICATION_JSON, featureDefinition));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
 }

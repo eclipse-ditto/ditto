@@ -71,7 +71,6 @@ public final class ThingsRouteTest extends EndpointTestBase {
     public void putNewThingWithAttributesSuccessfully() {
         final TestRouteResult result = underTest.run(HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy")
                 .withEntity(ContentTypes.APPLICATION_JSON, "{\"attributes\": {\"foo\": \"bar\"}}"));
-
         result.assertStatusCode(StatusCodes.OK);
     }
 
@@ -183,6 +182,43 @@ public final class ThingsRouteTest extends EndpointTestBase {
         final HttpRequest request = HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy/attributes")
                 .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, attributeJson));
         final TestRouteResult result = underTest.run(request);
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
+    public void patchThingWithAttributesSuccessfully() {
+        final TestRouteResult result = underTest.run(HttpRequest.PATCH("/things/org.eclipse.ditto%3Adummy")
+                .withEntity(ContentTypes.APPLICATION_JSON, "{\"attributes\": {\"foo\": \"bar\"}}"));
+        result.assertStatusCode(StatusCodes.OK);
+    }
+
+    @Test
+    public void patchThingWithAttributeSuccessfully() {
+        final String body = "\"bumlux\"";
+        final HttpRequest request = HttpRequest.PATCH("/things/org.eclipse.ditto%3Adummy/attributes/bar")
+                .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, body));
+        final TestRouteResult result = underTest.run(request);
+        result.assertStatusCode(StatusCodes.OK);
+    }
+
+    @Test
+    public void patchThingWithJsonException() {
+        final TestRouteResult result = underTest.run(HttpRequest.PATCH("/things/org.eclipse.ditto%3Adummy")
+                .withEntity(ContentTypes.APPLICATION_JSON, "{\"attributes\": {\"foo\": }"));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
+    public void patchDefinitionSuccessfully() {
+        final TestRouteResult result = underTest.run(HttpRequest.PATCH("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/definition")
+                .withEntity(ContentTypes.APPLICATION_JSON, "\"hello:world:123\""));
+        result.assertStatusCode(StatusCodes.OK);
+    }
+
+    @Test
+    public void patchDefinitionWithJsonPointerException() {
+        final TestRouteResult result = underTest.run(HttpRequest.PATCH("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/definition")
+                .withEntity(ContentTypes.APPLICATION_JSON, "hello:world:123"));
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
