@@ -131,7 +131,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/NewThing'
-            example: {}
         description: |-
           JSON representation of the Thing to be created.
 
@@ -348,7 +347,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/NewThing'
-            example: {}
         description: |-
           JSON representation of the Thing to be modified.
 
@@ -1171,7 +1169,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Features'
-            example: {}
         description: 'JSON object of the Features to be modified at once. It can be also `null` or an empty object `{}` (all features cleared).'
         required: true
     delete:
@@ -1343,7 +1340,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Feature'
-            example: {}
         description: 'JSON representation of the Feature to be created/modified. It can also be `null` or an empty object `{}`.'
         required: true
     delete:
@@ -1527,7 +1523,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/FeatureDefinition'
-            example: {}
         description: |-
           JSON array of the complete Definition to be updated. Consider that
           the value has to be a JSON array or `null`. The content of the JSON array
@@ -1708,7 +1703,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/FeatureProperties'
-            example: {}
         description: 'JSON object of all Properties to be updated at once. Consider that the value has to be a JSON object or `null`. We strongly recommend to use a restricted set of characters for the key (identifier). Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*'
         required: true
     delete:
@@ -2430,7 +2424,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Attributes'
-          example: {}
       description: |-
         JSON object of all Attributes to be modified at once.
         Consider that the value has to be a JSON object or `null`, examples:
@@ -2473,7 +2466,6 @@ components:
         application/json:
           schema:
             type: object
-            example: {}
       description: |-
         JSON representation of the value to be created/updated. This may be as
         well `null` or an empty object.

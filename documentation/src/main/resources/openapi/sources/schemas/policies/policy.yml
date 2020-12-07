@@ -9,7 +9,13 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 type: object
-description: policy consisting of policy entries
+description: Policy consisting of policy entries
 properties:
+  policyId:
+    type: string
+    description: Unique identifier representing the policy
   entries:
     $ref: 'policyEntries.yml'
+required:
+  - policyId
+  - entries

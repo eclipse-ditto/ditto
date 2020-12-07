@@ -35,7 +35,7 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/policyEntries.yml'
+            $ref: '../../schemas/policies/policyEntries.yml'
     '304':
       $ref: '../../responses/notModified.yml'
     '400':
@@ -46,13 +46,13 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. The policy with the given ID was
@@ -60,7 +60,7 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'
 put:
@@ -98,24 +98,23 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '403':
       description: |-
         The request could not be completed. Possible reasons:
-
         * the caller has insufficient permissions.
           You need `WRITE` permission on the `policy:/entries` resource,
           without any revoke in a deeper path of the policy resource.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. The policy with the given ID was
@@ -123,7 +122,7 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'
     '413':
@@ -132,7 +131,7 @@ put:
     content:
       application/json:
         schema:
-          $ref: '../../schemas/policyEntries.yml'
+          $ref: '../../schemas/policies/policyEntries.yml'
         example: {
           "DEFAULT": {
             "subjects": {
@@ -143,22 +142,22 @@ put:
             "resources": {
               "policy:/": {
                 "grant": [
-                    "READ",
-                    "WRITE"
+                  "READ",
+                  "WRITE"
                 ],
                 "revoke": [ ]
               },
               "thing:/": {
                 "grant": [
-                    "READ",
-                    "WRITE"
+                  "READ",
+                  "WRITE"
                 ],
                 "revoke": [ ]
               },
               "message:/": {
                 "grant": [
-                    "READ",
-                    "WRITE"
+                  "READ",
+                  "WRITE"
                 ],
                 "revoke": [ ]
               }

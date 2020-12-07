@@ -8,16 +8,10 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
-type: object
-description: |-
-  Single (Authorization) Resource entry defining permissions per effect.
-  Allowed effects are `grant` and `revoke`.
 properties:
-  grant:
+  items:
     type: array
     items:
-      $ref: 'permission.yml'
-  revoke:
-    type: array
-    items:
-      $ref: 'permission.yml'
+      $ref: '../things/thing.yml'
+  cursor:
+    type: string
