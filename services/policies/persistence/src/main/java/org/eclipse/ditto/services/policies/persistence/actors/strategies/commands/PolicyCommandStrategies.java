@@ -31,8 +31,8 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 public final class PolicyCommandStrategies
         extends AbstractCommandStrategies<Command, Policy, PolicyId, Result<PolicyEvent>> {
 
-    @Nullable private static PolicyCommandStrategies instance;
-    @Nullable private static CreatePolicyStrategy createPolicyStrategy;
+    @Nullable private static volatile PolicyCommandStrategies instance;
+    @Nullable private static volatile CreatePolicyStrategy createPolicyStrategy;
 
     private PolicyCommandStrategies(final PolicyConfig policyConfig) {
         super(Command.class);
@@ -75,11 +75,17 @@ public final class PolicyCommandStrategies
      * @param policyConfig the PolicyConfig of the Policy service to apply.
      * @return command strategies for policy persistence actor.
      */
-    public static PolicyCommandStrategies getInstance(final PolicyConfig policyConfig) {
-        if (null == instance) {
-            instance = new PolicyCommandStrategies(policyConfig);
+    public static synchronized PolicyCommandStrategies getInstance(final PolicyConfig policyConfig) {
+        PolicyCommandStrategies localInstance = instance;
+        if (null == localInstance) {
+            synchronized (PolicyCommandStrategies.class) {
+                localInstance = instance;
+                if (null == localInstance) {
+                    instance = localInstance = new PolicyCommandStrategies(policyConfig);
+                }
+            }
         }
-        return instance;
+        return localInstance;
     }
 
     /**
@@ -88,10 +94,16 @@ public final class PolicyCommandStrategies
      */
     public static CommandStrategy<CreatePolicy, Policy, PolicyId, Result<PolicyEvent>> getCreatePolicyStrategy(
             final PolicyConfig policyConfig) {
-        if (null == createPolicyStrategy) {
-            createPolicyStrategy = new CreatePolicyStrategy(policyConfig);
+        CreatePolicyStrategy localCreatePolicyStrategy = createPolicyStrategy;
+        if (null == localCreatePolicyStrategy) {
+            synchronized (PolicyCommandStrategies.class) {
+                localCreatePolicyStrategy = createPolicyStrategy;
+                if (null == localCreatePolicyStrategy) {
+                    createPolicyStrategy = localCreatePolicyStrategy = new CreatePolicyStrategy(policyConfig);
+                }
+            }
         }
-        return createPolicyStrategy;
+        return localCreatePolicyStrategy;
     }
 
     @Override

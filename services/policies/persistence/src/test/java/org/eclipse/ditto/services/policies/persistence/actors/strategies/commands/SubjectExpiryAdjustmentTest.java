@@ -145,6 +145,16 @@ public final class SubjectExpiryAdjustmentTest extends AbstractPolicyCommandStra
         doTestSubjectExpiryAdjustment(underTest, givenExpiry, expectedAdjustedExpiry);
     }
 
+    @Test
+    public void doesNotRoundUpMatchingGranularity() {
+        final ModifySubjectStrategy underTest = createStrategy("1m");
+
+        final LocalDateTime givenExpiry = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
+        final LocalDateTime expectedAdjustedExpiry = givenExpiry;
+
+        doTestSubjectExpiryAdjustment(underTest, givenExpiry, expectedAdjustedExpiry);
+    }
+
     private static ModifySubjectStrategy createStrategy(final String configuredGranularityString) {
         return new ModifySubjectStrategy(DefaultPolicyConfig.of(ConfigFactory.load("policy-test")
                 .withValue("policy.subject-expiry-granularity",

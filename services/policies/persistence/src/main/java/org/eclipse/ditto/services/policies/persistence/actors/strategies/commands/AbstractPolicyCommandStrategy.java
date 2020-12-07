@@ -146,11 +146,7 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>>
      */
     protected PolicyEntry potentiallyAdjustPolicyEntry(final PolicyEntry policyEntry) {
         final Subjects adjustedSubjects = potentiallyAdjustSubjects(policyEntry.getSubjects());
-        if (!adjustedSubjects.equals(policyEntry.getSubjects())) {
-            return PolicyEntry.newInstance(policyEntry.getLabel(), adjustedSubjects, policyEntry.getResources());
-        } else {
-            return policyEntry;
-        }
+        return PolicyEntry.newInstance(policyEntry.getLabel(), adjustedSubjects, policyEntry.getResources());
     }
 
     /**
@@ -213,6 +209,12 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>>
 
         final long amountBetween = policyExpiryGranularity.temporalUnit.between(truncatedParent, truncated);
         final long deltaModulo = amountBetween % policyExpiryGranularity.amount;
+
+        if (truncated.equals(timestamp) && deltaModulo == 0) {
+            // shortcut, when truncating leads to the given expiry timestamp, don't adjust the subjectExpiry at all:
+            return expiry;
+        }
+
         final long toAdd = policyExpiryGranularity.amount - deltaModulo;
         final Instant roundedUp = truncated.plus(toAdd, policyExpiryGranularity.temporalUnit);
 
