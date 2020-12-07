@@ -138,7 +138,7 @@ public class JsonObjectMergerTest {
                 .set("y", 6)
                 .build();
 
-        final JsonObject mergedObject = JsonObjectMerger.mergeJsonObjectsAndFilterNullValuesAndEmptyObjects(object1, object2);
+        final JsonObject mergedObject = JsonObjectMerger.mergeJsonObjectsAndFilterNullValues(object1, object2);
 
         Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
     }

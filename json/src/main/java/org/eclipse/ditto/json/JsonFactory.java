@@ -337,6 +337,19 @@ public final class JsonFactory {
     }
 
     /**
+     * Merge two JSON objects into one JSON object and filter out null values.
+     * Implementation is conform to <a href="https://tools.ietf.org/html/rfc7396">RFC 7396</a>.
+     *
+     * @param jsonObject1 the json object to merge, overrides conflicting fields.
+     * @param jsonObject2 the json object to merge.
+     * @return returns a new object merged the given {code jsonObject1} and {code jsonObject2} without null values.
+     * @since 1.5.0
+     */
+    public static JsonObject newObjectWithoutNullValues(final JsonObject jsonObject1, final JsonObject jsonObject2) {
+        return JsonObjectMerger.mergeJsonObjectsAndFilterNullValues(jsonObject1, jsonObject2);
+    }
+
+    /**
      * Returns a JSON NULL literal which is typed as JSON object.
      *
      * @return an object typed JSON NULL literal.

@@ -61,16 +61,17 @@ final class JsonObjectMerger {
     }
 
     /**
-     * Merge 2 JSON objects recursively into one and filter null values and empty objects.
+     * Merge 2 JSON objects recursively into one and filter out null values.
      * In case of conflict, the first object is more important.
+     * Implementation is conform to <a href="https://tools.ietf.org/html/rfc7396">RFC 7396</a>.
      *
      * @param jsonObject1 the first json object to merge, overrides conflicting fields.
      * @param jsonObject2 the second json object to merge.
      * @return the merged json object.
      */
-    public static JsonObject mergeJsonObjectsAndFilterNullValuesAndEmptyObjects(final JsonObject jsonObject1, final JsonObject jsonObject2) {
-
-        return filterNullValuesAndEmptyObjects(mergeJsonObjects(jsonObject1, jsonObject2));
+    public static JsonObject mergeJsonObjectsAndFilterNullValues(final JsonObject jsonObject1,
+            final JsonObject jsonObject2) {
+        return filterNullValues(mergeJsonObjects(jsonObject1, jsonObject2));
     }
 
     private static JsonValue mergeJsonValues(final JsonValue value1, final JsonValue value2) {
@@ -115,7 +116,7 @@ final class JsonObjectMerger {
         });
     }
 
-    private static JsonObject filterNullValuesAndEmptyObjects(final JsonObject jsonObject) {
+    private static JsonObject filterNullValues(final JsonObject jsonObject) {
         final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
 
         jsonObject.forEach(jsonField -> {
@@ -126,10 +127,7 @@ final class JsonObjectMerger {
             if (value.isNull()) {
                 return;
             } else if (value.isObject()) {
-                result = filterNullValuesAndEmptyObjects(value.asObject());
-                if (result.asObject().isEmpty()) {
-                    return;
-                }
+                result = filterNullValues(value.asObject());
             } else {
                 result = value;
             }
