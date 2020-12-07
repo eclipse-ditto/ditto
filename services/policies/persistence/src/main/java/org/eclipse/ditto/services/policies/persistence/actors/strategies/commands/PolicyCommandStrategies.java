@@ -75,7 +75,7 @@ public final class PolicyCommandStrategies
      * @param policyConfig the PolicyConfig of the Policy service to apply.
      * @return command strategies for policy persistence actor.
      */
-    public static synchronized PolicyCommandStrategies getInstance(final PolicyConfig policyConfig) {
+    public static PolicyCommandStrategies getInstance(final PolicyConfig policyConfig) {
         PolicyCommandStrategies localInstance = instance;
         if (null == localInstance) {
             synchronized (PolicyCommandStrategies.class) {
