@@ -80,7 +80,6 @@ import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.gateway.streaming.actors.SupervisedStream;
 import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.services.gateway.util.config.streaming.WebsocketConfig;
-import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.akka.controlflow.LimitRateByRejection;
@@ -88,6 +87,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
@@ -792,11 +792,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
     private static ThingErrorResponse buildThingErrorResponse(final DittoRuntimeException dittoRuntimeException) {
-        final DittoHeaders dittoHeaders = dittoRuntimeException.getDittoHeaders();
-        final String nullableEntityId = dittoHeaders.get(DittoHeaderDefinition.ENTITY_ID.getKey());
-        return nullableEntityId != null
-                ? ThingErrorResponse.of(ThingId.of(nullableEntityId), dittoRuntimeException, dittoHeaders)
-                : ThingErrorResponse.of(dittoRuntimeException, dittoHeaders);
+        return ThingErrorResponse.of(dittoRuntimeException);
     }
 
     private static PolicyErrorResponse buildPolicyErrorResponse(final DittoRuntimeException dittoRuntimeException) {
