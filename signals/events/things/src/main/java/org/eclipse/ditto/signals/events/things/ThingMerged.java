@@ -33,19 +33,17 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
  * This event is emitted after a {@link org.eclipse.ditto.model.things.Thing} was merged.
  *
- * @since TODO replace-with-correct-version
+ * @since 2.0.0
  */
 @Immutable
 @JsonParsableEvent(name = ThingMerged.NAME, typePrefix = ThingMerged.TYPE_PREFIX)
-public class ThingMerged extends AbstractThingEvent<ThingMerged>
+public final class ThingMerged extends AbstractThingEvent<ThingMerged>
         implements ThingModifiedEvent<ThingMerged> {
 
     /**
@@ -62,7 +60,8 @@ public class ThingMerged extends AbstractThingEvent<ThingMerged>
     private final JsonPointer path;
     private final JsonValue value;
 
-    private ThingMerged(final ThingId thingId, final JsonPointer path, final JsonValue value,
+    private ThingMerged(final ThingId thingId,
+            final JsonPointer path, final JsonValue value,
             final long revision,
             @Nullable final Instant timestamp, final DittoHeaders dittoHeaders,
             @Nullable final Metadata metadata) {
@@ -72,20 +71,41 @@ public class ThingMerged extends AbstractThingEvent<ThingMerged>
         this.value = checkNotNull(value, "value");
     }
 
-    public static ThingMerged of(final ThingId thingId, final JsonPointer path, final JsonValue value,
+    /**
+     * Creates an event of merged thing.
+     *
+     * @param thingId the thing id
+     * @param path the path where the changes were applied
+     * @param value the value describing the changes that were merged into the existing thing
+     * @param dittoHeaders the ditto headers
+     * @return the created {@code ThingMerged} event
+     */
+    public static ThingMerged of(final ThingId thingId, final JsonPointer path,
+            final JsonValue value,
             final long revision, @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders, @Nullable final Metadata metadata) {
         return new ThingMerged(thingId, path, value, revision, timestamp, dittoHeaders, metadata);
     }
 
+    /**
+     * Creates a new {@code ThingMerged} event from a JSON object.
+     *
+     * @param jsonObject the JSON object of which the event is to be created.
+     * @param dittoHeaders the headers of the command.
+     * @return the {@code ThingMerged} event created from JSON
+     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain a field for
+     * {@link ThingEvent.JsonFields#THING_ID}, {@link JsonFields#JSON_PATH} or {@link JsonFields#JSON_VALUE}.
+     */
     public static ThingMerged fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<ThingMerged>(TYPE, jsonObject).deserialize(
                 (revision, timestamp, metadata) -> {
-                    final String thingId = jsonObject.getValueOrThrow(JsonFields.JSON_THING_ID);
-                    final String path = jsonObject.getValueOrThrow(JsonFields.JSON_PATH);
+                    final ThingId thingId = ThingId.of(jsonObject.getValueOrThrow(ThingEvent.JsonFields.THING_ID));
+                    final JsonPointer path = JsonPointer.of(jsonObject.getValueOrThrow(JsonFields.JSON_PATH));
                     final JsonValue value = jsonObject.getValueOrThrow(JsonFields.JSON_VALUE);
-
-                    return of(ThingId.of(thingId),JsonPointer.of(path), value, revision, timestamp, dittoHeaders, metadata);
+                    return of(thingId, path, value, revision, timestamp, dittoHeaders, metadata);
                 });
     }
 
@@ -93,7 +113,7 @@ public class ThingMerged extends AbstractThingEvent<ThingMerged>
     protected void appendPayloadAndBuild(final JsonObjectBuilder jsonObjectBuilder,
             final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingEvent.JsonFields.THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JsonFields.JSON_PATH, path.toString(), predicate);
         jsonObjectBuilder.set(JsonFields.JSON_VALUE, value, predicate);
     }
@@ -113,6 +133,13 @@ public class ThingMerged extends AbstractThingEvent<ThingMerged>
     @Override
     public JsonPointer getResourcePath() {
         return path;
+    }
+
+    /**
+     * TODO
+     */
+    public JsonValue getValue() {
+        return value;
     }
 
     @Override
@@ -141,20 +168,17 @@ public class ThingMerged extends AbstractThingEvent<ThingMerged>
     }
 
     /**
-     * TODO javadoc
+     * An enumeration of the JSON fields of a {@code ThingMerged} event.
      */
     static class JsonFields {
 
-        static final JsonFieldDefinition<String> JSON_THING_ID =
-                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
-
         static final JsonFieldDefinition<String> JSON_PATH =
-                JsonFactory.newStringFieldDefinition("path", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("path", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         static final JsonFieldDefinition<JsonValue> JSON_VALUE =
-                JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        static final JsonFieldDefinition<JsonObject> JSON_MERGED_THING =
+                JsonFactory.newJsonObjectFieldDefinition("mergedThing", FieldType.REGULAR, JsonSchemaVersion.V_2);
     }
 }

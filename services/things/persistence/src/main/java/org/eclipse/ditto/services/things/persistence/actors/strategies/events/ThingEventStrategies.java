@@ -55,6 +55,7 @@ import org.eclipse.ditto.signals.events.things.ThingDefinitionDeleted;
 import org.eclipse.ditto.signals.events.things.ThingDefinitionModified;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.things.ThingMerged;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 
 /**
@@ -90,6 +91,7 @@ public final class ThingEventStrategies extends AbstractEventStrategies<ThingEve
         addStrategy(ThingCreated.class, new ThingCreatedStrategy());
         addStrategy(ThingModified.class, new ThingModifiedStrategy());
         addStrategy(ThingDeleted.class, new ThingDeletedStrategy());
+        addStrategy(ThingMerged.class, new ThingMergedStrategy());
     }
 
     private void addAclStrategies() {
