@@ -71,6 +71,8 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
         }
 
         final Set<PolicyEntry> adjustedEntries = potentiallyAdjustPolicyEntries(policyEntries);
+        final ModifyPolicyEntries adjustedCommand = ModifyPolicyEntries.of(command.getEntityId(), adjustedEntries,
+                dittoHeaders);
 
         final PoliciesValidator validator = PoliciesValidator.newInstance(adjustedEntries);
 
@@ -78,13 +80,14 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
             final PolicyId policyId = context.getState();
             final PolicyEntriesModified policyEntriesModified = PolicyEntriesModified.of(policyId, adjustedEntries,
                     nextRevision, getEventTimestamp(), dittoHeaders);
-            final WithDittoHeaders response =
-                    appendETagHeaderIfProvided(command, ModifyPolicyEntriesResponse.of(policyId, dittoHeaders), entity);
+            final WithDittoHeaders<?> response = appendETagHeaderIfProvided(adjustedCommand,
+                    ModifyPolicyEntriesResponse.of(policyId, dittoHeaders), entity);
 
-            return ResultFactory.newMutationResult(command, policyEntriesModified, response);
+            return ResultFactory.newMutationResult(adjustedCommand, policyEntriesModified, response);
         } else {
             return ResultFactory.newErrorResult(
-                    policyInvalid(context.getState(), validator.getReason().orElse(null), dittoHeaders), command);
+                    policyInvalid(context.getState(), validator.getReason().orElse(null), dittoHeaders),
+                    command);
         }
     }
 

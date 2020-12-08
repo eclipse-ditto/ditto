@@ -86,11 +86,13 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
         }
 
         final PolicyEntry adjustedPolicyEntry = potentiallyAdjustPolicyEntry(policyEntry);
+        final ModifyPolicyEntry adjustedCommand = ModifyPolicyEntry.of(command.getEntityId(), adjustedPolicyEntry,
+                dittoHeaders);
         final PoliciesValidator validator = PoliciesValidator.newInstance(nonNullPolicy.setEntry(adjustedPolicyEntry));
         final PolicyId policyId = context.getState();
 
         if (validator.isValid()) {
-            final PolicyEvent eventToPersist;
+            final PolicyEvent<?> eventToPersist;
             final ModifyPolicyEntryResponse createdOrModifiedResponse;
             if (nonNullPolicy.contains(label)) {
                 eventToPersist =
@@ -104,13 +106,14 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
                 createdOrModifiedResponse = ModifyPolicyEntryResponse.created(policyId, adjustedPolicyEntry,
                         dittoHeaders);
             }
-            final WithDittoHeaders response =
-                    appendETagHeaderIfProvided(command, createdOrModifiedResponse, nonNullPolicy);
+            final WithDittoHeaders<?> response =
+                    appendETagHeaderIfProvided(adjustedCommand, createdOrModifiedResponse, nonNullPolicy);
 
-            return ResultFactory.newMutationResult(command, eventToPersist, response);
+            return ResultFactory.newMutationResult(adjustedCommand, eventToPersist, response);
         } else {
             return ResultFactory.newErrorResult(
-                    policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders), command);
+                    policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders),
+                    command);
         }
     }
 

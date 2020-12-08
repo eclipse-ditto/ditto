@@ -57,34 +57,37 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
 
         final Instant eventTs = getEventTimestamp();
         final Set<PolicyEntry> adjustedEntries = potentiallyAdjustPolicyEntries(command.getPolicy().getEntriesSet());
-        final Policy modifiedPolicy = PoliciesModelFactory.newPolicyBuilder(
-                command.getPolicy().getEntityId().orElseThrow(), adjustedEntries)
+        final Policy adjustedPolicy = PoliciesModelFactory.newPolicyBuilder(
+                command.getPolicy().getEntityId().orElseThrow(), adjustedEntries).build();
+
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final ModifyPolicy adjustedCommand = ModifyPolicy.of(command.getEntityId(), adjustedPolicy, dittoHeaders);
+
+        final Policy modifiedPolicyWithImplicits = adjustedPolicy.toBuilder()
                 .setModified(eventTs)
                 .setRevision(nextRevision)
                 .build();
 
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-
-        final JsonObject modifiedPolicyJsonObject = modifiedPolicy.toJson();
+        final JsonObject modifiedPolicyJsonObject = modifiedPolicyWithImplicits.toJson();
         try {
             PolicyCommandSizeValidator.getInstance()
                     .ensureValidSize(
                             modifiedPolicyJsonObject::getUpperBoundForStringSize,
                             () -> modifiedPolicyJsonObject.toString().length(),
-                            command::getDittoHeaders);
+                            adjustedCommand::getDittoHeaders);
         } catch (final PolicyTooLargeException e) {
-            return ResultFactory.newErrorResult(e, command);
+            return ResultFactory.newErrorResult(e, adjustedCommand);
         }
 
-        final PoliciesValidator validator = PoliciesValidator.newInstance(modifiedPolicy);
+        final PoliciesValidator validator = PoliciesValidator.newInstance(modifiedPolicyWithImplicits);
 
         if (validator.isValid()) {
             final PolicyModified policyModified =
-                    PolicyModified.of(modifiedPolicy, nextRevision, eventTs, dittoHeaders);
-            final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                    PolicyModified.of(modifiedPolicyWithImplicits, nextRevision, eventTs, dittoHeaders);
+            final WithDittoHeaders<?> response = appendETagHeaderIfProvided(adjustedCommand,
                     ModifyPolicyResponse.modified(context.getState(), dittoHeaders),
-                    modifiedPolicy);
-            return ResultFactory.newMutationResult(command, policyModified, response);
+                    modifiedPolicyWithImplicits);
+            return ResultFactory.newMutationResult(adjustedCommand, policyModified, response);
         } else {
             return ResultFactory.newErrorResult(
                     policyInvalid(context.getState(), validator.getReason().orElse(null), dittoHeaders), command);

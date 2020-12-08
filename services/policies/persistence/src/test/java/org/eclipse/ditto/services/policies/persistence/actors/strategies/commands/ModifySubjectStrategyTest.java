@@ -98,7 +98,7 @@ public final class ModifySubjectStrategyTest extends AbstractPolicyCommandStrate
         assertModificationResult(underTest, TestConstants.Policy.POLICY, command,
                 SubjectCreated.class,
                 ModifySubjectResponse.created(context.getState(), TestConstants.Policy.LABEL, expectedSubject,
-                        appendETagToDittoHeaders(subject, dittoHeaders)));
+                        appendETagToDittoHeaders(expectedSubject, dittoHeaders)));
     }
 
     @Test

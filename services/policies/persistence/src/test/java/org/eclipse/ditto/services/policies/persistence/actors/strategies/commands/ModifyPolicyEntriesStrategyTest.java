@@ -130,7 +130,6 @@ public final class ModifyPolicyEntriesStrategyTest extends AbstractPolicyCommand
                 SubjectType.GENERATED, subjectExpiry);
         final Policy policy = TestConstants.Policy.POLICY
                 .toBuilder()
-                .setRevision(NEXT_REVISION)
                 .setSubjectFor(TestConstants.Policy.LABEL, subjectWithExpiry)
                 .build();
         final ModifyPolicyEntries command = ModifyPolicyEntries.of(TestConstants.Policy.POLICY_ID, policy, dittoHeaders);

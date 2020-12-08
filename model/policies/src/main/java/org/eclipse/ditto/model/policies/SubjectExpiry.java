@@ -23,7 +23,7 @@ import javax.annotation.concurrent.Immutable;
  * @since 1.5.0
  */
 @Immutable
-public interface SubjectExpiry extends CharSequence {
+public interface SubjectExpiry extends CharSequence, Comparable<SubjectExpiry> {
 
     /**
      * Returns a new {@link SubjectExpiry} with the specified {@code expiry} from a ISO-8601 formatted char sequence.
@@ -70,4 +70,8 @@ public interface SubjectExpiry extends CharSequence {
     @Override
     String toString();
 
+    @Override
+    default int compareTo(final SubjectExpiry o) {
+        return getTimestamp().compareTo(o.getTimestamp());
+    }
 }

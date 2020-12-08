@@ -96,10 +96,22 @@ public abstract class AbstractShardedPersistenceActor<
         confirmedSnapshotRevision = 0L;
 
         handleEvents = ReceiveBuilder.create()
-                .match(getEventClass(), event -> entity = getEventStrategy().handle(event, entity, getRevisionNumber()))
+                .match(getEventClass(), event -> {
+                    entity = getEventStrategy().handle(event, entity, getRevisionNumber());
+                    onEntityModified(event);
+                })
                 .build();
 
         handleCleanups = super.createReceive();
+    }
+
+    /**
+     * Invoked whenever the locally cached entity by this PersistenceActor was modified.
+     *
+     * @param event the Event which caused the modification.
+     */
+    protected void onEntityModified(final E event) {
+        // default: no-op
     }
 
     @Override

@@ -61,11 +61,14 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
         final PolicyBuilder newPolicyBuilder = PoliciesModelFactory.newPolicyBuilder(
                 newPolicy.getEntityId().orElseThrow(), adjustedEntries);
 
+        final Policy adjustedPolicy = newPolicyBuilder.build();
+        final CreatePolicy adjustedCommand = CreatePolicy.of(adjustedPolicy, dittoHeaders);
+
         if (newPolicy.getLifecycle().isEmpty()) {
             newPolicyBuilder.setLifecycle(PolicyLifecycle.ACTIVE);
         }
-
         final Policy newPolicyWithLifecycle = newPolicyBuilder.build();
+
         final PoliciesValidator validator = PoliciesValidator.newInstance(newPolicyWithLifecycle);
         if (validator.isValid()) {
             final Instant timestamp = getEventTimestamp();
@@ -76,15 +79,16 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
                     .build();
             final PolicyCreated policyCreated =
                     PolicyCreated.of(newPolicyWithImplicits, nextRevision, timestamp, dittoHeaders);
-            final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+            final WithDittoHeaders<?> response = appendETagHeaderIfProvided(adjustedCommand,
                     CreatePolicyResponse.of(context.getState(), newPolicyWithImplicits, dittoHeaders),
                     newPolicyWithImplicits);
-            context.getLog().withCorrelationId(command)
+            context.getLog().withCorrelationId(adjustedCommand)
                     .debug("Created new Policy with ID <{}>.", context.getState());
-            return ResultFactory.newMutationResult(command, policyCreated, response, true, false);
+            return ResultFactory.newMutationResult(adjustedCommand, policyCreated, response, true, false);
         } else {
             return ResultFactory.newErrorResult(
-                    policyInvalid(context.getState(), validator.getReason().orElse(null), dittoHeaders), command);
+                    policyInvalid(context.getState(), validator.getReason().orElse(null), dittoHeaders),
+                    command);
         }
     }
 

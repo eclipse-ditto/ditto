@@ -180,7 +180,7 @@ public final class SubjectExpiryAdjustmentTest extends AbstractPolicyCommandStra
         assertModificationResult(underTest, TestConstants.Policy.POLICY, command,
                 SubjectCreated.class,
                 ModifySubjectResponse.created(context.getState(), TestConstants.Policy.LABEL, expectedSubject,
-                        appendETagToDittoHeaders(subject, dittoHeaders)));
+                        appendETagToDittoHeaders(expectedSubject, dittoHeaders)));
     }
 
 }

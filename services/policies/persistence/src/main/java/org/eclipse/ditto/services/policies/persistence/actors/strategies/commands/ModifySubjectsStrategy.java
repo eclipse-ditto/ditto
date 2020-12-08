@@ -64,19 +64,22 @@ final class ModifySubjectsStrategy extends AbstractPolicyCommandStrategy<ModifyS
 
         if (nonNullPolicy.getEntryFor(label).isPresent()) {
             final Subjects adjustedSubjects = potentiallyAdjustSubjects(subjects);
+            final ModifySubjects adjustedCommand = ModifySubjects.of(command.getEntityId(), command.getLabel(),
+                    adjustedSubjects, dittoHeaders);
             final PoliciesValidator validator =
                     PoliciesValidator.newInstance(nonNullPolicy.setSubjectsFor(label, adjustedSubjects));
 
             if (validator.isValid()) {
                 final SubjectsModified subjectsModified =
                         SubjectsModified.of(policyId, label, adjustedSubjects, nextRevision, getEventTimestamp(),
-                                command.getDittoHeaders());
-                final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                                dittoHeaders);
+                final WithDittoHeaders<?> response = appendETagHeaderIfProvided(adjustedCommand,
                         ModifySubjectsResponse.of(policyId, label, dittoHeaders), nonNullPolicy);
-                return ResultFactory.newMutationResult(command, subjectsModified, response);
+                return ResultFactory.newMutationResult(adjustedCommand, subjectsModified, response);
             } else {
                 return ResultFactory.newErrorResult(
-                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders), command);
+                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders),
+                        command);
             }
         } else {
             return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, dittoHeaders), command);

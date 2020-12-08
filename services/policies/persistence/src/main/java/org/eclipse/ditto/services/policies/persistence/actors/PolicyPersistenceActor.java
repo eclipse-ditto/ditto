@@ -12,12 +12,26 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Comparator;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.StreamSupport;
+
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyLifecycle;
-import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
+import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.SubjectExpiry;
+import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.services.policies.common.config.DittoPoliciesConfig;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.actors.strategies.commands.PolicyCommandStrategies;
@@ -35,11 +49,12 @@ import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
+import org.eclipse.ditto.signals.events.policies.SubjectDeleted;
 
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.cluster.sharding.ClusterSharding;
+import akka.japi.Pair;
+import akka.japi.pf.ReceiveBuilder;
 
 /**
  * PersistentActor which "knows" the state of a single {@link Policy}.
@@ -61,6 +76,8 @@ public final class PolicyPersistenceActor
      * The ID of the snapshot plugin this persistence actor uses.
      */
     static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-policies-snapshots";
+
+    private static final String NEXT_SUBJECT_EXPIRY_TIMER = "next-subject-expiry-timer";
 
     private final ActorRef pubSubMediator;
     private final PolicyConfig policyConfig;
@@ -89,17 +106,6 @@ public final class PolicyPersistenceActor
             final ActorRef pubSubMediator) {
 
         return Props.create(PolicyPersistenceActor.class, policyId, snapshotAdapter, pubSubMediator);
-    }
-
-    /**
-     * Retrieves the ShardRegion of "Policy". PolicyCommands can be sent to this region which handles dispatching them
-     * in the cluster (onto the cluster node containing the shard).
-     *
-     * @param system the ActorSystem in which to lookup the ShardRegion.
-     * @return the ActorRef to the ShardRegion.
-     */
-    public static ActorRef getShardRegion(final ActorSystem system) {
-        return ClusterSharding.get(system).shardRegion(PoliciesMessagingConstants.SHARD_REGION);
     }
 
     @Override
@@ -170,5 +176,100 @@ public final class PolicyPersistenceActor
     @Override
     protected JsonSchemaVersion getEntitySchemaVersion(final Policy entity) {
         return entity.getImplementedSchemaVersion();
+    }
+
+    @Override
+    protected Receive matchAnyAfterInitialization() {
+        return ReceiveBuilder.create()
+                .matchEquals(DeleteOldestExpiredSubject.INSTANCE, this::handleDeleteExpiredSubjects)
+                .matchAny(message -> log.warning("Unknown message: {}", message))
+                .build();
+    }
+
+    @Override
+    protected void onEntityModified(final PolicyEvent event) {
+        findEarliestSubjectExpiryTimestamp(entity).ifPresent(earliestSubjectExpiryTimestamp -> {
+            if (timers().isTimerActive(NEXT_SUBJECT_EXPIRY_TIMER)) {
+                timers().cancel(NEXT_SUBJECT_EXPIRY_TIMER);
+            }
+            final Instant earliestExpiry = earliestSubjectExpiryTimestamp.getTimestamp();
+            final Duration durationBetweenNowAndEarliestExpiry = Duration.between(Instant.now(), earliestExpiry);
+            if (durationBetweenNowAndEarliestExpiry.isNegative()) {
+                // there are currently expired subjects, so delete the oldest right away:
+                getSelf().tell(DeleteOldestExpiredSubject.INSTANCE, getSelf());
+            } else {
+                log.withCorrelationId(event).info(
+                        "Scheduling message for deleting next expired subject in: <{}> - at: <{}>",
+                        durationBetweenNowAndEarliestExpiry, earliestExpiry);
+                timers().startSingleTimer(NEXT_SUBJECT_EXPIRY_TIMER, DeleteOldestExpiredSubject.INSTANCE,
+                        durationBetweenNowAndEarliestExpiry);
+            }
+        });
+    }
+
+    private void handleDeleteExpiredSubjects(final DeleteOldestExpiredSubject deleteOldestExpiredSubject) {
+        log.debug("Calculating whether subjects did expire and need to be deleted..");
+        calculateSubjectDeletedEventOfOldestExpiredSubject(entityId, entity)
+                .ifPresent(subjectDeleted ->
+                        persistAndApplyEvent(subjectDeleted, (persistedEvent, resultingEntity) ->
+                                log.withCorrelationId(persistedEvent)
+                                        .info("Deleted expired subject <{}> of label <{}>",
+                                                subjectDeleted.getSubjectId(), subjectDeleted.getLabel())
+                        )
+                );
+    }
+
+    private Optional<SubjectDeleted> calculateSubjectDeletedEventOfOldestExpiredSubject(final PolicyId policyId,
+            @Nullable final Iterable<PolicyEntry> policyEntries) {
+
+        if (null == policyEntries) {
+            return Optional.empty();
+        }
+
+        final Instant eventTimestamp = Instant.now();
+        final DittoHeaders eventDittoHeaders = DittoHeaders.newBuilder()
+                .correlationId(UUID.randomUUID().toString())
+                .build();
+
+        return StreamSupport.stream(policyEntries.spliterator(), false)
+                .flatMap(entry -> entry.getSubjects().stream()
+                        .map(subject -> Pair.create(entry.getLabel(), subject))
+                )
+                .filter(PolicyPersistenceActor::keepExpiredSubjects)
+                .min(Comparator.comparing(pair -> pair.second().getExpiry().orElseThrow()))
+                .map(pair ->
+                        SubjectDeleted.of(policyId,
+                                pair.first(),
+                                pair.second().getId(),
+                                getRevisionNumber(),
+                                eventTimestamp,
+                                eventDittoHeaders
+                        )
+                );
+    }
+
+    private static boolean keepExpiredSubjects(final Pair<Label, Subject> pair) {
+        return pair.second().getExpiry()
+                .map(SubjectExpiry::isExpired)
+                .orElse(false);
+    }
+
+    private static Optional<SubjectExpiry> findEarliestSubjectExpiryTimestamp(
+            @Nullable final Iterable<PolicyEntry> policyEntries) {
+
+        if (null == policyEntries) {
+            return Optional.empty();
+        }
+
+        return StreamSupport.stream(policyEntries.spliterator(), false)
+                .map(PolicyEntry::getSubjects)
+                .flatMap(Subjects::stream)
+                .map(Subject::getExpiry)
+                .flatMap(Optional::stream)
+                .min(Comparator.comparing(SubjectExpiry::getTimestamp));
+    }
+
+    private static final class DeleteOldestExpiredSubject {
+        private static final DeleteOldestExpiredSubject INSTANCE = new DeleteOldestExpiredSubject();
     }
 }
