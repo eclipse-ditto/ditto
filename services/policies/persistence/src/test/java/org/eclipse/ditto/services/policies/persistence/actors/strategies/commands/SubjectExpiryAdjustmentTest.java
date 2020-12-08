@@ -149,7 +149,7 @@ public final class SubjectExpiryAdjustmentTest extends AbstractPolicyCommandStra
     public void doesNotRoundUpMatchingGranularity() {
         final ModifySubjectStrategy underTest = createStrategy("1m");
 
-        final LocalDateTime givenExpiry = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES);
+        final LocalDateTime givenExpiry = LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES).plusMinutes(1);
         final LocalDateTime expectedAdjustedExpiry = givenExpiry;
 
         doTestSubjectExpiryAdjustment(underTest, givenExpiry, expectedAdjustedExpiry);
@@ -166,11 +166,12 @@ public final class SubjectExpiryAdjustmentTest extends AbstractPolicyCommandStra
             final LocalDateTime expectedExpiry) {
 
         final Subject subject = Subject.newInstance(SubjectId.newInstance(SubjectIssuer.INTEGRATION, "this-is-me"),
-                TestConstants.Policy.SUBJECT_TYPE, SubjectExpiry.newInstance(expiry.toInstant(ZoneOffset.UTC)));
+                TestConstants.Policy.SUBJECT_TYPE, SubjectExpiry.newInstance(
+                        expiry.atOffset(ZoneOffset.UTC).toInstant()));
         final Subject expectedSubject =
                 Subject.newInstance(SubjectId.newInstance(SubjectIssuer.INTEGRATION, "this-is-me"),
                         TestConstants.Policy.SUBJECT_TYPE,
-                        SubjectExpiry.newInstance(expectedExpiry.toInstant(ZoneOffset.UTC)));
+                        SubjectExpiry.newInstance(expectedExpiry.atOffset(ZoneOffset.UTC).toInstant()));
 
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final DittoHeaders dittoHeaders = DittoHeaders.empty();

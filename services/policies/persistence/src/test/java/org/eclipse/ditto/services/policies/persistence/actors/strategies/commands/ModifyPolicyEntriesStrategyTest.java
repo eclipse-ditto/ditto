@@ -18,7 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.stream.StreamSupport;
 
@@ -87,7 +87,7 @@ public final class ModifyPolicyEntriesStrategyTest extends AbstractPolicyCommand
                 .plusHours(1)
                 .plusMinutes(7)
                 .plusSeconds(23);
-        final Instant expiry = localDateTime.toInstant(ZoneOffset.UTC);
+        final Instant expiry = localDateTime.atZone(ZoneId.systemDefault()).toInstant();
         final SubjectExpiry subjectExpiry = SubjectExpiry.newInstance(expiry);
         final Subject subjectWithExpiry = Subject.newInstance(SubjectId.newInstance("foo-issuer:bar-subject"),
                 SubjectType.GENERATED, subjectExpiry);
@@ -101,7 +101,7 @@ public final class ModifyPolicyEntriesStrategyTest extends AbstractPolicyCommand
         final Instant expectedAdjustedExpiry = localDateTime
                 .truncatedTo(ChronoUnit.MINUTES)
                 .plusSeconds(30)
-                .toInstant(ZoneOffset.UTC);
+                .atZone(ZoneId.systemDefault()).toInstant();
         final SubjectExpiry expectedSubjectExpiry = SubjectExpiry.newInstance(expectedAdjustedExpiry);
         final Subject expectedSubjectWithExpiry = Subject.newInstance(subjectWithExpiry.getId(),
                 subjectWithExpiry.getType(), expectedSubjectExpiry);

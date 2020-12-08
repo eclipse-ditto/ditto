@@ -18,7 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -83,11 +83,11 @@ public final class ModifySubjectsStrategyTest extends AbstractPolicyCommandStrat
                 .plusHours(1)
                 .plusMinutes(7)
                 .plusSeconds(52);
-        final Instant expiry = localDateTime.toInstant(ZoneOffset.UTC);
+        final Instant expiry = localDateTime.atZone(ZoneId.systemDefault()).toInstant();
         final Instant expectedAdjustedExpiry = localDateTime
                 .truncatedTo(ChronoUnit.MINUTES)
                 .plusMinutes(1)
-                .toInstant(ZoneOffset.UTC);
+                .atZone(ZoneId.systemDefault()).toInstant();
 
         final Subjects subjects = Subjects.newInstance(
                 Subject.newInstance(SubjectId.newInstance(SubjectIssuer.INTEGRATION, "this-is-me"),
