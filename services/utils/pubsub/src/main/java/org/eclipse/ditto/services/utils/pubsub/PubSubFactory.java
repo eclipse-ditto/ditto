@@ -45,13 +45,18 @@ public interface PubSubFactory<T extends Signal<?>> {
     /**
      * Hash a key for pubsub.
      * A subscriber of each group is chosen according to this hash.
+     * The result is guaranteed to be a non-negative.
      *
      * @param hashKey the hash key.
      * @return the hash code for pubsub.
      */
     static int hashForPubSub(final CharSequence hashKey) {
         // Using the string hashcode to ensure that the final byte affects the hash code additively.
-        // Math.max needed because Math.abs(Integer.MIN_VALUE) < 0
-        return Math.max(0, Math.abs(hashKey.toString().hashCode()));
+        final int stringHashCode = hashKey.toString().hashCode();
+        if (stringHashCode == Integer.MIN_VALUE) {
+            return 0;
+        } else {
+            return Math.abs(stringHashCode);
+        }
     }
 }
