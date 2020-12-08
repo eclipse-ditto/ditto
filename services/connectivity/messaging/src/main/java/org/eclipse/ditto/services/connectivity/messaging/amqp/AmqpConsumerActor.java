@@ -367,7 +367,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 ackTypeName = "accepted";
             } else {
                 ackType = redeliver ? MODIFIED_FAILED : REJECTED;
-                ackTypeName = redeliver ? "modified[delivery-failed]" : "modified[delivery-failed,undeliverable-here]";
+                ackTypeName = redeliver ? "modified[delivery-failed]" : "rejected";
             }
             log.withCorrelationId(correlationId)
                     .info("Acking <{}> with original external message headers=<{}>, isSuccess=<{}>, ackType=<{} {}>",
