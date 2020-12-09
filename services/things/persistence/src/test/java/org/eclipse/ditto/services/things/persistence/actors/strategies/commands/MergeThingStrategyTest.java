@@ -27,14 +27,18 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingMergeInvalidException;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingMerged;
 import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Unit test for {@link ModifyThingStrategy}.
+ * Unit test for {@link MergeThingStrategy}.
  */
 public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
 

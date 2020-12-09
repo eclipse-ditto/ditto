@@ -20,17 +20,13 @@ import org.junit.Test;
 
 public class JsonObjectMergerTest {
 
-    /** */
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(JsonObjectMerger.class, areImmutable());
+    private static JsonObject merge(final JsonObject object1, final JsonObject object2) {
+        return JsonObjectMerger.mergeJsonObjects(object1, object2);
     }
 
     @Test
-    public void testMergeNullObjects() {
-        final JsonObject mergedObject = JsonObjectMerger.mergeJsonObjects(JsonFactory.nullObject(), JsonFactory.nullObject());
-
-        Assertions.assertThat(mergedObject).isEqualTo(JsonFactory.nullObject());
+    public void assertImmutability() {
+        assertInstancesOf(JsonObjectMerger.class, areImmutable());
     }
 
     @Test
@@ -98,52 +94,10 @@ public class JsonObjectMergerTest {
     }
 
     @Test
-    public void mergeFieldsFromBothObjectsFilterNullValues() {
-        final JsonObject object1 = JsonFactory.newObjectBuilder()
-                .set("x", 5)
-                .set("test", JsonValue.nullLiteral())
-                .set("foo", JsonFactory.newObjectBuilder()
-                        .set("bar", JsonValue.nullLiteral())
-                        .set("this", "notNull")
-                        .set("nestedObject", JsonFactory.newObjectBuilder()
-                                .set("notNullValue", "notNullValue")
-                                .set("nullValue", JsonValue.nullLiteral())
-                                .set("nestedNestedObject", JsonFactory.newObjectBuilder()
-                                        .set("notNullValue", "notNullValue")
-                                        .set("nullValue", JsonValue.nullLiteral())
-                                        .build())
-                                .build()
-                        )
-                        .build())
-                .build();
+    public void testMergeNullObjects() {
+        final JsonObject mergedObject = merge(JsonFactory.nullObject(), JsonFactory.nullObject());
 
-        final JsonObject object2 = JsonFactory.newObjectBuilder()
-                .set("y", 6)
-                .set("test", "test")
-                .set("nullValue", JsonValue.nullLiteral())
-                .build();
-
-        final JsonObject expectedObject = JsonFactory.newObjectBuilder()
-                .set("x", 5)
-                .set("foo", JsonFactory.newObjectBuilder()
-                        .set("this", "notNull")
-                        .set("nestedObject", JsonFactory.newObjectBuilder()
-                                .set("notNullValue", "notNullValue")
-                                .set("nestedNestedObject", JsonFactory.newObjectBuilder()
-                                        .set("notNullValue", "notNullValue")
-                                        .build())
-                                .build()
-                        )
-                        .build())
-                .set("y", 6)
-                .build();
-
-        final JsonObject mergedObject = JsonObjectMerger.mergeJsonObjectsAndFilterNullValues(object1, object2);
-
-        Assertions.assertThat(mergedObject).isEqualTo(expectedObject);
+        Assertions.assertThat(mergedObject).isEqualTo(JsonFactory.nullObject());
     }
 
-    private static JsonObject merge(final JsonObject object1, final JsonObject object2) {
-        return JsonObjectMerger.mergeJsonObjects(object1, object2);
-    }
 }

@@ -61,7 +61,8 @@ public abstract class AbstractConditionHeaderCheckingCommandStrategy<
 
     /**
      * Checks conditional headers on the (sub-)entity determined by the given {@code command} and {@code thing}.
-     * Currently supports only {@link org.eclipse.ditto.services.utils.headers.conditional.IfMatchPreconditionHeader} and {@link org.eclipse.ditto.services.utils.headers.conditional.IfNoneMatchPreconditionHeader}
+     * Currently supports only {@link org.eclipse.ditto.services.utils.headers.conditional.IfMatchPreconditionHeader}
+     * and {@link org.eclipse.ditto.services.utils.headers.conditional.IfNoneMatchPreconditionHeader}
      *
      * @param context the context.
      * @param entity the entity, may be {@code null}.

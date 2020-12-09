@@ -128,7 +128,7 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
 
         final JsonObject jsonObject = thing.toJson();
         final JsonObject mergePatch = JsonFactory.newObject(command.getPath(), command.getValue());
-        final JsonObject mergedJson = JsonFactory.newObjectWithoutNullValues(mergePatch, jsonObject);
+        final JsonObject mergedJson = JsonFactory.mergeJsonValues(mergePatch, jsonObject).asObject();
         final Thing mergedThing = ThingsModelFactory.newThing(mergedJson);
 
         mergedThing.getPolicyEntityId().ifPresent(thingWithModifications::setPolicyId);
