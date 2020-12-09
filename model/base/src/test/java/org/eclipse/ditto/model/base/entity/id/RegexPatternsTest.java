@@ -84,7 +84,7 @@ public final class RegexPatternsTest {
 
     private static final List<String> GOOD_NAMESPACES = Arrays.asList(
             "",
-            "ditto.eclipse.org",
+            "ditto.eclipseprojects.io",
             "com.google",
             "Foo.bar_122_"
     );

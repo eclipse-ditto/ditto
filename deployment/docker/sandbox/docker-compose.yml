@@ -142,8 +142,8 @@ services:
        - ../../../documentation/src/main/resources/images:/etc/nginx/html/images:ro
        - /opt/letsencrypt/src/letsencrypt/letsencrypt-site/.well-known:/etc/nginx/html/.well-known:ro
        - /opt/letsencrypt/src/production/dh-param/dhparam-2048.pem:/etc/ssl/certs/dhparam-2048.pem
-       - /opt/docker-volumes/etc/letsencrypt/live/ditto.eclipse.org/fullchain.pem:/etc/letsencrypt/live/ditto.eclipse.org/fullchain.pem
-       - /opt/docker-volumes/etc/letsencrypt/live/ditto.eclipse.org/privkey.pem:/etc/letsencrypt/live/ditto.eclipse.org/privkey.pem
+       - /opt/docker-volumes/etc/letsencrypt/live/ditto.eclipseprojects.io/fullchain.pem:/etc/letsencrypt/live/ditto.eclipseprojects.io/fullchain.pem
+       - /opt/docker-volumes/etc/letsencrypt/live/ditto.eclipseprojects.io/privkey.pem:/etc/letsencrypt/live/ditto.eclipseprojects.io/privkey.pem
     ports:
       - "80:80"
       - "443:443"
