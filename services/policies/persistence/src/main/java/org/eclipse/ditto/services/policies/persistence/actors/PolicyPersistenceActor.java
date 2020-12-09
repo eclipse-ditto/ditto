@@ -55,6 +55,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.Pair;
 import akka.japi.pf.ReceiveBuilder;
+import akka.persistence.RecoveryCompleted;
 
 /**
  * PersistentActor which "knows" the state of a single {@link Policy}.
@@ -187,7 +188,15 @@ public final class PolicyPersistenceActor
     }
 
     @Override
-    protected void onEntityModified(final PolicyEvent event) {
+    protected void recoveryCompleted(final RecoveryCompleted event) {
+        if (entity != null) {
+            onEntityModified();
+            becomeCreatedOrDeletedHandler();
+        }
+    }
+
+    @Override
+    protected void onEntityModified() {
         findEarliestSubjectExpiryTimestamp(entity).ifPresent(earliestSubjectExpiryTimestamp -> {
             if (timers().isTimerActive(NEXT_SUBJECT_EXPIRY_TIMER)) {
                 timers().cancel(NEXT_SUBJECT_EXPIRY_TIMER);
@@ -198,8 +207,7 @@ public final class PolicyPersistenceActor
                 // there are currently expired subjects, so delete the oldest right away:
                 getSelf().tell(DeleteOldestExpiredSubject.INSTANCE, getSelf());
             } else {
-                log.withCorrelationId(event).info(
-                        "Scheduling message for deleting next expired subject in: <{}> - at: <{}>",
+                log.info("Scheduling message for deleting next expired subject in: <{}> - at: <{}>",
                         durationBetweenNowAndEarliestExpiry, earliestExpiry);
                 timers().startSingleTimer(NEXT_SUBJECT_EXPIRY_TIMER, DeleteOldestExpiredSubject.INSTANCE,
                         durationBetweenNowAndEarliestExpiry);
