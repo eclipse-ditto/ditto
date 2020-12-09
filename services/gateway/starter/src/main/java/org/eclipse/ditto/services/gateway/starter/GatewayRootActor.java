@@ -281,7 +281,8 @@ final class GatewayRootActor extends DittoRootActor {
                 .thingSearchRoute(
                         new ThingSearchRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
                 .whoamiRoute(new WhoamiRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
-                .cloudEventsRoute(new CloudEventsRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
+                .cloudEventsRoute(new CloudEventsRoute(proxyActor, actorSystem, httpConfig, commandConfig,
+                        headerTranslator, gatewayConfig.getCloudEventsConfig()))
                 .websocketRoute(WebSocketRoute.getInstance(streamingActor, streamingConfig, materializer)
                         .withSignalEnrichmentProvider(signalEnrichmentProvider)
                         .withHeaderTranslator(headerTranslator))
