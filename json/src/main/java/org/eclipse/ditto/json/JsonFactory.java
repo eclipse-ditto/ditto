@@ -313,6 +313,30 @@ public final class JsonFactory {
     }
 
     /**
+     * Creates a JSON object from the given {@code path} and {@code value}.
+     *
+     * @param path the path where the given value will be set
+     * @param value the value that will be set at the given path
+     * @return a new JSON object containing the given {@code value} at the given {@code path}.
+     * @throws NullPointerException if {@code path} or {@code value} is {@code null}.
+     * @throws java.lang.IllegalArgumentException if {@code path} is empty and {@code value} is not an object.
+     * @since 1.5.0
+     */
+    public static JsonObject newObject(final JsonPointer path, final JsonValue value) {
+        final JsonObject result;
+        if (path.isEmpty()) {
+            if (value.isObject()) {
+                result = value.asObject();
+            } else {
+                throw new IllegalArgumentException("Value must be a JsonObject at root revel (empty path).");
+            }
+        } else {
+            result = JsonObject.newBuilder().set(path, value).build();
+        }
+        return result;
+    }
+
+    /**
      * @param jsonFields the json fields to create a new JsonObject from.
      * @return a null object if {@code jsonFields} is a null json object. Else this returns a new object containing the
      * given {code jsonFields}.
@@ -345,6 +369,7 @@ public final class JsonFactory {
      * @return returns a new object merged the given {code jsonObject1} and {code jsonObject2} without null values.
      * @since 1.5.0
      */
+    // TODO think about better name
     public static JsonObject newObjectWithoutNullValues(final JsonObject jsonObject1, final JsonObject jsonObject2) {
         return JsonObjectMerger.mergeJsonObjectsAndFilterNullValues(jsonObject1, jsonObject2);
     }

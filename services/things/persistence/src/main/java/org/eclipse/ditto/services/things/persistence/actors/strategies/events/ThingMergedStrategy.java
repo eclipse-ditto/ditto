@@ -44,22 +44,9 @@ final class ThingMergedStrategy extends AbstractThingEventStrategy<ThingMerged> 
                     .setLifecycle(ThingLifecycle.ACTIVE)
                     .setMetadata(mergeMetadata(thing, event));
 
-            final JsonObject existingJson = thing.toJson();
-
-            // TODO move this to model?
-            final JsonObject mergePatch;
-            if (event.getResourcePath().isEmpty()) {
-                if (event.getValue().isObject()) {
-                    mergePatch = event.getValue().asObject();
-                } else {
-                    // TODO exception
-                    throw new IllegalArgumentException("Patch must be a JsonObject if path is empty.");
-                }
-            } else {
-                mergePatch = JsonObject.newBuilder().set(event.getResourcePath(), event.getValue()).build();
-            }
-
-            final JsonValue mergedJson = JsonFactory.newObjectWithoutNullValues(existingJson, mergePatch);
+            final JsonObject existingThingJson = thing.toJson();
+            final JsonObject mergePatch = JsonFactory.newObject(event.getResourcePath(), event.getValue());
+            final JsonValue mergedJson = JsonFactory.newObjectWithoutNullValues(mergePatch, existingThingJson);
             final Thing mergedThing = ThingsModelFactory.newThing(mergedJson.asObject());
 
             mergedThing.getPolicyEntityId().ifPresent(thingBuilder::setPolicyId);

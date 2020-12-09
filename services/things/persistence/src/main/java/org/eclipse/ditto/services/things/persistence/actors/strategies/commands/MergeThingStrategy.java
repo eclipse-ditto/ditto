@@ -15,12 +15,16 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonRuntimeException;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -32,7 +36,9 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingMergeInvalidException;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
@@ -66,8 +72,7 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
 
         // merge is not supported for V1
         if (JsonSchemaVersion.V_1.equals(command.getImplementedSchemaVersion())) {
-            // TODO exception
-            throw new UnsupportedOperationException("V1 not supported");
+            return getUnsupportedSchemaVersionResult(command);
         }
 
         // from V2 upwards, use this logic:
@@ -77,10 +82,8 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
     private Result<ThingEvent> handleMergeExistingWithV2Command(final Context<ThingId> context, final Thing thing,
             final Instant eventTs, final long nextRevision, final MergeThing command,
             @Nullable final Metadata metadata) {
-
         if (JsonSchemaVersion.V_1.equals(thing.getImplementedSchemaVersion())) {
-            // TODO exception
-            throw new UnsupportedOperationException("V1 not supported");
+            return getUnsupportedSchemaVersionResult(command);
         } else {
             return handleMergeExistingV2WithV2Command(context, thing, eventTs, nextRevision, command, metadata);
         }
@@ -102,16 +105,16 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
         // make sure that the ThingMerged-Event contains all data contained in the resulting existingThing (this is
         // required e.g. for updating the search-index)
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
+        final JsonPointer path = command.getPath();
+        final JsonValue value = command.getValue();
 
-        final Thing mergedThing = mergeThing(command, thing, eventTs, nextRevision);
-
+        final Thing mergedThing =
+                wrapException(() -> mergeThing(command, thing, eventTs, nextRevision), command.getDittoHeaders());
         final ThingEvent<?> event =
-                ThingMerged.of(command.getThingEntityId(), command.getPath(), command.getValue(),
-                        nextRevision, eventTs,
-                        dittoHeaders, metadata);
+                ThingMerged.of(command.getThingEntityId(), path, value, nextRevision, eventTs, dittoHeaders, metadata);
         final MergeThingResponse mergeThingResponse =
-                MergeThingResponse.of(command.getThingEntityId(), command.getPath(), command.getValue(),
-                        dittoHeaders);
+                MergeThingResponse.of(command.getThingEntityId(), path, value, dittoHeaders);
+
         final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command, mergeThingResponse, mergedThing);
         return ResultFactory.newMutationResult(command, event, response);
     }
@@ -124,22 +127,8 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
                 .setRevision(nextRevision);
 
         final JsonObject jsonObject = thing.toJson();
-
-        // TODO move this to model?
-        final JsonObject mergePatch;
-        if (command.getPath().isEmpty()) {
-            if (command.getValue().isObject()) {
-                mergePatch = command.getValue().asObject();
-            } else {
-                // TODO exception
-                throw new IllegalArgumentException("Patch must be a JsonObject if path is empty.");
-            }
-        } else {
-            mergePatch = JsonObject.newBuilder().set(command.getPath(), command.getValue()).build();
-        }
-
-        final JsonObject mergedJson = JsonFactory.newObjectWithoutNullValues(jsonObject, mergePatch);
-
+        final JsonObject mergePatch = JsonFactory.newObject(command.getPath(), command.getValue());
+        final JsonObject mergedJson = JsonFactory.newObjectWithoutNullValues(mergePatch, jsonObject);
         final Thing mergedThing = ThingsModelFactory.newThing(mergedJson);
 
         mergedThing.getPolicyEntityId().ifPresent(thingWithModifications::setPolicyId);
@@ -158,5 +147,23 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
     @Override
     public Optional<EntityTag> nextEntityTag(final MergeThing thingCommand, @Nullable final Thing newEntity) {
         return Optional.of(getEntityOrThrow(newEntity)).flatMap(EntityTag::fromEntity);
+    }
+
+    private Result<ThingEvent> getUnsupportedSchemaVersionResult(final MergeThing command) {
+        return ResultFactory.newErrorResult(
+                CommandNotSupportedException.newBuilder(command.getImplementedSchemaVersion().toInt())
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build(), command);
+    }
+
+    private static <T> T wrapException(final Supplier<T> supplier, final DittoHeaders dittoHeaders) {
+        try {
+            return supplier.get();
+        } catch (final JsonRuntimeException
+                | IllegalArgumentException
+                | NullPointerException
+                | UnsupportedOperationException e) {
+            throw ThingMergeInvalidException.fromMessage(e.getMessage(), dittoHeaders);
+        }
     }
 }
