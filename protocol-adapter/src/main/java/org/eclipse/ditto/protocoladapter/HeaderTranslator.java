@@ -190,14 +190,13 @@ public final class HeaderTranslator {
             final HeaderEntryFilter headerEntryFilter, final boolean lowerCaseHeaderKeys) {
 
         final Map<String, String> result = new HashMap<>(headersToFilter.size());
-        for (final Map.Entry<String, String> entry : headersToFilter.entrySet()) {
-            final String originalKey = entry.getKey();
+        headersToFilter.forEach((originalKey, value) -> {
             final String key = lowerCaseHeaderKeys ? originalKey.toLowerCase() : originalKey;
-            final String filteredValue = headerEntryFilter.apply(key, entry.getValue());
+            final String filteredValue = headerEntryFilter.apply(key, value);
             if (null != filteredValue) {
                 result.put(key, filteredValue);
             }
-        }
+        });
         return result;
     }
 

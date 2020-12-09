@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -71,8 +72,13 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
      */
     protected AbstractDittoHeaders(final Map<String, String> headers) {
         checkNotNull(headers, "headers map");
-        final Map<String, String> headersWithOnlyPrefixedSubjects = keepAuthContextSubjectsWithIssuer(headers);
-        this.headers = indexByLowerCase(headersWithOnlyPrefixedSubjects);
+        if (headers instanceof AbstractDittoHeaders) {
+            // Share the map from the other AbstractDittoHeaders--it is not modifiable. Otherwise case is not preserved.
+            this.headers = ((AbstractDittoHeaders) headers).headers;
+        } else {
+            final Map<String, String> headersWithOnlyPrefixedSubjects = keepAuthContextSubjectsWithIssuer(headers);
+            this.headers = indexByLowerCase(headersWithOnlyPrefixedSubjects);
+        }
     }
 
     @Override
@@ -153,7 +159,7 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     protected Optional<String> getStringForDefinition(final HeaderDefinition definition) {
-        return Optional.ofNullable(headers.get(definition.getKey())).map(Header::getValue);
+        return Optional.ofNullable(get(definition.getKey()));
     }
 
     @Override
@@ -427,7 +433,11 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     @Nonnull
     @Override
     public Set<Entry<String, String>> entrySet() {
-        return Collections.unmodifiableSet(headers.values().stream().map(Header::toEntry).collect(Collectors.toSet()));
+        final Set<Entry<String, String>> linkedHashSet = headers.entrySet()
+                .stream()
+                .map(entry -> new AbstractMap.SimpleEntry<>(entry.getKey(), entry.getValue().getValue()))
+                .collect(Collectors.toCollection(LinkedHashSet<Entry<String, String>>::new));
+        return Collections.unmodifiableSet(linkedHashSet);
     }
 
     @Override
@@ -483,7 +493,7 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
 
     @Override
     public int hashCode() {
-        return headers.values().hashCode();
+        return headers.hashCode();
     }
 
     @Override
@@ -506,9 +516,8 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     private static Map<String, Header> indexByLowerCase(final Map<String, String> map) {
-        return map.entrySet()
-                .stream()
-                .collect(Collectors.toMap(entry -> entry.getKey().toLowerCase(), Header::fromEntry,
-                        (header1, header2) -> header1));
+        final Map<String, Header> headers = new LinkedHashMap<>();
+        map.forEach((key, value) -> headers.put(key.toLowerCase(), Header.of(key, value)));
+        return Collections.unmodifiableMap(headers);
     }
 }

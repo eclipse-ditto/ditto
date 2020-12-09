@@ -12,14 +12,15 @@
  */
 package org.eclipse.ditto.model.base.headers;
 
-import java.util.AbstractMap;
-import java.util.Map;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
 /**
  * Package internal representation of a header with its key in the original capitalization.
+ * The key is only for information. Object identity only takes value into account.
+ * This is important because as cache keys of CachingSignalEnrichmentFacade, where header keys should be interpreted
+ * case-insensitively.
  *
  * @since 1.6.0
  */
@@ -34,8 +35,8 @@ final class Header implements CharSequence {
         this.value = value;
     }
 
-    static Header fromEntry(final Map.Entry<String, String> entry) {
-        return new Header(entry.getKey(), entry.getValue());
+    static Header of(final String key, final String value) {
+        return new Header(key, value);
     }
 
     String getKey() {
@@ -46,15 +47,10 @@ final class Header implements CharSequence {
         return value;
     }
 
-    Map.Entry<String, String> toEntry() {
-        return new AbstractMap.SimpleEntry<>(key.toLowerCase(), value);
-    }
-
     @Override
     public boolean equals(final Object other) {
-        if (other instanceof Header) {
-            final Header that = (Header) other;
-            return Objects.equals(key, that.key) && Objects.equals(value, that.value);
+        if (other instanceof CharSequence) {
+            return Objects.equals(value, other.toString());
         } else {
             return false;
         }
@@ -62,12 +58,17 @@ final class Header implements CharSequence {
 
     @Override
     public int hashCode() {
-        return Objects.hash(key, value);
+        return value.hashCode();
     }
 
     @Override
     public int length() {
         return value.length();
+    }
+
+    @Override
+    public String toString() {
+        return value;
     }
 
     @Override
@@ -78,10 +79,5 @@ final class Header implements CharSequence {
     @Override
     public Header subSequence(final int i, final int j) {
         return new Header(key, value.substring(i, j));
-    }
-
-    @Override
-    public String toString() {
-        return value;
     }
 }
