@@ -34,6 +34,7 @@ import org.assertj.core.util.Maps;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
@@ -547,16 +548,29 @@ public final class ImmutableDittoHeadersTest {
         oversizeMap.put("m", "1"); // header size=2, total size=3
         oversizeMap.put("f", "12"); // header size=3, total size=6
         oversizeMap.put("d", "123"); // header size=4, total size=10
-        oversizeMap.put("M", "1234"); // header size=5, total size=15
+        oversizeMap.put("x", "1234"); // header size=5, total size=15
         final DittoHeaders oversizeHeaders = ImmutableDittoHeaders.of(oversizeMap);
 
         final DittoHeaders truncatedHeaders = oversizeHeaders.truncate(8L);
 
         final Map<String, String> expected = new HashMap<>(oversizeMap);
         expected.remove("d");
-        expected.remove("M");
+        expected.remove("x");
 
         assertThat(truncatedHeaders).isEqualTo(expected);
+    }
+
+    @Test
+    public void areCaseInsensitiveAndCasePreserving() {
+        final Map<String, String> headers = new HashMap<>();
+        headers.put("hElLo", "world");
+        final DittoHeaders underTest = ImmutableDittoHeaders.of(headers);
+        assertThat(underTest.get("hello")).isEqualTo("world");
+        final JsonObject serialized = underTest.toJson();
+        assertThat(serialized).containsExactly(JsonField.newInstance("hElLo", JsonValue.of("world")));
+        final DittoHeaders deserialized = DittoHeaders.newBuilder(serialized).build();
+        assertThat(deserialized).isEqualTo(underTest);
+        assertThat(deserialized.toJson()).isEqualTo(serialized);
     }
 
     private static Map<String, String> createMapContainingAllKnownHeaders() {

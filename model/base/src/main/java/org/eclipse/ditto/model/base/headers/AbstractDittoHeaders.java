@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -55,11 +56,12 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  */
 @Immutable
 @SuppressWarnings("squid:S2160")
+// TODO for 2.0: Do not extend AbstractMap<String, String>, but rather implement Map<String, String>.
 public abstract class AbstractDittoHeaders extends AbstractMap<String, String> implements DittoHeaders {
 
     private static final String ISSUER_DIVIDER = ":";
 
-    private final Map<String, String> headers;
+    private final Map<String, Header> headers;
 
     /**
      * Constructs a new {@code AbstractDittoHeaders} object.
@@ -70,14 +72,49 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     protected AbstractDittoHeaders(final Map<String, String> headers) {
         checkNotNull(headers, "headers map");
         final Map<String, String> headersWithOnlyPrefixedSubjects = keepAuthContextSubjectsWithIssuer(headers);
-        this.headers = Collections.unmodifiableMap(new HashMap<>(headersWithOnlyPrefixedSubjects));
+        this.headers = indexByLowerCase(headersWithOnlyPrefixedSubjects);
+    }
+
+    @Override
+    public int size() {
+        return headers.size();
+    }
+
+    @Override
+    public boolean isEmpty() {
+        return headers.isEmpty();
+    }
+
+    @Override
+    public boolean containsValue(final Object value) {
+        if (!(value instanceof CharSequence)) {
+            return false;
+        } else {
+            final String valueString = value.toString();
+            return headers.values().stream().map(Header::getValue).anyMatch(valueString::equals);
+        }
+    }
+
+    @Override
+    public boolean containsKey(final Object key) {
+        return key instanceof String && headers.containsKey(key.toString().toLowerCase());
+    }
+
+    @Override
+    @Nullable
+    public String get(final Object key) {
+        if (key instanceof String) {
+            return Optional.ofNullable(headers.get(key.toString().toLowerCase())).map(Header::getValue).orElse(null);
+        } else {
+            return null;
+        }
     }
 
     private static Map<String, String> keepAuthContextSubjectsWithIssuer(final Map<String, String> headers) {
         if (headers.containsKey(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey())) {
             final Map<String, String> newHeaders = new HashMap<>(headers);
-            final AuthorizationContext authContext = AuthorizationModelFactory.newAuthContext(
-                    getJsonObject(headers, DittoHeaderDefinition.AUTHORIZATION_CONTEXT));
+            final AuthorizationContext authContext =
+                    AuthorizationModelFactory.newAuthContext(getAuthorizationContextAsJson(headers));
             final AuthorizationContext authContextWithoutDups = keepAuthContextSubjectsWithIssuer(authContext);
             newHeaders.put(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(), authContextWithoutDups.toJsonString());
             return newHeaders;
@@ -85,11 +122,11 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
         return headers;
     }
 
-    private static JsonObject getJsonObject(final Map<String, String> headers, final HeaderDefinition definition) {
-        final String jsonObjectString = headers.get(definition.getKey());
+    private static JsonObject getAuthorizationContextAsJson(final Map<String, ? extends CharSequence> headers) {
+        final CharSequence jsonObjectString = headers.get(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey());
         final JsonObject result;
         if (null != jsonObjectString) {
-            result = JsonObject.of(jsonObjectString);
+            result = JsonObject.of(jsonObjectString.toString());
         } else {
             result = JsonObject.empty();
         }
@@ -116,7 +153,7 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     protected Optional<String> getStringForDefinition(final HeaderDefinition definition) {
-        return Optional.ofNullable(headers.get(definition.getKey()));
+        return Optional.ofNullable(headers.get(definition.getKey())).map(Header::getValue);
     }
 
     @Override
@@ -144,11 +181,11 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
 
     @Override
     public AuthorizationContext getAuthorizationContext() {
-        /**
+        /*
          * TODO: remove this duplication when removing {@link JsonSchemaVersion#V_1}.
          */
         return duplicateSubjectsByStrippingIssuerPrefix(AuthorizationModelFactory.newAuthContext(
-                getJsonObject(headers, DittoHeaderDefinition.AUTHORIZATION_CONTEXT)));
+                getAuthorizationContextAsJson(headers)));
     }
 
     private static AuthorizationContext duplicateSubjectsByStrippingIssuerPrefix(
@@ -182,10 +219,10 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     protected JsonArray getJsonArrayForDefinition(final HeaderDefinition definition) {
-        @Nullable final String jsonArrayString = headers.get(definition.getKey());
+        @Nullable final Header jsonArrayHeader = headers.get(definition.getKey());
         final JsonArray result;
-        if (null != jsonArrayString) {
-            result = JsonArray.of(jsonArrayString);
+        if (null != jsonArrayHeader) {
+            result = JsonArray.of(jsonArrayHeader.getValue());
         } else {
             result = JsonArray.empty();
         }
@@ -235,7 +272,10 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
 
         // There is no need to do JSON parsing of the header value as String representations of boolean values look the
         // same for plain Java and JSON.
-        return expectedString.equalsIgnoreCase(headers.get(headerDefinition.getKey()));
+        return Optional.ofNullable(headers.get(headerDefinition.getKey()))
+                .map(Header::getValue)
+                .filter(expectedString::equalsIgnoreCase)
+                .isPresent();
     }
 
     /**
@@ -342,12 +382,12 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     @Override
     public JsonObject toJson() {
         final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
-        forEach((key, value) -> {
+        headers.forEach((key, header) -> {
             final Class<?> type = getSerializationTypeForKey(key);
             final JsonValue jsonValue = CharSequence.class.isAssignableFrom(type)
-                    ? JsonValue.of(value)
-                    : JsonFactory.readFrom(value);
-            jsonObjectBuilder.set(key, jsonValue);
+                    ? JsonValue.of(header.getValue())
+                    : JsonFactory.readFrom(header.getValue());
+            jsonObjectBuilder.set(header.getKey(), jsonValue);
         });
         return jsonObjectBuilder.build();
     }
@@ -387,7 +427,7 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     @Nonnull
     @Override
     public Set<Entry<String, String>> entrySet() {
-        return headers.entrySet();
+        return Collections.unmodifiableSet(headers.values().stream().map(Header::toEntry).collect(Collectors.toSet()));
     }
 
     @Override
@@ -397,8 +437,8 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
 
         long quota = size;
 
-        for (final Entry<String, String> entry : headers.entrySet()) {
-            quota -= getEntryLength(entry);
+        for (final Header header : headers.values()) {
+            quota -= getHeaderLength(header);
             if (0 > quota) {
                 return true;
             }
@@ -414,8 +454,8 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
         final DittoHeadersBuilder<?, ?> builder = DittoHeaders.newBuilder();
         long quota = maxSizeBytes;
 
-        for (final Map.Entry<String, String> entry : getSortedEntriesByLength()) {
-            quota -= getEntryLength(entry);
+        for (final Header entry : getSortedHeadersByLength()) {
+            quota -= getHeaderLength(entry);
             if (quota < 0) {
                 break;
             }
@@ -429,18 +469,11 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
      * i. e. the smallest entry is the first.
      */
     @Nonnull
-    private List<Entry<String, String>> getSortedEntriesByLength() {
-        return headers.entrySet()
+    private List<Header> getSortedHeadersByLength() {
+        return headers.values()
                 .stream()
-                .sorted(Comparator.comparingInt(AbstractDittoHeaders::getEntryLength))
+                .sorted(Comparator.comparingInt(AbstractDittoHeaders::getHeaderLength))
                 .collect(Collectors.toList());
-    }
-
-    private static int getEntryLength(final Map.Entry<String, String> entry) {
-        final String key = entry.getKey();
-        final String value = entry.getValue();
-
-        return key.length() + value.length();
     }
 
     @Override
@@ -448,4 +481,34 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
         return headers.toString();
     }
 
+    @Override
+    public int hashCode() {
+        return headers.values().hashCode();
+    }
+
+    @Override
+    public boolean equals(final Object other) {
+        if (other instanceof AbstractDittoHeaders) {
+            final AbstractDittoHeaders that = (AbstractDittoHeaders) other;
+            return Objects.equals(headers, that.headers);
+        } else if (other instanceof Map<?, ?>) {
+            final Map<?, ?> that = (Map<?, ?>) other;
+            return headers.size() == that.size() &&
+                    headers.values().stream().allMatch(header ->
+                            header.getValue().equals(that.get(header.getKey())));
+        } else {
+            return false;
+        }
+    }
+
+    private static int getHeaderLength(final Header header) {
+        return header.getKey().length() + header.getValue().length();
+    }
+
+    private static Map<String, Header> indexByLowerCase(final Map<String, String> map) {
+        return map.entrySet()
+                .stream()
+                .collect(Collectors.toMap(entry -> entry.getKey().toLowerCase(), Header::fromEntry,
+                        (header1, header2) -> header1));
+    }
 }
