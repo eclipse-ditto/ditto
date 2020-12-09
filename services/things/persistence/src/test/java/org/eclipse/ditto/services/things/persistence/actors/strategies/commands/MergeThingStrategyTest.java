@@ -27,12 +27,9 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
-import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingMergeInvalidException;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingMerged;
 import org.junit.Before;
 import org.junit.Test;
@@ -79,24 +76,26 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
         assertModificationResult(underTest, existing, mergeThing, ThingMerged.class, expectedCommandResponse);
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void mergeV2ThingWithV1Command() {
+    @Test
+    public void mergeV2ThingWithV1CommandExpectCommandNotSupportedException() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ThingId thingId = context.getState();
         final Thing existing = THING_V2.toBuilder().setRevision(NEXT_REVISION - 1).build();
         final JsonPointer path = JsonPointer.empty();
         final MergeThing mergeThing = MergeThing.of(thingId, path, JsonObject.empty(), V1_HEADER);
-        underTest.apply(context, existing, NEXT_REVISION, mergeThing);
+        assertErrorResult(underTest, existing, mergeThing,
+                CommandNotSupportedException.newBuilder(JsonSchemaVersion.V_1.toInt()).build());
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void mergeV1ThingWithV2Command() {
+    @Test
+    public void mergeV1ThingWithV2CommandExpectCommandNotSupportedException() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ThingId thingId = context.getState();
         final Thing existing = THING_V1.toBuilder().setRevision(NEXT_REVISION - 1).build();
         final JsonPointer path = JsonPointer.empty();
         final MergeThing mergeThing = MergeThing.of(thingId, path, JsonObject.empty(), DittoHeaders.empty());
-        underTest.apply(context, existing, NEXT_REVISION, mergeThing);
+        assertErrorResult(underTest, existing, mergeThing,
+                CommandNotSupportedException.newBuilder(JsonSchemaVersion.V_1.toInt()).build());
     }
 
 }
