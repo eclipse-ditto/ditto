@@ -65,6 +65,15 @@ Protocol messages contain a [topic](protocol-specification-topic.html), which is
 ## Headers
 
 Protocol messages contain headers as JSON object with arbitrary content.
+The keys of the JSON object are the header names; the values are the header values.
+The header names are *case-insensitive* and *case-preserving* in the following sense:
+- **Case-insensitive**: Capitalization of header names does not affect evaluation of the headers by Ditto;
+setting `correlation-id` or `CORRELATION-ID` has the same effect. If 2 headers differing only in capitalization
+are set, Ditto's behavior is **not defined**.
+- **Case-preserving**: Capitalization of headers by the sender of a Ditto protocol message is visible to the receiver.
+An exception of case-preservation are the headers of HTTP requests and responses,
+since they are themselves not case-sensitive.
+
 There are some pre-defined headers, which have a special meaning for Ditto:
 
 | Header Key | Description                    | Possible values           |
@@ -72,8 +81,8 @@ There are some pre-defined headers, which have a special meaning for Ditto:
 | `content-type` | The content-type of the message, for Ditto Protocol messages: `application/vnd.eclipse.ditto+json` | `String` |
 | `correlation-id` | Used for correlating protocol messages (e.g. a **command** would have the same correlation-id as the sent back **response** message. | `String` |
 | `ditto-originator` | Contains the first authorization subject of the command that caused the sending of this message. Set by Ditto. | `String` |
-| `If-Match` | Has the same semantics as defined for the [HTTP API](httpapi-concepts.html#conditional-requests). | `String` |
-| `If-None-Match` | Has the same semantics as defined for the [HTTP API](httpapi-concepts.html#conditional-requests). | `String` |
+| `if-match` | Has the same semantics as defined for the [HTTP API](httpapi-concepts.html#conditional-requests). | `String` |
+| `if-none-match` | Has the same semantics as defined for the [HTTP API](httpapi-concepts.html#conditional-requests). | `String` |
 | `response-required` | Configures for a **command** whether or not a **response** should be sent back. | `Boolean` - default: `true` |
 | `requested-acks` | Defines which [acknowledgements](basic-acknowledgements.html) are requested for a command processed by Ditto. | `JsonArray` of `String` - default: `["twin-persisted"]` |
 | `ditto-weak-ack` | Marks [weak acknowledgements](basic-acknowledgements.html) issued by Ditto. | `Boolean` - default: `false`  |
