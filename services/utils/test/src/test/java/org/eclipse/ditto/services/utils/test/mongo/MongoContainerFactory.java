@@ -15,6 +15,9 @@ package org.eclipse.ditto.services.utils.test.mongo;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.HostConfig;
@@ -30,6 +33,7 @@ import com.github.dockerjava.zerodep.ZerodepDockerHttpClient;
  */
 final class MongoContainerFactory {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(MongoContainerFactory.class);
     private static final String MONGO_IMAGE_NAME = "mongo";
     private static final String MONGO_VERSION = "4.2";
     private static final String MONGO_IMAGE_IDENTIFIER = MONGO_IMAGE_NAME + ":" + MONGO_VERSION;
@@ -46,6 +50,7 @@ final class MongoContainerFactory {
 
     private MongoContainerFactory() {
         final String dockerHost = OsDetector.isWindows() ? WINDOWS_DOCKER_HOST : UNIX_DOCKER_HOST;
+        LOGGER.info("Connecting to docker daemon on <{}>.", dockerHost);
         final DefaultDockerClientConfig config =
                 DefaultDockerClientConfig.createDefaultConfigBuilder().withDockerHost(dockerHost).build();
         final ZerodepDockerHttpClient httpClient = new ZerodepDockerHttpClient.Builder()
@@ -54,6 +59,7 @@ final class MongoContainerFactory {
                 .build();
         dockerClient = DockerClientImpl.getInstance(config, httpClient);
 
+        LOGGER.info("Checking if Mongo image <{}> needs to be pulled.", MONGO_IMAGE_IDENTIFIER);
         if (isMongoImageAbsent()) {
             pullMongoImage();
         }
@@ -74,11 +80,14 @@ final class MongoContainerFactory {
      */
     DockerContainer createMongoContainer() {
         return getMongoImageId()
-                .map(imageId -> dockerClient.createContainerCmd(imageId)
-                        .withCmd(MONGO_COMMANDS)
-                        .withHostConfig(HostConfig.newHostConfig().withPortBindings(MONGO_PORT_BINDING_TO_RANDOM_PORT))
-                        .exec()
-                        .getId())
+                .map(imageId -> {
+                    LOGGER.info("Creating container based on image with ID <{}>.", imageId);
+                    return dockerClient.createContainerCmd(imageId)
+                            .withCmd(MONGO_COMMANDS)
+                            .withHostConfig(HostConfig.newHostConfig().withPortBindings(MONGO_PORT_BINDING_TO_RANDOM_PORT))
+                            .exec()
+                            .getId();
+                })
                 .map(containerId -> new DockerContainer(dockerClient, containerId))
                 .orElseThrow(
                         () -> new IllegalStateException("Could not create container because no image was present.")
@@ -86,7 +95,13 @@ final class MongoContainerFactory {
     }
 
     private boolean isMongoImageAbsent() {
-        return getMongoImageId().isEmpty();
+        final Optional<String> mongoImageId = getMongoImageId();
+        mongoImageId.ifPresentOrElse(imageId -> {
+            LOGGER.info("Mongo image <{}> is already present with ID <{}>", MONGO_IMAGE_IDENTIFIER, imageId);
+        }, () -> {
+            LOGGER.info("Mongo image <{}> is not present, yet.", MONGO_IMAGE_IDENTIFIER);
+        });
+        return mongoImageId.isEmpty();
     }
 
     private Optional<String> getMongoImageId() {
@@ -99,6 +114,7 @@ final class MongoContainerFactory {
     }
 
     private void pullMongoImage() {
+        LOGGER.info("Pulling <{}>.", MONGO_IMAGE_IDENTIFIER);
         final DockerImagePullHandler dockerImagePullHandler = DockerImagePullHandler.newInstance();
         dockerClient.pullImageCmd(MONGO_IMAGE_IDENTIFIER).exec(dockerImagePullHandler);
         dockerImagePullHandler.getImagePullFuture().join();
