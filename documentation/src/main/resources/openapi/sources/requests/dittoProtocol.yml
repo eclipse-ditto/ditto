@@ -1,0 +1,60 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+content:
+  application/vnd.eclipse.ditto+json:
+    schema:
+      type: object
+      properties:
+        topic:
+          type: string
+          description: |-
+            Contains information about the contents of the payload:
+            * the affected Thing (namespace and Thing ID)
+            * the type of operation (command/event, create/retrieve/modify/delete)
+          example: "org.eclipse.ditto/thing-1/things/twin/commands/modify"
+        headers:
+          type: object
+          description: Additional headers.
+          properties:
+            correlation-id:
+              type: string
+              description: |-
+                The correlation-id header is used for linking one message with another.
+                It typically links a reply message with its requesting message.
+          example:
+            correlation-id: "1234-4321-1234"
+        path:
+          type: string
+          description: References the part of a Thing which is affected by this message.
+          example: "/features/location/properties/longitude"
+        value:
+          oneOf:
+            - type: "object"
+            - type: "string"
+            - type: "number"
+            - type: "array"
+            - type: "boolean"
+          description: The `value` field contains the actual payload e.g. a sensor value.
+      required:
+        - topic
+        - path
+    example: {
+      "topic": "org.eclipse.ditto/thing-1/things/twin/commands/modify",
+      "path": "/",
+      "value": {
+        "attributes": {
+          "foo": 42
+        }
+      }
+    }
+description: |-
+  The [Ditto Protocol JSON](https://www.eclipse.org/ditto/protocol-specification.html) payload defining which
+  command to process.
