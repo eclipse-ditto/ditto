@@ -82,6 +82,10 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-models-concierge</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-models-thingsearch</artifactId>
         </dependency>
 
@@ -142,6 +146,11 @@
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-cluster-sharding_${scala.version}</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.cloudevents</groupId>
+            <artifactId>cloudevents-http-basic</artifactId>
         </dependency>
 
         <dependency>

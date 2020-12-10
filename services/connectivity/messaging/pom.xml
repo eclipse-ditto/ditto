@@ -131,10 +131,6 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-concierge</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-models-connectivity</artifactId>
         </dependency>
         <dependency>
@@ -218,11 +214,6 @@
         <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>de.flapdoodle.embed</groupId>
-            <artifactId>de.flapdoodle.embed.mongo</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

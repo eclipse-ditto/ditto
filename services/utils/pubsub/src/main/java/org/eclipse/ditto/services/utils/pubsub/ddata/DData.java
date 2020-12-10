@@ -19,7 +19,7 @@ package org.eclipse.ditto.services.utils.pubsub.ddata;
  * @param <R> type of reads from the distributed data.
  * @param <W> type of writes from the distributed data.
  */
-public interface DData<K, R, W> {
+public interface DData<K, R, W extends DDataUpdate<?>> {
 
     /**
      * @return the distributed data reader.
@@ -30,10 +30,5 @@ public interface DData<K, R, W> {
      * @return the distributed data writer.
      */
     DDataWriter<K, W> getWriter();
-
-    /**
-     * @return a new, empty subscriptions object.
-     */
-    Subscriptions<W> createSubscriptions();
 
 }

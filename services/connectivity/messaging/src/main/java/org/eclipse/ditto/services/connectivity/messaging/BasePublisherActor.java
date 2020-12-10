@@ -71,7 +71,6 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
@@ -110,15 +109,17 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
     private final List<Optional<ReplyTarget>> replyTargets;
     private final int acknowledgementSizeBudget;
+    private final String clientId;
     protected final ExpressionResolver connectionIdResolver;
 
-    protected BasePublisherActor(final Connection connection) {
+    protected BasePublisherActor(final Connection connection, final String clientId) {
         this.connection = checkNotNull(connection, "connection");
+        this.clientId = checkNotNull(clientId, "clientId");
         resourceStatusMap = new HashMap<>();
         final List<Target> targets = connection.getTargets();
         targets.forEach(target ->
                 resourceStatusMap.put(target,
-                        ConnectivityModelFactory.newTargetStatus(getInstanceIdentifier(), ConnectivityStatus.OPEN,
+                        ConnectivityModelFactory.newTargetStatus(getClientId(), ConnectivityStatus.OPEN,
                                 target.getAddress(), "Started at " + Instant.now())));
 
         connectivityConfig = getConnectivityConfig();
@@ -536,15 +537,20 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     }
 
     /**
+     * Get the default client ID identifying the client actor should client count be more than 1.
+     *
+     * @return the client identifier.
+     */
+    protected String getClientId() {
+        return clientId;
+    }
+
+    /**
      * Resolve target address.
      * If not resolvable, the returned Optional will be empty.
      */
     private static Optional<String> resolveTargetAddress(final ExpressionResolver resolver, final String value) {
         return resolver.resolve(value).toOptional();
-    }
-
-    private static String getInstanceIdentifier() {
-        return InstanceIdentifierSupplier.getInstance().get();
     }
 
     private static Charset determineCharset(final CharSequence contentType) {

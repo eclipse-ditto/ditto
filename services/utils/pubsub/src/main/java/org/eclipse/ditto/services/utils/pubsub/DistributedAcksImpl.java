@@ -18,18 +18,25 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.ConditionChecker;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
-import org.eclipse.ditto.services.utils.pubsub.actors.AbstractUpdater;
-import org.eclipse.ditto.services.utils.pubsub.actors.AcksSupervisor;
-import org.eclipse.ditto.services.utils.pubsub.actors.AcksUpdater;
-import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
+import org.eclipse.ditto.services.utils.pubsub.actors.AckSupervisor;
+import org.eclipse.ditto.services.utils.pubsub.api.AckRequest;
+import org.eclipse.ditto.services.utils.pubsub.api.AcksDeclared;
+import org.eclipse.ditto.services.utils.pubsub.api.DeclareAcks;
+import org.eclipse.ditto.services.utils.pubsub.api.ReceiveLocalAcks;
+import org.eclipse.ditto.services.utils.pubsub.api.ReceiveRemoteAcks;
+import org.eclipse.ditto.services.utils.pubsub.api.RemoveSubscriberAcks;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDData;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
+import akka.actor.ActorRefFactory;
+import akka.actor.ActorSystem;
 import akka.actor.Props;
-import akka.cluster.ddata.Replicator;
 import akka.pattern.Patterns;
 
 /**
@@ -40,78 +47,86 @@ final class DistributedAcksImpl implements DistributedAcks {
     private static final String CLUSTER_ROLE = "acks-aware";
 
     private final DistributedDataConfig config;
-    private final ActorRef acksSupervisor;
+    private final ActorRef ackSupervisor;
 
-    private DistributedAcksImpl(final DistributedDataConfig config, final ActorRef acksSupervisor) {
+    private DistributedAcksImpl(final DistributedDataConfig config, final ActorRef ackSupervisor) {
         this.config = config;
-        this.acksSupervisor = acksSupervisor;
+        this.ackSupervisor = ackSupervisor;
     }
 
     static DistributedAcks create(final ActorContext actorContext) {
-        final AbstractPubSubFactory.LiteralDDataProvider provider =
-                AbstractPubSubFactory.LiteralDDataProvider.of(CLUSTER_ROLE, "acks");
-        return create(actorContext, CLUSTER_ROLE, provider);
+        return create(actorContext, actorContext.system());
     }
 
-    static DistributedAcks create(final ActorContext actorContext,
+    static DistributedAcks create(final ActorRefFactory actorRefFactory, final ActorSystem actorSystem) {
+        final LiteralDDataProvider provider = LiteralDDataProvider.of(CLUSTER_ROLE, "acks");
+        return create(actorRefFactory, actorSystem, CLUSTER_ROLE, provider);
+    }
+
+    static DistributedAcks create(final ActorRefFactory actorRefFactory,
+            final ActorSystem system,
             final String clusterRole,
-            final AbstractPubSubFactory.LiteralDDataProvider provider) {
-        final String supervisorName = clusterRole + "-acks-supervisor";
-        final Props props = AcksSupervisor.props(LiteralDData.of(actorContext.system(), provider));
-        final ActorRef supervisor = actorContext.actorOf(props, supervisorName);
-        final DistributedDataConfig config = provider.getConfig(actorContext.system());
+            final LiteralDDataProvider provider) {
+        final String supervisorName = clusterRole + "-ack-supervisor";
+        final Props props = AckSupervisor.props(LiteralDData.of(system, provider));
+        final ActorRef supervisor = actorRefFactory.actorOf(props, supervisorName);
+        final DistributedDataConfig config = provider.getConfig(system);
         return new DistributedAcksImpl(config, supervisor);
     }
 
-    private CompletionStage<AbstractUpdater.SubAck> askSubSupervisor(final SubUpdater.Request request) {
-        return Patterns.ask(acksSupervisor, request, config.getWriteTimeout())
+    private CompletionStage<AcksDeclared> askSupervisor(final AckRequest request) {
+        return Patterns.ask(ackSupervisor, request, config.getWriteTimeout())
                 .thenCompose(DistributedAcksImpl::processAskResponse);
     }
 
     @Override
     public void receiveLocalDeclaredAcks(final ActorRef receiver) {
-        acksSupervisor.tell(AcksUpdater.receiveLocalChanges(receiver), ActorRef.noSender());
+        ackSupervisor.tell(ReceiveLocalAcks.of(receiver), receiver);
     }
 
     @Override
     public void receiveDistributedDeclaredAcks(final ActorRef receiver) {
-        acksSupervisor.tell(AcksUpdater.receiveDDataChanges(receiver), ActorRef.noSender());
+        ackSupervisor.tell(ReceiveRemoteAcks.of(receiver), receiver);
     }
 
     @Override
     public void removeSubscriber(final ActorRef subscriber) {
-        final SubUpdater.Request request =
-                SubUpdater.RemoveSubscriber.of(subscriber, (Replicator.WriteConsistency) Replicator.writeLocal(),
-                        false);
-        acksSupervisor.tell(request, subscriber);
+        ackSupervisor.tell(RemoveSubscriberAcks.of(subscriber), subscriber);
     }
 
     @Override
-    public CompletionStage<AbstractUpdater.SubAck> declareAcknowledgementLabels(
+    public CompletionStage<AcksDeclared> declareAcknowledgementLabels(
             final Collection<AcknowledgementLabel> acknowledgementLabels,
             final ActorRef subscriber) {
         final Set<String> ackLabelStrings = acknowledgementLabels.stream()
                 .map(AcknowledgementLabel::toString)
                 .collect(Collectors.toSet());
-        final AbstractUpdater.Subscribe subscribe =
-                AbstractUpdater.Subscribe.of(ackLabelStrings, subscriber, writeLocal(), true);
-        return askSubSupervisor(subscribe);
+        final AckRequest request =
+                DeclareAcks.of(subscriber, null, ackLabelStrings);
+        return askSupervisor(request);
+    }
+
+    @Override
+    public CompletionStage<AcksDeclared> declareAcknowledgementLabels(
+            final Collection<AcknowledgementLabel> acknowledgementLabels, final ActorRef subscriber,
+            @Nullable final String group) {
+        if (group != null) {
+            ConditionChecker.checkNotEmpty(group, "group");
+        }
+        final Set<String> ackLabelStrings = acknowledgementLabels.stream()
+                .map(AcknowledgementLabel::toString)
+                .collect(Collectors.toSet());
+        return askSupervisor(DeclareAcks.of(subscriber, group, ackLabelStrings));
     }
 
     @Override
     public void removeAcknowledgementLabelDeclaration(final ActorRef subscriber) {
-        final AbstractUpdater.RemoveSubscriber request =
-                AbstractUpdater.RemoveSubscriber.of(subscriber, writeLocal(), false);
-        acksSupervisor.tell(request, ActorRef.noSender());
+        ackSupervisor.tell(RemoveSubscriberAcks.of(subscriber), ActorRef.noSender());
     }
 
-    private static Replicator.WriteConsistency writeLocal() {
-        return (Replicator.WriteConsistency) Replicator.writeLocal();
-    }
-
-    private static CompletionStage<AbstractUpdater.SubAck> processAskResponse(final Object askResponse) {
-        if (askResponse instanceof AbstractUpdater.SubAck) {
-            return CompletableFuture.completedStage((AbstractUpdater.SubAck) askResponse);
+    private static CompletionStage<AcksDeclared> processAskResponse(final Object askResponse) {
+        if (askResponse instanceof AcksDeclared) {
+            return CompletableFuture.completedStage((AcksDeclared) askResponse);
         } else if (askResponse instanceof Throwable) {
             return CompletableFuture.failedStage((Throwable) askResponse);
         } else {

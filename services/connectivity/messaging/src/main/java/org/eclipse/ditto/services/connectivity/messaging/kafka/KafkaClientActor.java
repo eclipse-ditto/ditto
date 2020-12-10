@@ -61,7 +61,8 @@ public final class KafkaClientActor extends BaseClientActor {
         super(connection, proxyActor, connectionActor);
         final ConnectionConfig connectionConfig = connectivityConfig.getConnectionConfig();
         final KafkaConfig kafkaConfig = connectionConfig.getKafkaConfig();
-        connectionFactory = DefaultKafkaConnectionFactory.getInstance(connection, kafkaConfig);
+        connectionFactory =
+                DefaultKafkaConnectionFactory.getInstance(connection, kafkaConfig, getClientId(connection.getId()));
         publisherActorFactory = factory;
         pendingStatusReportsFromStreams = new HashSet<>();
     }
@@ -163,7 +164,8 @@ public final class KafkaClientActor extends BaseClientActor {
                 .info("Starting Kafka publisher actor.");
         // ensure no previous publisher stays in memory
         stopPublisherActor();
-        final Props publisherActorProps = publisherActorFactory.props(connection(), connectionFactory, dryRun);
+        final Props publisherActorProps =
+                publisherActorFactory.props(connection(), connectionFactory, dryRun, getDefaultClientId());
         kafkaPublisherActor = startChildActorConflictFree(publisherActorFactory.getActorName(), publisherActorProps);
         pendingStatusReportsFromStreams.add(kafkaPublisherActor);
     }

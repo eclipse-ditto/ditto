@@ -25,7 +25,6 @@ import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConf
 import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
-import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
@@ -54,19 +53,17 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
                             .build()
                             .orElse(SupervisorStrategy.stoppingStrategy().decider()));
 
-    private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef proxyActor;
     private final ClientActorPropsFactory propsFactory;
     @Nullable private final ConnectivityCommandInterceptor commandInterceptor;
     private final ActorRef pubSubMediator;
 
     @SuppressWarnings("unused")
-    private ConnectionSupervisorActor(final DittoProtocolSub dittoProtocolSub,
+    private ConnectionSupervisorActor(
             final ActorRef proxyActor,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandInterceptor,
             final ActorRef pubSubMediator) {
-        this.dittoProtocolSub = dittoProtocolSub;
         this.proxyActor = proxyActor;
         this.propsFactory = propsFactory;
         this.commandInterceptor = commandInterceptor;
@@ -80,21 +77,19 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
      * stops it for {@link ActorKilledException}'s and escalates all others.
      * </p>
      *
-     * @param dittoProtocolSub Ditto protocol sub access.
      * @param proxyActor the actor used to send signals into the ditto cluster..
      * @param propsFactory the {@link ClientActorPropsFactory}
      * @param commandValidator a custom command validator for connectivity commands.
      * @param pubSubMediator pub-sub-mediator for the shutdown behavior.
      * @return the {@link Props} to create this actor.
      */
-    public static Props props(final DittoProtocolSub dittoProtocolSub,
-            final ActorRef proxyActor,
+    public static Props props(final ActorRef proxyActor,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandValidator,
             final ActorRef pubSubMediator) {
 
-        return Props.create(ConnectionSupervisorActor.class, dittoProtocolSub, proxyActor, propsFactory,
-                commandValidator, pubSubMediator);
+        return Props.create(ConnectionSupervisorActor.class, proxyActor, propsFactory, commandValidator,
+                pubSubMediator);
     }
 
     @Override
@@ -104,7 +99,7 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
 
     @Override
     protected Props getPersistenceActorProps(final ConnectionId entityId) {
-        return ConnectionPersistenceActor.props(entityId, dittoProtocolSub, proxyActor, propsFactory,
+        return ConnectionPersistenceActor.props(entityId, proxyActor, propsFactory,
                 commandInterceptor);
     }
 

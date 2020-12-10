@@ -32,14 +32,6 @@ public interface PubSubConfig {
     String getSeed();
 
     /**
-     * @return How many hash functions to use for the Bloom filters.
-     * Expected false positive rate is {@code 1/2^this_number}.
-     * To limit the amount of wasted bandwidth, this number should
-     * be proportional to the logarithm of cluster size for huge clusters.
-     */
-    int getHashFamilySize();
-
-    /**
      * @return How long to wait to restart pub-sub if a child actor crashes.
      */
     Duration getRestartDelay();
@@ -48,12 +40,6 @@ public interface PubSubConfig {
      * @return How often to update distributed data.
      */
     Duration getUpdateInterval();
-
-    /**
-     * @return Probability of forcing an update on each clock tick to recover from
-     * temporary disassociation.
-     */
-    double getForceUpdateProbability();
 
     /**
      * Create a {@code PubSubConfig} object from a {@code Config} object at the key {@code pubsub}.
@@ -92,13 +78,6 @@ public interface PubSubConfig {
                 "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."),
 
         /**
-         * How many hash functions to use for the Bloom filters.
-         * Expected false positive rate is {@code 1/2^this_number}.
-         * Bloom filter size is proportional to this number.
-         */
-        HASH_FAMILY_SIZE("hash-family-size", 10),
-
-        /**
          * How long to wait before restarting actors executing pub-sub.
          */
         RESTART_DELAY("restart-delay", Duration.ofSeconds(10L)),
@@ -106,14 +85,7 @@ public interface PubSubConfig {
         /**
          * How often to flush local subscriptions to the distributed data replicator.
          */
-        UPDATE_INTERVAL("update-interval", Duration.ofSeconds(3L)),
-
-        /**
-         * Probability to flush local subscriptions when there was no change to recover
-         * from temporary disassociation, during which a remove member may remove our subscriber
-         * from the distributed data when prompted by a cluster event MemberRemoved.
-         */
-        FORCE_UPDATE_PROBABILITY("force-update-probability", 0.01);
+        UPDATE_INTERVAL("update-interval", Duration.ofSeconds(3L));
 
         private final String path;
         private final Object defaultValue;

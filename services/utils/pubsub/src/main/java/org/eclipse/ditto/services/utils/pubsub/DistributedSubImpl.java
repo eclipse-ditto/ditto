@@ -12,16 +12,22 @@
  */
 package org.eclipse.ditto.services.utils.pubsub;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
+
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
-import org.eclipse.ditto.services.utils.pubsub.actors.AbstractUpdater;
-import org.eclipse.ditto.services.utils.pubsub.actors.SubUpdater;
+import org.eclipse.ditto.services.utils.pubsub.api.RemoveSubscriber;
+import org.eclipse.ditto.services.utils.pubsub.api.Request;
+import org.eclipse.ditto.services.utils.pubsub.api.SubAck;
+import org.eclipse.ditto.services.utils.pubsub.api.Subscribe;
+import org.eclipse.ditto.services.utils.pubsub.api.Unsubscribe;
 
 import akka.actor.ActorRef;
 import akka.cluster.ddata.Replicator;
@@ -32,78 +38,82 @@ import akka.pattern.Patterns;
  */
 final class DistributedSubImpl implements DistributedSub {
 
-    private static final long ACK_DELAY_OFFSET_MILLIS = 250;
+    /**
+     * Time buffer for distribution of ddata change on nodes.
+     * Should be larger than akka.cluster.distributed-data.notify-subscribers-interval
+     * in order for subscribers to have a high chance of receiving events immediately after acknowledgement.
+     */
+    private static final long LOCAL_NOTIFICATION_DELAY_BUFFER_MS = 1000;
+
+    // package-private for unit tests
+    final ActorRef subSupervisor;
 
     private final DistributedDataConfig config;
-    private final ActorRef subSupervisor;
-    private final Replicator.WriteConsistency writeAll;
-    private final long ackDelayInMillis;
+    private final Replicator.WriteConsistency writeConsistency;
+    private final long ddataDelayInMillis;
 
     DistributedSubImpl(final DistributedDataConfig config, final ActorRef subSupervisor) {
         this.config = config;
         this.subSupervisor = subSupervisor;
-        this.writeAll = new Replicator.WriteAll(config.getWriteTimeout());
-        ackDelayInMillis =
-                config.getAkkaReplicatorConfig().getNotifySubscribersInterval().toMillis() + ACK_DELAY_OFFSET_MILLIS;
+        this.writeConsistency = new Replicator.WriteAll(config.getWriteTimeout());
+        ddataDelayInMillis = LOCAL_NOTIFICATION_DELAY_BUFFER_MS;
     }
 
     @Override
-    public CompletionStage<AbstractUpdater.SubAck> subscribeWithFilterAndAck(final Collection<String> topics,
-            final ActorRef subscriber, final Predicate<Collection<String>> filter) {
-        final SubUpdater.Subscribe subscribe =
-                SubUpdater.Subscribe.of(new HashSet<>(topics), subscriber, writeAll, true, filter);
-        return askSubSupervisor(subscribe);
-    }
-
-    @Override
-    public CompletionStage<AbstractUpdater.SubAck> subscribeWithAck(final Collection<String> topics,
-            final ActorRef subscriber) {
-        return askSubSupervisor(SubUpdater.Subscribe.of(new HashSet<>(topics), subscriber, writeAll, true));
-    }
-
-    @Override
-    public CompletionStage<AbstractUpdater.SubAck> unsubscribeWithAck(final Collection<String> topics,
-            final ActorRef subscriber) {
-        return askSubSupervisor(SubUpdater.Unsubscribe.of(new HashSet<>(topics), subscriber, writeAll, true));
-    }
-
-    private CompletionStage<AbstractUpdater.SubAck> askSubSupervisor(final SubUpdater.Request request) {
-        return Patterns.ask(subSupervisor, request, config.getWriteTimeout())
-                .thenCompose(DistributedSubImpl::processAskResponse)
+    public CompletionStage<SubAck> subscribeWithFilterAndGroup(final Collection<String> topics,
+            final ActorRef subscriber,
+            @Nullable final Predicate<Collection<String>> filter,
+            @Nullable final String group) {
+        if (group != null) {
+            checkNotEmpty(group, "group");
+        }
+        final Subscribe subscribe = Subscribe.of(topics, subscriber, writeConsistency, true, filter, group);
+        return askSubSupervisor(subscribe)
                 .thenCompose(result -> {
-                    final CompletableFuture<AbstractUpdater.SubAck> resultFuture = new CompletableFuture<>();
-                    resultFuture.completeOnTimeout(result, ackDelayInMillis, TimeUnit.MILLISECONDS);
+                    // delay completion to account for dissemination delay between ddata replicator and change recipient
+                    final CompletableFuture<SubAck> resultFuture = new CompletableFuture<>();
+                    resultFuture.completeOnTimeout(result, ddataDelayInMillis, TimeUnit.MILLISECONDS);
                     return resultFuture;
                 });
     }
 
     @Override
+    public CompletionStage<SubAck> unsubscribeWithAck(final Collection<String> topics,
+            final ActorRef subscriber) {
+        return askSubSupervisor(Unsubscribe.of(topics, subscriber, writeConsistency, true));
+    }
+
+    private CompletionStage<SubAck> askSubSupervisor(final Request request) {
+        return Patterns.ask(subSupervisor, request, config.getWriteTimeout())
+                .thenCompose(DistributedSubImpl::processAskResponse);
+    }
+
+    @Override
     public void subscribeWithoutAck(final Collection<String> topics, final ActorRef subscriber) {
-        final SubUpdater.Request request =
-                SubUpdater.Subscribe.of(new HashSet<>(topics), subscriber,
-                        (Replicator.WriteConsistency) Replicator.writeLocal(), false);
+        final Request request =
+                Subscribe.of(topics, subscriber,
+                        (Replicator.WriteConsistency) Replicator.writeLocal(), false, null);
         subSupervisor.tell(request, subscriber);
     }
 
     @Override
     public void unsubscribeWithoutAck(final Collection<String> topics, final ActorRef subscriber) {
-        final SubUpdater.Request request =
-                SubUpdater.Unsubscribe.of(new HashSet<>(topics), subscriber,
+        final Request request =
+                Unsubscribe.of(topics, subscriber,
                         (Replicator.WriteConsistency) Replicator.writeLocal(), false);
         subSupervisor.tell(request, subscriber);
     }
 
     @Override
     public void removeSubscriber(final ActorRef subscriber) {
-        final SubUpdater.Request request =
-                SubUpdater.RemoveSubscriber.of(subscriber, (Replicator.WriteConsistency) Replicator.writeLocal(),
-                        false);
+        final Request request =
+                RemoveSubscriber.of(subscriber, (Replicator.WriteConsistency) Replicator.writeLocal(), false);
         subSupervisor.tell(request, subscriber);
     }
 
-    private static CompletionStage<AbstractUpdater.SubAck> processAskResponse(final Object askResponse) {
-        if (askResponse instanceof AbstractUpdater.SubAck) {
-            return CompletableFuture.completedStage((AbstractUpdater.SubAck) askResponse);
+    private static CompletionStage<SubAck> processAskResponse(final Object askResponse) {
+        if (askResponse instanceof SubAck) {
+            return CompletableFuture.completedStage((SubAck) askResponse);
         } else if (askResponse instanceof Throwable) {
             return CompletableFuture.failedStage((Throwable) askResponse);
         } else {

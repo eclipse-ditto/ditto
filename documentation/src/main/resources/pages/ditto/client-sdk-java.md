@@ -62,7 +62,7 @@ AuthenticationProvider authenticationProvider =
 
 MessagingProvider messagingProvider =
     MessagingProviders.webSocket(WebSocketMessagingConfiguration.newBuilder()
-        .endpoint("wss://ditto.eclipse.org")
+        .endpoint("wss://ditto.eclipseprojects.io")
         .jsonSchemaVersion(JsonSchemaVersion.V_2)
         // optionally configure a proxy server or a truststore containing the trusted CAs for SSL connection establishment
         .proxyConfiguration(proxyConfiguration)
@@ -270,4 +270,4 @@ client.twin().registerForThingChanges("REG1", change -> {
 
 For further examples on how to use the Ditto client, please have a look at the class 
 [DittoClientUsageExamples](https://github.com/eclipse/ditto-clients/blob/master/java/src/test/java/org/eclipse/ditto/client/DittoClientUsageExamples.java)
- which is configured to connect to the [Ditto sandbox](https://ditto.eclipse.org).
+ which is configured to connect to the [Ditto sandbox](https://ditto.eclipseprojects.io).

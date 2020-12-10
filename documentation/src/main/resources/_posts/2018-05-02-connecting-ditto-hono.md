@@ -28,7 +28,7 @@ This blog post walks through the steps required to connect Ditto and Hono by add
 Ditto sandboxes at
 
 * [hono.eclipse.org](http://hono.eclipse.org) 
-* [ditto.eclipse.org](https://ditto.eclipse.org)
+* [ditto.eclipseprojects.io](https://ditto.eclipseprojects.io)
 
 
 ## Scenario
@@ -162,13 +162,13 @@ $ curl -X PUT -i -u demo5:demo -H 'Content-Type: application/json' -d '{
             }
         }
     }
-}' https://ditto.eclipse.org/api/2/things/org.eclipse.ditto:demo-device
+}' https://ditto.eclipseprojects.io/api/2/things/org.eclipse.ditto:demo-device
 ```
 
 Make sure the digital twin was created:
 
 ```bash
-$ curl -i -u demo5:demo https://ditto.eclipse.org/api/2/things/org.eclipse.ditto:demo-device
+$ curl -i -u demo5:demo https://ditto.eclipseprojects.io/api/2/things/org.eclipse.ditto:demo-device
 ```
 
 ### Create a connection to Hono
@@ -214,7 +214,7 @@ $ curl -X POST -i -u devops:devopsPw1! -H 'Content-Type: application/json' -d '{
             }]
         }
     }
-}' https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=8s
+}' https://ditto.eclipseprojects.io/devops/piggyback/connectivity?timeout=8s
 ```
 
 The result should be:
@@ -363,7 +363,7 @@ $ curl -X POST -i -u devops:devopsPw1! -H 'Content-Type: application/json' -d '{
             }
         }
     }
-}' https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=8s
+}' https://ditto.eclipseprojects.io/devops/piggyback/connectivity?timeout=8s
 ```
 
 When establishing the connection + parsing the JavaScript worked, we get a success result as HTTP response again, 
@@ -386,7 +386,7 @@ $ curl -X POST -i -u devops:devopsPw1! -H 'Content-Type: application/json' -d '{
         "type": "connectivity.commands:retrieveConnectionMetrics",
         "connectionId": "hono-sandbox-connection-1"
     }
-}' https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=8s
+}' https://ditto.eclipseprojects.io/devops/piggyback/connectivity?timeout=8s
 ```
 
 The result looks like this:
@@ -739,7 +739,7 @@ Whenever the device now sends telemetry in its own JSON format
 * the message count of the [connection metrics in Ditto](#retrieve-connection-metrics) should be increased by one
 * the digital twin with the `Thing` ID `org.eclipse.ditto:demo-device` should receive the updated value which is also
   reflected at the twin's HTTP endpoint 
-  [https://ditto.eclipse.org/api/2/things/org.eclipse.ditto:demo-device](https://demo5:demo@ditto.eclipse.org/api/2/things/org.eclipse.ditto:demo-device)
+  [https://ditto.eclipseprojects.io/api/2/things/org.eclipse.ditto:demo-device](https://demo5:demo@ditto.eclipseprojects.io/api/2/things/org.eclipse.ditto:demo-device)
 
 Verify that by simulate sending telemetry using the Hono HTTP adapter:
 

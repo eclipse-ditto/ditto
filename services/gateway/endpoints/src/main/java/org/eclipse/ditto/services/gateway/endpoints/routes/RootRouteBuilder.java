@@ -18,6 +18,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirective;
+import org.eclipse.ditto.services.gateway.endpoints.routes.cloudevents.CloudEventsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute;
@@ -128,6 +129,15 @@ public interface RootRouteBuilder {
      * @since 1.2.0
      */
     RootRouteBuilder whoamiRoute(WhoamiRoute route);
+
+    /**
+     * Sets the cloud events route.
+     *
+     * @param route the route to set.
+     * @return the Builder to allow method chaining.
+     * @since 1.5.0
+     */
+    RootRouteBuilder cloudEventsRoute(CloudEventsRoute route);
 
     /**
      * Sets the http authentication directive.

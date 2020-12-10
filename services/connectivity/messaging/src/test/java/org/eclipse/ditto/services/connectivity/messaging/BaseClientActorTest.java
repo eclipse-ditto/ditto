@@ -19,6 +19,8 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -36,11 +38,13 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ClientDisconne
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
+import org.eclipse.ditto.services.models.connectivity.InboundSignal;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionSignalIllegalException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -195,7 +199,8 @@ public final class BaseClientActorTest {
             final ConnectionId randomConnectionId = TestConstants.createRandomConnectionId();
             final Connection connection =
                     TestConstants.createConnection(randomConnectionId, new Target[0]);
-            final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate);
+            final Props props =
+                    DummyClientActor.props(connection, actorSystem.deadLetters(), getRef(), getRef(), delegate);
 
             final ActorRef dummyClientActor = watch(actorSystem.actorOf(props));
 
@@ -331,6 +336,56 @@ public final class BaseClientActorTest {
         }};
     }
 
+    @Test
+    public void dispatchesSearchCommandsAccordingToSubscriptionIdPrefix() {
+        new TestKit(actorSystem) {{
+            final int clientCount = 12; // 12 clients fit inside 1 hexadecimal digit
+            final ConnectionId connectionId = TestConstants.createRandomConnectionId();
+            final Connection connection = TestConstants.createConnection(connectionId).toBuilder()
+                    .clientCount(clientCount)
+                    .build();
+            final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate);
+
+            final ActorRef underTest = watch(actorSystem.actorOf(props, "zToBeLargerThanTestProbeRefs"));
+            expectMsg(underTest);
+
+            final List<TestProbe> probes = new ArrayList<>(clientCount - 1);
+            for (int i = 0; i < clientCount - 1; ++i) {
+                final TestProbe ithProbe = TestProbe.apply("aProbe" + Integer.toHexString(i), actorSystem);
+                probes.add(ithProbe);
+                underTest.tell(ithProbe.ref(), ActorRef.noSender());
+            }
+
+            for (int i = 0; i < probes.size(); ++i) {
+                final String prefix = Integer.toHexString(i);
+                final String subscriptionId = prefix + "-subscription-id";
+                final CancelSubscription command = CancelSubscription.of(subscriptionId, DittoHeaders.empty());
+                underTest.tell(InboundSignal.of(command), getRef());
+                probes.get(i).expectMsg(command);
+            }
+        }};
+    }
+
+    @Test
+    public void doesNotDispatchSearchCommandsWithInvalidSubscriptionId() {
+        new TestKit(actorSystem) {{
+            final ConnectionId connectionId = TestConstants.createRandomConnectionId();
+            final Connection connection = TestConstants.createConnection(connectionId).toBuilder()
+                    .clientCount(2)
+                    .build();
+            final Props props = DummyClientActor.props(connection, getRef(), getRef(), getRef(), delegate);
+
+            final ActorRef underTest = watch(actorSystem.actorOf(props, "underTest"));
+            expectMsg(underTest);
+
+            final String prefix = Integer.toHexString(5); // out-of-bound
+            final String subscriptionId = prefix + "-subscription-id";
+            final CancelSubscription command = CancelSubscription.of(subscriptionId, DittoHeaders.empty());
+            underTest.tell(InboundSignal.of(command), getRef());
+            expectNoMessage();
+        }};
+    }
+
     private void thenExpectConnectClientCalled() {
         thenExpectConnectClientCalledAfterTimeout(DEFAULT_MESSAGE_TIMEOUT);
     }
@@ -402,8 +457,8 @@ public final class BaseClientActorTest {
         private final BaseClientActor delegate;
 
         public DummyClientActor(final Connection connection,
-                @Nullable final ActorRef proxyActor,
                 final ActorRef connectionActor,
+                @Nullable final ActorRef proxyActor,
                 final ActorRef publisherActor,
                 final BaseClientActor delegate) {
 

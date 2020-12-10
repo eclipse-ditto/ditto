@@ -69,8 +69,8 @@ final class CreateConnectionStrategy extends AbstractConnectivityCommandStrategy
             context.getLog().withCorrelationId(command)
                     .debug("Connection <{}> has status <{}> and will therefore be opened.",
                             connection.getId(), connection.getConnectionStatus());
-            final List<ConnectionAction> actions = Arrays.asList(
-                    PERSIST_AND_APPLY_EVENT, SEND_RESPONSE, BECOME_CREATED, OPEN_CONNECTION_IGNORE_ERRORS, UPDATE_SUBSCRIPTIONS);
+            final List<ConnectionAction> actions = List.of(
+                    PERSIST_AND_APPLY_EVENT, BECOME_CREATED, UPDATE_SUBSCRIPTIONS, SEND_RESPONSE, OPEN_CONNECTION_IGNORE_ERRORS);
             return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
         } else {
             return newMutationResult(command, event, response, true, false);

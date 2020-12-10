@@ -434,7 +434,7 @@ public abstract class AbstractShardedPersistenceActor<
 
     @Override
     public void onError(final DittoRuntimeException error, final Command errorCausingCommand) {
-        if (errorCausingCommand.getDittoHeaders().isResponseRequired()) {
+        if (shouldSendResponse(errorCausingCommand.getDittoHeaders())) {
             notifySender(error);
         }
     }

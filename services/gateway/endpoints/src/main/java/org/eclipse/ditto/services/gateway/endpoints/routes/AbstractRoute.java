@@ -96,8 +96,8 @@ public abstract class AbstractRoute extends AllDirectives {
     private final CommandConfig commandConfig;
     private final HeaderTranslator headerTranslator;
     private final HttpRequestActorPropsFactory httpRequestActorPropsFactory;
-    private final Set<String> mediaTypeJsonWithFallbacks;
     private final Attributes supervisionStrategy;
+    private final Set<String> mediaTypeJsonWithFallbacks;
 
     /**
      * Constructs the abstract route builder.

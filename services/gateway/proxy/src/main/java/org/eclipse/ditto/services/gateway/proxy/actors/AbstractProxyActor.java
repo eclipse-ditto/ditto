@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.gateway.proxy.actors;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
+import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.signals.base.Signal;

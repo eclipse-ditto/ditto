@@ -12,22 +12,23 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata.compressed;
 
+import java.util.List;
+
 import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.DDataWriter;
-import org.eclipse.ditto.services.utils.pubsub.ddata.Subscriptions;
+import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.cluster.ddata.ORMultiMap;
-import akka.util.ByteString;
 
 /**
  * Access to distributed data of compressed topics.
  */
-public final class CompressedDData implements DData<ActorRef, ByteString, CompressedUpdate> {
+public final class CompressedDData implements DData<ActorRef, String, LiteralUpdate> {
 
     private final CompressedDDataHandler handler;
 
@@ -58,25 +59,29 @@ public final class CompressedDData implements DData<ActorRef, ByteString, Compre
     }
 
     @Override
-    public DDataReader<ActorRef, ByteString> getReader() {
+    public DDataReader<ActorRef, String> getReader() {
         return handler;
     }
 
     @Override
-    public DDataWriter<ActorRef, CompressedUpdate> getWriter() {
+    public DDataWriter<ActorRef, LiteralUpdate> getWriter() {
         return handler;
     }
 
-    @Override
-    public Subscriptions<CompressedUpdate> createSubscriptions() {
-        return CompressedSubscriptions.of(handler.getSeeds());
+    /**
+     * Get the hash seeds of the compressed DData.
+     *
+     * @return the hash seeds.
+     */
+    public List<Integer> getSeeds() {
+        return handler.getSeeds();
     }
 
     /**
      * Abstract class of distributed data extension provider to be instantiated at user site.
      */
     public abstract static class Provider
-            extends DistributedData.AbstractDDataProvider<ORMultiMap<ActorRef, ByteString>, CompressedDDataHandler> {
+            extends DistributedData.AbstractDDataProvider<ORMultiMap<ActorRef, String>, CompressedDDataHandler> {
 
         /**
          * Get the ddata extension's config from an actor system.

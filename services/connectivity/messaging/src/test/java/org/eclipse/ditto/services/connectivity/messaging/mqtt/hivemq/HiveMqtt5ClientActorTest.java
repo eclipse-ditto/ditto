@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
@@ -24,9 +25,7 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
-import com.hivemq.client.mqtt.mqtt5.Mqtt5Client;
 import com.hivemq.client.mqtt.mqtt5.message.publish.Mqtt5Publish;
 
 import akka.actor.ActorRef;
@@ -34,14 +33,12 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.testkit.javadsl.TestKit;
 
-public class HiveMqtt5ClientActorTest extends AbstractMqttClientActorTest<Mqtt5Publish> {
+public final class HiveMqtt5ClientActorTest extends AbstractMqttClientActorTest<Mqtt5Publish> {
 
     private MockHiveMqtt5ClientFactory mockHiveMqtt5ClientFactory;
 
     @Before
     public void initClient() {
-        // init Mqtt5Client in before because this takes several minutes and causes test timeouts if done on demand
-        Mockito.mock(Mqtt5Client.class);
         mockHiveMqtt5ClientFactory = new MockHiveMqtt5ClientFactory();
     }
 
@@ -62,7 +59,7 @@ public class HiveMqtt5ClientActorTest extends AbstractMqttClientActorTest<Mqtt5P
             final ActorRef mqttClientActor = actorSystem.actorOf(props, "mqttClientActor-testSubscribeFails");
 
             mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsgClass(Status.Failure.class);
+            expectMsgClass(Duration.ofSeconds(10L), Status.Failure.class);
 
             mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);

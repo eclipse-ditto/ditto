@@ -42,6 +42,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionEx
 import org.eclipse.ditto.signals.commands.thingsearch.query.StreamThings;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 
 /**
  * Builder for {@link org.eclipse.ditto.services.utils.search.SearchSource}.
@@ -54,7 +55,7 @@ public final class SearchSourceBuilder {
             SortOption.of(List.of(SortOptionEntry.asc(Thing.JsonFields.ID.getPointer())));
 
     private ActorRef pubSubMediator;
-    private ActorRef conciergeForwarder;
+    private ActorSelection conciergeForwarder;
     private JsonFieldSelector fields;
     private JsonFieldSelector sortFields;
     private String filter;
@@ -106,7 +107,7 @@ public final class SearchSourceBuilder {
      * @param conciergeForwarder the concierge forwarder.
      * @return this builder.
      */
-    public SearchSourceBuilder conciergeForwarder(final ActorRef conciergeForwarder) {
+    public SearchSourceBuilder conciergeForwarder(final ActorSelection conciergeForwarder) {
         this.conciergeForwarder = conciergeForwarder;
         return this;
     }

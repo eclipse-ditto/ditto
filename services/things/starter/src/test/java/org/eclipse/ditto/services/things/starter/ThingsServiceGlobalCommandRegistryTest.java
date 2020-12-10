@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.things.starter;
 import org.eclipse.ditto.services.models.streaming.SudoStreamPids;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThing;
 import org.eclipse.ditto.services.utils.health.RetrieveHealth;
+import org.eclipse.ditto.services.utils.pubsub.api.PublishSignal;
 import org.eclipse.ditto.services.utils.test.GlobalCommandRegistryTestCases;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
@@ -42,7 +43,8 @@ public final class ThingsServiceGlobalCommandRegistryTest extends GlobalCommandR
                 DeleteSubject.class,
                 CleanupPersistence.class,
                 RetrieveHealth.class,
-                PurgeEntities.class
+                PurgeEntities.class,
+                PublishSignal.class
         );
     }
 

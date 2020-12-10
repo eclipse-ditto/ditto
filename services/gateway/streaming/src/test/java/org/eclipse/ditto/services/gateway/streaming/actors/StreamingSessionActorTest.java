@@ -51,8 +51,8 @@ import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.StreamingAck;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.models.acks.config.DefaultAcknowledgementConfig;
-import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
-import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
+import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.signals.base.Signal;
@@ -105,7 +105,7 @@ public final class StreamingSessionActorTest {
     public StreamingSessionActorTest() {
         actorSystem = ActorSystem.create();
         mockSub = mock(DittoProtocolSub.class);
-        when(mockSub.declareAcknowledgementLabels(any(), any()))
+        when(mockSub.declareAcknowledgementLabels(any(), any(), any()))
                 .thenReturn(CompletableFuture.completedFuture(null));
         commandRouterProbe = TestProbe.apply("commandRouter", actorSystem);
         final Sink<SessionedJsonifiable, TestSubscriber.Probe<SessionedJsonifiable>> sink =
@@ -259,7 +259,7 @@ public final class StreamingSessionActorTest {
     }
 
     private void onDeclareAckLabels(final CompletionStage<Void> answer) {
-        doAnswer(invocation -> answer).when(mockSub).declareAcknowledgementLabels(any(), any());
+        doAnswer(invocation -> answer).when(mockSub).declareAcknowledgementLabels(any(), any(), any());
     }
 
     private void setUpMockForTwinEventsSubscription() {

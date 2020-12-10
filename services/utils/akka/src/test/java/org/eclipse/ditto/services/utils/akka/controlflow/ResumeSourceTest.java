@@ -89,8 +89,6 @@ public final class ResumeSourceTest {
 
     @Test
     public void testCompletion() {
-        // TODO: delete this
-        system.eventStream().setLogLevel(Attributes.logLevelDebug());
         new TestKit(system) {{
             final Source<Integer, NotUsed> underTest = createResumeSource(getRef(), -1);
 

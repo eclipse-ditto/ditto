@@ -307,11 +307,12 @@ public abstract class AbstractMessageMappingProcessorActorTest {
     }
 
     ActorRef createInboundMappingProcessorActor(final TestKit kit, final ActorRef outboundMappingProcessorActor) {
-        return createInboundMappingProcessorActor(kit.getRef(), outboundMappingProcessorActor);
+        return createInboundMappingProcessorActor(kit.getRef(), outboundMappingProcessorActor, kit);
     }
 
     ActorRef createInboundMappingProcessorActor(final ActorRef proxyActor,
-            final ActorRef outboundMappingProcessorActor) {
+            final ActorRef outboundMappingProcessorActor,
+            final TestKit testKit) {
         final Map<String, MappingContext> mappingDefinitions = new HashMap<>();
         mappingDefinitions.put(FAULTY_MAPPER, FaultyMessageMapper.CONTEXT);
         mappingDefinitions.put(ADD_HEADER_MAPPER, AddHeaderMessageMapper.CONTEXT);
@@ -336,14 +337,14 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 protocolAdapter,
                 logger);
         final Props inboundDispatchingActorProps = InboundDispatchingActor.props(CONNECTION,
-                protocolAdapter.headerTranslator(), proxyActor, connectionActorProbe.ref(),
+                protocolAdapter.headerTranslator(), ActorSelection.apply(proxyActor, ""), connectionActorProbe.ref(),
                 outboundMappingProcessorActor);
-        final ActorRef inboundDispatchingActor = actorSystem.actorOf(inboundDispatchingActorProps);
+        final ActorRef inboundDispatchingActor = testKit.childActorOf(inboundDispatchingActorProps);
 
         final Props inboundMappingProcessorProps =
                 InboundMappingProcessorActor.props(inboundMappingProcessor, protocolAdapter.headerTranslator(),
                         CONNECTION, 99, inboundDispatchingActor);
-        return actorSystem.actorOf(inboundMappingProcessorProps);
+        return testKit.childActorOf(inboundMappingProcessorProps);
     }
 
     ActorRef createOutboundMappingProcessorActor(final TestKit kit) {

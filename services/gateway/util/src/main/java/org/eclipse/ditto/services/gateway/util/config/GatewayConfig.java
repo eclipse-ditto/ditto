@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.gateway.util.config;
 
 import org.eclipse.ditto.services.base.config.ServiceSpecificConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.CloudEventsConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.MessageConfig;
@@ -88,4 +89,10 @@ public interface GatewayConfig extends ServiceSpecificConfig, WithProtocolConfig
      */
     PublicHealthConfig getPublicHealthConfig();
 
+    /**
+     * Returns the configuration for the cloud events endpoint.
+     *
+     * @return the config.
+     */
+    CloudEventsConfig getCloudEventsConfig();
 }

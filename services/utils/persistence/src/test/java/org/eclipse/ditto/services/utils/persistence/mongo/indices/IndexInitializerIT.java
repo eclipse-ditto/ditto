@@ -25,16 +25,13 @@ import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.assertions.MongoIndexAssertions;
 import org.eclipse.ditto.services.utils.test.mongo.MongoDbResource;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.mongodb.MongoCommandException;
@@ -51,6 +48,9 @@ import akka.testkit.javadsl.TestKit;
  * MongoDB integration test for {@link IndexInitializer}.
  */
 public final class IndexInitializerIT {
+
+    @ClassRule
+    public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
 
     private static final int CONNECTION_POOL_MAX_SIZE = 5;
     private static final int CONNECTION_POOL_MAX_WAIT_QUEUE_SIZE = 5;
@@ -89,37 +89,22 @@ public final class IndexInitializerIT {
             Arrays.asList(DefaultIndexKey.of(FOO_FIELD, IndexDirection.ASCENDING),
                     DefaultIndexKey.of(BAR_FIELD, IndexDirection.ASCENDING)), false);
 
-    @Nullable private static MongoDbResource mongoResource;
-
     private ActorSystem system;
     private Materializer materializer;
     private DittoMongoClient mongoClient;
     private IndexInitializer indexInitializerUnderTest;
     private IndexOperations indexOperations;
 
-    @BeforeClass
-    public static void startMongoResource() {
-        mongoResource = new MongoDbResource("localhost");
-        mongoResource.start();
-    }
-
-    @AfterClass
-    public static void stopMongoResource() {
-        if (mongoResource != null) {
-            mongoResource.stop();
-        }
-    }
-
     @Before
     public void before() {
         system = ActorSystem.create("AkkaTestSystem");
         materializer = SystemMaterializer.get(system).materializer();
 
-        requireNonNull(mongoResource);
+        requireNonNull(MONGO_RESOURCE);
         requireNonNull(materializer);
 
         mongoClient = MongoClientWrapper.getBuilder()
-                .hostnameAndPort(mongoResource.getBindIp(), mongoResource.getPort())
+                .hostnameAndPort(MONGO_RESOURCE.getBindIp(), MONGO_RESOURCE.getPort())
                 .defaultDatabaseName(getClass().getSimpleName() + "-" + UUID.randomUUID().toString())
                 .connectionPoolMaxSize(CONNECTION_POOL_MAX_SIZE)
                 .connectionPoolMaxWaitQueueSize(CONNECTION_POOL_MAX_WAIT_QUEUE_SIZE)

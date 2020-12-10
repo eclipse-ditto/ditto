@@ -206,7 +206,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                     TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())))
                             .build(),
                     session,
-                    loadConnectionConfig());
+                    loadConnectionConfig(),
+                    "clientId");
             final ActorRef publisherActor = actorSystem.actorOf(props);
 
             publisherActor.tell(multiMapped, getRef());
@@ -260,7 +261,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                     TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())))
                             .build(),
                     session,
-                    loadConnectionConfig());
+                    loadConnectionConfig(),
+                    "clientId");
             final ActorRef publisherActor = actorSystem.actorOf(props);
 
             publisherActor.tell(mappedOutboundSignal, getRef());
@@ -339,7 +341,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return AmqpPublisherActor.props(TestConstants.createConnection(), session, loadConnectionConfig());
+        return AmqpPublisherActor.props(TestConstants.createConnection(), session, loadConnectionConfig(), "clientId");
     }
 
     @Override

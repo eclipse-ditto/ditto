@@ -116,8 +116,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private final KillSwitch killSwitch;
 
     @SuppressWarnings("unused")
-    private HttpPublisherActor(final Connection connection, final HttpPushFactory factory) {
-        super(connection);
+    private HttpPublisherActor(final Connection connection, final HttpPushFactory factory, final String clientId) {
+        super(connection, clientId);
         this.factory = factory;
 
         final HttpPushConfig config = connectionConfig.getHttpPushConfig();
@@ -139,8 +139,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 .whenComplete((done, error) -> getSelf().tell(toConnectionFailure(done, error), ActorRef.noSender()));
     }
 
-    static Props props(final Connection connection, final HttpPushFactory factory) {
-        return Props.create(HttpPublisherActor.class, connection, factory);
+    static Props props(final Connection connection, final HttpPushFactory factory, final String clientId) {
+        return Props.create(HttpPublisherActor.class, connection, factory, clientId);
     }
 
     @Override

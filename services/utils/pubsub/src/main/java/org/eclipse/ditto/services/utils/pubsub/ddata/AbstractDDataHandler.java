@@ -12,21 +12,17 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata;
 
-import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.services.utils.ddata.DistributedData;
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
-import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
-import akka.actor.Address;
 import akka.cluster.Cluster;
 import akka.cluster.ddata.Key;
 import akka.cluster.ddata.ORMultiMap;
@@ -38,14 +34,13 @@ import scala.jdk.javaapi.CollectionConverters;
 /**
  * A distributed collection of approximations of strings indexed by keys like ActorRef.
  */
-public abstract class AbstractDDataHandler<K, S, T extends IndelUpdate<S, T>>
+public abstract class AbstractDDataHandler<K, S, T extends DDataUpdate<S>>
         extends DistributedData<ORMultiMap<K, S>>
         implements DDataReader<K, S>, DDataWriter<K, T> {
 
     protected final SelfUniqueAddress selfUniqueAddress;
 
     private final String topicType;
-    private final Gauge ddataMetrics;
 
     protected AbstractDDataHandler(final DistributedDataConfig config,
             final ActorRefFactory actorRefFactory,
@@ -55,28 +50,6 @@ public abstract class AbstractDDataHandler<K, S, T extends IndelUpdate<S, T>>
         super(config, actorRefFactory, ddataExecutor);
         this.topicType = topicType;
         this.selfUniqueAddress = SelfUniqueAddress.apply(Cluster.get(actorSystem).selfUniqueAddress());
-        ddataMetrics = DittoMetrics.gauge("pubsub-ddata-entries").tag("topic", topicType);
-    }
-
-    @Override
-    public abstract CompletionStage<Void> removeAddress(Address address, Replicator.WriteConsistency writeConsistency);
-
-    @Override
-    public abstract S approximate(final String topic);
-
-    @Override
-    public Collection<K> getSubscribers(final Map<K, scala.collection.immutable.Set<S>> mmap,
-            final Collection<S> topic) {
-        return mmap.entrySet()
-                .stream()
-                .filter(entry -> topic.stream().anyMatch(entry.getValue()::contains))
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public CompletionStage<Collection<K>> getSubscribers(final Collection<S> topic) {
-        return read().thenApply(mmap -> getSubscribers(mmap, topic));
     }
 
     @Override
@@ -86,33 +59,29 @@ public abstract class AbstractDDataHandler<K, S, T extends IndelUpdate<S, T>>
         return get(readConsistency).thenApply(optional -> {
             if (optional.isPresent()) {
                 final ORMultiMap<K, S> mmap = optional.get();
-                ddataMetrics.set((long) mmap.size());
                 return CollectionConverters.asJava(mmap.entries());
             } else {
-                ddataMetrics.set(0L);
                 return Map.of();
             }
         });
     }
 
     @Override
-    public CompletionStage<Void> put(final K ownSubscriber, final T topics,
+    public CompletionStage<Void> put(final K ownSubscriber, final T update,
             final Replicator.WriteConsistency writeConsistency) {
 
-        if (topics.shouldReplaceAll()) {
-            // complete replacement
-            return update(writeConsistency, mmap -> mmap.put(selfUniqueAddress, ownSubscriber, topics.getInserts()));
+        if (update.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
         } else {
-            // incremental update
-            return update(writeConsistency, mmap -> {
-                ORMultiMap<K, S> result = mmap;
-                for (final S inserted : topics.getInserts()) {
-                    result = result.addBinding(selfUniqueAddress, ownSubscriber, inserted);
+            return update(writeConsistency, initialMMap -> {
+                ORMultiMap<K, S> mmap = initialMMap;
+                for (final S delete : update.getDeletes()) {
+                    mmap = mmap.removeBinding(selfUniqueAddress, ownSubscriber, delete);
                 }
-                for (final S deleted : topics.getDeletes()) {
-                    result = result.removeBinding(selfUniqueAddress, ownSubscriber, deleted);
+                for (final S insert : update.getInserts()) {
+                    mmap = mmap.addBinding(selfUniqueAddress, ownSubscriber, insert);
                 }
-                return result;
+                return mmap;
             });
         }
     }

@@ -20,6 +20,7 @@ import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
 import org.eclipse.ditto.services.utils.pubsub.ddata.AbstractDDataHandler;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
+import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
@@ -27,14 +28,12 @@ import akka.actor.ActorSystem;
 import akka.actor.Address;
 import akka.cluster.ddata.ORMultiMap;
 import akka.cluster.ddata.Replicator;
-import akka.util.ByteString;
-import scala.jdk.javaapi.CollectionConverters;
 
 /**
  * A distributed collection of hashes of strings indexed by ActorRef.
  * The hash functions for all filter should be identical.
  */
-public final class CompressedDDataHandler extends AbstractDDataHandler<ActorRef, ByteString, CompressedUpdate>
+public final class CompressedDDataHandler extends AbstractDDataHandler<ActorRef, String, LiteralUpdate>
         implements Hashes {
 
     private final List<Integer> seeds;
@@ -63,7 +62,7 @@ public final class CompressedDDataHandler extends AbstractDDataHandler<ActorRef,
             final String topicType, final PubSubConfig pubSubConfig) {
 
         final List<Integer> seeds =
-                Hashes.digestStringsToIntegers(pubSubConfig.getSeed(), pubSubConfig.getHashFamilySize());
+                Hashes.digestStringsToIntegers(pubSubConfig.getSeed(), HASH_FAMILY_SIZE);
 
         return new CompressedDDataHandler(ddataConfig, system, system, system.dispatcher(), topicType, seeds);
     }
@@ -80,15 +79,15 @@ public final class CompressedDDataHandler extends AbstractDDataHandler<ActorRef,
      * @return the compressed topic.
      */
     @Override
-    public ByteString approximate(final String topic) {
-        return hashCodesToByteString(getHashes(topic));
+    public long approximate(final String topic) {
+        return hashAsLong(topic);
     }
 
     @Override
     public CompletionStage<Void> removeAddress(final Address address,
             final Replicator.WriteConsistency writeConsistency) {
         return update(writeConsistency, mmap -> {
-            ORMultiMap<ActorRef, ByteString> result = mmap;
+            ORMultiMap<ActorRef, String> result = mmap;
             for (final ActorRef subscriber : mmap.getEntries().keySet()) {
                 if (subscriber.path().address().equals(address)) {
                     result = result.remove(selfUniqueAddress, subscriber);
@@ -98,10 +97,4 @@ public final class CompressedDDataHandler extends AbstractDDataHandler<ActorRef,
         });
     }
 
-    @SuppressWarnings("unchecked")
-    static ByteString hashCodesToByteString(final List<Integer> hashes) {
-        // force-casting to List<Object> to interface with covariant Scala collection
-        final List<Object> hashesForScala = (List<Object>) (Object) hashes;
-        return ByteString.fromInts(CollectionConverters.asScala(hashesForScala).toSeq());
-    }
 }

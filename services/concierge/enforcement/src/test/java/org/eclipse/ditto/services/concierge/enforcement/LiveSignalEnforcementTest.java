@@ -51,7 +51,7 @@ import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
+import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;

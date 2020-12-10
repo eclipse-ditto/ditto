@@ -26,6 +26,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -45,10 +46,10 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class MongoReadJournalIT {
 
-    private static final String MONGO_HOST = "localhost";
     private static final String MONGO_DB = "mongoReadJournalIT";
 
-    private static MongoDbResource mongoResource;
+    @ClassRule
+    public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
     private static DittoMongoClient mongoClient;
 
     private ActorSystem actorSystem;
@@ -57,10 +58,8 @@ public final class MongoReadJournalIT {
 
     @BeforeClass
     public static void startMongoResource() {
-        mongoResource = new MongoDbResource(MONGO_HOST);
-        mongoResource.start();
         mongoClient = MongoClientWrapper.getBuilder()
-                .hostnameAndPort(mongoResource.getBindIp(), mongoResource.getPort())
+                .hostnameAndPort(MONGO_RESOURCE.getBindIp(), MONGO_RESOURCE.getPort())
                 .defaultDatabaseName(MONGO_DB)
                 .connectionPoolMaxSize(100)
                 .connectionPoolMaxWaitQueueSize(500_000)
@@ -74,9 +73,6 @@ public final class MongoReadJournalIT {
             if (null != mongoClient) {
                 mongoClient.close();
             }
-            if (null != mongoResource) {
-                mongoResource.stop();
-            }
         } catch (final IllegalStateException e) {
             System.err.println("IllegalStateException during shutdown of MongoDB: " + e.getMessage());
         }
@@ -85,7 +81,8 @@ public final class MongoReadJournalIT {
     @Before
     public void setUp() {
         // set persistence plugin Mongo URI for JavaDslReadJournal test
-        final String mongoUri = String.format("mongodb://%s:%d/%s", MONGO_HOST, mongoResource.getPort(), MONGO_DB);
+        final String mongoUri =
+                String.format("mongodb://%s:%d/%s", MONGO_RESOURCE.getBindIp(), MONGO_RESOURCE.getPort(), MONGO_DB);
         final Config config = ConfigFactory.load("mongo-read-journal-test")
                 .withValue("akka.contrib.persistence.mongodb.mongo.mongouri", ConfigValueFactory.fromAnyRef(mongoUri));
         actorSystem = ActorSystem.create("AkkaTestSystem", config);

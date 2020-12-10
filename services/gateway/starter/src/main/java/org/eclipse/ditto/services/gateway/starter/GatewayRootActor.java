@@ -24,6 +24,7 @@ import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthen
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.routes.RootRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.cloudevents.CloudEventsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute;
@@ -57,7 +58,7 @@ import org.eclipse.ditto.services.gateway.util.config.streaming.GatewaySignalEnr
 import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
-import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
@@ -72,7 +73,6 @@ import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -131,8 +131,7 @@ final class GatewayRootActor extends DittoRootActor {
 
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
 
-        final DittoProtocolSub dittoProtocolSub =
-                DittoProtocolSub.of(getContext(), DistributedAcks.create(getContext()));
+        final DittoProtocolSub dittoProtocolSub = DittoProtocolSub.get(actorSystem);
 
         final AuthenticationConfig authenticationConfig = gatewayConfig.getAuthenticationConfig();
         final DefaultHttpClientFacade httpClient =
@@ -282,6 +281,8 @@ final class GatewayRootActor extends DittoRootActor {
                 .thingSearchRoute(
                         new ThingSearchRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
                 .whoamiRoute(new WhoamiRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
+                .cloudEventsRoute(new CloudEventsRoute(proxyActor, actorSystem, httpConfig, commandConfig,
+                        headerTranslator, gatewayConfig.getCloudEventsConfig()))
                 .websocketRoute(WebSocketRoute.getInstance(streamingActor, streamingConfig, materializer)
                         .withSignalEnrichmentProvider(signalEnrichmentProvider)
                         .withHeaderTranslator(headerTranslator))
