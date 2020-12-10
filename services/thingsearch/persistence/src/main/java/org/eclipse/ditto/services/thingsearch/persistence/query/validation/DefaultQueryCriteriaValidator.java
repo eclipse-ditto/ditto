@@ -12,11 +12,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.query.validation;
 
-import java.util.Set;
-
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand;
 
 import akka.actor.ActorRef;
@@ -36,15 +31,7 @@ public final class DefaultQueryCriteriaValidator extends QueryCriteriaValidator 
     }
 
     @Override
-    public Criteria parseCriteria(final ThingSearchQueryCommand<?> command, final QueryFilterCriteriaFactory factory) {
-
-        final DittoHeaders headers = command.getDittoHeaders();
-        final Set<String> namespaces = command.getNamespaces().orElse(null);
-        final String filter = command.getFilter().orElse(null);
-        if (namespaces == null) {
-            return factory.filterCriteria(filter, command.getDittoHeaders());
-        } else {
-            return factory.filterCriteriaRestrictedByNamespaces(filter, headers, namespaces);
-        }
+    public void validateCommand(final ThingSearchQueryCommand<?> command) {
+        // do nothing
     }
 }

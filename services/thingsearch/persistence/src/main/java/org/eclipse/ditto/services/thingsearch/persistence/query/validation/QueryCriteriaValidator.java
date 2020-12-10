@@ -14,8 +14,6 @@ package org.eclipse.ditto.services.thingsearch.persistence.query.validation;
 
 import java.util.Arrays;
 
-import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.query.filter.QueryFilterCriteriaFactory;
 import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
 import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
@@ -45,10 +43,8 @@ public abstract class QueryCriteriaValidator implements Extension {
      *
      * May throw an exception depending on the implementation in the used QueryCriteriaValidator.
      *
-     * @return the criteria of the query command.
      */
-    public abstract Criteria parseCriteria(final ThingSearchQueryCommand<?> command,
-            final QueryFilterCriteriaFactory factory);
+    public abstract void validateCommand(final ThingSearchQueryCommand<?> command);
 
     /**
      * Load a {@code QueryCriteriaValidator} dynamically according to the search configuration.

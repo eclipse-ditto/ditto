@@ -61,6 +61,7 @@ public final class QueryParser {
      * @param criteriaFactory a factory to create criteria.
      * @param fieldExpressionFactory a factory to retrieve things field expressions.
      * @param queryBuilderFactory a factory to create a query builder.
+     * @param queryCriteriaValidator a validator for queries.
      * @return the query factory.
      */
     public static QueryParser of(final CriteriaFactory criteriaFactory,
@@ -78,7 +79,8 @@ public final class QueryParser {
      * @return the query.
      */
     public Query parse(final ThingSearchQueryCommand<?> command) {
-        final Criteria criteria = queryCriteriaValidator.parseCriteria(command, queryFilterCriteriaFactory);
+        queryCriteriaValidator.validateCommand(command);
+        final Criteria criteria = parseCriteria(command);
         if (command instanceof QueryThings) {
             final QueryThings queryThings = (QueryThings) command;
             final QueryBuilder queryBuilder = queryBuilderFactory.newBuilder(criteria);
@@ -93,6 +95,17 @@ public final class QueryParser {
             return queryBuilder.build();
         } else {
             return queryBuilderFactory.newUnlimitedBuilder(criteria).build();
+        }
+    }
+
+    private Criteria parseCriteria(final ThingSearchQueryCommand<?> command) {
+        final DittoHeaders headers = command.getDittoHeaders();
+        final Set<String> namespaces = command.getNamespaces().orElse(null);
+        final String filter = command.getFilter().orElse(null);
+        if (namespaces == null) {
+            return queryFilterCriteriaFactory.filterCriteria(filter, command.getDittoHeaders());
+        } else {
+            return queryFilterCriteriaFactory.filterCriteriaRestrictedByNamespaces(filter, headers, namespaces);
         }
     }
 

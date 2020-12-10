@@ -33,12 +33,12 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
     Optional<String> getMongoHintsByNamespace();
 
     /**
-     * Returns the {@code QueryCriteriaValidator} to be used for validation and decoding
+     * Returns the {@code QueryCriteriaValidator} to be used for validating and decoding
      * {@link org.eclipse.ditto.model.query.criteria.Criteria} of a
      * {@link org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand}.
      *
      * @return the config.
-     * @since 1.5.0
+     * @since 1.6.0
      */
     String getQueryValidator();
 
@@ -85,7 +85,7 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
          * The {@code QueryCriteriaValidator} used for decoding and validating {@link org.eclipse.ditto.model.query.criteria.Criteria}
          * of a {@link org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand}.
          *
-         * @since 1.5.0
+         * @since 1.6.0
          */
         QUERY_CRITERIA_VALIDATOR("query-criteria-validator",
                 "org.eclipse.ditto.services.thingsearch.persistence.query.validation.DefaultQueryCriteriaValidator");
