@@ -19,9 +19,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.exception.NotFoundException;
 import com.github.dockerjava.api.model.ExposedPort;
 import com.github.dockerjava.api.model.HostConfig;
-import com.github.dockerjava.api.model.Image;
 import com.github.dockerjava.api.model.PortBinding;
 import com.github.dockerjava.api.model.Ports;
 import com.github.dockerjava.core.DefaultDockerClientConfig;
@@ -105,12 +105,11 @@ final class MongoContainerFactory {
     }
 
     private Optional<String> getMongoImageId() {
-        return dockerClient.listImagesCmd()
-                .withImageNameFilter(MONGO_IMAGE_IDENTIFIER)
-                .exec()
-                .stream()
-                .findFirst()
-                .map(Image::getId);
+        try{
+            return Optional.ofNullable(dockerClient.inspectImageCmd(MONGO_IMAGE_IDENTIFIER).exec().getId());
+        } catch (final NotFoundException e) {
+            return Optional.empty();
+        }
     }
 
     private void pullMongoImage() {
