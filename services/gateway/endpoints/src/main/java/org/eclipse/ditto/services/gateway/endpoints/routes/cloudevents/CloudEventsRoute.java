@@ -187,29 +187,28 @@ public final class CloudEventsRoute extends AbstractRoute {
                     .trace("CloudEvent Ditto Headers: {}", dittoHeaders);
         }
 
-        // create a reader for the message
-        final MessageReader reader = HttpMessageFactory.createReader(acceptor -> {
-
-            // NOTE: this acceptor may be run multiple times by the message reader
-
-            // record if we saw the content type header
-            final AtomicBoolean sawContentType = new AtomicBoolean();
-            // consume the HTTP request headers
-            ctx.getRequest().getHeaders().forEach(header -> {
-                if (header.lowercaseName().equals(DittoHeaderDefinition.CONTENT_TYPE.getKey())) {
-                    sawContentType.set(true);
-                }
-                acceptor.accept(header.name(), header.value());
-            });
-
-            if (!sawContentType.get()) {
-                // we didn't see the content type in the header, so extract it from akka's request
-                acceptor.accept(DittoHeaderDefinition.CONTENT_TYPE.getKey(),
-                        ctx.getRequest().entity().getContentType().mediaType().toString());
-            }
-        }, payload.toArray());
-
         try {
+            // create a reader for the message
+            final MessageReader reader = HttpMessageFactory.createReader(acceptor -> {
+
+                // NOTE: this acceptor may be run multiple times by the message reader
+
+                // record if we saw the content type header
+                final AtomicBoolean sawContentType = new AtomicBoolean();
+                // consume the HTTP request headers
+                ctx.getRequest().getHeaders().forEach(header -> {
+                    if (header.lowercaseName().equals(DittoHeaderDefinition.CONTENT_TYPE.getKey())) {
+                        sawContentType.set(true);
+                    }
+                    acceptor.accept(header.name(), header.value());
+                });
+
+                if (!sawContentType.get()) {
+                    // we didn't see the content type in the header, so extract it from akka's request
+                    acceptor.accept(DittoHeaderDefinition.CONTENT_TYPE.getKey(),
+                            ctx.getRequest().entity().getContentType().mediaType().toString());
+                }
+            }, payload.toArray());
             return reader.toEvent();
         } catch (final CloudEventRWException | IllegalStateException e) {
             throw CloudEventNotParsableException.withDetailedInformationBuilder(e.getMessage())

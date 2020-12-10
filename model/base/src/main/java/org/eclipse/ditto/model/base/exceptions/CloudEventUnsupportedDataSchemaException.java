@@ -38,8 +38,10 @@
       */
      public static final String ERROR_CODE = "cloudevent.dataschema.unsupported";
 
-     private static final String DEFAULT_MESSAGE = "The data schema is not supported.";
-     private static final String MESSAGE_PATTERN = "The data schema <{0}> is not supported for this resource.";
+     private static final String DEFAULT_MESSAGE = "The provided Cloud Event dataschema is not supported for this " +
+             "resource.";
+     private static final String MESSAGE_PATTERN = "The provided Cloud Event dataschema <{0}> is not supported for " +
+             "this resource.";
      private static final String DESCRIPTION = "Ensure that the URI's scheme is 'ditto', so the complete dataschema " +
              "starts with 'ditto:'";
 
