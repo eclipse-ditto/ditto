@@ -20,7 +20,7 @@ import javax.annotation.concurrent.Immutable;
  * Represents a {@link Subject} expiry timestamp indicating the instant when a Subject is automatically removed from a
  * Policy entry.
  *
- * @since 1.5.0
+ * @since 2.0.0
  */
 @Immutable
 public interface SubjectExpiry extends CharSequence, Comparable<SubjectExpiry> {

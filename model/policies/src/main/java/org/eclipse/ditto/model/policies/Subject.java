@@ -102,7 +102,7 @@ public interface Subject extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * @param subjectExpiry the expiry timestamp of the new Subject.
      * @return the new {@code Subject}.
      * @throws NullPointerException if the {@code subjectId} or {@code subjectType} argument is {@code null}.
-     * @since 1.5.0
+     * @since 2.0.0
      */
     static Subject newInstance(final SubjectId subjectId, final SubjectType subjectType,
             @Nullable final SubjectExpiry subjectExpiry) {
@@ -138,7 +138,7 @@ public interface Subject extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
      * Once this time was reached, the Subjects is automatically removed from the Policy entry.
      *
      * @return the expiry timestamp of this Subject.
-     * @since 1.5.0
+     * @since 2.0.0
      */
     Optional<SubjectExpiry> getExpiry();
 
@@ -178,7 +178,7 @@ public interface Subject extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
 
         /**
          * JSON field containing the Subject's expiry time.
-         * @since 1.5.0
+         * @since 2.0.0
          */
         public static final JsonFieldDefinition<String> EXPIRY =
                 JsonFactory.newStringFieldDefinition("expiry", FieldType.REGULAR, JsonSchemaVersion.V_2);

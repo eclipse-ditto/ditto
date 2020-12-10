@@ -24,7 +24,7 @@ import javax.annotation.concurrent.Immutable;
 /**
  * An immutable implementation of {@link SubjectExpiry}.
  *
- * @since 1.5.0
+ * @since 2.0.0
  */
 @Immutable
 final class ImmutableSubjectExpiry implements SubjectExpiry {

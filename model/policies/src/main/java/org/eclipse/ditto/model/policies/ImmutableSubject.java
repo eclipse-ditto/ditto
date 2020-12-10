@@ -80,7 +80,7 @@ final class ImmutableSubject implements Subject {
      * @param subjectExpiry the expiry timestamp of the new Subject.
      * @return a new {@code Subject} object.
      * @throws NullPointerException if the {@code subjectId} or {@code subjectType} argument is {@code null}.
-     * @since 1.5.0
+     * @since 2.0.0
      */
     public static Subject of(final SubjectId subjectId, final SubjectType subjectType,
             @Nullable final SubjectExpiry subjectExpiry) {

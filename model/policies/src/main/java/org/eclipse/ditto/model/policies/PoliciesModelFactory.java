@@ -128,7 +128,7 @@ public final class PoliciesModelFactory {
      * @return the new {@link SubjectExpiry}.
      * @throws NullPointerException if {@code expiry} is {@code null}.
      * @throws SubjectExpiryInvalidException if the provided {@code expiry} could not be parsed.
-     * @since 1.5.0
+     * @since 2.0.0
      */
     public static SubjectExpiry newSubjectExpiry(final CharSequence expiry) {
         return ImmutableSubjectExpiry.of(expiry);
@@ -140,7 +140,7 @@ public final class PoliciesModelFactory {
      * @param expiry the expiration timestamp.
      * @return the new {@link SubjectExpiry}.
      * @throws NullPointerException if {@code expiry} is {@code null}.
-     * @since 1.5.0
+     * @since 2.0.0
      */
     public static SubjectExpiry newSubjectExpiry(final Instant expiry) {
         return ImmutableSubjectExpiry.of(expiry);
@@ -179,7 +179,7 @@ public final class PoliciesModelFactory {
      * @param subjectExpiry the expiry timestamp of the new Subject.
      * @return the new {@link Subject}.
      * @throws NullPointerException if the {@code subjectId} or {@code subjectType} argument is {@code null}.
-     * @since 1.5.0
+     * @since 2.0.0
      */
     public static Subject newSubject(final SubjectId subjectId, final SubjectType subjectType,
             @Nullable final SubjectExpiry subjectExpiry) {

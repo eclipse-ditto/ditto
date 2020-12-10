@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * Thrown if a Subject {@code expiry} timestamp is not valid (e.g. because the provided string could not be parsed
  * as ISO-8601 timestamp or the provided expiry timestamp was in the past).
  *
- * @since 1.5.0
+ * @since 2.0.0
  */
 @Immutable
 @JsonParsableException(errorCode = SubjectExpiryInvalidException.ERROR_CODE)
