@@ -341,4 +341,11 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
      */
     boolean isAllowPolicyLockout();
 
+    /**
+     * Return a copy of the headers with the original capitalization of header keys.
+     *
+     * @return headers map with the original capitalization.
+     * @since 1.6.0
+     */
+    Map<String, String> asCaseSensitiveMap();
 }

@@ -170,6 +170,14 @@ public final class ResponseCollectorActor extends AbstractActor {
                     .collect(Collectors.toList());
         }
 
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() +
+                    "[expectedCount=" + expectedCount +
+                    ",commandResponses=" + commandResponses +
+                    "]";
+        }
+
         private static boolean isFailedResponse(final CommandResponse<?> response) {
             if (isLiveResponse(response)) {
                 /*

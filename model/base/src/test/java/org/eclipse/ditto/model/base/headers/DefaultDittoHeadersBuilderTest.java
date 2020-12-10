@@ -409,7 +409,7 @@ public final class DefaultDittoHeadersBuilderTest {
 
         final DittoHeaders dittoHeaders = underTest.putHeaders(headerMap).build();
 
-        assertThat(dittoHeaders).isEqualTo(headerMap);
+        assertThat(dittoHeaders.asCaseSensitiveMap()).isEqualTo(headerMap);
     }
 
     @Test
@@ -450,7 +450,7 @@ public final class DefaultDittoHeadersBuilderTest {
 
         final DefaultDittoHeadersBuilder underTest = of(headerMap);
 
-        assertThat(underTest.build()).isEqualTo(headerMap);
+        assertThat(underTest.build().asCaseSensitiveMap()).isEqualTo(headerMap);
     }
 
     @Test

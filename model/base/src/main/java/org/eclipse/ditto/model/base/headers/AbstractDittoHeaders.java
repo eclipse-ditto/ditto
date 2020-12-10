@@ -82,6 +82,17 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
+    public Map<String, String> asCaseSensitiveMap() {
+        return headers.values()
+                .stream()
+                .collect(Collectors.toMap(
+                        Header::getKey,
+                        Header::getValue,
+                        (header1, header2) -> header2
+                ));
+    }
+
+    @Override
     public int size() {
         return headers.size();
     }
@@ -502,10 +513,7 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
             final AbstractDittoHeaders that = (AbstractDittoHeaders) other;
             return Objects.equals(headers, that.headers);
         } else if (other instanceof Map<?, ?>) {
-            final Map<?, ?> that = (Map<?, ?>) other;
-            return headers.size() == that.size() &&
-                    headers.values().stream().allMatch(header ->
-                            header.getValue().equals(that.get(header.getKey())));
+            return headers.equals(other);
         } else {
             return false;
         }
