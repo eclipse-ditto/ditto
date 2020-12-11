@@ -40,7 +40,7 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
      * @return the config.
      * @since 1.6.0
      */
-    String getQueryValidator();
+    String getQueryValidatorImplementation();
 
     /**
      * Returns the configuration settings of the "delete" section.
@@ -87,7 +87,7 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
          *
          * @since 1.6.0
          */
-        QUERY_CRITERIA_VALIDATOR("query-criteria-validator",
+        QUERY_CRITERIA_VALIDATOR("query-criteria-validator.implementation",
                 "org.eclipse.ditto.services.thingsearch.persistence.query.validation.DefaultQueryCriteriaValidator");
 
         private final String path;

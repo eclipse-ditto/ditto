@@ -21,7 +21,6 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand;
 
 import akka.actor.AbstractExtensionId;
-import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.ExtendedActorSystem;
 import akka.actor.Extension;
@@ -74,7 +73,7 @@ public abstract class QueryCriteriaValidator implements Extension {
                             system.settings().config()));
 
             return AkkaClassLoader.instantiate(system, QueryCriteriaValidator.class,
-                    searchConfig.getQueryValidator(),
+                    searchConfig.getQueryValidatorImplementation(),
                     Arrays.asList(ActorSystem.class),
                     Arrays.asList(system));
         }

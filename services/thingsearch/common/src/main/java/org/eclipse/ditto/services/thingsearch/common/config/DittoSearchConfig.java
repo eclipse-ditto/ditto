@@ -89,7 +89,7 @@ public final class DittoSearchConfig implements SearchConfig {
     }
 
     @Override
-    public String getQueryValidator() {
+    public String getQueryValidatorImplementation() {
         return queryCriteriaValidator;
     }
 
