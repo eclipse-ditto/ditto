@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.Placeholder;
@@ -136,7 +137,7 @@ public final class Resolvers {
 
         return PlaceholderFactory.newExpressionResolver(
                 RESOLVER_CREATORS.stream()
-                        .map(creator -> creator.create(message.getHeaders(), null,
+                        .map(creator -> creator.create(makeCaseInsensitive(message.getHeaders()), null,
                                 message.getTopicPath().orElse(null),
                                 message.getAuthorizationContext().orElse(null),
                                 receivingConnectionId))
@@ -182,10 +183,14 @@ public final class Resolvers {
         return PlaceholderFactory.newExpressionResolver(
                 RESOLVER_CREATORS.stream()
                         .map(creator ->
-                                creator.create(externalMessage.getHeaders(), signal, topicPath, authorizationContext,
-                                        connectionId))
+                                creator.create(makeCaseInsensitive(externalMessage.getHeaders()), signal, topicPath,
+                                        authorizationContext, connectionId))
                         .toArray(PlaceholderResolver[]::new)
         );
+    }
+
+    private static DittoHeaders makeCaseInsensitive(final Map<String, String> externalHeaders) {
+        return DittoHeaders.of(externalHeaders);
     }
 
     /**
