@@ -37,6 +37,12 @@ import akka.actor.Extension;
  */
 public abstract class QueryCriteriaValidator implements Extension {
 
+    protected final ActorSystem actorSystem;
+
+    protected QueryCriteriaValidator(final ActorSystem actorSystem) {
+        this.actorSystem = actorSystem;
+    }
+
     /**
      * Gets the criteria of a {@link org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand} and
      * validates it.
@@ -50,24 +56,16 @@ public abstract class QueryCriteriaValidator implements Extension {
      * Load a {@code QueryCriteriaValidator} dynamically according to the search configuration.
      *
      * @param actorSystem The actor system in which to load the validator.
-     * @param pubSubMediator the mediator via which system-wide communication can be done.
      * @return The validator.
      */
-    public static QueryCriteriaValidator get(final ActorSystem actorSystem, ActorRef pubSubMediator) {
-        return new ExtensionId(pubSubMediator).get(actorSystem);
+    public static QueryCriteriaValidator get(final ActorSystem actorSystem) {
+        return new ExtensionId().get(actorSystem);
     }
 
     /**
      * ID of the actor system extension to validate the {@code QueryCriteriaValidator}.
      */
     private static final class ExtensionId extends AbstractExtensionId<QueryCriteriaValidator> {
-
-        private final ActorRef pubSubMediator;
-
-        ExtensionId(final ActorRef pubSubMediator) {
-            super();
-            this.pubSubMediator = pubSubMediator;
-        }
 
         @Override
         public QueryCriteriaValidator createExtension(final ExtendedActorSystem system) {
@@ -77,8 +75,8 @@ public abstract class QueryCriteriaValidator implements Extension {
 
             return AkkaClassLoader.instantiate(system, QueryCriteriaValidator.class,
                     searchConfig.getQueryValidator(),
-                    Arrays.asList(ActorSystem.class, ActorRef.class),
-                    Arrays.asList(system, pubSubMediator));
+                    Arrays.asList(ActorSystem.class),
+                    Arrays.asList(system));
         }
     }
 }

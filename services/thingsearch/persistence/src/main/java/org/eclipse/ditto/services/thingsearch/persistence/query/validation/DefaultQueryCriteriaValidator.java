@@ -26,7 +26,8 @@ public final class DefaultQueryCriteriaValidator extends QueryCriteriaValidator 
     /**
      * Instantiate this provider. Called by reflection.
      */
-    public DefaultQueryCriteriaValidator(final ActorSystem actorSystem, final ActorRef pubSubMediator) {
+    public DefaultQueryCriteriaValidator(final ActorSystem actorSystem) {
+        super(actorSystem);
         // Nothing to initialize.
     }
 

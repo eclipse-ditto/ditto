@@ -71,14 +71,11 @@ public final class SearchRootActor extends DittoRootActor {
 
     private static final String KAMON_METRICS_PREFIX = "search";
 
-    private final ActorRef pubSubMediator;
-
     private final LoggingAdapter log;
 
     @SuppressWarnings("unused")
     private SearchRootActor(final SearchConfig searchConfig, final ActorRef pubSubMediator) {
 
-        this.pubSubMediator = pubSubMediator;
         log = Logging.getLogger(getContext().system(), this);
 
         final MongoDbConfig mongoDbConfig = searchConfig.getMongoDbConfig();
@@ -145,16 +142,16 @@ public final class SearchRootActor extends DittoRootActor {
     private ActorRef initializeSearchActor(final LimitsConfig limitsConfig,
             final ThingsSearchPersistence thingsSearchPersistence) {
 
-        final QueryParser queryParser = getQueryParser(limitsConfig, getContext().getSystem(), pubSubMediator);
+        final QueryParser queryParser = getQueryParser(limitsConfig, getContext().getSystem());
 
         return startChildActor(SearchActor.ACTOR_NAME, SearchActor.props(queryParser, thingsSearchPersistence));
     }
 
-    protected static QueryParser getQueryParser(final LimitsConfig limitsConfig, final ActorSystem actorSystem, ActorRef pubSubMediator) {
+    protected static QueryParser getQueryParser(final LimitsConfig limitsConfig, final ActorSystem actorSystem) {
         final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
         final ThingsFieldExpressionFactory fieldExpressionFactory = getThingsFieldExpressionFactory();
         final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(limitsConfig);
-        final QueryCriteriaValidator queryCriteriaValidator = QueryCriteriaValidator.get(actorSystem, pubSubMediator);
+        final QueryCriteriaValidator queryCriteriaValidator = QueryCriteriaValidator.get(actorSystem);
         return QueryParser.of(criteriaFactory, fieldExpressionFactory, queryBuilderFactory, queryCriteriaValidator);
     }
 
