@@ -56,6 +56,7 @@ import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.model.policies.assertions.DittoPolicyAssertions;
+import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
@@ -772,6 +773,14 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 assertThat(((SubjectDeleted) subjectDeletedMsg).getSubjectId())
                         .isEqualTo(expectedAdjustedSubjectToAdd.getId());
 
+                // THEN: a PolicyTag should be emitted via pub/sub indicating that the policy enforcer caches should be invalidated
+                final DistributedPubSubMediator.Publish policyTagForCacheInvalidation =
+                        pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+                final Object policyTagForCacheInvalidationMsg = policyTagForCacheInvalidation.msg();
+                assertThat(policyTagForCacheInvalidationMsg).isInstanceOf(PolicyTag.class);
+                assertThat(((PolicyTag) policyTagForCacheInvalidationMsg).getEntityId())
+                        .isEqualTo(policyId);
+
                 // THEN: retrieving the expired subject should fail
                 underTest.tell(retrieveSubject, getRef());
                 expectMsgClass(SubjectNotAccessibleException.class);
@@ -1009,6 +1018,14 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 assertThat(subjectDeletedMsg).isInstanceOf(SubjectDeleted.class);
                 assertThat(((SubjectDeleted) subjectDeletedMsg).getSubjectId())
                         .isEqualTo(expectedAdjustedSubjectToAdd.getId());
+
+                // THEN: a PolicyTag should be emitted via pub/sub indicating that the policy enforcer caches should be invalidated
+                final DistributedPubSubMediator.Publish policyTagForCacheInvalidation =
+                        pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+                final Object policyTagForCacheInvalidationMsg = policyTagForCacheInvalidation.msg();
+                assertThat(policyTagForCacheInvalidationMsg).isInstanceOf(PolicyTag.class);
+                assertThat(((PolicyTag) policyTagForCacheInvalidationMsg).getEntityId())
+                        .isEqualTo(policyId);
 
                 // THEN: retrieving the expired subject should fail
                 final RetrieveSubject retrieveSubject =
