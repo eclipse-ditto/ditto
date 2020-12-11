@@ -48,7 +48,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.FilteredTopic;
 import org.eclipse.ditto.model.connectivity.LogCategory;
 import org.eclipse.ditto.model.connectivity.LogType;
@@ -74,7 +73,6 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConne
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal.Mapped;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
@@ -83,6 +81,7 @@ import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
@@ -125,7 +124,7 @@ public final class OutboundMappingProcessorActor
     private final ThreadSafeDittoLoggingAdapter logger;
 
     private final ActorRef clientActor;
-    private final ConnectionId connectionId;
+    private final Connection connection;
     private final MappingConfig mappingConfig;
     private final DefaultConnectionMonitorRegistry connectionMonitorRegistry;
     private final ConnectionMonitor responseDispatchedMonitor;
@@ -148,10 +147,10 @@ public final class OutboundMappingProcessorActor
 
         this.clientActor = clientActor;
         this.outboundMappingProcessor = outboundMappingProcessor;
-        this.connectionId = connection.getId();
+        this.connection = connection;
 
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
-                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
+                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, this.connection.getId());
 
         final DefaultScopedConfig dittoScoped =
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config());
@@ -162,11 +161,11 @@ public final class OutboundMappingProcessorActor
         final LimitsConfig limitsConfig = DefaultLimitsConfig.of(dittoScoped);
 
         connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
-        responseDispatchedMonitor = connectionMonitorRegistry.forResponseDispatched(connectionId);
-        responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(connectionId);
-        responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(connectionId);
+        responseDispatchedMonitor = connectionMonitorRegistry.forResponseDispatched(this.connection);
+        responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(this.connection);
+        responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(this.connection);
         signalEnrichmentFacade =
-                ConnectivitySignalEnrichmentProvider.get(getContext().getSystem()).getFacade(connectionId);
+                ConnectivitySignalEnrichmentProvider.get(getContext().getSystem()).getFacade(this.connection.getId());
         this.processorPoolSize = determinePoolSize(processorPoolSize, mappingConfig.getMaxPoolSize());
         toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(limitsConfig.getHeadersMaxSize());
     }
@@ -395,7 +394,7 @@ public final class OutboundMappingProcessorActor
             final Target target, final Throwable error) {
 
         // show enrichment failure in the connection logs
-        logEnrichmentFailure(outboundSignal, connectionId, error);
+        logEnrichmentFailure(outboundSignal, error);
         // show enrichment failure in service logs according to severity
         if (error instanceof ThingNotAccessibleException) {
             // This error should be rare but possible due to user action; log on INFO level
@@ -414,8 +413,7 @@ public final class OutboundMappingProcessorActor
         return outboundSignal.setTargets(Collections.singletonList(target));
     }
 
-    private void logEnrichmentFailure(final OutboundSignal outboundSignal, final ConnectionId connectionId,
-            final Throwable error) {
+    private void logEnrichmentFailure(final OutboundSignal outboundSignal, final Throwable error) {
 
         final DittoRuntimeException errorToLog;
         if (error instanceof DittoRuntimeException) {
@@ -425,7 +423,7 @@ public final class OutboundMappingProcessorActor
                     .dittoHeaders(outboundSignal.getSource().getDittoHeaders())
                     .build();
         }
-        getMonitorsForMappedSignal(outboundSignal, connectionId)
+        getMonitorsForMappedSignal(outboundSignal)
                 .forEach(monitor -> monitor.failure(outboundSignal.getSource(), errorToLog));
     }
 
@@ -504,9 +502,9 @@ public final class OutboundMappingProcessorActor
 
     private Source<OutboundSignalWithId, ?> mapToExternalMessage(final OutboundSignalWithId outbound) {
         final ConnectionMonitor.InfoProvider infoProvider = InfoProviderFactory.forSignal(outbound.getSource());
-        final Set<ConnectionMonitor> outboundMapped = getMonitorsForMappedSignal(outbound, connectionId);
-        final Set<ConnectionMonitor> outboundDropped = getMonitorsForDroppedSignal(outbound, connectionId);
-        final Set<ConnectionMonitor> monitorsForOther = getMonitorsForOther(outbound, connectionId);
+        final Set<ConnectionMonitor> outboundMapped = getMonitorsForMappedSignal(outbound);
+        final Set<ConnectionMonitor> outboundDropped = getMonitorsForDroppedSignal(outbound);
+        final Set<ConnectionMonitor> monitorsForOther = getMonitorsForOther(outbound);
 
         final MappingOutcome.Visitor<OutboundSignal.Mapped, Source<OutboundSignalWithId, ?>> visitor =
                 MappingOutcome.<OutboundSignal.Mapped, Source<OutboundSignalWithId, ?>>newVisitorBuilder()
@@ -547,26 +545,22 @@ public final class OutboundMappingProcessorActor
                 .orElse(Source.empty());
     }
 
-    private Set<ConnectionMonitor> getMonitorsForDroppedSignal(final OutboundSignal outbound,
-            final ConnectionId connectionId) {
+    private Set<ConnectionMonitor> getMonitorsForDroppedSignal(final OutboundSignal outbound) {
 
-        return getMonitorsForOutboundSignal(outbound, connectionId, DROPPED, LogType.DROPPED, responseDroppedMonitor);
+        return getMonitorsForOutboundSignal(outbound, DROPPED, LogType.DROPPED, responseDroppedMonitor);
     }
 
-    private Set<ConnectionMonitor> getMonitorsForMappedSignal(final OutboundSignal outbound,
-            final ConnectionId connectionId) {
+    private Set<ConnectionMonitor> getMonitorsForMappedSignal(final OutboundSignal outbound) {
 
-        return getMonitorsForOutboundSignal(outbound, connectionId, MAPPED, LogType.MAPPED, responseMappedMonitor);
+        return getMonitorsForOutboundSignal(outbound, MAPPED, LogType.MAPPED, responseMappedMonitor);
     }
 
-    private Set<ConnectionMonitor> getMonitorsForOther(final OutboundSignal outbound,
-            final ConnectionId connectionId) {
+    private Set<ConnectionMonitor> getMonitorsForOther(final OutboundSignal outbound) {
 
-        return getMonitorsForOutboundSignal(outbound, connectionId, MAPPED, LogType.OTHER, responseMappedMonitor);
+        return getMonitorsForOutboundSignal(outbound, MAPPED, LogType.OTHER, responseMappedMonitor);
     }
 
     private Set<ConnectionMonitor> getMonitorsForOutboundSignal(final OutboundSignal outbound,
-            final ConnectionId connectionId,
             final MetricType metricType,
             final LogType logType,
             final ConnectionMonitor responseMonitor) {
@@ -577,7 +571,7 @@ public final class OutboundMappingProcessorActor
             return outbound.getTargets()
                     .stream()
                     .map(Target::getOriginalAddress)
-                    .map(address -> connectionMonitorRegistry.getMonitor(connectionId, metricType,
+                    .map(address -> connectionMonitorRegistry.getMonitor(connection, metricType,
                             MetricDirection.OUTBOUND,
                             logType, LogCategory.TARGET, address))
                     .collect(Collectors.toSet());
@@ -606,7 +600,7 @@ public final class OutboundMappingProcessorActor
                                 .flatMap(List::stream)
                                 .collect(Collectors.toList());
                         final Predicate<AcknowledgementLabel> willPublish =
-                                ConnectionValidator.getTargetIssuedAcknowledgementLabels(connectionId,
+                                ConnectionValidator.getTargetIssuedAcknowledgementLabels(connection.getId(),
                                         targetsToPublishAt)
                                         .collect(Collectors.toSet())::contains;
                         issueWeakAcknowledgements(outbound.getSource(),

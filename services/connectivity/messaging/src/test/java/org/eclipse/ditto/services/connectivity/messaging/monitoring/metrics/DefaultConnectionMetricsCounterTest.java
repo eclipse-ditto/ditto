@@ -13,6 +13,9 @@
 package org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -20,20 +23,30 @@ import java.util.stream.IntStream;
 
 import org.eclipse.ditto.model.connectivity.MetricDirection;
 import org.eclipse.ditto.model.connectivity.MetricType;
+import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 /**
  * Tests {@link DefaultConnectionMetricsCounter}.
  */
+@RunWith(MockitoJUnitRunner.class)
 public class DefaultConnectionMetricsCounterTest {
 
     private DefaultConnectionMetricsCounter underTest;
 
+    @Mock
+    public Counter metricsCounter;
+
+
     @Before
     public void setUp() {
+        when(metricsCounter.tag(eq("success"), any(Boolean.class))).thenReturn(metricsCounter);
         underTest = new DefaultConnectionMetricsCounter(MetricDirection.INBOUND, "source", MetricType.CONSUMED,
-                new SlidingWindowCounter(Clock.systemUTC(), MeasurementWindow.ONE_MINUTE));
+                new SlidingWindowCounter(metricsCounter, Clock.systemUTC(), MeasurementWindow.ONE_MINUTE));
     }
 
     @Test
