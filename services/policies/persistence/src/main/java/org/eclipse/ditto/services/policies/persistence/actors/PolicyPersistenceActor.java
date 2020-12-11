@@ -22,6 +22,7 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
@@ -32,6 +33,7 @@ import org.eclipse.ditto.model.policies.PolicyLifecycle;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.Subjects;
+import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.policies.common.config.DittoPoliciesConfig;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.actors.strategies.commands.PolicyCommandStrategies;
@@ -172,6 +174,15 @@ public final class PolicyPersistenceActor
     @Override
     protected void publishEvent(final PolicyEvent event) {
         pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyEvent.TYPE_PREFIX, event), getSender());
+
+        final boolean policyEnforcerInvalidatedPreemptively = Boolean.parseBoolean(event.getDittoHeaders()
+                .getOrDefault(DittoHeaderDefinition.POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY.getKey(),
+                        Boolean.FALSE.toString()));
+        if (!policyEnforcerInvalidatedPreemptively) {
+            final PolicyTag policyTag = PolicyTag.of(entityId, event.getRevision());
+            pubSubMediator.tell(DistPubSubAccess.publish(PolicyTag.PUB_SUB_TOPIC_INVALIDATE_ENFORCERS, policyTag),
+                    getSender());
+        }
     }
 
     @Override
