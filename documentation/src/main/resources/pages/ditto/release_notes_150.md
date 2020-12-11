@@ -15,9 +15,8 @@ to prior Eclipse Ditto 1.x versions.
 Compared to the latest release [1.4.0](release_notes_140.html), the following changes, new features and
 bugfixes were added.
 
-{% include warning.html content="
-If you want to upgrade an existing **docker-compose based** Ditto installation to 1.5.0, the migration has to be done 
-before upgrading: **Follow the steps documented in [the migration notes](#migration-notes)**." %}
+{% include warning.html content="If you want to upgrade an existing Ditto installation to 1.5.0, the migration has to be 
+    done before upgrading: **Follow the steps documented in [the migration notes](#migration-notes)**." %}
 
 
 ### Changes
@@ -120,12 +119,10 @@ when only a single subpath exists in the feature (i.e. feature with only propert
 
 ### MongoDB hostname configuration
 
-This only affects you if you used a **docker-compose** based installation of Eclipse Ditto.
-
 Due to the [consolidation of config files](https://github.com/eclipse/ditto/pull/888), it is now **required to configure
-the MongoDB `hostname` explicitly**. 
-Previously, this hostname was automatically set to `mongodb` which is the hostname of the MongoDB when e.g. the 
-`docker-compose.yaml` file was used.
+the MongoDB `hostname` explicitly** as the default hostname was changed to `localhost`.<br/>
+Previously, this hostname was automatically set to `mongodb` (which is the hostname of the MongoDB when e.g. the 
+`docker-compose.yaml` deployment is used) in Docker based environments.
 
 This now has to be manually done via the environment variable `MONGO_DB_HOSTNAME`.
 
