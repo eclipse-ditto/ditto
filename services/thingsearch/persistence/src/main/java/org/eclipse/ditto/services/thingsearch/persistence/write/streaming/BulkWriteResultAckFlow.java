@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +32,7 @@ import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 
+import com.mongodb.ErrorCategory;
 import com.mongodb.bulk.BulkWriteError;
 import com.mongodb.bulk.BulkWriteResult;
 
@@ -65,26 +67,40 @@ final class BulkWriteResultAckFlow {
     private Iterable<String> checkBulkWriteResult(final WriteResultAndErrors writeResultAndErrors) {
         if (wasNotAcknowledged(writeResultAndErrors)) {
             // All failed.
-            acknowledgeFailures(getAllThings(writeResultAndErrors));
+            acknowledgeFailures(getAllMetadata(writeResultAndErrors));
             return Collections.singleton(logResult("NotAcknowledged", writeResultAndErrors, false));
         } else {
             final Optional<String> consistencyError = checkForConsistencyError(writeResultAndErrors);
             if (consistencyError.isPresent()) {
                 // write result is not consistent; there is a bug with Ditto or with its environment
-                acknowledgeFailures(getAllThings(writeResultAndErrors));
+                acknowledgeFailures(getAllMetadata(writeResultAndErrors));
                 return Collections.singleton(consistencyError.get());
             } else {
                 final List<BulkWriteError> errors = writeResultAndErrors.getBulkWriteErrors();
                 final List<String> logEntries = new ArrayList<>(errors.size() + 1);
-                final List<Metadata> failedThings = new ArrayList<>(errors.size());
+                final List<Metadata> failedMetadata = new ArrayList<>(errors.size());
                 logEntries.add(logResult("Acknowledged", writeResultAndErrors, errors.isEmpty()));
+                final BitSet failedIndices = new BitSet(writeResultAndErrors.getWriteModels().size());
                 for (final BulkWriteError error : errors) {
                     final Metadata metadata = writeResultAndErrors.getWriteModels().get(error.getIndex()).getMetadata();
                     logEntries.add(String.format("UpdateFailed for %s due to %s", metadata, error));
-                    failedThings.add(metadata);
+                    if (error.getCategory() != ErrorCategory.DUPLICATE_KEY) {
+                        failedIndices.set(error.getIndex());
+                        failedMetadata.add(metadata);
+                        // duplicate key error is considered success
+                    }
                 }
-                acknowledgeFailures(failedThings);
+                acknowledgeFailures(failedMetadata);
+                acknowledgeSuccesses(failedIndices, writeResultAndErrors.getWriteModels());
                 return logEntries;
+            }
+        }
+    }
+
+    private void acknowledgeSuccesses(final BitSet failedIndices, final List<AbstractWriteModel> writeModels) {
+        for (int i = 0; i < writeModels.size(); ++i) {
+            if (!failedIndices.get(i)) {
+                writeModels.get(i).getMetadata().sendAck();
             }
         }
     }
@@ -102,6 +118,7 @@ final class BulkWriteResultAckFlow {
             final ShardedMessageEnvelope envelope =
                     ShardedMessageEnvelope.of(response.getEntityId(), response.getType(), response.toJson(),
                             response.getDittoHeaders());
+            metadata.sendNAck();
             updaterShard.tell(envelope, ActorRef.noSender());
         }
     }
@@ -145,7 +162,7 @@ final class BulkWriteResultAckFlow {
         return bulkWriteErrors.stream().mapToInt(BulkWriteError::getIndex).allMatch(i -> 0 <= i && i < requested);
     }
 
-    private static List<Metadata> getAllThings(final WriteResultAndErrors writeResultAndErrors) {
+    private static List<Metadata> getAllMetadata(final WriteResultAndErrors writeResultAndErrors) {
         return writeResultAndErrors.getWriteModels()
                 .stream()
                 .map(AbstractWriteModel::getMetadata)

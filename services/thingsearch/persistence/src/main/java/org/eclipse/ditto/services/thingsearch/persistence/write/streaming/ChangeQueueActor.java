@@ -74,7 +74,7 @@ public final class ChangeQueueActor extends AbstractActor {
      * @param metadata a description of the change.
      */
     private void enqueue(final Metadata metadata) {
-        cache.put(metadata.getThingId(), metadata);
+        cache.merge(metadata.getThingId(), metadata, Metadata::prependSenders);
     }
 
     /**

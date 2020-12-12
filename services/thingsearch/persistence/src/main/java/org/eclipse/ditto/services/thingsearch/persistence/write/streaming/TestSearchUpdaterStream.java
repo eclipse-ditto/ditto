@@ -71,7 +71,8 @@ public final class TestSearchUpdaterStream {
             final long policyRevision) {
 
         final JsonObject thingJson = thing.toJson(FieldType.all());
-        final AbstractWriteModel writeModel = EnforcedThingMapper.toWriteModel(thingJson, enforcer, policyRevision, -1);
+        final AbstractWriteModel writeModel = EnforcedThingMapper.toWriteModel(thingJson, enforcer, policyRevision, -1,
+                null);
 
         return Source.single(Source.single(writeModel))
                 .via(mongoSearchUpdaterFlow.start(1, 1, Duration.ZERO));
