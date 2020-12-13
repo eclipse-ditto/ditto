@@ -100,7 +100,8 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
         // used for receiving cache invalidations from brother concierge nodes
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
         // register for receiving invalidate policy enforcers
-        pubSubMediator.tell(DistPubSubAccess.subscribe(PolicyTag.PUB_SUB_TOPIC_INVALIDATE_ENFORCERS, self()), self());
+        pubSubMediator.tell(DistPubSubAccess.subscribe(PolicyTag.PUB_SUB_TOPIC_INVALIDATE_ENFORCERS, self()),
+                ActorRef.noSender());
     }
 
     @Override
