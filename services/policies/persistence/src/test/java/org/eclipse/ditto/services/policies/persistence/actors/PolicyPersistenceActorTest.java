@@ -31,6 +31,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
+import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.entity.Revision;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
@@ -727,7 +728,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().get())
                         .isEqualEqualToButModified(policy);
 
-                // THEN: a SubjectCreated event should be emitted
+                // THEN: a PolicyCreated event should be emitted
                 final DistributedPubSubMediator.Publish policyCreatedPublish =
                         pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
                 assertThat(policyCreatedPublish.msg()).isInstanceOf(PolicyCreated.class);
@@ -743,7 +744,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 assertThat(subjectCreatedPublish.msg()).isInstanceOf(SubjectCreated.class);
 
                 final long secondsToAdd = 10 - (expiryInstant.getEpochSecond() % 10);
-                final Instant expectedRoundedExpiryInstant = expiryInstant.plusSeconds(secondsToAdd); // to next 10s rounded up
+                final Instant expectedRoundedExpiryInstant =
+                        expiryInstant.plusSeconds(secondsToAdd); // to next 10s rounded up
                 final SubjectExpiry expectedSubjectExpiry = SubjectExpiry.newInstance(expectedRoundedExpiryInstant);
                 final Subject expectedAdjustedSubjectToAdd = Subject.newInstance(subjectToAdd.getId(),
                         subjectToAdd.getType(), expectedSubjectExpiry);
@@ -751,18 +753,21 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 // THEN: the subject expiry should be rounded up to the configured "subject-expiry-granularity"
                 //  (10s for this test)
                 expectMsgEquals(
-                        modifySubjectResponse(policyId, POLICY_LABEL, expectedAdjustedSubjectToAdd, headersMockWithOtherAuth, true));
+                        modifySubjectResponse(policyId, POLICY_LABEL, expectedAdjustedSubjectToAdd,
+                                headersMockWithOtherAuth, true));
 
                 final RetrieveSubject retrieveSubject =
                         RetrieveSubject.of(policyId, POLICY_LABEL, subjectToAdd.getId(), headersMockWithOtherAuth);
                 final RetrieveSubjectResponse expectedResponse =
-                        retrieveSubjectResponse(policyId, POLICY_LABEL, expectedAdjustedSubjectToAdd, headersMockWithOtherAuth);
+                        retrieveSubjectResponse(policyId, POLICY_LABEL, expectedAdjustedSubjectToAdd,
+                                headersMockWithOtherAuth);
                 underTest.tell(retrieveSubject, getRef());
                 expectMsgEquals(expectedResponse);
 
                 // THEN: waiting until the expiry interval should emit a SubjectDeleted event
-                final Duration between = Duration.between(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant(),
-                        expectedRoundedExpiryInstant);
+                final Duration between =
+                        Duration.between(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant(),
+                                expectedRoundedExpiryInstant);
                 final long secondsToWaitForSubjectDeletedEvent = between.getSeconds() + 2;
                 final DistributedPubSubMediator.Publish policySubjectDeleted =
                         pubSubMediatorTestProbe.expectMsgClass(
@@ -786,6 +791,67 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 expectMsgClass(SubjectNotAccessibleException.class);
             }
         };
+    }
+
+    @Test
+    public void createPolicyWith2SubjectsWithExpiry() {
+        new TestKit(actorSystem) {{
+            final Instant expiryInstant = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+                    .plus(2, ChronoUnit.SECONDS)
+                    .atZone(ZoneId.systemDefault()).toInstant();
+            final SubjectExpiry subjectExpiry = SubjectExpiry.newInstance(expiryInstant);
+            final Subject subject1 =
+                    Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, "subject1"),
+                            SubjectType.GENERATED, subjectExpiry);
+            final Subject subject2 =
+                    Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, "subject2"),
+                            SubjectType.GENERATED, subjectExpiry);
+            final Policy policy = PoliciesModelFactory.newPolicyBuilder(PolicyId.of("policy:id"))
+                    .forLabel(POLICY_LABEL)
+                    .setSubjects(Subjects.newInstance(subject1, subject2))
+                    .setResources(POLICY_RESOURCES_ALL)
+                    .build();
+
+            final ActorRef underTest = createPersistenceActorFor(this, policy);
+
+            // GIVEN: a Policy is created with 2 subjects having an "expiry" date
+            final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
+            underTest.tell(createPolicyCommand, getRef());
+            final CreatePolicyResponse createPolicy1Response = expectMsgClass(CreatePolicyResponse.class);
+
+            // THEN: a PolicyCreated event should be emitted
+            final DistributedPubSubMediator.Publish policyCreatedPublish =
+                    pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+            assertThat(policyCreatedPublish.msg()).isInstanceOf(PolicyCreated.class);
+
+
+            // THEN: subject1 is deleted after expiry
+            final long secondsToAdd = 10 - (expiryInstant.getEpochSecond() % 10);
+            final Instant expectedRoundedExpiryInstant = expiryInstant.plusSeconds(secondsToAdd);
+            final Duration between =
+                    Duration.between(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant(),
+                            expectedRoundedExpiryInstant);
+            final long secondsToWaitForSubjectDeletedEvent = between.getSeconds() + 2;
+            final DistributedPubSubMediator.Publish subject1Deleted =
+                    pubSubMediatorTestProbe.expectMsgClass(
+                            FiniteDuration.apply(secondsToWaitForSubjectDeletedEvent, TimeUnit.SECONDS),
+                            DistributedPubSubMediator.Publish.class);
+            assertThat(subject1Deleted.msg()).isInstanceOf(SubjectDeleted.class);
+            assertThat(((SubjectDeleted) subject1Deleted.msg()).getSubjectId()).isEqualTo(subject1.getId());
+            assertThat(pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class).msg())
+                    .isInstanceOf(PolicyTag.class);
+
+            // THEN: subject2 is deleted immediately
+            final DistributedPubSubMediator.Publish subject2Deleted =
+                    pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+            assertThat(subject2Deleted.msg()).isInstanceOf(SubjectDeleted.class);
+            assertThat(((SubjectDeleted) subject2Deleted.msg()).getSubjectId()).isEqualTo(subject2.getId());
+
+            // THEN: the policy has no subjects. (TODO: rationalize or change this behavior.)
+            underTest.tell(RetrievePolicy.of(policy.getEntityId().orElseThrow(), DittoHeaders.empty()), getRef());
+            final RetrievePolicyResponse response = expectMsgClass(RetrievePolicyResponse.class);
+            Assertions.assertThat(response.getPolicy().getEntryFor(POLICY_LABEL).orElseThrow().getSubjects()).isEmpty();
+        }};
     }
 
     @Test
@@ -968,7 +1034,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         .build();
 
                 final long secondsToAdd = 10 - (expiryInstant.getEpochSecond() % 10);
-                final Instant expectedRoundedExpiryInstant = expiryInstant.plusSeconds(secondsToAdd); // to next 10s rounded up
+                final Instant expectedRoundedExpiryInstant =
+                        expiryInstant.plusSeconds(secondsToAdd); // to next 10s rounded up
                 final SubjectExpiry expectedSubjectExpiry = SubjectExpiry.newInstance(expectedRoundedExpiryInstant);
                 final Subject expectedAdjustedSubjectToAdd = Subject.newInstance(expiringSubject.getId(),
                         expiringSubject.getType(), expectedSubjectExpiry);
@@ -1007,8 +1074,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 assertThat(getLastSender()).isEqualTo(underTestRecovered);
 
                 // THEN: waiting until the expiry interval should emit a SubjectDeleted event
-                final Duration between = Duration.between(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant(),
-                        expectedRoundedExpiryInstant);
+                final Duration between =
+                        Duration.between(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant(),
+                                expectedRoundedExpiryInstant);
                 final long secondsToWaitForSubjectDeletedEvent = between.getSeconds() + 2;
                 final DistributedPubSubMediator.Publish policySubjectDeleted =
                         pubSubMediatorTestProbe.expectMsgClass(

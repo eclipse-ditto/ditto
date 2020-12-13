@@ -209,9 +209,7 @@ public final class PolicyPersistenceActor
     @Override
     protected void onEntityModified() {
         findEarliestSubjectExpiryTimestamp(entity).ifPresent(earliestSubjectExpiryTimestamp -> {
-            if (timers().isTimerActive(NEXT_SUBJECT_EXPIRY_TIMER)) {
-                timers().cancel(NEXT_SUBJECT_EXPIRY_TIMER);
-            }
+            timers().cancel(NEXT_SUBJECT_EXPIRY_TIMER);
             final Instant earliestExpiry = earliestSubjectExpiryTimestamp.getTimestamp();
             final Duration durationBetweenNowAndEarliestExpiry = Duration.between(Instant.now(), earliestExpiry);
             if (durationBetweenNowAndEarliestExpiry.isNegative()) {
