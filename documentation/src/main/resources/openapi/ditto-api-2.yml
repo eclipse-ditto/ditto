@@ -5770,7 +5770,7 @@ components:
           description: 'The type is offered only for documentation purposes. You are not restricted to any specific types, but we recommend to use it to specify the kind of the subject as shown in our examples.'
         expiry:
           type: string
-          description: The optional expiry timestamp (formatted in ISO-8601) indicates how long this subject should be considered before it is automatically deleted from the Policy.
+          description: The optional expiry timestamp (formatted in ISO-8601) indicates how long this subject should be considered active before it is automatically deleted from the Policy.
           format: date-time
       example:
         type: 'This is some description for this subject, adjust as needed.'
