@@ -132,11 +132,18 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged>
 
     @Override
     public JsonPointer getResourcePath() {
+        return JsonPointer.empty();
+    }
+
+    /**
+     * @return the path where the changes were applied
+     */
+    public JsonPointer getPath() {
         return path;
     }
 
     /**
-     * TODO
+     * @return the value describing the changes that were applied to the existing thing
      */
     public JsonValue getValue() {
         return value;

@@ -266,7 +266,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
 
     @Override
     public JsonPointer getResourcePath() {
-        return path;
+        return JsonPointer.empty();
     }
 
     @Override

@@ -84,7 +84,7 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
 
     @Override
     public JsonPointer getResourcePath() {
-        return path;
+        return JsonPointer.empty();
     }
 
     @Override

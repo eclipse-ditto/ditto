@@ -38,15 +38,14 @@ final class ThingMergedStrategy extends AbstractThingEventStrategy<ThingMerged> 
     public Thing handle(final ThingMerged event, @Nullable final Thing thing, final long revision) {
         if (null != thing) {
             final JsonObject jsonObject = thing.toJson(FieldType.all());
-            final JsonObject mergePatch = JsonFactory.newObject(event.getResourcePath(), event.getValue());
+            final JsonObject mergePatch = JsonFactory.newObject(event.getPath(), event.getValue());
             final JsonObject mergedJson = JsonFactory.mergeJsonValues(mergePatch, jsonObject).asObject();
-            final Thing mergedThing = ThingsModelFactory.newThingBuilder(mergedJson)
+            return ThingsModelFactory.newThingBuilder(mergedJson)
                     .setRevision(revision)
                     .setModified(event.getTimestamp().orElse(null))
                     .setLifecycle(ThingLifecycle.ACTIVE)
                     .setMetadata(mergeMetadata(thing, event))
                     .build();
-            return mergedThing;
         } else {
             return null;
         }
