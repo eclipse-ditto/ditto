@@ -25,10 +25,10 @@ Find more information about the milestone in the [0.1.0-M3 release notes](releas
 
 ## Sandbox
 
-Together with this milestone release we have set up a sandbox at [https://ditto.eclipse.org](https://ditto.eclipse.org).
+Together with this milestone release we have set up a sandbox at [https://ditto.eclipseprojects.io](https://ditto.eclipseprojects.io).
 
 There, everyone with a Google account can try out the HTTP API by using the interactive 
-[HTTP API documentation](https://ditto.eclipse.org/apidoc/) (powered by [Swagger](https://swagger.io)).
+[HTTP API documentation](https://ditto.eclipseprojects.io/apidoc/) (powered by [Swagger](https://swagger.io)).
 
 Try it out and share your experience.
 

@@ -29,6 +29,15 @@ import akka.japi.pf.ReceiveBuilder;
 interface ClusterMemberRemovedAware extends Actor {
 
     /**
+     * Return the write-local write consistency.
+     *
+     * @return the write consistency.
+     */
+    static Replicator.WriteConsistency writeLocal() {
+        return (Replicator.WriteConsistency) Replicator.writeLocal();
+    }
+
+    /**
      * @return the logging adapter of this actor.
      */
     LoggingAdapter log();
@@ -61,7 +70,7 @@ interface ClusterMemberRemovedAware extends Actor {
         // acksUpdater detected unreachable remote. remove it from local ORMultiMap.
         final Address address = memberRemoved.member().address();
         log().info("Removing declared acks on removed member <{}>", address);
-        getDDataWriter().removeAddress(address, (Replicator.WriteConsistency) Replicator.writeLocal())
+        getDDataWriter().removeAddress(address, writeLocal())
                 .whenComplete((_void, error) -> {
                     if (error != null) {
                         log().error(error, "Failed to remove declared acks on removed cluster member <{}>", address);

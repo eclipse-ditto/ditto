@@ -15,7 +15,8 @@ package org.eclipse.ditto.services.utils.pubsub.ddata;
 import java.util.Collection;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
+
+import javax.annotation.Nullable;
 
 import akka.actor.ActorRef;
 
@@ -27,11 +28,23 @@ import akka.actor.ActorRef;
 public interface Subscriptions<T> {
 
     /**
-     * Get the total number of topics with active subscriptions.
-     *
-     * @return the number of topics.
+     * Remove all known bindings from this data structure.
      */
-    int countTopics();
+    void clear();
+
+    /**
+     * Get the set of all known subscribers.
+     *
+     * @return the set of subscribers.
+     */
+    Set<ActorRef> getSubscribers();
+
+    /**
+     * Estimate the size of the subscription data in bytes in the distributed data.
+     *
+     * @return the estimated subscription data size in bytes.
+     */
+    long estimateSize();
 
     /**
      * Check if an actor subscribes to any topic.
@@ -42,32 +55,28 @@ public interface Subscriptions<T> {
     boolean contains(ActorRef subscriber);
 
     /**
-     * Check if a topic has any subscriber.
-     *
-     * @param topic the topic.
-     * @return whether some actor subscribes for the topic.
-     */
-    Stream<ActorRef> streamSubscribers(String topic);
-
-    /**
      * Subscribe for filtered messages published at any of the given topics.
      *
      * @param subscriber the subscriber.
      * @param topics topics the subscriber subscribes to.
      * @param filter filter for topics of incoming messages associated with the subscriber.
+     * @param group any group the subscriber belongs to, or null.
      * @return whether subscriptions changed.
      */
-    boolean subscribe(ActorRef subscriber, Set<String> topics, Predicate<Collection<String>> filter);
+    boolean subscribe(ActorRef subscriber, Set<String> topics,
+            @Nullable Predicate<Collection<String>> filter,
+            @Nullable String group);
 
     /**
      * Subscribe for all messages published at any of the given topics.
      *
      * @param subscriber the subscriber.
      * @param topics topics the subscriber subscribes to.
+     * @param group any group the subscriber belongs to, or null.
      * @return whether subscriptions changed.
      */
-    default boolean subscribe(final ActorRef subscriber, final Set<String> topics) {
-        return subscribe(subscriber, topics, ts -> true);
+    default boolean subscribe(final ActorRef subscriber, final Set<String> topics, @Nullable final String group) {
+        return subscribe(subscriber, topics, null, group);
     }
 
     /**
@@ -96,17 +105,15 @@ public interface Subscriptions<T> {
 
     /**
      * Export approximation of subscription data to be broadcast into the cluster.
-     * Clear the cache of accumulated changes if incremental update is supported.
      *
-     * @param forceUpdate whether this is a force update. Relevant for distributed data with incremental update only.
      * @return Approximation of all topics with subscribers for distributed data.
      */
-    T export(boolean forceUpdate);
+    T export();
 
     /**
      * @return whether there are no subscribers.
      */
     default boolean isEmpty() {
-        return countTopics() <= 0;
+        return estimateSize() <= 0;
     }
 }

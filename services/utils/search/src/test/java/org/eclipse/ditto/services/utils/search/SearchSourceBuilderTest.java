@@ -12,15 +12,13 @@
  */
 package org.eclipse.ditto.services.utils.search;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 import org.junit.After;
 import org.junit.Test;
 
-import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.testkit.javadsl.TestKit;
 
@@ -43,7 +41,7 @@ public final class SearchSourceBuilderTest {
         system = ActorSystem.create();
         SearchSource.newBuilder()
                 .dittoHeaders(DittoHeaders.empty())
-                .conciergeForwarder(system.deadLetters())
+                .conciergeForwarder(ActorSelection.apply(system.deadLetters(), ""))
                 .pubSubMediator(system.deadLetters())
                 .build();
     }
@@ -62,7 +60,7 @@ public final class SearchSourceBuilderTest {
         system = ActorSystem.create();
         SearchSource.newBuilder()
                 .dittoHeaders(DittoHeaders.empty())
-                .conciergeForwarder(system.deadLetters())
+                .conciergeForwarder(ActorSelection.apply(system.deadLetters(), ""))
                 .build();
     }
 
@@ -70,7 +68,7 @@ public final class SearchSourceBuilderTest {
     public void failWithMissingDittoHeaders() {
         system = ActorSystem.create();
         SearchSource.newBuilder()
-                .conciergeForwarder(system.deadLetters())
+                .conciergeForwarder(ActorSelection.apply(system.deadLetters(), ""))
                 .pubSubMediator(system.deadLetters())
                 .build();
     }

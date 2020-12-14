@@ -41,7 +41,7 @@ import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidat
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.streaming.IncomingSignal;
 import org.eclipse.ditto.services.models.acks.config.DefaultAcknowledgementConfig;
-import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
@@ -139,7 +139,7 @@ public final class StreamingSessionActorHeaderInteractionTest {
 
     @Before
     public void setup() {
-        when(dittoProtocolSub.declareAcknowledgementLabels(any(), any()))
+        when(dittoProtocolSub.declareAcknowledgementLabels(any(), any(), any()))
                 .thenReturn(CompletableFuture.completedFuture(null));
     }
 

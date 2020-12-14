@@ -32,8 +32,8 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.utils.akka.controlflow.ResumeSource;
 import org.eclipse.ditto.services.utils.akka.controlflow.ResumeSourceBuilder;
-import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -44,6 +44,7 @@ import org.eclipse.ditto.signals.events.thingsearch.ThingsOutOfSync;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
 import akka.pattern.Patterns;
@@ -59,10 +60,10 @@ import akka.stream.javadsl.Source;
  */
 public final class SearchSource {
 
-    private final DittoLogger LOGGER = DittoLoggerFactory.getLogger(SearchSource.class);
+    private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory.getThreadSafeLogger(SearchSource.class);
 
     private final ActorRef pubSubMediator;
-    private final ActorRef conciergeForwarder;
+    private final ActorSelection conciergeForwarder;
     private final Duration thingsAskTimeout;
     private final Duration searchAskTimeout;
     @Nullable private final JsonFieldSelector fields;
@@ -72,7 +73,7 @@ public final class SearchSource {
     private final String lastThingId;
 
     SearchSource(final ActorRef pubSubMediator,
-            final ActorRef conciergeForwarder,
+            final ActorSelection conciergeForwarder,
             final Duration thingsAskTimeout,
             final Duration searchAskTimeout,
             @Nullable final JsonFieldSelector fields,
@@ -216,7 +217,7 @@ public final class SearchSource {
         final CompletionStage<Object> responseFuture =
                 Patterns.ask(conciergeForwarder, retrieveThing, thingsAskTimeout);
 
-        return Source.fromCompletionStage(responseFuture)
+        return Source.completionStage(responseFuture)
                 .via(expectMsgClass(RetrieveThingResponse.class))
                 .map(response -> response.getEntity().asObject());
     }

@@ -40,6 +40,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.Config;
@@ -60,6 +61,9 @@ import akka.testkit.javadsl.TestKit;
  */
 public abstract class AbstractThingSearchPersistenceITBase {
 
+    @ClassRule
+    public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
+
     protected static final List<String> KNOWN_SUBJECTS = Collections.singletonList("abc:mySid");
 
     protected static final CriteriaFactory cf = new CriteriaFactoryImpl();
@@ -67,7 +71,6 @@ public abstract class AbstractThingSearchPersistenceITBase {
 
     protected static QueryBuilderFactory qbf;
 
-    private static MongoDbResource mongoResource;
     private static DittoMongoClient mongoClient;
 
     private MongoCollection<Document> thingsCollection;
@@ -82,9 +85,6 @@ public abstract class AbstractThingSearchPersistenceITBase {
         final Config rawTestConfig = ConfigFactory.load("test");
         final DefaultLimitsConfig limitsConfig = DefaultLimitsConfig.of(rawTestConfig.getConfig("ditto"));
         qbf = new MongoQueryBuilderFactory(limitsConfig);
-
-        mongoResource = new MongoDbResource("localhost");
-        mongoResource.start();
         mongoClient = provideClientWrapper();
     }
 
@@ -112,7 +112,7 @@ public abstract class AbstractThingSearchPersistenceITBase {
     private static DittoMongoClient provideClientWrapper() {
         return MongoClientWrapper.getBuilder()
                 .connectionString(
-                        "mongodb://" + mongoResource.getBindIp() + ":" + mongoResource.getPort() + "/testSearchDB")
+                        "mongodb://" + MONGO_RESOURCE.getBindIp() + ":" + MONGO_RESOURCE.getPort() + "/testSearchDB")
                 .connectionPoolMaxSize(100)
                 .connectionPoolMaxWaitQueueSize(500000)
                 .connectionPoolMaxWaitTime(Duration.ofSeconds(30))
@@ -158,9 +158,6 @@ public abstract class AbstractThingSearchPersistenceITBase {
         try {
             if (mongoClient != null) {
                 mongoClient.close();
-            }
-            if (mongoResource != null) {
-                mongoResource.stop();
             }
         } catch (final IllegalStateException e) {
             System.err.println("IllegalStateException during shutdown of MongoDB: " + e.getMessage());

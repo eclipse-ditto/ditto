@@ -31,6 +31,7 @@ final class AnnotationBasedJsonParsable<T> implements JsonParsable<T> {
 
     private static final Class<?> JSON_OBJECT_PARAMETER = JsonObject.class;
     private static final Class<?> DITTO_HEADERS_PARAMETER = DittoHeaders.class;
+    private static final Class<?> PARSE_INNER_JSON_PARAMETER = ParseInnerJson.class;
 
     private final String key;
     private final String v1FallbackKey;
@@ -51,8 +52,7 @@ final class AnnotationBasedJsonParsable<T> implements JsonParsable<T> {
         this.key = key;
         this.v1FallbackKey = v1FallbackKey;
         try {
-            this.parseMethod =
-                    parsedClass.getMethod(parsingMethodName, JSON_OBJECT_PARAMETER, DITTO_HEADERS_PARAMETER);
+            this.parseMethod = getParseMethod(parsedClass, parsingMethodName);
             final Class<?> returnType = parseMethod.getReturnType();
             if (!parsedClass.isAssignableFrom(returnType)) {
                 throw new IllegalArgumentException(
@@ -85,7 +85,7 @@ final class AnnotationBasedJsonParsable<T> implements JsonParsable<T> {
     }
 
 
-    @SuppressWarnings("unchecked") //suppressed because returned type is ensured in constructor
+    @SuppressWarnings("unchecked")
     @Override
     public T parse(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         try {
@@ -93,16 +93,39 @@ final class AnnotationBasedJsonParsable<T> implements JsonParsable<T> {
         } catch (final ClassCastException | IllegalAccessException e) {
             throw buildDittoJsonException(e, jsonObject, dittoHeaders);
         } catch (final InvocationTargetException e) {
-            final Throwable targetException = e.getTargetException();
-
-            if (targetException instanceof DittoRuntimeException) {
-                throw (DittoRuntimeException) targetException;
-            } else if (targetException instanceof JsonRuntimeException) {
-                throw new DittoJsonException((JsonRuntimeException) targetException, dittoHeaders);
-            }
-
-            throw buildDittoJsonException(targetException, jsonObject, dittoHeaders);
+            throw fromInvocationTargetException(e, jsonObject, dittoHeaders);
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public T parse(final JsonObject jsonObject, final DittoHeaders dittoHeaders,
+            final ParseInnerJson parseInnerJson) {
+        try {
+            if (parseMethod.getParameterCount() == 3) {
+                return (T) parseMethod.invoke(null, jsonObject, dittoHeaders, parseInnerJson);
+            } else {
+                return (T) parseMethod.invoke(null, jsonObject, dittoHeaders);
+            }
+        } catch (final ClassCastException | IllegalAccessException e) {
+            throw buildDittoJsonException(e, jsonObject, dittoHeaders);
+        } catch (final InvocationTargetException e) {
+            throw fromInvocationTargetException(e, jsonObject, dittoHeaders);
+        }
+    }
+
+    private DittoJsonException fromInvocationTargetException(final InvocationTargetException e,
+            final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
+        final Throwable targetException = e.getTargetException();
+
+        if (targetException instanceof DittoRuntimeException) {
+            throw (DittoRuntimeException) targetException;
+        } else if (targetException instanceof JsonRuntimeException) {
+            throw new DittoJsonException((JsonRuntimeException) targetException, dittoHeaders);
+        }
+
+        return buildDittoJsonException(targetException, jsonObject, dittoHeaders);
     }
 
     private DittoJsonException buildDittoJsonException(final Throwable cause,
@@ -113,5 +136,16 @@ final class AnnotationBasedJsonParsable<T> implements JsonParsable<T> {
                 .message(String.format("Error during parsing json: <%s>", jsonObject.toString()))
                 .cause(cause).build(),
                 dittoHeaders);
+    }
+
+    private static Method getParseMethod(final Class<?> parsedClass, final String methodName)
+            throws NoSuchMethodException {
+
+        try {
+            return parsedClass.getMethod(methodName, JSON_OBJECT_PARAMETER, DITTO_HEADERS_PARAMETER,
+                    PARSE_INNER_JSON_PARAMETER);
+        } catch (final NoSuchMethodException e) {
+            return parsedClass.getMethod(methodName, JSON_OBJECT_PARAMETER, DITTO_HEADERS_PARAMETER);
+        }
     }
 }

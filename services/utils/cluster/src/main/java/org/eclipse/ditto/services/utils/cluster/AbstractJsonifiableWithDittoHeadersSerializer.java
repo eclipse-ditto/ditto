@@ -45,6 +45,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.base.JsonParsable;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -258,12 +259,6 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
     private Jsonifiable<?> createJsonifiableFrom(final String manifest, final ByteBuffer bytebuffer)
             throws NotSerializableException {
 
-        final JsonParsable<Jsonifiable<?>> mappingStrategy = mappingStrategies.getMappingStrategy(manifest)
-                .orElseThrow(() -> {
-                    LOG.warn("No strategy found to map manifest <{}> to a Jsonifiable.WithPredicate!", manifest);
-                    return new NotSerializableException(manifest);
-                });
-
         final JsonValue jsonValue = deserializeFromByteBuffer(bytebuffer);
 
         final JsonObject jsonObject;
@@ -285,7 +280,24 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
                 .map(DittoHeaders::newBuilder)
                 .orElseGet(DittoHeaders::newBuilder);
 
-        return mappingStrategy.parse(payload, dittoHeadersBuilder.build());
+        return deserializeJson(payload, manifest, dittoHeadersBuilder.build());
+    }
+
+    private Jsonifiable<?> deserializeJson(final JsonObject jsonPayload, final String manifest,
+            final DittoHeaders dittoHeaders)
+            throws NotSerializableException {
+        final JsonParsable<Jsonifiable<?>> mappingStrategy = mappingStrategies.getMappingStrategy(manifest)
+                .orElseThrow(() -> {
+                    LOG.warn("No strategy found to map manifest <{}> to a Jsonifiable.WithPredicate!", manifest);
+                    return new NotSerializableException(manifest);
+                });
+        return mappingStrategy.parse(jsonPayload, dittoHeaders, innerJson ->
+                deserializeJson(innerJson, getDefaultManifest(innerJson), dittoHeaders));
+    }
+
+    private String getDefaultManifest(final JsonObject jsonObject) throws NotSerializableException {
+        return jsonObject.getValue(Command.JsonFields.TYPE)
+                .orElseThrow(() -> new NotSerializableException("No type found for inner JSON!"));
     }
 
     /**

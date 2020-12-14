@@ -25,7 +25,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
+import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 
 /**
  * Message indicating a demand to receive entities of a specified {@link StreamingType} via a "streaming" connection.

@@ -1,10 +1,3 @@
-package org.eclipse.ditto.signals.base;
-
-
-import static org.assertj.core.api.Assertions.assertThat;
-
-import org.junit.Test;
-
 /*
  * Copyright (c) 2017 Contributors to the Eclipse Foundation
  *
@@ -16,6 +9,15 @@ import org.junit.Test;
  * http://www.eclipse.org/legal/epl-2.0
  *
  * SPDX-License-Identifier: EPL-2.0
+ */
+package org.eclipse.ditto.signals.base;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.Test;
+
+/**
+ * Tests {@link org.eclipse.ditto.signals.base.GlobalErrorRegistry}.
  */
 public class GlobalErrorRegistryTest {
 

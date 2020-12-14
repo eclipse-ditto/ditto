@@ -18,25 +18,17 @@ import static org.eclipse.ditto.services.models.connectivity.ConnectivityMessagi
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredException;
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
-import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -46,27 +38,18 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionLifecycle;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
-import org.eclipse.ditto.model.connectivity.ConnectivityInternalErrorException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
-import org.eclipse.ditto.model.connectivity.FilteredTopic;
-import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.connectivity.Topic;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.services.connectivity.config.ConnectionConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProvider;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProviderFactory;
 import org.eclipse.ditto.services.connectivity.config.MonitoringConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
-import org.eclipse.ditto.services.connectivity.messaging.OutboundMappingProcessorActor;
+import org.eclipse.ditto.services.connectivity.messaging.ClientActorRefs;
 import org.eclipse.ditto.services.connectivity.messaging.amqp.AmqpValidator;
 import org.eclipse.ditto.services.connectivity.messaging.httppush.HttpPushValidator;
 import org.eclipse.ditto.services.connectivity.messaging.kafka.KafkaValidator;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitor;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
-import org.eclipse.ditto.services.connectivity.messaging.monitoring.DefaultConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLoggerRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.RetrieveConnectionLogsAggregatorActor;
@@ -84,12 +67,7 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.CompoundConn
 import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator;
 import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
-import org.eclipse.ditto.services.models.acks.AcknowledgementForwarderActor;
-import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
-import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
@@ -98,10 +76,7 @@ import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersiste
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
-import org.eclipse.ditto.signals.acks.base.Acknowledgement;
-import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
@@ -118,16 +93,14 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.CancelSubscription;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
-import org.eclipse.ditto.signals.commands.thingsearch.subscription.RequestFromSubscription;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.actor.Status;
+import akka.actor.Terminated;
 import akka.cluster.routing.ClusterRouterPool;
 import akka.cluster.routing.ClusterRouterPoolSettings;
 import akka.japi.pf.ReceiveBuilder;
@@ -155,6 +128,7 @@ public final class ConnectionPersistenceActor
      * The ID of the journal plugin this persistence actor uses.
      */
     public static final String JOURNAL_PLUGIN_ID = "akka-contrib-mongodb-persistence-connection-journal";
+
     /**
      * The ID of the snapshot plugin this persistence actor uses.
      */
@@ -162,60 +136,39 @@ public final class ConnectionPersistenceActor
 
     private static final Duration DEFAULT_RETRIEVE_STATUS_TIMEOUT = Duration.ofMillis(500L);
 
-    // number of client actors to start per node
-    private static final int CLIENT_ACTORS_PER_NODE = 1;
-
-    private final DittoProtocolSub dittoProtocolSub;
     private final ActorRef proxyActor;
     private final ClientActorPropsFactory propsFactory;
-    private final int clientActorsPerNode;
+    private final boolean allClientActorsOnOneNode;
     private final ConnectivityCommandInterceptor commandValidator;
     private final ConnectionLogger connectionLogger;
-    private Instant connectionClosedAt = Instant.now();
-
-    @Nullable private ActorRef clientActorRouter;
-
     private final Duration clientActorAskTimeout;
-    private final ConnectionMonitorRegistry<ConnectionMonitor> connectionMonitorRegistry;
-
     private final Duration checkLoggingActiveInterval;
-
-    @Nullable private SignalFilter signalFilter = null;
-    @Nullable private Instant loggingEnabledUntil;
     private final Duration loggingEnabledDuration;
     private final ConnectionConfig config;
     private final MonitoringConfig monitoringConfig;
+    private final ClientActorRefs clientActorRefs = ClientActorRefs.empty();
 
     private int subscriptionCounter = 0;
-    private ConnectivityStatus pubSubStatus = ConnectivityStatus.UNKNOWN;
-
-    /**
-     * Whether this actor holds the declared ack labels.
-     * Reset on start-up and whenever the connection is modified.
-     * While false, the actor will attempt to declare the ack labels repeatedly until the declaration succeeds.
-     * While false, target-issued acknowledgements are disabled.
-     */
-    private boolean ackLabelsDeclared = false;
-    private final Set<AcknowledgementLabel> declaredAckLabels = new HashSet<>();
+    private Instant connectionClosedAt = Instant.now();
+    @Nullable private Instant loggingEnabledUntil;
+    @Nullable private ActorRef clientActorRouter;
 
     ConnectionPersistenceActor(final ConnectionId connectionId,
-            final DittoProtocolSub dittoProtocolSub,
             final ActorRef proxyActor,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor customCommandValidator,
-            final int clientActorsPerNode) {
+            final Trilean allClientActorsOnOneNode) {
 
         super(connectionId, new ConnectionMongoSnapshotAdapter());
 
-        this.dittoProtocolSub = dittoProtocolSub;
         this.proxyActor = proxyActor;
         this.propsFactory = propsFactory;
-        this.clientActorsPerNode = clientActorsPerNode;
 
         final ActorSystem actorSystem = getContext().getSystem();
         final ConnectivityConfigProvider configProvider = ConnectivityConfigProviderFactory.getInstance(actorSystem);
         final ConnectivityConfig connectivityConfig = configProvider.getConnectivityConfig(connectionId);
         config = connectivityConfig.getConnectionConfig();
+        this.allClientActorsOnOneNode = allClientActorsOnOneNode.orElse(config.areAllClientActorsOnOneNode());
 
         final ConnectionValidator connectionValidator =
                 ConnectionValidator.of(
@@ -242,8 +195,6 @@ public final class ConnectionPersistenceActor
         clientActorAskTimeout = config.getClientActorAskTimeout();
 
         monitoringConfig = connectivityConfig.getMonitoringConfig();
-        connectionMonitorRegistry =
-                DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         final ConnectionLoggerRegistry loggerRegistry =
                 ConnectionLoggerRegistry.fromConfig(monitoringConfig.logger());
         connectionLogger = loggerRegistry.forConnection(connectionId);
@@ -263,20 +214,28 @@ public final class ConnectionPersistenceActor
      * Creates Akka configuration object for this actor.
      *
      * @param connectionId the connection ID.
-     * @param dittoProtocolSub Ditto protocol sub access.
      * @param proxyActor the actor used to send signals into the ditto cluster..
      * @param propsFactory factory of props of client actors for various protocols.
      * @param commandValidator validator for commands that should throw an exception if a command is invalid.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ConnectionId connectionId,
-            final DittoProtocolSub dittoProtocolSub,
             final ActorRef proxyActor,
             final ClientActorPropsFactory propsFactory,
             @Nullable final ConnectivityCommandInterceptor commandValidator
     ) {
-        return Props.create(ConnectionPersistenceActor.class, connectionId, dittoProtocolSub, proxyActor,
-                propsFactory, commandValidator, CLIENT_ACTORS_PER_NODE);
+        return Props.create(ConnectionPersistenceActor.class, connectionId, proxyActor, propsFactory, commandValidator,
+                Trilean.UNKNOWN);
+    }
+
+    /**
+     * Compute the length of the subscription ID prefix to identify the client actor owning a search session.
+     *
+     * @param clientCount the client count of the connection.
+     * @return the length of the subscription prefix.
+     */
+    public static int getSubscriptionPrefixLength(final int clientCount) {
+        return Integer.toHexString(clientCount).length();
     }
 
     @Override
@@ -379,7 +338,6 @@ public final class ConnectionPersistenceActor
             restoreOpenConnection();
         }
         becomeCreatedOrDeletedHandler();
-        initializeAckLabelsDeclared();
     }
 
     @Override
@@ -389,7 +347,6 @@ public final class ConnectionPersistenceActor
             interpretStagedCommand(((StagedCommand) command).withSenderUnlessDefined(getSender()));
         } else {
             super.onMutation(command, event, response, becomeCreated, becomeDeleted);
-            initializeAckLabelsDeclared();
         }
     }
 
@@ -422,12 +379,10 @@ public final class ConnectionPersistenceActor
             case APPLY_EVENT:
                 entity = getEventStrategy().handle(command.getEvent(), entity, getRevisionNumber());
                 interpretStagedCommand(command.next());
-                initializeAckLabelsDeclared();
                 break;
             case PERSIST_AND_APPLY_EVENT:
                 persistAndApplyEvent(command.getEvent(), (event, connection) -> {
                     interpretStagedCommand(command.next());
-                    initializeAckLabelsDeclared();
                 });
                 break;
             case SEND_RESPONSE:
@@ -494,146 +449,15 @@ public final class ConnectionPersistenceActor
     @Override
     protected Receive matchAnyAfterInitialization() {
         return ReceiveBuilder.create()
-                // command response and search commands: can only be incoming
-                .match(Acknowledgement.class, this::isNotSourceDeclaredAck, this::denyNonSourceDeclaredAck)
-                .match(CommandResponse.class, this::handleResponseOrAcknowledgement)
-                .match(ThingSearchCommand.class, this::forwardThingSearchCommandToClientActors)
-                // other signals: can only be outgoing; the incoming path does not go through here
-                .match(Signal.class, this::handleSignal)
-
+                .match(CreateSubscription.class, this::startThingSearchSession)
                 .matchEquals(Control.CHECK_LOGGING_ACTIVE, this::checkLoggingEnabled)
 
-                // maintaining the flag this.ackLabelsDeclared
-                .matchEquals(Control.DECLARE_ACKNOWLEDGEMENT_LABELS, this::declareAcknowledgementLabels)
-                .matchEquals(Control.ACKNOWLEDGEMENT_LABELS_DECLARED, this::acknowledgementLabelsAreConsideredDeclared)
-                .match(AcknowledgementLabelNotUniqueException.class, this::acknowledgementLabelNotUnique)
+                // maintain client actor refs
+                .match(ActorRef.class, this::addClientActor)
+                .match(Terminated.class, this::removeClientActor)
 
                 .matchAny(message -> log.warning("Unknown message: {}", message))
                 .build();
-    }
-
-    private boolean isNotSourceDeclaredAck(final Acknowledgement ack) {
-        return !getSourceDeclaredAcks().contains(ack.getLabel());
-    }
-
-    private void denyNonSourceDeclaredAck(final Acknowledgement ack) {
-        getSender().tell(AcknowledgementLabelNotDeclaredException.of(ack.getLabel(), ack.getDittoHeaders()),
-                ActorRef.noSender());
-    }
-
-    private void handleResponseOrAcknowledgement(final WithDittoHeaders<?> responseOrAck) {
-        final ActorContext context = getContext();
-        final Consumer<ActorRef> action = forwarder -> forwarder.forward(responseOrAck, context);
-        final Runnable emptyAction = () -> {
-            final String template = "No AcknowledgementForwarderActor found, forwarding to concierge: <{}>";
-            if (log.isDebugEnabled()) {
-                log.withCorrelationId(responseOrAck).debug(template, responseOrAck);
-            } else {
-                log.withCorrelationId(responseOrAck).info(template, responseOrAck.getClass().getCanonicalName());
-            }
-            proxyActor.tell(responseOrAck, ActorRef.noSender());
-        };
-
-        context.findChild(AcknowledgementForwarderActor.determineActorName(responseOrAck.getDittoHeaders()))
-                .ifPresentOrElse(action, emptyAction);
-    }
-
-    private void handleSignal(final Signal<?> signal) {
-        if (clientActorRouter == null) {
-            logDroppedSignal(signal, signal.getType(), "Client actor not ready.");
-            return;
-        }
-        if (entity == null || signalFilter == null) {
-            logDroppedSignal(signal, signal.getType(), "No Connection or signalFilter configuration available.");
-            return;
-        }
-        if (entityId.toString().equals(signal.getDittoHeaders().getOrigin().orElse(null))) {
-            logDroppedSignal(signal, signal.getType(), "Was sent by myself.");
-            return;
-        }
-        final List<Target> subscribedAndAuthorizedTargets = signalFilter.filter(signal);
-
-        if (subscribedAndAuthorizedTargets.isEmpty()) {
-            logDroppedSignal(signal, signal.getType(), "No subscribed and authorized targets present");
-            // issue weak acks here as the signal will not reach OutboundMappingProcessorActor
-            issueWeakAcknowledgements(signal, getSender());
-            return;
-        }
-
-        final Signal<?> signalToForward;
-        if (signal instanceof WithThingId) {
-            final WithThingId thingEvent = (WithThingId) signal;
-            signalToForward = adjustSignalAndStartAckForwarder(signal, thingEvent.getThingEntityId());
-        } else {
-            signalToForward = signal;
-        }
-
-        log.debug("Forwarding signal <{}> to client actor with targets: {}.", signalToForward.getType(),
-                subscribedAndAuthorizedTargets);
-
-        final OutboundSignal outbound =
-                OutboundSignalFactory.newOutboundSignal(signalToForward, subscribedAndAuthorizedTargets);
-        final Object msg = consistentHashableEnvelope(outbound, outbound.getSource().getEntityId().toString());
-        clientActorRouter.tell(msg, getSender());
-    }
-
-    private void issueWeakAcknowledgements(final Signal<?> signal, final ActorRef sender) {
-        OutboundMappingProcessorActor.issueWeakAcknowledgements(signal,
-                getAckLabelsToDeclare()::contains,
-                sender);
-    }
-
-    private Signal<?> adjustSignalAndStartAckForwarder(final Signal<?> signal, final ThingId thingId) {
-        final Collection<AcknowledgementRequest> ackRequests = signal.getDittoHeaders().getAcknowledgementRequests();
-        if (ackRequests.isEmpty()) {
-            return signal;
-        }
-        final Predicate<AcknowledgementLabel> isSourceDeclaredAck = getSourceDeclaredAcks()::contains;
-        final Set<AcknowledgementLabel> targetIssuedAcks = getTargetIssuedAcks();
-        final boolean hasSourceDeclaredAcks = ackRequests.stream()
-                .map(AcknowledgementRequest::getLabel)
-                .anyMatch(isSourceDeclaredAck);
-        if (hasSourceDeclaredAcks) {
-            // start ackregator for source declared acks
-            return AcknowledgementForwarderActor.startAcknowledgementForwarder(getContext(),
-                    thingId,
-                    signal,
-                    config.getAcknowledgementConfig(),
-                    isSourceDeclaredAck.or(targetIssuedAcks::contains)
-            );
-        } else {
-            // no need to start ackregator for target-issued acks; they go to the sender directly
-            return signal.setDittoHeaders(signal.getDittoHeaders().toBuilder()
-                    .acknowledgementRequests(ackRequests.stream()
-                            .filter(request -> targetIssuedAcks.contains(request.getLabel()))
-                            .collect(Collectors.toList()))
-                    .build());
-        }
-    }
-
-    /**
-     * Return the set of source-declared acks if declaration was successful; return an empty set otherwise.
-     *
-     * @return successfully declared acknowledgement labels of the sources.
-     */
-    private Set<AcknowledgementLabel> getSourceDeclaredAcks() {
-
-        if (entity != null && ackLabelsDeclared) {
-            return ConnectionValidator.getSourceDeclaredAcknowledgementLabels(entityId, entity.getSources())
-                    .collect(Collectors.toSet());
-        } else {
-            return Set.of();
-        }
-    }
-
-    private Set<AcknowledgementLabel> getTargetIssuedAcks() {
-
-        if (entity != null && ackLabelsDeclared) {
-            return ConnectionValidator.getTargetIssuedAcknowledgementLabels(entityId, entity.getTargets())
-                    .collect(Collectors.toSet());
-        } else {
-            return Set.of();
-        }
     }
 
     /**
@@ -656,7 +480,7 @@ public final class ConnectionPersistenceActor
      *
      * @param command the command to route.
      */
-    private void forwardThingSearchCommandToClientActors(final ThingSearchCommand<?> command) {
+    private void startThingSearchSession(final CreateSubscription command) {
         if (clientActorRouter == null) {
             logDroppedSignal(command, command.getType(), "Client actor not ready.");
             return;
@@ -666,50 +490,25 @@ public final class ConnectionPersistenceActor
             return;
         }
         log.debug("Forwarding <{}> to client actors.", command);
-        if (command instanceof CreateSubscription) {
-            // compute the next prefix according to subscriptionCounter and the currently configured client actor count
-            // ignore any "prefix" field from the command
-            augmentWithPrefixAndForward(clientActorRouter, (CreateSubscription) command);
-        } else if (command instanceof RequestFromSubscription) {
-            // forward the command to a client actor according to the prefix of the subscription ID
-            computeEnvelopeAndForward(clientActorRouter, ((RequestFromSubscription) command).getSubscriptionId(),
-                    command);
-        } else if (command instanceof CancelSubscription) {
-            // same as RequestSubscription
-            computeEnvelopeAndForward(clientActorRouter, ((CancelSubscription) command).getSubscriptionId(), command);
-        } else {
-            // should not happen
-            log.withCorrelationId(command)
-                    .error("Unknown search command, dropping: <{}>", command);
-        }
+        // compute the next prefix according to subscriptionCounter and the currently configured client actor count
+        // ignore any "prefix" field from the command
+        augmentWithPrefixAndForward(command, entity.getClientCount(), clientActorRouter);
     }
 
-    private void augmentWithPrefixAndForward(final ActorRef receiver, final CreateSubscription createSubscription) {
-        subscriptionCounter = (subscriptionCounter + 1) % Math.max(1, getClientCount());
-        final int prefixLength = getSubscriptionPrefixLength();
+    private void augmentWithPrefixAndForward(final CreateSubscription createSubscription, final int clientCount,
+            final ActorRef clientActorRouter) {
+        subscriptionCounter = (subscriptionCounter + 1) % Math.max(1, clientCount);
+        final int prefixLength = getSubscriptionPrefixLength(clientCount);
         final String prefix = String.format("%0" + prefixLength + "X", subscriptionCounter);
-        final CreateSubscription commandToForward = createSubscription.setPrefix(prefix);
-        receiver.tell(consistentHashableEnvelope(commandToForward, prefix), ActorRef.noSender());
-    }
-
-    private void computeEnvelopeAndForward(final ActorRef receiver, final String subscriptionId,
-            final ThingSearchCommand<?> command) {
-        final int prefixLength = getSubscriptionPrefixLength();
-        if (subscriptionId.length() <= prefixLength) {
-            // command is invalid or outdated, dropping.
-            logDroppedSignal(command, command.getType(), "Invalid subscription ID");
-            return;
+        final Optional<ActorRef> receiver = clientActorRefs.get(subscriptionCounter);
+        final CreateSubscription commandWithPrefix = createSubscription.setPrefix(prefix);
+        if (clientCount == 1) {
+            clientActorRouter.tell(consistentHashableEnvelope(commandWithPrefix, prefix), ActorRef.noSender());
+        } else if (receiver.isPresent()) {
+            receiver.get().tell(commandWithPrefix, ActorRef.noSender());
+        } else {
+            logDroppedSignal(createSubscription, createSubscription.getType(), "Client actor not ready.");
         }
-        final String prefix = subscriptionId.substring(0, prefixLength);
-        receiver.tell(consistentHashableEnvelope(command, prefix), ActorRef.noSender());
-    }
-
-    private Object consistentHashableEnvelope(final Object message, final String hashKey) {
-        return new ConsistentHashingRouter.ConsistentHashableEnvelope(message, hashKey);
-    }
-
-    private int getSubscriptionPrefixLength() {
-        return Integer.toHexString(getClientCount()).length();
     }
 
     private void checkLoggingEnabled(final Control message) {
@@ -718,40 +517,11 @@ public final class ConnectionPersistenceActor
     }
 
     private void prepareForSignalForwarding(final StagedCommand command) {
-        if (entity != null) {
-            signalFilter = new SignalFilter(entity, connectionMonitorRegistry);
-        }
-
-        // remove previous subscriptions.
-        // with high probability, unnecessary changes won't propagate to other cluster nodes.
-        log.debug("unsubscribe from ditto pubsub");
-        dittoProtocolSub.removeSubscriber(getSelf());
-        pubSubStatus = ConnectivityStatus.CLOSED;
-
         if (isDesiredStateOpen()) {
             startEnabledLoggingChecker();
             updateLoggingIfEnabled();
-            dittoProtocolSub.subscribe(toStreamingTypes(getUniqueTopics(entity)), getTargetAuthSubjects(), getSelf())
-                    .whenComplete((done, throwable) -> {
-                        if (null == throwable) {
-                            log.debug("subscription to Ditto pubsub succeeded");
-                            pubSubStatus = ConnectivityStatus.OPEN;
-                            getSelf().tell(command, ActorRef.noSender());
-                        } else {
-                            log.error(throwable, "subscription to Ditto pubsub failed: {}", throwable.getMessage());
-                            final DittoRuntimeException dittoRuntimeException = DittoRuntimeException
-                                    .asDittoRuntimeException(throwable,
-                                            cause -> ConnectivityInternalErrorException.newBuilder()
-                                                    .dittoHeaders(command.getDittoHeaders())
-                                                    .cause(cause)
-                                                    .build()
-                                    );
-                            command.getSender().tell(dittoRuntimeException, getSelf());
-                        }
-                    });
-        } else {
-            interpretStagedCommand(command);
         }
+        interpretStagedCommand(command);
     }
 
     private void testConnection(final StagedCommand command) {
@@ -879,6 +649,10 @@ public final class ConnectionPersistenceActor
         return processClientAskResult(Patterns.ask(clientActorRouter, msg, clientActorAskTimeout));
     }
 
+    private Object consistentHashableEnvelope(final Object message, final String hashKey) {
+        return new ConsistentHashingRouter.ConsistentHashableEnvelope(message, hashKey);
+    }
+
     private void broadcastToClientActorsIfStarted(final Command<?> cmd, final ActorRef sender) {
         if (clientActorRouter != null && entity != null) {
             clientActorRouter.tell(new Broadcast(cmd), sender);
@@ -955,7 +729,7 @@ public final class ConnectionPersistenceActor
         // timeout before sending the (partial) response
         final Duration timeout = extractTimeoutFromCommand(command.getDittoHeaders());
         final Props props = RetrieveConnectionStatusAggregatorActor.props(entity, sender,
-                command.getDittoHeaders(), timeout, pubSubStatus);
+                command.getDittoHeaders(), timeout);
         forwardToClientActors(props, command, () -> respondWithEmptyStatus(command, sender));
     }
 
@@ -1001,32 +775,13 @@ public final class ConnectionPersistenceActor
         origin.tell(statusResponse, getSelf());
     }
 
-    private Set<Topic> getUniqueTopics(@Nullable final Connection theConnection) {
-        return theConnection != null ? theConnection.getTargets().stream()
-                .flatMap(target -> target.getTopics().stream().map(FilteredTopic::getTopic))
-                .collect(Collectors.toSet()) : Collections.emptySet();
-    }
-
-    private Set<String> getTargetAuthSubjects() {
-        if (entity == null || entity.getTargets().isEmpty()) {
-            return Collections.emptySet();
-        } else {
-            return entity.getTargets()
-                    .stream()
-                    .map(Target::getAuthorizationContext)
-                    .map(AuthorizationContext::getAuthorizationSubjectIds)
-                    .flatMap(List::stream)
-                    .collect(Collectors.toSet());
-        }
-    }
-
     private void startClientActorsIfRequired(final int clientCount) {
         if (entity != null && clientActorRouter == null && clientCount > 0) {
             log.info("Starting ClientActor for connection <{}> with <{}> clients.", entityId, clientCount);
             final Props props = propsFactory.getActorPropsForType(entity, proxyActor, getSelf());
             final ClusterRouterPoolSettings clusterRouterPoolSettings =
-                    new ClusterRouterPoolSettings(clientCount, clientActorsPerNode, true,
-                            Collections.singleton(CLUSTER_ROLE));
+                    new ClusterRouterPoolSettings(clientCount, clientActorsPerNode(clientCount), true,
+                            Set.of(CLUSTER_ROLE));
             final Pool pool = new ConsistentHashingPool(clientCount);
             final Props clusterRouterPoolProps =
                     new ClusterRouterPool(pool, clusterRouterPoolSettings).props(props);
@@ -1040,17 +795,36 @@ public final class ConnectionPersistenceActor
         }
     }
 
+    private int clientActorsPerNode(final int clientCount) {
+        return allClientActorsOnOneNode ? clientCount : 1;
+    }
+
     private int getClientCount() {
         return entity == null ? 0 : entity.getClientCount();
     }
 
     private void stopClientActors() {
+        clientActorRefs.clear();
         if (clientActorRouter != null) {
             connectionClosedAt = Instant.now();
             log.debug("Stopping the client actor.");
             stopChildActor(clientActorRouter);
             clientActorRouter = null;
         }
+    }
+
+    private void addClientActor(final ActorRef newClientActor) {
+        getContext().watch(newClientActor);
+        clientActorRefs.add(newClientActor);
+        final List<ActorRef> otherClientActors = clientActorRefs.getOtherActors(newClientActor);
+        otherClientActors.forEach(otherClientActor -> {
+            otherClientActor.tell(newClientActor, ActorRef.noSender());
+            newClientActor.tell(otherClientActor, ActorRef.noSender());
+        });
+    }
+
+    private void removeClientActor(final Terminated terminated) {
+        clientActorRefs.remove(terminated.getActor());
     }
 
     private void stopChildActor(final ActorRef actor) {
@@ -1069,104 +843,6 @@ public final class ConnectionPersistenceActor
         final StagedCommand stagedCommand = StagedCommand.of(connect, StagedCommand.dummyEvent(), connect,
                 Collections.singletonList(UPDATE_SUBSCRIPTIONS));
         openConnection(stagedCommand, false);
-    }
-
-    /**
-     * Initialize this.ackLabelsDeclared and start or cancel the associated timer on recovery
-     * and on each connection modification.
-     */
-    private void initializeAckLabelsDeclared() {
-        final Set<AcknowledgementLabel> labelsToDeclare = getAckLabelsToDeclare();
-        if (labelsToDeclare.isEmpty()) {
-            noAcknowledgementLabelToDeclare();
-        } else {
-            acknowledgementLabelsAreToBeDeclared();
-        }
-    }
-
-    private void noAcknowledgementLabelToDeclare() {
-        dittoProtocolSub.removeAcknowledgementLabelDeclaration(getSelf());
-        acknowledgementLabelsAreConsideredDeclared(null);
-    }
-
-    private void acknowledgementLabelNotUnique(final AcknowledgementLabelNotUniqueException exception) {
-        log.error(exception, "Failed to declare acknowledgement labels.");
-        acknowledgementLabelsAreToBeDeclared();
-    }
-
-    private void acknowledgementLabelsAreConsideredDeclared(@Nullable final Control event) {
-        ackLabelsDeclared = true;
-        timers().cancel(Control.DECLARE_ACKNOWLEDGEMENT_LABELS);
-    }
-
-    private void acknowledgementLabelsAreToBeDeclared() {
-        ackLabelsDeclared = false;
-        if (!timers().isTimerActive(Control.DECLARE_ACKNOWLEDGEMENT_LABELS)) {
-            // start timer to declare ack labels
-            timers().startTimerWithFixedDelay(Control.DECLARE_ACKNOWLEDGEMENT_LABELS,
-                    Control.DECLARE_ACKNOWLEDGEMENT_LABELS, config.getAckLabelDeclareInterval());
-
-            // send self another trigger to declare ack labels right away
-            getSelf().tell(Control.DECLARE_ACKNOWLEDGEMENT_LABELS, ActorRef.noSender());
-        }
-    }
-
-    /**
-     * Compute the acknowledgement labels to declare. Closed or deleted connections do not declare any acknowledgement
-     * labels.
-     *
-     * @return The set of acknowledgement labels to declare.
-     */
-    private Set<AcknowledgementLabel> getAckLabelsToDeclare() {
-        if (entity == null || entity.getConnectionStatus() != ConnectivityStatus.OPEN) {
-            return Set.of();
-        } else {
-            return ConnectionValidator.getAcknowledgementLabelsToDeclare(entity)
-                    .collect(Collectors.toSet());
-        }
-    }
-
-    private void declareAcknowledgementLabels(final Control trigger) {
-        final Set<AcknowledgementLabel> acknowledgementLabels = getAckLabelsToDeclare();
-        if (acknowledgementLabels.isEmpty()) {
-            log.warning("Got <{}> while there is no acknowledgement label to declare", trigger);
-            acknowledgementLabelsAreConsideredDeclared(null);
-        } else {
-            log.info("Declaring acknowledgement labels <{}>", acknowledgementLabels);
-            final CompletionStage<Object> replyFuture =
-                    dittoProtocolSub.declareAcknowledgementLabels(acknowledgementLabels, getSelf())
-                            .<Object>thenApply(_void -> {
-                                declaredAckLabels.clear();
-                                declaredAckLabels.addAll(acknowledgementLabels);
-                                log.info("Acknowledgement label declaration successful for labels: <{}>",
-                                        acknowledgementLabels);
-                                return Control.ACKNOWLEDGEMENT_LABELS_DECLARED;
-                            })
-                            .exceptionally(error -> {
-                                log.info("Acknowledgement label declaration failed for labels: <{}> - cause: {} {}",
-                                        acknowledgementLabels, error.getClass().getSimpleName(), error.getMessage());
-                                return toDittoRuntimeException(error, entityId, DittoHeaders.empty());
-                            });
-            Patterns.pipe(replyFuture, getContext().dispatcher()).to(getSelf());
-        }
-    }
-
-    private static Collection<StreamingType> toStreamingTypes(final Set<Topic> uniqueTopics) {
-        return uniqueTopics.stream()
-                .map(topic -> {
-                    switch (topic) {
-                        case LIVE_EVENTS:
-                            return StreamingType.LIVE_EVENTS;
-                        case LIVE_COMMANDS:
-                            return StreamingType.LIVE_COMMANDS;
-                        case LIVE_MESSAGES:
-                            return StreamingType.MESSAGES;
-                        case TWIN_EVENTS:
-                        default:
-                            return StreamingType.EVENTS;
-                    }
-                })
-                .collect(Collectors.toList());
     }
 
     private static DittoRuntimeException toDittoRuntimeException(final Throwable error, final ConnectionId id,
@@ -1200,17 +876,7 @@ public final class ConnectionPersistenceActor
         /**
          * Indicates a check if logging is still enabled for this connection.
          */
-        CHECK_LOGGING_ACTIVE,
-
-        /**
-         * Trigger to re-attempt ack label declaration.
-         */
-        DECLARE_ACKNOWLEDGEMENT_LABELS,
-
-        /**
-         * Event that an acknowledgement declaration succeeded.
-         */
-        ACKNOWLEDGEMENT_LABELS_DECLARED
+        CHECK_LOGGING_ACTIVE
     }
 
 }

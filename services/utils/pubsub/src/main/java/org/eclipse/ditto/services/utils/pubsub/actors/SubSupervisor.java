@@ -15,14 +15,14 @@ package org.eclipse.ditto.services.utils.pubsub.actors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
-import org.eclipse.ditto.services.utils.pubsub.ddata.DData;
+import org.eclipse.ditto.services.utils.pubsub.api.Request;
+import org.eclipse.ditto.services.utils.pubsub.ddata.compressed.CompressedDData;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.Terminated;
-import akka.cluster.ddata.Replicator;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -58,25 +58,24 @@ import akka.japi.pf.ReceiveBuilder;
  * </pre>
  *
  * @param <T> type of messages subscribed for.
- * @param <U> type of compressed topic in the cluster.
  */
-public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
+public final class SubSupervisor<T> extends AbstractPubSubSupervisor {
 
     private final Class<T> messageClass;
     private final PubSubTopicExtractor<T> topicExtractor;
-    private final DData<ActorRef, ?, U> topicsDData;
+    private final CompressedDData topicsDData;
     private final AckExtractor<T> ackExtractor;
     private final DistributedAcks distributedAcks;
 
+    @Nullable private ActorRef subscriber;
     @Nullable private ActorRef updater;
 
     @SuppressWarnings("unused")
     private SubSupervisor(final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
-            final DData<ActorRef, ?, U> topicsDData,
+            final CompressedDData topicsDData,
             final AckExtractor<T> ackExtractor,
             final DistributedAcks distributedAcks) {
-        super();
         this.messageClass = messageClass;
         this.topicExtractor = topicExtractor;
         this.topicsDData = topicsDData;
@@ -88,7 +87,6 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
      * Create Props object for this actor.
      *
      * @param <T> type of messages.
-     * @param <U> type of ddata updates.
      * @param messageClass class of messages.
      * @param topicExtractor extractor of topics from messages.
      * @param topicsDData access to the distributed data of topics.
@@ -96,9 +94,9 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
      * @param distributedAcks access to the distributed data of declared acknowledgement labels.
      * @return the Props object.
      */
-    public static <T, U> Props props(final Class<T> messageClass,
+    public static <T> Props props(final Class<T> messageClass,
             final PubSubTopicExtractor<T> topicExtractor,
-            final DData<ActorRef, ?, U> topicsDData,
+            final CompressedDData topicsDData,
             final AckExtractor<T> ackExtractor,
             final DistributedAcks distributedAcks) {
 
@@ -109,34 +107,45 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
     @Override
     protected Receive createPubSubBehavior() {
         return ReceiveBuilder.create()
-                .match(AbstractUpdater.Request.class, this::isUpdaterAvailable, this::request)
-                .match(AbstractUpdater.Request.class, this::updaterUnavailable)
-                .match(Terminated.class, this::subscriberTerminated)
+                .match(Request.class, this::isUpdaterAvailable, this::request)
+                .match(Request.class, this::updaterUnavailable)
+                .match(Terminated.class, this::childTerminated)
+                .matchEquals(ActorEvent.DEBUG_KILL_CHILDREN, this::debugKillChildren)
                 .build();
     }
 
     @Override
-    protected void onChildFailure() {
-        // if this ever happens, consider adding a recovery mechanism in SubUpdater.postStop.
+    protected void onChildFailure(final ActorRef failingChild) {
+        if (updater != null && !failingChild.equals(updater)) {
+            // Updater survived. Ask it to inform known subscribers of local data loss.
+            updater.tell(ActorEvent.PUBSUB_TERMINATED, getSelf());
+        }
         updater = null;
+        subscriber = null;
         log.error("All local subscriptions lost.");
     }
 
     @Override
     protected void startChildren() {
-        final ActorRef subscriber =
-                startChild(Subscriber.props(messageClass, topicExtractor, ackExtractor, distributedAcks),
-                        Subscriber.ACTOR_NAME_PREFIX);
-        getContext().watch(subscriber);
-
-        final Props updaterProps = SubUpdater.props(config, subscriber, topicsDData);
-        updater = startChild(updaterProps, SubUpdater.ACTOR_NAME_PREFIX);
+        subscriber = startChild(Subscriber.props(messageClass, topicExtractor, ackExtractor, distributedAcks),
+                Subscriber.ACTOR_NAME_PREFIX);
+        updater = startChild(SubUpdater.props(config, subscriber, topicsDData), SubUpdater.ACTOR_NAME_PREFIX);
     }
 
-    private void subscriberTerminated(final Terminated terminated) {
-        log.error("Subscriber terminated. Removing subscriber from DData: <{}>", terminated.getActor());
-        topicsDData.getWriter().removeSubscriber(terminated.getActor(),
-                (Replicator.WriteConsistency) Replicator.writeLocal());
+    private void debugKillChildren(final ActorEvent debugKillChildren) {
+        log.warning("Killing children on request. DO NOT do this in production!");
+        getContext().getChildren().forEach(getContext()::stop);
+    }
+
+    private void childTerminated(final Terminated terminated) {
+        if (terminated.getActor().equals(subscriber) || terminated.getActor().equals(updater)) {
+            log.error("Child actor terminated. Removing subscriber from DData: <{}>", terminated.getActor());
+            topicsDData.getWriter().removeSubscriber(terminated.getActor(), ClusterMemberRemovedAware.writeLocal());
+            getContext().getChildren().forEach(getContext()::stop);
+            subscriber = null;
+            updater = null;
+            scheduleRestartChildren();
+        }
     }
 
     private boolean isUpdaterAvailable() {
@@ -144,11 +153,11 @@ public final class SubSupervisor<T, U> extends AbstractPubSubSupervisor {
     }
 
     @SuppressWarnings("ConstantConditions")
-    private void request(final AbstractUpdater.Request request) {
+    private void request(final Request request) {
         updater.tell(request, getSender());
     }
 
-    private void updaterUnavailable(final SubUpdater.Request request) {
+    private void updaterUnavailable(final Request request) {
         log.error("SubUpdater unavailable. Dropping <{}>", request);
         getSender().tell(new IllegalStateException("AcksUpdater not available"), getSelf());
     }

@@ -108,8 +108,8 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMo
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionSupervisorActor;
-import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
-import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
+import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
@@ -230,7 +230,7 @@ public final class TestConstants {
         return new DittoProtocolSub() {
             @Override
             public CompletionStage<Void> subscribe(final Collection<StreamingType> types,
-                    final Collection<String> topics, final ActorRef subscriber) {
+                    final Collection<String> topics, final ActorRef subscriber, @Nullable final String group) {
                 doDelegate(d -> d.subscribe(types, topics, subscriber));
                 return CompletableFuture.allOf(types.stream()
                         .map(type -> {
@@ -261,9 +261,10 @@ public final class TestConstants {
 
             @Override
             public CompletionStage<Void> declareAcknowledgementLabels(
-                    final Collection<AcknowledgementLabel> acknowledgementLabels, final ActorRef subscriber) {
+                    final Collection<AcknowledgementLabel> acknowledgementLabels, final ActorRef subscriber,
+                    @Nullable final String group) {
                 if (delegate != null) {
-                    return delegate.declareAcknowledgementLabels(acknowledgementLabels, subscriber);
+                    return delegate.declareAcknowledgementLabels(acknowledgementLabels, subscriber, group);
                 } else {
                     return CompletableFuture.completedStage(null);
                 }
@@ -835,10 +836,9 @@ public final class TestConstants {
 
     public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
-            final ActorRef proxyActor,
-            final DittoProtocolSub dittoProtocolSub) {
+            final ActorRef proxyActor) {
         return createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
-                mockClientActorPropsFactory, dittoProtocolSub, TestProbe.apply(actorSystem).ref());
+                mockClientActorPropsFactory, TestProbe.apply(actorSystem).ref());
     }
 
     public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
@@ -847,7 +847,7 @@ public final class TestConstants {
             final ActorRef proxyActor,
             final ClientActorPropsFactory clientActorPropsFactory) {
         return createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
-                clientActorPropsFactory, dummyDittoProtocolSub(pubSubMediator), pubSubMediator);
+                clientActorPropsFactory, pubSubMediator);
     }
 
     public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
@@ -856,17 +856,15 @@ public final class TestConstants {
             final ActorRef proxyActor) {
 
         return createConnectionSupervisorActor(connectionId, actorSystem, proxyActor,
-                mockClientActorPropsFactory, dummyDittoProtocolSub(pubSubMediator), pubSubMediator);
+                mockClientActorPropsFactory, pubSubMediator);
     }
 
     public static ActorRef createConnectionSupervisorActor(final ConnectionId connectionId,
             final ActorSystem actorSystem,
             final ActorRef proxyActor,
             final ClientActorPropsFactory clientActorPropsFactory,
-            final DittoProtocolSub dittoProtocolSub,
             final ActorRef pubSubMediator) {
-        final Props props = ConnectionSupervisorActor.props(dittoProtocolSub, proxyActor,
-                clientActorPropsFactory, null, pubSubMediator);
+        final Props props = ConnectionSupervisorActor.props(proxyActor, clientActorPropsFactory, null, pubSubMediator);
 
         final Props shardRegionMockProps = Props.create(ShardRegionMockActor.class, props, connectionId.toString());
 

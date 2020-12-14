@@ -41,8 +41,7 @@ import org.eclipse.ditto.model.connectivity.Topic;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractBaseClientActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.services.models.connectivity.OutboundSignalFactory;
+import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.modify.CloseConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
@@ -202,7 +201,10 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
             final ModifyThing modifyThing = expectMsgClass(ModifyThing.class);
 
             // verify outbound signal processed
-            sendOutboundSignal(rabbitClientActor, modifyThing, connection.getTargets().get(0));
+            final Signal<?> thingModified = TestConstants.thingModified(
+                    TestConstants.Targets.TWIN_TARGET.getAuthorizationContext().getAuthorizationSubjects());
+
+            rabbitClientActor.tell(thingModified, ActorRef.noSender());
             verifyPublishOnChannel(mockChannel);
 
             // simulate rabbitmq connection gets interrupted
@@ -218,10 +220,10 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
 
             // verify inbound signal processed after reconnect
             sendInboundModifyThingProtocolMessage(reconnectedConsumer.getValue());
-            final ModifyThing modifyThingReconnected = expectMsgClass(ModifyThing.class);
+            expectMsgClass(ModifyThing.class);
 
             // verify outbound signal processed after reconnect
-            sendOutboundSignal(rabbitClientActor, modifyThingReconnected, connection.getTargets().get(0));
+            rabbitClientActor.tell(thingModified, ActorRef.noSender());
             verifyPublishOnChannel(mockChannelReconnected);
 
             rabbitClientActor.tell(CloseConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
@@ -233,13 +235,6 @@ public final class RabbitMQClientActorTest extends AbstractBaseClientActorTest {
         verify(ch, timeout(500).times(1))
                 .basicPublish(eq("twinEventExchange"), eq("twinEventRoutingKey"), eq(true),
                         any(AMQP.BasicProperties.class), any(byte[].class));
-    }
-
-    private void sendOutboundSignal(final ActorRef rabbitClientActor, final ModifyThing modifyThing,
-            final Target target) {
-        final OutboundSignal outboundSignal =
-                OutboundSignalFactory.newOutboundSignal(modifyThing, Collections.singletonList(target));
-        rabbitClientActor.tell(outboundSignal, ActorRef.noSender());
     }
 
     private void sendInboundModifyThingProtocolMessage(final Consumer consumer) throws IOException {

@@ -104,9 +104,9 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
 
     @SuppressWarnings("unused")
     private AmqpPublisherActor(final Connection connection, final Session session,
-            final ConnectionConfig connectionConfig) {
+            final ConnectionConfig connectionConfig, final String clientId) {
 
-        super(connection);
+        super(connection, clientId);
         this.session = checkNotNull(session, "session");
 
         final Executor jmsDispatcher = JMSConnectionHandlingActor.getOwnDispatcher(getContext().system());
@@ -162,10 +162,12 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      * @param connection the connection this publisher belongs to
      * @param session the jms session
      * @param connectionConfig configuration for all connections.
+     * @param clientId identifier of the client actor.
      * @return the Akka configuration Props object.
      */
-    static Props props(final Connection connection, final Session session, final ConnectionConfig connectionConfig) {
-        return Props.create(AmqpPublisherActor.class, connection, session, connectionConfig);
+    static Props props(final Connection connection, final Session session, final ConnectionConfig connectionConfig,
+            final String clientId) {
+        return Props.create(AmqpPublisherActor.class, connection, session, connectionConfig, clientId);
     }
 
     @Override
@@ -243,7 +245,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         } catch (final JMSException jmsException) {
             // target producer not creatable; stop self and request restart by parent
             final String errorMessage = String.format("Failed to create target '%s'", destination);
-            logger.error(errorMessage, jmsException);
+            logger.error(jmsException, errorMessage);
             final ConnectionFailure failure = new ImmutableConnectionFailure(getSelf(), jmsException, errorMessage);
             final ActorContext context = getContext();
             context.getParent().tell(failure, getSelf());

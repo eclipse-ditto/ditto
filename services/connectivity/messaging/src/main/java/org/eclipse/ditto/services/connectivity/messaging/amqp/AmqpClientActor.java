@@ -215,7 +215,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
         final Connection connectionToBeTested = testConnectionCommand.getConnection();
         return Patterns.ask(getTestConnectionHandler(connectionToBeTested),
-                new JmsConnect(getSender()), clientConfig.getTestingTimeout())
+                jmsConnect(getSender(), connectionToBeTested), clientConfig.getTestingTimeout())
                 // compose the disconnect because otherwise the actor hierarchy might be stopped too fast
                 .thenCompose(response -> {
                     logger.withCorrelationId(testConnectionCommand)
@@ -254,7 +254,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @Override
     protected void doConnectClient(final Connection connection, @Nullable final ActorRef origin) {
         // delegate to child actor because the QPID JMS client is blocking until connection is opened/closed
-        getConnectConnectionHandler(connection).tell(new JmsConnect(origin), getSelf());
+        getConnectConnectionHandler(connection).tell(jmsConnect(origin, connection), getSelf());
     }
 
     @Override
@@ -285,7 +285,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         stopChildActor(amqpPublisherActor);
         if (null != jmsSession) {
             final Props props =
-                    AmqpPublisherActor.props(connection(), jmsSession, connectivityConfig.getConnectionConfig());
+                    AmqpPublisherActor.props(connection(), jmsSession, connectivityConfig.getConnectionConfig(),
+                            getDefaultClientId());
             amqpPublisherActor = startChildActorConflictFree(AmqpPublisherActor.ACTOR_NAME_PREFIX, props);
             future.complete(DONE);
         } else {
@@ -358,6 +359,12 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                 // ignore random events by default - they could come from a connection handler that is already dead
                 return false;
         }
+    }
+
+    @Override
+    public void onException(final JMSException exception) {
+        connectionLogger.exception("Exception occurred: {0}", exception.getMessage());
+        logger.warning("{} occurred: {}", exception.getClass().getName(), exception.getMessage());
     }
 
     @Override
@@ -551,10 +558,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         return Boolean.parseBoolean(recoverOnConnectionRestored);
     }
 
-    @Override
-    public void onException(final JMSException exception) {
-        connectionLogger.exception("Exception occurred: {0}", exception.getMessage());
-        logger.warning("{} occurred: {}", exception.getClass().getName(), exception.getMessage());
+    private JmsConnect jmsConnect(@Nullable final ActorRef sender, final Connection connection) {
+        return new JmsConnect(sender, getClientId(connection.getId()));
     }
 
     /**
@@ -562,10 +567,17 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      */
     static final class JmsConnect extends AbstractWithOrigin implements ConnectClient {
 
-        JmsConnect(@Nullable final ActorRef origin) {
+        private final String clientId;
+
+        JmsConnect(@Nullable final ActorRef origin, final String clientId) {
             super(origin);
+            this.clientId = clientId;
         }
 
+        @Override
+        public String getClientId() {
+            return clientId;
+        }
     }
 
     /**

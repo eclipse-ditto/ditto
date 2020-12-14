@@ -13,11 +13,8 @@
 package org.eclipse.ditto.services.utils.pubsub.ddata;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import akka.actor.ActorRef;
@@ -27,76 +24,56 @@ import akka.actor.ActorRef;
  */
 public final class SubscriptionsReader {
 
-    /**
-     * Constant-true predicate as the default filter.
-     */
-    private static final Predicate<Collection<String>> CONSTANT_TRUE = topics -> true;
+    private final Map<ActorRef, SubscriberData> subscriberDataMap;
 
-    private final Map<String, Set<ActorRef>> topicToSubscriber;
-    private final Map<ActorRef, Predicate<Collection<String>>> subscriberToFilter;
-
-    private SubscriptionsReader(
-            final Map<String, Set<ActorRef>> topicToSubscriber,
-            final Map<ActorRef, Predicate<Collection<String>>> subscriberToFilter) {
-
-        // Don't Map.copyOf the arguments. They are always unmodifiable maps constructed on the fly.
-        this.topicToSubscriber = topicToSubscriber;
-        this.subscriberToFilter = subscriberToFilter;
+    private SubscriptionsReader(final Map<ActorRef, SubscriberData> subscriberDataMap) {
+        this.subscriberDataMap = subscriberDataMap;
     }
 
     /**
      * @return An empty subscription-reader.
      */
     public static SubscriptionsReader empty() {
-        return new SubscriptionsReader(Collections.emptyMap(), Collections.emptyMap());
+        return new SubscriptionsReader(Map.of());
     }
 
     /**
      * Construct a subscriptions-reader from immutable collections.
      *
-     * @param topicToData relation between topics and subscribers.
-     * @param subscriberToFilter relation between subscribers and their filters.
+     * @param subscriberDataMap a map from subscriber to its topics, group and filter.
      * @return a subscription-reader.
      */
-    public static SubscriptionsReader fromImmutableMaps(final Map<String, Set<ActorRef>> topicToData,
-            final Map<ActorRef, Predicate<Collection<String>>> subscriberToFilter) {
+    public static SubscriptionsReader fromSubscriberData(final Map<ActorRef, SubscriberData> subscriberDataMap) {
+        return new SubscriptionsReader(subscriberDataMap);
+    }
 
-        return new SubscriptionsReader(topicToData, subscriberToFilter);
+    /**
+     * @return the ternary relation between subscribers, groups and topics.
+     */
+    public Map<ActorRef, SubscriberData> getSubscriberDataMap() {
+        return subscriberDataMap;
     }
 
     /**
      * Look up the set of subscribers subscribing to at least one of the given topics.
+     * NOT performant. Only intended for tests.
      *
      * @param topics the topics.
      * @return the set of subscribers.
      */
     public Set<ActorRef> getSubscribers(final Collection<String> topics) {
-        return topics.stream()
-                .map(topicToSubscriber::get)
-                .filter(Objects::nonNull)
-                .flatMap(Set::stream)
-                .collect(Collectors.toSet()) // deduplicate subscribers
+        return subscriberDataMap.entrySet()
                 .stream()
-                .filter(subscriber -> subscriberToFilter.getOrDefault(subscriber, CONSTANT_TRUE).test(topics))
+                .filter(entry -> topics.stream().anyMatch(entry.getValue().getTopics()::contains))
+                .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
-    }
-
-    /**
-     * Check if a topic is subscribed for.
-     *
-     * @param topic the topic.
-     * @return whether it has any subscribers.
-     */
-    public boolean containsTopic(final String topic) {
-        return topicToSubscriber.containsKey(topic);
     }
 
     @Override
     public boolean equals(final Object other) {
         if (other instanceof SubscriptionsReader) {
             final SubscriptionsReader that = (SubscriptionsReader) other;
-            return topicToSubscriber.equals(that.topicToSubscriber) &&
-                    subscriberToFilter.equals(that.subscriberToFilter);
+            return subscriberDataMap.equals(that.subscriberDataMap);
         } else {
             return false;
         }
@@ -104,6 +81,6 @@ public final class SubscriptionsReader {
 
     @Override
     public int hashCode() {
-        return Objects.hash(topicToSubscriber, subscriberToFilter);
+        return subscriberDataMap.hashCode();
     }
 }

@@ -481,7 +481,7 @@
                 <div style="text-align: left; float: left; width: 48%">
                     <h3>via WebSocket</h3>
                     <pre style="width: 100%; font-size: 0.5em;"><code class="hljs javascript">var ws = new WebSocket(
-  "ws://u:p@ditto.eclipse.org/ws/2");
+  "ws://u:p@ditto.eclipseprojects.io/ws/2");
 ws.onopen = function(w) {
   w.send('START-SEND-EVENTS');
 };
@@ -496,7 +496,7 @@ ws.onmessage = function(msg) {
                 <div style="text-align: left; float: right; width: 48%" class="fragment">
                     <h3>via SSEs</h3>
                     <pre style="width: 100%; font-size: 0.5em;"><code class="hljs">var source = new EventSource(
-  "https://ditto.eclipse.org/api/2/things?ids=namespace:car-1", { withCredentials: true });
+  "https://ditto.eclipseprojects.io/api/2/things?ids=namespace:car-1", { withCredentials: true });
 source.onmessage = function(msg) {
   console.log('received: ' + msg.data);
 };</code></pre>
@@ -684,7 +684,7 @@ source.onmessage = function(msg) {
     <a href="https://www.bosch.com/terms-of-use/terms-of-use/provider/" target="_blank">Imprint</a> |
     <a href="https://www.eclipse.org/ditto/intro-overview.html" target="_blank">Documentation</a> |
     <a href="https://github.com/eclipse/ditto" target="_blank">GitHub</a> |
-    <a href="https://ditto.eclipse.org" target="_blank">Sandbox</a>
+    <a href="https://ditto.eclipseprojects.io" target="_blank">Sandbox</a>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.6.0/lib/js/head.min.js"></script>

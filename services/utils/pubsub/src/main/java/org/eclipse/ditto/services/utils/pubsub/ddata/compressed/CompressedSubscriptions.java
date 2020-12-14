@@ -14,45 +14,41 @@ package org.eclipse.ditto.services.utils.pubsub.ddata.compressed;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.services.utils.pubsub.ddata.AbstractSubscriptions;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
+import org.eclipse.ditto.services.utils.pubsub.ddata.SubscriberData;
 import org.eclipse.ditto.services.utils.pubsub.ddata.TopicData;
+import org.eclipse.ditto.services.utils.pubsub.ddata.ack.Grouped;
+import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralUpdate;
 
 import akka.actor.ActorRef;
-import akka.util.ByteString;
 
 /**
  * Local subscriptions for distribution of subscribed topics as hash code sequences.
  */
 @NotThreadSafe
-public final class CompressedSubscriptions extends AbstractSubscriptions<ByteString, CompressedUpdate>
+public final class CompressedSubscriptions extends AbstractSubscriptions<String, LiteralUpdate>
         implements Hashes {
 
     /**
      * Seeds of hash functions. They should be identical cluster-wide.
      */
     private final Collection<Integer> seeds;
-    private final Map<ByteString, Integer> hashCodeToTopicCount;
-    private final CompressedUpdate updates;
 
     private CompressedSubscriptions(
             final Collection<Integer> seeds,
-            final Map<ActorRef, Set<String>> subscriberToTopic,
-            final Map<ActorRef, Predicate<Collection<String>>> subscriberToFilter,
-            final Map<String, TopicData<ByteString>> topicToData,
-            final Map<ByteString, Integer> hashCodeToTopicCount,
-            final CompressedUpdate updates) {
-        super(subscriberToTopic, subscriberToFilter, topicToData);
+            final Map<ActorRef, SubscriberData> subscriberDataMap,
+            final Map<String, TopicData> topicToData) {
+        super(subscriberDataMap, topicToData);
         this.seeds = seeds;
-        this.hashCodeToTopicCount = hashCodeToTopicCount;
-        this.updates = updates;
     }
 
     /**
@@ -62,37 +58,7 @@ public final class CompressedSubscriptions extends AbstractSubscriptions<ByteStr
      * @return the compressed subscriptions object.
      */
     public static CompressedSubscriptions of(final Collection<Integer> seeds) {
-        return new CompressedSubscriptions(seeds, new HashMap<>(), new HashMap<>(), new HashMap<>(), new HashMap<>(),
-                CompressedUpdate.empty());
-    }
-
-    @Override
-    protected ByteString hashTopic(final String topic) {
-        return CompressedDDataHandler.hashCodesToByteString(getHashes(topic));
-    }
-
-    @Override
-    protected void onNewTopic(final TopicData<ByteString> newTopic) {
-        hashCodeToTopicCount.compute(newTopic.getHashes(), (hashes, count) -> {
-            if (count == null) {
-                updates.insert(hashes);
-                return 1;
-            } else {
-                return count + 1;
-            }
-        });
-    }
-
-    @Override
-    protected void onRemovedTopic(final TopicData<ByteString> removedTopic) {
-        hashCodeToTopicCount.computeIfPresent(removedTopic.getHashes(), (hashes, count) -> {
-            if (count > 1) {
-                return count - 1;
-            } else {
-                updates.delete(hashes);
-                return null;
-            }
-        });
+        return new CompressedSubscriptions(seeds, new HashMap<>(), new HashMap<>());
     }
 
     @Override
@@ -101,22 +67,38 @@ public final class CompressedSubscriptions extends AbstractSubscriptions<ByteStr
     }
 
     @Override
-    public CompressedUpdate export(final boolean forceUpdate) {
-        if (forceUpdate) {
-            return CompressedUpdate.replaceAll(hashCodeToTopicCount.keySet());
-        } else {
-            return updates.exportAndReset();
-        }
+    public long estimateSize() {
+        return subscriberDataMap.values()
+                .stream()
+                .mapToLong(subscriberData -> {
+                    final long bytesPerLong = 8;
+                    final long valueBytes = bytesPerLong * subscriberData.getTopics().size();
+                    // group bytes estimated by string length because group names should be ASCII
+                    final long groupBytes = subscriberData.getGroup().map(String::length).orElse(0);
+                    return valueBytes + groupBytes;
+                })
+                .sum();
+    }
+
+    @Override
+    public LiteralUpdate export() {
+        final Set<String> serializedGroupedTopics = new HashSet<>();
+        subscriberDataMap.forEach((subscriber, data) -> {
+            final Set<Long> topicHashes = data.getTopics()
+                    .stream()
+                    .map(this::hashAsLong)
+                    .collect(Collectors.toSet());
+            final Grouped<Long> groupedHashes = Grouped.of(data.getGroup().orElse(null), topicHashes);
+            serializedGroupedTopics.add(groupedHashes.toJsonString());
+        });
+        return LiteralUpdate.withInserts(serializedGroupedTopics);
     }
 
     @Override
     public boolean equals(final Object other) {
         if (other instanceof CompressedSubscriptions) {
             final CompressedSubscriptions that = (CompressedSubscriptions) other;
-            return seeds.equals(that.seeds) &&
-                    hashCodeToTopicCount.equals(that.hashCodeToTopicCount) &&
-                    updates.equals(that.updates) &&
-                    super.equals(other);
+            return seeds.equals(that.seeds) && super.equals(other);
         } else {
             return false;
         }
@@ -124,6 +106,7 @@ public final class CompressedSubscriptions extends AbstractSubscriptions<ByteStr
 
     @Override
     public int hashCode() {
-        return Objects.hash(seeds, hashCodeToTopicCount, updates, super.hashCode());
+        return Objects.hash(seeds, super.hashCode());
     }
+
 }

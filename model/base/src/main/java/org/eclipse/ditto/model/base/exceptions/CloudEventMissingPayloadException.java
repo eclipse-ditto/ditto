@@ -37,8 +37,8 @@
       */
      public static final String ERROR_CODE = "cloudevent.payload.missing";
 
-     private static final String DEFAULT_MESSAGE = "The cloud event's payload is missing.";
-     private static final String DEFAULT_DESCRIPTION = "Ensure to provide payload in the cloud event.";
+     private static final String DEFAULT_MESSAGE = "The Cloud Event's payload is missing.";
+     private static final String DEFAULT_DESCRIPTION = "Ensure to provide payload in the Cloud Event.";
 
      private static final HttpStatusCode STATUS_CODE = HttpStatusCode.BAD_REQUEST;
 

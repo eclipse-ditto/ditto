@@ -16,8 +16,10 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.DittoServiceConfig;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.CloudEventsConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultClaimMessageConfig;
+import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultCloudEventsConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultCommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultMessageConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.DefaultPublicHealthConfig;
@@ -59,6 +61,7 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
     private final AuthenticationConfig authenticationConfig;
     private final StreamingConfig streamingConfig;
     private final PublicHealthConfig publicHealthConfig;
+    private final DefaultCloudEventsConfig cloudEventsConfig;
 
     private DittoGatewayConfig(final ScopedConfig dittoScopedConfig) {
 
@@ -73,6 +76,7 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
         authenticationConfig = DefaultAuthenticationConfig.of(dittoServiceConfig);
         streamingConfig = DefaultStreamingConfig.of(dittoServiceConfig);
         publicHealthConfig = DefaultPublicHealthConfig.of(dittoServiceConfig);
+        cloudEventsConfig = DefaultCloudEventsConfig.of(dittoServiceConfig);
     }
 
     /**
@@ -150,6 +154,11 @@ public final class DittoGatewayConfig implements GatewayConfig, WithConfigPath {
     @Override
     public ProtocolConfig getProtocolConfig() {
         return protocolConfig;
+    }
+
+    @Override
+    public CloudEventsConfig getCloudEventsConfig() {
+        return cloudEventsConfig;
     }
 
     /**

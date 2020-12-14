@@ -76,13 +76,17 @@ final class Sending implements SendingOrDropped {
     public Optional<CompletionStage<CommandResponse>> monitorAndAcknowledge(
             final ExceptionToAcknowledgementConverter exceptionConverter) {
 
-        return Optional.of(futureResponse
-                .thenApply(response -> acknowledge(response, exceptionConverter))
-                .thenApply(this::monitor)
-                .exceptionally(error -> {
-                    final Acknowledgement result = handleException(getRootCause(error), exceptionConverter);
-                    monitor(result);
-                    return result;
+        return Optional.of(futureResponse.thenApply(response -> acknowledge(response, exceptionConverter))
+                .handle((response, error) -> {
+                    if (error != null) {
+                        final Acknowledgement errorAck = handleException(getRootCause(error), exceptionConverter);
+                        if (errorAck != null) {
+                            monitorAcknowledgementWitFailedSending(errorAck);
+                        }
+                        return errorAck;
+                    } else {
+                        return this.monitor(response);
+                    }
                 }));
     }
 
@@ -132,7 +136,11 @@ final class Sending implements SendingOrDropped {
     }
 
     private void monitorAcknowledgement(final Acknowledgement acknowledgement) {
-        new AcknowledgementMonitoring(acknowledgement).monitor();
+        new AcknowledgementMonitoring(acknowledgement, true).monitor();
+    }
+
+    private void monitorAcknowledgementWitFailedSending(final Acknowledgement acknowledgement) {
+        new AcknowledgementMonitoring(acknowledgement, false).monitor();
     }
 
     private boolean isTargetIssuesLiveResponse() {
@@ -215,46 +223,59 @@ final class Sending implements SendingOrDropped {
 
     private abstract class CommandResponseMonitoring<T extends CommandResponse<?>> {
 
-        private final T cmdResponse;
+        protected final T cmdResponse;
 
         protected CommandResponseMonitoring(final T cmdResponse) {
             this.cmdResponse = cmdResponse;
         }
 
-        void monitor() {
-            if (isSendSuccess()) {
-                monitorSendSuccess();
-            } else {
-                monitorSendFailure(getExceptionFor(cmdResponse));
-            }
+        abstract void monitor();
+
+        protected void monitorSendSuccess() {
+            sendingContext.getPublishedMonitor().success(sendingContext.getExternalMessage());
         }
 
-        private boolean isSendSuccess() {
-            final HttpStatusCode statusCode = cmdResponse.getStatusCode();
-            return !(statusCode.isClientError() || statusCode.isInternalError());
+        protected void monitorAckSuccess() {
+            sendingContext.getAcknowledgedMonitor().ifPresent(
+                    ackMonitor -> ackMonitor.success(sendingContext.getExternalMessage())
+            );
         }
 
-        private void monitorSendSuccess() {
-            final ConnectionMonitor publishedMonitor = sendingContext.getPublishedMonitor();
-            publishedMonitor.success(sendingContext.getExternalMessage());
-            sendingContext.getAcknowledgedMonitor().ifPresent(ackMonitor ->
-                    ackMonitor.success(sendingContext.getExternalMessage()));
-        }
-
-        abstract DittoRuntimeException getExceptionFor(T response);
-
-        private void monitorSendFailure(final DittoRuntimeException messageSendingFailedException) {
+        protected void monitorAckFailure() {
+            final DittoRuntimeException messageSendingFailedException = getExceptionFor(cmdResponse);
             sendingContext.getAcknowledgedMonitor()
                     .ifPresent(acknowledgedMonitor -> acknowledgedMonitor.failure(sendingContext.getExternalMessage(),
                             messageSendingFailedException));
         }
 
+        abstract DittoRuntimeException getExceptionFor(T response);
+
     }
 
     private final class AcknowledgementMonitoring extends CommandResponseMonitoring<Acknowledgement> {
 
-        AcknowledgementMonitoring(final Acknowledgement acknowledgement) {
+        private final boolean sendSuccess;
+
+        AcknowledgementMonitoring(final Acknowledgement acknowledgement, final boolean sendSuccess) {
             super(acknowledgement);
+            this.sendSuccess = sendSuccess;
+        }
+
+        @Override
+        void monitor() {
+            final HttpStatusCode statusCode = cmdResponse.getStatusCode();
+            if (statusCode.isInternalError()) {
+                if (sendSuccess) {
+                    monitorSendSuccess();
+                }
+                monitorAckFailure();
+            } else if (statusCode.isClientError()) {
+                monitorSendSuccess();
+                monitorAckFailure();
+            } else {
+                monitorSendSuccess();
+                monitorAckSuccess();
+            }
         }
 
         @Override
@@ -272,6 +293,17 @@ final class Sending implements SendingOrDropped {
 
         LiveResponseMonitoring(final CommandResponse<?> cmdResponse) {
             super(cmdResponse);
+        }
+
+        @Override
+        void monitor() {
+            final HttpStatusCode statusCode = cmdResponse.getStatusCode();
+            monitorSendSuccess();
+            if (HttpStatusCode.REQUEST_TIMEOUT.equals(statusCode)) {
+                monitorAckFailure();
+            } else {
+                monitorAckSuccess();
+            }
         }
 
         @Override

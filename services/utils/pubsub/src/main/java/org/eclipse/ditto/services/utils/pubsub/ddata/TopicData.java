@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.utils.pubsub.ddata;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Stream;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
@@ -23,32 +22,26 @@ import akka.actor.ActorRef;
 
 /**
  * Set of subscribers of a topic together with its hashes.
- *
- * @param <H> representation of hashes of the topic.
  */
 @NotThreadSafe
-public final class TopicData<H> {
+public final class TopicData {
 
     private final Set<ActorRef> subscribers;
-    private final H hashes;
 
-    private TopicData(final Set<ActorRef> subscribers, final H hashes) {
+    private TopicData(final Set<ActorRef> subscribers) {
         this.subscribers = subscribers;
-        this.hashes = hashes;
     }
 
     /**
      * Create topic data upon arrival of the first subscriber.
      *
-     * @param <H> type of hashes.
      * @param subscriber the first subscriber.
-     * @param hashes hashes of the topic.
      * @return the topic data.
      */
-    public static <H> TopicData<H> firstSubscriber(final ActorRef subscriber, final H hashes) {
+    public static TopicData firstSubscriber(final ActorRef subscriber) {
         final Set<ActorRef> subscribers = new HashSet<>();
         subscribers.add(subscriber);
-        return new TopicData<>(subscribers, hashes);
+        return new TopicData(subscribers);
     }
 
     /**
@@ -79,20 +72,6 @@ public final class TopicData<H> {
     }
 
     /**
-     * @return hash codes of the topic.
-     */
-    public H getHashes() {
-        return hashes;
-    }
-
-    /**
-     * @return a stream of subscribers of the topic.
-     */
-    public Stream<ActorRef> streamSubscribers() {
-        return subscribers.stream();
-    }
-
-    /**
      * @return an unmodifiable copy of the set of subscribers.
      */
     public Set<ActorRef> exportSubscribers() {
@@ -102,8 +81,8 @@ public final class TopicData<H> {
     @Override
     public boolean equals(final Object other) {
         if (other instanceof TopicData) {
-            final TopicData<?> that = (TopicData<?>) other;
-            return subscribers.equals(that.subscribers) && hashes.equals(that.hashes);
+            final TopicData that = (TopicData) other;
+            return subscribers.equals(that.subscribers);
         } else {
             return false;
         }
@@ -111,6 +90,6 @@ public final class TopicData<H> {
 
     @Override
     public int hashCode() {
-        return Objects.hash(subscribers, hashes);
+        return Objects.hash(subscribers);
     }
 }

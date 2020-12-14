@@ -23,7 +23,7 @@ import akka.cluster.ddata.Replicator;
  * @param <K> type of keys of the multimap.
  * @param <T> type of topic updates to perform in the distributed data.
  */
-public interface DDataWriter<K, T> {
+public interface DDataWriter<K, T extends DDataUpdate<?>> {
 
     /**
      * Associate a subscriber with a topic.

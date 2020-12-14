@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -44,10 +46,16 @@ public class MockClientActor extends AbstractActor {
             (connection, connectionActor, proxyActor) -> MockClientActor.props();
 
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
-    private final ActorRef delegate;
+    @Nullable private final ActorRef delegate;
+    @Nullable final ActorRef gossip;
 
-    private MockClientActor(final ActorRef delegate) {
+    private MockClientActor(@Nullable final ActorRef delegate) {
+        this(delegate, null);
+    }
+
+    private MockClientActor(@Nullable final ActorRef delegate, @Nullable final ActorRef gossip) {
         this.delegate = delegate;
+        this.gossip = gossip;
     }
 
     public static Props props() {
@@ -58,9 +66,16 @@ public class MockClientActor extends AbstractActor {
         return Props.create(MockClientActor.class, delegate);
     }
 
+    public static Props props(final ActorRef delegate, @Nullable final ActorRef gossip) {
+        return Props.create(MockClientActor.class, delegate, gossip);
+    }
+
     @Override
     public void preStart() {
         log.info("Mock client actor started.");
+        if (gossip != null) {
+            gossip.tell(getSelf(), getSelf());
+        }
     }
 
     @Override
@@ -146,6 +161,7 @@ public class MockClientActor extends AbstractActor {
                     log.info("Check connection logs active...");
                     forward(ccla);
                 })
+                .match(ActorRef.class, actorRef -> {})
                 .matchAny(unhandled -> {
                     log.info("Received unhandled message: {}", unhandled.getClass().getName());
                     forward(unhandled);

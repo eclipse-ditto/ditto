@@ -71,6 +71,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.Props;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
@@ -141,7 +142,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
             assertThat(ackType).describedAs("Expect failure settlement without redelivery")
                     .isEqualTo(shouldRedeliver
                             ? JmsMessageSupport.MODIFIED_FAILED
-                            : JmsMessageSupport.MODIFIED_FAILED_UNDELIVERABLE
+                            : JmsMessageSupport.REJECTED
                     );
         }
     }
@@ -289,7 +290,8 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
                 protocolAdapter,
                 logger);
         final Props inboundDispatchingActorProps = InboundDispatchingActor.props(CONNECTION,
-                protocolAdapter.headerTranslator(), testRef, connectionActorProbe.ref(), testRef);
+                protocolAdapter.headerTranslator(), ActorSelection.apply(testRef, ""), connectionActorProbe.ref(),
+                testRef);
         final ActorRef inboundDispatchingActor = actorSystem.actorOf(inboundDispatchingActorProps);
 
         final Props messageMappingProcessorProps =

@@ -13,16 +13,16 @@
 package org.eclipse.ditto.services.utils.pubsub;
 
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.eclipse.ditto.services.utils.pubsub.config.PubSubConfig;
-import org.eclipse.ditto.services.utils.pubsub.ddata.DDataReader;
 import org.eclipse.ditto.services.utils.pubsub.ddata.Hashes;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.services.utils.pubsub.extractors.PubSubTopicExtractor;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
@@ -30,49 +30,38 @@ import akka.actor.ActorRef;
 /**
  * Pub-sub factory for tests. Messages are strings. Topics of a message are its prefixes.
  */
-public final class TestPubSubFactory extends AbstractPubSubFactory<String> implements Hashes {
+public final class TestPubSubFactory extends AbstractPubSubFactory<Acknowledgement> implements Hashes {
 
     private static final DDataProvider PROVIDER = DDataProvider.of("dc-default");
     private static final LiteralDDataProvider ACKS_PROVIDER = LiteralDDataProvider.of("dc-default", "acks");
 
     private final Collection<Integer> seeds;
 
-    private TestPubSubFactory(final ActorContext context, final Class<String> messageClass,
-            final PubSubTopicExtractor<String> topicExtractor,
-            final AckExtractor<String> ackExtractor,
+    private TestPubSubFactory(final ActorContext context,
+            final PubSubTopicExtractor<Acknowledgement> topicExtractor,
+            final AckExtractor<Acknowledgement> ackExtractor,
             final DistributedAcks distributedAcks) {
-        super(context, messageClass, topicExtractor, PROVIDER, ackExtractor, distributedAcks);
+        super(context, context.system(), Acknowledgement.class, topicExtractor, PROVIDER, ackExtractor,
+                distributedAcks);
         final PubSubConfig config = PubSubConfig.of(context.system().settings().config().getConfig("ditto.pubsub"));
-        seeds = Hashes.digestStringsToIntegers(config.getSeed(), config.getHashFamilySize());
+        seeds = Hashes.digestStringsToIntegers(config.getSeed(), Hashes.HASH_FAMILY_SIZE);
     }
 
     static DistributedAcks startDistributedAcks(final ActorContext context) {
-        return DistributedAcksImpl.create(context, "dc-default", ACKS_PROVIDER);
+        return DistributedAcksImpl.create(context, context.system(), "dc-default", ACKS_PROVIDER);
     }
 
-    static TestPubSubFactory of(final ActorContext context, final AckExtractor<String> ackExtractor,
+    static TestPubSubFactory of(final ActorContext context, final AckExtractor<Acknowledgement> ackExtractor,
             final DistributedAcks distributedAcks) {
-        return new TestPubSubFactory(context, String.class, TestPubSubFactory::getPrefixes, ackExtractor,
+        return new TestPubSubFactory(context, TestPubSubFactory::getPrefixes, ackExtractor,
                 distributedAcks);
     }
 
     /**
      * @return subscribers of a topic in the distributed data.
      */
-    CompletionStage<Collection<ActorRef>> getSubscribers(final String topic) {
-        return getSubscribers(Collections.singleton(topic), ddata.getReader());
-    }
-
-    /**
-     * Retrieve subscribers of a collection of topics from the distributed data.
-     * Useful for circumventing lackluster existential type implementation when the reader type parameter isn't known.
-     *
-     * @param topics the topics.
-     * @return subscribers of those topics in the distributed data.
-     */
-    private static <T> CompletionStage<Collection<ActorRef>> getSubscribers(
-            final Collection<String> topics, final DDataReader<ActorRef, T> reader) {
-        return reader.getSubscribers(topics.stream().map(reader::approximate).collect(Collectors.toSet()));
+    CompletionStage<Collection<ActorRef>> getSubscribers() {
+        return ddata.getReader().read().thenApply(Map::keySet);
     }
 
     @Override
@@ -80,7 +69,8 @@ public final class TestPubSubFactory extends AbstractPubSubFactory<String> imple
         return seeds;
     }
 
-    private static Collection<String> getPrefixes(final String string) {
+    private static Collection<String> getPrefixes(final Acknowledgement acknowledgement) {
+        final String string = acknowledgement.getLabel().toString();
         return IntStream.range(0, string.length())
                 .mapToObj(i -> string.substring(0, i + 1))
                 .collect(Collectors.toList());

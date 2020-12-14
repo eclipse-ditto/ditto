@@ -17,7 +17,7 @@ command message. Hono routes the message to the device, which in turn can send a
 status, telling if the command was successfully processed or not. 
 This response is routed back via Hono to the Ditto Message API.
 
-In this example we connect the [Ditto sandbox](https://ditto.eclipse.org/) and the 
+In this example we connect the [Ditto sandbox](https://ditto.eclipseprojects.io/) and the 
 [Hono sandbox](https://www.eclipse.org/hono/sandbox/) to send a message (3) to a simulated device via the 
 Ditto Messages API. The device receives the command from the Hono HTTP Adapter and responds with a message (4) 
 that is routed back to the caller at the Ditto Message API (5). For the sake of simplicity we use simple curl 
@@ -87,7 +87,7 @@ $ curl -X PUT -i -u demo5:demo -H 'Content-Type: application/json' -d '{
            }
        }
    }
-}' https://ditto.eclipse.org/api/2/policies/org.eclipse.ditto:teapot-policy 
+}' https://ditto.eclipseprojects.io/api/2/policies/org.eclipse.ditto:teapot-policy 
 ```
 
 #### Create Ditto digital twin
@@ -102,7 +102,7 @@ $ curl -X PUT -i -u demo5:demo -H 'Content-Type: application/json' -d '{
         }
       }
     }
-}' https://ditto.eclipse.org/api/2/things/org.eclipse.ditto:teapot 
+}' https://ditto.eclipseprojects.io/api/2/things/org.eclipse.ditto:teapot 
 ```
 
 ### Setup a connection for Command & Control
@@ -161,7 +161,7 @@ curl -X POST -i -u devops:devopsPw1! \
              }
            }
          }' \
-    https://ditto.eclipse.org/devops/piggyback/connectivity?timeout=10s
+    https://ditto.eclipseprojects.io/devops/piggyback/connectivity?timeout=10s
 ``` 
 
 As described in the 
@@ -196,7 +196,7 @@ The request is now open to receive a command for 60 seconds before it is termina
 Now we can use the [Ditto Messages API](protocol-specification-things-messages.html#using-the-messages-api) to send a 
 message to the device waiting for a command: 
 ```bash
-curl -i -X POST 'https://ditto.eclipse.org/api/2/things/org.eclipse.ditto:teapot/inbox/messages/brew?timeout=60' \
+curl -i -X POST 'https://ditto.eclipseprojects.io/api/2/things/org.eclipse.ditto:teapot/inbox/messages/brew?timeout=60' \
      -u demo5:demo \
      -H 'x-correlation-id: command-and-control' \
      -d '{"targetTemperature":85}'

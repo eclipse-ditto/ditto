@@ -35,11 +35,13 @@ class DefaultAkkaReplicatorConfig implements AkkaReplicatorConfig {
     private final String name;
     private final String role;
     private final Duration notifySubscribersInterval;
+    private final Duration gossipInterval;
     private final Config config;
 
     private DefaultAkkaReplicatorConfig(final Config config) {
         name = config.getString(AkkaReplicatorConfigValue.NAME.getConfigPath());
         role = config.getString(AkkaReplicatorConfigValue.ROLE.getConfigPath());
+        gossipInterval = config.getDuration(AkkaReplicatorConfigValue.GOSSIP_INTERVAL.getConfigPath());
         notifySubscribersInterval =
                 config.getDuration(AkkaReplicatorConfigValue.NOTIFY_SUBSCRIBERS_INTERVAL.getConfigPath());
         this.config = config;
@@ -96,6 +98,11 @@ class DefaultAkkaReplicatorConfig implements AkkaReplicatorConfig {
     }
 
     @Override
+    public Duration getGossipInterval() {
+        return gossipInterval;
+    }
+
+    @Override
     public Duration getNotifySubscribersInterval() {
         return notifySubscribersInterval;
     }
@@ -117,12 +124,13 @@ class DefaultAkkaReplicatorConfig implements AkkaReplicatorConfig {
         return Objects.equals(config, that.config) &&
                 Objects.equals(name, that.name) &&
                 Objects.equals(role, that.role) &&
+                Objects.equals(gossipInterval, that.gossipInterval) &&
                 Objects.equals(notifySubscribersInterval, that.notifySubscribersInterval);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(config, name, role, notifySubscribersInterval);
+        return Objects.hash(config, name, role, gossipInterval, notifySubscribersInterval);
     }
 
     @Override
@@ -131,6 +139,7 @@ class DefaultAkkaReplicatorConfig implements AkkaReplicatorConfig {
                 "name=" + name +
                 ", role=" + role +
                 ", config=" + config +
+                ", gossipInterval=" + gossipInterval +
                 ", notifySubscribersInterval=" + notifySubscribersInterval +
                 "]";
     }

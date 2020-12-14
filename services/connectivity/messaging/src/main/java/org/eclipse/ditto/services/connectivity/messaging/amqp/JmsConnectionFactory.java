@@ -31,11 +31,12 @@ public interface JmsConnectionFactory {
      * @param connection the connection to use for the returned JMS Connection.
      * @param exceptionListener the ExceptionListener to configure for the returned JMS Connection.
      * @param connectionLogger used to log failures during certificate validation.
+     * @param clientId the client ID.
      * @return the JMS Connection.
      * @throws javax.jms.JMSException if the context could not be created.
      * @throws javax.naming.NamingException if the identifier of {@code connection} could not be found in the Context.
      */
     JmsConnection createConnection(Connection connection, ExceptionListener exceptionListener,
-            ConnectionLogger connectionLogger) throws JMSException, NamingException;
+            ConnectionLogger connectionLogger, String clientId) throws JMSException, NamingException;
 
 }
