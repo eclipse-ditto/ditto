@@ -70,6 +70,7 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryModificationInvalidException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryNotAccessibleException;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyModificationInvalidException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.ResourceNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.SubjectNotAccessibleException;
@@ -87,6 +88,7 @@ import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntry;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyResource;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifySubject;
+import org.eclipse.ditto.signals.commands.policies.modify.ModifySubjects;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyEntry;
@@ -806,9 +808,11 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
             final Subject subject2 =
                     Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, "subject2"),
                             SubjectType.GENERATED, subjectExpiry);
+            final Subject subject3 =
+                    Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, "subject3"), SubjectType.GENERATED);
             final Policy policy = PoliciesModelFactory.newPolicyBuilder(PolicyId.of("policy:id"))
                     .forLabel(POLICY_LABEL)
-                    .setSubjects(Subjects.newInstance(subject1, subject2))
+                    .setSubjects(Subjects.newInstance(subject1, subject2, subject3))
                     .setResources(POLICY_RESOURCES_ALL)
                     .build();
 
@@ -849,10 +853,80 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
             assertThat(((SubjectDeleted) subject2Deleted.msg()).getSubjectId()).isEqualTo(subject2.getId());
             assertThat(((SubjectDeleted) subject2Deleted.msg()).getRevision()).isEqualTo(3L);
 
-            // THEN: the policy has no subjects. (TODO: rationalize or change this behavior.)
+            // THEN: the policy has only subject3 left.
             underTest.tell(RetrievePolicy.of(policy.getEntityId().orElseThrow(), DittoHeaders.empty()), getRef());
             final RetrievePolicyResponse response = expectMsgClass(RetrievePolicyResponse.class);
-            Assertions.assertThat(response.getPolicy().getEntryFor(POLICY_LABEL).orElseThrow().getSubjects()).isEmpty();
+            Assertions.assertThat(response.getPolicy().getEntryFor(POLICY_LABEL).orElseThrow().getSubjects())
+                    .containsOnly(subject3);
+        }};
+    }
+
+    @Test
+    public void impossibleToMakePolicyInvalidByExpiringSubjects() {
+        new TestKit(actorSystem) {{
+            final Instant futureInstant = Instant.now().plus(Duration.ofDays(1L));
+            final SubjectExpiry subjectExpiry = SubjectExpiry.newInstance(futureInstant);
+            final Subject subject1 =
+                    Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, "subject1"),
+                            SubjectType.GENERATED, subjectExpiry);
+            final Subject subject2 =
+                    Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, "subject2"),
+                            SubjectType.GENERATED, subjectExpiry);
+            final Subject subject3 =
+                    Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, "subject3"),
+                            SubjectType.GENERATED);
+            final Subject subject4 =
+                    Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, "subject4"),
+                            SubjectType.GENERATED,
+                            SubjectExpiry.newInstance(Instant.EPOCH));
+            final PolicyId policyId = PolicyId.of("policy:id");
+            final DittoHeaders headers = DittoHeaders.empty();
+
+            final Policy validPolicy = PoliciesModelFactory.newPolicyBuilder(policyId)
+                    .forLabel(POLICY_LABEL)
+                    .setSubjects(Subjects.newInstance(subject3))
+                    .setResources(POLICY_RESOURCES_ALL)
+                    .build();
+
+            final Policy policyWithExpiredSubject = PoliciesModelFactory.newPolicyBuilder(policyId)
+                    .forLabel(POLICY_LABEL)
+                    .setSubjects(Subjects.newInstance(subject1, subject2, subject3, subject4))
+                    .setResources(POLICY_RESOURCES_ALL)
+                    .build();
+
+            final Subjects expiringSubjects = Subjects.newInstance(subject1, subject2);
+            final PolicyEntry expiringEntry =
+                    PoliciesModelFactory.newPolicyEntry(POLICY_LABEL, expiringSubjects, POLICY_RESOURCES_ALL);
+            final Policy policyWithoutPermanentSubject = PoliciesModelFactory.newPolicyBuilder(policyId)
+                    .set(expiringEntry)
+                    .build();
+
+            // GIVEN: policy is not created
+            final ActorRef underTest = createPersistenceActorFor(this, policyId);
+
+            // WHEN/THEN CreatePolicy fails if policy contains expired subject
+            underTest.tell(CreatePolicy.of(policyWithExpiredSubject, headers), getRef());
+            expectMsgClass(PolicyModificationInvalidException.class);
+
+            // GIVEN: policy is created
+            underTest.tell(CreatePolicy.of(validPolicy, headers), getRef());
+            expectMsgClass(CreatePolicyResponse.class);
+
+            // WHEN/THEN ModifyPolicy fails if policy contains only expiring subjects afterwards
+            underTest.tell(ModifyPolicy.of(policyId, policyWithoutPermanentSubject, headers), getRef());
+            expectMsgClass(PolicyModificationInvalidException.class);
+
+            // WHEN/THEN ModifyPolicyEntry fails if policy contains only expiring subjects afterwards
+            underTest.tell(ModifyPolicyEntry.of(policyId, expiringEntry, headers), getRef());
+            expectMsgClass(PolicyEntryModificationInvalidException.class);
+
+            // WHEN/THEN ModifySubjects fails if policy contains only expiring subjects afterwards
+            underTest.tell(ModifySubjects.of(policyId, POLICY_LABEL, expiringSubjects, headers), getRef());
+            expectMsgClass(PolicyEntryModificationInvalidException.class);
+
+            // WHEN/THEN DeleteSubject fails if policy contains only expiring subjects afterwards
+            underTest.tell(DeleteSubject.of(policyId, POLICY_LABEL, subject3.getId(), headers), getRef());
+            expectMsgClass(PolicyEntryModificationInvalidException.class);
         }};
     }
 
