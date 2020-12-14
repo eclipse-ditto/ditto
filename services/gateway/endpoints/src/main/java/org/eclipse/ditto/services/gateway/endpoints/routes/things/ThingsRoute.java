@@ -84,6 +84,7 @@ public final class ThingsRoute extends AbstractRoute {
     private static final String PATH_ATTRIBUTES = "attributes";
     private static final String PATH_THING_DEFINITION = "definition";
     private static final String PATH_ACL = "acl";
+    private static final JsonKey ATTRIBUTES_JSON_KEY = JsonKey.of(PATH_ATTRIBUTES);
 
     private final FeaturesRoute featuresRoute;
     private final MessagesRoute messagesRoute;
@@ -399,7 +400,7 @@ public final class ThingsRoute extends AbstractRoute {
                                 patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                         payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                 attributesJson -> MergeThing.of(thingId,
-                                                        JsonFactory.newPointer(JsonKey.of(PATH_ATTRIBUTES)),
+                                                        JsonFactory.newPointer(ATTRIBUTES_JSON_KEY),
                                                         DittoJsonException.wrapJsonRuntimeException(
                                                                 () -> JsonFactory.readFrom(attributesJson)),
                                                         dittoHeaders))
@@ -415,7 +416,7 @@ public final class ThingsRoute extends AbstractRoute {
     /*
      * Describes {@code /things/<thingId>/attributes/<attributesSelector>} route.
      *
-     * {@code attributeJsonPointer} JSON pointer to GET/UPDATE/DELETE. E.g.:
+     * {@code attributeJsonPointer} JSON pointer to GET/PUT/PATCH/DELETE e.g.:
      * <pre>
      *    GET /things/fancy-car-1/attributes/model
      *    PUT /things/fancy-car-1/attributes/someProp
@@ -457,7 +458,8 @@ public final class ThingsRoute extends AbstractRoute {
                                 payloadSource ->
                                         handlePerRequest(ctx, dittoHeaders, payloadSource, attributeValueJson ->
                                                 MergeThing.of(thingId,
-                                                        JsonFactory.newPointer(jsonPointerString),
+                                                        JsonFactory.newPointer(ATTRIBUTES_JSON_KEY)
+                                                                .append(JsonFactory.newPointer(jsonPointerString)),
                                                         DittoJsonException.wrapJsonRuntimeException(() ->
                                                                 JsonFactory.readFrom(attributeValueJson)),
                                                         dittoHeaders)
@@ -465,9 +467,8 @@ public final class ThingsRoute extends AbstractRoute {
                                 )
                         ),
                         // DELETE /things/<thingId>/attributes/<attributePointerStr>
-                        delete(() -> handlePerRequest(ctx, DeleteAttribute.of(thingId,
-                                JsonFactory.newPointer(jsonPointerString),
-                                dittoHeaders))
+                        delete(() -> handlePerRequest(ctx,
+                                DeleteAttribute.of(thingId, JsonFactory.newPointer(jsonPointerString), dittoHeaders))
                         )
                 )
         );
@@ -503,7 +504,7 @@ public final class ThingsRoute extends AbstractRoute {
                                         payloadSource ->
                                                 pathEnd(() -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         definitionJson -> MergeThing.of(thingId,
-                                                                JsonFactory.newPointer(JsonKey.of(PATH_THING_DEFINITION)),
+                                                                JsonFactory.newPointer(PATH_THING_DEFINITION),
                                                                 DittoJsonException.wrapJsonRuntimeException(() ->
                                                                         JsonFactory.readFrom(definitionJson)),
                                                                 dittoHeaders))

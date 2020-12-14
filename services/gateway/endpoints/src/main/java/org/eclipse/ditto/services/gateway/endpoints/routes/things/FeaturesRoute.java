@@ -340,7 +340,10 @@ final class FeaturesRoute extends AbstractRoute {
                                                 dittoHeaders,
                                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         propertyJson -> MergeThing.of(thingId,
-                                                                JsonFactory.newPointer(jsonPointerString),
+                                                                JsonFactory.newPointer(FEATURE_JSON_KEY,
+                                                                        JsonKey.of(featureId), PROPERTIES_JSON_KEY)
+                                                                        .append(JsonFactory.newPointer(
+                                                                                jsonPointerString)),
                                                                 DittoJsonException.wrapJsonRuntimeException(
                                                                         () -> JsonFactory.readFrom(propertyJson)),
                                                                 dittoHeaders))
@@ -448,7 +451,11 @@ final class FeaturesRoute extends AbstractRoute {
                                                 dittoHeaders,
                                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         propertyJson -> MergeThing.of(thingId,
-                                                                JsonFactory.newPointer(jsonPointerString),
+                                                                JsonFactory.newPointer(FEATURE_JSON_KEY,
+                                                                        JsonKey.of(featureId),
+                                                                        DESIRED_PROPERTIES_JSON_KEY)
+                                                                        .append(JsonFactory.newPointer(
+                                                                                jsonPointerString)),
                                                                 DittoJsonException.wrapJsonRuntimeException(
                                                                         () -> JsonFactory.readFrom(propertyJson)),
                                                                 dittoHeaders))
