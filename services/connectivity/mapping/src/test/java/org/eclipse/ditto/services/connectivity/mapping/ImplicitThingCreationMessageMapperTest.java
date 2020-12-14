@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
@@ -140,7 +141,8 @@ public final class ImplicitThingCreationMessageMapperTest {
         assertThat(createThing.getDittoHeaders().get("other-test-header")).isEqualTo(GATEWAY_ID);
         assertThat(createThing.getDittoHeaders().get("test-header")).isEqualTo("this-is-a-test-header");
         assertThat(createThing.getDittoHeaders().getContentType()).contains(DITTO_PROTOCOL_CONTENT_TYPE);
-        assertThat(createThing.getDittoHeaders().isAllowPolicyLockout()).isEqualTo(true);
+        assertThat(createThing.getDittoHeaders().isAllowPolicyLockout()).isTrue();
+        assertThat(createThing.getDittoHeaders().getIfNoneMatch()).contains(EntityTagMatchers.fromStrings("*"));
         assertThat(createThing.getPolicyIdOrPlaceholder()).contains(GATEWAY_ID);
     }
 
@@ -162,7 +164,8 @@ public final class ImplicitThingCreationMessageMapperTest {
         assertThat(createThing.getThing().getAttributes()).isEqualTo(expectedThing.getAttributes());
         assertThat(createThing.getDittoHeaders().getContentType()).contains(DITTO_PROTOCOL_CONTENT_TYPE);
         assertThat(createThing.getPolicyIdOrPlaceholder()).contains(GATEWAY_ID);
-        assertThat(createThing.getDittoHeaders().isAllowPolicyLockout()).isEqualTo(true);
+        assertThat(createThing.getDittoHeaders().isAllowPolicyLockout()).isTrue();
+        assertThat(createThing.getDittoHeaders().getIfNoneMatch()).contains(EntityTagMatchers.fromStrings("*"));
     }
 
     @Test
@@ -182,7 +185,8 @@ public final class ImplicitThingCreationMessageMapperTest {
         assertThat(createThing.getThing().getPolicyEntityId()).isEqualTo(expectedThing.getPolicyEntityId());
         assertThat(createThing.getThing().getAttributes()).isEqualTo(expectedThing.getAttributes());
         assertThat(createThing.getInitialPolicy()).contains(INITIAL_POLICY);
-        assertThat(createThing.getDittoHeaders().isAllowPolicyLockout()).isEqualTo(true);
+        assertThat(createThing.getDittoHeaders().isAllowPolicyLockout()).isTrue();
+        assertThat(createThing.getDittoHeaders().getIfNoneMatch()).contains(EntityTagMatchers.fromStrings("*"));
     }
 
     @Test
@@ -336,7 +340,8 @@ public final class ImplicitThingCreationMessageMapperTest {
                 "}");
     }
 
-    private DefaultMessageMapperConfiguration createMapperConfig(final JsonValue thingTemplate, final JsonValue commandHeaders) {
+    private DefaultMessageMapperConfiguration createMapperConfig(final JsonValue thingTemplate,
+            final JsonValue commandHeaders) {
         final Map<String, JsonValue> options = new HashMap<>();
         options.put("thing", thingTemplate);
         options.put("commandHeaders", commandHeaders);
