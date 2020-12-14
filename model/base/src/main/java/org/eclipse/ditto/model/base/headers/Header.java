@@ -22,7 +22,7 @@ import javax.annotation.concurrent.Immutable;
  * This is important because as cache keys of CachingSignalEnrichmentFacade, where header keys should be interpreted
  * case-insensitively.
  *
- * @since 1.6.0
+ * @since 2.0.0
  */
 @Immutable
 final class Header implements CharSequence {
