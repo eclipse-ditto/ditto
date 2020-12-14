@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.services.policies.common.config.DefaultPolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
@@ -91,10 +92,12 @@ public final class ModifySubjectsStrategyTest extends AbstractPolicyCommandStrat
 
         final Subjects subjects = Subjects.newInstance(
                 Subject.newInstance(SubjectId.newInstance(SubjectIssuer.INTEGRATION, "this-is-me"),
-                TestConstants.Policy.SUBJECT_TYPE, SubjectExpiry.newInstance(expiry))
+                        TestConstants.Policy.SUBJECT_TYPE, SubjectExpiry.newInstance(expiry)),
+                Subject.newInstance("permanent:subject", SubjectType.GENERATED)
         );
-        final Subject expectedSubject = Subject.newInstance(SubjectId.newInstance(SubjectIssuer.INTEGRATION, "this-is-me"),
-                TestConstants.Policy.SUBJECT_TYPE, SubjectExpiry.newInstance(expectedAdjustedExpiry));
+        final Subject expectedSubject =
+                Subject.newInstance(SubjectId.newInstance(SubjectIssuer.INTEGRATION, "this-is-me"),
+                        TestConstants.Policy.SUBJECT_TYPE, SubjectExpiry.newInstance(expectedAdjustedExpiry));
 
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
         final ModifySubjects command =
@@ -103,7 +106,7 @@ public final class ModifySubjectsStrategyTest extends AbstractPolicyCommandStrat
         assertModificationResult(underTest, TestConstants.Policy.POLICY, command,
                 SubjectsModified.class,
                 event -> {
-                    assertThat(event.getSubjects()).containsOnly(expectedSubject);
+                    assertThat(event.getSubjects()).contains(expectedSubject);
                 },
                 ModifySubjectsResponse.class,
                 response -> {});
@@ -117,7 +120,7 @@ public final class ModifySubjectsStrategyTest extends AbstractPolicyCommandStrat
         final Instant expectedAdjustedExpiry = Instant.parse("2020-11-23T15:52:40Z");
         final Subjects subjects = Subjects.newInstance(
                 Subject.newInstance(SubjectId.newInstance(SubjectIssuer.INTEGRATION, "this-is-me"),
-                TestConstants.Policy.SUBJECT_TYPE, SubjectExpiry.newInstance(expiry))
+                        TestConstants.Policy.SUBJECT_TYPE, SubjectExpiry.newInstance(expiry))
         );
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
         final ModifySubjects command =
@@ -126,7 +129,8 @@ public final class ModifySubjectsStrategyTest extends AbstractPolicyCommandStrat
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
                 PolicyEntryModificationInvalidException.newBuilder(TestConstants.Policy.POLICY_ID,
                         TestConstants.Policy.LABEL)
-                        .description("The expiry of a Policy Subject may not be in the past, but it was: <" + expectedAdjustedExpiry + ">.")
+                        .description("The expiry of a Policy Subject may not be in the past, but it was: <" +
+                                expectedAdjustedExpiry + ">.")
                         .dittoHeaders(dittoHeaders)
                         .build());
     }

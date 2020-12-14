@@ -22,6 +22,7 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
@@ -70,7 +71,7 @@ public final class ModifyPolicyEntryStrategyTest extends AbstractPolicyCommandSt
                                 TestConstants.Policy.RESOURCE_TYPE_POLICY, "/", EffectedPermissions.newInstance(
                                         Arrays.asList("READ", "WRITE"), Collections.emptyList())))
                 );
-        final ModifyPolicyEntry command = ModifyPolicyEntry.of(TestConstants.Policy.POLICY_ID, policyEntry, 
+        final ModifyPolicyEntry command = ModifyPolicyEntry.of(TestConstants.Policy.POLICY_ID, policyEntry,
                 dittoHeaders);
 
         assertModificationResult(underTest, TestConstants.Policy.POLICY, command,
@@ -99,7 +100,9 @@ public final class ModifyPolicyEntryStrategyTest extends AbstractPolicyCommandSt
         final Subject subjectWithExpiry = Subject.newInstance(SubjectId.newInstance("foo-issuer:bar-subject"),
                 SubjectType.GENERATED, subjectExpiry);
         final PolicyEntry policyEntry =
-                PolicyEntry.newInstance(TestConstants.Policy.LABEL, Collections.singleton(subjectWithExpiry),
+                PolicyEntry.newInstance(TestConstants.Policy.LABEL,
+                        List.of(subjectWithExpiry,
+                                Subject.newInstance("permanent:subject", SubjectType.GENERATED)),
                         Collections.singleton(Resource.newInstance(
                                 TestConstants.Policy.RESOURCE_TYPE_POLICY, "/", EffectedPermissions.newInstance(
                                         Arrays.asList("READ", "WRITE"), Collections.emptyList())))
@@ -144,7 +147,8 @@ public final class ModifyPolicyEntryStrategyTest extends AbstractPolicyCommandSt
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
                 PolicyEntryModificationInvalidException.newBuilder(TestConstants.Policy.POLICY_ID,
                         TestConstants.Policy.LABEL)
-                        .description("The expiry of a Policy Subject may not be in the past, but it was: <" + expectedSubjectExpiry + ">.")
+                        .description("The expiry of a Policy Subject may not be in the past, but it was: <" +
+                                expectedSubjectExpiry + ">.")
                         .dittoHeaders(dittoHeaders)
                         .build());
     }
