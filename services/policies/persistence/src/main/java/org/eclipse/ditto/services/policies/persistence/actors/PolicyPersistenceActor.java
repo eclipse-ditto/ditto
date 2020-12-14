@@ -258,7 +258,7 @@ public final class PolicyPersistenceActor
                         SubjectDeleted.of(policyId,
                                 pair.first(),
                                 pair.second().getId(),
-                                getRevisionNumber(),
+                                getRevisionNumber() + 1L,
                                 eventTimestamp,
                                 eventDittoHeaders
                         )

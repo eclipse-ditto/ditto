@@ -817,13 +817,13 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
             // GIVEN: a Policy is created with 2 subjects having an "expiry" date
             final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
             underTest.tell(createPolicyCommand, getRef());
-            final CreatePolicyResponse createPolicy1Response = expectMsgClass(CreatePolicyResponse.class);
+            expectMsgClass(CreatePolicyResponse.class);
 
             // THEN: a PolicyCreated event should be emitted
             final DistributedPubSubMediator.Publish policyCreatedPublish =
                     pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
             assertThat(policyCreatedPublish.msg()).isInstanceOf(PolicyCreated.class);
-
+            assertThat(((PolicyCreated) policyCreatedPublish.msg()).getRevision()).isEqualTo(1L);
 
             // THEN: subject1 is deleted after expiry
             final long secondsToAdd = 10 - (expiryInstant.getEpochSecond() % 10);
@@ -838,6 +838,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                             DistributedPubSubMediator.Publish.class);
             assertThat(subject1Deleted.msg()).isInstanceOf(SubjectDeleted.class);
             assertThat(((SubjectDeleted) subject1Deleted.msg()).getSubjectId()).isEqualTo(subject1.getId());
+            assertThat(((SubjectDeleted) subject1Deleted.msg()).getRevision()).isEqualTo(2L);
             assertThat(pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class).msg())
                     .isInstanceOf(PolicyTag.class);
 
@@ -846,6 +847,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                     pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
             assertThat(subject2Deleted.msg()).isInstanceOf(SubjectDeleted.class);
             assertThat(((SubjectDeleted) subject2Deleted.msg()).getSubjectId()).isEqualTo(subject2.getId());
+            assertThat(((SubjectDeleted) subject2Deleted.msg()).getRevision()).isEqualTo(3L);
 
             // THEN: the policy has no subjects. (TODO: rationalize or change this behavior.)
             underTest.tell(RetrievePolicy.of(policy.getEntityId().orElseThrow(), DittoHeaders.empty()), getRef());
