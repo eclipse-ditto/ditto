@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -92,7 +93,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         checkNotNull(definitions, "header definitions");
         validateValueTypes(initialHeaders, definitions); // this constructor does validate the known value types
         myself = (S) selfType.cast(this);
-        headers = new HashMap<>(initialHeaders);
+        headers = new LinkedHashMap<>(initialHeaders);
         metadataHeaders = MetadataHeaders.newInstance();
         metadataHeaders.addAll(extractMetadataHeaders(headers));
         this.definitions = getHeaderDefinitionsAsMap(definitions);
@@ -141,7 +142,7 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
         checkNotNull(initialHeaders, "initialHeaders");
         checkNotNull(definitions, "definitions");
         myself = (S) selfType.cast(this);
-        headers = new HashMap<>(initialHeaders);
+        headers = preserveCaseSensitivity(initialHeaders);
         metadataHeaders = MetadataHeaders.newInstance();
         metadataHeaders.addAll(extractMetadataHeaders(headers));
         this.definitions = getHeaderDefinitionsAsMap(definitions);
@@ -543,5 +544,13 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     protected abstract R doBuild(DittoHeaders dittoHeaders);
+
+    private static Map<String, String> preserveCaseSensitivity(final Map<String, String> headers) {
+        if (headers instanceof DittoHeaders) {
+            return ((DittoHeaders) headers).asCaseSensitiveMap();
+        } else {
+            return headers;
+        }
+    }
 
 }
