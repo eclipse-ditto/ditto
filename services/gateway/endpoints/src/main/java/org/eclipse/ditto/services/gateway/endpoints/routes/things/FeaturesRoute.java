@@ -141,7 +141,7 @@ final class FeaturesRoute extends AbstractRoute {
                                 )
                         ),
                         // PATCH /features
-                        patch(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                        patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                         featuresJson -> MergeThing.of(thingId,
                                                 JsonFactory.newPointer(FEATURE_JSON_KEY),
@@ -185,7 +185,7 @@ final class FeaturesRoute extends AbstractRoute {
                                         )
                                 ),
                                 // PATCH /features/<featureId>
-                                patch(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                         payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                 featureJson -> MergeThing.of(thingId,
                                                         JsonFactory.newPointer(FEATURE_JSON_KEY, JsonKey.of(featureId)),
@@ -229,7 +229,7 @@ final class FeaturesRoute extends AbstractRoute {
                                                 )
                                         ),
                                         // PATCH /features/{featureId}/definition
-                                        patch(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
+                                        patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx,
                                                 dittoHeaders, payloadSource -> handlePerRequest(ctx, dittoHeaders,
                                                         payloadSource, definitionJson ->
                                                                 MergeThing.of(thingId,
@@ -283,8 +283,7 @@ final class FeaturesRoute extends AbstractRoute {
                                                 )
                                         ),
                                         // PATCH /features/{featureId}/properties
-                                        patch(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
-                                                dittoHeaders,
+                                        patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         propertiesJson -> MergeThing.of(thingId,
                                                                 JsonFactory.newPointer(FEATURE_JSON_KEY,
@@ -337,7 +336,7 @@ final class FeaturesRoute extends AbstractRoute {
                                                 )
                                         ),
                                         // PATCH /features/{featureId}/properties/<propertyJsonPointerStr>
-                                        patch(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
+                                        patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx,
                                                 dittoHeaders,
                                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         propertyJson -> MergeThing.of(thingId,
@@ -387,7 +386,7 @@ final class FeaturesRoute extends AbstractRoute {
                                                 )
                                         ),
                                         // PATCH /features/{featureId}/desiredProperties
-                                        patch(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
+                                        patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx,
                                                 dittoHeaders,
                                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         propertiesJson -> MergeThing.of(thingId,
@@ -445,7 +444,7 @@ final class FeaturesRoute extends AbstractRoute {
                                                 )
                                         ),
                                         // PATCH /features/{featureId}/desiredProperties/<desiredPropertyJsonPointerStr>
-                                        patch(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx,
+                                        patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx,
                                                 dittoHeaders,
                                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         propertyJson -> MergeThing.of(thingId,

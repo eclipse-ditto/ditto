@@ -33,6 +33,7 @@ import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpEntities;
 import akka.http.javadsl.model.HttpRequest;
+import akka.http.javadsl.model.MediaTypes;
 import akka.http.javadsl.model.RequestEntity;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.server.Route;
@@ -188,7 +189,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
     @Test
     public void patchThingWithAttributesSuccessfully() {
         final TestRouteResult result = underTest.run(HttpRequest.PATCH("/things/org.eclipse.ditto%3Adummy")
-                .withEntity(ContentTypes.APPLICATION_JSON, "{\"attributes\": {\"foo\": \"bar\"}}"));
+                .withEntity(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), "{\"attributes\": {\"foo\": \"bar\"}}"));
         result.assertStatusCode(StatusCodes.OK);
     }
 
@@ -196,7 +197,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
     public void patchThingWithAttributeSuccessfully() {
         final String body = "\"bumlux\"";
         final HttpRequest request = HttpRequest.PATCH("/things/org.eclipse.ditto%3Adummy/attributes/bar")
-                .withEntity(HttpEntities.create(ContentTypes.APPLICATION_JSON, body));
+                .withEntity(HttpEntities.create(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), body));
         final TestRouteResult result = underTest.run(request);
         result.assertStatusCode(StatusCodes.OK);
     }
@@ -204,21 +205,21 @@ public final class ThingsRouteTest extends EndpointTestBase {
     @Test
     public void patchThingWithJsonException() {
         final TestRouteResult result = underTest.run(HttpRequest.PATCH("/things/org.eclipse.ditto%3Adummy")
-                .withEntity(ContentTypes.APPLICATION_JSON, "{\"attributes\": {\"foo\": }"));
+                .withEntity(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), "{\"attributes\": {\"foo\": }"));
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
     @Test
     public void patchDefinitionSuccessfully() {
         final TestRouteResult result = underTest.run(HttpRequest.PATCH("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/definition")
-                .withEntity(ContentTypes.APPLICATION_JSON, "\"hello:world:123\""));
+                .withEntity(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), "\"hello:world:123\""));
         result.assertStatusCode(StatusCodes.OK);
     }
 
     @Test
     public void patchDefinitionWithJsonPointerException() {
         final TestRouteResult result = underTest.run(HttpRequest.PATCH("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/definition")
-                .withEntity(ContentTypes.APPLICATION_JSON, "hello:world:123"));
+                .withEntity(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), "hello:world:123"));
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 

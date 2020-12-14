@@ -29,6 +29,7 @@
  import akka.http.javadsl.model.HttpHeader;
  import akka.http.javadsl.model.HttpRequest;
  import akka.http.javadsl.model.MediaType;
+ import akka.http.javadsl.model.MediaTypes;
  import akka.http.javadsl.model.RequestEntity;
  import akka.http.javadsl.server.RequestContext;
  import akka.http.javadsl.server.Route;
@@ -40,6 +41,8 @@
 
      private static final ThreadSafeDittoLogger LOGGER =
              DittoLoggerFactory.getThreadSafeLogger(ContentTypeValidationDirective.class);
+
+     private static final String MERGE_PATCH_JSON_MEDIA_TYPE = MediaTypes.APPLICATION_MERGE_PATCH_JSON.toString();
 
      private ContentTypeValidationDirective() {
          throw new AssertionError();
@@ -66,11 +69,39 @@
          } else {
              if (LOGGER.isInfoEnabled()) {
                  LOGGER.withCorrelationId(dittoHeaders)
-                        .info("Request rejected: unsupported media-type: <{}>  request: <{}>", requestsMediaType,
+                        .info("Request rejected: unsupported media-type: <{}> request: <{}>", requestsMediaType,
                                 requestToLogString(ctx.getRequest()));
              }
              throw UnsupportedMediaTypeException
                      .withDetailedInformationBuilder(requestsMediaType, supportedMediaTypes)
+                     .dittoHeaders(dittoHeaders)
+                     .build();
+         }
+     }
+
+     /**
+      * Verifies that the content-type of the entity is application/merge-patch+json,
+      * otherwise the request will be completed with status code 415 ("Unsupported Media Type").
+      *
+      * @param ctx the context of the request.
+      * @param dittoHeaders the ditto-headers of a request.
+      * @param inner route to wrap.
+      * @return the wrapped route.
+      */
+     public static Route ensureMergePatchJsonContentType(final RequestContext ctx, final DittoHeaders dittoHeaders,
+             final Supplier<Route> inner) {
+
+         final String requestsMediaType = extractMediaType(ctx.getRequest());
+         if (MERGE_PATCH_JSON_MEDIA_TYPE.equals(requestsMediaType)) {
+             return inner.get();
+         } else {
+             if (LOGGER.isInfoEnabled()) {
+                 LOGGER.withCorrelationId(dittoHeaders)
+                         .info("Request rejected: unsupported media-type: <{}> request: <{}>", requestsMediaType,
+                                 requestToLogString(ctx.getRequest()));
+             }
+             throw UnsupportedMediaTypeException
+                     .builderForMergePatchJsonMediaType(requestsMediaType, MERGE_PATCH_JSON_MEDIA_TYPE)
                      .dittoHeaders(dittoHeaders)
                      .build();
          }

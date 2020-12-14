@@ -266,7 +266,7 @@ public final class ThingsRoute extends AbstractRoute {
                                                 dittoHeaders)))
                         ),
                         // PATCH /things/<thingId>
-                        patch(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                        patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                         thingJson -> MergeThing.of(thingId, JsonFactory.emptyPointer(),
                                                 DittoJsonException.wrapJsonRuntimeException(() ->
@@ -396,7 +396,7 @@ public final class ThingsRoute extends AbstractRoute {
                                         )
                                 ),
                                 // PATCH /things/<thingId>/attributes
-                                patch(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                         payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                 attributesJson -> MergeThing.of(thingId,
                                                         JsonFactory.newPointer(JsonKey.of(PATH_ATTRIBUTES)),
@@ -419,6 +419,7 @@ public final class ThingsRoute extends AbstractRoute {
      * <pre>
      *    GET /things/fancy-car-1/attributes/model
      *    PUT /things/fancy-car-1/attributes/someProp
+     *    PATCH /things/fancy-car-1/attributes/someProp
      *    DELETE /things/fancy-car-1/attributes/foo/bar
      * </pre>
      *
@@ -452,7 +453,7 @@ public final class ThingsRoute extends AbstractRoute {
                                 )
                         ),
                         // PATCH /things/<thingId>/attributes/<attributePointerStr>
-                        patch(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                        patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                 payloadSource ->
                                         handlePerRequest(ctx, dittoHeaders, payloadSource, attributeValueJson ->
                                                 MergeThing.of(thingId,
@@ -498,7 +499,7 @@ public final class ThingsRoute extends AbstractRoute {
                                         )
                                 ),
                                 // PATCH /things/<thingId>/definition
-                                patch(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                         payloadSource ->
                                                 pathEnd(() -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                                         definitionJson -> MergeThing.of(thingId,

@@ -327,7 +327,24 @@ public abstract class AbstractRoute extends AllDirectives {
 
         return ContentTypeValidationDirective.ensureValidContentType(mediaTypeJsonWithFallbacks, ctx, dittoHeaders,
                 () -> extractDataBytes(inner));
+    }
 
+    /**
+     * Provides a composed directive of {@link AllDirectives#extractDataBytes} and
+     * {@link ContentTypeValidationDirective#ensureValidContentType}, where the only supported media-type is
+     * application/merge-patch+json.
+     *
+     * @param ctx The context of a request.
+     * @param dittoHeaders The ditto headers of a request.
+     * @param inner route directive to handles the extracted payload.
+     * @return Route.
+     */
+    protected Route ensureMediaTypeMergePatchJsonThenExtractDataBytes(final RequestContext ctx,
+            final DittoHeaders dittoHeaders,
+            final java.util.function.Function<Source<ByteString, Object>, Route> inner) {
+
+        return ContentTypeValidationDirective.ensureMergePatchJsonContentType(ctx, dittoHeaders,
+                () -> extractDataBytes(inner));
     }
 
     /**
