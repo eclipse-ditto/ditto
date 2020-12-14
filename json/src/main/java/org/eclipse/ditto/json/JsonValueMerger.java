@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.json;
 
-import java.text.MessageFormat;
 import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
@@ -49,12 +48,12 @@ final class JsonValueMerger extends AbstractJsonMerger {
     }
 
     private static JsonObject mergeJsonObjects(final JsonObject jsonObject1, final JsonObject jsonObject2) {
-        final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
 
         if(jsonObject1.isNull() || (jsonObject1.isNull() && jsonObject2.isNull())) {
             return JsonFactory.nullObject();
         }
 
+        final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
         // add fields of jsonObject1
         jsonObject1.forEach(jsonField -> {
             final JsonKey key = jsonField.getKey();

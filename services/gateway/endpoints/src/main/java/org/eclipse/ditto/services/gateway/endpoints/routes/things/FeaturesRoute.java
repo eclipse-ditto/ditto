@@ -143,10 +143,8 @@ final class FeaturesRoute extends AbstractRoute {
                         // PATCH /features
                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                        featuresJson -> MergeThing.of(thingId,
-                                                JsonFactory.newPointer(FEATURE_JSON_KEY),
-                                                DittoJsonException.wrapJsonRuntimeException(() ->
-                                                        JsonFactory.readFrom(featuresJson)),
+                                        featuresJson -> MergeThing.withFeatures(thingId,
+                                                ThingsModelFactory.newFeatures(featuresJson),
                                                 dittoHeaders))
                                 )
                         ),
@@ -187,10 +185,10 @@ final class FeaturesRoute extends AbstractRoute {
                                 // PATCH /features/<featureId>
                                 patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                         payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                featureJson -> MergeThing.of(thingId,
-                                                        JsonFactory.newPointer(FEATURE_JSON_KEY, JsonKey.of(featureId)),
-                                                        DittoJsonException.wrapJsonRuntimeException(
-                                                                () -> JsonFactory.readFrom(featureJson)),
+                                                featureJson -> MergeThing.withFeature(thingId,
+                                                        ThingsModelFactory.newFeatureBuilder(featureJson)
+                                                                .useId(featureId)
+                                                                .build(),
                                                         dittoHeaders))
                                         )
                                 ),
@@ -232,14 +230,9 @@ final class FeaturesRoute extends AbstractRoute {
                                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx,
                                                 dittoHeaders, payloadSource -> handlePerRequest(ctx, dittoHeaders,
                                                         payloadSource, definitionJson ->
-                                                                MergeThing.of(thingId,
-                                                                        JsonFactory.newPointer(FEATURE_JSON_KEY,
-                                                                                JsonKey.of(featureId),
-                                                                                DEFINITION_JSON_KEY),
-                                                                        DittoJsonException.wrapJsonRuntimeException(
-                                                                                () -> JsonFactory.readFrom(
-                                                                                        definitionJson)),
-                                                                        dittoHeaders))
+                                                                MergeThing.withFeatureDefinition(thingId, featureId,
+                                                                        ThingsModelFactory.newFeatureDefinition(
+                                                                                definitionJson), dittoHeaders))
                                                 )
                                         ),
                                         // DELETE /features/{featureId}/definition
@@ -285,11 +278,9 @@ final class FeaturesRoute extends AbstractRoute {
                                         // PATCH /features/{featureId}/properties
                                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                        propertiesJson -> MergeThing.of(thingId,
-                                                                JsonFactory.newPointer(FEATURE_JSON_KEY,
-                                                                        JsonKey.of(featureId), PROPERTIES_JSON_KEY),
-                                                                DittoJsonException.wrapJsonRuntimeException(
-                                                                        () -> JsonFactory.readFrom(propertiesJson)),
+                                                        propertiesJson -> MergeThing.withFeatureProperties(thingId,
+                                                                featureId,
+                                                                ThingsModelFactory.newFeatureProperties(propertiesJson),
                                                                 dittoHeaders))
                                                 )
                                         ),
@@ -339,11 +330,8 @@ final class FeaturesRoute extends AbstractRoute {
                                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx,
                                                 dittoHeaders,
                                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                        propertyJson -> MergeThing.of(thingId,
-                                                                JsonFactory.newPointer(FEATURE_JSON_KEY,
-                                                                        JsonKey.of(featureId), PROPERTIES_JSON_KEY)
-                                                                        .append(JsonFactory.newPointer(
-                                                                                jsonPointerString)),
+                                                        propertyJson -> MergeThing.withFeatureProperty(thingId,
+                                                                featureId, JsonFactory.newPointer(jsonPointerString),
                                                                 DittoJsonException.wrapJsonRuntimeException(
                                                                         () -> JsonFactory.readFrom(propertyJson)),
                                                                 dittoHeaders))
@@ -392,12 +380,10 @@ final class FeaturesRoute extends AbstractRoute {
                                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx,
                                                 dittoHeaders,
                                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                        propertiesJson -> MergeThing.of(thingId,
-                                                                JsonFactory.newPointer(FEATURE_JSON_KEY,
-                                                                        JsonKey.of(featureId),
-                                                                        DESIRED_PROPERTIES_JSON_KEY),
-                                                                DittoJsonException.wrapJsonRuntimeException(
-                                                                        () -> JsonFactory.readFrom(propertiesJson)),
+                                                        propertiesJson -> MergeThing.withDesiredFeatureProperties(
+                                                                thingId,
+                                                                featureId,
+                                                                ThingsModelFactory.newFeatureProperties(propertiesJson),
                                                                 dittoHeaders))
                                                 )
                                         ),
@@ -450,12 +436,8 @@ final class FeaturesRoute extends AbstractRoute {
                                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx,
                                                 dittoHeaders,
                                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                        propertyJson -> MergeThing.of(thingId,
-                                                                JsonFactory.newPointer(FEATURE_JSON_KEY,
-                                                                        JsonKey.of(featureId),
-                                                                        DESIRED_PROPERTIES_JSON_KEY)
-                                                                        .append(JsonFactory.newPointer(
-                                                                                jsonPointerString)),
+                                                        propertyJson -> MergeThing.withDesiredFeatureProperty(thingId,
+                                                                featureId, JsonFactory.newPointer(jsonPointerString),
                                                                 DittoJsonException.wrapJsonRuntimeException(
                                                                         () -> JsonFactory.readFrom(propertyJson)),
                                                                 dittoHeaders))

@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
@@ -84,7 +83,6 @@ public final class ThingsRoute extends AbstractRoute {
     private static final String PATH_ATTRIBUTES = "attributes";
     private static final String PATH_THING_DEFINITION = "definition";
     private static final String PATH_ACL = "acl";
-    private static final JsonKey ATTRIBUTES_JSON_KEY = JsonKey.of(PATH_ATTRIBUTES);
 
     private final FeaturesRoute featuresRoute;
     private final MessagesRoute messagesRoute;
@@ -214,7 +212,7 @@ public final class ThingsRoute extends AbstractRoute {
                                         thingJson -> CreateThing.of(createThingForPost(thingJson),
                                                 createInlinePolicyJson(thingJson), getCopyPolicyFrom(thingJson),
                                                 dittoHeaders)
-                                        )
+                                )
                                 )
                         )
                 )
@@ -269,9 +267,9 @@ public final class ThingsRoute extends AbstractRoute {
                         // PATCH /things/<thingId>
                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                        thingJson -> MergeThing.of(thingId, JsonFactory.emptyPointer(),
-                                                DittoJsonException.wrapJsonRuntimeException(() ->
-                                                        JsonFactory.readFrom(thingJson)),
+                                        thingJson -> MergeThing.withThing(thingId, ThingsModelFactory.newThingBuilder(
+                                                // TODO forPatch()
+                                                createThingJsonObjectForPut(thingJson, thingId.toString())).build(),
                                                 dittoHeaders)))
                         ),
                         // DELETE /things/<thingId>
@@ -399,11 +397,8 @@ public final class ThingsRoute extends AbstractRoute {
                                 // PATCH /things/<thingId>/attributes
                                 patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                         payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                attributesJson -> MergeThing.of(thingId,
-                                                        JsonFactory.newPointer(ATTRIBUTES_JSON_KEY),
-                                                        DittoJsonException.wrapJsonRuntimeException(
-                                                                () -> JsonFactory.readFrom(attributesJson)),
-                                                        dittoHeaders))
+                                                attributesJson -> MergeThing.withAttributes(thingId,
+                                                        ThingsModelFactory.newAttributes(attributesJson), dittoHeaders))
                                         )
                                 ),
                                 // DELETE /things/<thingId>/attributes
@@ -457,9 +452,8 @@ public final class ThingsRoute extends AbstractRoute {
                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                 payloadSource ->
                                         handlePerRequest(ctx, dittoHeaders, payloadSource, attributeValueJson ->
-                                                MergeThing.of(thingId,
-                                                        JsonFactory.newPointer(ATTRIBUTES_JSON_KEY)
-                                                                .append(JsonFactory.newPointer(jsonPointerString)),
+                                                MergeThing.withAttribute(thingId,
+                                                        JsonFactory.newPointer(jsonPointerString),
                                                         DittoJsonException.wrapJsonRuntimeException(() ->
                                                                 JsonFactory.readFrom(attributeValueJson)),
                                                         dittoHeaders)
@@ -503,11 +497,8 @@ public final class ThingsRoute extends AbstractRoute {
                                 patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                         payloadSource ->
                                                 pathEnd(() -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                        definitionJson -> MergeThing.of(thingId,
-                                                                JsonFactory.newPointer(PATH_THING_DEFINITION),
-                                                                DittoJsonException.wrapJsonRuntimeException(() ->
-                                                                        JsonFactory.readFrom(definitionJson)),
-                                                                dittoHeaders))
+                                                        definitionJson -> MergeThing.withThingDefinition(thingId,
+                                                                getDefinitionFromJson(definitionJson), dittoHeaders))
                                                 )
                                         )
                                 ),

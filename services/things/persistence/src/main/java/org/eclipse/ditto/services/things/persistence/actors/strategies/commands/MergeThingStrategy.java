@@ -29,9 +29,9 @@ import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
+import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
@@ -109,7 +109,8 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
         final JsonValue value = command.getValue();
 
         final Thing mergedThing =
-                wrapException(() -> mergeThing(command, thing, eventTs, nextRevision), command.getDittoHeaders());
+                wrapException(() -> mergeThing(context, command, thing, eventTs, nextRevision),
+                        command.getDittoHeaders());
         final ThingEvent<?> event =
                 ThingMerged.of(command.getThingEntityId(), path, value, nextRevision, eventTs, dittoHeaders, metadata);
         final MergeThingResponse mergeThingResponse =
@@ -119,24 +120,17 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
         return ResultFactory.newMutationResult(command, event, response);
     }
 
-    private Thing mergeThing(final MergeThing command, final Thing thing, final Instant eventTs,
-            final long nextRevision) {
-
-        final ThingBuilder.FromCopy thingWithModifications = thing.toBuilder()
-                .setModified(eventTs)
-                .setRevision(nextRevision);
-
-        final JsonObject jsonObject = thing.toJson();
+    private Thing mergeThing(final Context<ThingId> context, final MergeThing command, final Thing thing,
+            final Instant eventTs, final long nextRevision) {
+        final JsonObject existingThingJson = thing.toJson(FieldType.all());
         final JsonObject mergePatch = JsonFactory.newObject(command.getPath(), command.getValue());
-        final JsonObject mergedJson = JsonFactory.mergeJsonValues(mergePatch, jsonObject).asObject();
-        final Thing mergedThing = ThingsModelFactory.newThing(mergedJson);
-
-        mergedThing.getPolicyEntityId().ifPresent(thingWithModifications::setPolicyId);
-        mergedThing.getDefinition().ifPresent(thingWithModifications::setDefinition);
-        mergedThing.getAttributes().ifPresent(thingWithModifications::setAttributes);
-        mergedThing.getFeatures().ifPresent(thingWithModifications::setFeatures);
-
-        return thingWithModifications.build();
+        final JsonObject mergedJson = JsonFactory.mergeJsonValues(mergePatch, existingThingJson).asObject();
+        context.getLog().debug("Result of JSON merge: {}", mergedJson);
+        final Thing mergedThing = ThingsModelFactory.newThingBuilder(mergedJson)
+                .setRevision(nextRevision)
+                .setModified(eventTs).build();
+        context.getLog().debug("Thing created from merged JSON: {}", mergedThing);
+        return mergedThing;
     }
 
     @Override

@@ -17,9 +17,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.events.things.ThingMerged;
@@ -38,23 +37,16 @@ final class ThingMergedStrategy extends AbstractThingEventStrategy<ThingMerged> 
     @Override
     public Thing handle(final ThingMerged event, @Nullable final Thing thing, final long revision) {
         if (null != thing) {
-            final ThingBuilder.FromCopy thingBuilder = thing.toBuilder()
+            final JsonObject jsonObject = thing.toJson(FieldType.all());
+            final JsonObject mergePatch = JsonFactory.newObject(event.getResourcePath(), event.getValue());
+            final JsonObject mergedJson = JsonFactory.mergeJsonValues(mergePatch, jsonObject).asObject();
+            final Thing mergedThing = ThingsModelFactory.newThingBuilder(mergedJson)
                     .setRevision(revision)
                     .setModified(event.getTimestamp().orElse(null))
                     .setLifecycle(ThingLifecycle.ACTIVE)
-                    .setMetadata(mergeMetadata(thing, event));
-
-            final JsonObject existingThingJson = thing.toJson();
-            final JsonObject mergePatch = JsonFactory.newObject(event.getResourcePath(), event.getValue());
-            final JsonValue mergedJson = JsonFactory.mergeJsonValues(mergePatch, existingThingJson);
-            final Thing mergedThing = ThingsModelFactory.newThing(mergedJson.asObject());
-
-            mergedThing.getPolicyEntityId().ifPresent(thingBuilder::setPolicyId);
-            mergedThing.getAttributes().ifPresent(thingBuilder::setAttributes);
-            mergedThing.getDefinition().ifPresent(thingBuilder::setDefinition);
-            mergedThing.getFeatures().ifPresent(thingBuilder::setFeatures);
-
-            return thingBuilder.build();
+                    .setMetadata(mergeMetadata(thing, event))
+                    .build();
+            return mergedThing;
         } else {
             return null;
         }

@@ -15,6 +15,7 @@ package org.eclipse.ditto.signals.commands.things.modify;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.concurrent.Immutable;
@@ -30,10 +31,22 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.AccessControlList;
+import org.eclipse.ditto.model.things.AclNotAllowedException;
+import org.eclipse.ditto.model.things.Attributes;
+import org.eclipse.ditto.model.things.AttributesModelFactory;
+import org.eclipse.ditto.model.things.Feature;
+import org.eclipse.ditto.model.things.FeatureDefinition;
+import org.eclipse.ditto.model.things.FeatureProperties;
+import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
+import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
 
 /**
  * /**
@@ -66,12 +79,12 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
         super(TYPE, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
         this.path = checkNotNull(path, "path");
-        this.value = checkNotNull(value, "value");
+        this.value = checkJsonSize(checkNotNull(value, "value"), dittoHeaders);
     }
 
     /**
      * Creates a command for merging the thing identified by {@code thingId} with the changes described by {@code
-     * path}* and {@code value}.
+     * path} and {@code value}.
      *
      * @param thingId the thing id
      * @param path the path where the changes are applied
@@ -82,6 +95,145 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
     public static MergeThing of(final ThingId thingId, final JsonPointer path, final JsonValue value,
             final DittoHeaders dittoHeaders) {
         return new MergeThing(thingId, path, value, dittoHeaders);
+    }
+
+    public static MergeThing withThing(final ThingId thingId, final Thing thing,
+            final DittoHeaders dittoHeaders) {
+        ensureAuthorizationMatchesSchemaVersion(thingId, thing, dittoHeaders);
+        final JsonObject mergePatch = thing.toJson();
+        return new MergeThing(thingId, JsonPointer.empty(), mergePatch, dittoHeaders);
+    }
+
+    public static MergeThing withThingDefinition(final ThingId thingId, final ThingDefinition thingDefinition,
+            final DittoHeaders dittoHeaders) {
+        return new MergeThing(thingId, Thing.JsonFields.DEFINITION.getPointer(), thingDefinition.toJson(),
+                dittoHeaders);
+    }
+
+    public static MergeThing withAttributes(final ThingId thingId, final Attributes attributes,
+            final DittoHeaders dittoHeaders) {
+        return new MergeThing(thingId, Thing.JsonFields.ATTRIBUTES.getPointer(), attributes.toJson(), dittoHeaders);
+    }
+
+    public static MergeThing withAttribute(final ThingId thingId, final JsonPointer attributePath,
+            final JsonValue attributeValue, final DittoHeaders dittoHeaders) {
+        final JsonPointer absolutePath =
+                Thing.JsonFields.ATTRIBUTES.getPointer().append(checkAttributePointer(attributePath, dittoHeaders));
+        return new MergeThing(thingId, absolutePath, checkAttributeValue(attributeValue), dittoHeaders);
+    }
+
+    public static MergeThing withFeatures(final ThingId thingId, final Features features,
+            final DittoHeaders dittoHeaders) {
+        final JsonPointer absolutePath = Thing.JsonFields.FEATURES.getPointer();
+        return new MergeThing(thingId, absolutePath, features.toJson(), dittoHeaders);
+    }
+
+    public static MergeThing withFeature(final ThingId thingId, final Feature feature,
+            final DittoHeaders dittoHeaders) {
+        final JsonPointer absolutePath = Thing.JsonFields.FEATURES.getPointer().append(JsonPointer.of(feature.getId()));
+        return new MergeThing(thingId, absolutePath, feature.toJson(), dittoHeaders);
+    }
+
+    public static MergeThing withFeatureDefinition(final ThingId thingId,
+            final String featureId, final FeatureDefinition featureDefinition,
+            final DittoHeaders dittoHeaders) {
+        final JsonPointer absolutePath = Thing.JsonFields.FEATURES.getPointer()
+                .append(JsonPointer.of(featureId))
+                .append(Feature.JsonFields.DEFINITION.getPointer());
+        return new MergeThing(thingId, absolutePath, featureDefinition.toJson(), dittoHeaders);
+    }
+
+    public static MergeThing withFeatureProperties(final ThingId thingId,
+            final String featureId, final FeatureProperties featureProperties,
+            final DittoHeaders dittoHeaders) {
+        final JsonPointer absolutePath = Thing.JsonFields.FEATURES.getPointer()
+                .append(JsonPointer.of(featureId))
+                .append(Feature.JsonFields.PROPERTIES.getPointer());
+        return new MergeThing(thingId, absolutePath, featureProperties.toJson(), dittoHeaders);
+    }
+
+    public static MergeThing withFeatureProperty(final ThingId thingId,
+            final String featureId, final JsonPointer propertyPath, final JsonValue propertyValue,
+            final DittoHeaders dittoHeaders) {
+        final JsonPointer absolutePath = Thing.JsonFields.FEATURES.getPointer()
+                .append(JsonPointer.of(featureId))
+                .append(Feature.JsonFields.PROPERTIES.getPointer())
+                .append(checkPropertyPointer(propertyPath));
+        return new MergeThing(thingId, absolutePath, checkPropertyValue(propertyValue), dittoHeaders);
+    }
+
+    public static MergeThing withDesiredFeatureProperties(final ThingId thingId,
+            final String featureId, final FeatureProperties featureProperties,
+            final DittoHeaders dittoHeaders) {
+        final JsonPointer absolutePath = Thing.JsonFields.FEATURES.getPointer()
+                .append(JsonPointer.of(featureId))
+                .append(Feature.JsonFields.DESIRED_PROPERTIES.getPointer());
+        return new MergeThing(thingId, absolutePath, featureProperties.toJson(), dittoHeaders);
+    }
+
+    public static MergeThing withDesiredFeatureProperty(final ThingId thingId,
+            final String featureId, final JsonPointer propertyPath, final JsonValue propertyValue,
+            final DittoHeaders dittoHeaders) {
+        final JsonPointer absolutePath = Thing.JsonFields.FEATURES.getPointer()
+                .append(JsonPointer.of(featureId))
+                .append(Feature.JsonFields.DESIRED_PROPERTIES.getPointer())
+                .append(checkPropertyPointer(propertyPath));
+        return new MergeThing(thingId, absolutePath, checkPropertyValue(propertyValue), dittoHeaders);
+    }
+
+    private static JsonPointer checkPropertyPointer(final JsonPointer propertyPointer) {
+        return ThingsModelFactory.validateFeaturePropertyPointer(propertyPointer);
+    }
+
+    private static JsonValue checkPropertyValue(final JsonValue value) {
+        if (value.isObject()) {
+            ThingsModelFactory.validateJsonKeys(value.asObject());
+        }
+        return value;
+    }
+
+    private static JsonPointer checkAttributePointer(final JsonPointer pointer, final DittoHeaders dittoHeaders) {
+        if (pointer.isEmpty()) {
+            throw AttributePointerInvalidException.newBuilder(pointer)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+        return AttributesModelFactory.validateAttributePointer(pointer);
+    }
+
+    private static JsonValue checkAttributeValue(final JsonValue value) {
+        if (value.isObject()) {
+            AttributesModelFactory.validateAttributeKeys(value.asObject());
+        }
+        return value;
+    }
+
+    /**
+     * Ensures that the command will not contain inconsistent authorization information. <ul>
+     * <li>{@link org.eclipse.ditto.model.base.json.JsonSchemaVersion#LATEST} commands may not contain ACL
+     * information.</li> </ul>
+     */
+    private static void ensureAuthorizationMatchesSchemaVersion(final ThingId thingId,
+            final Thing thing, final DittoHeaders dittoHeaders) {
+        // v2 commands may not contain ACL information
+        final boolean isCommandAclEmpty = thing
+                .getAccessControlList()
+                .map(AccessControlList::isEmpty)
+                .orElse(true);
+        if (!isCommandAclEmpty) {
+            throw AclNotAllowedException
+                    .newBuilder(thingId)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
+    }
+
+    private JsonValue checkJsonSize(final JsonValue value, final DittoHeaders dittoHeaders) {
+        ThingCommandSizeValidator.getInstance().ensureValidSize(
+                value::getUpperBoundForStringSize,
+                () -> value.toString().length(),
+                () -> dittoHeaders);
+        return value;
     }
 
     /**
@@ -104,14 +256,23 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
     }
 
     @Override
+    public Optional<JsonValue> getEntity() {
+        if (path.isEmpty()) {
+            return Optional.of(value);
+        } else {
+            return Optional.of(JsonObject.newBuilder().set(path, value).build());
+        }
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return path;
     }
 
     @Override
     public boolean changesAuthorization() {
-        // TODO verify! but this should be the only path that changes authorization
-        return Thing.JsonFields.POLICY_ID.getPointer().equals(path);
+        return Thing.JsonFields.POLICY_ID.getPointer().equals(path) || path.isEmpty() && value.isObject() &&
+                value.asObject().contains(Thing.JsonFields.POLICY_ID.getPointer());
     }
 
     @Override
@@ -132,6 +293,11 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
         jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JsonFields.JSON_PATH, path.toString(), predicate);
         jsonObjectBuilder.set(JsonFields.JSON_VALUE, value, predicate);
+    }
+
+    @Override
+    public JsonSchemaVersion[] getSupportedSchemaVersions() {
+        return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
     }
 
     /**
