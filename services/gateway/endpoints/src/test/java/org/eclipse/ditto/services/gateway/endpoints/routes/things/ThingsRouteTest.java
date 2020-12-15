@@ -187,10 +187,31 @@ public final class ThingsRouteTest extends EndpointTestBase {
     }
 
     @Test
-    public void patchThingWithAttributesSuccessfully() {
+    public void patchThingSuccessfully() {
         final TestRouteResult result = underTest.run(HttpRequest.PATCH("/things/org.eclipse.ditto%3Adummy")
                 .withEntity(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), "{\"attributes\": {\"foo\": \"bar\"}}"));
         result.assertStatusCode(StatusCodes.OK);
+    }
+
+    @Test
+    public void patchThingWithJsonException() {
+        final TestRouteResult result = underTest.run(HttpRequest.PATCH("/things/org.eclipse.ditto%3Adummy")
+                .withEntity(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), "{\"attributes\": {\"foo\": }"));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
+    public void patchThingWithAttributesSuccessfully() {
+        final TestRouteResult result = underTest.run(HttpRequest.PATCH("/things/org.eclipse.ditto%3Adummy/attributes")
+                .withEntity(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), "{\"foo\": \"bar\"}"));
+        result.assertStatusCode(StatusCodes.OK);
+    }
+
+    @Test
+    public void patchThingWithAttributesWithJsonException() {
+        final TestRouteResult result = underTest.run(HttpRequest.PATCH("/things/org.eclipse.ditto%3Adummy/attributes")
+                .withEntity(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), "{\"foo\", \"bar\"}"));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
     @Test
@@ -203,9 +224,11 @@ public final class ThingsRouteTest extends EndpointTestBase {
     }
 
     @Test
-    public void patchThingWithJsonException() {
-        final TestRouteResult result = underTest.run(HttpRequest.PATCH("/things/org.eclipse.ditto%3Adummy")
-                .withEntity(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), "{\"attributes\": {\"foo\": }"));
+    public void patchThingWithAttributeWithJsonException() {
+        final String tooLongNumber = "89314404000484999942";
+        final HttpRequest request = HttpRequest.PATCH("/things/org.eclipse.ditto%3Adummy/attributes/bar")
+                .withEntity(HttpEntities.create(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), tooLongNumber));
+        final TestRouteResult result = underTest.run(request);
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
@@ -217,7 +240,7 @@ public final class ThingsRouteTest extends EndpointTestBase {
     }
 
     @Test
-    public void patchDefinitionWithJsonPointerException() {
+    public void patchDefinitionWithJsonException() {
         final TestRouteResult result = underTest.run(HttpRequest.PATCH("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/definition")
                 .withEntity(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), "hello:world:123"));
         result.assertStatusCode(StatusCodes.BAD_REQUEST);

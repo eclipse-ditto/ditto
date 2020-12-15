@@ -405,7 +405,23 @@ public final class FeaturesRouteTest extends EndpointTestBase {
     }
 
     @Test
-    public void patchFeatureEntryPropertiesEntry() {
+    public void patchFeatureEntrySuccessfully() {
+        final Feature feature = ThingsModelFactory.newFeature("newFeatureId");
+        final TestRouteResult result = underTest.run(HttpRequest.PATCH(FEATURE_ENTRY_PATH)
+                .withEntity(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), feature.toJsonString()));
+        result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
+    }
+
+    @Test
+    public void patchFeatureEntryWithJsonException() {
+        final String featureNotParsable = "{\"water-tank\":{\"properties\": {}}";
+        final TestRouteResult result = underTest.run(HttpRequest.PATCH(FEATURE_ENTRY_PATH).withEntity
+                (MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), featureNotParsable));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
+    public void patchFeaturePropertiesEntrySuccessfully() {
         final String featurePropertiesEntry = "\"notImportantHere\"";
         final TestRouteResult result = underTest.run(HttpRequest.PATCH(FEATURE_ENTRY_PROPERTIES_ENTRY_PATH).withEntity
                 (MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), featurePropertiesEntry));
@@ -413,7 +429,7 @@ public final class FeaturesRouteTest extends EndpointTestBase {
     }
 
     @Test
-    public void patchFeatureEntryPropertiesEntryWithJsonException() {
+    public void patchFeaturePropertiesEntryWithJsonException() {
         final String tooLongNumber = "89314404000484999942";
         final TestRouteResult result = underTest.run(HttpRequest.PATCH(FEATURE_ENTRY_PROPERTIES_ENTRY_PATH).withEntity
                 (MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), tooLongNumber));
@@ -423,8 +439,7 @@ public final class FeaturesRouteTest extends EndpointTestBase {
     @Test
     public void patchPropertiesSuccessfully() {
         final String featurePropertiesJson = "{\"property\":\"value1\"}";
-        final TestRouteResult result =
-                underTest.run(HttpRequest.PATCH(FEATURE_ENTRY_PROPERTIES_PATH)
+        final TestRouteResult result = underTest.run(HttpRequest.PATCH(FEATURE_ENTRY_PROPERTIES_PATH)
                         .withEntity(HttpEntities.create(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(),
                                 featurePropertiesJson)));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
@@ -483,7 +498,7 @@ public final class FeaturesRouteTest extends EndpointTestBase {
 
     @Test
     public void patchFeatureEntryDefinitionSuccessfully() {
-        final String featureDefinition = "\"org.eclipse.ditto:vorto:0.1.0\"";
+        final String featureDefinition = "[\"org.eclipse.ditto:vorto:0.1.0\"]";
         final TestRouteResult result = underTest.run(HttpRequest.PATCH(FEATURE_ENTRY_DEFINITION_PATH)
                 .withEntity(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), featureDefinition));
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
