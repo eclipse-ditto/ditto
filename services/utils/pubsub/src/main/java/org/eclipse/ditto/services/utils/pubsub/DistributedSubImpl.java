@@ -55,8 +55,8 @@ final class DistributedSubImpl implements DistributedSub {
     DistributedSubImpl(final DistributedDataConfig config, final ActorRef subSupervisor) {
         this.config = config;
         this.subSupervisor = subSupervisor;
-        this.writeConsistency = new Replicator.WriteAll(config.getWriteTimeout());
-        ddataDelayInMillis = LOCAL_NOTIFICATION_DELAY_BUFFER_MS;
+        writeConsistency = config.getSubscriptionWriteConsistency();
+        ddataDelayInMillis = config.getSubscriptionDelay().toMillis();
     }
 
     @Override
@@ -68,13 +68,18 @@ final class DistributedSubImpl implements DistributedSub {
             checkNotEmpty(group, "group");
         }
         final Subscribe subscribe = Subscribe.of(topics, subscriber, writeConsistency, true, filter, group);
-        return askSubSupervisor(subscribe)
-                .thenCompose(result -> {
-                    // delay completion to account for dissemination delay between ddata replicator and change recipient
-                    final CompletableFuture<SubAck> resultFuture = new CompletableFuture<>();
-                    resultFuture.completeOnTimeout(result, ddataDelayInMillis, TimeUnit.MILLISECONDS);
-                    return resultFuture;
-                });
+        final CompletionStage<SubAck> subAckFuture = askSubSupervisor(subscribe);
+
+        if (ddataDelayInMillis <= 0) {
+            return subAckFuture;
+        } else {
+            return subAckFuture.thenCompose(result -> {
+                // delay completion to account for dissemination delay between ddata replicator and change recipient
+                final CompletableFuture<SubAck> resultFuture = new CompletableFuture<>();
+                resultFuture.completeOnTimeout(result, ddataDelayInMillis, TimeUnit.MILLISECONDS);
+                return resultFuture;
+            });
+        }
     }
 
     @Override
