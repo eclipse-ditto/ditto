@@ -53,7 +53,10 @@ import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.utils.akka.controlflow.TimeMeasuringFlow;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -85,6 +88,7 @@ import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
 import akka.stream.QueueOfferResult;
 import akka.stream.UniqueKillSwitch;
+import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -121,12 +125,17 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         this.factory = factory;
 
         final HttpPushConfig config = connectionConfig.getHttpPushConfig();
+        final PreparedTimer timer = DittoMetrics.timer("http_publish_request_time")
+                .tag("id", connection.getId().toString());
 
         materializer = Materializer.createMaterializer(this::getContext);
+
+        final Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?>
+                performHttpRequestFlow = factory.createFlow(getContext().getSystem(), logger);
         final Pair<Pair<SourceQueueWithComplete<Pair<HttpRequest, HttpPushContext>>, UniqueKillSwitch>,
                 CompletionStage<Done>> materialized =
                 Source.<Pair<HttpRequest, HttpPushContext>>queue(config.getMaxQueueSize(), OverflowStrategy.dropNew())
-                        .viaMat(factory.createFlow(getContext().getSystem(), logger), Keep.left())
+                        .viaMat(TimeMeasuringFlow.measureTimeOf(performHttpRequestFlow, timer), Keep.left())
                         .viaMat(KillSwitches.single(), Keep.both())
                         .toMat(Sink.foreach(HttpPublisherActor::processResponse), Keep.both())
                         .run(materializer);
