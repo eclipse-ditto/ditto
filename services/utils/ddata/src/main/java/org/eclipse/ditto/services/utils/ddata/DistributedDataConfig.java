@@ -18,6 +18,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
+import akka.cluster.ddata.Replicator;
+
 /**
  * Provides configuration settings for {@link DistributedData}.
  */
@@ -37,6 +39,20 @@ public interface DistributedDataConfig {
      * @return the timeout of writes.
      */
     Duration getWriteTimeout();
+
+    /**
+     * Returns the write consistency for topic subscription.
+     *
+     * @return the write consistency.
+     */
+    Replicator.WriteConsistency getSubscriptionWriteConsistency();
+
+    /**
+     * Returns the delay for subscriptions.
+     *
+     * @return the subscription delay.
+     */
+    Duration getSubscriptionDelay();
 
     /**
      * Returns the config to use for creating the {@link akka.cluster.ddata.Replicator}.
@@ -59,7 +75,17 @@ public interface DistributedDataConfig {
         /**
          * The write timeout duration: the timeout of UPDATE-messages of the replicator.
          */
-        WRITE_TIMEOUT("write-timeout", Duration.ofSeconds(25));
+        WRITE_TIMEOUT("write-timeout", Duration.ofSeconds(25)),
+
+        /**
+         * The write consistency of subscriptions.
+         */
+        SUBSCRIPTION_WRITE_CONSISTENCY("subscription-write-consistency", "all"),
+
+        /**
+         * Local delay for topic subscription to account for replication and notification delay.
+         */
+        SUBSCRIPTION_DELAY("subscription-delay", Duration.ofSeconds(2L));
 
         private final String path;
         private final Object defaultValue;
