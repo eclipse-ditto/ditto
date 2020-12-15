@@ -18,15 +18,15 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
+/**
+ * Tests {@link org.eclipse.ditto.json.JsonValueMerger}.
+ */
 public class JsonValueMergerTest {
 
     private static JsonValue merge(final JsonValue value1, final JsonValue value2) {
         return JsonValueMerger.mergeJsonValues(value1, value2);
     }
 
-    /**
-     *
-     */
     @Test
     public void assertImmutability() {
         assertInstancesOf(JsonValueMerger.class, areImmutable());
@@ -41,7 +41,7 @@ public class JsonValueMergerTest {
                         .set("familyName", "Doe")
                         .build())
                 .set("tags", JsonFactory.newArray("[\"example\",\"sample\"]"))
-                .set("content", "This wil be unchanged")
+                .set("content", "This will be unchanged")
                 .build();
 
         final JsonObject objectToPatch = JsonFactory.newObjectBuilder()
@@ -60,7 +60,7 @@ public class JsonValueMergerTest {
                         .set("givenName", "John")
                         .build())
                 .set("tags", JsonFactory.newArray("[\"example\"]"))
-                .set("content", "This wil be unchanged")
+                .set("content", "This will be unchanged")
                 .set("phoneNumber", "+01-123-456-7890")
                 .build();
 

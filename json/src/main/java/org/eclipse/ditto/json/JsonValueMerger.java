@@ -17,7 +17,7 @@ import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Package-private function to merge 2 Json values into 1.
+ * Package-private function to merge 2 {@link org.eclipse.ditto.json.JsonValue}s into 1.
  * Implementation is conform to <a href="https://tools.ietf.org/html/rfc7396">RFC 7396</a>.
  */
 @Immutable
@@ -28,7 +28,7 @@ final class JsonValueMerger extends AbstractJsonMerger {
      *
      * @param value1 the first json value to merge, overrides conflicting fields.
      * @param value2 the second json value to merge.
-     * @return the merged json object.
+     * @return the merged json value.
      */
     public static JsonValue mergeJsonValues(final JsonValue value1, final JsonValue value2) {
         final JsonValue result;

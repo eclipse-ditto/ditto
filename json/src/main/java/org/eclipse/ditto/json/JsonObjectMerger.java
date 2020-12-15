@@ -18,7 +18,7 @@ import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Package-private function to merge 2 Json objects into 1.
+ * Package-private function to merge 2 {@link org.eclipse.ditto.json.JsonObject}s into 1.
  */
 @Immutable
 final class JsonObjectMerger extends AbstractJsonMerger {
