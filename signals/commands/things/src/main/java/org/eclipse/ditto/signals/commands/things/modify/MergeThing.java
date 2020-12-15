@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.Attributes;
@@ -83,12 +84,12 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
     }
 
     /**
-     * Creates a command for merging the thing identified by {@code thingId} with the changes described by {@code
+     * Creates a command for merging the thing identified by {@code thingId} with the given {@code
      * path} and {@code value}.
      *
      * @param thingId the thing id
-     * @param path the path where the changes are applied
-     * @param value the value describing the changes that are merged into the existing thing
+     * @param path the path that is merged with the existing thing
+     * @param value the value describing the changes that are merged with the existing thing
      * @param dittoHeaders the ditto headers
      * @return the created {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing} command
      */
@@ -97,6 +98,14 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
         return new MergeThing(thingId, path, value, dittoHeaders);
     }
 
+    /**
+     * Creates a command for merging the thing identified by {@code thingId} with the given {@code thing}.
+     *
+     * @param thingId the thing id
+     * @param thing the thing that is merged with the existing thing
+     * @param dittoHeaders the ditto headers
+     * @return the created {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing} command
+     */
     public static MergeThing withThing(final ThingId thingId, final Thing thing,
             final DittoHeaders dittoHeaders) {
         ensureAuthorizationMatchesSchemaVersion(thingId, thing, dittoHeaders);
@@ -104,17 +113,57 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
         return new MergeThing(thingId, JsonPointer.empty(), mergePatch, dittoHeaders);
     }
 
+    /**
+     * Creates a command for merging the thing identified by {@code thingId} with the given {@code policyId}.
+     *
+     * @param thingId the thing id
+     * @param policyId the policyId that is merged with the existing thing
+     * @param dittoHeaders the ditto headers
+     * @return the created {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing} command
+     */
+    public static MergeThing withPolicyId(final ThingId thingId, final PolicyId policyId,
+            final DittoHeaders dittoHeaders) {
+        checkNotNull(policyId, "policyId");
+        return new MergeThing(thingId, Thing.JsonFields.POLICY_ID.getPointer(), JsonValue.of(policyId),
+                dittoHeaders);
+    }
+
+    /**
+     * Creates a command for merging the thing identified by {@code thingId} with the given {@code thingDefinition}.
+     *
+     * @param thingId the thing id
+     * @param thingDefinition the thing definition that is merged with the existing thing
+     * @param dittoHeaders the ditto headers
+     * @return the created {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing} command
+     */
     public static MergeThing withThingDefinition(final ThingId thingId, final ThingDefinition thingDefinition,
             final DittoHeaders dittoHeaders) {
         return new MergeThing(thingId, Thing.JsonFields.DEFINITION.getPointer(), thingDefinition.toJson(),
                 dittoHeaders);
     }
 
+    /**
+     * Creates a command for merging the thing identified by {@code thingId} with the given {@code attributes}.
+     *
+     * @param thingId the thing id
+     * @param attributes the attributes that are merged with the existing thing
+     * @param dittoHeaders the ditto headers
+     * @return the created {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing} command
+     */
     public static MergeThing withAttributes(final ThingId thingId, final Attributes attributes,
             final DittoHeaders dittoHeaders) {
         return new MergeThing(thingId, Thing.JsonFields.ATTRIBUTES.getPointer(), attributes.toJson(), dittoHeaders);
     }
 
+    /**
+     * Creates a command for merging the thing identified by {@code thingId} with the given {@code attributePath} and {@code attributeValue}.
+     *
+     * @param thingId the thing id
+     * @param attributePath the path where the attribute value is merged with the existing thing
+     * @param attributeValue the attribute value that is merged with the existing thing
+     * @param dittoHeaders the ditto headers
+     * @return the created {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing} command
+     */
     public static MergeThing withAttribute(final ThingId thingId, final JsonPointer attributePath,
             final JsonValue attributeValue, final DittoHeaders dittoHeaders) {
         final JsonPointer absolutePath =
@@ -122,18 +171,44 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
         return new MergeThing(thingId, absolutePath, checkAttributeValue(attributeValue), dittoHeaders);
     }
 
+    /**
+     * Creates a command for merging the thing identified by {@code thingId} with the given {@code features}.
+     *
+     * @param thingId the thing id
+     * @param features the features that are merged with the existing thing
+     * @param dittoHeaders the ditto headers
+     * @return the created {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing} command
+     */
     public static MergeThing withFeatures(final ThingId thingId, final Features features,
             final DittoHeaders dittoHeaders) {
         final JsonPointer absolutePath = Thing.JsonFields.FEATURES.getPointer();
         return new MergeThing(thingId, absolutePath, features.toJson(), dittoHeaders);
     }
 
+    /**
+     * Creates a command for merging the thing identified by {@code thingId} with the given {@code feature}.
+     *
+     * @param thingId the thing id
+     * @param feature the feature that is merged with the existing thing
+     * @param dittoHeaders the ditto headers
+     * @return the created {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing} command
+     */
     public static MergeThing withFeature(final ThingId thingId, final Feature feature,
             final DittoHeaders dittoHeaders) {
         final JsonPointer absolutePath = Thing.JsonFields.FEATURES.getPointer().append(JsonPointer.of(feature.getId()));
         return new MergeThing(thingId, absolutePath, feature.toJson(), dittoHeaders);
     }
 
+    /**
+     * Creates a command for merging the feature identified by {@code thingId} and {@code featureId} with the given
+     * {@code featureDefinition}.
+     *
+     * @param thingId the thing id
+     * @param featureId the feature id identifying the feature
+     * @param featureDefinition the feature definition that is merged with the existing feature
+     * @param dittoHeaders the ditto headers
+     * @return the created {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing} command
+     */
     public static MergeThing withFeatureDefinition(final ThingId thingId,
             final String featureId, final FeatureDefinition featureDefinition,
             final DittoHeaders dittoHeaders) {
@@ -143,6 +218,15 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
         return new MergeThing(thingId, absolutePath, featureDefinition.toJson(), dittoHeaders);
     }
 
+    /**
+     * Creates a command for merging the feature identified by {@code thingId} and {@code featureId} with the given {@code featureProperties}.
+     *
+     * @param thingId the thing id
+     * @param featureId the feature id identifying the feature
+     * @param featureProperties the featureProperties that are merged with the existing feature
+     * @param dittoHeaders the ditto headers
+     * @return the created {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing} command
+     */
     public static MergeThing withFeatureProperties(final ThingId thingId,
             final String featureId, final FeatureProperties featureProperties,
             final DittoHeaders dittoHeaders) {
@@ -152,6 +236,17 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
         return new MergeThing(thingId, absolutePath, featureProperties.toJson(), dittoHeaders);
     }
 
+    /**
+     * Creates a command for merging the feature identified by {@code thingId} and {@code featureId} with the given {@code
+     * propertyPath} and {@code propertyValue}.
+     *
+     * @param thingId the thing id
+     * @param featureId the feature id identifying the feature
+     * @param propertyPath the path where the property value is merged with the existing feature properties
+     * @param propertyValue the property value that is merged with the existing feature properties
+     * @param dittoHeaders the ditto headers
+     * @return the created {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing} command
+     */
     public static MergeThing withFeatureProperty(final ThingId thingId,
             final String featureId, final JsonPointer propertyPath, final JsonValue propertyValue,
             final DittoHeaders dittoHeaders) {
@@ -162,15 +257,36 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
         return new MergeThing(thingId, absolutePath, checkPropertyValue(propertyValue), dittoHeaders);
     }
 
+    /**
+     * Creates a command for merging the feature identified by {@code thingId} and {@code featureId} with the given {@code
+     * desiredFeatureProperties}.
+     *
+     * @param thingId the thing id
+     * @param featureId the feature id identifying the feature
+     * @param desiredFeatureProperties the desired feature properties that are merged with the existing feature
+     * @param dittoHeaders the ditto headers
+     * @return the created {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing} command
+     */
     public static MergeThing withDesiredFeatureProperties(final ThingId thingId,
-            final String featureId, final FeatureProperties featureProperties,
+            final String featureId, final FeatureProperties desiredFeatureProperties,
             final DittoHeaders dittoHeaders) {
         final JsonPointer absolutePath = Thing.JsonFields.FEATURES.getPointer()
                 .append(JsonPointer.of(featureId))
                 .append(Feature.JsonFields.DESIRED_PROPERTIES.getPointer());
-        return new MergeThing(thingId, absolutePath, featureProperties.toJson(), dittoHeaders);
+        return new MergeThing(thingId, absolutePath, desiredFeatureProperties.toJson(), dittoHeaders);
     }
 
+    /**
+     * Creates a command for merging the feature identified by {@code thingId} and {@code featureId} with the given {@code
+     * propertyPath} and {@code propertyValue}.
+     *
+     * @param thingId the thing id
+     * @param featureId the feature id identifying the feature
+     * @param propertyPath the path where the property value is merged with the existing desired feature properties
+     * @param propertyValue the property value that is merged with the existing desired feature properties
+     * @param dittoHeaders the ditto headers
+     * @return the created {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing} command
+     */
     public static MergeThing withDesiredFeatureProperty(final ThingId thingId,
             final String featureId, final JsonPointer propertyPath, final JsonValue propertyValue,
             final DittoHeaders dittoHeaders) {

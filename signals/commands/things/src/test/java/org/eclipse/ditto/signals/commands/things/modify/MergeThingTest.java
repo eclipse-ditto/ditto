@@ -20,6 +20,7 @@ import static org.eclipse.ditto.signals.commands.things.TestConstants.Thing.ABSO
 import static org.eclipse.ditto.signals.commands.things.TestConstants.Thing.INVALID_ATTRIBUTE_VALUE;
 import static org.eclipse.ditto.signals.commands.things.TestConstants.Thing.LOCATION_ATTRIBUTE_POINTER;
 import static org.eclipse.ditto.signals.commands.things.TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE;
+import static org.eclipse.ditto.signals.commands.things.TestConstants.Thing.POLICY_ID;
 import static org.eclipse.ditto.signals.commands.things.TestConstants.Thing.THING_ID;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -86,8 +87,22 @@ public final class MergeThingTest {
     public void mergeWithThing() {
         final MergeThing mergeThing =
                 MergeThing.withThing(THING_ID, TestConstants.Thing.THING, DITTO_HEADERS);
+        assertThat(mergeThing.changesAuthorization()).isTrue();
         assertThat(mergeThing.getPath()).isEmpty();
         assertThat(mergeThing.getValue()).isEqualTo(TestConstants.Thing.THING.toJson());
+    }
+
+    @Test
+    public void mergeWithPolicyId() {
+        final MergeThing mergeThing = MergeThing.withPolicyId(THING_ID, POLICY_ID, DITTO_HEADERS);
+        assertThat(mergeThing.changesAuthorization()).isTrue();
+        assertThat(mergeThing.getPath()).isEqualTo(Thing.JsonFields.POLICY_ID.getPointer());
+        assertThat(mergeThing.getValue()).isEqualTo(JsonValue.of(POLICY_ID));
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void mergeWithNullPolicyId() {
+        MergeThing.withPolicyId(THING_ID, null, DITTO_HEADERS);
     }
 
     @Test
@@ -96,7 +111,7 @@ public final class MergeThingTest {
                 MergeThing.withThingDefinition(THING_ID, TestConstants.Thing.DEFINITION, DITTO_HEADERS);
 
         assertThat(mergeThing.getPath()).isEqualTo(Thing.JsonFields.DEFINITION.getPointer());
-        assertThat(mergeThing.getValue()).isEqualTo(JsonValue.of(TestConstants.Thing.DEFINITION));
+        assertThat(mergeThing.getValue()).isEqualTo(TestConstants.Thing.DEFINITION.toJson());
     }
 
     @Test
@@ -104,6 +119,7 @@ public final class MergeThingTest {
         final MergeThing mergeThing =
                 MergeThing.withThingDefinition(THING_ID, ThingsModelFactory.nullDefinition(), DITTO_HEADERS);
 
+        assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(Thing.JsonFields.DEFINITION.getPointer());
         assertThat(mergeThing.getValue()).isEqualTo(JsonFactory.nullLiteral());
     }
@@ -120,6 +136,7 @@ public final class MergeThingTest {
     public void mergeWithNullAttributes() {
         final MergeThing mergeThing =
                 MergeThing.withAttributes(THING_ID, AttributesModelFactory.nullAttributes(), DITTO_HEADERS);
+        assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(Thing.JsonFields.ATTRIBUTES.getPointer());
         assertThat(mergeThing.getValue()).isEqualTo(JsonFactory.nullObject());
     }
@@ -130,6 +147,7 @@ public final class MergeThingTest {
                 MergeThing.withAttribute(THING_ID, VALID_JSON_POINTER,
                         LOCATION_ATTRIBUTE_VALUE,
                         DITTO_HEADERS);
+        assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(
                 Thing.JsonFields.ATTRIBUTES.getPointer().append(VALID_JSON_POINTER));
         assertThat(mergeThing.getValue()).isEqualTo(LOCATION_ATTRIBUTE_VALUE);
@@ -140,6 +158,7 @@ public final class MergeThingTest {
         final MergeThing mergeThing =
                 MergeThing.withAttribute(THING_ID, VALID_JSON_POINTER, JsonFactory.nullLiteral(),
                         DITTO_HEADERS);
+        assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(
                 Thing.JsonFields.ATTRIBUTES.getPointer().append(VALID_JSON_POINTER));
         assertThat(mergeThing.getValue()).isEqualTo(JsonFactory.nullLiteral());
@@ -162,6 +181,7 @@ public final class MergeThingTest {
     public void mergeWithFeatures() {
         final MergeThing mergeThing = MergeThing.withFeatures(THING_ID, TestConstants.Feature.FEATURES, DITTO_HEADERS);
 
+        assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(Thing.JsonFields.FEATURES.getPointer());
         assertThat(mergeThing.getValue()).isEqualTo(TestConstants.Feature.FEATURES.toJson());
     }
@@ -171,6 +191,7 @@ public final class MergeThingTest {
         final MergeThing mergeThing =
                 MergeThing.withFeatures(THING_ID, ThingsModelFactory.nullFeatures(), DITTO_HEADERS);
 
+        assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(Thing.JsonFields.FEATURES.getPointer());
         assertThat(mergeThing.getValue()).isEqualTo(JsonFactory.nullLiteral());
     }
@@ -180,6 +201,7 @@ public final class MergeThingTest {
         final MergeThing mergeThing =
                 MergeThing.withFeature(THING_ID, TestConstants.Feature.FLUX_CAPACITOR, DITTO_HEADERS);
 
+        assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(Thing.JsonFields.FEATURES.getPointer()
                 .append(JsonPointer.of(TestConstants.Feature.FLUX_CAPACITOR.getId())));
         assertThat(mergeThing.getValue()).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR.toJson());
@@ -191,6 +213,7 @@ public final class MergeThingTest {
                 MergeThing.withFeature(THING_ID,
                         ThingsModelFactory.nullFeature(FLUX_CAPACITOR_ID), DITTO_HEADERS);
 
+        assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(Thing.JsonFields.FEATURES.getPointer()
                 .append(JsonPointer.of(TestConstants.Feature.FLUX_CAPACITOR.getId())));
         assertThat(mergeThing.getValue()).isEqualTo(JsonFactory.nullLiteral());
@@ -201,6 +224,7 @@ public final class MergeThingTest {
         final MergeThing mergeThing =
                 MergeThing.withFeatureDefinition(THING_ID, FLUX_CAPACITOR_ID,
                         TestConstants.Feature.FLUX_CAPACITOR_DEFINITION, DITTO_HEADERS);
+        assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(
                 Thing.JsonFields.FEATURES.getPointer()
                         .append(JsonPointer.of(TestConstants.Feature.FLUX_CAPACITOR.getId()))
@@ -213,6 +237,7 @@ public final class MergeThingTest {
         final MergeThing mergeThing =
                 MergeThing.withFeatureDefinition(THING_ID, FLUX_CAPACITOR_ID,
                         ThingsModelFactory.nullFeatureDefinition(), DITTO_HEADERS);
+        assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(
                 Thing.JsonFields.FEATURES.getPointer()
                         .append(JsonPointer.of(TestConstants.Feature.FLUX_CAPACITOR.getId()))
@@ -226,6 +251,7 @@ public final class MergeThingTest {
                 MergeThing.withFeatureProperties(THING_ID, FLUX_CAPACITOR_ID,
                         TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES, DITTO_HEADERS);
 
+        assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(
                 Thing.JsonFields.FEATURES.getPointer()
                         .append(JsonPointer.of(TestConstants.Feature.FLUX_CAPACITOR.getId()))
@@ -239,6 +265,7 @@ public final class MergeThingTest {
                 MergeThing.withFeatureProperties(THING_ID, FLUX_CAPACITOR_ID,
                         ThingsModelFactory.nullFeatureProperties(), DITTO_HEADERS);
 
+        assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(
                 Thing.JsonFields.FEATURES.getPointer()
                         .append(JsonPointer.of(TestConstants.Feature.FLUX_CAPACITOR.getId()))
@@ -252,6 +279,7 @@ public final class MergeThingTest {
                 TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_POINTER,
                 TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_VALUE, DITTO_HEADERS);
 
+        assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(
                 Thing.JsonFields.FEATURES.getPointer()
                         .append(JsonPointer.of(TestConstants.Feature.FLUX_CAPACITOR.getId()))
@@ -266,6 +294,7 @@ public final class MergeThingTest {
                 TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_POINTER,
                 JsonFactory.nullLiteral(), DITTO_HEADERS);
 
+        assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(
                 Thing.JsonFields.FEATURES.getPointer()
                         .append(JsonPointer.of(TestConstants.Feature.FLUX_CAPACITOR.getId()))
@@ -292,6 +321,7 @@ public final class MergeThingTest {
                 MergeThing.withDesiredFeatureProperties(THING_ID, FLUX_CAPACITOR_ID,
                         TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES, DITTO_HEADERS);
 
+        assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(
                 Thing.JsonFields.FEATURES.getPointer()
                         .append(JsonPointer.of(TestConstants.Feature.FLUX_CAPACITOR.getId()))
@@ -305,6 +335,7 @@ public final class MergeThingTest {
                 MergeThing.withDesiredFeatureProperties(THING_ID, FLUX_CAPACITOR_ID,
                         ThingsModelFactory.nullFeatureProperties(), DITTO_HEADERS);
 
+        assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(
                 Thing.JsonFields.FEATURES.getPointer()
                         .append(JsonPointer.of(TestConstants.Feature.FLUX_CAPACITOR.getId()))
@@ -319,6 +350,7 @@ public final class MergeThingTest {
                 TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_POINTER,
                 TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_VALUE, DITTO_HEADERS);
 
+        assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(
                 Thing.JsonFields.FEATURES.getPointer()
                         .append(JsonPointer.of(TestConstants.Feature.FLUX_CAPACITOR.getId()))
@@ -334,6 +366,7 @@ public final class MergeThingTest {
                 TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_POINTER,
                 JsonFactory.nullLiteral(), DITTO_HEADERS);
 
+        assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(
                 Thing.JsonFields.FEATURES.getPointer()
                         .append(JsonPointer.of(TestConstants.Feature.FLUX_CAPACITOR.getId()))

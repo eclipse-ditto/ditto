@@ -300,6 +300,17 @@ public final class ThingsRoute extends AbstractRoute {
                                                         .orElse(policyIdJson)),
                                                 dittoHeaders))
                                 )
+                        ),
+                        // PATCH /things/<thingId>/policyId
+                        put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                                payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
+                                        policyIdJson -> MergeThing.withPolicyId(thingId,
+                                                PolicyId.of(Optional.of(JsonFactory.readFrom(policyIdJson))
+                                                        .filter(JsonValue::isString)
+                                                        .map(JsonValue::asString)
+                                                        .orElse(policyIdJson)),
+                                                dittoHeaders))
+                                )
                         )
                 )
         );
