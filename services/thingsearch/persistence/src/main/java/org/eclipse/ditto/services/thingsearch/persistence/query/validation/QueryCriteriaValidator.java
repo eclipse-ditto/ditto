@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.query.validation;
 
-import java.util.Arrays;
+import java.util.List;
 
 import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
@@ -74,8 +74,8 @@ public abstract class QueryCriteriaValidator implements Extension {
 
             return AkkaClassLoader.instantiate(system, QueryCriteriaValidator.class,
                     searchConfig.getQueryValidatorImplementation(),
-                    Arrays.asList(ActorSystem.class),
-                    Arrays.asList(system));
+                    List.of(ActorSystem.class),
+                    List.of(system));
         }
     }
 }

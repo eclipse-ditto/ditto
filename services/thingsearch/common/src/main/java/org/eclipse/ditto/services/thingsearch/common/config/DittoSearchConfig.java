@@ -24,6 +24,7 @@ import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
+import org.eclipse.ditto.services.utils.config.WithConfigPath;
 import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.services.utils.metrics.config.MetricsConfig;
@@ -38,7 +39,7 @@ import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperat
  * This class is the default implementation of {@link SearchConfig}.
  */
 @Immutable
-public final class DittoSearchConfig implements SearchConfig {
+public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
 
     private static final String CONFIG_PATH = "things-search";
 
@@ -198,6 +199,11 @@ public final class DittoSearchConfig implements SearchConfig {
                 ", mongoDbConfig=" + mongoDbConfig +
                 ", streamConfig=" + streamConfig +
                 "]";
+    }
+
+    @Override
+    public String getConfigPath() {
+        return CONFIG_PATH;
     }
 
 }

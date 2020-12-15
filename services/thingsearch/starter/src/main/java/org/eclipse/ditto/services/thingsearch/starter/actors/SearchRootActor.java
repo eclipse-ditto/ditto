@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.thingsearch.starter.actors;
 
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.BACKGROUND_SYNC_COLLECTION_NAME;
 
-import java.io.ObjectInputFilter;
 import java.util.HashMap;
 import java.util.Map;
 
