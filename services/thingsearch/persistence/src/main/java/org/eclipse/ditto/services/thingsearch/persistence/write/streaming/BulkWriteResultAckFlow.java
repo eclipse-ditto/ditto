@@ -19,7 +19,6 @@ import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -105,16 +104,10 @@ final class BulkWriteResultAckFlow {
         }
     }
 
-    private void acknowledgeFailures(final List<Metadata> things) {
-        errorsCounter.increment(things.size());
-        acknowledge(things, BulkWriteResultAckFlow::createFailureResponse);
-    }
-
-    private void acknowledge(final List<Metadata> things,
-            final Function<Metadata, UpdateThingResponse> responseCreator) {
-
-        for (final Metadata metadata : things) {
-            final UpdateThingResponse response = responseCreator.apply(metadata);
+    private void acknowledgeFailures(final List<Metadata> metadataList) {
+        errorsCounter.increment(metadataList.size());
+        for (final Metadata metadata : metadataList) {
+            final UpdateThingResponse response = createFailureResponse(metadata);
             final ShardedMessageEnvelope envelope =
                     ShardedMessageEnvelope.of(response.getEntityId(), response.getType(), response.toJson(),
                             response.getDittoHeaders());
@@ -124,16 +117,12 @@ final class BulkWriteResultAckFlow {
     }
 
     private static UpdateThingResponse createFailureResponse(final Metadata metadata) {
-        return createResponse(metadata, false);
-    }
-
-    private static UpdateThingResponse createResponse(final Metadata metadata, final boolean isSuccess) {
         return UpdateThingResponse.of(
                 metadata.getThingId(),
                 metadata.getThingRevision(),
                 metadata.getPolicyId().map(PolicyId::of).orElse(null),
                 metadata.getPolicyId().flatMap(policyId -> metadata.getPolicyRevision()).orElse(null),
-                isSuccess,
+                false,
                 DittoHeaders.empty()
         );
     }

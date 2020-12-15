@@ -44,7 +44,7 @@ public final class DittoAcknowledgementLabel implements AcknowledgementLabel {
      * Label for Acknowledgements indicating that a change to an entity (e. g. a thing) has successfully been reflected
      * in the search index.
      *
-     * @since 1.6.0
+     * @since 2.0.0
      */
     public static final DittoAcknowledgementLabel SEARCH_PERSISTED = new DittoAcknowledgementLabel("search-persisted");
 

@@ -73,7 +73,7 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
      *
      * @param implicitAcknowledgementLabel the label to set if the header 'requested-acks' is absent.
      * @param negatedDittoAcknowledgementLabels the labels to filter out if present.
-     * @since 1.6.0
+     * @since 2.0.0
      */
     protected AbstractCommandAckRequestSetter(final AcknowledgementLabel implicitAcknowledgementLabel,
             final Set<AcknowledgementLabel> negatedDittoAcknowledgementLabels) {

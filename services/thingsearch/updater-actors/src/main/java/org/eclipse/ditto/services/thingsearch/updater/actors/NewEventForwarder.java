@@ -36,7 +36,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.cluster.sharding.ShardRegion;
 import akka.japi.pf.ReceiveBuilder;
-import scala.concurrent.duration.FiniteDuration;
+import scala.concurrent.duration.Duration;
 
 /**
  * This Actor forwards thing events belonging to inactive shard regions.
@@ -74,7 +74,7 @@ final class NewEventForwarder extends AbstractActorWithTimers {
         namespaceBlockingBehavior = BlockNamespaceBehavior.of(blockedNamespaces);
 
         getClusterShardingStats = new ShardRegion.GetClusterShardingStats(
-                FiniteDuration.create(updaterConfig.getShardingStatePollInterval().toMillis(), TimeUnit.MILLISECONDS));
+                Duration.create(updaterConfig.getShardingStatePollInterval().toMillis(), TimeUnit.MILLISECONDS));
 
         shardRegionExtractor = ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), getContext().getSystem());
 
@@ -134,7 +134,7 @@ final class NewEventForwarder extends AbstractActorWithTimers {
         log.withCorrelationId(thingEvent)
                 .debug("Forwarding incoming ThingEvent for thingId '{}'", thingEvent.getThingEntityId());
         final ActorRef sender = getSender();
-        namespaceBlockingBehavior.block(thingEvent).thenAccept(m -> shardRegion.tell(m, sender()));
+        namespaceBlockingBehavior.block(thingEvent).thenAccept(m -> shardRegion.tell(m, sender));
     }
 
     private static Collection<String> getActiveShardIds(final ShardRegion.ClusterShardingStats stats) {

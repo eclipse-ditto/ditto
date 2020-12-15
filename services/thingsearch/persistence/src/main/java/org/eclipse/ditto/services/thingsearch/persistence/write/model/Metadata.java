@@ -43,10 +43,6 @@ public final class Metadata {
     @Nullable private final PolicyId policyId;
     @Nullable private final Long policyRevision;
     @Nullable final Instant modified;
-
-    /**
-     * Using Scala list to have immutability and constant-time prepend at the same time.
-     */
     private final List<ActorRef> senders;
 
     private Metadata(final ThingId thingId,
@@ -61,7 +57,7 @@ public final class Metadata {
         this.policyId = policyId;
         this.policyRevision = policyRevision;
         this.modified = modified;
-        this.senders = senders;
+        this.senders = senders; // does not need to be made unmodifiable as there is no getter returning that to the "outside world"
     }
 
     /**
