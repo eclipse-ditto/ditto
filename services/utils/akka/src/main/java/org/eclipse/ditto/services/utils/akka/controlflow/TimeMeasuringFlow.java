@@ -23,8 +23,6 @@ import akka.japi.Pair;
 import akka.stream.FanInShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
-import akka.stream.Inlet;
-import akka.stream.Outlet;
 import akka.stream.UniformFanOutShape;
 import akka.stream.javadsl.Broadcast;
 import akka.stream.javadsl.Flow;
@@ -49,11 +47,9 @@ public final class TimeMeasuringFlow {
      * @return a Flow wrapping the given flow to measure the time.
      */
     @SuppressWarnings("unchecked")
-    public static <I, O> Flow<I, O, NotUsed> measureTimeOf(final Flow<I, O, ?> flow, final PreparedTimer timer) {
-        final Graph<FlowShape<I, O>, NotUsed>
-                flowShapeNotUsedGraph = GraphDSL.create(builder -> {
+    public static <I, O, M> Flow<I, O, M> measureTimeOf(final Flow<I, O, M> flow, final PreparedTimer timer) {
 
-            final FlowShape<I, I> timeMeasuringEntry = builder.add(Flow.fromFunction(input -> input));
+        final Graph<FlowShape<I, O>, M> flowShapeNotUsedGraph = GraphDSL.create(flow, (builder, flowShape) -> {
 
             final UniformFanOutShape<I, I> beforeTimerBroadcast = builder.add(Broadcast.create(2));
 
@@ -66,7 +62,7 @@ public final class TimeMeasuringFlow {
 
             final Flow<I, StartedTimer, NotUsed> startTimerFlow = Flow.fromFunction(request -> timer.start());
 
-            builder.from(beforeTimerBroadcast)
+            builder.from(beforeTimerBroadcast.out(0))
                     .via(builder.add(startTimerFlow))
                     .toInlet(zip.in0());
 
@@ -76,12 +72,11 @@ public final class TimeMeasuringFlow {
             builder.from(zip.out())
                     .to(builder.add(stopTimerSink));
 
-            builder.from(timeMeasuringEntry.out())
-                    .viaFanOut(beforeTimerBroadcast)
-                    .via(builder.add(flow))
+            builder.from(beforeTimerBroadcast.out(1))
+                    .via(flowShape)
                     .viaFanOut(afterTimerBroadcast);
 
-            return FlowShape.of(timeMeasuringEntry.in(), afterTimerBroadcast.out(1));
+            return FlowShape.of(beforeTimerBroadcast.in(), afterTimerBroadcast.out(1));
         });
 
         return Flow.fromGraph(flowShapeNotUsedGraph);
