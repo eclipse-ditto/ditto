@@ -257,16 +257,12 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
 
     @Override
     public Optional<JsonValue> getEntity() {
-        if (path.isEmpty()) {
-            return Optional.of(value);
-        } else {
-            return Optional.of(JsonObject.newBuilder().set(path, value).build());
-        }
+        return Optional.of(value);
     }
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.empty();
+        return path;
     }
 
     @Override

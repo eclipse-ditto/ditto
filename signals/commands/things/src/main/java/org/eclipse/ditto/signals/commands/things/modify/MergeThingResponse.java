@@ -84,7 +84,7 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.empty();
+        return path;
     }
 
     @Override
@@ -94,11 +94,7 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        if (path.isEmpty()) {
-            return Optional.of(value);
-        } else {
-            return Optional.of(JsonObject.newBuilder().set(path, value).build());
-        }
+        return Optional.of(value);
     }
 
     @Override

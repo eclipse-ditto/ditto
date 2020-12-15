@@ -368,12 +368,10 @@ public final class MergeThingTest {
 
     @Test
     public void getEntityReturnsExpected() {
-        final JsonObject expected =
-                JsonFactory.newObject(ABSOLUTE_LOCATION_ATTRIBUTE_POINTER, LOCATION_ATTRIBUTE_VALUE);
         final MergeThing underTest = MergeThing.withAttribute(TestConstants.Thing.THING_ID, LOCATION_ATTRIBUTE_POINTER,
                 LOCATION_ATTRIBUTE_VALUE, DITTO_HEADERS);
         final Optional<JsonValue> entity = underTest.getEntity();
-        assertThat(entity).contains(expected);
+        assertThat(entity).contains(LOCATION_ATTRIBUTE_VALUE);
     }
 
     @Test(expected = AclNotAllowedException.class)

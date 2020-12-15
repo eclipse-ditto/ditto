@@ -132,7 +132,7 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged>
 
     @Override
     public JsonPointer getResourcePath() {
-        return JsonPointer.empty();
+        return path;
     }
 
     /**
@@ -184,8 +184,5 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged>
 
         static final JsonFieldDefinition<JsonValue> JSON_VALUE =
                 JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_2);
-
-        static final JsonFieldDefinition<JsonObject> JSON_MERGED_THING =
-                JsonFactory.newJsonObjectFieldDefinition("mergedThing", FieldType.REGULAR, JsonSchemaVersion.V_2);
     }
 }
