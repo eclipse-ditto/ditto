@@ -142,8 +142,7 @@ public final class ThingsRoute extends AbstractRoute {
     @Nullable
     private static String getCopyPolicyFrom(final String jsonString) {
         final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
-        return inputJson.getValue(ModifyThing.JSON_COPY_POLICY_FROM)
-                .orElse(null);
+        return inputJson.getValue(ModifyThing.JSON_COPY_POLICY_FROM).orElse(null);
     }
 
     private static JsonObject createThingJsonObjectForPutAndPatch(final String jsonString, final String thingId) {
@@ -155,7 +154,7 @@ public final class ThingsRoute extends AbstractRoute {
         if (optThingId.isPresent()) {
             final JsonValue thingIdFromBody = optThingId.get();
             if (!thingIdFromBody.isString() || !thingId.equals(thingIdFromBody.asString())) {
-                throw ThingIdNotExplicitlySettableException.forPutAndPatchMethod().build();
+                throw ThingIdNotExplicitlySettableException.forPutOrPatchMethod().build();
             }
         } else {
             outputJsonBuilder.set(Thing.JsonFields.ID, thingId).build();

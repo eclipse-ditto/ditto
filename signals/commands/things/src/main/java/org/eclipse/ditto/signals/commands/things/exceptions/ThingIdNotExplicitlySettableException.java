@@ -78,14 +78,18 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
      * option "ditto protocol" as well.
      */
     public static Builder newBuilder(final boolean isPostMethod) {
-        return isPostMethod ? forPostMethod() : forPutAndPatchMethod();
+        return isPostMethod ? forPostMethod() : forPutMethod();
     }
 
     public static Builder forPostMethod() {
         return new Builder(MESSAGE_TEMPLATE_POST, DEFAULT_DESCRIPTION_POST);
     }
 
-    public static Builder forPutAndPatchMethod() {
+    public static Builder forPutMethod() {
+        return new Builder(MESSAGE_TEMPLATE_PUT_AND_PATCH, DEFAULT_DESCRIPTION_PUT_AND_PATCH);
+    }
+
+    public static Builder forPutOrPatchMethod() {
         return new Builder(MESSAGE_TEMPLATE_PUT_AND_PATCH, DEFAULT_DESCRIPTION_PUT_AND_PATCH);
     }
 
@@ -139,7 +143,7 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
                         .dittoHeaders(dittoHeaders)
                         .build();
             case MESSAGE_TEMPLATE_PUT_AND_PATCH:
-                return forPutAndPatchMethod()
+                return forPutMethod()
                         .dittoHeaders(dittoHeaders)
                         .build();
             case MESSAGE_TEMPLATE_DITTO_PROTOCOL:

@@ -177,7 +177,7 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged> implement
     /**
      * An enumeration of the JSON fields of a {@code ThingMerged} event.
      */
-    private static class JsonFields {
+    static class JsonFields {
         static final JsonFieldDefinition<String> JSON_PATH =
                 JsonFactory.newStringFieldDefinition("path", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
