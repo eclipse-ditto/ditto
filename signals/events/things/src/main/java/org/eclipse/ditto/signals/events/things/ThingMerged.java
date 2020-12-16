@@ -43,8 +43,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  */
 @Immutable
 @JsonParsableEvent(name = ThingMerged.NAME, typePrefix = ThingMerged.TYPE_PREFIX)
-public final class ThingMerged extends AbstractThingEvent<ThingMerged>
-        implements ThingModifiedEvent<ThingMerged> {
+public final class ThingMerged extends AbstractThingEvent<ThingMerged> implements ThingModifiedEvent<ThingMerged> {
 
     /**
      * Name of the "Thing Merged" event.
@@ -61,9 +60,11 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged>
     private final JsonValue value;
 
     private ThingMerged(final ThingId thingId,
-            final JsonPointer path, final JsonValue value,
+            final JsonPointer path,
+            final JsonValue value,
             final long revision,
-            @Nullable final Instant timestamp, final DittoHeaders dittoHeaders,
+            @Nullable final Instant timestamp,
+            final DittoHeaders dittoHeaders,
             @Nullable final Metadata metadata) {
         super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
         this.thingId = checkNotNull(thingId, "thingId");
@@ -74,16 +75,15 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged>
     /**
      * Creates an event of merged thing.
      *
-     * @param thingId the thing id
-     * @param path the path where the changes were applied
-     * @param value the value describing the changes that were merged into the existing thing
-     * @param dittoHeaders the ditto headers
-     * @return the created {@code ThingMerged} event
+     * @param thingId the thing id.
+     * @param path the path where the changes were applied.
+     * @param value the value describing the changes that were merged into the existing thing.
+     * @param dittoHeaders the ditto headers.
+     * @return the created {@code ThingMerged} event.
      */
-    public static ThingMerged of(final ThingId thingId, final JsonPointer path,
-            final JsonValue value,
-            final long revision, @Nullable final Instant timestamp,
-            final DittoHeaders dittoHeaders, @Nullable final Metadata metadata) {
+    public static ThingMerged of(final ThingId thingId, final JsonPointer path, final JsonValue value,
+            final long revision, @Nullable final Instant timestamp, final DittoHeaders dittoHeaders,
+            @Nullable final Metadata metadata) {
         return new ThingMerged(thingId, path, value, revision, timestamp, dittoHeaders, metadata);
     }
 
@@ -92,7 +92,7 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged>
      *
      * @param jsonObject the JSON object of which the event is to be created.
      * @param dittoHeaders the headers of the command.
-     * @return the {@code ThingMerged} event created from JSON
+     * @return the {@code ThingMerged} event created from JSON.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
@@ -136,14 +136,14 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged>
     }
 
     /**
-     * @return the path where the changes were applied
+     * @return the path where the changes were applied.
      */
     public JsonPointer getPath() {
         return path;
     }
 
     /**
-     * @return the value describing the changes that were applied to the existing thing
+     * @return the value describing the changes that were applied to the existing thing.
      */
     public JsonValue getValue() {
         return value;
@@ -177,8 +177,7 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged>
     /**
      * An enumeration of the JSON fields of a {@code ThingMerged} event.
      */
-    static class JsonFields {
-
+    private static class JsonFields {
         static final JsonFieldDefinition<String> JSON_PATH =
                 JsonFactory.newStringFieldDefinition("path", FieldType.REGULAR, JsonSchemaVersion.V_2);
 

@@ -66,11 +66,11 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
     /**
      * Creates a command response for merged thing.
      *
-     * @param thingId the thing id
-     * @param path the path where the changes were applied
-     * @param value the value describing the changes that were merged into the existing thing
-     * @param dittoHeaders the ditto headers
-     * @return the created {@code MergeThingResponse}
+     * @param thingId the thing id.
+     * @param path the path where the changes were applied.
+     * @param value the value describing the changes that were merged into the existing thing.
+     * @param dittoHeaders the ditto headers.
+     * @return the created {@code MergeThingResponse}.
      */
     public static MergeThingResponse of(final ThingId thingId, final JsonPointer path, final JsonValue value,
             final DittoHeaders dittoHeaders) {
@@ -111,7 +111,7 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
      *
      * @param jsonObject the JSON object of which the command response is to be created.
      * @param dittoHeaders the headers of the command.
-     * @return the {@code MergeThing} command created from JSON
+     * @return the {@code MergeThingResponse} command created from JSON.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
@@ -126,6 +126,7 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
                             jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
                     final String path = jsonObject.getValueOrThrow(JsonFields.JSON_PATH);
                     final JsonValue value = jsonObject.getValueOrThrow(JsonFields.JSON_VALUE);
+
                     return new MergeThingResponse(ThingId.of(extractedThingId), JsonPointer.of(path), value,
                             dittoHeaders);
                 });
@@ -134,8 +135,7 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
     /**
      * An enumeration of the JSON fields of a {@code MergeThingResponse} command.
      */
-    static class JsonFields {
-
+    private static class JsonFields {
         static final JsonFieldDefinition<String> JSON_PATH =
                 JsonFactory.newStringFieldDefinition("path", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);
