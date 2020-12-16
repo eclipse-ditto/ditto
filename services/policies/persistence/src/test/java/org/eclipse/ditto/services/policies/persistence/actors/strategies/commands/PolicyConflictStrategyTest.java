@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
+package org.eclipse.ditto.services.policies.persistence.actors.strategies.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -22,55 +22,55 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
-import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultVisitor;
 import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingConflictException;
-import org.eclipse.ditto.signals.commands.things.exceptions.ThingPreconditionFailedException;
-import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyPreconditionFailedException;
+import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
+import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 /**
- * Unit test for {@link ThingConflictStrategy}.
+ * Tests {@link org.eclipse.ditto.services.policies.persistence.actors.strategies.commands.PolicyConflictStrategy}.
  */
 @SuppressWarnings("rawtypes")
-public final class ThingConflictStrategyTest {
+public final class PolicyConflictStrategyTest {
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ThingConflictStrategy.class, areImmutable());
+        assertInstancesOf(PolicyConflictStrategy.class, areImmutable());
     }
 
     @Test
     public void createConflictResultWithoutPrecondition() {
-        final ThingConflictStrategy underTest = new ThingConflictStrategy();
-        final ThingId thingId = ThingId.of("thing:id");
-        final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).setRevision(25L).build();
-        final CommandStrategy.Context<ThingId> context = DefaultContext.getInstance(thingId, mockLoggingAdapter());
-        final CreateThing command = CreateThing.of(thing, null, DittoHeaders.empty());
-        final Result<ThingEvent> result = underTest.apply(context, thing, 26L, command);
-        result.accept(new ExpectErrorVisitor(ThingConflictException.class));
+        final PolicyConflictStrategy underTest = new PolicyConflictStrategy();
+        final PolicyId policyId = PolicyId.of("policy:id");
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId).setRevision(25L).build();
+        final CommandStrategy.Context<PolicyId> context = DefaultContext.getInstance(policyId, mockLoggingAdapter());
+        final CreatePolicy command = CreatePolicy.of(policy, DittoHeaders.empty());
+        final Result<PolicyEvent> result = underTest.apply(context, policy, 26L, command);
+        result.accept(new ExpectErrorVisitor(PolicyConflictException.class));
     }
 
     @Test
     public void createPreconditionFailedResultWithPrecondition() {
-        final ThingConflictStrategy underTest = new ThingConflictStrategy();
-        final ThingId thingId = ThingId.of("thing:id");
-        final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).setRevision(25L).build();
-        final CommandStrategy.Context<ThingId> context = DefaultContext.getInstance(thingId, mockLoggingAdapter());
-        final CreateThing command = CreateThing.of(thing, null, DittoHeaders.newBuilder()
+        final PolicyConflictStrategy underTest = new PolicyConflictStrategy();
+        final PolicyId policyId = PolicyId.of("policy:id");
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId).setRevision(25L).build();
+        final CommandStrategy.Context<PolicyId> context = DefaultContext.getInstance(policyId, mockLoggingAdapter());
+        final CreatePolicy command = CreatePolicy.of(policy, DittoHeaders.newBuilder()
                 .ifNoneMatch(EntityTagMatchers.fromStrings("*"))
                 .build());
-        final Result<ThingEvent> result = underTest.apply(context, thing, 26L, command);
-        result.accept(new ExpectErrorVisitor(ThingPreconditionFailedException.class));
+        final Result<PolicyEvent> result = underTest.apply(context, policy, 26L, command);
+        result.accept(new ExpectErrorVisitor(PolicyPreconditionFailedException.class));
     }
 
     private static DittoDiagnosticLoggingAdapter mockLoggingAdapter() {
@@ -79,7 +79,7 @@ public final class ThingConflictStrategyTest {
         return mock;
     }
 
-    private static final class ExpectErrorVisitor implements ResultVisitor<ThingEvent> {
+    private static final class ExpectErrorVisitor implements ResultVisitor<PolicyEvent> {
 
         private final Class<? extends DittoRuntimeException> clazz;
 
@@ -88,7 +88,7 @@ public final class ThingConflictStrategyTest {
         }
 
         @Override
-        public void onMutation(final Command command, final ThingEvent event, final WithDittoHeaders response,
+        public void onMutation(final Command command, final PolicyEvent event, final WithDittoHeaders response,
                 final boolean becomeCreated, final boolean becomeDeleted) {
             throw new AssertionError("Expect error, got mutation: " + event);
         }
@@ -103,5 +103,4 @@ public final class ThingConflictStrategyTest {
             assertThat(error).isInstanceOf(clazz);
         }
     }
-
 }

@@ -54,7 +54,7 @@ public final class HeaderTranslatorTest {
         expectedHeaders.put("mixed-case!header", "heLLO!WORld");
         expectedHeaders.put("upper-case@header", "HELLO@WORLD");
 
-        assertThat(underTest.fromExternalHeaders(externalHeaders)).isEqualTo(expectedHeaders);
+        assertThat(DittoHeaders.of(underTest.fromExternalHeaders(externalHeaders))).isEqualTo(expectedHeaders);
     }
 
     @Test
@@ -104,7 +104,7 @@ public final class HeaderTranslatorTest {
         final Map<String, String> externalHeaders = new HashMap<>();
         externalHeaders.put("Authorization", "Basic afhdfiusfaifsafwaihfidsahfiudsafidsahfoidsaf");
 
-        assertThat(underTest.fromExternalHeaders(externalHeaders)).containsKey("authorization");
+        assertThat(DittoHeaders.of(underTest.fromExternalHeaders(externalHeaders))).containsKey("authorization");
     }
 
     @Test
