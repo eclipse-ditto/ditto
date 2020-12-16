@@ -302,7 +302,7 @@ public final class ThingsRoute extends AbstractRoute {
                                 )
                         ),
                         // PATCH /things/<thingId>/policyId
-                        put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
+                        patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                         policyIdJson -> MergeThing.withPolicyId(thingId,
                                                 PolicyId.of(Optional.of(JsonFactory.readFrom(policyIdJson))
