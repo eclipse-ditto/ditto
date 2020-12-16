@@ -18,6 +18,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
@@ -32,6 +33,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredExceptio
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.common.BinaryValidationResult;
@@ -42,6 +44,7 @@ import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.model.jwt.JwtInvalidException;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.services.gateway.security.authentication.DefaultAuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
@@ -100,7 +103,9 @@ public final class StreamingSessionActorTest {
     private final SourceQueueWithComplete<SessionedJsonifiable> sourceQueue;
     private final TestSubscriber.Probe<SessionedJsonifiable> sinkProbe;
     private final KillSwitch killSwitch;
-    private final JwtValidator mockValidator = Mockito.mock(JwtValidator.class);
+    private final JwtValidator mockValidator = mock(JwtValidator.class);
+    private final JwtAuthenticationResultProvider mockAuthenticationResultProvider =
+            mock(JwtAuthenticationResultProvider.class);
 
     public StreamingSessionActorTest() {
         actorSystem = ActorSystem.create();
@@ -237,9 +242,34 @@ public final class StreamingSessionActorTest {
         }};
     }
 
+    @Test
+    public void validJwtRefreshesStream() {
+        final AuthorizationSubject authorizationSubject1 = AuthorizationSubject.newInstance("test-subject-1");
+        final AuthorizationSubject authorizationSubject2 = AuthorizationSubject.newInstance("test-subject-2");
+        final AuthorizationSubject authorizationSubject3 = AuthorizationSubject.newInstance("test-subject-3");
+        final AuthorizationContext authorizationContext =
+                AuthorizationContext.newInstance(DittoAuthorizationContextType.JWT,
+                        authorizationSubject1, authorizationSubject2, authorizationSubject3);
+        when(mockValidator.validate(any(JsonWebToken.class)))
+                .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
+        when(mockAuthenticationResultProvider.getAuthenticationResult(any(JsonWebToken.class), any(DittoHeaders.class)))
+                .thenReturn(DefaultAuthenticationResult.successful(DittoHeaders.empty(), authorizationContext));
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = watch(actorSystem.actorOf(getProps("ack")));
+
+            final Jwt jwt = Jwt.newInstance(getTokenString(), testName.getMethodName());
+
+            underTest.tell(jwt, getRef());
+
+            sinkProbe.expectSubscription();
+            sinkProbe.expectNoMessage();
+        }};
+    }
+
     private static String getTokenString() {
         final String header = "{\"header\":\"foo\"}";
-        final String payload = "{\"payload\":\"bar\"}";
+        final String payload = "{\"payload\":\"bar\",\"exp\":" + Instant.now().plusSeconds(60L).toEpochMilli() + "}";
         final String signature = "{\"signature\":\"baz\"}";
         return base64(header) + "." + base64(payload) + "." + base64(signature);
     }
@@ -253,9 +283,8 @@ public final class StreamingSessionActorTest {
         final AcknowledgementConfig acknowledgementConfig = DefaultAcknowledgementConfig.of(ConfigFactory.empty());
         final HeaderTranslator headerTranslator = HeaderTranslator.empty();
         final Props mockProps = Props.create(Actor.class, () -> new TestActor(new LinkedBlockingDeque<>()));
-        final JwtAuthenticationResultProvider mockProvider = mock(JwtAuthenticationResultProvider.class);
         return StreamingSessionActor.props(connect, mockSub, commandRouterProbe.ref(), acknowledgementConfig,
-                headerTranslator, mockProps, mockValidator, mockProvider);
+                headerTranslator, mockProps, mockValidator, mockAuthenticationResultProvider);
     }
 
     private void onDeclareAckLabels(final CompletionStage<Void> answer) {
@@ -279,7 +308,8 @@ public final class StreamingSessionActorTest {
     }
 
     private Connect getConnect(final Set<AcknowledgementLabel> declaredAcks) {
-        return new Connect(sourceQueue, testName.getMethodName(), "WS", JsonSchemaVersion.LATEST, null, declaredAcks);
+        return new Connect(sourceQueue, testName.getMethodName(), "WS", JsonSchemaVersion.LATEST, null, declaredAcks,
+                AuthorizationModelFactory.emptyAuthContext());
     }
 
     private Set<AcknowledgementLabel> acks(final String... ackLabelNames) {

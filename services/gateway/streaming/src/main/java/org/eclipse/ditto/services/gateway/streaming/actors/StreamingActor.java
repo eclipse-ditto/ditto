@@ -17,19 +17,18 @@ import java.nio.charset.StandardCharsets;
 import java.util.stream.StreamSupport;
 
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
 import org.eclipse.ditto.services.gateway.util.config.streaming.DefaultStreamingConfig;
 import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
-import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.utils.akka.actors.ModifyConfigBehavior;
 import org.eclipse.ditto.services.utils.akka.actors.RetrieveConfigBehavior;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
+import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 
 import com.typesafe.config.Config;
@@ -80,7 +79,8 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
     @SuppressWarnings("unused")
     private StreamingActor(final DittoProtocolSub dittoProtocolSub,
             final ActorRef commandRouter,
-            final JwtAuthenticationFactory jwtAuthenticationFactory,
+            final JwtValidator jwtValidator,
+            final JwtAuthenticationResultProvider jwtAuthenticationResultProvider,
             final StreamingConfig streamingConfig,
             final HeaderTranslator headerTranslator,
             final ActorRef pubSubMediator,
@@ -88,11 +88,11 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
 
         this.dittoProtocolSub = dittoProtocolSub;
         this.commandRouter = commandRouter;
+        this.jwtValidator = jwtValidator;
+        this.jwtAuthenticationResultProvider = jwtAuthenticationResultProvider;
         this.streamingConfig = streamingConfig;
         this.headerTranslator = headerTranslator;
         streamingSessionsCounter = DittoMetrics.gauge("streaming_sessions_count");
-        jwtValidator = jwtAuthenticationFactory.getJwtValidator();
-        jwtAuthenticationResultProvider = jwtAuthenticationFactory.newJwtAuthenticationResultProvider();
         final ActorSelection conciergeForwarderSelection = ActorSelection.apply(conciergeForwarder, "");
         subscriptionManagerProps =
                 SubscriptionManager.props(streamingConfig.getSearchIdleTimeout(), pubSubMediator,
@@ -111,14 +111,15 @@ public final class StreamingActor extends AbstractActorWithTimers implements Ret
      */
     public static Props props(final DittoProtocolSub dittoProtocolSub,
             final ActorRef commandRouter,
-            final JwtAuthenticationFactory jwtAuthenticationFactory,
+            final JwtValidator jwtValidator,
+            final JwtAuthenticationResultProvider jwtAuthenticationResultProvider,
             final StreamingConfig streamingConfig,
             final HeaderTranslator headerTranslator,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder) {
 
-        return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter, jwtAuthenticationFactory,
-                streamingConfig, headerTranslator, pubSubMediator, conciergeForwarder);
+        return Props.create(StreamingActor.class, dittoProtocolSub, commandRouter, jwtValidator,
+                jwtAuthenticationResultProvider, streamingConfig, headerTranslator, pubSubMediator, conciergeForwarder);
     }
 
     @Override
