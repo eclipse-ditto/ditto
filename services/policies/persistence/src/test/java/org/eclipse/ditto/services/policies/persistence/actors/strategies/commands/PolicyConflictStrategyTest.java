@@ -25,6 +25,7 @@ import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.services.policies.common.config.DefaultPolicyConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
@@ -37,6 +38,8 @@ import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import com.typesafe.config.ConfigFactory;
 
 /**
  * Tests {@link org.eclipse.ditto.services.policies.persistence.actors.strategies.commands.PolicyConflictStrategy}.
@@ -51,7 +54,8 @@ public final class PolicyConflictStrategyTest {
 
     @Test
     public void createConflictResultWithoutPrecondition() {
-        final PolicyConflictStrategy underTest = new PolicyConflictStrategy();
+        final PolicyConflictStrategy underTest = new PolicyConflictStrategy(
+                DefaultPolicyConfig.of(ConfigFactory.load("policy-test")));
         final PolicyId policyId = PolicyId.of("policy:id");
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId).setRevision(25L).build();
         final CommandStrategy.Context<PolicyId> context = DefaultContext.getInstance(policyId, mockLoggingAdapter());
@@ -62,7 +66,8 @@ public final class PolicyConflictStrategyTest {
 
     @Test
     public void createPreconditionFailedResultWithPrecondition() {
-        final PolicyConflictStrategy underTest = new PolicyConflictStrategy();
+        final PolicyConflictStrategy underTest = new PolicyConflictStrategy(
+                DefaultPolicyConfig.of(ConfigFactory.load("policy-test")));
         final PolicyId policyId = PolicyId.of("policy:id");
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId).setRevision(25L).build();
         final CommandStrategy.Context<PolicyId> context = DefaultContext.getInstance(policyId, mockLoggingAdapter());
