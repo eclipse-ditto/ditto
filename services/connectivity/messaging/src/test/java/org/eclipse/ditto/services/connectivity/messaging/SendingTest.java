@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import org.assertj.core.api.SoftAssertions;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
@@ -168,7 +169,7 @@ public final class SendingTest {
     }
 
     @Test
-    public void monitorAcknowledgementSendFailureKeepOriginalResponse() {
+    public void monitorAcknowledgementSendSuccessInCaseOfHandledException() {
         final var acknowledgement = Mockito.mock(Acknowledgement.class);
         final var acknowledgementPayload = JsonObject.newBuilder().set("foo", "bar").build();
         final var acknowledgementStatusCode = HttpStatusCode.INTERNAL_SERVER_ERROR;
@@ -185,10 +186,51 @@ public final class SendingTest {
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
 
-        Mockito.verifyNoInteractions(publishedMonitor);
+        Mockito.verify(publishedMonitor).success(externalMessage);
         Mockito.verify(acknowledgedMonitor).failure(externalMessage, expectedException);
         assertThat(result)
                 .hasValueSatisfying(resultFuture -> assertThat(resultFuture).isCompletedWithValue(acknowledgement));
+    }
+
+    @Test
+    public void monitorAcknowledgementSendFailureInCaseOfUnhandledException() {
+        final var source = Mockito.mock(Signal.class);
+        final var thingId = ThingId.generateRandom();
+        Mockito.when(source.getEntityId()).thenReturn(thingId);
+        Mockito.when(source.getDittoHeaders()).thenReturn(dittoHeaders);
+        Mockito.when(mappedOutboundSignal.getSource()).thenReturn(source);
+        Mockito.when(autoAckTarget.getIssuedAcknowledgementLabel()).thenReturn(Optional.of(ACKNOWLEDGEMENT_LABEL));
+        final var thrownException = new IllegalStateException("Test");
+        final var acknowledgementPayload = JsonObject.newBuilder()
+                .set("message", "Encountered <IllegalStateException>.")
+                .set("description", "Test")
+                .build();
+        final var acknowledgementStatusCode = HttpStatusCode.INTERNAL_SERVER_ERROR;
+        final var expectedException = MessageSendingFailedException.newBuilder()
+                .statusCode(acknowledgementStatusCode)
+                .message("Received negative acknowledgement for label <" + ACKNOWLEDGEMENT_LABEL + ">.")
+                .description("Payload: " + acknowledgementPayload)
+                .build();
+        final CompletableFuture<CommandResponse<?>> failedFuture = new CompletableFuture<>();
+        failedFuture.completeExceptionally(thrownException);
+        final Sending underTest = new Sending(sendingContext, failedFuture, connectionIdResolver, logger);
+
+        final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
+
+        Mockito.verify(publishedMonitor).exception(externalMessage, thrownException);
+        Mockito.verify(acknowledgedMonitor).failure(externalMessage, expectedException);
+        assertThat(result).hasValueSatisfying(
+                resultFuture -> assertThat(resultFuture).isCompletedWithValueMatching(response -> {
+                    final SoftAssertions softly = new SoftAssertions();
+                    softly.assertThat(response).isInstanceOf(Acknowledgement.class);
+                    final Acknowledgement ack = (Acknowledgement) response;
+                    softly.assertThat(ack.getLabel().toString()).isEqualTo(ACKNOWLEDGEMENT_LABEL.toString());
+                    softly.assertThat(ack.getEntity()).contains(acknowledgementPayload);
+                    softly.assertThat(ack.getEntityId().toString()).isEqualTo(thingId.toString());
+                    softly.assertThat(ack.getStatusCode()).isEqualTo(acknowledgementStatusCode);
+                    softly.assertAll();
+                    return true;
+                }));
     }
 
     @Test
@@ -215,23 +257,16 @@ public final class SendingTest {
         final var issuedAckLabel = DittoAcknowledgementLabel.LIVE_RESPONSE;
         Mockito.when(autoAckTarget.getIssuedAcknowledgementLabel()).thenReturn(Optional.of(issuedAckLabel));
         final CommandResponse<?> commandResponse = Mockito.mock(CommandResponse.class);
-        final var commandResponsePayload = JsonObject.newBuilder().set("foo", "bar").build();
         final var commandResponseStatusCode = HttpStatusCode.CONFLICT;
         Mockito.when(commandResponse.getStatusCode()).thenReturn(commandResponseStatusCode);
-        Mockito.when(commandResponse.toJson()).thenReturn(commandResponsePayload);
-        final var expectedException = MessageSendingFailedException.newBuilder()
-                .statusCode(commandResponseStatusCode)
-                .message("Received negative acknowledgement for label <" + issuedAckLabel + ">.")
-                .description("Payload: " + commandResponsePayload)
-                .build();
         final Sending underTest =
                 new Sending(sendingContext, CompletableFuture.completedStage(commandResponse), connectionIdResolver,
                         logger);
 
         final Optional<CompletionStage<CommandResponse>> result = underTest.monitorAndAcknowledge(exceptionConverter);
 
-        Mockito.verifyNoInteractions(publishedMonitor);
-        Mockito.verify(acknowledgedMonitor).failure(externalMessage, expectedException);
+        Mockito.verify(publishedMonitor).success(externalMessage);
+        Mockito.verify(acknowledgedMonitor).success(externalMessage);
         assertThat(result)
                 .hasValueSatisfying(resultFuture -> assertThat(resultFuture).isCompletedWithValue(commandResponse));
     }

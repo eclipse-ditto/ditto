@@ -629,6 +629,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         logger.debug("Transition: {} -> {}", from, to);
         if (to == CONNECTED) {
             clientGauge.set(1L);
+            reconnectTimeoutStrategy.reset();
         }
         if (to == DISCONNECTED) {
             clientGauge.reset();
@@ -1755,21 +1756,6 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
          * Some form of recovery (reduction of backoff, timeout and retry counter) is necessary so that
          * connections that experience short downtime once every couple days do not fail permanently
          * after some time.
-         *
-         * Simply resetting the timeout strategy on connection success is not sufficient,
-         * because AMQP 1.0 connections can enter CONNECTED state and then fail immediately
-         * if source or target addresses are misconfigured--the broker would reject requests
-         * to create message consumers and publishers. If this strategy is reset on entering
-         * CONNECTED, then those misconfigured connections do not experience exponential
-         * backoff; reconnection would happen every minimum backoff duration forever.
-         *
-         * This recovery strategy is based on the duration D between timeouts, which are
-         * also caused by errors. If D is larger than a threshold, then the connection is considered
-         * stable and the timeout strategy is reset. Otherwise the connection is considered unstable
-         * and retry counter will count up until we give up for good.
-         *
-         * The recovery threshold is chosen to be 2*(maxTimeout + maxBackoff) so that after this much
-         * time, the connection has stayed open without errors for at least (maxTimeout + maxBackoff).
          */
         private void performRecovery(final Instant now) {
             // no point to perform linear recovery if this is the first timeout increase

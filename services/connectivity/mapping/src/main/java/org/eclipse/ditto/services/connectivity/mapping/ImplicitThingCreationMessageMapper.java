@@ -30,6 +30,8 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatcher;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.HeadersPlaceholder;
@@ -167,8 +169,10 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         final Adaptable adaptable = DITTO_PROTOCOL_ADAPTER.toAdaptable(createThing);
 
         // we cannot set the header on CreateThing directly because it is filtered when mapped to an adaptable
-        final DittoHeaders modifiedHeaders =
-                adaptable.getDittoHeaders().toBuilder().allowPolicyLockout(allowPolicyLockout).build();
+        final DittoHeaders modifiedHeaders = adaptable.getDittoHeaders().toBuilder()
+                .allowPolicyLockout(allowPolicyLockout)
+                .ifNoneMatch(EntityTagMatchers.fromList(Collections.singletonList(EntityTagMatcher.asterisk())))
+                .build();
         final Adaptable adaptableWithModifiedHeaders = adaptable.setDittoHeaders(modifiedHeaders);
 
         LOGGER.withCorrelationId(message.getInternalHeaders())
