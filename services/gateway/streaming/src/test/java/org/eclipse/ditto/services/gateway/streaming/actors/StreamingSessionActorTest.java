@@ -33,7 +33,6 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredExceptio
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.common.BinaryValidationResult;
@@ -106,6 +105,12 @@ public final class StreamingSessionActorTest {
     private final JwtValidator mockValidator = mock(JwtValidator.class);
     private final JwtAuthenticationResultProvider mockAuthenticationResultProvider =
             mock(JwtAuthenticationResultProvider.class);
+    final AuthorizationSubject authorizationSubject1 = AuthorizationSubject.newInstance("test-subject-1");
+    final AuthorizationSubject authorizationSubject2 = AuthorizationSubject.newInstance("test-subject-2");
+    final AuthorizationSubject authorizationSubject3 = AuthorizationSubject.newInstance("test-subject-3");
+    final AuthorizationContext authorizationContext =
+            AuthorizationContext.newInstance(DittoAuthorizationContextType.JWT,
+                    authorizationSubject1, authorizationSubject2, authorizationSubject3);
 
     public StreamingSessionActorTest() {
         actorSystem = ActorSystem.create();
@@ -244,12 +249,6 @@ public final class StreamingSessionActorTest {
 
     @Test
     public void validJwtRefreshesStream() {
-        final AuthorizationSubject authorizationSubject1 = AuthorizationSubject.newInstance("test-subject-1");
-        final AuthorizationSubject authorizationSubject2 = AuthorizationSubject.newInstance("test-subject-2");
-        final AuthorizationSubject authorizationSubject3 = AuthorizationSubject.newInstance("test-subject-3");
-        final AuthorizationContext authorizationContext =
-                AuthorizationContext.newInstance(DittoAuthorizationContextType.JWT,
-                        authorizationSubject1, authorizationSubject2, authorizationSubject3);
         when(mockValidator.validate(any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         when(mockAuthenticationResultProvider.getAuthenticationResult(any(JsonWebToken.class), any(DittoHeaders.class)))
@@ -309,7 +308,7 @@ public final class StreamingSessionActorTest {
 
     private Connect getConnect(final Set<AcknowledgementLabel> declaredAcks) {
         return new Connect(sourceQueue, testName.getMethodName(), "WS", JsonSchemaVersion.LATEST, null, declaredAcks,
-                AuthorizationModelFactory.emptyAuthContext());
+                authorizationContext);
     }
 
     private Set<AcknowledgementLabel> acks(final String... ackLabelNames) {
