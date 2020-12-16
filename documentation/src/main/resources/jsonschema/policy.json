@@ -30,7 +30,7 @@
                   "type": {
                     "type": "string",
                     "title": "SubjectType",
-                    "description": "The type of the (Authorization) Subject. See [Policy documentation](../basic-policy.html#who-can-be-addressed) for allowed values."
+                    "description": "The type of the (Authorization) Subject. This string can take an arbitrary value and is intended for documentational purposes, e.g. in order to document when it was created or with which purpose."
                   },
                   "expiry": {
                     "type": "string",
