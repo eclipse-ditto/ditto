@@ -1403,7 +1403,7 @@ class JsonExamplesProducer {
         writeJson(exceptionsDir.resolve(Paths.get("thingIdNotExplicitlySettableException_post.json")),
                 thingIdNotExplicitlySettableExceptionPost);
         final ThingIdNotExplicitlySettableException thingIdNotExplicitlySettableExceptionPut =
-                ThingIdNotExplicitlySettableException.forPutMethod().build();
+                ThingIdNotExplicitlySettableException.forPutAndPatchMethod().build();
         writeJson(exceptionsDir.resolve(Paths.get("thingIdNotExplicitlySettableException_put.json")),
                 thingIdNotExplicitlySettableExceptionPut);
 

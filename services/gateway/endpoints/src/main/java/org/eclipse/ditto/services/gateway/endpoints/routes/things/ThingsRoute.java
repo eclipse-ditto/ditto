@@ -146,7 +146,7 @@ public final class ThingsRoute extends AbstractRoute {
                 .orElse(null);
     }
 
-    private static JsonObject createThingJsonObjectForPut(final String jsonString, final String thingId) {
+    private static JsonObject createThingJsonObjectForPutAndPatch(final String jsonString, final String thingId) {
         final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
         final JsonObjectBuilder outputJsonBuilder = inputJson.toBuilder();
         final Optional<JsonValue> optThingId = inputJson.getValue(Thing.JsonFields.ID.getPointer());
@@ -155,7 +155,7 @@ public final class ThingsRoute extends AbstractRoute {
         if (optThingId.isPresent()) {
             final JsonValue thingIdFromBody = optThingId.get();
             if (!thingIdFromBody.isString() || !thingId.equals(thingIdFromBody.asString())) {
-                throw ThingIdNotExplicitlySettableException.forPutMethod().build();
+                throw ThingIdNotExplicitlySettableException.forPutAndPatchMethod().build();
             }
         } else {
             outputJsonBuilder.set(Thing.JsonFields.ID, thingId).build();
@@ -258,7 +258,7 @@ public final class ThingsRoute extends AbstractRoute {
                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                         thingJson -> ModifyThing.of(thingId,
                                                 ThingsModelFactory.newThingBuilder(
-                                                        createThingJsonObjectForPut(thingJson, thingId.toString()))
+                                                        createThingJsonObjectForPutAndPatch(thingJson, thingId.toString()))
                                                         .build(),
                                                 createInlinePolicyJson(thingJson),
                                                 getCopyPolicyFrom(thingJson),
@@ -268,8 +268,7 @@ public final class ThingsRoute extends AbstractRoute {
                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                         thingJson -> MergeThing.withThing(thingId, ThingsModelFactory.newThingBuilder(
-                                                // TODO forPatch()
-                                                createThingJsonObjectForPut(thingJson, thingId.toString())).build(),
+                                                createThingJsonObjectForPutAndPatch(thingJson, thingId.toString())).build(),
                                                 dittoHeaders)))
                         ),
                         // DELETE /things/<thingId>
