@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
 import java.net.URI;
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -97,6 +98,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private final Map<String, ActorRef> consumerByNamePrefix;
     private final boolean recoverSessionOnSessionClosed;
     private final boolean recoverSessionOnConnectionRestored;
+    private final Duration clientAskTimeout;
     private ActorRef amqpPublisherActor;
 
     /*
@@ -120,6 +122,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         consumerByNamePrefix = new HashMap<>();
         recoverSessionOnSessionClosed = isRecoverSessionOnSessionClosedEnabled(connection);
         recoverSessionOnConnectionRestored = isRecoverSessionOnConnectionRestoredEnabled(connection);
+        clientAskTimeout = connectionConfig.getClientActorAskTimeout();
     }
 
     /*
@@ -138,6 +141,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
         consumerByNamePrefix = new HashMap<>();
         recoverSessionOnSessionClosed = isRecoverSessionOnSessionClosedEnabled(connection);
         recoverSessionOnConnectionRestored = isRecoverSessionOnConnectionRestoredEnabled(connection);
+        clientAskTimeout = Duration.ofSeconds(10L);
     }
 
     /**
@@ -288,7 +292,16 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                     AmqpPublisherActor.props(connection(), jmsSession, connectivityConfig.getConnectionConfig(),
                             getDefaultClientId());
             amqpPublisherActor = startChildActorConflictFree(AmqpPublisherActor.ACTOR_NAME_PREFIX, props);
-            future.complete(DONE);
+            Patterns.ask(amqpPublisherActor, AmqpPublisherActor.INITIALIZE, clientAskTimeout)
+                    .whenComplete((result, error) -> {
+                        if (error != null) {
+                            future.completeExceptionally(error);
+                        } else if (result instanceof Throwable) {
+                            future.completeExceptionally((Throwable) result);
+                        } else {
+                            future.complete(DONE);
+                        }
+                    });
         } else {
             future.completeExceptionally(ConnectionFailedException
                     .newBuilder(connectionId())
