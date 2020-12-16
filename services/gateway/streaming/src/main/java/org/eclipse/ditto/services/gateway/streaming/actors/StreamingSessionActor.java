@@ -29,7 +29,6 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredExceptio
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.acks.FatalPubSubException;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -61,10 +60,10 @@ import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.services.models.acks.AcknowledgementForwarderActor;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
-import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
@@ -138,7 +137,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         this.jwtValidator = jwtValidator;
         this.jwtAuthenticationResultProvider = jwtAuthenticationResultProvider;
         outstandingSubscriptionAcks = EnumSet.noneOf(StreamingType.class);
-        authorizationContext = AuthorizationModelFactory.emptyAuthContext();
+        authorizationContext = connect.getConnectionAuthContext();
         streamingSessions = new EnumMap<>(StreamingType.class);
         ackregatorStarter = AcknowledgementAggregatorActorStarter.of(getContext(),
                 acknowledgementConfig,
