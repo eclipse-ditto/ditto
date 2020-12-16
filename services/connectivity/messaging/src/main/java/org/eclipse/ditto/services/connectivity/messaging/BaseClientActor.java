@@ -629,6 +629,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         logger.debug("Transition: {} -> {}", from, to);
         if (to == CONNECTED) {
             clientGauge.set(1L);
+            reconnectTimeoutStrategy.reset();
         }
         if (to == DISCONNECTED) {
             clientGauge.reset();
