@@ -26,6 +26,7 @@ import org.mutabilitydetector.unittesting.AllowedReason;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import akka.cluster.ddata.Replicator;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
@@ -46,7 +47,8 @@ public final class DefaultDistributedDataConfigTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(DefaultDistributedDataConfig.class, areImmutable(),
-                AllowedReason.provided(DefaultAkkaReplicatorConfig.class).areAlsoImmutable());
+                AllowedReason.provided(DefaultAkkaReplicatorConfig.class,
+                        Replicator.WriteConsistency.class).areAlsoImmutable());
     }
 
     @Test
@@ -66,6 +68,10 @@ public final class DefaultDistributedDataConfigTest {
         softly.assertThat(underTest.getWriteTimeout())
                 .as(DistributedDataConfig.DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath())
                 .isEqualTo(DistributedDataConfig.DistributedDataConfigValue.WRITE_TIMEOUT.getDefaultValue());
+        softly.assertThat(underTest.getSubscriptionWriteConsistency())
+                .isEqualTo(new Replicator.WriteAll(underTest.getWriteTimeout()));
+        softly.assertThat(underTest.getSubscriptionDelay())
+                .isEqualTo(DistributedDataConfig.DistributedDataConfigValue.SUBSCRIPTION_DELAY.getDefaultValue());
     }
 
     @Test
@@ -78,6 +84,10 @@ public final class DefaultDistributedDataConfigTest {
         softly.assertThat(underTest.getWriteTimeout())
                 .as(DistributedDataConfig.DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(1337));
+        softly.assertThat(underTest.getSubscriptionWriteConsistency())
+                .isEqualTo(new Replicator.WriteMajority(Duration.ofSeconds(1337)));
+        softly.assertThat(underTest.getSubscriptionDelay())
+                .isEqualTo(Duration.ofDays(1L));
     }
 
     @Test
@@ -93,6 +103,10 @@ public final class DefaultDistributedDataConfigTest {
         softly.assertThat(underTest.getWriteTimeout())
                 .as(DistributedDataConfig.DistributedDataConfigValue.WRITE_TIMEOUT.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(1337));
+        softly.assertThat(underTest.getSubscriptionWriteConsistency())
+                .isEqualTo(new Replicator.WriteMajority(Duration.ofSeconds(1337)));
+        softly.assertThat(underTest.getSubscriptionDelay())
+                .isEqualTo(Duration.ofDays(1L));
     }
 
 }
