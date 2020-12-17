@@ -101,7 +101,7 @@ For Ditto acknowledgements with mixed successful/failed [status](protocol-specif
 * If some of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements-acks) require redelivery (e.g. based on a timeout):
    * Negatively acknowledges the AMQP 1.0 message with `modified[delivery-failed]` outcome (see [AMQP 1.0 spec: 3.4.5 Modified](http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-modified))
 * If none of the aggregated [acknowledgements](basic-acknowledgements.html#acknowledgements-acks) require redelivery:
-   * Negatively acknowledges the AMQP 1.0 message with `modified[undeliverable-here]` outcome (see [AMQP 1.0 spec: 3.4.5 Modified](http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-modified)) preventing redelivery by the AMQP 1.0 endpoint
+   * Negatively acknowledges the AMQP 1.0 message with `rejected` outcome (see [AMQP 1.0 spec: 3.4.3 Rejected](http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html#type-rejected)) preventing redelivery by the AMQP 1.0 endpoint
 
 ### Target format
 

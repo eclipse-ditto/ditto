@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
+import org.eclipse.ditto.model.base.acks.FatalPubSubException;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
@@ -60,8 +61,8 @@ import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.services.models.acks.AcknowledgementForwarderActor;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
-import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
+import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.search.SubscriptionManager;
@@ -353,7 +354,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     checkAuthorizationContextAndStartSessionTimer(refreshSession);
                 })
                 .match(InvalidJwt.class, invalidJwtToken -> cancelSessionTimeout())
-                .match(DittoRuntimeException.class, this::isAckLabelNotUnique, this::ackLabelDeclarationFailed)
+                .match(FatalPubSubException.class, this::pubsubFailed)
                 .match(Terminated.class, this::handleTerminated)
                 .matchEquals(Control.TERMINATED, this::handleTerminated)
                 .build();
@@ -398,12 +399,9 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         return signal.getDittoHeaders().getOrigin().stream().anyMatch(connectionCorrelationId::equals);
     }
 
-    private boolean isAckLabelNotUnique(final DittoRuntimeException exception) {
-        return AcknowledgementLabelNotUniqueException.ERROR_CODE.equals(exception.getErrorCode());
-    }
-
-    private void ackLabelDeclarationFailed(final DittoRuntimeException exception) {
-        logger.withCorrelationId(exception).info("ackLabelDeclarationFailed cause=<{}>", exception.getCause());
+    private void pubsubFailed(final FatalPubSubException fatalPubSubException) {
+        final DittoRuntimeException exception = fatalPubSubException.asDittoRuntimeException();
+        logger.withCorrelationId(exception).info("pubsubFailed cause=<{}>", exception);
         eventAndResponsePublisher.offer(SessionedJsonifiable.error(exception));
         terminateWebsocketStream();
     }
@@ -602,7 +600,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     private void declareAcknowledgementLabels(final Collection<AcknowledgementLabel> acknowledgementLabels) {
         final ActorRef self = getSelf();
         logger.info("Declaring acknowledgement labels <{}>", acknowledgementLabels);
-        dittoProtocolSub.declareAcknowledgementLabels(acknowledgementLabels, self)
+        dittoProtocolSub.declareAcknowledgementLabels(acknowledgementLabels, self, null)
                 .thenAccept(_void -> logger.info("Acknowledgement label declaration successful for labels: <{}>",
                         acknowledgementLabels))
                 .exceptionally(error -> {

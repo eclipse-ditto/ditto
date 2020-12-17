@@ -18,7 +18,7 @@ The official Eclipse Ditto Docker images are now based on the [Eclipse OpenJ9](h
 With this JVM (cheers to the OpenJ9 developers for this awesome JVM) Ditto's containers need a lot less memory having
 similar if not better throughput.
 
-This especially comes in handy for the [Ditto sandbox](https://ditto.eclipse.org) which only has 4GB RAM and 1 CPU core ;-)
+This especially comes in handy for the [Ditto sandbox](https://ditto.eclipseprojects.io) which only has 4GB RAM and 1 CPU core ;-)
 
 ### AMQP bridge renaming
 

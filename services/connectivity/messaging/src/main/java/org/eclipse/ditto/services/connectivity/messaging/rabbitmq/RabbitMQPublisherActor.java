@@ -55,7 +55,6 @@ import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
-import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -106,8 +105,8 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
     @Nullable private ActorRef channelActor;
 
     @SuppressWarnings("unused")
-    private RabbitMQPublisherActor(final Connection connection) {
-        super(connection);
+    private RabbitMQPublisherActor(final Connection connection, final String clientId) {
+        super(connection, clientId);
         final Config config = getContext().getSystem().settings().config();
         pendingAckTTL = DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(config))
                 .getConnectionConfig()
@@ -119,11 +118,12 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
      * Creates Akka configuration object {@link Props} for this {@code RabbitMQPublisherActor}.
      *
      * @param connection the connection this publisher belongs to
+     * @param clientId identifier of the client actor.
      * @return the Akka configuration Props object.
      */
-    static Props props(final Connection connection) {
+    static Props props(final Connection connection, final String clientId) {
 
-        return Props.create(RabbitMQPublisherActor.class, connection);
+        return Props.create(RabbitMQPublisherActor.class, connection, clientId);
     }
 
     @Override
@@ -339,7 +339,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                 if (target != null) {
                     declarationStatus.put(target,
                             ConnectivityModelFactory.newTargetStatus(
-                                    InstanceIdentifierSupplier.getInstance().get(),
+                                    getClientId(),
                                     ConnectivityStatus.FAILED,
                                     target.getAddress(),
                                     "Exchange '" + exchange + "' was missing at " + Instant.now()));

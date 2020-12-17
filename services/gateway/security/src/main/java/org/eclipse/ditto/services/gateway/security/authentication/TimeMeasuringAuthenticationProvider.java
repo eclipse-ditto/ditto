@@ -180,7 +180,7 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
 
     protected CompletableFuture<R> failOnTimeout(
             final CompletableFuture<R> authenticationResultFuture, final DittoHeaders dittoHeaders) {
-        return AuthenticationResultWaiter.of(authenticationResultFuture, dittoHeaders).get()
+        return AuthenticationResultOrTimeout.of(authenticationResultFuture, dittoHeaders).get()
                 .exceptionally(e -> toFailedAuthenticationResult(e, dittoHeaders));
     }
 

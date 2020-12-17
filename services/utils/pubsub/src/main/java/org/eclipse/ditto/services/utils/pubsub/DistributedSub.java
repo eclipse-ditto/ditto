@@ -16,8 +16,10 @@ import java.util.Collection;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.services.utils.ddata.DistributedDataConfig;
-import org.eclipse.ditto.services.utils.pubsub.actors.AbstractUpdater;
+import org.eclipse.ditto.services.utils.pubsub.api.SubAck;
 
 import akka.actor.ActorRef;
 
@@ -32,19 +34,11 @@ public interface DistributedSub {
      * @param topics the topics.
      * @param subscriber who is subscribing.
      * @param filter a local topic filter.
+     * @param group the subscriber's group, if any.
      * @return a future that completes after subscription becomes effective on all nodes.
      */
-    CompletionStage<AbstractUpdater.SubAck> subscribeWithFilterAndAck(Collection<String> topics,
-            ActorRef subscriber, Predicate<Collection<String>> filter);
-
-    /**
-     * Subscribe for a collection of topics.
-     *
-     * @param topics the topics.
-     * @param subscriber who is subscribing.
-     * @return a future that completes after subscription becomes effective on all nodes.
-     */
-    CompletionStage<AbstractUpdater.SubAck> subscribeWithAck(Collection<String> topics, ActorRef subscriber);
+    CompletionStage<SubAck> subscribeWithFilterAndGroup(Collection<String> topics,
+            ActorRef subscriber, @Nullable Predicate<Collection<String>> filter, @Nullable String group);
 
     /**
      * Unsubscribe for a collection of topics.
@@ -53,7 +47,7 @@ public interface DistributedSub {
      * @param subscriber who is unsubscribing.
      * @return a future that completes when the unsubscriber stops receiving messages on the given topics.
      */
-    CompletionStage<AbstractUpdater.SubAck> unsubscribeWithAck(Collection<String> topics, ActorRef subscriber);
+    CompletionStage<SubAck> unsubscribeWithAck(Collection<String> topics, ActorRef subscriber);
 
     /**
      * Subscribe for topics without waiting for acknowledgement.

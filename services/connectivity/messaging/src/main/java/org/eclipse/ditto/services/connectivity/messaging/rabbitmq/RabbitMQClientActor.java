@@ -330,7 +330,7 @@ public final class RabbitMQClientActor extends BaseClientActor {
 
     private ActorRef startRmqPublisherActor() {
         stopChildActor(rmqPublisherActor);
-        final Props publisherProps = RabbitMQPublisherActor.props(connection());
+        final Props publisherProps = RabbitMQPublisherActor.props(connection(), getDefaultClientId());
         return startChildActorConflictFree(RabbitMQPublisherActor.ACTOR_NAME, publisherProps);
     }
 

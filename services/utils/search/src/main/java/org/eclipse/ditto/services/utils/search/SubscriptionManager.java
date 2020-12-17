@@ -42,6 +42,7 @@ import org.reactivestreams.Subscriber;
 import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.Materializer;
@@ -62,7 +63,7 @@ public final class SubscriptionManager extends AbstractActor {
 
     private final Duration idleTimeout;
     private final ActorRef pubSubMediator;
-    private final ActorRef proxyActor;
+    private final ActorSelection proxyActor;
     private final Materializer materializer;
     private final DittoDiagnosticLoggingAdapter log;
 
@@ -73,7 +74,7 @@ public final class SubscriptionManager extends AbstractActor {
 
     SubscriptionManager(final Duration idleTimeout,
             final ActorRef pubSubMediator,
-            final ActorRef proxyActor,
+            final ActorSelection proxyActor,
             final Materializer materializer) {
         this.idleTimeout = idleTimeout;
         this.pubSubMediator = pubSubMediator;
@@ -98,7 +99,7 @@ public final class SubscriptionManager extends AbstractActor {
      */
     public static Props props(final Duration idleTimeout,
             final ActorRef pubSubMediator,
-            final ActorRef proxyActor,
+            final ActorSelection proxyActor,
             final Materializer materializer) {
 
         return Props.create(SubscriptionManager.class, idleTimeout, pubSubMediator, proxyActor, materializer);

@@ -94,7 +94,7 @@ The following placeholders are available for the `input` field:
 
 | Placeholder    | Description  | Example   |
 |-----------|-------|---------------|
-| `{%raw%}{{ header:<name> }}{%endraw%}` | Any header from the message received via the source. | `{%raw%}{{header:device_id }}{%endraw%}`  |
+| `{%raw%}{{ header:<name> }}{%endraw%}` | Any header from the message received via the source (case-insensitive). | `{%raw%}{{header:device_id }}{%endraw%}`  |
 | `{%raw%}{{ source:address }}{%endraw%}` | The address on which the message was received. | devices/sensors/temperature1  |
 
 

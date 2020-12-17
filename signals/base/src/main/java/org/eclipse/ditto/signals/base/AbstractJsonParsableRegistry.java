@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.base;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.io.NotSerializableException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,6 +28,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
  * Abstract implementation of {@link JsonParsableRegistry}.
@@ -35,6 +37,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
  */
 @Immutable
 public abstract class AbstractJsonParsableRegistry<T> implements JsonParsableRegistry<T> {
+
+    private static final ParseInnerJson UNSUPPORTED = new ParseInnerJsonUnsupported();
 
     private final Map<String, JsonParsable<T>> parseStrategies;
 
@@ -69,20 +73,30 @@ public abstract class AbstractJsonParsableRegistry<T> implements JsonParsableReg
         return DittoJsonException.wrapJsonRuntimeException(jsonObject, dittoHeaders, this::fromJson);
     }
 
+    @Override
+    public T parse(final JsonObject jsonObject, final DittoHeaders dittoHeaders, final ParseInnerJson parseInnerJson) {
+        return DittoJsonException.wrapJsonRuntimeException(jsonObject, dittoHeaders,
+                (object, headers) -> fromJson(object, headers, parseInnerJson));
+    }
+
     private T fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         final JsonObject jsonObject = JsonFactory.newObject(jsonString);
-        return fromJson(jsonObject, dittoHeaders);
+        return fromJson(jsonObject, dittoHeaders, UNSUPPORTED);
     }
 
     private T fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return fromJson(jsonObject, dittoHeaders, UNSUPPORTED);
+    }
+
+    private T fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders, final ParseInnerJson inner) {
         final String type = resolveType(jsonObject);
         final JsonParsable<T> jsonObjectParsable = parseStrategies.get(type);
 
         if (null != jsonObjectParsable) {
             try {
-                return jsonObjectParsable.parse(jsonObject, dittoHeaders);
+                return jsonObjectParsable.parse(jsonObject, dittoHeaders, inner);
             } catch (final JsonRuntimeException jre) {
-                final JsonExceptionBuilder builder = JsonRuntimeException.newBuilder(jre.getErrorCode())
+                final JsonExceptionBuilder<?> builder = JsonRuntimeException.newBuilder(jre.getErrorCode())
                         .message("Error when parsing Json type '" + type + "': " + jre.getMessage())
                         .cause(jre.getCause());
                 jre.getDescription().ifPresent(builder::description);
@@ -104,4 +118,12 @@ public abstract class AbstractJsonParsableRegistry<T> implements JsonParsableReg
      * @return the resolved type.
      */
     protected abstract String resolveType(final JsonObject jsonObject);
+
+    private static final class ParseInnerJsonUnsupported implements ParseInnerJson {
+
+        @Override
+        public Jsonifiable<?> parseInnerJson(final JsonObject jsonObject) throws NotSerializableException {
+            throw new UnsupportedOperationException();
+        }
+    }
 }

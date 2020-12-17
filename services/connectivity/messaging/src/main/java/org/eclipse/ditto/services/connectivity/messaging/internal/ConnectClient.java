@@ -17,4 +17,11 @@ package org.eclipse.ditto.services.connectivity.messaging.internal;
  * {@link org.eclipse.ditto.services.connectivity.messaging.BaseClientActor Client}.
  */
 public interface ConnectClient extends WithOrigin {
+
+    /**
+     * Get the client ID of the client actor.
+     *
+     * @return the client ID.
+     */
+    String getClientId();
 }

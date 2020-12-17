@@ -136,6 +136,10 @@
             added to that entity in order to authorize you work with it.
         </p>
     </div>
+    <h2 style="clear: both">Version</h2>
+    <p>This sandbox is running Eclipse Ditto version:
+        <span id="ditto-version" style="font-family: monospace; font-weight: bold; padding: 0.5em"></span>
+    </p>
     <h2 style="clear: both">Health</h2>
     <div id="health-content">
     </div>
@@ -189,8 +193,16 @@
         return healthStatusClass;
     }
 
-    $.getJSON("/status/health", function (data) {
-        const keysToIgnore = ['status', 'thing-cache-aware', 'dc-default', 'policy-cache-aware', 'blocked-namespaces-aware'];
+    $.getJSON("/status", function (data) {
+        let dittoVersion = data['service-version'];
+        $(`<span>${dittoVersion}</span>`)
+          .appendTo("#ditto-version");
+    }).fail(function () {
+    });
+
+    function caclulateHealth(data) {
+        const keysToIgnore = ['status', 'thing-cache-aware', 'dc-default', 'policy-cache-aware',
+                              'blocked-namespaces-aware'];
         let overallStatus = data.status;
         $(`<p>
             <span class="health-key"></span>
@@ -215,12 +227,12 @@
             "class": "health-list",
             html: items.join("")
         }).appendTo("#health-content");
-    }).fail(function () {
-        $(`<p>
-            <span class="health-key"></span>
-            <span class="health health-down"></span>
-            <span class="health-status">COULD NOT BE DETERMINED</span>
-        </p>`).appendTo("#health-content");
+    }
+
+    $.getJSON("/status/health", function (data) {
+        caclulateHealth(data);
+    }).fail(function (jqXHR, textStatus, errorThrown) {
+        caclulateHealth(jqXHR.responseJSON);
     })
 </script>
 </body>

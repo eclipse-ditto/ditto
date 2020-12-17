@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
+import org.eclipse.ditto.signals.commands.thingsearch.WithSubscriptionId;
 
 /**
  * Command for requesting pages from a subscription of search results.
@@ -39,7 +40,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 @Immutable
 @JsonParsableCommand(typePrefix = RequestFromSubscription.TYPE_PREFIX, name = RequestFromSubscription.NAME)
 public final class RequestFromSubscription extends AbstractCommand<RequestFromSubscription>
-        implements ThingSearchCommand<RequestFromSubscription> {
+        implements ThingSearchCommand<RequestFromSubscription>, WithSubscriptionId<RequestFromSubscription> {
 
     /**
      * Name of the command.
@@ -93,11 +94,7 @@ public final class RequestFromSubscription extends AbstractCommand<RequestFromSu
     }
 
 
-    /**
-     * Returns the subscriptionId which is to be included in the JSON of the retrieved entity.
-     *
-     * @return the subscriptionId.
-     */
+    @Override
     public String getSubscriptionId() {
         return subscriptionId;
     }

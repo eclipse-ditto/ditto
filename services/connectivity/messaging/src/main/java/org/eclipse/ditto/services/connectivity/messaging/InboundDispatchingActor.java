@@ -63,6 +63,7 @@ import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActor;
 import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.InboundSignal;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
@@ -81,10 +82,12 @@ import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.acks.ThingLiveCommandAckRequestSetter;
 import org.eclipse.ditto.signals.commands.things.acks.ThingModifyCommandAckRequestSetter;
-import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
+import org.eclipse.ditto.signals.commands.thingsearch.WithSubscriptionId;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.Props;
 import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
@@ -111,7 +114,7 @@ public final class InboundDispatchingActor extends AbstractActor
 
     private final HeaderTranslator headerTranslator;
     private final ConnectionId connectionId;
-    private final ActorRef proxyActor;
+    private final ActorSelection proxyActor;
     private final ActorRef connectionActor;
     private final DefaultConnectionMonitorRegistry connectionMonitorRegistry;
     private final ConnectionMonitor responseMappedMonitor;
@@ -124,7 +127,7 @@ public final class InboundDispatchingActor extends AbstractActor
     private InboundDispatchingActor(
             final Connection connection,
             final HeaderTranslator headerTranslator,
-            final ActorRef proxyActor,
+            final ActorSelection proxyActor,
             final ActorRef connectionActor,
             final ActorRef outboundMessageMappingProcessorActor) {
 
@@ -170,7 +173,7 @@ public final class InboundDispatchingActor extends AbstractActor
      */
     public static Props props(final Connection connection,
             final HeaderTranslator headerTranslator,
-            final ActorRef proxyActor,
+            final ActorSelection proxyActor,
             final ActorRef connectionActor,
             final ActorRef outboundMessageMappingProcessorActor) {
 
@@ -334,9 +337,10 @@ public final class InboundDispatchingActor extends AbstractActor
                         .match(Acknowledgements.class, acks ->
                                 forwardAcknowledgements(acks, declaredAckLabels, outcomes))
                         .match(CommandResponse.class, ProtocolAdapter::isLiveSignal, liveResponse ->
-                                forwardToConnectionActor(liveResponse, ActorRef.noSender())
+                                forwardToClientActor(liveResponse, ActorRef.noSender())
                         )
-                        .match(ThingSearchCommand.class, cmd -> forwardToConnectionActor(cmd, sender))
+                        .match(CreateSubscription.class, cmd -> forwardToConnectionActor(cmd, sender))
+                        .match(WithSubscriptionId.class, cmd -> forwardToClientActor(cmd, sender))
                         .matchAny(baseSignal -> ackregatorStarter.preprocess(baseSignal,
                                 (signal, isAckRequesting) -> Stream.of(new IncomingSignal(signal,
                                         getReturnAddress(sender, isAckRequesting, signal),
@@ -457,9 +461,15 @@ public final class InboundDispatchingActor extends AbstractActor
      * @param <T> type of elements for the next step..
      * @return an empty source of Signals
      */
-    private <T> Stream<T> forwardToConnectionActor(final Signal<?> signal,
+    private <T> Stream<T> forwardToClientActor(final Signal<?> signal,
             @Nullable final ActorRef sender) {
-        connectionActor.tell(signal, sender);
+        // wrap response or search command for dispatching by entity ID
+        getContext().parent().tell(InboundSignal.of(signal), sender);
+        return Stream.empty();
+    }
+
+    private <T> Stream<T> forwardToConnectionActor(final CreateSubscription command, @Nullable final ActorRef sender) {
+        connectionActor.tell(command, sender);
         return Stream.empty();
     }
 
@@ -467,7 +477,7 @@ public final class InboundDispatchingActor extends AbstractActor
             final Set<AcknowledgementLabel> declaredAckLabels,
             final InboundMappingOutcomes outcomes) {
         if (declaredAckLabels.contains(ack.getLabel())) {
-            return forwardToConnectionActor(ack, outboundMessageMappingProcessorActor);
+            return forwardToClientActor(ack, outboundMessageMappingProcessorActor);
         } else {
             final AcknowledgementLabelNotDeclaredException exception =
                     AcknowledgementLabelNotDeclaredException.of(ack.getLabel(), ack.getDittoHeaders());
@@ -489,7 +499,7 @@ public final class InboundDispatchingActor extends AbstractActor
                     outcomes.getExternalMessage());
             return Stream.empty();
         }
-        return forwardToConnectionActor(acks, outboundMessageMappingProcessorActor);
+        return forwardToClientActor(acks, outboundMessageMappingProcessorActor);
     }
 
     private TopicPath getTopicPath(final Acknowledgement ack) {

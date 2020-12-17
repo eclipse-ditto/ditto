@@ -27,7 +27,7 @@ import akka.actor.Props;
 /**
  * Actor which delegates {@link Command}s received in connectivity service to the appropriate receivers in the cluster.
  */
-public class ConnectivityProxyActor extends AbstractActor {
+public final class ConnectivityProxyActor extends AbstractActor {
 
     /**
      * Name of this actor.
@@ -39,6 +39,7 @@ public class ConnectivityProxyActor extends AbstractActor {
     private final ActorRef conciergeForwarder;
     private final ActorRef aggregatorProxyActor;
 
+    @SuppressWarnings("unused")
     private ConnectivityProxyActor(final ActorRef conciergeForwarder) {
         this.conciergeForwarder = conciergeForwarder;
         this.aggregatorProxyActor = getContext().actorOf(ThingsAggregatorProxyActor.props(conciergeForwarder),

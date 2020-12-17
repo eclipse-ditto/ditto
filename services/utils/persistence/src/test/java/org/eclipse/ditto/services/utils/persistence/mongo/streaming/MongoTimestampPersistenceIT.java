@@ -30,6 +30,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.mongodb.reactivestreams.client.MongoCollection;
@@ -48,9 +49,11 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class MongoTimestampPersistenceIT {
 
-    private static MongoDbResource mongoResource;
+    @ClassRule
+    public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
     private static DittoMongoClient mongoClient;
     private static final String KNOWN_COLLECTION = "knownCollection";
+
 
     private ActorSystem actorSystem;
     private Materializer materializer;
@@ -58,10 +61,8 @@ public final class MongoTimestampPersistenceIT {
 
     @BeforeClass
     public static void startMongoResource() {
-        mongoResource = new MongoDbResource("localhost");
-        mongoResource.start();
         mongoClient = MongoClientWrapper.getBuilder()
-                .hostnameAndPort(mongoResource.getBindIp(), mongoResource.getPort())
+                .hostnameAndPort(MONGO_RESOURCE.getBindIp(), MONGO_RESOURCE.getPort())
                 .defaultDatabaseName("mongoTimestampPersistenceIT")
                 .connectionPoolMaxSize(100)
                 .connectionPoolMaxWaitQueueSize(500_000)
@@ -74,9 +75,6 @@ public final class MongoTimestampPersistenceIT {
         try {
             if (null != mongoClient) {
                 mongoClient.close();
-            }
-            if (null != mongoResource) {
-                mongoResource.stop();
             }
         } catch (final IllegalStateException e) {
             System.err.println("IllegalStateException during shutdown of MongoDB: " + e.getMessage());

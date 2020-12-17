@@ -76,6 +76,7 @@ import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.Status;
 import akka.testkit.TestProbe;
 import akka.testkit.javadsl.TestKit;
 
@@ -206,7 +207,8 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                     TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())))
                             .build(),
                     session,
-                    loadConnectionConfig());
+                    loadConnectionConfig(),
+                    "clientId");
             final ActorRef publisherActor = actorSystem.actorOf(props);
 
             publisherActor.tell(multiMapped, getRef());
@@ -260,8 +262,10 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
                                     TestConstants.Targets.TWIN_TARGET.withAddress(getOutboundAddress())))
                             .build(),
                     session,
-                    loadConnectionConfig());
+                    loadConnectionConfig(),
+                    "clientId");
             final ActorRef publisherActor = actorSystem.actorOf(props);
+            publisherCreated(this, publisherActor);
 
             publisherActor.tell(mappedOutboundSignal, getRef());
             publisherActor.tell(mappedOutboundSignal, getRef());
@@ -339,7 +343,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return AmqpPublisherActor.props(TestConstants.createConnection(), session, loadConnectionConfig());
+        return AmqpPublisherActor.props(TestConstants.createConnection(), session, loadConnectionConfig(), "clientId");
     }
 
     @Override
@@ -395,8 +399,15 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
         return target;
     }
 
+    @Override
     protected String getOutboundAddress() {
         return "outbound";
+    }
+
+    @Override
+    protected void publisherCreated(final TestKit kit, final ActorRef publisherActor) {
+        publisherActor.tell(AmqpPublisherActor.INITIALIZE, kit.getRef());
+        kit.expectMsgClass(Status.Success.class);
     }
 
     private static ConnectionConfig loadConnectionConfig() {

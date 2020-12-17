@@ -228,7 +228,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     }
 
     private void handleConnect(final AmqpClientActor.JmsConnect connect) {
-        maybeConnectAndTell(getSender(), connect.getOrigin().orElse(null));
+        maybeConnectAndTell(getSender(), connect.getOrigin().orElse(null), connect.getClientId());
     }
 
     private void handleDisconnect(final AmqpClientActor.JmsDisconnect disconnect) {
@@ -244,10 +244,10 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     /*
      * This method should be thread-safe.
      */
-    private void maybeConnectAndTell(final ActorRef sender, @Nullable final ActorRef origin) {
+    private void maybeConnectAndTell(final ActorRef sender, @Nullable final ActorRef origin, final String clientId) {
         final ActorRef self = getSelf(); // getSelf() is thread-safe
         try {
-            final AmqpClientActor.JmsConnected connectedMessage = tryConnect(origin);
+            final AmqpClientActor.JmsConnected connectedMessage = tryConnect(origin, clientId);
             sender.tell(connectedMessage, self);
             log.debug("Connection <{}> established successfully.", connection.getId());
         } catch (final ConnectionFailedException e) {
@@ -259,8 +259,8 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
         }
     }
 
-    private AmqpClientActor.JmsConnected tryConnect(@Nullable final ActorRef origin) {
-        final JmsConnection jmsConnection = createJmsConnection();
+    private AmqpClientActor.JmsConnected tryConnect(@Nullable final ActorRef origin, final String clientId) {
+        final JmsConnection jmsConnection = createJmsConnection(clientId);
         try {
             startConnection(jmsConnection);
             final Session session = createSession(jmsConnection);
@@ -355,7 +355,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
     /**
      * @return The JmsConnection
      */
-    private JmsConnection createJmsConnection() {
+    private JmsConnection createJmsConnection(final String clientId) {
         return safelyExecuteJmsOperation(null, "create JMS connection", () -> {
             if (log.isDebugEnabled()) {
                 final ConnectionConfig connectionConfig =
@@ -363,11 +363,13 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
                                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
                                 .getConnectionConfig();
                 final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
-                log.debug("Attempt to create connection {} for URI [{}]", connection.getId(),
-                        ConnectionBasedJmsConnectionFactory
-                                .buildAmqpConnectionUriFromConnection(connection, amqp10Config));
+                if (log.isDebugEnabled()) {
+                    log.debug("Attempt to create connection {} for URI [{}]", connection.getId(),
+                            ConnectionBasedJmsConnectionFactory
+                                    .buildAmqpConnectionUriFromConnection(connection, amqp10Config, clientId));
+                }
             }
-            return jmsConnectionFactory.createConnection(connection, exceptionListener, connectionLogger);
+            return jmsConnectionFactory.createConnection(connection, exceptionListener, connectionLogger, clientId);
         });
     }
 
@@ -423,6 +425,7 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
          * @throws JMSException if the supplier throws a {@link JMSException}.
          * @throws NamingException if the identifier of connection could not be found in the Context.
          */
+        @Nullable
         T get() throws JMSException, NamingException;
 
     }

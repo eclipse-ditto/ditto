@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
+import org.eclipse.ditto.signals.commands.thingsearch.WithSubscriptionId;
 
 /**
  * Command for cancelling a subscription of search results.
@@ -39,7 +40,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 @Immutable
 @JsonParsableCommand(typePrefix = CancelSubscription.TYPE_PREFIX, name = CancelSubscription.NAME)
 public final class CancelSubscription extends AbstractCommand<CancelSubscription>
-        implements ThingSearchCommand<CancelSubscription> {
+        implements ThingSearchCommand<CancelSubscription>, WithSubscriptionId<CancelSubscription> {
 
     /**
      * Name of the command.
@@ -87,11 +88,7 @@ public final class CancelSubscription extends AbstractCommand<CancelSubscription
         });
     }
 
-    /**
-     * Returns the subscriptionId which is to be included in the JSON of the retrieved entity.
-     *
-     * @return the subscriptionId.
-     */
+    @Override
     public String getSubscriptionId() {
         return subscriptionId;
     }

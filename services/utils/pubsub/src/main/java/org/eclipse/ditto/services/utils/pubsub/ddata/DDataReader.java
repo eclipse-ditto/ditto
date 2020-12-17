@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.pubsub.ddata;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
@@ -28,23 +27,6 @@ import scala.collection.immutable.Set;
  * @param <T> type of topic approximations.
  */
 public interface DDataReader<K, T> {
-
-    /**
-     * Get subscribers from a list of topic hashes.
-     *
-     * @param multimap the state of the distributed data.
-     * @param topicHashes the hash codes of each topic.
-     * @return collection of subscribers with 1 or more topics.
-     */
-    Collection<K> getSubscribers(Map<K, Set<T>> multimap, Collection<T> topicHashes);
-
-    /**
-     * Get subscribers from a list of topic hashes.
-     *
-     * @param topicHashes the hash codes of each topic.
-     * @return future collection of subscribers whose Bloom filter contains all hashes of 1 or more topics.
-     */
-    CompletionStage<Collection<K>> getSubscribers(Collection<T> topicHashes);
 
     /**
      * Read a low-level map from the local replicator.
@@ -68,7 +50,7 @@ public interface DDataReader<K, T> {
      * @param topic the topic.
      * @return its approximation in the distributed data.
      */
-    T approximate(String topic);
+    long approximate(String topic);
 
     /**
      * Start sending distributed data change events to the recipient.

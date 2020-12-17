@@ -123,6 +123,14 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
     Duration getAckLabelDeclareInterval();
 
     /**
+     * Whether to start all client actors on one node.
+     * Useful for single-connectivity-instance deployments.
+     *
+     * @return whether to start all client actors on the same node as the connection persistence actor.
+     */
+    boolean areAllClientActorsOnOneNode();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * {@code ConnectionConfig}.
      */
@@ -132,6 +140,11 @@ public interface ConnectionConfig extends WithSupervisorConfig, WithActivityChec
          * The amount of time for how long the connection actor waits for response from client actors.
          */
         CLIENT_ACTOR_ASK_TIMEOUT("client-actor-ask-timeout", Duration.ofSeconds(60L)),
+
+        /**
+         * Whether to start all client actors on 1 node.
+         */
+        ALL_CLIENT_ACTORS_ON_ONE_NODE("all-client-actors-on-one-node", false),
 
         /**
          * A comma separated list of allowed hostnames to which http requests will be sent.

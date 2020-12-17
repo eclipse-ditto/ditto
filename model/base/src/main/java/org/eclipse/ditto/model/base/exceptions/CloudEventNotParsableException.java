@@ -38,10 +38,10 @@
       */
      public static final String ERROR_CODE = "cloudevent.unparsable";
 
-     private static final String DEFAULT_MESSAGE = "The event could not be parsed.";
-     private static final String MESSAGE_PATTERN = "The system was unable to parse the event: {0}";
-     private static final String DESCRIPTION =
-             "Ensure that the event is being transmitted according to the Cloud Events HTTP binding specification v1.0.";
+     private static final String DEFAULT_MESSAGE = "Unable to parse as Cloud Event.";
+     private static final String MESSAGE_PATTERN = "Unable to parse as Cloud Event because of: <{0}>";
+     private static final String DESCRIPTION = "Ensure that the event is being transmitted according to the " +
+             "Cloud Events HTTP binding specification v1.0 and that all mandatory headers were set.";
      private static final URI DEFAULT_URI =
              URI.create("https://github.com/cloudevents/spec/blob/v1.0/http-protocol-binding.md");
 

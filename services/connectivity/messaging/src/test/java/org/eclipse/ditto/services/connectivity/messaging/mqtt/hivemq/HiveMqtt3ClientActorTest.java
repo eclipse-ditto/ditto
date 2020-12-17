@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
@@ -36,14 +37,12 @@ import akka.actor.Props;
 import akka.actor.Status;
 import akka.testkit.javadsl.TestKit;
 
-public class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<Mqtt3Publish> {
+public final class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<Mqtt3Publish> {
 
     private MockHiveMqtt3ClientFactory mockHiveMqtt3ClientFactory;
 
     @Before
     public void initClient() {
-        // init Mqtt3Client in before because this takes several minutes and causes test timeouts if done on demand
-        Mockito.mock(Mqtt3Client.class);
         mockHiveMqtt3ClientFactory = new MockHiveMqtt3ClientFactory();
     }
 
@@ -63,7 +62,7 @@ public class HiveMqtt3ClientActorTest extends AbstractMqttClientActorTest<Mqtt3P
             final ActorRef mqttClientActor = actorSystem.actorOf(props, "mqttClientActor-testSubscribeFails");
 
             mqttClientActor.tell(OpenConnection.of(connectionId, DittoHeaders.empty()), getRef());
-            expectMsgClass(Status.Failure.class);
+            expectMsgClass(Duration.ofSeconds(10L), Status.Failure.class);
 
             mqttClientActor.tell(CloseConnection.of(connectionId, DittoHeaders.empty()), getRef());
             expectMsg(DISCONNECTED_SUCCESS);

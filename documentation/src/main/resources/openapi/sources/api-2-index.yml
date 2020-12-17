@@ -21,7 +21,7 @@ info:
     However, the descriptions we provide additionally to the status code (e.g. in our API docs, or error codes like. "things.entitiy.tooLarge") might change without advance notice. These are not be considered as official API, and must therefore not be applied in your applications or tests.
 
 servers:
-  - url: https://ditto.eclipse.org/api/2
+  - url: https://ditto.eclipseprojects.io/api/2
     description: "online Ditto Sandbox"
   - url: /api/2
     description: "local Ditto"
@@ -37,6 +37,8 @@ tags:
     description: Find every thing
   - name: Messages
     description: Talk with your things
+  - name: CloudEvents
+    description: Process CloudEvents in Ditto
 
 security:
   #  - Google:
@@ -125,6 +127,12 @@ paths:
     $ref: "./paths/search/things.yml"
   /search/things/count:
     $ref: "./paths/search/things-count.yml"
+
+  ###
+  ### CloudEvents
+  ###
+  '/cloudevents':
+    $ref: "./paths/cloudevents/cloudevents.yml"
 
 components:
 

@@ -58,9 +58,9 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
     private final boolean dryRun;
 
     AbstractMqttPublisherActor(final Connection connection, final Function<P, CompletableFuture<R>> client,
-            final boolean dryRun) {
+            final boolean dryRun, final String clientId) {
 
-        super(connection);
+        super(connection, clientId);
         this.client = client;
         this.dryRun = dryRun;
     }
@@ -91,18 +91,6 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
      * @return its payload.
      */
     abstract Optional<ByteBuffer> getPayload(P message);
-
-    /**
-     * Create Props object for this publisher actor.
-     *
-     * @param connection the connection the publisher actor belongs to.
-     * @param client the HiveMQ client.
-     * @param dryRun whether this publisher is only created for a test or not.
-     * @return the Props object.
-     */
-    public static Props props(final Connection connection, final Mqtt3Client client, final boolean dryRun) {
-        return Props.create(AbstractMqttPublisherActor.class, connection, client, dryRun);
-    }
 
     /**
      * Convert an acknowledgement from broker to a Ditto acknowledgement.

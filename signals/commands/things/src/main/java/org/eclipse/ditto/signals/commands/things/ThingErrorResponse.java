@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -70,7 +71,10 @@ public final class ThingErrorResponse
      * @throws NullPointerException if one of the arguments is {@code null}.
      */
     public static ThingErrorResponse of(final DittoRuntimeException dittoRuntimeException) {
-        return of(FALLBACK_THING_ID, dittoRuntimeException, dittoRuntimeException.getDittoHeaders());
+        final DittoHeaders dittoHeaders = dittoRuntimeException.getDittoHeaders();
+        final String nullableEntityId = dittoHeaders.get(DittoHeaderDefinition.ENTITY_ID.getKey());
+        final ThingId thingId = nullableEntityId == null ? FALLBACK_THING_ID : ThingId.of(nullableEntityId);
+        return of(thingId, dittoRuntimeException, dittoHeaders);
     }
 
     /**

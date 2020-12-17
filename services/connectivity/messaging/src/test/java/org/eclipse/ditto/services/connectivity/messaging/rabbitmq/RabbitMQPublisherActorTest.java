@@ -123,7 +123,7 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return RabbitMQPublisherActor.props(TestConstants.createConnection());
+        return RabbitMQPublisherActor.props(TestConstants.createConnection(), "clientId");
     }
 
     @Override

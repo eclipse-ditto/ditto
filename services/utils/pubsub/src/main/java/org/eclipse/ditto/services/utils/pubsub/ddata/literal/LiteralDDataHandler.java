@@ -53,8 +53,8 @@ public final class LiteralDDataHandler extends AbstractDDataHandler<Address, Str
     }
 
     @Override
-    public String approximate(final String topic) {
-        return topic;
+    public long approximate(final String topic) {
+        return topic.hashCode();
     }
 
     @Override

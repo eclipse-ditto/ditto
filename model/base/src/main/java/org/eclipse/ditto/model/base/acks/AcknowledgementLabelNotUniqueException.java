@@ -33,7 +33,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
 @Immutable
 @JsonParsableException(errorCode = AcknowledgementLabelNotUniqueException.ERROR_CODE)
 public final class AcknowledgementLabelNotUniqueException extends DittoRuntimeException
-        implements AcknowledgementException {
+        implements AcknowledgementException, FatalPubSubException {
 
     /**
      * Error code of this exception.
@@ -71,7 +71,6 @@ public final class AcknowledgementLabelNotUniqueException extends DittoRuntimeEx
      * A mutable builder for a {@code AcknowledgementLabelNotUniqueException}.
      *
      * @return the builder.
-     * @throws NullPointerException if {@code timeout} is {@code null}.
      */
     public static Builder newBuilder() {
         return new Builder();
@@ -90,13 +89,7 @@ public final class AcknowledgementLabelNotUniqueException extends DittoRuntimeEx
     public static AcknowledgementLabelNotUniqueException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        return new Builder()
-                .loadJson(jsonObject)
-                .dittoHeaders(dittoHeaders)
-                .message(readMessage(jsonObject))
-                .description(readDescription(jsonObject).orElse(DEFAULT_DESCRIPTION))
-                .href(readHRef(jsonObject).orElse(null))
-                .build();
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
     @Override
@@ -108,6 +101,11 @@ public final class AcknowledgementLabelNotUniqueException extends DittoRuntimeEx
                 .href(getHref().orElse(null))
                 .dittoHeaders(dittoHeaders)
                 .build();
+    }
+
+    @Override
+    public DittoRuntimeException asDittoRuntimeException() {
+        return this;
     }
 
     /**

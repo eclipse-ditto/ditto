@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.amqp;
 
 import static org.apache.qpid.jms.message.JmsMessageSupport.ACCEPTED;
 import static org.apache.qpid.jms.message.JmsMessageSupport.MODIFIED_FAILED;
-import static org.apache.qpid.jms.message.JmsMessageSupport.MODIFIED_FAILED_UNDELIVERABLE;
+import static org.apache.qpid.jms.message.JmsMessageSupport.REJECTED;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.nio.ByteBuffer;
@@ -366,8 +366,8 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 ackType = ACCEPTED;
                 ackTypeName = "accepted";
             } else {
-                ackType = redeliver ? MODIFIED_FAILED : MODIFIED_FAILED_UNDELIVERABLE;
-                ackTypeName = redeliver ? "modified[delivery-failed]" : "modified[delivery-failed,undeliverable-here]";
+                ackType = redeliver ? MODIFIED_FAILED : REJECTED;
+                ackTypeName = redeliver ? "modified[delivery-failed]" : "rejected";
             }
             log.withCorrelationId(correlationId)
                     .info("Acking <{}> with original external message headers=<{}>, isSuccess=<{}>, ackType=<{} {}>",
@@ -383,7 +383,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             } else {
                 inboundAcknowledgedMonitor.exception("Sending negative acknowledgement: <{0}>", ackTypeName);
             }
-        } catch (final JMSException e) {
+        } catch (final Exception e) {
             log.withCorrelationId(correlationId).error(e, "Failed to ack an AMQP message");
         }
     }

@@ -17,6 +17,8 @@ import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -31,8 +33,8 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
-import org.eclipse.ditto.services.models.concierge.pubsub.DittoProtocolSub;
-import org.eclipse.ditto.services.models.concierge.streaming.StreamingType;
+import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
@@ -129,7 +131,7 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
         final ConnectivityCommandInterceptor dummyInterceptor = (command, connectionSupplier) -> {};
         final ClientActorPropsFactory entityActorFactory = DefaultClientActorPropsFactory.getInstance();
         final Props props =
-                ConnectionSupervisorActor.props(nopSub(), proxyActorProbe.ref(), entityActorFactory,
+                ConnectionSupervisorActor.props(proxyActorProbe.ref(), entityActorFactory,
                         dummyInterceptor, pubSubMediator);
 
         return system.actorOf(props, String.valueOf(id));
@@ -139,7 +141,7 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
         return new DittoProtocolSub() {
             @Override
             public CompletionStage<Void> subscribe(final Collection<StreamingType> types,
-                    final Collection<String> topics, final ActorRef subscriber) {
+                    final Collection<String> topics, final ActorRef subscriber, @Nullable final String group) {
                 return CompletableFuture.completedFuture(null);
             }
 
@@ -163,7 +165,8 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
 
             @Override
             public CompletionStage<Void> declareAcknowledgementLabels(
-                    final Collection<AcknowledgementLabel> acknowledgementLabels, final ActorRef subscriber) {
+                    final Collection<AcknowledgementLabel> acknowledgementLabels, final ActorRef subscriber,
+                    @Nullable final String group) {
                 return CompletableFuture.completedFuture(null);
             }
 

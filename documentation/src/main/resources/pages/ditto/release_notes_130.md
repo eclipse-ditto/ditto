@@ -117,7 +117,7 @@ AuthenticationProvider authenticationProvider = ...;
 
 MessagingProvider messagingProvider =
     MessagingProviders.webSocket(WebSocketMessagingConfiguration.newBuilder()
-        .endpoint("wss://ditto.eclipse.org")
+        .endpoint("wss://ditto.eclipseprojects.io")
         .initialConnectRetryEnabled(true) // set this to true in order to enable retry on initial connection errors
         .build(), authenticationProvider);
 

@@ -110,7 +110,7 @@ public final class EventJsonDeserializer<T extends Event> {
                 .orElse(null);
 
         final Metadata metadata = jsonObject.getValue(Event.JsonFields.METADATA.getPointer())
-                .filter(JsonValue::isObject)
+                .filter(jsonValue -> !jsonValue.isNull() && jsonValue.isObject())
                 .map(JsonValue::asObject)
                 .map(Metadata::newMetadata)
                 .orElse(null);

@@ -23,7 +23,6 @@ import java.util.Map;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.config.KafkaConfig;
-import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 
 import com.typesafe.config.Config;
 
@@ -44,10 +43,13 @@ final class ProducerPropertiesFactory {
 
     private final Connection connection;
     private final KafkaConfig kafkaConfig;
+    private final String clientId;
 
-    private ProducerPropertiesFactory(final Connection connection, final KafkaConfig kafkaConfig) {
+    private ProducerPropertiesFactory(final Connection connection, final KafkaConfig kafkaConfig,
+            final String clientId) {
         this.connection = checkNotNull(connection, "connection");
         this.kafkaConfig = checkNotNull(kafkaConfig, "Kafka config");
+        this.clientId = checkNotNull(clientId, "clientId");
     }
 
     /**
@@ -55,11 +57,13 @@ final class ProducerPropertiesFactory {
      *
      * @param connection the Kafka connection.
      * @param kafkaConfig the Kafka configuration settings.
+     * @param clientId the client ID.
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    static ProducerPropertiesFactory getInstance(final Connection connection, final KafkaConfig kafkaConfig) {
-        return new ProducerPropertiesFactory(connection, kafkaConfig);
+    static ProducerPropertiesFactory getInstance(final Connection connection, final KafkaConfig kafkaConfig,
+            final String clientId) {
+        return new ProducerPropertiesFactory(connection, kafkaConfig, clientId);
     }
 
     Map<String, Object> getProducerProperties() {
@@ -72,12 +76,7 @@ final class ProducerPropertiesFactory {
     }
 
     private void addMetadata(final HashMap<String, Object> properties) {
-        // identify the connected Kafka client by the connectionId followed by the instance index
-        // (in order to be able to differentiate if a clientCount >1 was configured):
-        final InstanceIdentifierSupplier instanceIdentifierSupplier = InstanceIdentifierSupplier.getInstance();
-
-        properties.put(CommonClientConfigs.CLIENT_ID_CONFIG,
-                connection.getId() + "-" + instanceIdentifierSupplier.get());
+        properties.put(CommonClientConfigs.CLIENT_ID_CONFIG, clientId);
     }
 
     private void addSpecificConfig(final HashMap<String, Object> properties) {

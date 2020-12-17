@@ -51,6 +51,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 
 import com.mongodb.reactivestreams.client.MongoCollection;
@@ -72,7 +73,8 @@ public final class SearchActorIT {
                     AuthorizationSubject.newInstance("ditto:ditto"));
 
     private static QueryParser queryParser;
-    private static MongoDbResource mongoResource;
+    @ClassRule
+    public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
     private static DittoMongoClient mongoClient;
 
     private MongoThingsSearchPersistence readPersistence;
@@ -85,8 +87,6 @@ public final class SearchActorIT {
     public static void startMongoResource() {
         queryParser = SearchRootActor.getQueryParser(DefaultLimitsConfig.of(ConfigFactory.empty()),
                 ActorSystem.create("test-system", ConfigFactory.load("actors-test.conf")));
-        mongoResource = new MongoDbResource("localhost");
-        mongoResource.start();
         mongoClient = provideClientWrapper();
     }
 
@@ -116,7 +116,7 @@ public final class SearchActorIT {
     private static DittoMongoClient provideClientWrapper() {
         return MongoClientWrapper.getBuilder()
                 .connectionString(
-                        "mongodb://" + mongoResource.getBindIp() + ":" + mongoResource.getPort() + "/testSearchDB")
+                        "mongodb://" + MONGO_RESOURCE.getBindIp() + ":" + MONGO_RESOURCE.getPort() + "/testSearchDB")
                 .build();
     }
 
@@ -136,9 +136,6 @@ public final class SearchActorIT {
         try {
             if (mongoClient != null) {
                 mongoClient.close();
-            }
-            if (mongoResource != null) {
-                mongoResource.stop();
             }
         } catch (final IllegalStateException e) {
             System.err.println("IllegalStateException during shutdown of MongoDB: " + e.getMessage());

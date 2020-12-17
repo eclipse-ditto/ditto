@@ -60,7 +60,7 @@ public class HiveMqtt5PublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected Props getPublisherActorProps() {
-        return HiveMqtt5PublisherActor.props(TestConstants.createConnection(), mqtt5Client, false);
+        return HiveMqtt5PublisherActor.props(TestConstants.createConnection(), mqtt5Client, false, "clientId");
     }
 
     @Override
