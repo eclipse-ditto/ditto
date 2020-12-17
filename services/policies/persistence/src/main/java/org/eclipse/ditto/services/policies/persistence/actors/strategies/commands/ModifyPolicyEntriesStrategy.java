@@ -28,10 +28,15 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyTooLargeException;
+import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.SubjectExpiry;
+import org.eclipse.ditto.model.policies.SubjectExpiryInvalidException;
+import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntries;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntriesResponse;
@@ -73,6 +78,12 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
         final Set<PolicyEntry> adjustedEntries = potentiallyAdjustPolicyEntries(policyEntries);
         final ModifyPolicyEntries adjustedCommand = ModifyPolicyEntries.of(command.getEntityId(), adjustedEntries,
                 dittoHeaders);
+
+        final Optional<Result<PolicyEvent>> alreadyExpiredSubject =
+                checkForAlreadyExpiredSubject(policyEntries, dittoHeaders, command);
+        if (alreadyExpiredSubject.isPresent()) {
+            return alreadyExpiredSubject.get();
+        }
 
         final PoliciesValidator validator = PoliciesValidator.newInstance(adjustedEntries);
 

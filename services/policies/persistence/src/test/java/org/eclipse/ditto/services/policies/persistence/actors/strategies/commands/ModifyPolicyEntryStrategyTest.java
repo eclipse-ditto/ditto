@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectExpiry;
+import org.eclipse.ditto.model.policies.SubjectExpiryInvalidException;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.policies.SubjectType;
@@ -145,10 +146,8 @@ public final class ModifyPolicyEntryStrategyTest extends AbstractPolicyCommandSt
         final SubjectExpiry expectedSubjectExpiry = SubjectExpiry.newInstance("2020-11-23T15:52:40Z");
 
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
-                PolicyEntryModificationInvalidException.newBuilder(TestConstants.Policy.POLICY_ID,
-                        TestConstants.Policy.LABEL)
-                        .description("The expiry of a Policy Subject may not be in the past, but it was: <" +
-                                expectedSubjectExpiry + ">.")
+                SubjectExpiryInvalidException.newBuilderTimestampInThePast(expectedSubjectExpiry)
+                        .description("It must not be in the past, please adjust to a timestamp in the future.")
                         .dittoHeaders(dittoHeaders)
                         .build());
     }

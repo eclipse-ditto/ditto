@@ -52,6 +52,7 @@ import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectExpiry;
+import org.eclipse.ditto.model.policies.SubjectExpiryInvalidException;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.policies.SubjectType;
@@ -906,7 +907,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
             // WHEN/THEN CreatePolicy fails if policy contains expired subject
             underTest.tell(CreatePolicy.of(policyWithExpiredSubject, headers), getRef());
-            expectMsgClass(PolicyModificationInvalidException.class);
+            expectMsgClass(SubjectExpiryInvalidException.class);
 
             // GIVEN: policy is created
             underTest.tell(CreatePolicy.of(validPolicy, headers), getRef());

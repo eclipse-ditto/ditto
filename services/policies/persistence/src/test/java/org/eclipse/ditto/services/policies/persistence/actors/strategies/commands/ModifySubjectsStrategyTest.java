@@ -25,6 +25,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectExpiry;
+import org.eclipse.ditto.model.policies.SubjectExpiryInvalidException;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.policies.SubjectType;
@@ -117,20 +118,18 @@ public final class ModifySubjectsStrategyTest extends AbstractPolicyCommandStrat
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
 
         final Instant expiry = Instant.parse("2020-11-23T15:52:36.123Z");
-        final Instant expectedAdjustedExpiry = Instant.parse("2020-11-23T15:52:40Z");
+        final SubjectExpiry expectedSubjectExpiry = SubjectExpiry.newInstance(expiry);
         final Subjects subjects = Subjects.newInstance(
                 Subject.newInstance(SubjectId.newInstance(SubjectIssuer.INTEGRATION, "this-is-me"),
-                        TestConstants.Policy.SUBJECT_TYPE, SubjectExpiry.newInstance(expiry))
+                        TestConstants.Policy.SUBJECT_TYPE, expectedSubjectExpiry)
         );
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
         final ModifySubjects command =
                 ModifySubjects.of(context.getState(), TestConstants.Policy.LABEL, subjects, dittoHeaders);
 
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
-                PolicyEntryModificationInvalidException.newBuilder(TestConstants.Policy.POLICY_ID,
-                        TestConstants.Policy.LABEL)
-                        .description("The expiry of a Policy Subject may not be in the past, but it was: <" +
-                                expectedAdjustedExpiry + ">.")
+                SubjectExpiryInvalidException.newBuilderTimestampInThePast(expectedSubjectExpiry)
+                        .description("It must not be in the past, please adjust to a timestamp in the future.")
                         .dittoHeaders(dittoHeaders)
                         .build());
     }

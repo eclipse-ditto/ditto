@@ -44,7 +44,10 @@ public final class SubjectExpiryInvalidException extends DittoRuntimeException i
 
     private static final String MESSAGE_TEMPLATE = "Subject expiry timestamp ''{0}'' is not valid!";
 
-    private static final String DEFAULT_DESCRIPTION = "It must be provided as ISO-8601 formatted char sequence.";
+    private static final String NOT_PARSABLE_AS_ISO_DESCRIPTION = "It must be provided as ISO-8601 formatted char " +
+            "sequence.";
+    private static final String MUST_NOT_BE_PAST_DESCRIPTION = "It must not be in the past, please adjust to a " +
+            "timestamp in the future.";
 
     private static final long serialVersionUID = 980234789562098342L;
 
@@ -63,7 +66,17 @@ public final class SubjectExpiryInvalidException extends DittoRuntimeException i
      * @return the builder.
      */
     public static Builder newBuilder(final CharSequence expiry) {
-        return new Builder(expiry);
+        return new Builder(expiry, NOT_PARSABLE_AS_ISO_DESCRIPTION);
+    }
+
+    /**
+     * A mutable builder for a {@code SubjectExpiryInvalidException} caused by the expiry being in the past.
+     *
+     * @param expiry the expiry of the subject.
+     * @return the builder.
+     */
+    public static Builder newBuilderTimestampInThePast(final CharSequence expiry) {
+        return new Builder(expiry, MUST_NOT_BE_PAST_DESCRIPTION);
     }
 
     /**
@@ -118,12 +131,13 @@ public final class SubjectExpiryInvalidException extends DittoRuntimeException i
     public static final class Builder extends DittoRuntimeExceptionBuilder<SubjectExpiryInvalidException> {
 
         private Builder() {
-            description(DEFAULT_DESCRIPTION);
+            description(NOT_PARSABLE_AS_ISO_DESCRIPTION);
         }
 
-        private Builder(final CharSequence expiry) {
+        private Builder(final CharSequence expiry, final String description) {
             this();
             message(MessageFormat.format(MESSAGE_TEMPLATE, expiry));
+            description(description);
         }
 
         @Override

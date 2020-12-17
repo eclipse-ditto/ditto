@@ -69,6 +69,12 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
         }
         final Policy newPolicyWithLifecycle = newPolicyBuilder.build();
 
+        final Optional<Result<PolicyEvent>> alreadyExpiredSubject =
+                checkForAlreadyExpiredSubject(newPolicyWithLifecycle, dittoHeaders, command);
+        if (alreadyExpiredSubject.isPresent()) {
+            return alreadyExpiredSubject.get();
+        }
+
         final PoliciesValidator validator = PoliciesValidator.newInstance(newPolicyWithLifecycle);
         if (validator.isValid()) {
             final Instant timestamp = getEventTimestamp();

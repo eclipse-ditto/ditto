@@ -79,6 +79,12 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
             return ResultFactory.newErrorResult(e, adjustedCommand);
         }
 
+        final Optional<Result<PolicyEvent>> alreadyExpiredSubject =
+                checkForAlreadyExpiredSubject(modifiedPolicyWithImplicits, dittoHeaders, command);
+        if (alreadyExpiredSubject.isPresent()) {
+            return alreadyExpiredSubject.get();
+        }
+
         final PoliciesValidator validator = PoliciesValidator.newInstance(modifiedPolicyWithImplicits);
 
         if (validator.isValid()) {

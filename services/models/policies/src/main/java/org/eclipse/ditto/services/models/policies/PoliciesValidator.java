@@ -39,9 +39,6 @@ public final class PoliciesValidator implements Validator {
     private static final String NO_AUTH_SUBJECT_PATTERN =
             "It must contain at least one permanent Subject with permission(s) <{0}> on resource <{1}>!";
 
-    private static final String SUBJECT_EXPIRY_NOT_IN_PAST_PATTERN =
-            "The 'expiry' of a Policy Subject may not be in the past, but it was: <{0}>.";
-
     private final Iterable<PolicyEntry> policyEntries;
     private boolean validationResult;
     private String reason;
@@ -67,19 +64,6 @@ public final class PoliciesValidator implements Validator {
 
     @Override
     public boolean isValid() {
-        final Optional<SubjectExpiry> alreadyExpiredSubject = StreamSupport.stream(policyEntries.spliterator(), false)
-                .map(PolicyEntry::getSubjects)
-                .flatMap(Subjects::stream)
-                .map(Subject::getExpiry)
-                .flatMap(Optional::stream)
-                .filter(SubjectExpiry::isExpired)
-                .findFirst();
-        if (alreadyExpiredSubject.isPresent()) {
-            validationResult = false;
-            reason = MessageFormat.format(SUBJECT_EXPIRY_NOT_IN_PAST_PATTERN, alreadyExpiredSubject.get());
-            return false;
-        }
-
         // Disregard expiring subjects when testing for permissions granted because those are deleted after some time.
         final Set<Subject> withPermissionGranted = StreamSupport.stream(policyEntries.spliterator(), false)
                 .filter(this::hasPermissionGranted)

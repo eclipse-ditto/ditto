@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.strategies.commands;
 
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -35,10 +36,13 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectExpiry;
+import org.eclipse.ditto.model.policies.SubjectExpiryInvalidException;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
 import org.eclipse.ditto.services.utils.persistentactors.etags.AbstractConditionHeaderCheckingCommandStrategy;
+import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryModificationInvalidException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryNotAccessibleException;
@@ -219,6 +223,33 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>>
         final Instant roundedUp = truncated.plus(toAdd, policyExpiryGranularity.temporalUnit);
 
         return SubjectExpiry.newInstance(roundedUp);
+    }
+
+    /**
+     * TODO TJ doc
+     * @param entries
+     * @param dittoHeaders
+     * @param command
+     * @return
+     */
+    protected static Optional<Result<PolicyEvent>> checkForAlreadyExpiredSubject(final Iterable<PolicyEntry> entries,
+            final DittoHeaders dittoHeaders, final Command<?> command) {
+
+        return StreamSupport.stream(entries.spliterator(), false)
+                .map(PolicyEntry::getSubjects)
+                .flatMap(Subjects::stream)
+                .map(Subject::getExpiry)
+                .flatMap(Optional::stream)
+                .filter(SubjectExpiry::isExpired)
+                .findFirst()
+                .map(subjectExpiry -> {
+                    final String expiryString = subjectExpiry.getTimestamp().toString();
+                    return ResultFactory.newErrorResult(
+                            SubjectExpiryInvalidException.newBuilderTimestampInThePast(expiryString)
+                                    .dittoHeaders(dittoHeaders)
+                                    .build(),
+                            command);
+                });
     }
 
     static DittoRuntimeException policyEntryNotFound(final PolicyId policyId, final Label label,

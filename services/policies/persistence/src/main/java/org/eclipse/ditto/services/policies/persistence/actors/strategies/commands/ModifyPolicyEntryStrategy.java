@@ -88,7 +88,15 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
         final PolicyEntry adjustedPolicyEntry = potentiallyAdjustPolicyEntry(policyEntry);
         final ModifyPolicyEntry adjustedCommand = ModifyPolicyEntry.of(command.getEntityId(), adjustedPolicyEntry,
                 dittoHeaders);
-        final PoliciesValidator validator = PoliciesValidator.newInstance(nonNullPolicy.setEntry(adjustedPolicyEntry));
+        final Policy newPolicy = nonNullPolicy.setEntry(adjustedPolicyEntry);
+
+        final Optional<Result<PolicyEvent>> alreadyExpiredSubject =
+                checkForAlreadyExpiredSubject(newPolicy, dittoHeaders, command);
+        if (alreadyExpiredSubject.isPresent()) {
+            return alreadyExpiredSubject.get();
+        }
+
+        final PoliciesValidator validator = PoliciesValidator.newInstance(newPolicy);
         final PolicyId policyId = context.getState();
 
         if (validator.isValid()) {

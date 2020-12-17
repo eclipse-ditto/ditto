@@ -64,8 +64,16 @@ final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySu
             final Subject adjustedSubject = potentiallyAdjustSubject(subject);
             final ModifySubject adjustedCommand = ModifySubject.of(
                     command.getEntityId(), command.getLabel(), adjustedSubject, dittoHeaders);
-            final PoliciesValidator validator =
-                    PoliciesValidator.newInstance(nonNullPolicy.setSubjectFor(label, adjustedSubject));
+
+            final Policy newPolicy = nonNullPolicy.setSubjectFor(label, adjustedSubject);
+
+            final Optional<Result<PolicyEvent>> alreadyExpiredSubject =
+                    checkForAlreadyExpiredSubject(newPolicy, dittoHeaders, command);
+            if (alreadyExpiredSubject.isPresent()) {
+                return alreadyExpiredSubject.get();
+            }
+
+            final PoliciesValidator validator = PoliciesValidator.newInstance(newPolicy);
 
             if (validator.isValid()) {
                 final PolicyEvent<?> event;
