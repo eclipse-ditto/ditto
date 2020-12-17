@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -50,4 +50,5 @@ final class ThingMergedStrategy extends AbstractThingEventStrategy<ThingMerged> 
             return null;
         }
     }
+
 }

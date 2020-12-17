@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -18,12 +18,15 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.time.Instant;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.events.things.ThingMerged;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -54,6 +57,31 @@ public final class ThingMergedStrategyTest extends AbstractStrategyTest {
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .setRevision(NEXT_REVISION)
                 .setModified(TIMESTAMP)
+                .build();
+        assertThat(thingWithMergeApplied).isEqualTo(expected);
+    }
+
+    @Test
+    @Ignore
+    // TODO either delete this test or get it to work after it is decided who to merge metadata for merged thing event.
+    public void replacesPreviousMetadata() {
+        final ThingMergedStrategy strategy = new ThingMergedStrategy();
+        final ThingMerged event = ThingMerged.of(THING.getEntityId().orElseThrow(),
+                TestConstants.Thing.ABSOLUTE_LOCATION_ATTRIBUTE_POINTER,
+                TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE, REVISION, TIMESTAMP, DittoHeaders.empty(), METADATA);
+
+        final Metadata previousMetadata = Metadata.newBuilder().set("additives", JsonArray.of("[\"E129\"]")).build();
+        final Thing thingWithMergeApplied =
+                strategy.handle(event, THING.toBuilder().setMetadata(previousMetadata).build(), NEXT_REVISION);
+
+        final Thing expected = ThingsModelFactory.newThingBuilder()
+                .setAttribute(TestConstants.Thing.LOCATION_ATTRIBUTE_POINTER,
+                        TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE)
+                .setId(THING_ID)
+                .setLifecycle(ThingLifecycle.ACTIVE)
+                .setRevision(NEXT_REVISION)
+                .setModified(TIMESTAMP)
+                .setMetadata(METADATA)
                 .build();
         assertThat(thingWithMergeApplied).isEqualTo(expected);
     }
