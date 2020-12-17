@@ -91,6 +91,9 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private static final Object START_PRODUCER = new Object();
 
     private static final AcknowledgementLabel NO_ACK_LABEL = AcknowledgementLabel.of("ditto-amqp-diagnostic");
+    private static final String TOO_MANY_IN_FLIGHT_MESSAGE_DESCRIPTION = "This can have the following reasons:\n" +
+            "a) The AMQP consumer does not consume the messages fast enough.\n" +
+            "b) The client count and of this connection is not configured high enough.";
 
     private final Session session;
     private final LinkedHashMap<Destination, MessageProducer> dynamicTargets;
@@ -375,8 +378,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                 resultFuture.completeExceptionally(MessageSendingFailedException.newBuilder()
                         .message("Outgoing AMQP message dropped: There are too many unsettled messages " +
                                 "or too few credits.")
-                        .description("Please improve the performance of the AMQP consumer, " +
-                                "reduce the rate of outgoing signals or make sure the messages are correctly consumed.")
+                        .description(TOO_MANY_IN_FLIGHT_MESSAGE_DESCRIPTION)
                         .dittoHeaders(message.getInternalHeaders())
                         .build());
             }

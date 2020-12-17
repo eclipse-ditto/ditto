@@ -112,6 +112,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final String LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE =
             "Live response of type <%s> is not of expected type <%s>.";
+    private static final String TOO_MANY_IN_FLIGHT_MESSAGE_DESCRIPTION = "This can have the following reasons:\n" +
+            "a) The HTTP endpoint does not consume the messages fast enough.\n" +
+            "b) The client count and/or the parallelism of this connection is not configured high enough.";
 
     private final HttpPushFactory factory;
 
@@ -237,8 +240,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             } else if (Objects.equals(queueOfferResult, QueueOfferResult.dropped())) {
                 resultFuture.completeExceptionally(MessageSendingFailedException.newBuilder()
                         .message("Outgoing HTTP request aborted: There are too many in-flight requests.")
-                        .description("Please improve the performance of the HTTP server " +
-                                "or reduce the rate of outgoing signals.")
+                        .description(TOO_MANY_IN_FLIGHT_MESSAGE_DESCRIPTION)
                         .dittoHeaders(message.getInternalHeaders())
                         .build());
             }
