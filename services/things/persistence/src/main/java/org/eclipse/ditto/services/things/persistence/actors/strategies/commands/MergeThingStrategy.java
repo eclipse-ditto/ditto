@@ -45,20 +45,24 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingMerged;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing} command for an already
- * existing Thing.
+ * This strategy handles the {@link MergeThing} command for an already existing Thing.
  */
 @Immutable
 final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> {
 
+    /**
+     * Constructs a new {@code MergeThingStrategy} object.
+     */
     MergeThingStrategy() {
         super(MergeThing.class);
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context, @Nullable final Thing thing,
+    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+            @Nullable final Thing thing,
             final long nextRevision,
-            final MergeThing command, @Nullable final Metadata metadata) {
+            final MergeThing command,
+            @Nullable final Metadata metadata) {
 
         final Thing nonNullThing = getEntityOrThrow(thing);
 
@@ -92,9 +96,9 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
     /**
      * Handles a {@link MergeThing} command that was sent via API v2 and targets a Thing with API version V2.
      */
-    private Result<ThingEvent> handleMergeExistingV2WithV2Command(final Context<ThingId> context,
-            final Thing thing, final Instant eventTs, final long nextRevision,
-            final MergeThing command, @Nullable final Metadata metadata) {
+    private Result<ThingEvent> handleMergeExistingV2WithV2Command(final Context<ThingId> context, final Thing thing,
+            final Instant eventTs, final long nextRevision, final MergeThing command,
+            @Nullable final Metadata metadata) {
         return applyMergeCommand(context, thing, eventTs, nextRevision, command, metadata);
     }
 
@@ -108,8 +112,7 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
         final JsonPointer path = command.getPath();
         final JsonValue value = command.getValue();
 
-        final Thing mergedThing =
-                wrapException(() -> mergeThing(context, command, thing, eventTs, nextRevision),
+        final Thing mergedThing = wrapException(() -> mergeThing(context, command, thing, eventTs, nextRevision),
                         command.getDittoHeaders());
         final ThingEvent<?> event =
                 ThingMerged.of(command.getThingEntityId(), path, value, nextRevision, eventTs, dittoHeaders, metadata);

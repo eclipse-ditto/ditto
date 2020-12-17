@@ -44,6 +44,7 @@ public class ThingMergeInvalidException extends DittoRuntimeException implements
     private static final String DEFAULT_DESCRIPTION =
             "The provided JSON Merge Patch cannot be applied at the given path.";
     private static final String RFC_7396_URI = "https://tools.ietf.org/html/rfc7396";
+
     private static final long serialVersionUID = -5292193314632230887L;
 
     private ThingMergeInvalidException(final DittoHeaders dittoHeaders,

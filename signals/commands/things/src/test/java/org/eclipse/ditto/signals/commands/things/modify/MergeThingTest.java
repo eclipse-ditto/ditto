@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -87,6 +87,7 @@ public final class MergeThingTest {
     public void mergeWithThing() {
         final MergeThing mergeThing =
                 MergeThing.withThing(THING_ID, TestConstants.Thing.THING, DITTO_HEADERS);
+
         assertThat(mergeThing.changesAuthorization()).isTrue();
         assertThat(mergeThing.getPath()).isEmpty();
         assertThat(mergeThing.getValue()).isEqualTo(TestConstants.Thing.THING.toJson());
@@ -95,6 +96,7 @@ public final class MergeThingTest {
     @Test
     public void mergeWithPolicyId() {
         final MergeThing mergeThing = MergeThing.withPolicyId(THING_ID, POLICY_ID, DITTO_HEADERS);
+
         assertThat(mergeThing.changesAuthorization()).isTrue();
         assertThat(mergeThing.getPath()).isEqualTo(Thing.JsonFields.POLICY_ID.getPointer());
         assertThat(mergeThing.getValue()).isEqualTo(JsonValue.of(POLICY_ID));
@@ -136,6 +138,7 @@ public final class MergeThingTest {
     public void mergeWithNullAttributes() {
         final MergeThing mergeThing =
                 MergeThing.withAttributes(THING_ID, AttributesModelFactory.nullAttributes(), DITTO_HEADERS);
+
         assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(Thing.JsonFields.ATTRIBUTES.getPointer());
         assertThat(mergeThing.getValue()).isEqualTo(JsonFactory.nullObject());
@@ -144,37 +147,31 @@ public final class MergeThingTest {
     @Test
     public void mergeWithAttribute() {
         final MergeThing mergeThing =
-                MergeThing.withAttribute(THING_ID, VALID_JSON_POINTER,
-                        LOCATION_ATTRIBUTE_VALUE,
-                        DITTO_HEADERS);
+                MergeThing.withAttribute(THING_ID, VALID_JSON_POINTER, LOCATION_ATTRIBUTE_VALUE, DITTO_HEADERS);
+
         assertThat(mergeThing.changesAuthorization()).isFalse();
-        assertThat(mergeThing.getPath()).isEqualTo(
-                Thing.JsonFields.ATTRIBUTES.getPointer().append(VALID_JSON_POINTER));
+        assertThat(mergeThing.getPath()).isEqualTo(Thing.JsonFields.ATTRIBUTES.getPointer().append(VALID_JSON_POINTER));
         assertThat(mergeThing.getValue()).isEqualTo(LOCATION_ATTRIBUTE_VALUE);
     }
 
     @Test
     public void mergeWithNullAttribute() {
         final MergeThing mergeThing =
-                MergeThing.withAttribute(THING_ID, VALID_JSON_POINTER, JsonFactory.nullLiteral(),
-                        DITTO_HEADERS);
+                MergeThing.withAttribute(THING_ID, VALID_JSON_POINTER, JsonFactory.nullLiteral(), DITTO_HEADERS);
+
         assertThat(mergeThing.changesAuthorization()).isFalse();
-        assertThat(mergeThing.getPath()).isEqualTo(
-                Thing.JsonFields.ATTRIBUTES.getPointer().append(VALID_JSON_POINTER));
+        assertThat(mergeThing.getPath()).isEqualTo(Thing.JsonFields.ATTRIBUTES.getPointer().append(VALID_JSON_POINTER));
         assertThat(mergeThing.getValue()).isEqualTo(JsonFactory.nullLiteral());
     }
 
     @Test(expected = JsonKeyInvalidException.class)
     public void mergeWithInvalidAttributePath() {
-        MergeThing.withAttribute(THING_ID, INVALID_JSON_POINTER,
-                LOCATION_ATTRIBUTE_VALUE,
-                DITTO_HEADERS);
+        MergeThing.withAttribute(THING_ID, INVALID_JSON_POINTER, LOCATION_ATTRIBUTE_VALUE, DITTO_HEADERS);
     }
 
     @Test(expected = JsonKeyInvalidException.class)
     public void mergeWithInvalidAttributeValue() {
-        MergeThing.withAttribute(THING_ID, VALID_JSON_POINTER, INVALID_ATTRIBUTE_VALUE,
-                DITTO_HEADERS);
+        MergeThing.withAttribute(THING_ID, VALID_JSON_POINTER, INVALID_ATTRIBUTE_VALUE, DITTO_HEADERS);
     }
 
     @Test
@@ -210,8 +207,7 @@ public final class MergeThingTest {
     @Test
     public void mergeWithNullFeature() {
         final MergeThing mergeThing =
-                MergeThing.withFeature(THING_ID,
-                        ThingsModelFactory.nullFeature(FLUX_CAPACITOR_ID), DITTO_HEADERS);
+                MergeThing.withFeature(THING_ID, ThingsModelFactory.nullFeature(FLUX_CAPACITOR_ID), DITTO_HEADERS);
 
         assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(Thing.JsonFields.FEATURES.getPointer()
@@ -224,6 +220,7 @@ public final class MergeThingTest {
         final MergeThing mergeThing =
                 MergeThing.withFeatureDefinition(THING_ID, FLUX_CAPACITOR_ID,
                         TestConstants.Feature.FLUX_CAPACITOR_DEFINITION, DITTO_HEADERS);
+
         assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(
                 Thing.JsonFields.FEATURES.getPointer()
@@ -237,6 +234,7 @@ public final class MergeThingTest {
         final MergeThing mergeThing =
                 MergeThing.withFeatureDefinition(THING_ID, FLUX_CAPACITOR_ID,
                         ThingsModelFactory.nullFeatureDefinition(), DITTO_HEADERS);
+
         assertThat(mergeThing.changesAuthorization()).isFalse();
         assertThat(mergeThing.getPath()).isEqualTo(
                 Thing.JsonFields.FEATURES.getPointer()
@@ -390,12 +388,14 @@ public final class MergeThingTest {
     @Test
     public void fromJsonReturnsExpected() {
         final MergeThing mergeThing = MergeThing.fromJson(KNOWN_JSON, DITTO_HEADERS);
+
         assertThat(mergeThing).isEqualTo(KNOWN_MERGE_THING);
     }
 
     @Test
     public void toJsonReturnsExpected() {
         final JsonObject actual = KNOWN_MERGE_THING.toJson();
+
         assertThat(actual).isEqualTo(KNOWN_JSON);
     }
 
@@ -404,6 +404,7 @@ public final class MergeThingTest {
         final MergeThing underTest = MergeThing.withAttribute(TestConstants.Thing.THING_ID, LOCATION_ATTRIBUTE_POINTER,
                 LOCATION_ATTRIBUTE_VALUE, DITTO_HEADERS);
         final Optional<JsonValue> entity = underTest.getEntity();
+
         assertThat(entity).contains(LOCATION_ATTRIBUTE_VALUE);
     }
 

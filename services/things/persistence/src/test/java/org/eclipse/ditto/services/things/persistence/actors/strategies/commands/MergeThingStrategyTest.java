@@ -41,6 +41,7 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
 
     private static final DittoHeaders V1_HEADER =
             DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_1).build();
+
     private MergeThingStrategy underTest;
 
     @Before
@@ -72,7 +73,7 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
 
         final MergeThing mergeThing = MergeThing.of(thingId, path, thingJson, DittoHeaders.empty());
         final MergeThingResponse expectedCommandResponse =
-                mergeThingResponse(existing, path, thingJson, mergeThing.getDittoHeaders(), false);
+                mergeThingResponse(existing, path, thingJson, mergeThing.getDittoHeaders());
         assertModificationResult(underTest, existing, mergeThing, ThingMerged.class, expectedCommandResponse);
     }
 
