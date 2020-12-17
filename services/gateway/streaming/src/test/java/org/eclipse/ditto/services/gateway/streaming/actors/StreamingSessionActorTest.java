@@ -43,7 +43,6 @@ import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.model.jwt.JwtInvalidException;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.services.gateway.security.authentication.DefaultAuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
@@ -244,25 +243,6 @@ public final class StreamingSessionActorTest {
 
             assertThat(sinkProbe.expectSubscriptionAndError())
                     .isInstanceOf(GatewayWebsocketSessionClosedException.class);
-        }};
-    }
-
-    @Test
-    public void validJwtRefreshesStream() {
-        when(mockValidator.validate(any(JsonWebToken.class)))
-                .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
-        when(mockAuthenticationResultProvider.getAuthenticationResult(any(JsonWebToken.class), any(DittoHeaders.class)))
-                .thenReturn(DefaultAuthenticationResult.successful(DittoHeaders.empty(), authorizationContext));
-
-        new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(actorSystem.actorOf(getProps("ack")));
-
-            final Jwt jwt = Jwt.newInstance(getTokenString(), testName.getMethodName());
-
-            underTest.tell(jwt, getRef());
-
-            sinkProbe.expectSubscription();
-            sinkProbe.expectNoMessage();
         }};
     }
 
