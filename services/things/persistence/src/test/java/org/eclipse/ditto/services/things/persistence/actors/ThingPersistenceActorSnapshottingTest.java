@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -156,7 +157,8 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
 
                 LOGGER.info("Told CreateThing, expecting CreateThingResponse ...");
 
-                final CreateThingResponse createThingResponse = expectMsgClass(CreateThingResponse.class);
+                final CreateThingResponse createThingResponse =
+                        expectMsgClass(Duration.ofSeconds(10), CreateThingResponse.class);
                 final Thing actualThing = createThingResponse.getThingCreated().orElse(null);
                 assertThingInResponse(actualThing, thing, 1);
 
