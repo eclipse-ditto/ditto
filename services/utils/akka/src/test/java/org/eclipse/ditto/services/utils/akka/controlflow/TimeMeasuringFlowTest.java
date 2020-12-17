@@ -21,8 +21,10 @@ import static org.mockito.Mockito.verify;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
+import org.assertj.core.data.Offset;
 import org.assertj.core.data.Percentage;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.OnStopHandler;
@@ -35,6 +37,7 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.japi.Pair;
@@ -69,8 +72,8 @@ public final class TimeMeasuringFlowTest {
     }
 
     @Test
-    public void timeMeasuringInaccuracyIsLessThanOnePercent() {
-        final Duration sleepDuration = Duration.ofMillis(500);
+    public void timeMeasuringInaccuracyIsLessThanTwoMS() {
+        final Duration sleepDuration = Duration.ofMillis(5);
         final Flow<String, String, NotUsed> flowThatNeedsSomeTime = Flow.fromFunction(x -> {
             TimeUnit.MILLISECONDS.sleep(sleepDuration.toMillis());
             return x;
@@ -78,52 +81,28 @@ public final class TimeMeasuringFlowTest {
 
         final PreparedTimer timer = DittoMetrics.timer("test-time-measuring-flow");
         final PreparedTimer timerSpy = spy(timer);
-        final TimerCaptor timerCaptor = new TimerCaptor();
-        doAnswer(timerCaptor).when(timerSpy).start();
-
+        final List<Duration> durations = new ArrayList<>();
+        final Sink<Duration, CompletionStage<Done>> rememberDurations = Sink.<Duration>foreach(durations::add);
         new TestKit(system) {{
             Source.repeat("Test")
-                    .via(TimeMeasuringFlow.measureTimeOf(flowThatNeedsSomeTime, timerSpy))
+                    .via(TimeMeasuringFlow.measureTimeOf(flowThatNeedsSomeTime, timerSpy,rememberDurations))
                     .via(flowThatNeedsSomeTime) // This should not influence the time measuring above
                     .to(testSink)
                     .run(system);
 
-            // Ignore first run because of overhead in the first run
-            sinkProbe.request(1L);
-            sinkProbe.expectNext("Test");
-
-            final List<Duration> durations = new ArrayList<>();
             for (int i = 0; i < 10; i++) {
                 sinkProbe.request(1L);
                 sinkProbe.expectNext("Test");
-                durations.add(timerCaptor.getDuration());
             }
 
             final double averageDurationInNanos = durations.stream()
                     .mapToLong(Duration::toNanos)
                     .average()
                     .orElseThrow();
-
-            assertThat(averageDurationInNanos).isCloseTo(sleepDuration.toNanos(), Percentage.withPercentage(1));
-            verify(timerSpy, times(11)).start();
+            final Offset<Double> twoMsOffset = Offset.offset((double) Duration.ofMillis(2).toNanos());
+            assertThat(averageDurationInNanos).isCloseTo(sleepDuration.toNanos(), twoMsOffset);
+            verify(timerSpy, times(10)).start();
         }};
-    }
-
-    static class TimerCaptor implements Answer<StartedTimer> {
-
-        private StoppedTimer stoppedTimer;
-
-        Duration getDuration() {
-            return stoppedTimer.getDuration();
-        }
-
-        @Override
-        public StartedTimer answer(final InvocationOnMock invocation) throws Throwable {
-            final StartedTimer startedTimer = (StartedTimer) invocation.callRealMethod();
-            startedTimer.onStop(new OnStopHandler(stoppedTimer -> this.stoppedTimer = stoppedTimer));
-            return startedTimer;
-        }
-
     }
 
 }

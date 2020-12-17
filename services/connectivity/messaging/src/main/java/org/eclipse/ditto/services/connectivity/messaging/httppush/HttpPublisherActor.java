@@ -16,6 +16,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -133,12 +134,18 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
         materializer = Materializer.createMaterializer(this::getContext);
 
+
+        final Sink<Duration, CompletionStage<Done>> logRequestTimes = Sink.<Duration>foreach(duration -> {
+            connectionLogger.success("HTTP request took <{0}> ms.", duration.toMillis());
+        });
         final Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?>
                 performHttpRequestFlow = factory.createFlow(getContext().getSystem(), logger);
+        final Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?>
+                timedHttpRequestFlow = TimeMeasuringFlow.measureTimeOf(performHttpRequestFlow, timer, logRequestTimes);
         final Pair<Pair<SourceQueueWithComplete<Pair<HttpRequest, HttpPushContext>>, UniqueKillSwitch>,
                 CompletionStage<Done>> materialized =
                 Source.<Pair<HttpRequest, HttpPushContext>>queue(config.getMaxQueueSize(), OverflowStrategy.dropNew())
-                        .viaMat(TimeMeasuringFlow.measureTimeOf(performHttpRequestFlow, timer), Keep.left())
+                        .viaMat(timedHttpRequestFlow, Keep.left())
                         .viaMat(KillSwitches.single(), Keep.both())
                         .toMat(Sink.foreach(HttpPublisherActor::processResponse), Keep.both())
                         .run(materializer);

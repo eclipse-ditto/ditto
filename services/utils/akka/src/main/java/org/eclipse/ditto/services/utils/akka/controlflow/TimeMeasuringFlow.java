@@ -12,12 +12,11 @@
  */
 package org.eclipse.ditto.services.utils.akka.controlflow;
 
-import java.util.concurrent.CompletionStage;
+import java.time.Duration;
 
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 
-import akka.Done;
 import akka.NotUsed;
 import akka.japi.Pair;
 import akka.stream.FanInShape2;
@@ -46,8 +45,23 @@ public final class TimeMeasuringFlow {
      * @param <O> the type of the Flow output.
      * @return a Flow wrapping the given flow to measure the time.
      */
-    @SuppressWarnings("unchecked")
     public static <I, O, M> Flow<I, O, M> measureTimeOf(final Flow<I, O, M> flow, final PreparedTimer timer) {
+        return measureTimeOf(flow, timer, Sink.ignore());
+    }
+
+    /**
+     * Builds a flow that measures the time it took the given flow to process the input to the output using the given timer.
+     *
+     * @param flow the flow that should be measured.
+     * @param timer the timer that should be used to measure the time.
+     * @param durationSink the sink which should receive the measured time of each request.
+     * @param <I> the type of the Flow input.
+     * @param <O> the type of the Flow output.
+     * @return a Flow wrapping the given flow to measure the time.
+     */
+    @SuppressWarnings("unchecked")
+    public static <I, O, M> Flow<I, O, M> measureTimeOf(final Flow<I, O, M> flow, final PreparedTimer timer,
+            final Sink<Duration, ?> durationSink) {
 
         final Graph<FlowShape<I, O>, M> flowShapeNotUsedGraph = GraphDSL.create(flow, (builder, flowShape) -> {
 
@@ -57,8 +71,10 @@ public final class TimeMeasuringFlow {
 
             final FanInShape2<StartedTimer, O, Pair<StartedTimer, O>> zip = builder.add(Zip.create());
 
-            final Sink<Pair<StartedTimer, O>, CompletionStage<Done>> stopTimerSink =
-                    Sink.foreach(pair -> pair.first().stop());
+            final Flow<Pair<StartedTimer, O>, Duration, NotUsed> stopTimerFlow =
+                    Flow.<Pair<StartedTimer, O>, Duration>fromFunction(pair -> pair.first().stop().getDuration());
+
+            final Sink<Pair<StartedTimer, O>, NotUsed> stopTimerSink = stopTimerFlow.to(durationSink);
 
             final Flow<I, StartedTimer, NotUsed> startTimerFlow = Flow.fromFunction(request -> timer.start());
 
