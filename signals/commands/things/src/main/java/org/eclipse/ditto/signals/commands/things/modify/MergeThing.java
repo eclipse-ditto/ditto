@@ -70,6 +70,8 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      * Type of this command.
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
+    private static final Predicate<JsonField> THING_ID_PREDICATE =
+            field -> Thing.JsonFields.ID.getPointer().equals(field.getKey().asPointer());
 
     private final ThingId thingId;
     private final JsonPointer path;
@@ -108,7 +110,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      */
     public static MergeThing withThing(final ThingId thingId, final Thing thing, final DittoHeaders dittoHeaders) {
         ensureAuthorizationMatchesSchemaVersion(thingId, thing, dittoHeaders);
-        final JsonObject mergePatch = thing.toJson();
+        final JsonObject mergePatch = thing.toJson(FieldType.notHidden().and(THING_ID_PREDICATE.negate()));
         return new MergeThing(thingId, JsonPointer.empty(), mergePatch, dittoHeaders);
     }
 
@@ -443,12 +445,10 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
     public static class JsonFields {
 
         static final JsonFieldDefinition<String> JSON_PATH =
-                JsonFactory.newStringFieldDefinition("path", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("path", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         static final JsonFieldDefinition<JsonValue> JSON_VALUE =
-                JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_2);
     }
 
     @Override

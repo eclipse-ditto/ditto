@@ -137,12 +137,10 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
      */
     private static class JsonFields {
         static final JsonFieldDefinition<String> JSON_PATH =
-                JsonFactory.newStringFieldDefinition("path", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newStringFieldDefinition("path", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         static final JsonFieldDefinition<JsonValue> JSON_VALUE =
-                JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_1,
-                        JsonSchemaVersion.V_2);
+                JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_2);
     }
 
     @Override

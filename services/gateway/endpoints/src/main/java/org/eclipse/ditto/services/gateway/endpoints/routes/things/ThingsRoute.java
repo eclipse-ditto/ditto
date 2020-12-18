@@ -291,27 +291,26 @@ public final class ThingsRoute extends AbstractRoute {
                         // PUT /things/<thingId>/policyId
                         put(() -> ensureMediaTypeJsonWithFallbacksThenExtractDataBytes(ctx, dittoHeaders,
                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                        policyIdJson -> ModifyPolicyId.of(thingId,
-                                                PolicyId.of(Optional.of(JsonFactory.readFrom(policyIdJson))
-                                                        .filter(JsonValue::isString)
-                                                        .map(JsonValue::asString)
-                                                        .orElse(policyIdJson)),
+                                        policyIdJson -> ModifyPolicyId.of(thingId, policyIdFromJson(policyIdJson),
                                                 dittoHeaders))
                                 )
                         ),
                         // PATCH /things/<thingId>/policyId
                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                        policyIdJson -> MergeThing.withPolicyId(thingId,
-                                                PolicyId.of(Optional.of(JsonFactory.readFrom(policyIdJson))
-                                                        .filter(JsonValue::isString)
-                                                        .map(JsonValue::asString)
-                                                        .orElse(policyIdJson)),
+                                        policyIdJson -> MergeThing.withPolicyId(thingId, policyIdFromJson(policyIdJson),
                                                 dittoHeaders))
                                 )
                         )
                 )
         );
+    }
+
+    private static PolicyId policyIdFromJson(final String policyIdJson) {
+        return PolicyId.of(Optional.of(JsonFactory.readFrom(policyIdJson))
+                .filter(JsonValue::isString)
+                .map(JsonValue::asString)
+                .orElse(policyIdJson));
     }
 
     /*
