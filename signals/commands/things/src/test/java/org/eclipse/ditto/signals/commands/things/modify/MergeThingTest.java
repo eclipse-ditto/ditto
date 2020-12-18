@@ -90,7 +90,8 @@ public final class MergeThingTest {
 
         assertThat(mergeThing.changesAuthorization()).isTrue();
         assertThat(mergeThing.getPath()).isEmpty();
-        assertThat(mergeThing.getValue()).isEqualTo(TestConstants.Thing.THING.toJson());
+        assertThat(mergeThing.getValue()).isEqualTo(
+                TestConstants.Thing.THING.toJson().remove(Thing.JsonFields.ID.getPointer()));
     }
 
     @Test
