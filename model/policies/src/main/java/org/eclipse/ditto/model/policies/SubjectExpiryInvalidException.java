@@ -42,7 +42,7 @@ public final class SubjectExpiryInvalidException extends DittoRuntimeException i
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "subjectexpiry.invalid";
 
-    private static final String MESSAGE_TEMPLATE = "Subject expiry timestamp ''{0}'' is not valid!";
+    private static final String MESSAGE_TEMPLATE = "Subject expiry timestamp ''{0}'' is not valid.";
 
     private static final String NOT_PARSABLE_AS_ISO_DESCRIPTION = "It must be provided as ISO-8601 formatted char " +
             "sequence.";

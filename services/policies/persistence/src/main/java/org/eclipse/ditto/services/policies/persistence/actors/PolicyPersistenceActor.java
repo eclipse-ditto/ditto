@@ -14,10 +14,6 @@ package org.eclipse.ditto.services.policies.persistence.actors;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.Period;
-import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.UUID;
@@ -223,21 +219,17 @@ public final class PolicyPersistenceActor
             timers().cancel(NEXT_SUBJECT_EXPIRY_TIMER);
             final Instant earliestExpiry = earliestSubjectExpiryTimestamp.getTimestamp();
             final Duration durationBetweenNowAndEarliestExpiry = Duration.between(Instant.now(), earliestExpiry);
-            final Period periodBetween = Period.between(LocalDate.now(),
-                    LocalDate.ofInstant(earliestExpiry, ZoneId.systemDefault()));
             if (durationBetweenNowAndEarliestExpiry.isNegative()) {
                 // there are currently expired subjects, so delete the oldest right away:
                 getSelf().tell(DeleteOldestExpiredSubject.INSTANCE, getSelf());
-            } else if (periodBetween.toTotalMonths() > 1) {
-                log.info("Next expired subject will expire in > 1 months: <{}> - at: <{}>",
-                        periodBetween, earliestExpiry);
-                timers().startSingleTimer(NEXT_SUBJECT_EXPIRY_TIMER, DeleteOldestExpiredSubject.INSTANCE,
-                        Duration.of(1, ChronoUnit.DAYS));
             } else {
-                log.info("Scheduling message for deleting next expired subject in: <{}> - at: <{}>",
-                        durationBetweenNowAndEarliestExpiry, earliestExpiry);
+                final Duration oneDay = Duration.ofDays(1);
+                final Duration scheduleTimeout = durationBetweenNowAndEarliestExpiry.compareTo(oneDay) < 0 ?
+                        durationBetweenNowAndEarliestExpiry : oneDay;
+                log.info("Scheduling message for deleting next expired subject in: <{}> - " +
+                                "earliest expiry is at: <{}>", scheduleTimeout, earliestExpiry);
                 timers().startSingleTimer(NEXT_SUBJECT_EXPIRY_TIMER, DeleteOldestExpiredSubject.INSTANCE,
-                        durationBetweenNowAndEarliestExpiry);
+                        scheduleTimeout);
             }
         });
     }
@@ -257,18 +249,15 @@ public final class PolicyPersistenceActor
     private Optional<SubjectDeleted> calculateSubjectDeletedEventOfOldestExpiredSubject(final PolicyId policyId,
             @Nullable final Iterable<PolicyEntry> policyEntries) {
 
-        return findSubjectsWithExpiry(policyEntries)
-                .filter(pair -> {
-                    final boolean containsAlreadyExpiredSubjects = pair.second().getExpiry()
-                            .map(SubjectExpiry::isExpired)
-                            .orElse(false);
-                    if (!containsAlreadyExpiredSubjects) {
-                        // schedule the next expiry check if there are not yet expired subjects, but there are subjects
-                        //  which will eventually expire - in that case they might be in a very distant future:
-                        scheduleNextSubjectExpiryCheck();
-                    }
-                    return containsAlreadyExpiredSubjects;
-                })
+        final boolean containsExpiringSubjectsInFuture = determineSubjectsWithExpiry(policyEntries).count() >
+                determineAlreadyExpiredSubjects(policyEntries).count();
+        if (containsExpiringSubjectsInFuture) {
+            // schedule the next expiry check if there are not yet expired subjects, but there are subjects
+            //  which will eventually expire - in that case they might be in a very distant future:
+            scheduleNextSubjectExpiryCheck();
+        }
+
+        return determineAlreadyExpiredSubjects(policyEntries)
                 .min(Comparator.comparing(pair -> pair.second().getExpiry().orElseThrow()))
                 .map(pair -> {
                     final Instant eventTimestamp = Instant.now();
@@ -285,12 +274,26 @@ public final class PolicyPersistenceActor
                 });
     }
 
-    private Stream<Pair<Label, Subject>> findSubjectsWithExpiry(@Nullable final Iterable<PolicyEntry> policyEntries) {
+    private static Stream<Pair<Label, Subject>> determineAlreadyExpiredSubjects(
+            @Nullable final Iterable<PolicyEntry> entries) {
 
-        if (null == policyEntries) {
+        if (null == entries) {
             return Stream.empty();
         }
-        return StreamSupport.stream(policyEntries.spliterator(), false)
+        return determineSubjectsWithExpiry(entries)
+                .filter(pair -> pair.second().getExpiry()
+                        .map(SubjectExpiry::isExpired)
+                        .orElse(false)
+                );
+    }
+
+    private static Stream<Pair<Label, Subject>> determineSubjectsWithExpiry(
+            @Nullable final Iterable<PolicyEntry> entries) {
+
+        if (null == entries) {
+            return Stream.empty();
+        }
+        return StreamSupport.stream(entries.spliterator(), false)
                 .flatMap(entry -> entry.getSubjects().stream()
                         .map(subject -> Pair.create(entry.getLabel(), subject))
                 )

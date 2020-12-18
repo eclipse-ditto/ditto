@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.strategies.commands;
 
-import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -226,11 +225,15 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>>
     }
 
     /**
-     * TODO TJ doc
-     * @param entries
-     * @param dittoHeaders
-     * @param command
-     * @return
+     * Checks the passed {@code PolicyEntry}s whether there is an an already expired subject in there.
+     * <p>
+     * If there is, the Optional will contain an Result of type "error" containing the
+     * {@link SubjectExpiryInvalidException}.
+     *
+     * @param entries the policy entries to check for an expiry date in the past.
+     * @param dittoHeaders the DittoHeaders to use for building the exception.
+     * @param command the command which caused the change of the policy entries.
+     * @return an Optional with ErrorResponse if a subject was invalid, an empty Optional if everything was valid.
      */
     protected static Optional<Result<PolicyEvent>> checkForAlreadyExpiredSubject(final Iterable<PolicyEntry> entries,
             final DittoHeaders dittoHeaders, final Command<?> command) {
