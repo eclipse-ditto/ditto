@@ -237,25 +237,18 @@ public final class PolicyPersistenceActor
     private void handleDeleteExpiredSubjects() {
         log.debug("Calculating whether subjects did expire and need to be deleted..");
         calculateSubjectDeletedEventOfOldestExpiredSubject(entityId, entity)
-                .ifPresent(subjectDeleted ->
+                .ifPresentOrElse(subjectDeleted ->
                         persistAndApplyEvent(subjectDeleted, (persistedEvent, resultingEntity) ->
                                 log.withCorrelationId(persistedEvent)
                                         .info("Deleted expired subject <{}> of label <{}>",
                                                 subjectDeleted.getSubjectId(), subjectDeleted.getLabel())
-                        )
+                        ),
+                        this::scheduleNextSubjectExpiryCheck
                 );
     }
 
     private Optional<SubjectDeleted> calculateSubjectDeletedEventOfOldestExpiredSubject(final PolicyId policyId,
             @Nullable final Iterable<PolicyEntry> policyEntries) {
-
-        final boolean containsExpiringSubjectsInFuture = determineSubjectsWithExpiry(policyEntries).count() >
-                determineAlreadyExpiredSubjects(policyEntries).count();
-        if (containsExpiringSubjectsInFuture) {
-            // schedule the next expiry check if there are not yet expired subjects, but there are subjects
-            //  which will eventually expire - in that case they might be in a very distant future:
-            scheduleNextSubjectExpiryCheck();
-        }
 
         return determineAlreadyExpiredSubjects(policyEntries)
                 .min(Comparator.comparing(pair -> pair.second().getExpiry().orElseThrow()))
@@ -277,9 +270,6 @@ public final class PolicyPersistenceActor
     private static Stream<Pair<Label, Subject>> determineAlreadyExpiredSubjects(
             @Nullable final Iterable<PolicyEntry> entries) {
 
-        if (null == entries) {
-            return Stream.empty();
-        }
         return determineSubjectsWithExpiry(entries)
                 .filter(pair -> pair.second().getExpiry()
                         .map(SubjectExpiry::isExpired)
