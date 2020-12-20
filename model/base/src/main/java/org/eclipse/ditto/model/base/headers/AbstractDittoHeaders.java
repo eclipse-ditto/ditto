@@ -29,8 +29,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -151,14 +151,21 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     protected static AuthorizationContext keepAuthContextSubjectsWithIssuer(final AuthorizationContext authContext) {
-        final Predicate<AuthorizationSubject> idWithIssuer = authorizationSubject -> {
-            final String authorizationSubjectId = authorizationSubject.getId();
-            final String[] issuers = authorizationSubjectId.split(ISSUER_DIVIDER, 2);
-            return 2 == issuers.length;
-        };
+        final Set<String> subjectsWithoutIssuer = authContext.getAuthorizationSubjects()
+                .stream()
+                .flatMap(authorizationSubject -> {
+                    final String authorizationSubjectId = authorizationSubject.getId();
+                    final String[] issuers = authorizationSubjectId.split(ISSUER_DIVIDER, 2);
+                    if (2 == issuers.length) {
+                        return Stream.of(issuers[1]);
+                    } else {
+                        return Stream.empty();
+                    }
+                })
+                .collect(Collectors.toSet());
 
         final List<AuthorizationSubject> subjectsWithIssuer = authContext.stream()
-                .filter(idWithIssuer)
+                .filter(subject -> !subjectsWithoutIssuer.contains(subject.getId()))
                 .collect(Collectors.toList());
 
         return AuthorizationModelFactory.newAuthContext(authContext.getType(), subjectsWithIssuer);
