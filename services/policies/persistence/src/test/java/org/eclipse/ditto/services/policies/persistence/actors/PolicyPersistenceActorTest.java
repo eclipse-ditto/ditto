@@ -58,11 +58,13 @@ import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.model.policies.assertions.DittoPolicyAssertions;
+import org.eclipse.ditto.services.models.policies.PoliciesMessagingConstants;
 import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
+import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersistenceActor;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
@@ -111,7 +113,10 @@ import akka.actor.OneForOneStrategy;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
 import akka.actor.SupervisorStrategy;
+import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSubMediator;
+import akka.cluster.sharding.ClusterSharding;
+import akka.cluster.sharding.ClusterShardingSettings;
 import akka.japi.pf.DeciderBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.testkit.TestProbe;
@@ -1187,7 +1192,15 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
             {
                 final Policy policy = createPolicyWithRandomId();
                 final PolicyId policyId = policy.getEntityId().orElseThrow();
-                final ActorRef underTest = createPersistenceActorFor(this, policy);
+                final ClusterShardingSettings shardingSettings =
+                        ClusterShardingSettings.apply(actorSystem).withRole("policies");
+                final Props props =
+                        PolicyPersistenceActor.props(policyId, new PolicyMongoSnapshotAdapter(), pubSubMediator);
+                final Cluster cluster = Cluster.get(actorSystem);
+                cluster.join(cluster.selfAddress());
+                final ActorRef underTest = ClusterSharding.get(actorSystem)
+                        .start(PoliciesMessagingConstants.SHARD_REGION, props, shardingSettings,
+                                ShardRegionExtractor.of(30, actorSystem));
 
                 final Instant expiryInstant = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
                         .plus(2, ChronoUnit.SECONDS)
@@ -1217,6 +1230,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
                 // THEN: the response should contain the adjusted (rounded up) expiry time
                 final CreatePolicyResponse createPolicy1Response = expectMsgClass(CreatePolicyResponse.class);
+                final ActorRef firstPersistenceActor = getLastSender();
                 DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().get())
                         .isEqualEqualToButModified(adjustedPolicyWithExpiringSubject);
 
@@ -1225,22 +1239,25 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
                 assertThat(policyCreatedPublishSecond.msg()).isInstanceOf(PolicyCreated.class);
 
+                // WHEN: now the persistence actor is terminated
+                firstPersistenceActor.tell(PoisonPill.getInstance(), ActorRef.noSender());
+
                 // WHEN: it is waited until the subject expired
                 final Duration between =
                         Duration.between(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant(),
                                 expectedRoundedExpiryInstant);
                 TimeUnit.MILLISECONDS.sleep(between.toMillis() + 200L);
 
-                // WHEN: now the persistence actor is restarted
-                terminate(this, underTest);
-                final ActorRef underTestRecovered = createPersistenceActorFor(this, policy);
-
                 // AND WHEN: the policy is retrieved via concierge (and restored as a consequence)
                 final SudoRetrievePolicy sudoRetrievePolicy = SudoRetrievePolicy.of(policyId, dittoHeadersV2);
-                underTestRecovered.tell(sudoRetrievePolicy, getRef());
+                underTest.tell(sudoRetrievePolicy, getRef());
                 final SudoRetrievePolicyResponse sudoRetrievePolicyResponse =
                         expectMsgClass(SudoRetrievePolicyResponse.class);
-                assertThat(getLastSender()).isEqualTo(underTestRecovered);
+                final ActorRef secondPersistenceActor = getLastSender();
+
+                // THEN: the restored policy persistence actor has a different reference and the same actor path
+                assertThat(secondPersistenceActor).isNotEqualTo(firstPersistenceActor);
+                assertThat(secondPersistenceActor.path()).isEqualTo(firstPersistenceActor.path());
 
                 // THEN: returned policy via SudoRetrievePolicyResponse does no longer contain the already expired subject:
                 final Policy expectedPolicyWithoutExpiredSubject = incrementRevision(policy.toBuilder()
@@ -1270,7 +1287,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 // THEN: retrieving the expired subject should fail
                 final RetrieveSubject retrieveSubject =
                         RetrieveSubject.of(policyId, POLICY_LABEL, expiringSubject.getId(), dittoHeadersV2);
-                underTestRecovered.tell(retrieveSubject, getRef());
+                underTest.tell(retrieveSubject, getRef());
                 expectMsgClass(SubjectNotAccessibleException.class);
             }
         };
