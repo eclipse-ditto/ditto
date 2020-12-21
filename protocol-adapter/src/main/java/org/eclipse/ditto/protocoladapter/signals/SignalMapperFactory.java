@@ -18,6 +18,8 @@ import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
@@ -36,8 +38,16 @@ public final class SignalMapperFactory {
         return new ThingModifySignalMapper();
     }
 
+    public static SignalMapper<MergeThing> newThingMergeSignalMapper() {
+        return new ThingMergeSignalMapper();
+    }
+
     public static SignalMapper<ThingModifyCommandResponse<?>> newThingModifyResponseSignalMapper() {
         return new ThingModifyResponseSignalMapper();
+    }
+
+    public static SignalMapper<MergeThingResponse> newThingMergeResponseSignalMapper() {
+        return new ThingMergeResponseSignalMapper();
     }
 
     public static SignalMapper<ThingQueryCommand<?>> newThingQuerySignalMapper() {

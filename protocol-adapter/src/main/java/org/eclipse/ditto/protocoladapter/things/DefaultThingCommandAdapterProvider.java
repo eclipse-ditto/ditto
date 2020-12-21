@@ -23,12 +23,15 @@ import org.eclipse.ditto.signals.base.ErrorRegistry;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.things.ThingMerged;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 
@@ -39,12 +42,15 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
 
     private final ThingQueryCommandAdapter queryCommandAdapter;
     private final ThingModifyCommandAdapter modifyCommandAdapter;
+    private final ThingMergeCommandAdapter mergeCommandAdapter;
     private final ThingQueryCommandResponseAdapter queryCommandResponseAdapter;
     private final ThingModifyCommandResponseAdapter modifyCommandResponseAdapter;
+    private final ThingMergeCommandResponseAdapter mergeCommandResponseAdapter;
     private final ThingSearchCommandAdapter searchCommandAdapter;
     private final MessageCommandAdapter messageCommandAdapter;
     private final MessageCommandResponseAdapter messageCommandResponseAdapter;
     private final ThingEventAdapter thingEventAdapter;
+    private final ThingMergedEventAdapter thingMergedEventAdapter;
     private final SubscriptionEventAdapter subscriptionEventAdapter;
     private final ThingErrorResponseAdapter errorResponseAdapter;
 
@@ -52,14 +58,35 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
             final HeaderTranslator headerTranslator) {
         this.queryCommandAdapter = ThingQueryCommandAdapter.of(headerTranslator);
         this.modifyCommandAdapter = ThingModifyCommandAdapter.of(headerTranslator);
+        this.mergeCommandAdapter = ThingMergeCommandAdapter.of(headerTranslator);
         this.queryCommandResponseAdapter = ThingQueryCommandResponseAdapter.of(headerTranslator);
         this.modifyCommandResponseAdapter = ThingModifyCommandResponseAdapter.of(headerTranslator);
+        this.mergeCommandResponseAdapter = ThingMergeCommandResponseAdapter.of(headerTranslator);
         this.searchCommandAdapter = ThingSearchCommandAdapter.of(headerTranslator);
         this.messageCommandAdapter = MessageCommandAdapter.of(headerTranslator);
         this.messageCommandResponseAdapter = MessageCommandResponseAdapter.of(headerTranslator);
         this.thingEventAdapter = ThingEventAdapter.of(headerTranslator);
+        this.thingMergedEventAdapter = ThingMergedEventAdapter.of(headerTranslator);
         this.subscriptionEventAdapter = SubscriptionEventAdapter.of(headerTranslator, errorRegistry);
         this.errorResponseAdapter = ThingErrorResponseAdapter.of(headerTranslator, errorRegistry);
+    }
+
+    @Override
+    public List<Adapter<?>> getAdapters() {
+        return Arrays.asList(
+                queryCommandAdapter,
+                modifyCommandAdapter,
+                mergeCommandAdapter,
+                queryCommandResponseAdapter,
+                modifyCommandResponseAdapter,
+                mergeCommandResponseAdapter,
+                messageCommandAdapter,
+                messageCommandResponseAdapter,
+                thingEventAdapter,
+                searchCommandAdapter,
+                subscriptionEventAdapter,
+                errorResponseAdapter
+        );
     }
 
     @Override
@@ -73,6 +100,11 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
     }
 
     @Override
+    public Adapter<ThingMerged> getMergedEventAdapter() {
+        return thingMergedEventAdapter;
+    }
+
+    @Override
     public Adapter<SubscriptionEvent<?>> getSubscriptionEventAdapter() {
         return subscriptionEventAdapter;
     }
@@ -83,24 +115,18 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
     }
 
     @Override
+    public Adapter<MergeThing> getMergeCommandAdapter() {
+        return mergeCommandAdapter;
+    }
+
+    @Override
     public Adapter<ThingModifyCommandResponse<?>> getModifyCommandResponseAdapter() {
         return modifyCommandResponseAdapter;
     }
 
     @Override
-    public List<Adapter<?>> getAdapters() {
-        return Arrays.asList(
-                queryCommandAdapter,
-                modifyCommandAdapter,
-                queryCommandResponseAdapter,
-                modifyCommandResponseAdapter,
-                messageCommandAdapter,
-                messageCommandResponseAdapter,
-                thingEventAdapter,
-                searchCommandAdapter,
-                subscriptionEventAdapter,
-                errorResponseAdapter
-        );
+    public Adapter<MergeThingResponse> getMergeCommandResponseAdapter() {
+        return mergeCommandResponseAdapter;
     }
 
     @Override

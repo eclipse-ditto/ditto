@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -14,29 +14,26 @@ package org.eclipse.ditto.protocoladapter.things;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.Optional;
-
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.protocoladapter.AbstractAdapter;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.EventAdapter;
 import org.eclipse.ditto.protocoladapter.EventsTopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.protocoladapter.MergedEventAdapter;
 import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.PayloadBuilder;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategiesFactory;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.things.ThingMerged;
 
 /**
- * Adapter for mapping a {@link ThingEvent} to and from an {@link Adaptable}.
+ * Adapter for mapping a {@link org.eclipse.ditto.signals.events.things.ThingMerged} to and from an
+ * {@link org.eclipse.ditto.protocoladapter.Adaptable}.
  */
-final class ThingEventAdapter extends AbstractThingAdapter<ThingEvent<?>> implements EventAdapter<ThingEvent<?>> {
+final class ThingMergedEventAdapter extends AbstractThingAdapter<ThingMerged> implements MergedEventAdapter {
 
-    private ThingEventAdapter(final HeaderTranslator headerTranslator) {
-        super(MappingStrategiesFactory.getThingEventMappingStrategies(), headerTranslator);
+    private ThingMergedEventAdapter(final HeaderTranslator headerTranslator) {
+        super(MappingStrategiesFactory.getThingMergedEventMappingStrategies(), headerTranslator);
     }
 
     /**
@@ -45,35 +42,24 @@ final class ThingEventAdapter extends AbstractThingAdapter<ThingEvent<?>> implem
      * @param headerTranslator translator between external and Ditto headers.
      * @return the adapter.
      */
-    public static ThingEventAdapter of(final HeaderTranslator headerTranslator) {
-        return new ThingEventAdapter(requireNonNull(headerTranslator));
-    }
-
-    private static String getActionNameWithFirstLetterUpperCase(final TopicPath topicPath) {
-        return topicPath.getAction()
-                .map(TopicPath.Action::toString)
-                .map(AbstractAdapter::upperCaseFirst)
-                .orElseThrow(() -> new NullPointerException("TopicPath did not contain an Action!"));
+    public static ThingMergedEventAdapter of(final HeaderTranslator headerTranslator) {
+        return new ThingMergedEventAdapter(requireNonNull(headerTranslator));
     }
 
     @Override
     protected String getType(final Adaptable adaptable) {
-        final TopicPath topicPath = adaptable.getTopicPath();
         final JsonPointer path = adaptable.getPayload().getPath();
-        final String eventName = payloadPathMatcher.match(path) + getActionNameWithFirstLetterUpperCase(topicPath);
-        return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + eventName;
+        return payloadPathMatcher.match(path);
     }
 
     @Override
-    public Adaptable mapSignalToAdaptable(final ThingEvent<?> event, final TopicPath.Channel channel) {
+    protected Adaptable mapSignalToAdaptable(final ThingMerged event, final TopicPath.Channel channel) {
         final EventsTopicPathBuilder eventsTopicPathBuilder = getEventTopicPathBuilderFor(event, channel);
+
         final PayloadBuilder payloadBuilder = Payload.newBuilder(event.getResourcePath())
                 .withRevision(event.getRevision());
         event.getTimestamp().ifPresent(payloadBuilder::withTimestamp);
-
-        final Optional<JsonValue> value =
-                event.getEntity(event.getDittoHeaders().getSchemaVersion().orElse(event.getLatestSchemaVersion()));
-        value.ifPresent(payloadBuilder::withValue);
+        payloadBuilder.withValue(event.getValue());
 
         return Adaptable.newBuilder(eventsTopicPathBuilder.build())
                 .withPayload(payloadBuilder.build())

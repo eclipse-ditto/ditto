@@ -26,6 +26,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategies;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
  * Abstract implementation of {@link Adapter} to provide common functionality.
@@ -171,6 +172,33 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
      */
     protected final HeaderTranslator headerTranslator() {
         return headerTranslator;
+    }
+
+    protected EventsTopicPathBuilder getEventTopicPathBuilderFor(final ThingEvent<?> event,
+            final TopicPath.Channel channel) {
+        final TopicPathBuilder topicPathBuilder = ProtocolFactory.newTopicPathBuilder(event.getThingEntityId());
+        final EventsTopicPathBuilder eventsTopicPathBuilder;
+        if (channel == TopicPath.Channel.TWIN) {
+            eventsTopicPathBuilder = topicPathBuilder.twin().events();
+        } else if (channel == TopicPath.Channel.LIVE) {
+            eventsTopicPathBuilder = topicPathBuilder.live().events();
+        } else {
+            throw new IllegalArgumentException("Unknown Channel '" + channel + "'");
+        }
+
+        final String eventName = event.getClass().getSimpleName().toLowerCase();
+        if (eventName.contains(TopicPath.Action.CREATED.toString())) {
+            eventsTopicPathBuilder.created();
+        } else if (eventName.contains(TopicPath.Action.MODIFIED.toString())) {
+            eventsTopicPathBuilder.modified();
+        } else if (eventName.contains(TopicPath.Action.DELETED.toString())) {
+            eventsTopicPathBuilder.deleted();
+        } else if (eventName.contains(TopicPath.Action.MERGED.toString())) {
+            eventsTopicPathBuilder.merged();
+        } else {
+            throw UnknownEventException.newBuilder(eventName).build();
+        }
+        return eventsTopicPathBuilder;
     }
 
     /**

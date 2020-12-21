@@ -88,14 +88,7 @@ public final class TestConstants {
 
     public static final AccessControlList ACL = AccessControlListModelFactory.newAcl(ACL_ENTRY);
 
-    public static final JsonPointer ATTRIBUTE_POINTER = JsonPointer.of("/foo");
-
     public static final JsonValue ATTRIBUTE_VALUE = JsonValue.of("bar");
-
-    public static final JsonObject ATTRIBUTES_JSON =
-            JsonObject.newBuilder().set(ATTRIBUTE_POINTER, ATTRIBUTE_VALUE).build();
-
-    public static final Attributes ATTRIBUTES = ThingsModelFactory.newAttributes(ATTRIBUTES_JSON);
 
     public static final ThingDefinition THING_DEFINITION = ThingsModelFactory.newDefinition("example:test:definition");
 
@@ -105,8 +98,35 @@ public final class TestConstants {
 
     public static final String SUBJECT = "message:subject";
 
+    public static final JsonPointer THING_POINTER = JsonPointer.of("/");
+    public static final JsonPointer POLICY_ID_POINTER = JsonPointer.of("/policyId");
+    public static final JsonPointer THING_DEFINITION_POINTER = JsonPointer.of("/definition");
+    public static final JsonPointer THING_ATTRIBUTES_POINTER = JsonPointer.of("/attributes");
+    public static final JsonPointer FEATURES_POINTER = JsonPointer.of("/features");
+
     public static final JsonPointer FEATURE_PROPERTY_POINTER = JsonPointer.of("/baz");
     public static final JsonPointer FEATURE_DESIRED_PROPERTY_POINTER = JsonPointer.of("/bar");
+
+    public static final JsonPointer ATTRIBUTE_POINTER = JsonPointer.of("/foo");
+    public static final JsonPointer THING_ATTRIBUTE_POINTER =
+            THING_ATTRIBUTES_POINTER.append(ATTRIBUTE_POINTER);
+    public static final JsonPointer FEATURE_POINTER = JsonPointer.of(FEATURES_POINTER + "/" + FEATURE_ID);
+    public static final JsonPointer FEATURE_PROPERTIES_POINTER = JsonPointer.of(FEATURES_POINTER + "/" + FEATURE_ID +
+            "/properties");
+    public static final JsonPointer FEATURE_DEFINITION_POINTER = JsonPointer.of(FEATURES_POINTER + "/" + FEATURE_ID +
+            "/definition");
+    public static final JsonPointer FEATURE_DESIRED_PROPERTIES_POINTER =
+            JsonPointer.of(FEATURES_POINTER + "/" + FEATURE_ID +
+                    "/desiredProperties");
+    public static final JsonPointer FEATURE_PROPERTY_POINTER_ABSOLUTE =
+            JsonPointer.of(FEATURES_POINTER + "/" + FEATURE_ID + "/properties" + FEATURE_PROPERTY_POINTER);
+    public static final JsonPointer FEATURE_DESIRED_PROPERTIES_POINTER_ABSOLUTE =
+            JsonPointer.of(
+                    FEATURES_POINTER + "/" + FEATURE_ID + "/desiredProperties" + FEATURE_DESIRED_PROPERTY_POINTER);
+
+    public static final JsonObject ATTRIBUTES_JSON =
+            JsonObject.newBuilder().set(ATTRIBUTE_POINTER, ATTRIBUTE_VALUE).build();
+    public static final Attributes ATTRIBUTES = ThingsModelFactory.newAttributes(ATTRIBUTES_JSON);
 
     public static final JsonValue FEATURE_PROPERTY_VALUE = JsonValue.of(42);
     public static final JsonValue FEATURE_DESIRED_PROPERTY_VALUE = JsonValue.of(41);

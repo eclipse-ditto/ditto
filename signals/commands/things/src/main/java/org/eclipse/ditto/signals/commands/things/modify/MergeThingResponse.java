@@ -97,6 +97,13 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
         return Optional.of(value);
     }
 
+    /**
+     * @return the value describing the changes that are applied to the existing thing.
+     */
+    public JsonValue getValue() {
+        return value;
+    }
+
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicateParam) {
