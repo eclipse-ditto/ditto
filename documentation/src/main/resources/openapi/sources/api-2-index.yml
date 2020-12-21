@@ -41,10 +41,10 @@ tags:
     description: Process CloudEvents in Ditto
 
 security:
-  #  - Google:
-  #    - openid
-  - basicAuth: [ ]
-  - bearerAuth: [ ]
+  - Google:
+      - openid
+  - NginxBasic: [ ]
+  - Bearer: [ ]
 
 paths:
 
@@ -257,15 +257,9 @@ components:
       $ref: "./schemas/whoamiSubject.yml"
 
   securitySchemes:
-    basicAuth:
-      type: http
-      description: |-
-        Eclipse Ditto sandbox demo user (demo1 ... demo9) + password (demo)
-      scheme: basic
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: |-
-        A JSON Web Token issued by a supported OAuth 2.0 Identity Provider, e.g. a Google "id_token"
-
+    NginxBasic:
+      $ref: './security/nginxBasic.yml'
+    Bearer:
+      $ref: './security/bearerAuth.yml'
+    Google:
+      $ref: './security/google.yml'

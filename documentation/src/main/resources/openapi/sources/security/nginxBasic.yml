@@ -1,0 +1,4 @@
+type: http
+description: |-
+  Eclipse Ditto sandbox demo user (demo1 ... demo9) + password (demo)
+scheme: basic

@@ -1,0 +1,10 @@
+type: oauth2
+description: |-
+  Allow Eclipse Ditto to perform OAuth2.0 based authentication accessing your Google-ID.
+x-tokenName: id_token
+flows:
+  authorizationCode:
+    authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth'
+    tokenUrl: /oauth2/google/token
+    scopes:
+      openid: Access your Google-ID

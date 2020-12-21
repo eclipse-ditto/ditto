@@ -1,0 +1,5 @@
+type: http
+scheme: bearer
+bearerFormat: JWT
+description: |-
+  A JSON Web Token issued by a supported OAuth 2.0 Identity Provider.
