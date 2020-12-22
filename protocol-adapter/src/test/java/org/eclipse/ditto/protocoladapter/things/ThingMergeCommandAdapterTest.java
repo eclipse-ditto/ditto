@@ -12,8 +12,13 @@
  */
 package org.eclipse.ditto.protocoladapter.things;
 
+import java.util.function.Predicate;
+
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.LiveTwinTest;
@@ -32,6 +37,8 @@ import org.junit.Test;
 public final class ThingMergeCommandAdapterTest extends LiveTwinTest implements ProtocolAdapterTest {
 
     private ThingMergeCommandAdapter underTest;
+    private static final Predicate<JsonField> THING_ID_PREDICATE =
+            field -> Thing.JsonFields.ID.getPointer().equals(field.getKey().asPointer());
 
     @Before
     public void setUp() {
@@ -72,17 +79,19 @@ public final class ThingMergeCommandAdapterTest extends LiveTwinTest implements 
 
     @Test
     public void mergeThingToAdaptable() {
+        final Thing thing = TestConstants.THING.setFeature(TestConstants.FEATURE);
+
         final TopicPath topicPath = topicPath(TopicPath.Action.MERGE);
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(TestConstants.THING_POINTER)
-                        .withValue(TestConstants.THING.toJson())
+                        .withValue(thing.toJson(FieldType.notHidden().and(THING_ID_PREDICATE.negate())))
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
 
         final MergeThing mergeThing = MergeThing.withThing(TestConstants.THING_ID,
-                TestConstants.THING,
+                thing,
                 TestConstants.DITTO_HEADERS_V_2);
 
         final Adaptable actual = underTest.toAdaptable(mergeThing, channel);
