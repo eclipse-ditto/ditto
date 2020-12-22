@@ -717,7 +717,12 @@ public final class ThingCommandEnforcement
                 .map(referencePlaceholder -> {
                     l.debug("CreateThing command contains a reference placeholder for the policy it wants to copy: {}",
                             referencePlaceholder);
-                    return policyIdReferencePlaceholderResolver.resolve(referencePlaceholder, dittoHeaders());
+                    final DittoHeaders dittoHeadersWithoutPreconditionHeaders = dittoHeaders().toBuilder()
+                            .removePreconditionHeaders()
+                            .responseRequired(true)
+                            .build();
+                    return policyIdReferencePlaceholderResolver.resolve(referencePlaceholder,
+                            dittoHeadersWithoutPreconditionHeaders);
                 })
                 .orElseGet(() -> CompletableFuture.completedFuture(createThing.getPolicyIdOrPlaceholder().orElse(null)))
                 .thenCompose(policyId -> {
@@ -733,7 +738,8 @@ public final class ThingCommandEnforcement
     }
 
     private CompletionStage<Policy> retrievePolicyWithEnforcement(final PolicyId policyId) {
-        final DittoHeaders adjustedHeaders = DittoHeaders.newBuilder(dittoHeaders())
+        final DittoHeaders adjustedHeaders = dittoHeaders().toBuilder()
+                .removePreconditionHeaders()
                 .responseRequired(true)
                 .build();
 

@@ -161,6 +161,14 @@ public final class PubSubFactoryTest {
             pub.publish(signal("hello"), publisher.ref());
             pub.publish(signal("hello-world"), publisher.ref());
             subscriber.expectNoMessage();
+
+            // WHEN: actor subscribes to the topic again
+            sub.subscribeWithFilterAndGroup(singleton("hello"), subscriber.ref(), null, null)
+                    .toCompletableFuture()
+                    .join();
+            // THEN: it receives published message again
+            pub.publish(signal("hello"), publisher.ref());
+            subscriber.expectMsg(signal("hello"));
         }};
     }
 

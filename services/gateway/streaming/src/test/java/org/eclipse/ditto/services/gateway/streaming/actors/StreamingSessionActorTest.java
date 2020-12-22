@@ -18,6 +18,8 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
@@ -42,6 +44,7 @@ import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.model.jwt.JwtInvalidException;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
+import org.eclipse.ditto.services.gateway.security.authentication.DefaultAuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
@@ -57,6 +60,7 @@ import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
 import org.junit.After;
 import org.junit.Rule;
@@ -100,7 +104,15 @@ public final class StreamingSessionActorTest {
     private final SourceQueueWithComplete<SessionedJsonifiable> sourceQueue;
     private final TestSubscriber.Probe<SessionedJsonifiable> sinkProbe;
     private final KillSwitch killSwitch;
-    private final JwtValidator mockValidator = Mockito.mock(JwtValidator.class);
+    private final JwtValidator mockValidator = mock(JwtValidator.class);
+    private final JwtAuthenticationResultProvider mockAuthenticationResultProvider =
+            mock(JwtAuthenticationResultProvider.class);
+    final AuthorizationSubject authorizationSubject1 = AuthorizationSubject.newInstance("test-subject-1");
+    final AuthorizationSubject authorizationSubject2 = AuthorizationSubject.newInstance("test-subject-2");
+    final AuthorizationSubject authorizationSubject3 = AuthorizationSubject.newInstance("test-subject-3");
+    final AuthorizationContext authorizationContext =
+            AuthorizationContext.newInstance(DittoAuthorizationContextType.JWT,
+                    authorizationSubject1, authorizationSubject2, authorizationSubject3);
 
     public StreamingSessionActorTest() {
         actorSystem = ActorSystem.create();
@@ -226,20 +238,109 @@ public final class StreamingSessionActorTest {
                         BinaryValidationResult.invalid(JwtInvalidException.newBuilder().build())));
 
         new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(actorSystem.actorOf(getProps("ack")));
+            final ActorRef underTest = watch(actorSystem.actorOf(getProps()));
 
             final Jwt jwt = Jwt.newInstance(getTokenString(), testName.getMethodName());
 
             underTest.tell(jwt, getRef());
 
             assertThat(sinkProbe.expectSubscriptionAndError())
-                    .isInstanceOf(GatewayWebsocketSessionClosedException.class);
+                    .isInstanceOf(GatewayWebsocketSessionClosedException.class)
+                    .hasMessageContaining("invalid");
+        }};
+    }
+
+    @Test
+    public void changingAuthorizationContextClosesStream() {
+        Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
+                .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
+        Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(any(), any()))
+                .thenReturn(DefaultAuthenticationResult.successful(
+                        DittoHeaders.empty(),
+                        AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
+                                AuthorizationSubject.newInstance("new:auth-subject"))));
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = watch(actorSystem.actorOf(getProps()));
+
+            final Jwt jwt = Jwt.newInstance(getTokenString(), testName.getMethodName());
+
+            underTest.tell(jwt, getRef());
+
+            assertThat(sinkProbe.expectSubscriptionAndError())
+                    .isInstanceOf(GatewayWebsocketSessionClosedException.class)
+                    .hasMessageContaining("authorization context");
+        }};
+    }
+
+    @Test
+    public void keepingAuthorizationContextDoesNotCloseStream() {
+        Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
+                .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
+        Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(any(), any()))
+                .thenReturn(DefaultAuthenticationResult.successful(DittoHeaders.empty(), authorizationContext));
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = watch(actorSystem.actorOf(getProps()));
+
+            final Jwt jwt = Jwt.newInstance(getTokenString(), testName.getMethodName());
+
+            underTest.tell(jwt, getRef());
+
+            sinkProbe.expectSubscription();
+            sinkProbe.expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void hugeJwtExpirationTimeDoesNotCloseStream() {
+        Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
+                .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
+        Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(any(), any()))
+                .thenReturn(DefaultAuthenticationResult.successful(DittoHeaders.empty(), authorizationContext));
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = watch(actorSystem.actorOf(getProps()));
+
+            // maximum expiration is too far in the future
+            final Jwt jwt =
+                    Jwt.newInstance(getTokenString(Instant.now().plus(Duration.ofDays(999))), testName.getMethodName());
+
+            underTest.tell(jwt, getRef());
+
+            sinkProbe.expectSubscription();
+            sinkProbe.expectNoMessage();
+        }};
+    }
+
+    @Test
+    public void jwtExpirationTimeClosesStream() {
+        Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
+                .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
+        Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(any(), any()))
+                .thenReturn(DefaultAuthenticationResult.successful(DittoHeaders.empty(), authorizationContext));
+
+        new TestKit(actorSystem) {{
+            final ActorRef underTest = watch(actorSystem.actorOf(getProps()));
+
+            final Jwt jwt = Jwt.newInstance(getTokenString(Instant.now()), testName.getMethodName());
+
+            underTest.tell(jwt, getRef());
+
+            sinkProbe.expectSubscription();
+            assertThat(sinkProbe.expectError())
+                    .isInstanceOf(GatewayWebsocketSessionExpiredException.class)
+                    .hasMessageContaining("expired");
         }};
     }
 
     private static String getTokenString() {
+        return getTokenString(Instant.now().plusSeconds(60L));
+    }
+
+    private static String getTokenString(final Instant expiration) {
         final String header = "{\"header\":\"foo\"}";
-        final String payload = "{\"payload\":\"bar\"}";
+        final String payload = "{\"payload\":\"bar\",\"exp\":" + expiration.getEpochSecond() + "}";
         final String signature = "{\"signature\":\"baz\"}";
         return base64(header) + "." + base64(payload) + "." + base64(signature);
     }
@@ -253,9 +354,8 @@ public final class StreamingSessionActorTest {
         final AcknowledgementConfig acknowledgementConfig = DefaultAcknowledgementConfig.of(ConfigFactory.empty());
         final HeaderTranslator headerTranslator = HeaderTranslator.empty();
         final Props mockProps = Props.create(Actor.class, () -> new TestActor(new LinkedBlockingDeque<>()));
-        final JwtAuthenticationResultProvider mockProvider = mock(JwtAuthenticationResultProvider.class);
         return StreamingSessionActor.props(connect, mockSub, commandRouterProbe.ref(), acknowledgementConfig,
-                headerTranslator, mockProps, mockValidator, mockProvider);
+                headerTranslator, mockProps, mockValidator, mockAuthenticationResultProvider);
     }
 
     private void onDeclareAckLabels(final CompletionStage<Void> answer) {
@@ -279,7 +379,8 @@ public final class StreamingSessionActorTest {
     }
 
     private Connect getConnect(final Set<AcknowledgementLabel> declaredAcks) {
-        return new Connect(sourceQueue, testName.getMethodName(), "WS", JsonSchemaVersion.LATEST, null, declaredAcks);
+        return new Connect(sourceQueue, testName.getMethodName(), "WS", JsonSchemaVersion.LATEST, null, declaredAcks,
+                authorizationContext);
     }
 
     private Set<AcknowledgementLabel> acks(final String... ackLabelNames) {

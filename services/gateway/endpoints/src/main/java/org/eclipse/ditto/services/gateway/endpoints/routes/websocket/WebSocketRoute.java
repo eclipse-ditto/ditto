@@ -293,7 +293,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 .thenApply(overwriteWebSocketConfig(dittoHeaders))
                 .thenApply(websocketConfig -> {
                     final Pair<Connect, Flow<DittoRuntimeException, Message, NotUsed>> outgoing =
-                            createOutgoing(version, connectionCorrelationId, dittoHeaders, adapter, request,
+                            createOutgoing(version, connectionCorrelationId, authContext, dittoHeaders, adapter,
+                                    request,
                                     websocketConfig, signalEnrichmentFacade, logger);
 
                     final Flow<Message, DittoRuntimeException, NotUsed> incoming =
@@ -471,6 +472,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private Pair<Connect, Flow<DittoRuntimeException, Message, NotUsed>> createOutgoing(
             final JsonSchemaVersion version,
             final CharSequence connectionCorrelationId,
+            final AuthorizationContext connectionAuthContext,
             final DittoHeaders additionalHeaders,
             final ProtocolAdapter adapter,
             final HttpRequest request,
@@ -489,7 +491,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                             additionalHeaders);
                     return new Connect(withQueue.getSourceQueue(), connectionCorrelationId, STREAMING_TYPE_WS, version,
                             optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null),
-                            readDeclaredAcknowledgementLabels(additionalHeaders));
+                            readDeclaredAcknowledgementLabels(additionalHeaders), connectionAuthContext);
                 })
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<SessionedJsonifiable, NotUsed>>()
                         .match(GatewayWebsocketSessionExpiredException.class,
