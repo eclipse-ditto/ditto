@@ -40,6 +40,14 @@ public final class DittoAcknowledgementLabel implements AcknowledgementLabel {
      */
     public static final DittoAcknowledgementLabel LIVE_RESPONSE = new DittoAcknowledgementLabel("live-response");
 
+    /**
+     * Label for Acknowledgements indicating that a change to an entity (e. g. a thing) has successfully been reflected
+     * in the search index.
+     *
+     * @since 2.0.0
+     */
+    public static final DittoAcknowledgementLabel SEARCH_PERSISTED = new DittoAcknowledgementLabel("search-persisted");
+
     private final AcknowledgementLabel delegate;
 
     private DittoAcknowledgementLabel(final CharSequence labelValue) {
@@ -52,7 +60,7 @@ public final class DittoAcknowledgementLabel implements AcknowledgementLabel {
      * @return an array containing the Ditto acknowledgement labels, in the order they're declared.
      */
     public static AcknowledgementLabel[] values() {
-        return new AcknowledgementLabel[]{TWIN_PERSISTED, LIVE_RESPONSE};
+        return new AcknowledgementLabel[]{TWIN_PERSISTED, LIVE_RESPONSE, SEARCH_PERSISTED};
     }
 
     /**

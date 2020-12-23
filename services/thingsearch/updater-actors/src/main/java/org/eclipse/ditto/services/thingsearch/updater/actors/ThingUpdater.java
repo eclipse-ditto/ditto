@@ -21,6 +21,8 @@ import java.util.Objects;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.base.actors.ShutdownBehaviour;
@@ -49,6 +51,9 @@ import akka.cluster.sharding.ShardRegion;
  * This Actor initiates persistence updates related to 1 thing.
  */
 final class ThingUpdater extends AbstractActor {
+
+    private static final AcknowledgementRequest SEARCH_PERSISTED_REQUEST =
+            AcknowledgementRequest.of(DittoAcknowledgementLabel.SEARCH_PERSISTED);
 
     private final DittoDiagnosticLoggingAdapter log;
     private final ThingId thingId;
@@ -113,6 +118,14 @@ final class ThingUpdater extends AbstractActor {
         return Metadata.of(thingId, thingRevision, policyId, policyRevision);
     }
 
+    private Metadata exportMetadataWithSender(final boolean shouldAcknowledge, final ActorRef sender) {
+        if (shouldAcknowledge) {
+            return Metadata.of(thingId, thingRevision, policyId, policyRevision, sender);
+        } else {
+            return exportMetadata();
+        }
+    }
+
     /**
      * Push metadata of this updater to the queue of thing-changes to be streamed into the persistence.
      */
@@ -175,19 +188,21 @@ final class ThingUpdater extends AbstractActor {
         acknowledge(policyReferenceTag);
     }
 
-    private void processThingEvent(final ThingEvent thingEvent) {
+    private void processThingEvent(final ThingEvent<?> thingEvent) {
         log.withCorrelationId(thingEvent);
         log.debug("Received new thing event for thing id <{}> with revision <{}>.", thingId, thingEvent.getRevision());
+        final boolean shouldAcknowledge =
+                thingEvent.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST);
 
         // check if the revision is valid (thingEvent.revision = 1 + sequenceNumber)
-        if (thingEvent.getRevision() <= thingRevision) {
+        if (thingEvent.getRevision() <= thingRevision && !shouldAcknowledge) {
             log.debug("Dropped thing event for thing id <{}> with revision <{}> because it was older than or "
                             + "equal to the current sequence number <{}> of the update actor.", thingId,
                     thingEvent.getRevision(), thingRevision);
         } else {
             log.debug("Applying thing event <{}>.", thingEvent);
             thingRevision = thingEvent.getRevision();
-            enqueueMetadata();
+            enqueueMetadata(exportMetadataWithSender(shouldAcknowledge, getSender()));
         }
     }
 
