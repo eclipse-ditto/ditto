@@ -37,6 +37,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.SignalEnrichmentFailedException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -55,10 +56,10 @@ import org.eclipse.ditto.services.gateway.streaming.StartStreaming;
 import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.services.gateway.streaming.actors.SupervisedStream;
 import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
-import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.utils.search.SearchSource;
 import org.eclipse.ditto.services.utils.search.SearchSourceBuilder;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
@@ -266,11 +267,14 @@ public final class ThingsSseRouteBuilder extends RouteDirectives implements SseR
                                         .orElse(JsonSchemaVersion.LATEST);
                                 sseConnectionSupervisor.supervise(withQueue.getSupervisedStream(),
                                         connectionCorrelationId, dittoHeaders);
+                                final AuthorizationContext authorizationContext =
+                                        dittoHeaders.getAuthorizationContext();
                                 final Connect connect = new Connect(withQueue.getSourceQueue(), connectionCorrelationId,
-                                        STREAMING_TYPE_SSE, jsonSchemaVersion, null, Set.of());
+                                        STREAMING_TYPE_SSE, jsonSchemaVersion, null, Set.of(),
+                                        authorizationContext);
                                 final StartStreaming startStreaming =
                                         StartStreaming.getBuilder(StreamingType.EVENTS, connectionCorrelationId,
-                                                dittoHeaders.getAuthorizationContext())
+                                                authorizationContext)
                                                 .withNamespaces(namespaces)
                                                 .withFilter(filterString)
                                                 .withExtraFields(extraFields)

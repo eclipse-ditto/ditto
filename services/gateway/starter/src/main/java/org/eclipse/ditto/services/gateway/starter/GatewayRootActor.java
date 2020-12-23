@@ -58,7 +58,6 @@ import org.eclipse.ditto.services.gateway.util.config.streaming.GatewaySignalEnr
 import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
-import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 import org.eclipse.ditto.services.utils.cluster.ClusterStatusSupplier;
@@ -73,6 +72,7 @@ import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.cluster.ClusterStatus;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
+import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
@@ -158,7 +158,8 @@ final class GatewayRootActor extends DittoRootActor {
         final HeaderTranslator headerTranslator = protocolAdapterProvider.getHttpHeaderTranslator();
 
         final ActorRef streamingActor = startChildActor(StreamingActor.ACTOR_NAME,
-                StreamingActor.props(dittoProtocolSub, proxyActor, jwtAuthenticationFactory,
+                StreamingActor.props(dittoProtocolSub, proxyActor, jwtAuthenticationFactory.getJwtValidator(),
+                        jwtAuthenticationFactory.newJwtAuthenticationResultProvider(),
                         gatewayConfig.getStreamingConfig(), headerTranslator, pubSubMediator, conciergeForwarder));
 
         final HealthCheckConfig healthCheckConfig = gatewayConfig.getHealthCheckConfig();

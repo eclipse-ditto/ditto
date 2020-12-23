@@ -1,0 +1,46 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+name: license-check
+
+on:
+  # Run build for any PR
+  pull_request:
+
+jobs:
+  check-license-header-year:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: jitterbit/get-changed-files@v1
+        id: the-files
+        continue-on-error: true
+      - name: Printing added files
+        run: |
+          echo "Added:"
+          echo "${{ steps.the-files.outputs.added }}"
+      - name: Ensure license year for added files is the file's creation year
+        shell: bash
+        run: |
+          included_file_endings=".*\.(java|xml|yml)"
+          current_year=$(date +'%Y')
+          missing_counter=0
+          for file in ${{ steps.the-files.outputs.added }}; do
+            if [[ $file =~ $included_file_endings ]]; then
+              file_creation_year=$(git log --format=%aD $file | tail -1 | awk '{print $4}')
+              if grep -q "Copyright (c) $file_creation_year Contributors to the Eclipse Foundation" $file; then
+                printf "\xE2\x9C\x94 $file\n"
+              else
+                printf "\xE2\x9D\x8C $file\n\tcopyright header with file creation year '$file_creation_year' is missing in added file\n"
+                missing_counter=$(expr $missing_counter + 1)
+              fi
+            fi
+          done
+          exit $missing_counter

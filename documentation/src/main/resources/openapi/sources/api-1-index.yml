@@ -34,10 +34,10 @@ tags:
   - name: Messages
     description: Talk with your Things
 security:
-#  - Google:
-#    - openid
-  - basicAuth: []
-  - bearerAuth: []
+  - Google:
+    - openid
+  - NginxBasic: []
+  - Bearer: []
 paths:
   /things:
     get:
@@ -2531,17 +2531,12 @@ components:
           * for an list, the JSON value is the list: `[ 1,2,3 ]`
       required: true
   securitySchemes:
-    basicAuth:
-      type: http
-      description: |-
-        Eclipse Ditto sandbox demo user (demo1 ... demo9) + password (demo)
-      scheme: basic
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: |-
-        A JSON Web Token issued by a supported OAuth 2.0 Identity Provider, e.g. a Google "id_token"
+    NginxBasic:
+      $ref: './security/nginxBasic.yml'
+    Bearer:
+      $ref: './security/bearerAuth.yml'
+    Google:
+      $ref: './security/google.yml'
   schemas:
     Error:
       properties:

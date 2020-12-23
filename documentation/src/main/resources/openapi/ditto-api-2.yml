@@ -28,8 +28,10 @@ tags:
   - name: CloudEvents
     description: Process CloudEvents in Ditto
 security:
-  - basicAuth: []
-  - bearerAuth: []
+  - Google:
+      - openid
+  - NginxBasic: []
+  - Bearer: []
 paths:
   /things:
     get:
@@ -5843,12 +5845,22 @@ components:
       type: string
       description: An auth subject that can be used to provide access for a caller (e.g. in subject entries of policies).
   securitySchemes:
-    basicAuth:
+    NginxBasic:
       type: http
       description: Eclipse Ditto sandbox demo user (demo1 ... demo9) + password (demo)
       scheme: basic
-    bearerAuth:
+    Bearer:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: 'A JSON Web Token issued by a supported OAuth 2.0 Identity Provider, e.g. a Google "id_token"'
+      description: A JSON Web Token issued by a supported OAuth 2.0 Identity Provider.
+    Google:
+      type: oauth2
+      description: Allow Eclipse Ditto to perform OAuth2.0 based authentication accessing your Google-ID.
+      x-tokenName: id_token
+      flows:
+        authorizationCode:
+          authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth'
+          tokenUrl: /oauth2/google/token
+          scopes:
+            openid: Access your Google-ID
