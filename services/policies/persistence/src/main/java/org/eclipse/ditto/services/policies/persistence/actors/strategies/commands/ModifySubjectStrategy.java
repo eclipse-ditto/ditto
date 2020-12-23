@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
+import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifySubject;
@@ -40,8 +41,8 @@ import org.eclipse.ditto.signals.events.policies.SubjectModified;
  */
 final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySubject> {
 
-    ModifySubjectStrategy() {
-        super(ModifySubject.class);
+    ModifySubjectStrategy(final PolicyConfig policyConfig) {
+        super(ModifySubject.class, policyConfig);
     }
 
     @Override
@@ -60,27 +61,39 @@ final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySu
         final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(label);
         if (optionalEntry.isPresent()) {
             final PolicyEntry policyEntry = optionalEntry.get();
-            final PoliciesValidator validator =
-                    PoliciesValidator.newInstance(nonNullPolicy.setSubjectFor(label, subject));
+            final Subject adjustedSubject = potentiallyAdjustSubject(subject);
+            final ModifySubject adjustedCommand = ModifySubject.of(
+                    command.getEntityId(), command.getLabel(), adjustedSubject, dittoHeaders);
+
+            final Policy newPolicy = nonNullPolicy.setSubjectFor(label, adjustedSubject);
+
+            final Optional<Result<PolicyEvent>> alreadyExpiredSubject =
+                    checkForAlreadyExpiredSubject(newPolicy, dittoHeaders, command);
+            if (alreadyExpiredSubject.isPresent()) {
+                return alreadyExpiredSubject.get();
+            }
+
+            final PoliciesValidator validator = PoliciesValidator.newInstance(newPolicy);
 
             if (validator.isValid()) {
-                final PolicyEvent event;
+                final PolicyEvent<?> event;
                 final ModifySubjectResponse rawResponse;
 
-                if (policyEntry.getSubjects().getSubject(subject.getId()).isPresent()) {
-                    rawResponse = ModifySubjectResponse.modified(policyId, label, subject.getId(), dittoHeaders);
-                    event = SubjectModified.of(policyId, label, subject, nextRevision, getEventTimestamp(),
-                            command.getDittoHeaders());
+                if (policyEntry.getSubjects().getSubject(adjustedSubject.getId()).isPresent()) {
+                    rawResponse = ModifySubjectResponse.modified(policyId, label, adjustedSubject.getId(), dittoHeaders);
+                    event = SubjectModified.of(policyId, label, adjustedSubject, nextRevision, getEventTimestamp(),
+                            dittoHeaders);
                 } else {
-                    rawResponse = ModifySubjectResponse.created(policyId, label, subject, dittoHeaders);
-                    event = SubjectCreated.of(policyId, label, subject, nextRevision, getEventTimestamp(),
-                            command.getDittoHeaders());
+                    rawResponse = ModifySubjectResponse.created(policyId, label, adjustedSubject, dittoHeaders);
+                    event = SubjectCreated.of(policyId, label, adjustedSubject, nextRevision, getEventTimestamp(),
+                            dittoHeaders);
                 }
-                return ResultFactory.newMutationResult(command, event,
-                        appendETagHeaderIfProvided(command, rawResponse, nonNullPolicy));
+                return ResultFactory.newMutationResult(adjustedCommand, event,
+                        appendETagHeaderIfProvided(adjustedCommand, rawResponse, nonNullPolicy));
             } else {
                 return ResultFactory.newErrorResult(
-                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders), command);
+                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders),
+                        command);
             }
         } else {
             return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, dittoHeaders), command);

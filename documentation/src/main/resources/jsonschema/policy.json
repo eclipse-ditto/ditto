@@ -30,9 +30,17 @@
                   "type": {
                     "type": "string",
                     "title": "SubjectType",
-                    "description": "The type of the (Authorization) Subject. See [Policy documentation](../basic-policy.html#who-can-be-addressed) for allowed values."
+                    "description": "The type of the (Authorization) Subject. This string can take an arbitrary value and is intended for documentational purposes, e.g. in order to document when it was created or with which purpose."
+                  },
+                  "expiry": {
+                    "type": "string",
+                    "description": "The optional expiry timestamp (formatted in ISO-8601) indicates how long this subject should be considered before it is automatically deleted from the Policy.",
+                    "format": "date-time"
                   }
-                }
+                },
+                "required": [
+                  "type"
+                ]
               }
             },
             "resources": {
@@ -66,12 +74,21 @@
                       ]
                     }
                   }
-                }
+                },
+                "required": [
+                  "grant", "revoke"
+                ]
               }
             }
-          }
+          },
+          "required": [
+            "subjects", "resources"
+          ]
         }
       }
     }
-  }
+  },
+  "required": [
+    "policyId", "entries"
+  ]
 }

@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.modify.DeletePolicy;
@@ -34,8 +35,8 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
  */
 final class DeletePolicyStrategy extends AbstractPolicyCommandStrategy<DeletePolicy> {
 
-    DeletePolicyStrategy() {
-        super(DeletePolicy.class);
+    DeletePolicyStrategy(final PolicyConfig policyConfig) {
+        super(DeletePolicy.class, policyConfig);
     }
 
     @Override

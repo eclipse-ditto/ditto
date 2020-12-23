@@ -26,6 +26,12 @@ import org.eclipse.ditto.services.models.streaming.AbstractEntityIdWithRevision;
 @Immutable
 public final class PolicyTag extends AbstractEntityIdWithRevision<PolicyId> {
 
+    /**
+     * Defines a Publish/Subscribe topic on which PolicyTag message are published whenever the policy enforcer caches
+     * of the policyId contained in the published PolicyTag should be invalidated.
+     */
+    public static final String PUB_SUB_TOPIC_INVALIDATE_ENFORCERS = "policy-invalidate-enforcers";
+
     private PolicyTag(final PolicyId policyId, final long revision) {
         super(policyId, revision);
     }

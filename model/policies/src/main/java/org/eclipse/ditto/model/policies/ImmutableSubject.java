@@ -15,14 +15,17 @@ package org.eclipse.ditto.model.policies;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -34,10 +37,14 @@ final class ImmutableSubject implements Subject {
 
     private final SubjectId subjectId;
     private final SubjectType subjectType;
+    @Nullable private final SubjectExpiry subjectExpiry;
 
-    private ImmutableSubject(final SubjectId theSubjectId, final SubjectType theSubjectType) {
+    private ImmutableSubject(final SubjectId theSubjectId,
+            final SubjectType theSubjectType,
+            @Nullable final SubjectExpiry theSubjectExpiry) {
         subjectId = checkNotNull(theSubjectId, "subjectId");
         subjectType = checkNotNull(theSubjectType, "subjectType");
+        subjectExpiry = theSubjectExpiry;
     }
 
     /**
@@ -49,7 +56,7 @@ final class ImmutableSubject implements Subject {
      * @throws NullPointerException if {@code subjectId} is {@code null}.
      */
     public static Subject of(final SubjectId subjectId) {
-        return new ImmutableSubject(subjectId, SubjectType.GENERATED);
+        return new ImmutableSubject(subjectId, SubjectType.GENERATED, null);
     }
 
     /**
@@ -61,7 +68,23 @@ final class ImmutableSubject implements Subject {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static Subject of(final SubjectId subjectId, final SubjectType subjectType) {
-        return new ImmutableSubject(subjectId, subjectType);
+        return new ImmutableSubject(subjectId, subjectType, null);
+    }
+
+    /**
+     * Returns a new {@code Subject} object of the given {@code subjectId}, {@code subjectType} and
+     * {@code subjectExpiry}.
+     *
+     * @param subjectId the ID of the new Subject.
+     * @param subjectType the type of the new Subject.
+     * @param subjectExpiry the expiry timestamp of the new Subject.
+     * @return a new {@code Subject} object.
+     * @throws NullPointerException if the {@code subjectId} or {@code subjectType} argument is {@code null}.
+     * @since 2.0.0
+     */
+    public static Subject of(final SubjectId subjectId, final SubjectType subjectType,
+            @Nullable final SubjectExpiry subjectExpiry) {
+        return new ImmutableSubject(subjectId, subjectType, subjectExpiry);
     }
 
     /**
@@ -78,17 +101,21 @@ final class ImmutableSubject implements Subject {
      *     <li>contains only a field with the schema version</li>
      *     <li>or it contains more than two fields.</li>
      * </ul>
+     * @throws SubjectExpiryInvalidException if the provided {@code expiry} could not be parsed as ISO-8601 timestamp.
      */
     public static Subject fromJson(final CharSequence subjectIssuerWithId, final JsonObject jsonObject) {
-        checkNotNull(subjectIssuerWithId, "Subject ID");
-        checkNotNull(jsonObject, "JSON object");
+        checkNotNull(subjectIssuerWithId, "subjectIssuerWithId");
+        checkNotNull(jsonObject, "jsonObject");
 
         final String subjectTypeValue = jsonObject.getValue(JsonFields.TYPE)
                 .orElseThrow(() -> new DittoJsonException(JsonMissingFieldException.newBuilder()
                         .message("The 'type' for the 'subject' is missing.")
                         .build()));
+        final SubjectExpiry subjectExpiry = jsonObject.getValue(JsonFields.EXPIRY)
+                .map(SubjectExpiry::newInstance)
+                .orElse(null);
 
-        return of(SubjectId.newInstance(subjectIssuerWithId), ImmutableSubjectType.of(subjectTypeValue));
+        return of(SubjectId.newInstance(subjectIssuerWithId), ImmutableSubjectType.of(subjectTypeValue), subjectExpiry);
     }
 
     @Override
@@ -102,12 +129,20 @@ final class ImmutableSubject implements Subject {
     }
 
     @Override
+    public Optional<SubjectExpiry> getExpiry() {
+        return Optional.ofNullable(subjectExpiry);
+    }
+
+    @Override
     public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        return JsonFactory.newObjectBuilder()
+        final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
                 .set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate)
-                .set(JsonFields.TYPE, subjectType.toString(), predicate)
-                .build();
+                .set(JsonFields.TYPE, subjectType.toString(), predicate);
+        if (null != subjectExpiry) {
+            jsonObjectBuilder.set(JsonFields.EXPIRY, subjectExpiry.toString());
+        }
+        return jsonObjectBuilder.build();
     }
 
     @Override
@@ -119,12 +154,13 @@ final class ImmutableSubject implements Subject {
             return false;
         }
         final ImmutableSubject that = (ImmutableSubject) o;
-        return Objects.equals(subjectId, that.subjectId) && Objects.equals(subjectType, that.subjectType);
+        return Objects.equals(subjectId, that.subjectId) && Objects.equals(subjectType, that.subjectType)
+                && Objects.equals(subjectExpiry, that.subjectExpiry);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(subjectId, subjectType);
+        return Objects.hash(subjectId, subjectType, subjectExpiry);
     }
 
     @Override
@@ -132,6 +168,7 @@ final class ImmutableSubject implements Subject {
         return getClass().getSimpleName() + " [" +
                 "subjectId=" + subjectId +
                 ", subjectType=" + subjectType +
+                ", subjectExpiry=" + subjectExpiry +
                 "]";
     }
 
