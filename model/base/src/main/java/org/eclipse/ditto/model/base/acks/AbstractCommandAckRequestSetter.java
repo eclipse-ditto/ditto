@@ -54,12 +54,31 @@ public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders
     private final AcknowledgementLabel implicitAcknowledgementLabel;
     private final Set<AcknowledgementLabel> negatedDittoAcknowledgementLabels;
 
+    /**
+     * Create a command acknowledgment request setter that sets one Ditto acknowledgement label implicitly and
+     * filters out other Ditto acknowledgment5 labels.
+     *
+     * @param implicitAcknowledgementLabel the label to set if the header 'requested-acks' is absent.
+     */
     protected AbstractCommandAckRequestSetter(final AcknowledgementLabel implicitAcknowledgementLabel) {
-        negatedDittoAcknowledgementLabels = Collections.unmodifiableSet(
-                Arrays.stream(DittoAcknowledgementLabel.values())
+        this(implicitAcknowledgementLabel,
+                Collections.unmodifiableSet(Arrays.stream(DittoAcknowledgementLabel.values())
                         .filter(v -> !implicitAcknowledgementLabel.equals(v))
-                        .collect(Collectors.toSet()));
+                        .collect(Collectors.toSet()))
+        );
+    }
+
+    /**
+     * Create a command acknowledgement request setter.
+     *
+     * @param implicitAcknowledgementLabel the label to set if the header 'requested-acks' is absent.
+     * @param negatedDittoAcknowledgementLabels the labels to filter out if present.
+     * @since 2.0.0
+     */
+    protected AbstractCommandAckRequestSetter(final AcknowledgementLabel implicitAcknowledgementLabel,
+            final Set<AcknowledgementLabel> negatedDittoAcknowledgementLabels) {
         this.implicitAcknowledgementLabel = implicitAcknowledgementLabel;
+        this.negatedDittoAcknowledgementLabels = negatedDittoAcknowledgementLabels;
     }
 
     @Override

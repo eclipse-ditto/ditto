@@ -199,7 +199,7 @@ final class EnforcementFlow {
                                 return Source.single((SudoRetrieveThingResponse) response);
                             } else {
                                 if (error != null) {
-                                    log.error("Failed " + command, error);
+                                    log.error("Failed command <{}>", command, error);
                                 } else if (!(response instanceof ThingNotAccessibleException)) {
                                     log.error("Unexpected response for <{}>: <{}>", command, response);
                                 }
@@ -207,7 +207,7 @@ final class EnforcementFlow {
                             }
                         });
 
-        return Source.fromSourceCompletionStage(responseFuture)
+        return Source.completionStageSource(responseFuture)
                 .viaMat(Flow.create(), Keep.none());
     }
 
@@ -227,7 +227,8 @@ final class EnforcementFlow {
                             try {
                                 return EnforcedThingMapper.toWriteModel(thing, entry.getValueOrThrow(),
                                         entry.getRevision(),
-                                        maxArraySize);
+                                        maxArraySize,
+                                        metadata);
                             } catch (final JsonRuntimeException e) {
                                 log.error(e.getMessage(), e);
                                 return ThingDeleteModel.of(metadata);
@@ -266,7 +267,7 @@ final class EnforcementFlow {
     private Source<Entry<Enforcer>, NotUsed> readCachedEnforcer(final Metadata metadata,
             final EntityIdWithResourceType policyId, final int iteration) {
 
-        final Source<Entry<Enforcer>, ?> lazySource = Source.lazily(() -> {
+        final Source<Entry<Enforcer>, ?> lazySource = Source.lazySource(() -> {
             final CompletionStage<Source<Entry<Enforcer>, NotUsed>> enforcerFuture = policyEnforcerCache.get(policyId)
                     .thenApply(optionalEnforcerEntry -> {
                         if (shouldReloadCache(optionalEnforcerEntry.orElse(null), metadata, iteration)) {
@@ -284,7 +285,7 @@ final class EnforcementFlow {
                         return ENFORCER_NONEXISTENT;
                     });
 
-            return Source.fromSourceCompletionStage(enforcerFuture);
+            return Source.completionStageSource(enforcerFuture);
         });
 
         return lazySource.viaMat(Flow.create(), Keep.none());

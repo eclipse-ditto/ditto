@@ -121,7 +121,7 @@ services:
       - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
 
   swagger-ui:
-    image: docker.io/swaggerapi/swagger-ui:v3.20.5
+    image: docker.io/swaggerapi/swagger-ui:v3.38.0
     volumes:
        - ../../../documentation/src/main/resources/openapi:/usr/share/nginx/html/openapi:ro
        - ../../../documentation/src/main/resources/images:/usr/share/nginx/html/images:ro
