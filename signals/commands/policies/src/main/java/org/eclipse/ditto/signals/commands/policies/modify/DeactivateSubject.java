@@ -16,8 +16,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import static org.eclipse.ditto.model.base.json.FieldType.REGULAR;
 import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
 
-import java.time.Instant;
-import java.time.format.DateTimeParseException;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -30,7 +28,6 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
@@ -46,19 +43,19 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 /**
- * This command activates a token subject in a policy entry.
+ * This command deactivates a token subject in a policy entry.
  *
  * @since 2.0.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ActivateSubject.TYPE_PREFIX, name = ActivateSubject.NAME)
-public final class ActivateSubject extends AbstractCommand<ActivateSubject>
-        implements PolicyModifyCommand<ActivateSubject> {
+@JsonParsableCommand(typePrefix = DeactivateSubject.TYPE_PREFIX, name = DeactivateSubject.NAME)
+public final class DeactivateSubject extends AbstractCommand<DeactivateSubject>
+        implements PolicyModifyCommand<DeactivateSubject> {
 
     /**
      * NAME of this command.
      */
-    public static final String NAME = "activateSubject";
+    public static final String NAME = "deactivateSubject";
 
     /**
      * Type of this command.
@@ -68,36 +65,33 @@ public final class ActivateSubject extends AbstractCommand<ActivateSubject>
     private final PolicyId policyId;
     private final Label label;
     private final SubjectId subjectId;
-    private final Instant expiry;
 
-    private ActivateSubject(final PolicyId policyId, final Label label, final SubjectId subjectId,
-            final Instant expiry, final DittoHeaders dittoHeaders) {
+    private DeactivateSubject(final PolicyId policyId, final Label label, final SubjectId subjectId,
+            final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policyId");
         this.label = checkNotNull(label, "label");
         this.subjectId = checkNotNull(subjectId, "subjectId");
-        this.expiry = checkNotNull(expiry, "expiry");
     }
 
     /**
-     * Creates a command for activating a token subject.
+     * Creates a command for deactivating a token subject.
      *
      * @param policyId the identifier of the Policy.
-     * @param label label of the policy entry where the subject should be activated.
+     * @param label label of the policy entry where the subject should be deactivated.
      * @param subjectId subject ID to activate.
-     * @param expiry when the subject expires.
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ActivateSubject of(final PolicyId policyId, final Label label, final SubjectId subjectId,
-            final Instant expiry, final DittoHeaders dittoHeaders) {
+    public static DeactivateSubject of(final PolicyId policyId, final Label label, final SubjectId subjectId,
+            final DittoHeaders dittoHeaders) {
 
-        return new ActivateSubject(policyId, label, subjectId, expiry, dittoHeaders);
+        return new DeactivateSubject(policyId, label, subjectId, dittoHeaders);
     }
 
     /**
-     * Creates a command for activating a token subject from JSON.
+     * Creates a command for deactivating a token subject from JSON.
      *
      * @param jsonObject the JSON object of which the command is to be created.
      * @param dittoHeaders the headers of the command.
@@ -106,24 +100,14 @@ public final class ActivateSubject extends AbstractCommand<ActivateSubject>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static ActivateSubject fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<ActivateSubject>(TYPE, jsonObject).deserialize(() -> {
+    public static DeactivateSubject fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<DeactivateSubject>(TYPE, jsonObject).deserialize(() -> {
             final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = Label.of(jsonObject.getValueOrThrow(JsonFields.LABEL));
             final SubjectId subjectId =
                     PoliciesModelFactory.newSubjectId(jsonObject.getValueOrThrow(JsonFields.SUBJECT_ID));
-            final String expiryString = jsonObject.getValueOrThrow(JsonFields.EXPIRY);
-            final Instant expiry;
-            try {
-                expiry = Instant.parse(expiryString);
-            } catch (final DateTimeParseException e) {
-                throw JsonParseException.newBuilder()
-                        .message(String.format("Expiry timestamp '%s' is not valid. " +
-                                "It must be provided as ISO-8601 formatted char sequence.", expiryString))
-                        .build();
-            }
-            return new ActivateSubject(policyId, label, subjectId, expiry, dittoHeaders);
+            return new DeactivateSubject(policyId, label, subjectId, dittoHeaders);
         });
     }
 
@@ -145,15 +129,6 @@ public final class ActivateSubject extends AbstractCommand<ActivateSubject>
         return subjectId;
     }
 
-    /**
-     * Returns the expiry of the subject ID.
-     *
-     * @return the expiry.
-     */
-    public Instant getExpiry() {
-        return expiry;
-    }
-
     @Override
     public PolicyId getEntityId() {
         return policyId;
@@ -172,7 +147,6 @@ public final class ActivateSubject extends AbstractCommand<ActivateSubject>
         jsonObjectBuilder.set(PolicyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JsonFields.LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JsonFields.SUBJECT_ID, subjectId.toString(), predicate);
-        jsonObjectBuilder.set(JsonFields.EXPIRY, expiry.toString(), predicate);
     }
 
     @Override
@@ -181,13 +155,13 @@ public final class ActivateSubject extends AbstractCommand<ActivateSubject>
     }
 
     @Override
-    public ActivateSubject setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new ActivateSubject(policyId, label, subjectId, expiry, dittoHeaders);
+    public DeactivateSubject setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new DeactivateSubject(policyId, label, subjectId, dittoHeaders);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof ActivateSubject;
+        return other instanceof DeactivateSubject;
     }
 
     @Override
@@ -198,17 +172,16 @@ public final class ActivateSubject extends AbstractCommand<ActivateSubject>
         if (null == obj || getClass() != obj.getClass()) {
             return false;
         }
-        final ActivateSubject that = (ActivateSubject) obj;
+        final DeactivateSubject that = (DeactivateSubject) obj;
         return Objects.equals(policyId, that.policyId) &&
                 Objects.equals(label, that.label) &&
                 Objects.equals(subjectId, that.subjectId) &&
-                Objects.equals(expiry, that.expiry) &&
                 super.equals(obj);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), policyId, label, subjectId, expiry);
+        return Objects.hash(super.hashCode(), policyId, label, subjectId);
     }
 
     @Override
@@ -217,7 +190,6 @@ public final class ActivateSubject extends AbstractCommand<ActivateSubject>
                 ", policyId=" + policyId +
                 ", label=" + label +
                 ", subjectId=" + subjectId +
-                ", expiry=" + expiry +
                 "]";
     }
 
@@ -235,9 +207,6 @@ public final class ActivateSubject extends AbstractCommand<ActivateSubject>
 
         static final JsonFieldDefinition<String> SUBJECT_ID =
                 JsonFactory.newStringFieldDefinition("subjectId", REGULAR, V_2);
-
-        static final JsonFieldDefinition<String> EXPIRY =
-                JsonFactory.newStringFieldDefinition("expiry", REGULAR, V_2);
     }
 
 }
