@@ -21,6 +21,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: jitterbit/get-changed-files@v1
         id: the-files
+        continue-on-error: true
       - name: Printing added files
         run: |
           echo "Added:"
