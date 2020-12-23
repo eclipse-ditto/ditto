@@ -32,7 +32,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ActivateSubjectResponse}.
  */
-public class ActivateSubjectResponseTest {
+public final class ActivateSubjectResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommandResponse.JsonFields.TYPE, ActivateSubjectResponse.TYPE)

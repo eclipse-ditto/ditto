@@ -35,7 +35,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 /**
  * Unit test for {@link ActivateSubject}.
  */
-public class ActivateSubjectTest {
+public final class ActivateSubjectTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommand.JsonFields.TYPE, ActivateSubject.TYPE)

@@ -25,7 +25,6 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
@@ -34,8 +33,6 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -136,7 +133,7 @@ public final class DeactivateSubject extends AbstractCommand<DeactivateSubject>
 
     @Override
     public JsonPointer getResourcePath() {
-        return toResourcePath(label, subjectId);
+        return ActivateSubject.toResourcePath(label, subjectId);
     }
 
     @Override
@@ -191,13 +188,6 @@ public final class DeactivateSubject extends AbstractCommand<DeactivateSubject>
                 ", label=" + label +
                 ", subjectId=" + subjectId +
                 "]";
-    }
-
-    static JsonPointer toResourcePath(final Label label, final SubjectId subjectId) {
-        return Policy.JsonFields.ENTRIES.getPointer()
-                .addLeaf(JsonKey.of(label))
-                .append(PolicyEntry.JsonFields.SUBJECTS.getPointer())
-                .addLeaf(JsonKey.of(subjectId));
     }
 
     static final class JsonFields {
