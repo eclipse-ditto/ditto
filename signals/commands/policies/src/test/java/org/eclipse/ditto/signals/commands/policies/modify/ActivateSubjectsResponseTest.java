@@ -20,54 +20,55 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
-import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link DeactivateSubjectForPolicy}.
+ * Unit test for {@link ActivateSubjectsResponse}.
  */
-public final class DeactivateSubjectForPolicyTest {
+public final class ActivateSubjectsResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(PolicyCommand.JsonFields.TYPE, DeactivateSubjectForPolicy.TYPE)
-            .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
-            .set(DeactivateSubjectForPolicy.JsonFields.SUBJECT_ID, TestConstants.Policy.SUBJECT_ID.toString())
+            .set(PolicyCommandResponse.JsonFields.TYPE, ActivateSubjectsResponse.TYPE)
+            .set(PolicyCommandResponse.JsonFields.STATUS, ActivateSubjectsResponse.STATUS.toInt())
+            .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
+            .set(ActivateSubjectsResponse.JsonFields.SUBJECT_ID, TestConstants.Policy.SUBJECT_ID.toString())
             .build();
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(DeactivateSubjectForPolicy.class,
+        assertInstancesOf(ActivateSubjectsResponse.class,
                 areImmutable(),
-                provided(Label.class, SubjectId.class, PolicyId.class).areAlsoImmutable());
+                provided(SubjectId.class, PolicyId.class).areAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(DeactivateSubjectForPolicy.class)
+        EqualsVerifier.forClass(ActivateSubjectsResponse.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        DeactivateSubjectForPolicy.of(null, TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS);
+        ActivateSubjectsResponse.of(null, TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS);
     }
+
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullSubject() {
-        DeactivateSubjectForPolicy.of(TestConstants.Policy.POLICY_ID, null, TestConstants.EMPTY_DITTO_HEADERS);
+        ActivateSubjectsResponse.of(TestConstants.Policy.POLICY_ID, null, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
     public void toJsonReturnsExpected() {
-        final DeactivateSubjectForPolicy underTest =
-                DeactivateSubjectForPolicy.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID,
+        final ActivateSubjectsResponse underTest =
+                ActivateSubjectsResponse.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID,
                         TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
@@ -76,11 +77,11 @@ public final class DeactivateSubjectForPolicyTest {
 
     @Test
     public void createInstanceFromValidJson() {
-        final DeactivateSubjectForPolicy underTest =
-                DeactivateSubjectForPolicy.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
+        final ActivateSubjectsResponse underTest =
+                ActivateSubjectsResponse.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
-        final DeactivateSubjectForPolicy expectedCommand =
-                DeactivateSubjectForPolicy.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID,
+        final ActivateSubjectsResponse expectedCommand =
+                ActivateSubjectsResponse.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID,
                         TestConstants.EMPTY_DITTO_HEADERS);
         assertThat(underTest).isEqualTo(expectedCommand);
     }

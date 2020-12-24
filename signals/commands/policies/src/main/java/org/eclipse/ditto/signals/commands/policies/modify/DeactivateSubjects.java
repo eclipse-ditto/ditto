@@ -44,9 +44,9 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
  * @since 2.0.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = DeactivateSubjectForPolicy.TYPE_PREFIX, name = DeactivateSubjectForPolicy.NAME)
-public final class DeactivateSubjectForPolicy extends AbstractCommand<DeactivateSubjectForPolicy>
-        implements PolicyModifyCommand<DeactivateSubjectForPolicy> {
+@JsonParsableCommand(typePrefix = DeactivateSubjects.TYPE_PREFIX, name = DeactivateSubjects.NAME)
+public final class DeactivateSubjects extends AbstractCommand<DeactivateSubjects>
+        implements PolicyModifyCommand<DeactivateSubjects> {
 
     /**
      * NAME of this command.
@@ -61,7 +61,7 @@ public final class DeactivateSubjectForPolicy extends AbstractCommand<Deactivate
     private final PolicyId policyId;
     private final SubjectId subjectId;
 
-    private DeactivateSubjectForPolicy(final PolicyId policyId, final SubjectId subjectId,
+    private DeactivateSubjects(final PolicyId policyId, final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policyId");
@@ -77,10 +77,10 @@ public final class DeactivateSubjectForPolicy extends AbstractCommand<Deactivate
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DeactivateSubjectForPolicy of(final PolicyId policyId, final SubjectId subjectId,
+    public static DeactivateSubjects of(final PolicyId policyId, final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
 
-        return new DeactivateSubjectForPolicy(policyId, subjectId, dittoHeaders);
+        return new DeactivateSubjects(policyId, subjectId, dittoHeaders);
     }
 
     /**
@@ -93,13 +93,13 @@ public final class DeactivateSubjectForPolicy extends AbstractCommand<Deactivate
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static DeactivateSubjectForPolicy fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<DeactivateSubjectForPolicy>(TYPE, jsonObject).deserialize(() -> {
+    public static DeactivateSubjects fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<DeactivateSubjects>(TYPE, jsonObject).deserialize(() -> {
             final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final SubjectId subjectId =
                     PoliciesModelFactory.newSubjectId(jsonObject.getValueOrThrow(JsonFields.SUBJECT_ID));
-            return new DeactivateSubjectForPolicy(policyId, subjectId, dittoHeaders);
+            return new DeactivateSubjects(policyId, subjectId, dittoHeaders);
         });
     }
 
@@ -137,13 +137,13 @@ public final class DeactivateSubjectForPolicy extends AbstractCommand<Deactivate
     }
 
     @Override
-    public DeactivateSubjectForPolicy setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new DeactivateSubjectForPolicy(policyId, subjectId, dittoHeaders);
+    public DeactivateSubjects setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new DeactivateSubjects(policyId, subjectId, dittoHeaders);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof DeactivateSubjectForPolicy;
+        return other instanceof DeactivateSubjects;
     }
 
     @Override
@@ -154,7 +154,7 @@ public final class DeactivateSubjectForPolicy extends AbstractCommand<Deactivate
         if (null == obj || getClass() != obj.getClass()) {
             return false;
         }
-        final DeactivateSubjectForPolicy that = (DeactivateSubjectForPolicy) obj;
+        final DeactivateSubjects that = (DeactivateSubjects) obj;
         return Objects.equals(policyId, that.policyId) &&
                 Objects.equals(subjectId, that.subjectId) &&
                 super.equals(obj);

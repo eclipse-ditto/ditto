@@ -33,6 +33,11 @@ public final class Permission {
     public static final String WRITE = "WRITE";
 
     /**
+     * Permission to execute actions.
+     */
+    public static final String EXECUTE = "EXECUTE";
+
+    /**
      * The set of Permissions which must be present on the 'policy:/' Resource for at least one Subject.
      */
     @SuppressWarnings({"squid:S2386"})

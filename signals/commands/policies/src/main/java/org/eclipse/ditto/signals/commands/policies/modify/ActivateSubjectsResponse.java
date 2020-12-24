@@ -35,20 +35,19 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 
 /**
- * Response to an {@link DeactivateSubjectForPolicy} command.
+ * Response to an {@link ActivateSubjects} command.
  *
  * @since 2.0.0
  */
 @Immutable
-@JsonParsableCommandResponse(type = DeactivateSubjectForPolicyResponse.TYPE)
-public final class DeactivateSubjectForPolicyResponse
-        extends AbstractCommandResponse<DeactivateSubjectForPolicyResponse>
-        implements PolicyModifyCommandResponse<DeactivateSubjectForPolicyResponse> {
+@JsonParsableCommandResponse(type = ActivateSubjectsResponse.TYPE)
+public final class ActivateSubjectsResponse extends AbstractCommandResponse<ActivateSubjectsResponse>
+        implements PolicyModifyCommandResponse<ActivateSubjectsResponse> {
 
     /**
      * Type of this response.
      */
-    public static final String TYPE = TYPE_PREFIX + DeactivateSubjectForPolicy.NAME;
+    public static final String TYPE = TYPE_PREFIX + ActivateSubjects.NAME;
 
     /**
      * Status code of this response.
@@ -58,7 +57,7 @@ public final class DeactivateSubjectForPolicyResponse
     private final PolicyId policyId;
     private final SubjectId subjectId;
 
-    private DeactivateSubjectForPolicyResponse(final PolicyId policyId, final SubjectId subjectId,
+    private ActivateSubjectsResponse(final PolicyId policyId, final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, STATUS, dittoHeaders);
@@ -67,7 +66,7 @@ public final class DeactivateSubjectForPolicyResponse
     }
 
     /**
-     * Creates a response to an {@code DeactivateSubjectForPolicy} command.
+     * Creates a response to an {@code ActivateSubjectForPolicy} command.
      *
      * @param policyId the policy ID.
      * @param subjectId the added subject ID.
@@ -75,14 +74,14 @@ public final class DeactivateSubjectForPolicyResponse
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DeactivateSubjectForPolicyResponse of(final PolicyId policyId,
+    public static ActivateSubjectsResponse of(final PolicyId policyId,
             final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
-        return new DeactivateSubjectForPolicyResponse(policyId, subjectId, dittoHeaders);
+        return new ActivateSubjectsResponse(policyId, subjectId, dittoHeaders);
     }
 
     /**
-     * Creates a response to a {@code DeactivateSubject} command from a JSON object.
+     * Creates a response to a {@code ActivateSubjectForPolicy} command from a JSON object.
      *
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
@@ -92,12 +91,12 @@ public final class DeactivateSubjectForPolicyResponse
      * format.
      */
     @SuppressWarnings("unused") // called by reflection
-    public static DeactivateSubjectForPolicyResponse fromJson(final JsonObject jsonObject,
+    public static ActivateSubjectsResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         final PolicyId policyId =
                 PolicyId.of(jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID));
         final SubjectId subjectId = SubjectId.newInstance(jsonObject.getValueOrThrow(JsonFields.SUBJECT_ID));
-        return new DeactivateSubjectForPolicyResponse(policyId, subjectId, dittoHeaders);
+        return new ActivateSubjectsResponse(policyId, subjectId, dittoHeaders);
     }
 
     @Override
@@ -120,13 +119,13 @@ public final class DeactivateSubjectForPolicyResponse
     }
 
     @Override
-    public DeactivateSubjectForPolicyResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new DeactivateSubjectForPolicyResponse(policyId, subjectId, dittoHeaders);
+    public ActivateSubjectsResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new ActivateSubjectsResponse(policyId, subjectId, dittoHeaders);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof DeactivateSubjectForPolicyResponse;
+        return other instanceof ActivateSubjectsResponse;
     }
 
     @Override
@@ -137,7 +136,7 @@ public final class DeactivateSubjectForPolicyResponse
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final DeactivateSubjectForPolicyResponse that = (DeactivateSubjectForPolicyResponse) o;
+        final ActivateSubjectsResponse that = (ActivateSubjectsResponse) o;
         return Objects.equals(policyId, that.policyId) &&
                 Objects.equals(subjectId, that.subjectId) &&
                 super.equals(o);
@@ -159,7 +158,7 @@ public final class DeactivateSubjectForPolicyResponse
 
     static final class JsonFields {
 
-        static final JsonFieldDefinition<String> SUBJECT_ID = DeactivateSubject.JsonFields.SUBJECT_ID;
+        static final JsonFieldDefinition<String> SUBJECT_ID = ActivateSubjects.JsonFields.SUBJECT_ID;
     }
 
 }

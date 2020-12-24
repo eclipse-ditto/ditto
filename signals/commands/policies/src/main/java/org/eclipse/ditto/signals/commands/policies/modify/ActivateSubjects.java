@@ -45,9 +45,9 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
  * @since 2.0.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ActivateSubjectForPolicy.TYPE_PREFIX, name = ActivateSubjectForPolicy.NAME)
-public final class ActivateSubjectForPolicy extends AbstractCommand<ActivateSubjectForPolicy>
-        implements PolicyModifyCommand<ActivateSubjectForPolicy> {
+@JsonParsableCommand(typePrefix = ActivateSubjects.TYPE_PREFIX, name = ActivateSubjects.NAME)
+public final class ActivateSubjects extends AbstractCommand<ActivateSubjects>
+        implements PolicyModifyCommand<ActivateSubjects> {
 
     /**
      * NAME of this command.
@@ -63,7 +63,7 @@ public final class ActivateSubjectForPolicy extends AbstractCommand<ActivateSubj
     private final SubjectId subjectId;
     private final Instant expiry;
 
-    private ActivateSubjectForPolicy(final PolicyId policyId, final SubjectId subjectId,
+    private ActivateSubjects(final PolicyId policyId, final SubjectId subjectId,
             final Instant expiry, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policyId");
@@ -81,10 +81,10 @@ public final class ActivateSubjectForPolicy extends AbstractCommand<ActivateSubj
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ActivateSubjectForPolicy of(final PolicyId policyId, final SubjectId subjectId,
+    public static ActivateSubjects of(final PolicyId policyId, final SubjectId subjectId,
             final Instant expiry, final DittoHeaders dittoHeaders) {
 
-        return new ActivateSubjectForPolicy(policyId, subjectId, expiry, dittoHeaders);
+        return new ActivateSubjects(policyId, subjectId, expiry, dittoHeaders);
     }
 
     /**
@@ -97,15 +97,15 @@ public final class ActivateSubjectForPolicy extends AbstractCommand<ActivateSubj
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static ActivateSubjectForPolicy fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<ActivateSubjectForPolicy>(TYPE, jsonObject).deserialize(() -> {
+    public static ActivateSubjects fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<ActivateSubjects>(TYPE, jsonObject).deserialize(() -> {
             final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final SubjectId subjectId =
                     PoliciesModelFactory.newSubjectId(jsonObject.getValueOrThrow(JsonFields.SUBJECT_ID));
             final Instant expiry =
                     ActivateSubject.parseExpiry(jsonObject.getValueOrThrow(ActivateSubject.JsonFields.EXPIRY));
-            return new ActivateSubjectForPolicy(policyId, subjectId, expiry, dittoHeaders);
+            return new ActivateSubjects(policyId, subjectId, expiry, dittoHeaders);
         });
     }
 
@@ -153,13 +153,13 @@ public final class ActivateSubjectForPolicy extends AbstractCommand<ActivateSubj
     }
 
     @Override
-    public ActivateSubjectForPolicy setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new ActivateSubjectForPolicy(policyId, subjectId, expiry, dittoHeaders);
+    public ActivateSubjects setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new ActivateSubjects(policyId, subjectId, expiry, dittoHeaders);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof ActivateSubjectForPolicy;
+        return other instanceof ActivateSubjects;
     }
 
     @Override
@@ -170,7 +170,7 @@ public final class ActivateSubjectForPolicy extends AbstractCommand<ActivateSubj
         if (null == obj || getClass() != obj.getClass()) {
             return false;
         }
-        final ActivateSubjectForPolicy that = (ActivateSubjectForPolicy) obj;
+        final ActivateSubjects that = (ActivateSubjects) obj;
         return Objects.equals(policyId, that.policyId) &&
                 Objects.equals(subjectId, that.subjectId) &&
                 Objects.equals(expiry, that.expiry) &&

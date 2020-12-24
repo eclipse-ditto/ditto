@@ -33,54 +33,54 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link ActivateSubjectForPolicy}.
+ * Unit test for {@link ActivateSubjects}.
  */
-public final class ActivateSubjectForPolicyTest {
+public final class ActivateSubjectsTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(PolicyCommand.JsonFields.TYPE, ActivateSubjectForPolicy.TYPE)
+            .set(PolicyCommand.JsonFields.TYPE, ActivateSubjects.TYPE)
             .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
-            .set(ActivateSubjectForPolicy.JsonFields.SUBJECT_ID, TestConstants.Policy.SUBJECT_ID.toString())
-            .set(ActivateSubjectForPolicy.JsonFields.EXPIRY, Instant.EPOCH.toString())
+            .set(ActivateSubjects.JsonFields.SUBJECT_ID, TestConstants.Policy.SUBJECT_ID.toString())
+            .set(ActivateSubjects.JsonFields.EXPIRY, Instant.EPOCH.toString())
             .build();
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ActivateSubjectForPolicy.class,
+        assertInstancesOf(ActivateSubjects.class,
                 areImmutable(),
                 provided(Label.class, SubjectId.class, PolicyId.class).areAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ActivateSubjectForPolicy.class)
+        EqualsVerifier.forClass(ActivateSubjects.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        ActivateSubjectForPolicy.of(null, TestConstants.Policy.SUBJECT_ID, Instant.EPOCH,
+        ActivateSubjects.of(null, TestConstants.Policy.SUBJECT_ID, Instant.EPOCH,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullSubject() {
-        ActivateSubjectForPolicy.of(TestConstants.Policy.POLICY_ID, null, Instant.EPOCH,
+        ActivateSubjects.of(TestConstants.Policy.POLICY_ID, null, Instant.EPOCH,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullExpiry() {
-        ActivateSubjectForPolicy.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID, null,
+        ActivateSubjects.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID, null,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
     public void toJsonReturnsExpected() {
-        final ActivateSubjectForPolicy underTest =
-                ActivateSubjectForPolicy.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID,
+        final ActivateSubjects underTest =
+                ActivateSubjects.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID,
                         Instant.EPOCH, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
@@ -89,11 +89,11 @@ public final class ActivateSubjectForPolicyTest {
 
     @Test
     public void createInstanceFromValidJson() {
-        final ActivateSubjectForPolicy underTest =
-                ActivateSubjectForPolicy.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
+        final ActivateSubjects underTest =
+                ActivateSubjects.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
-        final ActivateSubjectForPolicy expectedCommand =
-                ActivateSubjectForPolicy.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID,
+        final ActivateSubjects expectedCommand =
+                ActivateSubjects.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID,
                         Instant.EPOCH, TestConstants.EMPTY_DITTO_HEADERS);
         assertThat(underTest).isEqualTo(expectedCommand);
     }
@@ -101,10 +101,10 @@ public final class ActivateSubjectForPolicyTest {
     @Test(expected = JsonParseException.class)
     public void tryToCreateInstanceFromInvalidTimestampInJson() {
         final JsonObject jsonWithInvalidTimestamp = KNOWN_JSON.toBuilder()
-                .set(ActivateSubjectForPolicy.JsonFields.EXPIRY, "not-a-timestamp")
+                .set(ActivateSubjects.JsonFields.EXPIRY, "not-a-timestamp")
                 .build();
 
-        ActivateSubjectForPolicy.fromJson(jsonWithInvalidTimestamp, TestConstants.EMPTY_DITTO_HEADERS);
+        ActivateSubjects.fromJson(jsonWithInvalidTimestamp, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 }
