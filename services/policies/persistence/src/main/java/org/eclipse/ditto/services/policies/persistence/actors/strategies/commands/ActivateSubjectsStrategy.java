@@ -14,7 +14,11 @@ package org.eclipse.ditto.services.policies.persistence.actors.strategies.comman
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -25,6 +29,7 @@ import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyActionFailedException;
+import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
@@ -35,77 +40,81 @@ import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.actors.placeholders.PolicyEntryPlaceholder;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.signals.commands.policies.modify.ActivateSubject;
-import org.eclipse.ditto.signals.commands.policies.modify.ActivateSubjectResponse;
+import org.eclipse.ditto.signals.commands.policies.modify.ActivateSubjects;
+import org.eclipse.ditto.signals.commands.policies.modify.ActivateSubjectsResponse;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
-import org.eclipse.ditto.signals.events.policies.SubjectActivated;
+import org.eclipse.ditto.signals.events.policies.SubjectsActivated;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.modify.ActivateSubject} command.
+ * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.modify.ActivateSubjects} command.
  */
-final class ActivateSubjectStrategy extends AbstractPolicyCommandStrategy<ActivateSubject> {
+final class ActivateSubjectsStrategy extends AbstractPolicyCommandStrategy<ActivateSubjects> {
 
-    ActivateSubjectStrategy(final PolicyConfig policyConfig) {
-        super(ActivateSubject.class, policyConfig);
+    ActivateSubjectsStrategy(final PolicyConfig policyConfig) {
+        super(ActivateSubjects.class, policyConfig);
     }
 
     @Override
     protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
             @Nullable final Policy policy,
             final long nextRevision,
-            final ActivateSubject command,
+            final ActivateSubjects command,
             @Nullable final Metadata metadata) {
 
         final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyId policyId = context.getState();
-        final Label label = command.getLabel();
         final SubjectExpiry commandSubjectExpiry = SubjectExpiry.newInstance(command.getExpiry());
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-
-        final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(label);
-        if (optionalEntry.isPresent()) {
+        final List<PolicyEntry> entries = command.getLabels()
+                .stream()
+                .map(nonNullPolicy::getEntryFor)
+                .flatMap(Optional::stream)
+                .collect(Collectors.toList());
+        if (entries.isEmpty() || entries.size() != command.getLabels().size()) {
+            // Command is constructed incorrectly. This is a bug.
+            return ResultFactory.newErrorResult(PolicyActionFailedException.newBuilder().build(), command);
+        }
+        final PolicyBuilder policyBuilder = nonNullPolicy.toBuilder();
+        final Map<Label, Subject> activatedSubjects = new HashMap<>();
+        for (final PolicyEntry entry : entries) {
             final SubjectId subjectId;
             try {
-                subjectId = PolicyEntryPlaceholder.resolveSubjectId(optionalEntry.get(), command.getSubjectId());
+                subjectId = PolicyEntryPlaceholder.resolveSubjectId(entry, command.getSubjectId());
             } catch (final DittoRuntimeException e) {
                 return ResultFactory.newErrorResult(e, command);
             }
             final Subject subject = Subject.newInstance(subjectId, TOKEN_INTEGRATION, commandSubjectExpiry);
             final Subject adjustedSubject = potentiallyAdjustSubject(subject);
-            final ActivateSubject adjustedCommand = ActivateSubject.of(
-                    command.getEntityId(), command.getLabel(), adjustedSubject.getId(),
-                    adjustedSubject.getExpiry().orElseThrow().getTimestamp(), dittoHeaders);
+            policyBuilder.setSubjectFor(entry.getLabel(), adjustedSubject);
+            activatedSubjects.put(entry.getLabel(), adjustedSubject);
+        }
 
-            // Validation is necessary because activation may add expiry to the policy admin subject.
-            final Policy newPolicy = nonNullPolicy.setSubjectFor(label, adjustedSubject);
-            final PoliciesValidator validator = PoliciesValidator.newInstance(newPolicy);
-            if (validator.isValid()) {
-                final PolicyEvent<?> event =
-                        SubjectActivated.of(policyId, label, adjustedSubject, nextRevision, getEventTimestamp(),
-                                dittoHeaders);
-                final ActivateSubjectResponse rawResponse =
-                        ActivateSubjectResponse.of(policyId, label, adjustedSubject.getId(), dittoHeaders);
-                // do not append ETag - activated subjects do not support ETags.
-                return ResultFactory.newMutationResult(adjustedCommand, event, rawResponse);
-            } else {
-                return ResultFactory.newErrorResult(
-                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders),
-                        command);
-            }
+        // Validation is necessary because activation may add expiry to the policy admin subject.
+        final Policy newPolicy = policyBuilder.build();
+        final PoliciesValidator validator = PoliciesValidator.newInstance(newPolicy);
+        if (validator.isValid()) {
+            final PolicyEvent<?> event =
+                    SubjectsActivated.of(policyId, activatedSubjects, nextRevision, getEventTimestamp(), dittoHeaders);
+            final ActivateSubjectsResponse rawResponse =
+                    ActivateSubjectsResponse.of(policyId, command.getSubjectId(), dittoHeaders);
+            // do not append ETag - activated subjects do not support ETags.
+            return ResultFactory.newMutationResult(command, event, rawResponse);
         } else {
-            // Command is constructed incorrectly. This is a bug.
-            return ResultFactory.newErrorResult(PolicyActionFailedException.newBuilder().build(), command);
+            return ResultFactory.newErrorResult(
+                    policyInvalid(policyId, validator.getReason().orElse(null), dittoHeaders),
+                    command);
         }
     }
 
     @Override
-    public Optional<EntityTag> previousEntityTag(final ActivateSubject command, @Nullable final Policy previousEntity) {
+    public Optional<EntityTag> previousEntityTag(final ActivateSubjects command,
+            @Nullable final Policy previousEntity) {
         // activated subjects do not support entity tag
         return Optional.empty();
     }
 
     @Override
-    public Optional<EntityTag> nextEntityTag(final ActivateSubject command, @Nullable final Policy newEntity) {
+    public Optional<EntityTag> nextEntityTag(final ActivateSubjects command, @Nullable final Policy newEntity) {
         // activated subjects do not support entity tag
         return Optional.empty();
     }

@@ -13,12 +13,16 @@
 package org.eclipse.ditto.signals.commands.policies.modify;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.List;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
@@ -37,18 +41,22 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ActivateSubjectsTest {
 
+    private static final List<Label> LABELS = Collections.singletonList(TestConstants.Policy.LABEL);
+
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommand.JsonFields.TYPE, ActivateSubjects.TYPE)
             .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(ActivateSubjects.JsonFields.SUBJECT_ID, TestConstants.Policy.SUBJECT_ID.toString())
             .set(ActivateSubjects.JsonFields.EXPIRY, Instant.EPOCH.toString())
+            .set(ActivateSubjects.JsonFields.LABELS, JsonArray.of(TestConstants.Policy.LABEL))
             .build();
 
     @Test
     public void assertImmutability() {
         assertInstancesOf(ActivateSubjects.class,
                 areImmutable(),
-                provided(Label.class, SubjectId.class, PolicyId.class).areAlsoImmutable());
+                provided(SubjectId.class, PolicyId.class).areAlsoImmutable(),
+                assumingFields("labels").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test
@@ -60,28 +68,28 @@ public final class ActivateSubjectsTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        ActivateSubjects.of(null, TestConstants.Policy.SUBJECT_ID, Instant.EPOCH,
+        ActivateSubjects.of(null, TestConstants.Policy.SUBJECT_ID, Instant.EPOCH, LABELS,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullSubject() {
-        ActivateSubjects.of(TestConstants.Policy.POLICY_ID, null, Instant.EPOCH,
+        ActivateSubjects.of(TestConstants.Policy.POLICY_ID, null, Instant.EPOCH, LABELS,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullExpiry() {
-        ActivateSubjects.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID, null,
+        ActivateSubjects.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID, null, LABELS,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
     public void toJsonReturnsExpected() {
         final ActivateSubjects underTest =
-                ActivateSubjects.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID,
-                        Instant.EPOCH, TestConstants.EMPTY_DITTO_HEADERS);
+                ActivateSubjects.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID, Instant.EPOCH,
+                        LABELS, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -93,8 +101,8 @@ public final class ActivateSubjectsTest {
                 ActivateSubjects.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
         final ActivateSubjects expectedCommand =
-                ActivateSubjects.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID,
-                        Instant.EPOCH, TestConstants.EMPTY_DITTO_HEADERS);
+                ActivateSubjects.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID, Instant.EPOCH,
+                        LABELS, TestConstants.EMPTY_DITTO_HEADERS);
         assertThat(underTest).isEqualTo(expectedCommand);
     }
 

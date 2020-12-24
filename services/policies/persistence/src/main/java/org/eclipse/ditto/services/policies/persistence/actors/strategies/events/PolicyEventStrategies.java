@@ -30,6 +30,7 @@ import org.eclipse.ditto.signals.events.policies.SubjectActivated;
 import org.eclipse.ditto.signals.events.policies.SubjectCreated;
 import org.eclipse.ditto.signals.events.policies.SubjectDeleted;
 import org.eclipse.ditto.signals.events.policies.SubjectModified;
+import org.eclipse.ditto.signals.events.policies.SubjectsActivated;
 import org.eclipse.ditto.signals.events.policies.SubjectsModified;
 
 /**
@@ -48,6 +49,7 @@ public final class PolicyEventStrategies extends AbstractEventStrategies<PolicyE
         addStrategy(PolicyEntryModified.class, new PolicyEntryModifiedStrategy());
         addStrategy(PolicyEntryDeleted.class, new PolicyEntryDeletedStrategy());
         addStrategy(SubjectsModified.class, new SubjectsModifiedStrategy());
+        addStrategy(SubjectsActivated.class, new SubjectsActivatedStrategy());
         addStrategy(SubjectCreated.class, new SubjectCreatedStrategy());
         addStrategy(SubjectModified.class, new SubjectModifiedStrategy());
         addStrategy(SubjectDeleted.class, new SubjectDeletedStrategy());

@@ -21,7 +21,7 @@ import org.eclipse.ditto.signals.events.policies.SubjectActivated;
 final class SubjectActivatedStrategy extends AbstractPolicyEventStrategy<SubjectActivated> {
 
     @Override
-    protected PolicyBuilder applyEvent(final SubjectActivated sm, final PolicyBuilder policyBuilder) {
-        return policyBuilder.setSubjectFor(sm.getLabel(), sm.getSubject());
+    protected PolicyBuilder applyEvent(final SubjectActivated event, final PolicyBuilder policyBuilder) {
+        return policyBuilder.setSubjectFor(event.getLabel(), event.getSubject());
     }
 }
