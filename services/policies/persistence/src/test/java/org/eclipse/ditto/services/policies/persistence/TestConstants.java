@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.policies.persistence;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -25,6 +26,7 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.model.policies.SubjectType;
@@ -67,13 +69,15 @@ public final class TestConstants {
         public static final EffectedPermissions READ_GRANTED =
                 EffectedPermissions.newInstance(Collections.singleton(PERMISSION_READ), Collections.emptySet());
         public static final EffectedPermissions READ_WRITE_REVOKED =
-                EffectedPermissions.newInstance( Collections.emptySet(), Arrays.asList(PERMISSION_READ, PERMISSION_WRITE));
+                EffectedPermissions.newInstance(Collections.emptySet(),
+                        Arrays.asList(PERMISSION_READ, PERMISSION_WRITE));
         public static final ResourceKey FEATURES_RESOURCE_KEY = ResourceKey.newInstance("thing", "/features");
         public static final ResourceKey NEW_ATTRIBUTE_RESOURCE_KEY = ResourceKey.newInstance("thing",
                 "/attribute/new");
         public static final Resource NEW_ATTRIBUTE_RESOURCE = Resource.newInstance(NEW_ATTRIBUTE_RESOURCE_KEY,
                 READ_GRANTED);
-        public static final Resource FEATURES_RESOURCE = Resource.newInstance(FEATURES_RESOURCE_KEY, READ_WRITE_REVOKED);
+        public static final Resource FEATURES_RESOURCE =
+                Resource.newInstance(FEATURES_RESOURCE_KEY, READ_WRITE_REVOKED);
         public static final Resource
                 MODIFIED_FEATURES_RESOURCE = Resource.newInstance(FEATURES_RESOURCE_KEY, READ_GRANTED);
         public static final Label SUPPORT_LABEL = Label.of("Support");
@@ -84,6 +88,11 @@ public final class TestConstants {
         public static final SubjectId ADDITIONAL_SUPPORT_SUBJECT_ID = SubjectId.newInstance(SubjectIssuer.GOOGLE,
                 UUID.randomUUID().toString());
         public static final Subject ADDITIONAL_SUPPORT_SUBJECT = Subject.newInstance(ADDITIONAL_SUPPORT_SUBJECT_ID);
+        public static final Subject SUPPORT_SUBJECT_WITH_EXPIRY = PoliciesModelFactory.newSubject(
+                SUPPORT_SUBJECT_ID,
+                SubjectType.UNKNOWN,
+                SubjectExpiry.newInstance(Instant.now().plus(Duration.ofDays(1L)))
+        );
 
         public static org.eclipse.ditto.model.policies.Policy policyWithRandomName() {
             return PoliciesModelFactory.newPolicyBuilder(PolicyId.inNamespaceWithRandomName("test"))
@@ -125,12 +134,13 @@ public final class TestConstants {
         /**
          * A Policy to be used in persistence tests.
          */
-        public static final org.eclipse.ditto.model.policies.Policy POLICY = PoliciesModelFactory.newPolicyBuilder(POLICY_ID)
-                .setSubjectFor(LABEL, SUPPORT_SUBJECT_ID, SUBJECT_TYPE)
-                .setGrantedPermissionsFor(LABEL, RESOURCE_TYPE_POLICY, "/", PERMISSION_READ, PERMISSION_WRITE)
-                .setGrantedPermissionsFor(LABEL, RESOURCE_TYPE_THING, "/", PERMISSION_READ, PERMISSION_WRITE)
-                .setRevokedPermissionsFor(LABEL, RESOURCE_TYPE_THING, RESOURCE_PATH, PERMISSION_WRITE)
-                .build();
+        public static final org.eclipse.ditto.model.policies.Policy POLICY =
+                PoliciesModelFactory.newPolicyBuilder(POLICY_ID)
+                        .setSubjectFor(LABEL, SUPPORT_SUBJECT_ID, SUBJECT_TYPE)
+                        .setGrantedPermissionsFor(LABEL, RESOURCE_TYPE_POLICY, "/", PERMISSION_READ, PERMISSION_WRITE)
+                        .setGrantedPermissionsFor(LABEL, RESOURCE_TYPE_THING, "/", PERMISSION_READ, PERMISSION_WRITE)
+                        .setRevokedPermissionsFor(LABEL, RESOURCE_TYPE_THING, RESOURCE_PATH, PERMISSION_WRITE)
+                        .build();
 
         private Policy() {
             throw new AssertionError();
