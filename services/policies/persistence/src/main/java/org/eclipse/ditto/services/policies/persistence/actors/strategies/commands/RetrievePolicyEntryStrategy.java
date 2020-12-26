@@ -40,7 +40,7 @@ final class RetrievePolicyEntryStrategy extends
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+    protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy policy,
             final long nextRevision,
             final RetrievePolicyEntry command,

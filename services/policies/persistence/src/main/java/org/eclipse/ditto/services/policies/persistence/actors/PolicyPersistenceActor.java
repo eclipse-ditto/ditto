@@ -64,7 +64,7 @@ import akka.persistence.RecoveryCompleted;
  * PersistentActor which "knows" the state of a single {@link Policy}.
  */
 public final class PolicyPersistenceActor
-        extends AbstractShardedPersistenceActor<Command, Policy, PolicyId, PolicyId, PolicyEvent> {
+        extends AbstractShardedPersistenceActor<Command<?>, Policy, PolicyId, PolicyId, PolicyEvent<?>> {
 
     /**
      * The prefix of the persistenceId for Policies.
@@ -128,7 +128,7 @@ public final class PolicyPersistenceActor
     }
 
     @Override
-    protected Class<PolicyEvent> getEventClass() {
+    protected Class<?> getEventClass() {
         return PolicyEvent.class;
     }
 
@@ -143,12 +143,12 @@ public final class PolicyPersistenceActor
     }
 
     @Override
-    protected CommandStrategy<? extends Command, Policy, PolicyId, Result<PolicyEvent>> getDeletedStrategy() {
+    protected CommandStrategy<? extends Command<?>, Policy, PolicyId, Result<PolicyEvent<?>>> getDeletedStrategy() {
         return PolicyCommandStrategies.getCreatePolicyStrategy(policyConfig);
     }
 
     @Override
-    protected EventStrategy<PolicyEvent, Policy> getEventStrategy() {
+    protected EventStrategy<PolicyEvent<?>, Policy> getEventStrategy() {
         return PolicyEventStrategies.getInstance();
     }
 
@@ -168,12 +168,12 @@ public final class PolicyPersistenceActor
     }
 
     @Override
-    protected DittoRuntimeExceptionBuilder newNotAccessibleExceptionBuilder() {
+    protected DittoRuntimeExceptionBuilder<?> newNotAccessibleExceptionBuilder() {
         return PolicyNotAccessibleException.newBuilder(entityId);
     }
 
     @Override
-    protected void publishEvent(final PolicyEvent event) {
+    protected void publishEvent(final PolicyEvent<?> event) {
         pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyEvent.TYPE_PREFIX, event), getSender());
 
         final boolean policyEnforcerInvalidatedPreemptively = Boolean.parseBoolean(event.getDittoHeaders()

@@ -48,7 +48,7 @@ final class DeleteAclEntryStrategy extends AbstractThingCommandStrategy<DeleteAc
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final DeleteAclEntry command,
@@ -71,7 +71,7 @@ final class DeleteAclEntryStrategy extends AbstractThingCommandStrategy<DeleteAc
                 .filter(acl -> acl.contains(authSubject));
     }
 
-    private Result<ThingEvent> getDeleteAclEntryResult(final AccessControlList acl, final Context<ThingId> context,
+    private Result<ThingEvent<?>> getDeleteAclEntryResult(final AccessControlList acl, final Context<ThingId> context,
             final long nextRevision, final DeleteAclEntry command, @Nullable final Thing thing,
             @Nullable final Metadata metadata) {
 

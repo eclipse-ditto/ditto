@@ -35,7 +35,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  * @param <R> the type of the result
  */
 @Immutable
-public abstract class AbstractCommandStrategy<C extends Command, S, K, R extends Result>
+public abstract class AbstractCommandStrategy<C extends Command<?>, S, K, R extends Result<?>>
         implements CommandStrategy<C, S, K, R> {
 
     private final Class<C> matchingClass;

@@ -36,7 +36,7 @@ import org.junit.Test;
  */
 public final class ResultFactoryTest {
 
-    private final ResultVisitor<ThingEvent> mock = mock(Dummy.class);
+    private final ResultVisitor<ThingEvent<?>> mock = mock(Dummy.class);
     private final ThingQueryCommand thingQueryCommand = mock(ThingQueryCommand.class);
     private final ThingModifyCommand thingModifyCommand = mock(ThingModifyCommand.class);
     private final ThingModifiedEvent thingModifiedEvent = mock(ThingModifiedEvent.class);
@@ -50,7 +50,7 @@ public final class ResultFactoryTest {
 
     @Test
     public void notifyQueryResponse() {
-        final Result<ThingEvent> result = ResultFactory.newQueryResult(thingQueryCommand, response);
+        final Result<ThingEvent<?>> result = ResultFactory.newQueryResult(thingQueryCommand, response);
         result.accept(mock);
         verify(mock).onQuery(eq(thingQueryCommand), eq(response));
     }
@@ -58,7 +58,7 @@ public final class ResultFactoryTest {
     @Test
     public void notifyException() {
         final Command command = mock(Command.class);
-        final Result<ThingEvent> result = ResultFactory.newErrorResult(exception, command);
+        final Result<ThingEvent<?>> result = ResultFactory.newErrorResult(exception, command);
         result.accept(this.mock);
         verify(this.mock).onError(eq(exception), eq(command));
     }
@@ -79,7 +79,7 @@ public final class ResultFactoryTest {
     }
 
     private void assertNotifyMutationResponse(final boolean becomeCreated, final boolean becomeDeleted) {
-        final Result<ThingEvent> result =
+        final Result<ThingEvent<?>> result =
                 ResultFactory.newMutationResult(thingModifyCommand, thingModifiedEvent, response, becomeCreated,
                         becomeDeleted);
         result.accept(mock);
@@ -87,7 +87,7 @@ public final class ResultFactoryTest {
                 eq(becomeDeleted));
     }
 
-    interface Dummy extends ResultVisitor<ThingEvent> {
+    interface Dummy extends ResultVisitor<ThingEvent<?>> {
     }
 
 }

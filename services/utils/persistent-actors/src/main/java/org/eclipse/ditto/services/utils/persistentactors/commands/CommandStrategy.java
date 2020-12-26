@@ -26,7 +26,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  * @param <K> the type of the context
  * @param <R> the type of the results
  */
-public interface CommandStrategy<C extends Command, S, K, R extends Result> {
+public interface CommandStrategy<C extends Command<?>, S, K, R extends Result<?>> {
 
     /**
      * @return the message class to react to.

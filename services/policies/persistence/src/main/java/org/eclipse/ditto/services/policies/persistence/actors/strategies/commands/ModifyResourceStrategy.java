@@ -46,7 +46,7 @@ final class ModifyResourceStrategy extends AbstractPolicyCommandStrategy<ModifyR
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+    protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy policy,
             final long nextRevision,
             final ModifyResource command,

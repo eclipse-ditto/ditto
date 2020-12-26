@@ -29,7 +29,7 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
  * Command strategies of {@code PolicyPersistenceActor}.
  */
 public final class PolicyCommandStrategies
-        extends AbstractCommandStrategies<Command, Policy, PolicyId, Result<PolicyEvent>> {
+        extends AbstractCommandStrategies<Command<?>, Policy, PolicyId, Result<PolicyEvent<?>>> {
 
     @Nullable private static volatile PolicyCommandStrategies instance;
     @Nullable private static volatile CreatePolicyStrategy createPolicyStrategy;
@@ -94,7 +94,7 @@ public final class PolicyCommandStrategies
      * @param policyConfig the PolicyConfig of the Policy service to apply.
      * @return command strategy to create a policy.
      */
-    public static CommandStrategy<CreatePolicy, Policy, PolicyId, Result<PolicyEvent>> getCreatePolicyStrategy(
+    public static CommandStrategy<CreatePolicy, Policy, PolicyId, Result<PolicyEvent<?>>> getCreatePolicyStrategy(
             final PolicyConfig policyConfig) {
         CreatePolicyStrategy localCreatePolicyStrategy = createPolicyStrategy;
         if (null == localCreatePolicyStrategy) {
@@ -109,7 +109,7 @@ public final class PolicyCommandStrategies
     }
 
     @Override
-    protected Result<PolicyEvent> getEmptyResult() {
+    protected Result<PolicyEvent<?>> getEmptyResult() {
         return ResultFactory.emptyResult();
     }
 

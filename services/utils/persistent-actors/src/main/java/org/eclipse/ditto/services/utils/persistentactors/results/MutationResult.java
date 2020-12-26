@@ -21,15 +21,15 @@ import org.eclipse.ditto.signals.events.base.Event;
  *
  * @param <E> type of the event.
  */
-public final class MutationResult<E extends Event> implements Result<E> {
+public final class MutationResult<E extends Event<?>> implements Result<E> {
 
-    private final Command command;
+    private final Command<?> command;
     private final E eventToPersist;
-    private final WithDittoHeaders response;
+    private final WithDittoHeaders<?> response;
     private final boolean becomeCreated;
     private final boolean becomeDeleted;
 
-    MutationResult(final Command command, final E eventToPersist, final WithDittoHeaders response,
+    MutationResult(final Command<?> command, final E eventToPersist, final WithDittoHeaders<?> response,
             final boolean becomeCreated, final boolean becomeDeleted) {
         this.command = command;
         this.eventToPersist = eventToPersist;

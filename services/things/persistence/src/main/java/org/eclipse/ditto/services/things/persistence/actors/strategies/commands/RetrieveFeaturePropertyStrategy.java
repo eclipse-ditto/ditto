@@ -45,7 +45,7 @@ final class RetrieveFeaturePropertyStrategy extends AbstractThingCommandStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final RetrieveFeatureProperty command,
@@ -65,7 +65,7 @@ final class RetrieveFeaturePropertyStrategy extends AbstractThingCommandStrategy
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getRetrieveFeaturePropertyResult(final Feature feature, final Context<ThingId> context,
+    private Result<ThingEvent<?>> getRetrieveFeaturePropertyResult(final Feature feature, final Context<ThingId> context,
             final RetrieveFeatureProperty command, @Nullable final Thing thing) {
 
         return feature.getProperties()
@@ -75,7 +75,7 @@ final class RetrieveFeaturePropertyStrategy extends AbstractThingCommandStrategy
                                 command.getDittoHeaders()), command));
     }
 
-    private Result<ThingEvent> getRetrieveFeaturePropertyResult(final JsonObject featureProperties,
+    private Result<ThingEvent<?>> getRetrieveFeaturePropertyResult(final JsonObject featureProperties,
             final Context<ThingId> context,
             final RetrieveFeatureProperty command, @Nullable final Thing thing) {
 
@@ -86,7 +86,7 @@ final class RetrieveFeaturePropertyStrategy extends AbstractThingCommandStrategy
         return featureProperties.getValue(propertyPointer)
                 .map(featureProperty -> RetrieveFeaturePropertyResponse.of(context.getState(), featureId,
                         propertyPointer, featureProperty, dittoHeaders))
-                .<Result<ThingEvent>>map(response ->
+                .<Result<ThingEvent<?>>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featurePropertyNotFound(context.getState(), featureId, propertyPointer,

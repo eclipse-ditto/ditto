@@ -35,8 +35,8 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
  *
  * @param <C> the type of the handled command
  */
-abstract class AbstractConnectivityCommandStrategy<C extends ConnectivityCommand>
-        extends AbstractCommandStrategy<C, Connection, ConnectionState, Result<ConnectivityEvent>> {
+abstract class AbstractConnectivityCommandStrategy<C extends ConnectivityCommand<?>>
+        extends AbstractCommandStrategy<C, Connection, ConnectionState, Result<ConnectivityEvent<?>>> {
 
     AbstractConnectivityCommandStrategy(final Class<C> theMatchingClass) {
         super(theMatchingClass);
@@ -54,14 +54,14 @@ abstract class AbstractConnectivityCommandStrategy<C extends ConnectivityCommand
     }
 
     ConnectionNotAccessibleException notAccessible(final Context<ConnectionState> context,
-            final WithDittoHeaders command) {
+            final WithDittoHeaders<?> command) {
         return ConnectionNotAccessibleException.newBuilder(context.getState().id())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
     }
 
     static Optional<DittoRuntimeException> validate(final Context<ConnectionState> context,
-            final ConnectivityCommand command, final Connection connection) {
+            final ConnectivityCommand<?> command, final Connection connection) {
         try {
             context.getState().getValidator().accept(command, () -> connection);
             return Optional.empty();

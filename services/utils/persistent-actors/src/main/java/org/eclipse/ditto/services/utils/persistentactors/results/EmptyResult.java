@@ -19,9 +19,9 @@ import org.eclipse.ditto.signals.events.base.Event;
  *
  * @param <E> type of events.
  */
-public final class EmptyResult<E extends Event> implements Result<E> {
+public final class EmptyResult<E extends Event<?>> implements Result<E> {
 
-    private static final Object INSTANCE = new EmptyResult();
+    private static final Object INSTANCE = new EmptyResult<>();
 
     /**
      * Returns the singleton instance of an empty {@link Result}.
@@ -30,12 +30,12 @@ public final class EmptyResult<E extends Event> implements Result<E> {
      * @return the empty result instance.
      */
     @SuppressWarnings("unchecked")
-    public static <E extends Event> EmptyResult<E> getInstance() {
+    public static <E extends Event<?>> EmptyResult<E> getInstance() {
         return (EmptyResult<E>) INSTANCE;
     }
 
     @Override
-    public void accept(final ResultVisitor visitor) {
+    public void accept(final ResultVisitor<E> visitor) {
         visitor.onEmpty();
     }
 

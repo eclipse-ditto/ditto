@@ -55,7 +55,7 @@ final class ActivateSubjectsStrategy extends AbstractPolicyCommandStrategy<Activ
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+    protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy policy,
             final long nextRevision,
             final ActivateSubjects command,

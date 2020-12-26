@@ -24,7 +24,7 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
 /**
  * Strategies to modify a connection by events.
  */
-public final class ConnectionEventStrategies extends AbstractEventStrategies<ConnectivityEvent, Connection> {
+public final class ConnectionEventStrategies extends AbstractEventStrategies<ConnectivityEvent<?>, Connection> {
 
     private static final ConnectionEventStrategies INSTANCE = new ConnectionEventStrategies();
 

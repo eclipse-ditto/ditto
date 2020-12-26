@@ -64,30 +64,32 @@ public abstract class AbstractPolicyCommandStrategyTest {
         return DefaultContext.getInstance(TestConstants.Policy.POLICY_ID, logger);
     }
 
-    protected static <T extends PolicyEvent<?>> T assertModificationResult(final CommandStrategy underTest,
+    protected static <C extends Command<?>, T extends PolicyEvent<?>> T assertModificationResult(
+            final CommandStrategy<C, Policy, PolicyId, Result<PolicyEvent<?>>> underTest,
             @Nullable final Policy policy,
-            final Command command,
+            final C command,
             final Class<T> expectedEventClass,
-            final CommandResponse expectedCommandResponse) {
+            final CommandResponse<?> expectedCommandResponse) {
 
         return assertModificationResult(underTest, policy, command, expectedEventClass, expectedCommandResponse, false);
     }
 
-    protected static <T extends PolicyEvent<?>, R extends PolicyCommandResponse<R>> void assertModificationResult(
-            final CommandStrategy underTest,
+    protected static <C extends Command<?>, T extends PolicyEvent<?>, R extends PolicyCommandResponse<R>>
+    void assertModificationResult(
+            final CommandStrategy<C, Policy, PolicyId, Result<PolicyEvent<?>>> underTest,
             @Nullable final Policy policy,
-            final Command command,
+            final C command,
             final Class<T> expectedEventClass,
             final Consumer<T> eventSatisfactions,
             final Class<R> expectedResponseClass,
             final Consumer<R> responseSatisfactions) {
 
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
-        final Result<PolicyEvent> result = applyStrategy(underTest, context, policy, command);
+        final Result<PolicyEvent<?>> result = applyStrategy(underTest, context, policy, command);
 
         final ArgumentCaptor<T> event = ArgumentCaptor.forClass(expectedEventClass);
         final ArgumentCaptor<R> response = ArgumentCaptor.forClass(expectedResponseClass);
-        final ResultVisitor<PolicyEvent> mock = mock(Dummy.class);
+        final ResultVisitor<PolicyEvent<?>> mock = mock(Dummy.class);
         result.accept(mock);
 
         verify(mock).onMutation(any(), event.capture(), response.capture(), anyBoolean(), eq(false));
@@ -95,45 +97,48 @@ public abstract class AbstractPolicyCommandStrategyTest {
         assertThat(response.getValue()).isInstanceOf(expectedResponseClass);
 
         assertThat(event.getValue())
-                .describedAs("Event satisfactions failed for expected event of type '%s'", expectedEventClass.getSimpleName())
+                .describedAs("Event satisfactions failed for expected event of type '%s'",
+                        expectedEventClass.getSimpleName())
                 .satisfies(eventSatisfactions);
         assertThat(response.getValue())
-                .describedAs("Response predicate failed for expected response of type '%s'", expectedResponseClass.getSimpleName())
+                .describedAs("Response predicate failed for expected response of type '%s'",
+                        expectedResponseClass.getSimpleName())
                 .satisfies(responseSatisfactions);
     }
 
-    protected static <T extends PolicyEvent<?>> T assertModificationResult(final CommandStrategy underTest,
+    protected static <C extends Command<?>, T extends PolicyEvent<?>> T assertModificationResult(
+            final CommandStrategy<C, Policy, PolicyId, Result<PolicyEvent<?>>> underTest,
             @Nullable final Policy policy,
-            final Command command,
+            final C command,
             final Class<T> expectedEventClass,
-            final CommandResponse expectedCommandResponse,
+            final CommandResponse<?> expectedCommandResponse,
             final boolean becomeDeleted) {
 
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
-        final Result<PolicyEvent> result = applyStrategy(underTest, context, policy, command);
+        final Result<PolicyEvent<?>> result = applyStrategy(underTest, context, policy, command);
 
         return assertModificationResult(result, expectedEventClass, expectedCommandResponse, becomeDeleted);
     }
 
-    protected static <C extends Command> void assertErrorResult(
-            final CommandStrategy<C, Policy, PolicyId, Result<PolicyEvent>> underTest,
+    protected static <C extends Command<?>> void assertErrorResult(
+            final CommandStrategy<C, Policy, PolicyId, Result<PolicyEvent<?>>> underTest,
             @Nullable final Policy policy,
             final C command,
             final DittoRuntimeException expectedException) {
 
-        final ResultVisitor<PolicyEvent> mock = mock(Dummy.class);
+        final ResultVisitor<PolicyEvent<?>> mock = mock(Dummy.class);
         applyStrategy(underTest, getDefaultContext(), policy, command).accept(mock);
         verify(mock).onError(eq(expectedException), eq(command));
     }
 
-    private static <T extends PolicyEvent<?>> T assertModificationResult(final Result<PolicyEvent> result,
+    private static <T extends PolicyEvent<?>> T assertModificationResult(final Result<PolicyEvent<?>> result,
             final Class<T> eventClazz,
-            final WithDittoHeaders expectedResponse,
+            final WithDittoHeaders<?> expectedResponse,
             final boolean becomeDeleted) {
 
         final ArgumentCaptor<T> event = ArgumentCaptor.forClass(eventClazz);
 
-        final ResultVisitor<PolicyEvent> mock = mock(Dummy.class);
+        final ResultVisitor<PolicyEvent<?>> mock = mock(Dummy.class);
 
         result.accept(mock);
 
@@ -142,8 +147,8 @@ public abstract class AbstractPolicyCommandStrategyTest {
         return event.getValue();
     }
 
-    private static <C extends Command> Result<PolicyEvent> applyStrategy(
-            final CommandStrategy<C, Policy, PolicyId, Result<PolicyEvent>> underTest,
+    private static <C extends Command<?>> Result<PolicyEvent<?>> applyStrategy(
+            final CommandStrategy<C, Policy, PolicyId, Result<PolicyEvent<?>>> underTest,
             final CommandStrategy.Context<PolicyId> context,
             @Nullable final Policy policy,
             final C command) {
@@ -151,11 +156,11 @@ public abstract class AbstractPolicyCommandStrategyTest {
         return underTest.apply(context, policy, NEXT_REVISION, command);
     }
 
-    interface Dummy extends ResultVisitor<PolicyEvent> {}
+    interface Dummy extends ResultVisitor<PolicyEvent<?>> {}
 
     protected static DittoHeaders appendETagToDittoHeaders(final Object object, final DittoHeaders dittoHeaders) {
 
-        return dittoHeaders.toBuilder().eTag(EntityTag.fromEntity(object).get()).build();
+        return dittoHeaders.toBuilder().eTag(EntityTag.fromEntity(object).orElseThrow()).build();
     }
 
 }

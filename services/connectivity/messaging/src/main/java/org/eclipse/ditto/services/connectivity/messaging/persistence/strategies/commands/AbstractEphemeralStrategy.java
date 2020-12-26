@@ -34,26 +34,27 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
  *
  * @param <C> the type of the handled command
  */
-abstract class AbstractEphemeralStrategy<C extends ConnectivityCommand> extends AbstractConnectivityCommandStrategy<C> {
+abstract class AbstractEphemeralStrategy<C extends ConnectivityCommand<?>>
+        extends AbstractConnectivityCommandStrategy<C> {
 
 
     AbstractEphemeralStrategy(final Class<C> theMatchingClass) {
         super(theMatchingClass);
     }
 
-    abstract WithDittoHeaders getResponse(final ConnectionState connectionId, final DittoHeaders headers);
+    abstract WithDittoHeaders<?> getResponse(final ConnectionState connectionId, final DittoHeaders headers);
 
     abstract List<ConnectionAction> getActions();
 
     @Override
-    protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
+    protected Result<ConnectivityEvent<?>> doApply(final Context<ConnectionState> context,
             @Nullable final Connection connection,
             final long nextRevision,
             final C command,
             @Nullable final Metadata metadata) {
 
-        final ConnectivityEvent event = StagedCommand.dummyEvent();
-        final WithDittoHeaders response = getResponse(context.getState(), command.getDittoHeaders());
+        final ConnectivityEvent<?> event = StagedCommand.dummyEvent();
+        final WithDittoHeaders<?> response = getResponse(context.getState(), command.getDittoHeaders());
         final List<ConnectionAction> actions = getActions();
         return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
     }

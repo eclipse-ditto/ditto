@@ -60,7 +60,7 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
  * {@link org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand} are handled which are no PolicyCommands.
  */
 abstract class AbstractPolicyCommandStrategy<C extends Command<C>>
-        extends AbstractConditionHeaderCheckingCommandStrategy<C, Policy, PolicyId, PolicyEvent> {
+        extends AbstractConditionHeaderCheckingCommandStrategy<C, Policy, PolicyId, PolicyEvent<?>> {
 
     static SubjectType TOKEN_INTEGRATION = PoliciesModelFactory.newSubjectType("actions/activateTokenIntegration");
 
@@ -239,7 +239,7 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>>
      * @param command the command which caused the change of the policy entries.
      * @return an Optional with ErrorResponse if a subject was invalid, an empty Optional if everything was valid.
      */
-    protected static Optional<Result<PolicyEvent>> checkForAlreadyExpiredSubject(final Iterable<PolicyEntry> entries,
+    protected static Optional<Result<PolicyEvent<?>>> checkForAlreadyExpiredSubject(final Iterable<PolicyEntry> entries,
             final DittoHeaders dittoHeaders, final Command<?> command) {
 
         return StreamSupport.stream(entries.spliterator(), false)

@@ -56,7 +56,7 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final RetrieveThing command,
@@ -66,7 +66,7 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
                 appendETagHeaderIfProvided(command, getRetrieveThingResponse(thing, command), thing));
     }
 
-    private static WithDittoHeaders getRetrieveThingResponse(@Nullable final Thing thing,
+    private static WithDittoHeaders<?> getRetrieveThingResponse(@Nullable final Thing thing,
             final ThingQueryCommand<RetrieveThing> command) {
         if (thing != null) {
             return RetrieveThingResponse.of(command.getThingEntityId(), getThingJson(thing, command),
@@ -87,7 +87,7 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
     }
 
     @Override
-    public Result<ThingEvent> unhandled(final Context<ThingId> context, @Nullable final Thing thing,
+    public Result<ThingEvent<?>> unhandled(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final RetrieveThing command) {
         return ResultFactory.newErrorResult(
                 new ThingNotAccessibleException(context.getState(), command.getDittoHeaders()), command);

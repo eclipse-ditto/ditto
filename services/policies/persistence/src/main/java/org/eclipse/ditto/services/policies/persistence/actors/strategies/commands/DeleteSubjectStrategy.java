@@ -46,7 +46,7 @@ final class DeleteSubjectStrategy extends AbstractPolicyCommandStrategy<DeleteSu
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+    protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy policy,
             final long nextRevision,
             final DeleteSubject command,

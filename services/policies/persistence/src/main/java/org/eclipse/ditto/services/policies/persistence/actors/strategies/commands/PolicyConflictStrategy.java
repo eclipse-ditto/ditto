@@ -38,7 +38,7 @@ final class PolicyConflictStrategy extends AbstractPolicyCommandStrategy<CreateP
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+    protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy entity,
             final long nextRevision,
             final CreatePolicy command,

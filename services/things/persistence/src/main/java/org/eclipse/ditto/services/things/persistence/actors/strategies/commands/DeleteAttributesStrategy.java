@@ -46,7 +46,7 @@ final class DeleteAttributesStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final DeleteAttributes command,
@@ -62,7 +62,7 @@ final class DeleteAttributesStrategy
         return getEntityOrThrow(thing).getAttributes();
     }
 
-    private Result<ThingEvent> getDeleteAttributesResult(final Context<ThingId> context, final long nextRevision,
+    private Result<ThingEvent<?>> getDeleteAttributesResult(final Context<ThingId> context, final long nextRevision,
             final DeleteAttributes command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
         final ThingId thingId = context.getState();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();

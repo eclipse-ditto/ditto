@@ -32,7 +32,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  * @param <R> the type of the results
  */
 @Immutable
-public abstract class AbstractCommandStrategies<C extends Command, S, K, R extends Result>
+public abstract class AbstractCommandStrategies<C extends Command<?>, S, K, R extends Result<?>>
         extends AbstractCommandStrategy<C, S, K, R> {
 
     protected final Map<Class<? extends C>, CommandStrategy<? extends C, S, K, R>> strategies;
@@ -43,8 +43,9 @@ public abstract class AbstractCommandStrategies<C extends Command, S, K, R exten
      * @param theMatchingClass the class
      * @throws NullPointerException if {@code theMatchingClass} is {@code null}.
      */
-    protected AbstractCommandStrategies(final Class<C> theMatchingClass) {
-        super(theMatchingClass);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    protected AbstractCommandStrategies(final Class theMatchingClass) {
+        super((Class<C>) theMatchingClass);
         strategies = new HashMap<>();
     }
 
@@ -102,7 +103,8 @@ public abstract class AbstractCommandStrategies<C extends Command, S, K, R exten
     }
 
     @Nullable
-    private CommandStrategy<C, S, K, R> getAppropriateStrategy(final Class commandClass) {
+    @SuppressWarnings("unchecked")
+    private CommandStrategy<C, S, K, R> getAppropriateStrategy(final Class<?> commandClass) {
         return (CommandStrategy<C, S, K, R>) strategies.get(commandClass);
     }
 

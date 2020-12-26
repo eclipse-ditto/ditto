@@ -46,7 +46,7 @@ final class DeleteAttributeStrategy extends AbstractThingCommandStrategy<DeleteA
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final DeleteAttribute command,
@@ -63,7 +63,7 @@ final class DeleteAttributeStrategy extends AbstractThingCommandStrategy<DeleteA
                                 command.getDittoHeaders()), command));
     }
 
-    private Result<ThingEvent> getDeleteAttributeResult(final Context<ThingId> context, final long nextRevision,
+    private Result<ThingEvent<?>> getDeleteAttributeResult(final Context<ThingId> context, final long nextRevision,
             final DeleteAttribute command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
         final ThingId thingId = context.getState();
         final JsonPointer attrPointer = command.getAttributePointer();

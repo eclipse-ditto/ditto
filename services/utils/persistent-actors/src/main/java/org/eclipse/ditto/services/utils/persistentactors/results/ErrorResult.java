@@ -19,12 +19,12 @@ import org.eclipse.ditto.signals.events.base.Event;
 /**
  * Result signifying an error.
  */
-public final class ErrorResult<E extends Event> implements Result<E> {
+public final class ErrorResult<E extends Event<?>> implements Result<E> {
 
-    private final Command errorCausingCommand;
+    private final Command<?> errorCausingCommand;
     private final DittoRuntimeException dittoRuntimeException;
 
-    ErrorResult(final DittoRuntimeException dittoRuntimeException, final Command errorCausingCommand) {
+    ErrorResult(final DittoRuntimeException dittoRuntimeException, final Command<?> errorCausingCommand) {
         this.dittoRuntimeException = dittoRuntimeException;
         this.errorCausingCommand = errorCausingCommand;
     }

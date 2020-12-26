@@ -45,7 +45,7 @@ final class RetrieveAclEntryStrategy extends AbstractThingCommandStrategy<Retrie
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final RetrieveAclEntry command,
@@ -57,9 +57,9 @@ final class RetrieveAclEntryStrategy extends AbstractThingCommandStrategy<Retrie
 
         return extractAclEntry(command, thing)
                 .map(aclEntry -> {
-                    final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                    final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
                             RetrieveAclEntryResponse.of(thingId, aclEntry, dittoHeaders), thing);
-                    return ResultFactory.<ThingEvent>newQueryResult(command, response);
+                    return ResultFactory.<ThingEvent<?>>newQueryResult(command, response);
                 })
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.aclEntryNotFound(thingId, authorizationSubject, dittoHeaders), command));

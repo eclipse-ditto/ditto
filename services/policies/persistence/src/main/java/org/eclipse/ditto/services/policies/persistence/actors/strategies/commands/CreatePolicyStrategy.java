@@ -48,7 +48,7 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+    protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy entity,
             final long nextRevision,
             final CreatePolicy command,
@@ -69,7 +69,7 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
         }
         final Policy newPolicyWithLifecycle = newPolicyBuilder.build();
 
-        final Optional<Result<PolicyEvent>> alreadyExpiredSubject =
+        final Optional<Result<PolicyEvent<?>>> alreadyExpiredSubject =
                 checkForAlreadyExpiredSubject(newPolicyWithLifecycle, dittoHeaders, command);
         if (alreadyExpiredSubject.isPresent()) {
             return alreadyExpiredSubject.get();

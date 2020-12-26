@@ -27,7 +27,8 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
  * Strategies to handle signals as an existing connection.
  */
 public class ConnectionCreatedStrategies
-        extends AbstractCommandStrategies<ConnectivityCommand, Connection, ConnectionState, Result<ConnectivityEvent>> {
+        extends
+        AbstractCommandStrategies<ConnectivityCommand<?>, Connection, ConnectionState, Result<ConnectivityEvent<?>>> {
 
     private static final ConnectionCreatedStrategies CREATED_STRATEGIES = newCreatedStrategies();
 
@@ -63,16 +64,16 @@ public class ConnectionCreatedStrategies
     }
 
     @Override
-    public boolean isDefined(final ConnectivityCommand command) {
+    public boolean isDefined(final ConnectivityCommand<?> command) {
         // always defined so as to forward signals.
         return true;
     }
 
     @Override
-    public Result<ConnectivityEvent> unhandled(final Context<ConnectionState> context,
+    public Result<ConnectivityEvent<?>> unhandled(final Context<ConnectionState> context,
             @Nullable final Connection entity,
             final long nextRevision,
-            final ConnectivityCommand command) {
+            final ConnectivityCommand<?> command) {
 
         return ResultFactory.newErrorResult(ConnectionNotAccessibleException
                 .newBuilder(context.getState().id())
@@ -81,7 +82,7 @@ public class ConnectionCreatedStrategies
     }
 
     @Override
-    protected Result<ConnectivityEvent> getEmptyResult() {
+    protected Result<ConnectivityEvent<?>> getEmptyResult() {
         return ResultFactory.emptyResult();
     }
 

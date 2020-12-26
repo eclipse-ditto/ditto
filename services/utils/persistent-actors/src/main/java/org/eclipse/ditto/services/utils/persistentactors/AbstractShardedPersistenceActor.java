@@ -56,11 +56,11 @@ import scala.Option;
  * @param <E> the base type of the Events this actor emits
  */
 public abstract class AbstractShardedPersistenceActor<
-        C extends Command,
+        C extends Command<?>,
         S,
         I extends EntityId,
         K,
-        E extends Event> extends AbstractPersistentActorWithTimersAndCleanup implements ResultVisitor<E> {
+        E extends Event<? extends E>> extends AbstractPersistentActorWithTimersAndCleanup implements ResultVisitor<E> {
 
     private final SnapshotAdapter<S> snapshotAdapter;
     private final Receive handleEvents;
@@ -87,6 +87,7 @@ public abstract class AbstractShardedPersistenceActor<
      * @param entityId the entity ID.
      * @param snapshotAdapter the entity's snapshot adapter.
      */
+    @SuppressWarnings("unchecked")
     protected AbstractShardedPersistenceActor(final I entityId, final SnapshotAdapter<S> snapshotAdapter) {
         this.entityId = entityId;
         this.snapshotAdapter = snapshotAdapter;
@@ -97,7 +98,7 @@ public abstract class AbstractShardedPersistenceActor<
 
         handleEvents = ReceiveBuilder.create()
                 .match(getEventClass(), event -> {
-                    entity = getEventStrategy().handle(event, entity, getRevisionNumber());
+                    entity = getEventStrategy().handle((E) event, entity, getRevisionNumber());
                     onEntityModified();
                 })
                 .build();
@@ -124,7 +125,7 @@ public abstract class AbstractShardedPersistenceActor<
     /**
      * @return class of the events persisted by this actor.
      */
-    protected abstract Class<E> getEventClass();
+    protected abstract Class<?> getEventClass();
 
     /**
      * @return the context for handling commands based on the actor's current state.
@@ -166,7 +167,7 @@ public abstract class AbstractShardedPersistenceActor<
     /**
      * @return An exception builder to respond to unexpected commands addressed to a nonexistent entity.
      */
-    protected abstract DittoRuntimeExceptionBuilder newNotAccessibleExceptionBuilder();
+    protected abstract DittoRuntimeExceptionBuilder<?> newNotAccessibleExceptionBuilder();
 
     /**
      * Publish an event.
@@ -293,7 +294,7 @@ public abstract class AbstractShardedPersistenceActor<
             final DittoHeaders newHeaders = event.getDittoHeaders().toBuilder()
                     .schemaVersion(getEntitySchemaVersion(entity))
                     .build();
-            modifiedEvent = (E) event.setDittoHeaders(newHeaders);
+            modifiedEvent = event.setDittoHeaders(newHeaders);
         } else {
             modifiedEvent = event;
         }
@@ -381,13 +382,13 @@ public abstract class AbstractShardedPersistenceActor<
         handleByStrategy(command, getCreatedStrategy());
     }
 
-    private <T extends Command> ReceiveBuilder handleByStrategyReceiveBuilder(
+    private <T extends Command<?>> ReceiveBuilder handleByStrategyReceiveBuilder(
             final CommandStrategy<T, S, K, Result<E>> strategy) {
         return ReceiveBuilder.create()
                 .match(strategy.getMatchingClass(), command -> handleByStrategy(command, strategy));
     }
 
-    private <T extends Command> void handleByStrategy(final T command,
+    private <T extends Command<?>> void handleByStrategy(final T command,
             final CommandStrategy<T, S, K, Result<E>> strategy) {
         log.debug("Handling by strategy: <{}>", command);
         accessCounter++;
@@ -402,7 +403,7 @@ public abstract class AbstractShardedPersistenceActor<
     }
 
     @Override
-    public void onMutation(final Command command, final E event, final WithDittoHeaders response,
+    public void onMutation(final Command<?> command, final E event, final WithDittoHeaders<?> response,
             final boolean becomeCreated, final boolean becomeDeleted) {
 
         persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
@@ -426,14 +427,14 @@ public abstract class AbstractShardedPersistenceActor<
     }
 
     @Override
-    public void onQuery(final Command command, final WithDittoHeaders response) {
+    public void onQuery(final Command<?> command, final WithDittoHeaders<?> response) {
         if (command.getDittoHeaders().isResponseRequired()) {
             notifySender(response);
         }
     }
 
     @Override
-    public void onError(final DittoRuntimeException error, final Command errorCausingCommand) {
+    public void onError(final DittoRuntimeException error, final Command<?> errorCausingCommand) {
         if (shouldSendResponse(errorCausingCommand.getDittoHeaders())) {
             notifySender(error);
         }
@@ -491,11 +492,11 @@ public abstract class AbstractShardedPersistenceActor<
         publishEvent(event);
     }
 
-    private void notifySender(final WithDittoHeaders message) {
+    private void notifySender(final WithDittoHeaders<?> message) {
         notifySender(getSender(), message);
     }
 
-    private void notifySender(final ActorRef sender, final WithDittoHeaders message) {
+    private void notifySender(final ActorRef sender, final WithDittoHeaders<?> message) {
         accessCounter++;
         sender.tell(message, getSelf());
     }
@@ -524,9 +525,9 @@ public abstract class AbstractShardedPersistenceActor<
     }
 
     private void notAccessible(final Object message) {
-        final DittoRuntimeExceptionBuilder builder = newNotAccessibleExceptionBuilder();
+        final DittoRuntimeExceptionBuilder<?> builder = newNotAccessibleExceptionBuilder();
         if (message instanceof WithDittoHeaders) {
-            builder.dittoHeaders(((WithDittoHeaders) message).getDittoHeaders());
+            builder.dittoHeaders(((WithDittoHeaders<?>) message).getDittoHeaders());
         }
         notifySender(builder.build());
     }

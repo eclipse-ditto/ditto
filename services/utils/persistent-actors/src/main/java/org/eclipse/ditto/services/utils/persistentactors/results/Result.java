@@ -17,7 +17,7 @@ import org.eclipse.ditto.signals.events.base.Event;
 /**
  * The result of applying the strategy to the given command.
  */
-public interface Result<E extends Event> {
+public interface Result<E extends Event<?>> {
 
     /**
      * Evaluate the result by a visitor.
@@ -29,7 +29,7 @@ public interface Result<E extends Event> {
     /**
      * @return the empty result
      */
-    static Result empty() {
+    static <E extends Event<?>> Result<E> empty() {
         return ResultFactory.emptyResult();
     }
 

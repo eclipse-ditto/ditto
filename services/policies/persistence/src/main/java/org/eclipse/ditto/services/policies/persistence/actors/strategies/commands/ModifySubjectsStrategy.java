@@ -50,7 +50,7 @@ final class ModifySubjectsStrategy extends AbstractPolicyCommandStrategy<ModifyS
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+    protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy policy,
             final long nextRevision,
             final ModifySubjects command,
@@ -69,7 +69,7 @@ final class ModifySubjectsStrategy extends AbstractPolicyCommandStrategy<ModifyS
 
             final Policy newPolicy = nonNullPolicy.setSubjectsFor(label, adjustedSubjects);
 
-            final Optional<Result<PolicyEvent>> alreadyExpiredSubject =
+            final Optional<Result<PolicyEvent<?>>> alreadyExpiredSubject =
                     checkForAlreadyExpiredSubject(newPolicy, dittoHeaders, command);
             if (alreadyExpiredSubject.isPresent()) {
                 return alreadyExpiredSubject.get();

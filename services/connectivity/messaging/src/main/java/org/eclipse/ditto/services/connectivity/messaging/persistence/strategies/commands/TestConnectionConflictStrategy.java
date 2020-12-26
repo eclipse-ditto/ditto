@@ -35,7 +35,7 @@ final class TestConnectionConflictStrategy extends AbstractConnectivityCommandSt
     }
 
     @Override
-    protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
+    protected Result<ConnectivityEvent<?>> doApply(final Context<ConnectionState> context,
             @Nullable final Connection entity,
             final long nextRevision,
             final TestConnection command,

@@ -47,7 +47,7 @@ import akka.persistence.RecoveryCompleted;
  * PersistentActor which "knows" the state of a single {@link Thing}.
  */
 public final class ThingPersistenceActor
-        extends AbstractShardedPersistenceActor<Command, Thing, ThingId, ThingId, ThingEvent> {
+        extends AbstractShardedPersistenceActor<Command<?>, Thing, ThingId, ThingId, ThingEvent<?>> {
 
     /**
      * The prefix of the persistenceId for Things.
@@ -64,7 +64,7 @@ public final class ThingPersistenceActor
      */
     static final String SNAPSHOT_PLUGIN_ID = "akka-contrib-mongodb-persistence-things-snapshots";
 
-    private static AckExtractor<ThingEvent<?>> ACK_EXTRACTOR =
+    private static final AckExtractor<ThingEvent<?>> ACK_EXTRACTOR =
             AckExtractor.of(ThingEvent::getEntityId, ThingEvent::getDittoHeaders);
 
     private final ThingConfig thingConfig;
@@ -123,7 +123,7 @@ public final class ThingPersistenceActor
     }
 
     @Override
-    protected Class<ThingEvent> getEventClass() {
+    protected Class<?> getEventClass() {
         return ThingEvent.class;
     }
 
@@ -138,12 +138,12 @@ public final class ThingPersistenceActor
     }
 
     @Override
-    protected CommandStrategy<CreateThing, Thing, ThingId, Result<ThingEvent>> getDeletedStrategy() {
+    protected CommandStrategy<CreateThing, Thing, ThingId, Result<ThingEvent<?>>> getDeletedStrategy() {
         return ThingCommandStrategies.getCreateThingStrategy();
     }
 
     @Override
-    protected EventStrategy<ThingEvent, Thing> getEventStrategy() {
+    protected EventStrategy<ThingEvent<?>, Thing> getEventStrategy() {
         return ThingEventStrategies.getInstance();
     }
 
@@ -163,7 +163,7 @@ public final class ThingPersistenceActor
     }
 
     @Override
-    protected DittoRuntimeExceptionBuilder newNotAccessibleExceptionBuilder() {
+    protected DittoRuntimeExceptionBuilder<?> newNotAccessibleExceptionBuilder() {
         return ThingNotAccessibleException.newBuilder(entityId);
     }
 
@@ -177,7 +177,7 @@ public final class ThingPersistenceActor
     }
 
     @Override
-    protected void publishEvent(final ThingEvent event) {
+    protected void publishEvent(final ThingEvent<?> event) {
         distributedPub.publishWithAcks(event, ACK_EXTRACTOR, getSender());
     }
 
@@ -188,7 +188,7 @@ public final class ThingPersistenceActor
 
     private static Thing enhanceThingWithLifecycle(final Thing thing) {
         final ThingBuilder.FromCopy thingBuilder = ThingsModelFactory.newThingBuilder(thing);
-        if (!thing.getLifecycle().isPresent()) {
+        if (thing.getLifecycle().isEmpty()) {
             thingBuilder.setLifecycle(ThingLifecycle.ACTIVE);
         }
 

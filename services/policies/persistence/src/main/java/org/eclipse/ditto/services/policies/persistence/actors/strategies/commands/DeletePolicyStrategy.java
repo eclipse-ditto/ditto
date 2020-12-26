@@ -40,7 +40,7 @@ final class DeletePolicyStrategy extends AbstractPolicyCommandStrategy<DeletePol
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+    protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy entity,
             final long nextRevision,
             final DeletePolicy command,

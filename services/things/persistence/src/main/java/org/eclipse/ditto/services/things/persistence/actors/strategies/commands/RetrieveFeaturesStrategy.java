@@ -44,7 +44,7 @@ final class RetrieveFeaturesStrategy extends AbstractThingCommandStrategy<Retrie
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final RetrieveFeatures command,
@@ -56,7 +56,7 @@ final class RetrieveFeaturesStrategy extends AbstractThingCommandStrategy<Retrie
         return extractFeatures(thing)
                 .map(features -> getFeaturesJson(features, command))
                 .map(featuresJson -> RetrieveFeaturesResponse.of(thingId, featuresJson, dittoHeaders))
-                .<Result<ThingEvent>>map(response ->
+                .<Result<ThingEvent<?>>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory
                         .newErrorResult(ExceptionFactory.featuresNotFound(thingId, dittoHeaders), command));

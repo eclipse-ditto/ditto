@@ -50,7 +50,7 @@ final class ModifyAclEntryStrategy extends AbstractThingCommandStrategy<ModifyAc
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final ModifyAclEntry command,
@@ -74,7 +74,7 @@ final class ModifyAclEntryStrategy extends AbstractThingCommandStrategy<ModifyAc
         return AclValidator.newInstance(acl, Thing.MIN_REQUIRED_PERMISSIONS);
     }
 
-    private Result<ThingEvent> getModifyOrCreateResult(final AccessControlList acl, final Context<ThingId> context,
+    private Result<ThingEvent<?>> getModifyOrCreateResult(final AccessControlList acl, final Context<ThingId> context,
             final long nextRevision, final ModifyAclEntry command, @Nullable final Thing thing,
             @Nullable final Metadata metadata) {
 
@@ -85,7 +85,7 @@ final class ModifyAclEntryStrategy extends AbstractThingCommandStrategy<ModifyAc
         return getCreateResult(context, nextRevision, command, thing, metadata);
     }
 
-    private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
+    private Result<ThingEvent<?>> getModifyResult(final Context<ThingId> context, final long nextRevision,
             final ModifyAclEntry command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
         final ThingId thingId = context.getState();
         final AclEntry aclEntry = command.getAclEntry();
@@ -99,7 +99,7 @@ final class ModifyAclEntryStrategy extends AbstractThingCommandStrategy<ModifyAc
         return ResultFactory.newMutationResult(command, event, response);
     }
 
-    private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
+    private Result<ThingEvent<?>> getCreateResult(final Context<ThingId> context, final long nextRevision,
             final ModifyAclEntry command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
         final ThingId thingId = context.getState();
         final AclEntry aclEntry = command.getAclEntry();

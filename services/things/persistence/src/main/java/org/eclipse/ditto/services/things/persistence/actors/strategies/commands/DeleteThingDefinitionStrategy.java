@@ -47,7 +47,7 @@ final class DeleteThingDefinitionStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final DeleteThingDefinition command,
@@ -65,7 +65,7 @@ final class DeleteThingDefinitionStrategy
         return getEntityOrThrow(thing).getDefinition();
     }
 
-    private Result<ThingEvent> getDeleteDefinitionResult(final Context<ThingId> context, final long nextRevision,
+    private Result<ThingEvent<?>> getDeleteDefinitionResult(final Context<ThingId> context, final long nextRevision,
             final DeleteThingDefinition command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
 
         final ThingId thingId = context.getState();

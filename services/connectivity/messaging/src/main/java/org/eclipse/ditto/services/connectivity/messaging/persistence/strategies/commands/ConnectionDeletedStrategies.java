@@ -27,7 +27,8 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
  * Strategies to handle signals as a nonexistent connection.
  */
 public class ConnectionDeletedStrategies
-        extends AbstractCommandStrategies<ConnectivityCommand, Connection, ConnectionState, Result<ConnectivityEvent>> {
+        extends
+        AbstractCommandStrategies<ConnectivityCommand<?>, Connection, ConnectionState, Result<ConnectivityEvent<?>>> {
 
     private static final ConnectionDeletedStrategies DELETED_STRATEGIES = newDeletedStrategies();
 
@@ -51,10 +52,10 @@ public class ConnectionDeletedStrategies
     }
 
     @Override
-    public Result<ConnectivityEvent> unhandled(final Context<ConnectionState> context,
+    public Result<ConnectivityEvent<?>> unhandled(final Context<ConnectionState> context,
             @Nullable final Connection entity,
             final long nextRevision,
-            final ConnectivityCommand command) {
+            final ConnectivityCommand<?> command) {
 
         context.getLog().withCorrelationId(command)
                 .warning("Received command for deleted connection, rejecting: <{}>", command);
@@ -64,13 +65,13 @@ public class ConnectionDeletedStrategies
     }
 
     @Override
-    public boolean isDefined(final ConnectivityCommand command) {
+    public boolean isDefined(final ConnectivityCommand<?> command) {
         // always defined so as to log ignored signals on debug level.
         return true;
     }
 
     @Override
-    protected Result<ConnectivityEvent> getEmptyResult() {
+    protected Result<ConnectivityEvent<?>> getEmptyResult() {
         return ResultFactory.emptyResult();
     }
 

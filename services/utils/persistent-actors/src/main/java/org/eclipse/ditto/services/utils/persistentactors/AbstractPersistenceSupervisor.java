@@ -52,10 +52,9 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
 
     @Nullable private E entityId;
     @Nullable private Props persistenceActorProps;
-    @Nullable private ShutdownBehaviour shutdownBehaviour;
     @Nullable private ActorRef child;
 
-    private ExponentialBackOffConfig exponentialBackOffConfig;
+    private final ExponentialBackOffConfig exponentialBackOffConfig;
     private Instant lastRestart;
     private Duration restartDelay;
 
@@ -123,9 +122,8 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
         try {
             entityId = getEntityId();
             persistenceActorProps = getPersistenceActorProps(entityId);
-            shutdownBehaviour = getShutdownBehaviour(entityId);
             startChild(Control.START_CHILD);
-            becomeActive(shutdownBehaviour);
+            becomeActive(getShutdownBehaviour(entityId));
         } catch (final Exception e) {
             log.error(e, "Failed to determine entity ID; becoming corrupted.");
             becomeCorrupted();
@@ -252,7 +250,7 @@ public abstract class AbstractPersistenceSupervisor<E extends EntityId> extends 
         log.warning("Received message during downtime of child actor for Entity with ID <{}>: <{}>", entityId, message);
         final DittoRuntimeExceptionBuilder<?> builder = getUnavailableExceptionBuilder(entityId);
         if (message instanceof WithDittoHeaders) {
-            builder.dittoHeaders(((WithDittoHeaders) message).getDittoHeaders());
+            builder.dittoHeaders(((WithDittoHeaders<?>) message).getDittoHeaders());
         }
         getSender().tell(builder.build(), getSelf());
     }
