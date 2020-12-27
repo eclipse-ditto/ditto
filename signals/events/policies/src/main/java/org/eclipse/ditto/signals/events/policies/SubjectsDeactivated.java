@@ -32,7 +32,6 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -40,34 +39,33 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
  * This event is emitted after a {@link org.eclipse.ditto.model.policies.Subject} was activated in each entry.
  */
 @Immutable
-@JsonParsableEvent(name = SubjectsActivated.NAME, typePrefix = SubjectsActivated.TYPE_PREFIX)
-public final class SubjectsActivated extends AbstractPolicyEvent<SubjectsActivated>
-        implements PolicyEvent<SubjectsActivated> {
+@JsonParsableEvent(name = SubjectsDeactivated.NAME, typePrefix = SubjectsDeactivated.TYPE_PREFIX)
+public final class SubjectsDeactivated extends AbstractPolicyEvent<SubjectsDeactivated>
+        implements PolicyEvent<SubjectsDeactivated> {
 
     /**
-     * Name of this event
+     * Name of this event.
      */
-    public static final String NAME = "subjectsActivated";
+    public static final String NAME = "subjectsDeactivated";
 
     /**
      * Type of this event.
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private final Map<Label, Subject> activatedSubjects;
+    private final Map<Label, SubjectId> deactivatedSubjectIds;
 
-    private SubjectsActivated(
+    private SubjectsDeactivated(
             final PolicyId policyId,
-            final Map<Label, Subject> activatedSubjects,
+            final Map<Label, SubjectId> deactivatedSubjectIds,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
@@ -75,93 +73,93 @@ public final class SubjectsActivated extends AbstractPolicyEvent<SubjectsActivat
         super(TYPE, checkNotNull(policyId, "policyId"), revision, timestamp, dittoHeaders);
         // Copying and unmodifiable wrapping happen in the factory method.
         // Constructor does not copy in order to share the known unmodifiable field between instances.
-        this.activatedSubjects = activatedSubjects;
+        this.deactivatedSubjectIds = deactivatedSubjectIds;
     }
 
-    private SubjectsActivated(
+    private SubjectsDeactivated(
             final PolicyId policyId,
-            final JsonObject activatedSubjects,
+            final JsonObject deactivatedSubjectIds,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, checkNotNull(policyId, "policyId"), revision, timestamp, dittoHeaders);
-        this.activatedSubjects =
-                activatedSubjectsFromJson(checkNotNull(activatedSubjects, "activatedSubjects"));
+        this.deactivatedSubjectIds =
+                deactivatedSubjectsFromJson(checkNotNull(deactivatedSubjectIds, "deactivatedSubjectIds"));
     }
 
     /**
-     * Constructs a new {@code SubjectsActivated} object.
+     * Constructs a new {@code SubjectsDeactivated} object.
      *
      * @param policyId the policy ID.
-     * @param activatedSubjects subjects that are activated indexed by their policy entry labels.
+     * @param deactivatedSubjectIds IDs of subjects that are deactivated indexed by their policy entry labels.
      * @param revision the revision of the Policy.
      * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the created SubjectsActivated.
+     * @return the created SubjectsDeactivated.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static SubjectsActivated of(final PolicyId policyId,
-            final Map<Label, Subject> activatedSubjects,
+    public static SubjectsDeactivated of(final PolicyId policyId,
+            final Map<Label, SubjectId> deactivatedSubjectIds,
             final long revision,
             final DittoHeaders dittoHeaders) {
 
-        return of(policyId, activatedSubjects, revision, null, dittoHeaders);
+        return of(policyId, deactivatedSubjectIds, revision, null, dittoHeaders);
     }
 
     /**
-     * Constructs a new {@code SubjectsActivated} object.
+     * Constructs a new {@code SubjectsDeactivated} object.
      *
      * @param policyId the policy ID.
-     * @param activatedSubjects subjects that are activated indexed by their policy entry labels.
+     * @param deactivatedSubjectIds IDs of subjects that are deactivated indexed by their policy entry labels.
      * @param revision the revision of the Policy.
      * @param timestamp the timestamp of this event.
      * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the created SubjectsActivated.
+     * @return the created SubjectsDeactivated.
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
-    public static SubjectsActivated of(final PolicyId policyId,
-            final Map<Label, Subject> activatedSubjects,
+    public static SubjectsDeactivated of(final PolicyId policyId,
+            final Map<Label, SubjectId> deactivatedSubjectIds,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
 
-        return new SubjectsActivated(policyId,
+        return new SubjectsDeactivated(policyId,
                 Collections.unmodifiableMap(
-                        new HashMap<>(checkNotNull(activatedSubjects, "activatedSubjects"))),
+                        new HashMap<>(checkNotNull(deactivatedSubjectIds, "deactivatedSubjectIds"))),
                 revision, timestamp, dittoHeaders);
     }
 
     /**
-     * Creates a new {@code SubjectsActivated} from a JSON object.
+     * Creates a new {@code SubjectsDeactivated} from a JSON object.
      *
-     * @param jsonObject the JSON object from which a new SubjectsActivated instance is to be created.
+     * @param jsonObject the JSON object from which a new SubjectsDeactivated instance is to be created.
      * @param dittoHeaders the headers of the command which was the cause of this event.
-     * @return the {@code SubjectsActivated} which was created from the given JSON object.
+     * @return the {@code SubjectsDeactivated} which was created from the given JSON object.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected 'SubjectsActivated' format.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected 'SubjectsDeactivated' format.
      */
-    public static SubjectsActivated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new EventJsonDeserializer<SubjectsActivated>(TYPE, jsonObject).deserialize(
+    public static SubjectsDeactivated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new EventJsonDeserializer<SubjectsDeactivated>(TYPE, jsonObject).deserialize(
                 (revision, timestamp, metadata) -> {
                     final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyEvent.JsonFields.POLICY_ID);
                     final PolicyId policyId = PolicyId.of(extractedPolicyId);
-                    final JsonObject activatedSubjects = jsonObject.getValueOrThrow(JsonFields.ACTIVATED_SUBJECT);
-                    return new SubjectsActivated(policyId, activatedSubjects, revision, timestamp, dittoHeaders);
+                    final JsonObject activatedSubjects = jsonObject.getValueOrThrow(JsonFields.DEACTIVATED_SUBJECT_IDS);
+                    return new SubjectsDeactivated(policyId, activatedSubjects, revision, timestamp, dittoHeaders);
                 });
     }
 
     /**
-     * Returns the activated subjects indexed by the labels of policy entries they belong to.
+     * Returns the IDs deactivated subjects indexed by the labels of policy entries they belong to.
      *
-     * @return the activated subjects.
+     * @return the deactivated subject IDs.
      */
-    public Map<Label, Subject> getActivatedSubjects() {
-        return activatedSubjects;
+    public Map<Label, SubjectId> getDeactivatedSubjectIds() {
+        return deactivatedSubjectIds;
     }
 
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.of(activatedSubjectsToJson(activatedSubjects));
+        return Optional.of(deactivatedSubjectsToJson(deactivatedSubjectIds));
     }
 
     @Override
@@ -170,14 +168,14 @@ public final class SubjectsActivated extends AbstractPolicyEvent<SubjectsActivat
     }
 
     @Override
-    public SubjectsActivated setRevision(final long revision) {
-        return new SubjectsActivated(getEntityId(), activatedSubjects, revision, getTimestamp().orElse(null),
+    public SubjectsDeactivated setRevision(final long revision) {
+        return new SubjectsDeactivated(getEntityId(), deactivatedSubjectIds, revision, getTimestamp().orElse(null),
                 getDittoHeaders());
     }
 
     @Override
-    public SubjectsActivated setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new SubjectsActivated(getEntityId(), activatedSubjects, getRevision(), getTimestamp().orElse(null),
+    public SubjectsDeactivated setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new SubjectsDeactivated(getEntityId(), deactivatedSubjectIds, getRevision(), getTimestamp().orElse(null),
                 dittoHeaders);
     }
 
@@ -185,12 +183,13 @@ public final class SubjectsActivated extends AbstractPolicyEvent<SubjectsActivat
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(JsonFields.ACTIVATED_SUBJECT, activatedSubjectsToJson(activatedSubjects), predicate);
+        jsonObjectBuilder.set(JsonFields.DEACTIVATED_SUBJECT_IDS, deactivatedSubjectsToJson(deactivatedSubjectIds),
+                predicate);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), activatedSubjects);
+        return Objects.hash(super.hashCode(), deactivatedSubjectIds);
     }
 
     @Override
@@ -201,54 +200,40 @@ public final class SubjectsActivated extends AbstractPolicyEvent<SubjectsActivat
         if (null == o || getClass() != o.getClass()) {
             return false;
         }
-        final SubjectsActivated that = (SubjectsActivated) o;
-        return Objects.equals(activatedSubjects, that.activatedSubjects) && super.equals(that);
+        final SubjectsDeactivated that = (SubjectsDeactivated) o;
+        return Objects.equals(deactivatedSubjectIds, that.deactivatedSubjectIds) && super.equals(that);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof SubjectsActivated;
+        return other instanceof SubjectsDeactivated;
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " [" + super.toString() + ", activatedSubjects=" + activatedSubjects + "]";
+        return getClass().getSimpleName() + " [" + super.toString() + ", activatedSubjects=" + deactivatedSubjectIds +
+                "]";
     }
 
-    private static JsonObject subjectToJsonWithId(final Subject subject) {
-        return JsonObject.newBuilder()
-                .set(subject.getId(), subject.toJson())
-                .build();
-    }
-
-    private static Subject subjectFromJsonWithId(final JsonObject jsonObject) {
-        if (jsonObject.getSize() != 1) {
-            throw JsonParseException.newBuilder()
-                    .message("Unexpected subject with ID format")
-                    .build();
-        }
-        final JsonField jsonField = jsonObject.iterator().next();
-        return PoliciesModelFactory.newSubject(jsonField.getKeyName(), jsonField.getValue().asObject());
-    }
-
-    private static JsonObject activatedSubjectsToJson(final Map<Label, Subject> activatedSubjects) {
+    private static JsonObject deactivatedSubjectsToJson(final Map<Label, SubjectId> activatedSubjects) {
         return activatedSubjects.entrySet()
                 .stream()
-                .map(entry -> JsonField.newInstance(entry.getKey(), subjectToJsonWithId(entry.getValue())))
+                .map(entry -> JsonField.newInstance(entry.getKey(), JsonValue.of(entry.getValue())))
                 .collect(JsonCollectors.fieldsToObject());
     }
 
-    private static Map<Label, Subject> activatedSubjectsFromJson(final JsonObject jsonObject) {
-        final Map<Label, Subject> map = jsonObject.stream()
+    private static Map<Label, SubjectId> deactivatedSubjectsFromJson(final JsonObject jsonObject) {
+        final Map<Label, SubjectId> map = jsonObject.stream()
                 .collect(Collectors.toMap(field -> Label.of(field.getKeyName()),
-                        field -> subjectFromJsonWithId(field.getValue().asObject())));
+                        field -> SubjectId.newInstance(field.getValue().asString())));
         return Collections.unmodifiableMap(map);
     }
 
     static final class JsonFields {
 
-        static final JsonFieldDefinition<JsonObject> ACTIVATED_SUBJECT =
-                JsonFactory.newJsonObjectFieldDefinition("activatedSubjects", FieldType.REGULAR, JsonSchemaVersion.V_2);
+        static final JsonFieldDefinition<JsonObject> DEACTIVATED_SUBJECT_IDS =
+                JsonFactory.newJsonObjectFieldDefinition("deactivatedSubjectIds", FieldType.REGULAR,
+                        JsonSchemaVersion.V_2);
     }
 
 }

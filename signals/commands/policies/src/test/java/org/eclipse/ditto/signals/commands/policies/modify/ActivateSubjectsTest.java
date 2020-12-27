@@ -41,7 +41,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ActivateSubjectsTest {
 
-    private static final List<Label> LABELS = Collections.singletonList(TestConstants.Policy.LABEL);
+    static final List<Label> LABELS = Collections.singletonList(TestConstants.Policy.LABEL);
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommand.JsonFields.TYPE, ActivateSubjects.TYPE)

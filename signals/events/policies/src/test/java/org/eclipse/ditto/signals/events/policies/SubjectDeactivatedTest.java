@@ -21,65 +21,62 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link SubjectActivated}.
+ * Unit test for {@link SubjectDeactivated}.
  */
-public final class SubjectActivatedTest {
+public final class SubjectDeactivatedTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
-            .set(Event.JsonFields.TYPE, SubjectActivated.TYPE)
+            .set(Event.JsonFields.TYPE, SubjectDeactivated.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
             .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
-            .set(SubjectActivated.JsonFields.LABEL, TestConstants.Policy.LABEL.toString())
-            .set(SubjectActivated.JsonFields.SUBJECT_ID, TestConstants.Policy.SUBJECT.getId().toString())
-            .set(SubjectActivated.JsonFields.SUBJECT,
-                    TestConstants.Policy.SUBJECT.toJson(FieldType.regularOrSpecial()))
+            .set(SubjectDeactivated.JsonFields.LABEL, TestConstants.Policy.LABEL.toString())
+            .set(SubjectDeactivated.JsonFields.SUBJECT_ID, TestConstants.Policy.SUBJECT.getId().toString())
             .build();
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(SubjectActivated.class, areImmutable(),
-                provided(Subject.class, Label.class).isAlsoImmutable());
+        assertInstancesOf(SubjectDeactivated.class, areImmutable(),
+                provided(SubjectId.class, Label.class).isAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(SubjectActivated.class)
+        EqualsVerifier.forClass(SubjectDeactivated.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        SubjectActivated.of((PolicyId) null, TestConstants.Policy.LABEL, TestConstants.Policy.SUBJECT,
+        SubjectDeactivated.of(null, TestConstants.Policy.LABEL, TestConstants.Policy.SUBJECT_ID,
                 TestConstants.Policy.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullLabel() {
-        SubjectActivated.of(TestConstants.Policy.POLICY_ID, null, TestConstants.Policy.SUBJECT,
+        SubjectDeactivated.of(TestConstants.Policy.POLICY_ID, null, TestConstants.Policy.SUBJECT_ID,
                 TestConstants.Policy.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullSubject() {
-        SubjectActivated.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL, null,
+        SubjectDeactivated.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL, null,
                 TestConstants.Policy.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
     public void toJsonReturnsExpected() {
-        final SubjectActivated underTest =
-                SubjectActivated.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
-                        TestConstants.Policy.SUBJECT, TestConstants.Policy.REVISION_NUMBER, TestConstants.TIMESTAMP,
+        final SubjectDeactivated underTest =
+                SubjectDeactivated.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
+                        TestConstants.Policy.SUBJECT_ID, TestConstants.Policy.REVISION_NUMBER, TestConstants.TIMESTAMP,
                         TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
@@ -88,13 +85,12 @@ public final class SubjectActivatedTest {
 
     @Test
     public void createInstanceFromValidJson() {
-        final SubjectActivated underTest =
-                SubjectActivated.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
+        final SubjectDeactivated underTest =
+                SubjectDeactivated.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
         assertThat((CharSequence) underTest.getPolicyEntityId()).isEqualTo(TestConstants.Policy.POLICY_ID);
         assertThat(underTest.getLabel()).isEqualTo(TestConstants.Policy.LABEL);
-        assertThat(underTest.getSubject()).isEqualTo(TestConstants.Policy.SUBJECT);
     }
 
 }
