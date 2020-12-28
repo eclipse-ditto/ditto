@@ -125,7 +125,7 @@ public final class ActivateSubjectsStrategyTest extends AbstractPolicyCommandStr
         final ActivateSubjects command =
                 ActivateSubjects.of(context.getState(), subjectId, expiry, List.of(), dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
-                PolicyActionFailedException.newBuilder().build());
+                PolicyActionFailedException.newBuilderForActivateTokenIntegration().build());
     }
 
     @Test
@@ -138,6 +138,6 @@ public final class ActivateSubjectsStrategyTest extends AbstractPolicyCommandStr
         final ActivateSubjects command =
                 ActivateSubjects.of(context.getState(), subjectId, expiry, List.of(nonexistentLabel), dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
-                PolicyActionFailedException.newBuilder().build());
+                PolicyActionFailedException.newBuilderForActivateTokenIntegration().build());
     }
 }

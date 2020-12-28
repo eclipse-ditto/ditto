@@ -15,42 +15,40 @@ package org.eclipse.ditto.services.policies.persistence.actors.strategies.events
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.policies.persistence.TestConstants.Policy.SUPPORT_LABEL;
 import static org.eclipse.ditto.services.policies.persistence.TestConstants.Policy.SUPPORT_SUBJECT_ID;
-import static org.eclipse.ditto.services.policies.persistence.TestConstants.Policy.SUPPORT_SUBJECT_WITH_EXPIRY;
 
 import java.time.Instant;
+import java.util.Optional;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
-import org.eclipse.ditto.signals.events.policies.SubjectActivated;
+import org.eclipse.ditto.signals.events.policies.SubjectDeactivated;
 
 /**
- * Tests {@link SubjectActivatedStrategy}.
+ * Tests {@link SubjectDeactivatedStrategy}.
  */
-public class SubjectActivatedStrategyTest extends AbstractPolicyEventStrategyTest<SubjectActivated> {
+public class SubjectDeactivatedStrategyTest extends AbstractPolicyEventStrategyTest<SubjectDeactivated> {
 
     @Override
-    SubjectActivatedStrategy getStrategyUnderTest() {
-        return new SubjectActivatedStrategy();
+    SubjectDeactivatedStrategy getStrategyUnderTest() {
+        return new SubjectDeactivatedStrategy();
     }
 
     @Override
-    SubjectActivated getPolicyEvent(final Instant instant, final Policy policy) {
+    SubjectDeactivated getPolicyEvent(final Instant instant, final Policy policy) {
         final PolicyId policyId = policy.getEntityId().orElseThrow();
-        return SubjectActivated.of(policyId, SUPPORT_LABEL, SUPPORT_SUBJECT_WITH_EXPIRY, 10L, instant,
+        return SubjectDeactivated.of(policyId, SUPPORT_LABEL, SUPPORT_SUBJECT_ID, 10L, instant,
                 DittoHeaders.empty());
     }
 
     @Override
     protected void additionalAssertions(final Policy policyWithEventApplied) {
-        final Subject activatedSubject = policyWithEventApplied.getEntryFor(SUPPORT_LABEL)
+        final Optional<Subject> deactivatedSubject = policyWithEventApplied.getEntryFor(SUPPORT_LABEL)
                 .map(PolicyEntry::getSubjects)
-                .flatMap(subjects -> subjects.getSubject(SUPPORT_SUBJECT_ID))
-                .orElseThrow(() -> new AssertionError("Expected subject " + SUPPORT_SUBJECT_ID +
-                        " not found in entry " + SUPPORT_LABEL + " in policy " + policyWithEventApplied));
+                .flatMap(subjects -> subjects.getSubject(SUPPORT_SUBJECT_ID));
 
-        assertThat(activatedSubject.getExpiry()).isNotEmpty();
+        assertThat(deactivatedSubject).isEmpty();
     }
 }

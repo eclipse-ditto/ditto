@@ -43,6 +43,7 @@ public final class PolicyCommandStrategies
         addStrategy(new RetrievePolicyStrategy(policyConfig));
         addStrategy(new DeletePolicyStrategy(policyConfig));
         addStrategy(new ActivateSubjectsStrategy(policyConfig));
+        addStrategy(new DeactivateSubjectsStrategy(policyConfig));
 
         // Policy Entries
         addStrategy(new ModifyPolicyEntriesStrategy(policyConfig));
@@ -53,6 +54,7 @@ public final class PolicyCommandStrategies
         addStrategy(new RetrievePolicyEntryStrategy(policyConfig));
         addStrategy(new DeletePolicyEntryStrategy(policyConfig));
         addStrategy(new ActivateSubjectStrategy(policyConfig));
+        addStrategy(new DeactivateSubjectStrategy(policyConfig));
 
         // Subjects
         addStrategy(new ModifySubjectsStrategy(policyConfig));

@@ -41,7 +41,9 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
 
     private static final HttpStatusCode DEFAULT_STATUS = HttpStatusCode.INTERNAL_SERVER_ERROR;
 
-    private static final String DEFAULT_ACTION = "activateTokenIntegration";
+    private static final String ACTIVATE_TOKEN_INTEGRATION = "activateTokenIntegration";
+
+    private static final String DEACTIVATE_TOKEN_INTEGRATION = "deactivateTokenIntegration";
 
     private static final String MESSAGE_TEMPLATE = "Failed to execute action ''{0}''.";
 
@@ -57,12 +59,34 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
     }
 
     /**
-     * A mutable builder for a {@code PolicyActionFailedException}.
+     * A mutable builder for a {@code PolicyActionFailedException} for the action {@code activateTokenIntegration}.
      *
      * @return the builder.
      */
-    public static Builder newBuilder() {
-        return new Builder();
+    public static DittoRuntimeExceptionBuilder<PolicyActionFailedException> newBuilderForActivateTokenIntegration() {
+        return new Builder().action(ACTIVATE_TOKEN_INTEGRATION);
+    }
+
+    /**
+     * A mutable builder for a {@code PolicyActionFailedException} for the action {@code deactivateTokenIntegration}.
+     *
+     * @return the builder.
+     */
+    public static DittoRuntimeExceptionBuilder<PolicyActionFailedException> newBuilderForDeactivateTokenIntegration() {
+        return new Builder().action(DEACTIVATE_TOKEN_INTEGRATION);
+    }
+
+    /**
+     * A mutable builder for when a deactivation failed due to matching permanent subjects.
+     *
+     * @return the builder.
+     */
+    public static DittoRuntimeExceptionBuilder<PolicyActionFailedException>
+    newBuilderForDeactivatingPermanentSubjects() {
+        return new Builder()
+                .action(DEACTIVATE_TOKEN_INTEGRATION)
+                .status(HttpStatusCode.BAD_REQUEST)
+                .description("Some matched subjects are permanent.");
     }
 
     /**
@@ -107,7 +131,6 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
-            action(DEFAULT_ACTION);
         }
 
         /**
@@ -116,8 +139,9 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
          * @param action the failed action.
          * @return this builder.
          */
-        public DittoRuntimeExceptionBuilder<PolicyActionFailedException> action(final String action) {
-            return message(MessageFormat.format(MESSAGE_TEMPLATE, action));
+        public Builder action(final String action) {
+            message(MessageFormat.format(MESSAGE_TEMPLATE, action));
+            return this;
         }
 
         /**
@@ -126,7 +150,7 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
          * @param status the status code.
          * @return this builder.
          */
-        public DittoRuntimeExceptionBuilder<PolicyActionFailedException> status(final HttpStatusCode status) {
+        public Builder status(final HttpStatusCode status) {
             this.status = status;
             return this;
         }

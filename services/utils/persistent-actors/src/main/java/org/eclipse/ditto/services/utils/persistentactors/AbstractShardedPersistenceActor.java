@@ -32,6 +32,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.SnapshotConfig;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
+import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultVisitor;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.events.base.Event;
@@ -392,12 +393,11 @@ public abstract class AbstractShardedPersistenceActor<
             final CommandStrategy<T, S, K, Result<E>> strategy) {
         log.debug("Handling by strategy: <{}>", command);
         accessCounter++;
-        final Result<E> result;
+        Result<E> result;
         try {
             result = strategy.apply(getStrategyContext(), entity, getNextRevisionNumber(), command);
         } catch (final DittoRuntimeException e) {
-            getSender().tell(e, getSelf());
-            return;
+            result = ResultFactory.newErrorResult(e, command);
         }
         result.accept(this);
     }
