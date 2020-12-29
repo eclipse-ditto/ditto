@@ -40,7 +40,7 @@ import akka.japi.pf.FI;
  * This class provides an {@link ExceptionHandler} for the root route.
  */
 @Immutable
-final class RootRouteExceptionHandler {
+public final class RootRouteExceptionHandler {
 
     private static final ThreadSafeDittoLogger LOGGER = DittoLoggerFactory
             .getThreadSafeLogger(RootRouteExceptionHandler.class);

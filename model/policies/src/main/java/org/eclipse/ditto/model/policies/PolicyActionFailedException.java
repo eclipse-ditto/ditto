@@ -39,11 +39,17 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "action.failed";
 
+    /**
+     * The action {@code activateTokenIntegration}.
+     */
+    public static final String ACTIVATE_TOKEN_INTEGRATION = "activateTokenIntegration";
+
+    /**
+     * The action {@code deactivateTokenIntegration}.
+     */
+    public static final String DEACTIVATE_TOKEN_INTEGRATION = "deactivateTokenIntegration";
+
     private static final HttpStatusCode DEFAULT_STATUS = HttpStatusCode.INTERNAL_SERVER_ERROR;
-
-    private static final String ACTIVATE_TOKEN_INTEGRATION = "activateTokenIntegration";
-
-    private static final String DEACTIVATE_TOKEN_INTEGRATION = "deactivateTokenIntegration";
 
     private static final String MESSAGE_TEMPLATE = "Failed to execute action ''{0}''.";
 
@@ -74,6 +80,19 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
      */
     public static DittoRuntimeExceptionBuilder<PolicyActionFailedException> newBuilderForDeactivateTokenIntegration() {
         return new Builder().action(DEACTIVATE_TOKEN_INTEGRATION);
+    }
+
+    /**
+     * A mutable builder for a {@code PolicyActionFailedException} due to inappropriate authentication method.
+     *
+     * @param action the failed action.
+     * @return the exception builder.
+     */
+    public static DittoRuntimeExceptionBuilder<PolicyActionFailedException>
+    newBuilderForInappropriateAuthenticationMethod(final String action) {
+        return new Builder().action(action)
+                .status(HttpStatusCode.BAD_REQUEST)
+                .description("Policy action is only possible with JWT authentication.");
     }
 
     /**

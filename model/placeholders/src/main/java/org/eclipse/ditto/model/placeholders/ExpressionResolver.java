@@ -70,7 +70,7 @@ public interface ExpressionResolver {
      * @throws PlaceholderFunctionTooComplexException thrown if the {@code expressionTemplate} contains a placeholder
      * function chain which is too complex (e.g. too much chained function calls)
      */
-    default PipelineElement resolvePartially(final String expressionTemplate) {
+    default String resolvePartially(final String expressionTemplate) {
         return ExpressionResolver.substitute(expressionTemplate, expression -> {
             try {
                 return resolveAsPipelineElement(expression).onUnresolved(() -> PipelineElement.resolved(expression));
@@ -78,7 +78,7 @@ public interface ExpressionResolver {
                 // placeholder is not supported; return the expression without resolution.
                 return PipelineElement.resolved("{{" + expression + "}}");
             }
-        });
+        }).toOptional().orElseThrow(() -> new IllegalStateException("Impossible"));
     }
 
     /**

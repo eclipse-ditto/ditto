@@ -27,6 +27,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.RootRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.cloudevents.CloudEventsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.policies.OAuthTokenIntegrationSubjectIdFactory;
 import org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.sse.ThingsSseRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.routes.stats.StatsRoute;
@@ -273,7 +274,8 @@ final class GatewayRootActor extends DittoRootActor {
                         new CachingHealthRoute(statusAndHealthProvider, gatewayConfig.getPublicHealthConfig()))
                 .devopsRoute(new DevOpsRoute(proxyActor, actorSystem, httpConfig, commandConfig,
                         headerTranslator, devopsAuthenticationDirective))
-                .policiesRoute(new PoliciesRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
+                .policiesRoute(new PoliciesRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator,
+                        OAuthTokenIntegrationSubjectIdFactory.of(authConfig.getOAuthConfig())))
                 .sseThingsRoute(ThingsSseRouteBuilder.getInstance(streamingActor, streamingConfig, pubSubMediator)
                         .withProxyActor(proxyActor)
                         .withSignalEnrichmentProvider(signalEnrichmentProvider))

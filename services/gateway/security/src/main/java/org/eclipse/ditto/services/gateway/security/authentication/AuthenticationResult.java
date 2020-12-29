@@ -37,7 +37,6 @@ public interface AuthenticationResult {
      * @throws java.lang.RuntimeException the reason of failure if this method is called when {@link #isSuccess()}
      * evaluates to {@code false}.
      */
-    @Nullable
     AuthorizationContext getAuthorizationContext();
 
     /**
@@ -56,7 +55,6 @@ public interface AuthenticationResult {
      * @throws java.lang.IllegalStateException if this methods is called when {@link #isSuccess()} evaluates to
      * {@code true}.
      */
-    @Nullable
     Throwable getReasonOfFailure();
 
 }

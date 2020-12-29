@@ -14,18 +14,30 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
 
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyActionFailedException;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResult;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyIdNotExplicitlySettableException;
+import org.eclipse.ditto.signals.commands.policies.modify.ActivateSubjects;
+import org.eclipse.ditto.signals.commands.policies.modify.DeactivateSubjects;
 import org.eclipse.ditto.signals.commands.policies.modify.DeletePolicy;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
@@ -41,10 +53,15 @@ import akka.http.javadsl.server.Route;
  */
 public final class PoliciesRoute extends AbstractRoute {
 
+    static final String PATH_ACTIONS = "actions";
+    static final String ACTIVATE_TOKEN_INTEGRATION = PolicyActionFailedException.ACTIVATE_TOKEN_INTEGRATION;
+    static final String DEACTIVATE_TOKEN_INTEGRATION = PolicyActionFailedException.DEACTIVATE_TOKEN_INTEGRATION;
+
     private static final String PATH_POLICIES = "policies";
     private static final String PATH_ENTRIES = "entries";
 
     private final PolicyEntriesRoute policyEntriesRoute;
+    private final TokenIntegrationSubjectIdFactory tokenIntegrationSubjectIdFactory;
 
     /**
      * Constructs the {@code /policies} route builder.
@@ -54,18 +71,22 @@ public final class PoliciesRoute extends AbstractRoute {
      * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
      * @param commandConfig the configuration settings of the Gateway service's incoming command processing.
      * @param headerTranslator translates headers from external sources or to external sources.
+     * @param tokenIntegrationSubjectIdFactory factory of resolvers for placeholders.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public PoliciesRoute(final ActorRef proxyActor,
             final ActorSystem actorSystem,
             final HttpConfig httpConfig,
             final CommandConfig commandConfig,
-            final HeaderTranslator headerTranslator) {
+            final HeaderTranslator headerTranslator,
+            final TokenIntegrationSubjectIdFactory tokenIntegrationSubjectIdFactory) {
 
         super(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
+        this.tokenIntegrationSubjectIdFactory = tokenIntegrationSubjectIdFactory;
 
         policyEntriesRoute =
-                new PolicyEntriesRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
+                new PolicyEntriesRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator,
+                        tokenIntegrationSubjectIdFactory);
     }
 
     /**
@@ -73,19 +94,22 @@ public final class PoliciesRoute extends AbstractRoute {
      *
      * @return the {@code /policies} route.
      */
-    public Route buildPoliciesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
+    public Route buildPoliciesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
+            final AuthenticationResult authenticationResult) {
         return rawPathPrefix(PathMatchers.slash().concat(PATH_POLICIES), () ->
                 rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), policyId ->
                         // /policies/<policyId>
-                        policyRoute(ctx, dittoHeaders, PolicyId.of(policyId))
+                        policyRoute(ctx, dittoHeaders, PolicyId.of(policyId), authenticationResult)
                 )
         );
     }
 
-    private Route policyRoute(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId) {
+    private Route policyRoute(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId,
+            final AuthenticationResult authenticationResult) {
         return concat(
                 policyEntry(ctx, dittoHeaders, policyId),
-                policyEntryEntries(ctx, dittoHeaders, policyId)
+                policyEntryEntries(ctx, dittoHeaders, policyId, authenticationResult),
+                policyActions(ctx, dittoHeaders, policyId, authenticationResult)
         );
     }
 
@@ -134,11 +158,62 @@ public final class PoliciesRoute extends AbstractRoute {
      *
      * @return {@code /policies/<policyId>/entries} route.
      */
-    private Route policyEntryEntries(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final PolicyId policyId) {
+    private Route policyEntryEntries(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId,
+            final AuthenticationResult authResult) {
         return rawPathPrefix(PathMatchers.slash().concat(PATH_ENTRIES), () -> // /policies/<policyId>/entries
-                policyEntriesRoute.buildPolicyEntriesRoute(ctx, dittoHeaders, policyId)
+                policyEntriesRoute.buildPolicyEntriesRoute(ctx, dittoHeaders, policyId, authResult)
         );
+    }
+
+    /*
+     * Describes{@code /policies/<policyId>/actions} route.
+     */
+    private Route policyActions(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId,
+            final AuthenticationResult authenticationResult) {
+
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_ACTIONS), () -> concat(// /policies/<policyId>/actions
+                rawPathPrefix(PathMatchers.slash().concat(ACTIVATE_TOKEN_INTEGRATION), () ->
+                        pathEndOrSingleSlash(() ->
+                                extractJwt(dittoHeaders, authenticationResult, ACTIVATE_TOKEN_INTEGRATION, jwt ->
+                                        post(() -> handlePerRequest(ctx,
+                                                activateSubjects(dittoHeaders, policyId, jwt)))))),
+                rawPathPrefix(PathMatchers.slash().concat(DEACTIVATE_TOKEN_INTEGRATION), () ->
+                        pathEndOrSingleSlash(() ->
+                                extractJwt(dittoHeaders, authenticationResult, DEACTIVATE_TOKEN_INTEGRATION, jwt ->
+                                        post(() -> handlePerRequest(ctx,
+                                                deactivateSubjects(dittoHeaders, policyId, jwt))))))
+        ));
+    }
+
+    private ActivateSubjects activateSubjects(final DittoHeaders dittoHeaders, final PolicyId policyId,
+            final JsonWebToken jwt) {
+
+        final SubjectId subjectId = tokenIntegrationSubjectIdFactory.getSubjectId(dittoHeaders, jwt);
+        final Instant expiry = jwt.getExpirationTime();
+        return ActivateSubjects.of(policyId, subjectId, expiry, List.of(), dittoHeaders);
+    }
+
+    private DeactivateSubjects deactivateSubjects(final DittoHeaders dittoHeaders, final PolicyId policyId,
+            final JsonWebToken jwt) {
+
+        final SubjectId subjectId = tokenIntegrationSubjectIdFactory.getSubjectId(dittoHeaders, jwt);
+        return DeactivateSubjects.of(policyId, subjectId, List.of(), dittoHeaders);
+    }
+
+    static Route extractJwt(final DittoHeaders dittoHeaders,
+            final AuthenticationResult authResult,
+            final String action,
+            final Function<JsonWebToken, Route> inner) {
+
+        if (authResult instanceof JwtAuthenticationResult) {
+            final Optional<JsonWebToken> jwtOptional = ((JwtAuthenticationResult) authResult).getJwt();
+            if (jwtOptional.isPresent()) {
+                return inner.apply(jwtOptional.get());
+            }
+        }
+        throw PolicyActionFailedException.newBuilderForInappropriateAuthenticationMethod(action)
+                .dittoHeaders(dittoHeaders)
+                .build();
     }
 
 }

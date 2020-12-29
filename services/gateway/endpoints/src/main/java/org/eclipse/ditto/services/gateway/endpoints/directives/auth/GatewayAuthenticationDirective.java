@@ -74,10 +74,10 @@ public final class GatewayAuthenticationDirective {
      * Depending on the request headers, one of the supported authentication mechanisms is applied.
      *
      * @param dittoHeaders the DittoHeaders containing already gathered context information.
-     * @param inner the inner route which will be wrapped with the {@link DittoHeaders}.
+     * @param inner the inner route which will be wrapped with the {@link org.eclipse.ditto.model.base.headers.DittoHeaders}.
      * @return the inner route.
      */
-    public Route authenticate(final DittoHeaders dittoHeaders, final Function<DittoHeadersBuilder<?, ?>, Route> inner) {
+    public Route authenticate(final DittoHeaders dittoHeaders, final Function<AuthenticationResult, Route> inner) {
         return extractRequestContext(requestContext -> {
             final Uri requestUri = requestContext.getRequest().getUri();
 
@@ -95,12 +95,12 @@ public final class GatewayAuthenticationDirective {
     private Route handleAuthenticationTry(final Try<AuthenticationResult> authenticationResultTry,
             final Uri requestUri,
             final DittoHeaders dittoHeaders,
-            final Function<DittoHeadersBuilder<?, ?>, Route> inner) {
+            final Function<AuthenticationResult, Route> inner) {
 
         if (authenticationResultTry.isSuccess()) {
             final AuthenticationResult authenticationResult = authenticationResultTry.get();
             if (authenticationResult.isSuccess()) {
-                return inner.apply(authenticationResult.getDittoHeaders().toBuilder());
+                return inner.apply(authenticationResult);
             }
             return handleFailedAuthentication(authenticationResult.getReasonOfFailure(), requestUri, dittoHeaders);
         }
