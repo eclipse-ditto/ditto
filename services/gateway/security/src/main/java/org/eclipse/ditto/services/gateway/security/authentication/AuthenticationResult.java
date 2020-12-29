@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 
@@ -35,6 +37,7 @@ public interface AuthenticationResult {
      * @throws java.lang.RuntimeException the reason of failure if this method is called when {@link #isSuccess()}
      * evaluates to {@code false}.
      */
+    @Nullable
     AuthorizationContext getAuthorizationContext();
 
     /**
@@ -53,6 +56,7 @@ public interface AuthenticationResult {
      * @throws java.lang.IllegalStateException if this methods is called when {@link #isSuccess()} evaluates to
      * {@code true}.
      */
+    @Nullable
     Throwable getReasonOfFailure();
 
 }

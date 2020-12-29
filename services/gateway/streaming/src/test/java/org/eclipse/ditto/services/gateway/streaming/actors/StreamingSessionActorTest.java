@@ -44,7 +44,7 @@ import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.model.jwt.JwtInvalidException;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.services.gateway.security.authentication.DefaultAuthenticationResult;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResultProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtValidator;
 import org.eclipse.ditto.services.gateway.streaming.Connect;
@@ -216,11 +216,12 @@ public final class StreamingSessionActorTest {
         new TestKit(actorSystem) {{
             final ActorRef underTest = watch(actorSystem.actorOf(getProps("ack")));
             subscribeForTwinEvents(underTest);
-            final Signal<?> signal = ThingDeleted.of(ThingId.of("thing:id"), 2L, DittoHeaders.newBuilder()
-                    .correlationId("corr:" + testName.getMethodName())
-                    .readGrantedSubjects(List.of(AuthorizationSubject.newInstance("ditto:ditto")))
-                    .acknowledgementRequests(ackRequests("ack", "ack2"))
-                    .build());
+            final Signal<?> signal = ThingDeleted.of(ThingId.of("thing:id"), 2L, null, DittoHeaders.newBuilder()
+                            .correlationId("corr:" + testName.getMethodName())
+                            .readGrantedSubjects(List.of(AuthorizationSubject.newInstance("ditto:ditto")))
+                            .acknowledgementRequests(ackRequests("ack", "ack2"))
+                            .build(),
+                    null);
             underTest.tell(signal, ActorRef.noSender());
 
             final Signal<?> expectedSignal = signal.setDittoHeaders(signal.getDittoHeaders()
@@ -255,10 +256,11 @@ public final class StreamingSessionActorTest {
         Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(any(), any()))
-                .thenReturn(DefaultAuthenticationResult.successful(
+                .thenReturn(JwtAuthenticationResult.successful(
                         DittoHeaders.empty(),
                         AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                                AuthorizationSubject.newInstance("new:auth-subject"))));
+                                AuthorizationSubject.newInstance("new:auth-subject")),
+                        mock(JsonWebToken.class)));
 
         new TestKit(actorSystem) {{
             final ActorRef underTest = watch(actorSystem.actorOf(getProps()));
@@ -278,7 +280,8 @@ public final class StreamingSessionActorTest {
         Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(any(), any()))
-                .thenReturn(DefaultAuthenticationResult.successful(DittoHeaders.empty(), authorizationContext));
+                .thenReturn(JwtAuthenticationResult.successful(DittoHeaders.empty(), authorizationContext,
+                        mock(JsonWebToken.class)));
 
         new TestKit(actorSystem) {{
             final ActorRef underTest = watch(actorSystem.actorOf(getProps()));
@@ -297,7 +300,8 @@ public final class StreamingSessionActorTest {
         Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(any(), any()))
-                .thenReturn(DefaultAuthenticationResult.successful(DittoHeaders.empty(), authorizationContext));
+                .thenReturn(JwtAuthenticationResult.successful(DittoHeaders.empty(), authorizationContext,
+                        mock(JsonWebToken.class)));
 
         new TestKit(actorSystem) {{
             final ActorRef underTest = watch(actorSystem.actorOf(getProps()));
@@ -318,7 +322,8 @@ public final class StreamingSessionActorTest {
         Mockito.when(mockValidator.validate(Mockito.any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         Mockito.when(mockAuthenticationResultProvider.getAuthenticationResult(any(), any()))
-                .thenReturn(DefaultAuthenticationResult.successful(DittoHeaders.empty(), authorizationContext));
+                .thenReturn(JwtAuthenticationResult.successful(DittoHeaders.empty(), authorizationContext,
+                        mock(JsonWebToken.class)));
 
         new TestKit(actorSystem) {{
             final ActorRef underTest = watch(actorSystem.actorOf(getProps()));

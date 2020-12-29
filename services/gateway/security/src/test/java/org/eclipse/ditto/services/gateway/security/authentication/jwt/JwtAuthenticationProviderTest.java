@@ -30,9 +30,9 @@ import org.eclipse.ditto.model.base.common.BinaryValidationResult;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.jwt.ImmutableJsonWebToken;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
-import org.eclipse.ditto.services.gateway.security.authentication.DefaultAuthenticationResult;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.junit.Before;
 import org.junit.Rule;
@@ -98,9 +98,10 @@ public final class JwtAuthenticationProviderTest {
         when(jwtValidator.validate(any(JsonWebToken.class)))
                 .thenReturn(CompletableFuture.completedFuture(BinaryValidationResult.valid()));
         when(authenticationContextProvider.getAuthenticationResult(any(JsonWebToken.class), any(DittoHeaders.class)))
-                .thenReturn(DefaultAuthenticationResult.successful(knownDittoHeaders,
+                .thenReturn(JwtAuthenticationResult.successful(knownDittoHeaders,
                         AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                                AuthorizationSubject.newInstance("myAuthSubj"))));
+                                AuthorizationSubject.newInstance("myAuthSubj")),
+                        ImmutableJsonWebToken.fromToken(VALID_JWT_TOKEN)));
         final RequestContext requestContext = mockRequestContext(VALID_AUTHORIZATION_HEADER);
 
         final AuthenticationResult authenticationResult =
