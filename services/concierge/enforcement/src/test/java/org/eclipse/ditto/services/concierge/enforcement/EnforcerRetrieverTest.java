@@ -45,11 +45,11 @@ public class EnforcerRetrieverTest {
     @Mock
     private Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache;
 
-    private EnforcerRetriever retriever;
+    private EnforcerRetriever<Enforcer> retriever;
 
     @Before
     public void setUp() {
-        retriever = new EnforcerRetriever(idCache, enforcerCache);
+        retriever = new EnforcerRetriever<Enforcer>(idCache, enforcerCache);
     }
 
     @Test

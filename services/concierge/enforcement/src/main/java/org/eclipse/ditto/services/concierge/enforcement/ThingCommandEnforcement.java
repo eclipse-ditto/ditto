@@ -78,6 +78,7 @@ import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.InvalidateCacheEntry;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cacheloaders.IdentityCache;
+import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
@@ -134,8 +135,8 @@ public final class ThingCommandEnforcement
     private final List<SubjectIssuer> subjectIssuersForPolicyMigration;
     private final ActorRef thingsShardRegion;
     private final ActorRef policiesShardRegion;
-    private final EnforcerRetriever thingEnforcerRetriever;
-    private final EnforcerRetriever policyEnforcerRetriever;
+    private final EnforcerRetriever<Enforcer> thingEnforcerRetriever;
+    private final EnforcerRetriever<Enforcer> policyEnforcerRetriever;
     private final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache;
     private final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache;
     private final PreEnforcer preEnforcer;
@@ -162,7 +163,7 @@ public final class ThingCommandEnforcement
         this.preEnforcer = preEnforcer;
         thingEnforcerRetriever =
                 PolicyOrAclEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache, aclEnforcerCache);
-        policyEnforcerRetriever = new EnforcerRetriever(IdentityCache.INSTANCE, policyEnforcerCache);
+        policyEnforcerRetriever = new EnforcerRetriever<Enforcer>(IdentityCache.INSTANCE, policyEnforcerCache);
         policyIdReferencePlaceholderResolver =
                 PolicyIdReferencePlaceholderResolver.of(conciergeForwarder(), getAskTimeout());
     }
@@ -362,7 +363,7 @@ public final class ThingCommandEnforcement
                         .build();
 
         final Optional<RetrievePolicy> retrievePolicyOptional = PolicyCommandEnforcement.authorizePolicyCommand(
-                RetrievePolicy.of(policyId, dittoHeadersWithoutPreconditionHeaders), enforcer);
+                RetrievePolicy.of(policyId, dittoHeadersWithoutPreconditionHeaders), PolicyEnforcer.of(enforcer));
 
         if (retrievePolicyOptional.isPresent()) {
             return retrieveThingBeforePolicy(retrieveThing)
@@ -1016,7 +1017,7 @@ public final class ThingCommandEnforcement
 
                 final CreatePolicy createPolicy = CreatePolicy.of(policy.get(), dittoHeadersForCreatePolicy);
                 final Optional<CreatePolicy> authorizedCreatePolicy =
-                        PolicyCommandEnforcement.authorizePolicyCommand(createPolicy, enforcer);
+                        PolicyCommandEnforcement.authorizePolicyCommand(createPolicy, PolicyEnforcer.of(enforcer));
 
                 // CreatePolicy is rejected; abort CreateThing.
                 return authorizedCreatePolicy

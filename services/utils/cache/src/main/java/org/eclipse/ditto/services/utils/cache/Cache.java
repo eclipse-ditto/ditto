@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 
 /**
  * A general purpose cache for items which are associated with a key.
@@ -90,5 +91,9 @@ public interface Cache<K, V> {
      */
     default void invalidateAll(final Collection<K> keys) {
         keys.forEach(this::invalidate);
+    }
+
+    default <U> Cache<K, U> projectValues(final Function<V, U> project, final Function<U, V> embed) {
+        return new ProjectedCache<>(this, project, embed);
     }
 }

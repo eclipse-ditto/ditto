@@ -228,7 +228,6 @@ final class PolicyTrie {
         return children.containsKey(childKey);
     }
 
-    @SuppressWarnings("unchecked")
     JsonObject buildJsonView(final Iterable<JsonField> jsonFields, final Collection<String> subjectIds,
             final Permissions permissions) {
 

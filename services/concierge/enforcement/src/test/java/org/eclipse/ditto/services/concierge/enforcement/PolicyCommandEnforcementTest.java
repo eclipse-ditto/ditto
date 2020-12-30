@@ -15,10 +15,12 @@ package org.eclipse.ditto.services.concierge.enforcement;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -34,10 +36,12 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
+import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyActionFailedException;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Resource;
@@ -52,13 +56,18 @@ import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
+import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotModifiableException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyPreconditionNotModifiedException;
+import org.eclipse.ditto.signals.commands.policies.modify.ActivateSubject;
+import org.eclipse.ditto.signals.commands.policies.modify.ActivateSubjects;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicyResponse;
+import org.eclipse.ditto.signals.commands.policies.modify.DeactivateSubject;
+import org.eclipse.ditto.signals.commands.policies.modify.DeactivateSubjects;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntries;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyResponse;
@@ -93,6 +102,8 @@ public final class PolicyCommandEnforcementTest {
 
     private static final SubjectId AUTH_SUBJECT_ID = SubjectId.newInstance(SubjectIssuer.GOOGLE, "someId");
     private static final Subject AUTH_SUBJECT = Subject.newInstance(AUTH_SUBJECT_ID);
+    private static final Subject AUTH_SUBJECT_2 =
+            Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, "secondId"));
 
     private static final String NAMESPACE = "my.namespace";
     private static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE, "policyId");
@@ -133,7 +144,7 @@ public final class PolicyCommandEnforcementTest {
 
     private ActorSystem system;
     private TestProbe policiesShardRegionProbe;
-    private Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache;
+    private Cache<EntityIdWithResourceType, Entry<PolicyEnforcer>> enforcerCache;
     private ActorRef enforcer;
 
     @Before
@@ -547,6 +558,140 @@ public final class PolicyCommandEnforcementTest {
         testCreatePolicy(Collections.emptyList(), true, false);
     }
 
+    @Test
+    public void activateSubjectsWithoutPermission() {
+        new TestKit(system) {{
+            final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
+            final Instant expiry = Instant.now();
+            final ActivateSubjects activateSubjects =
+                    ActivateSubjects.of(POLICY_ID, subjectId, expiry, List.of(), DITTO_HEADERS);
+
+            enforcer.tell(activateSubjects, getRef());
+
+            policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policiesShardRegionProbe.reply(createDefaultPolicyResponse());
+            expectMsgClass(PolicyActionFailedException.class);
+        }};
+    }
+
+    @Test
+    public void deactivateSubjectsWithoutPermission() {
+        new TestKit(system) {{
+            final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
+            final DeactivateSubjects deactivateSubjects =
+                    DeactivateSubjects.of(POLICY_ID, subjectId, List.of(), DITTO_HEADERS);
+
+            enforcer.tell(deactivateSubjects, getRef());
+
+            policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policiesShardRegionProbe.reply(createDefaultPolicyResponse());
+            expectMsgClass(PolicyActionFailedException.class);
+        }};
+    }
+
+    @Test
+    public void activateSubjectWithoutPermission() {
+        new TestKit(system) {{
+            final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
+            final Instant expiry = Instant.now();
+            final ActivateSubject activateSubject =
+                    ActivateSubject.of(POLICY_ID, Label.of("forbidden"), subjectId, expiry, DITTO_HEADERS);
+
+            enforcer.tell(activateSubject, getRef());
+
+            policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policiesShardRegionProbe.reply(createPolicyResponseForActions());
+            expectMsgClass(PolicyActionFailedException.class);
+        }};
+    }
+
+    @Test
+    public void deactivateSubjectWithoutPermission() {
+        new TestKit(system) {{
+            final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
+            final DeactivateSubject deactivateSubject =
+                    DeactivateSubject.of(POLICY_ID, Label.of("forbidden"), subjectId, DITTO_HEADERS);
+
+            enforcer.tell(deactivateSubject, getRef());
+
+            policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policiesShardRegionProbe.reply(createDefaultPolicyResponse());
+            expectMsgClass(PolicyActionFailedException.class);
+        }};
+    }
+
+    @Test
+    public void activateSubjects() {
+        new TestKit(system) {{
+            final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
+            final Instant expiry = Instant.now();
+            final ActivateSubjects activateSubjects =
+                    ActivateSubjects.of(POLICY_ID, subjectId, expiry, List.of(), DITTO_HEADERS);
+
+            enforcer.tell(activateSubjects, getRef());
+
+            policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policiesShardRegionProbe.reply(createPolicyResponseForActions());
+
+            final ActivateSubjects forwarded = policiesShardRegionProbe.expectMsgClass(ActivateSubjects.class);
+            assertThat(forwarded).isEqualTo(
+                    ActivateSubjects.of(POLICY_ID, subjectId, expiry, List.of(Label.of("allowed")), DITTO_HEADERS));
+        }};
+    }
+
+    @Test
+    public void deactivateSubjects() {
+        new TestKit(system) {{
+            final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
+            final DeactivateSubjects activateSubjects =
+                    DeactivateSubjects.of(POLICY_ID, subjectId, List.of(), DITTO_HEADERS);
+
+            enforcer.tell(activateSubjects, getRef());
+
+            policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policiesShardRegionProbe.reply(createPolicyResponseForActions());
+
+            final DeactivateSubjects forwarded = policiesShardRegionProbe.expectMsgClass(DeactivateSubjects.class);
+            assertThat(forwarded).isEqualTo(
+                    DeactivateSubjects.of(POLICY_ID, subjectId, List.of(Label.of("allowed")), DITTO_HEADERS));
+        }};
+    }
+
+    @Test
+    public void activateSubject() {
+        new TestKit(system) {{
+            final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
+            final Instant expiry = Instant.now();
+            final ActivateSubject activateSubject =
+                    ActivateSubject.of(POLICY_ID, Label.of("allowed"), subjectId, expiry, DITTO_HEADERS);
+
+            enforcer.tell(activateSubject, getRef());
+
+            policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policiesShardRegionProbe.reply(createPolicyResponseForActions());
+
+            final ActivateSubject forwarded = policiesShardRegionProbe.expectMsgClass(ActivateSubject.class);
+            assertThat(forwarded).isEqualTo(activateSubject);
+        }};
+    }
+
+    @Test
+    public void deactivateSubject() {
+        new TestKit(system) {{
+            final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
+            final DeactivateSubject deactivateSubject =
+                    DeactivateSubject.of(POLICY_ID, Label.of("allowed"), subjectId, DITTO_HEADERS);
+
+            enforcer.tell(deactivateSubject, getRef());
+
+            policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policiesShardRegionProbe.reply(createPolicyResponseForActions());
+
+            final DeactivateSubject forwarded = policiesShardRegionProbe.expectMsgClass(DeactivateSubject.class);
+            assertThat(forwarded).isEqualTo(deactivateSubject);
+        }};
+    }
+
     public void testCreatePolicy(final Iterable<String> grants, final boolean allowPolicyLockout,
             final boolean shouldFail) {
         new TestKit(system) {{
@@ -654,6 +799,28 @@ public final class PolicyCommandEnforcementTest {
                                 Collections.singleton(Permission.WRITE)))));
         final Policy policy = POLICY.toBuilder()
                 .set(revokeWriteEntry)
+                .build();
+
+        return SudoRetrievePolicyResponse.of(POLICY_ID, policy, DITTO_HEADERS_WITH_CORRELATION_ID);
+    }
+
+    private static SudoRetrievePolicyResponse createPolicyResponseForActions() {
+        final PolicyEntry adminEntry = PolicyEntry.newInstance("admin",
+                List.of(AUTH_SUBJECT_2),
+                Set.of(Resource.newInstance(POLICIES_ROOT_RESOURCE_KEY,
+                        EffectedPermissions.newInstance(Permission.DEFAULT_POLICY_PERMISSIONS, Set.of()))));
+        final PolicyEntry executeEntry = PolicyEntry.newInstance("execute",
+                List.of(AUTH_SUBJECT),
+                Set.of(Resource.newInstance(PoliciesResourceType.policyResource("/entries/allowed"),
+                        EffectedPermissions.newInstance(Set.of(Permission.EXECUTE), Set.of()))));
+        final PolicyEntry allowedEntry = PolicyEntry.newInstance("allowed", List.of(), Set.of());
+        final PolicyEntry forbiddenEntry = PolicyEntry.newInstance("forbidden", List.of(), Set.of());
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(POLICY_ID)
+                .setRevision(POLICY_REVISION)
+                .set(adminEntry)
+                .set(executeEntry)
+                .set(allowedEntry)
+                .set(forbiddenEntry)
                 .build();
 
         return SudoRetrievePolicyResponse.of(POLICY_ID, policy, DITTO_HEADERS_WITH_CORRELATION_ID);

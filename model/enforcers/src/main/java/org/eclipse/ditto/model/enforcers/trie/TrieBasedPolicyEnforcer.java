@@ -50,18 +50,29 @@ import org.eclipse.ditto.model.policies.ResourceKey;
  * </pre>
  * Each trie node has a {@link GrantRevokeIndex}, which maps each permission to the set of granted authorization
  * subjects and the set of revoked authorization subjects. The grant-revoke-indices are calculated in 4 different ways
- * to produce 4 tries of the same shape. 3 of those tries are used for policy enforcement. <ol> <li><em>Raw Trie:</em>
+ * to produce 4 tries of the same shape. 3 of those tries are used for policy enforcement.
+ * </p>
+ * <ol>
+ * <li><em>Raw Trie:</em>
  * For each policy entry, pairs of permissions and their granted/revoked subjects are added to the trie node at the
- * resource location of the entry. </li> <li><em>Inherited Trie:</em> Encodes the hierarchical nature of policy entries,
+ * resource location of the entry.
+ * </li>
+ * <li><em>Inherited Trie:</em> Encodes the hierarchical nature of policy entries,
  * namely that policy entries are valid also for sub-resources unless overridden. To build it, start from {@code
  * rawTrie}, push granted and revoked subjects from ancestors down to descendants. For each trie node, subjects from
- * ancestors are overridden by subjects defined at the corresponding node in {@code rawTrie}. </li> <li><em>Bottom Up
+ * ancestors are overridden by subjects defined at the corresponding node in {@code rawTrie}.
+ * </li>
+ * <li><em>Bottom Up
  * Grant Trie:</em> Supports partial permissions, e. g., a resource is considered readable also when 1 or more
  * sub-resources are readable in an authorization context. To build it, start from {@code inheritedTrie}, push granted
- * subjects from descendants up to ancestors. </li> <li><em>Bottom Up Revoke Trie:</em> Supports unrestricted
+ * subjects from descendants up to ancestors.
+ * </li>
+ * <li><em>Bottom Up Revoke Trie:</em> Supports unrestricted
  * permissions, e. g., a resource is considered writable only if all sub-resources are writable, and any WRITE-revoked
  * resource make all its super-resources non-writable. To build it, start from {@code inheritedTrie}, push revoked
- * subjects from descendants up to ancestors. </li> </ol> See Javadoc of individual methods for more details.
+ * subjects from descendants up to ancestors.
+ * </li>
+ * </ol> See Javadoc of individual methods for more details.
  */
 public final class TrieBasedPolicyEnforcer implements Enforcer {
 

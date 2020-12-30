@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
+import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcer;
 
 import akka.Done;
 import akka.NotUsed;
@@ -83,7 +84,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
             @Nullable final PreEnforcer preEnforcer,
             @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
+            @Nullable final Cache<EntityIdWithResourceType, Entry<PolicyEnforcer>> policyEnforcerCache) {
 
         return Props.create(EnforcerActor.class, pubSubMediator, enforcementProviders, conciergeForwarder, preEnforcer,
                 thingIdCache, aclEnforcerCache, policyEnforcerCache);
@@ -106,7 +107,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
             final ActorRef conciergeForwarder,
             @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
+            @Nullable final Cache<EntityIdWithResourceType, Entry<PolicyEnforcer>> policyEnforcerCache) {
 
         return props(pubSubMediator, enforcementProviders, conciergeForwarder, null, thingIdCache, aclEnforcerCache,
                 policyEnforcerCache);

@@ -69,7 +69,7 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
      *
      * @return the builder.
      */
-    public static DittoRuntimeExceptionBuilder<PolicyActionFailedException> newBuilderForActivateTokenIntegration() {
+    public static Builder newBuilderForActivateTokenIntegration() {
         return new Builder().action(ACTIVATE_TOKEN_INTEGRATION);
     }
 
@@ -78,7 +78,7 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
      *
      * @return the builder.
      */
-    public static DittoRuntimeExceptionBuilder<PolicyActionFailedException> newBuilderForDeactivateTokenIntegration() {
+    public static Builder newBuilderForDeactivateTokenIntegration() {
         return new Builder().action(DEACTIVATE_TOKEN_INTEGRATION);
     }
 

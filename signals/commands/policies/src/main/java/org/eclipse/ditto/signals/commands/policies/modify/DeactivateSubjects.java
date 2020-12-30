@@ -53,7 +53,7 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 @Immutable
 @JsonParsableCommand(typePrefix = DeactivateSubjects.TYPE_PREFIX, name = DeactivateSubjects.NAME)
 public final class DeactivateSubjects extends AbstractCommand<DeactivateSubjects>
-        implements PolicyModifyCommand<DeactivateSubjects> {
+        implements PolicyActionCommand<DeactivateSubjects> {
 
     /**
      * NAME of this command.

@@ -42,7 +42,7 @@ final class PolicyOrAclEnforcerRetrieverFactory {
      * @param aclEnforcerCache the acl-enforcer-cache.
      * @return the instance.
      */
-    public static EnforcerRetriever create(
+    public static EnforcerRetriever<Enforcer> create(
             final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> idCache,
             final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
             final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache) {
@@ -54,7 +54,7 @@ final class PolicyOrAclEnforcerRetrieverFactory {
         mapping.put(PolicyCommand.RESOURCE_TYPE, policyEnforcerCache);
         mapping.put(ThingCommand.RESOURCE_TYPE, aclEnforcerCache);
 
-        return new EnforcerRetriever(idCache, mapping);
+        return new EnforcerRetriever<Enforcer>(idCache, mapping);
     }
 
 }

@@ -67,7 +67,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
     private static final AckExtractor<MessageCommand<?, ?>> MESSAGE_COMMAND_ACK_EXTRACTOR =
             AckExtractor.of(MessageCommand::getEntityId, MessageCommand::getDittoHeaders);
 
-    private final EnforcerRetriever enforcerRetriever;
+    private final EnforcerRetriever<Enforcer> enforcerRetriever;
     private final LiveSignalPub liveSignalPub;
 
     private LiveSignalEnforcement(final Contextual<Signal<?>> context,

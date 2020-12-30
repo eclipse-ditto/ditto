@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.strategies.events;
 
+import java.time.Instant;
+
 import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.signals.events.policies.SubjectActivated;
 
@@ -22,6 +24,13 @@ final class SubjectActivatedStrategy extends AbstractPolicyEventStrategy<Subject
 
     @Override
     protected PolicyBuilder applyEvent(final SubjectActivated event, final PolicyBuilder policyBuilder) {
-        return policyBuilder.setSubjectFor(event.getLabel(), event.getSubject());
+        final Instant now = Instant.now();
+        final boolean isExpiryAfterNow =
+                event.getSubject().getExpiry().map(expiry -> expiry.getTimestamp().isAfter(now)).orElse(false);
+        if (isExpiryAfterNow) {
+            return policyBuilder.setSubjectFor(event.getLabel(), event.getSubject());
+        } else {
+            return policyBuilder;
+        }
     }
 }
