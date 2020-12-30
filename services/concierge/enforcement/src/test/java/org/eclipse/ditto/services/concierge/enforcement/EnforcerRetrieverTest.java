@@ -15,7 +15,7 @@ package org.eclipse.ditto.services.concierge.enforcement;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
@@ -61,12 +61,13 @@ public class EnforcerRetrieverTest {
         when(idCache.get(any(EntityIdWithResourceType.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
 
-        final CompletionStage<Contextual<WithDittoHeaders>> result = retriever.retrieve(entityId, (entityIdEntry, enforcerEntry) -> {
-            throw expectedException;
-        });
+        final CompletionStage<Contextual<WithDittoHeaders<?>>> result =
+                retriever.retrieve(entityId, (entityIdEntry, enforcerEntry) -> {
+                    throw expectedException;
+                });
 
         verify(idCache).get(entityId);
-        verifyZeroInteractions(enforcerCache);
+        verifyNoInteractions(enforcerCache);
         verifyException(result, expectedException);
     }
 
@@ -82,9 +83,10 @@ public class EnforcerRetrieverTest {
                 CompletableFuture.completedFuture(Optional.of(Entry.permanent(innerEntityId))));
         when(enforcerCache.get(any(EntityIdWithResourceType.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
-        final CompletionStage<Contextual<WithDittoHeaders>> result = retriever.retrieve(entityId, (entityIdEntry, enforcerEntry) -> {
-            throw expectedException;
-        });
+        final CompletionStage<Contextual<WithDittoHeaders<?>>> result =
+                retriever.retrieve(entityId, (entityIdEntry, enforcerEntry) -> {
+                    throw expectedException;
+                });
 
         verify(idCache).get(entityId);
         verify(enforcerCache).get(innerEntityId);
@@ -100,15 +102,16 @@ public class EnforcerRetrieverTest {
         when(enforcerCache.get(any(EntityIdWithResourceType.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
 
-        final CompletionStage<Contextual<WithDittoHeaders>> result = retriever.retrieveByEnforcerKey(entityId, enforcerEntry -> {
-            throw expectedException;
-        });
+        final CompletionStage<Contextual<WithDittoHeaders<?>>> result =
+                retriever.retrieveByEnforcerKey(entityId, enforcerEntry -> {
+                    throw expectedException;
+                });
 
         verify(enforcerCache).get(entityId);
         verifyException(result, expectedException);
     }
 
-    private void verifyException(final CompletionStage<Contextual<WithDittoHeaders>> completionStage,
+    private void verifyException(final CompletionStage<Contextual<WithDittoHeaders<?>>> completionStage,
             final Throwable expectedException)
             throws ExecutionException, InterruptedException {
         assertThat(completionStage.thenApply(_void -> new RuntimeException("this should not be happening"))

@@ -36,12 +36,12 @@ import org.eclipse.ditto.signals.commands.policies.modify.ModifySubjects;
  * Registry to map policy commands to their according modify exception.
  */
 public final class PolicyCommandToModifyExceptionRegistry
-        extends AbstractCommandToExceptionRegistry<PolicyCommand, DittoRuntimeException> {
+        extends AbstractCommandToExceptionRegistry<PolicyCommand<?>, DittoRuntimeException> {
 
     private static final PolicyCommandToModifyExceptionRegistry INSTANCE = createInstance();
 
     private PolicyCommandToModifyExceptionRegistry(
-            final Map<String, Function<PolicyCommand, DittoRuntimeException>> mappingStrategies) {
+            final Map<String, Function<PolicyCommand<?>, DittoRuntimeException>> mappingStrategies) {
         super(mappingStrategies);
     }
 
@@ -55,17 +55,17 @@ public final class PolicyCommandToModifyExceptionRegistry
     }
 
     private static PolicyCommandToModifyExceptionRegistry createInstance() {
-        final Map<String, Function<PolicyCommand, DittoRuntimeException>> mappingStrategies = new HashMap<>();
+        final Map<String, Function<PolicyCommand<?>, DittoRuntimeException>> mappingStrategies = new HashMap<>();
 
         mappingStrategies.put(DeletePolicy.TYPE,
                 command -> PolicyNotModifiableException.newBuilder(command.getEntityId())
-                .dittoHeaders(command.getDittoHeaders())
-                .build());
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
         mappingStrategies.put(DeletePolicyEntry.TYPE,
                 command -> PolicyEntryNotModifiableException.newBuilder(command.getEntityId(),
-                ((DeletePolicyEntry) command).getLabel())
-                .dittoHeaders(command.getDittoHeaders())
-                .build());
+                        ((DeletePolicyEntry) command).getLabel())
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
         mappingStrategies.put(DeleteResource.TYPE, command ->
                 ResourceNotModifiableException.newBuilder(command.getEntityId(), ((DeleteResource) command).getLabel(),
                         command.getResourcePath().toString())
@@ -78,12 +78,12 @@ public final class PolicyCommandToModifyExceptionRegistry
                         .build());
         mappingStrategies.put(CreatePolicy.TYPE,
                 command -> PolicyNotAccessibleException.newBuilder(command.getEntityId())
-                .dittoHeaders(command.getDittoHeaders())
-                .build());
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
         mappingStrategies.put(ModifyPolicy.TYPE,
                 command -> PolicyNotModifiableException.newBuilder(command.getEntityId())
-                .dittoHeaders(command.getDittoHeaders())
-                .build());
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
         mappingStrategies.put(ModifyPolicyEntries.TYPE,
                 command -> PolicyNotModifiableException.newBuilder(command.getEntityId())
                         .dittoHeaders(command.getDittoHeaders())
@@ -95,9 +95,9 @@ public final class PolicyCommandToModifyExceptionRegistry
                         .build());
         mappingStrategies.put(ModifyResource.TYPE,
                 command -> ResourceNotModifiableException.newBuilder(command.getEntityId(),
-                ((ModifyResource) command).getLabel(), command.getResourcePath().toString())
-                .dittoHeaders(command.getDittoHeaders())
-                .build());
+                        ((ModifyResource) command).getLabel(), command.getResourcePath().toString())
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
         mappingStrategies.put(ModifyResources.TYPE,
                 command -> ResourcesNotModifiableException.newBuilder(command.getEntityId(),
                         ((ModifyResources) command).getLabel())
@@ -105,15 +105,15 @@ public final class PolicyCommandToModifyExceptionRegistry
                         .build());
         mappingStrategies.put(ModifySubject.TYPE,
                 command -> SubjectNotModifiableException.newBuilder(command.getEntityId(),
-                ((ModifySubject) command).getLabel(),
-                ((ModifySubject) command).getSubject().getId())
-                .dittoHeaders(command.getDittoHeaders())
-                .build());
+                        ((ModifySubject) command).getLabel(),
+                        ((ModifySubject) command).getSubject().getId())
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
         mappingStrategies.put(ModifySubjects.TYPE,
                 command -> SubjectsNotModifiableException.newBuilder(command.getEntityId(),
-                ((ModifySubjects) command).getLabel())
-                .dittoHeaders(command.getDittoHeaders())
-                .build());
+                        ((ModifySubjects) command).getLabel())
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
 
         return new PolicyCommandToModifyExceptionRegistry(mappingStrategies);
     }

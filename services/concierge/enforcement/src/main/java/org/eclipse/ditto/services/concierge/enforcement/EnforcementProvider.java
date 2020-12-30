@@ -77,22 +77,23 @@ public interface EnforcementProvider<T extends Signal<?>> {
      * @return the stream.
      */
     @SuppressWarnings("unchecked") // due to GraphDSL usage
-    default Graph<FlowShape<Contextual<WithDittoHeaders>, EnforcementTask>, NotUsed> createEnforcementTask(
+    default Graph<FlowShape<Contextual<WithDittoHeaders<?>>, EnforcementTask>, NotUsed> createEnforcementTask(
             final PreEnforcer preEnforcer
     ) {
 
-        final Graph<FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>>, NotUsed>
+        final Graph<FanOutShape2<Contextual<WithDittoHeaders<?>>, Contextual<T>,
+                Contextual<WithDittoHeaders<?>>>, NotUsed>
                 multiplexer = Filter.multiplexBy(contextual -> contextual.tryToMapMessage(this::mapToHandledClass));
 
         return GraphDSL.create(builder -> {
-            final FanOutShape2<Contextual<WithDittoHeaders>, Contextual<T>, Contextual<WithDittoHeaders>> fanout =
+            final FanOutShape2<Contextual<WithDittoHeaders<?>>, Contextual<T>, Contextual<WithDittoHeaders<?>>> fanout =
                     builder.add(multiplexer);
 
             final Flow<Contextual<T>, EnforcementTask, NotUsed> enforcementFlow =
                     Flow.fromFunction(contextual -> buildEnforcementTask(contextual, preEnforcer));
 
             // by default, ignore unhandled messages:
-            final SinkShape<Contextual<WithDittoHeaders>> unhandledSink = builder.add(Sink.ignore());
+            final SinkShape<Contextual<WithDittoHeaders<?>>> unhandledSink = builder.add(Sink.ignore());
 
             final FlowShape<Contextual<T>, EnforcementTask> enforcementShape = builder.add(enforcementFlow);
 
@@ -110,7 +111,7 @@ public interface EnforcementProvider<T extends Signal<?>> {
 
         return EnforcementTask.of(entityId, changesAuthorization, () ->
                 preEnforcer.withErrorHandlingAsync(contextual,
-                        contextual.withMessage(null).withReceiver(null),
+                        contextual.<WithDittoHeaders<?>>withMessage(null).withReceiver(null),
                         converted -> createEnforcement(converted).enforceSafely()
                 )
         );

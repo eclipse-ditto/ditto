@@ -48,7 +48,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      */
     public static final String ACTOR_NAME = "enforcer";
 
-    private final Sink<Contextual<WithDittoHeaders>, CompletionStage<Done>> sink;
+    private final Sink<Contextual<WithDittoHeaders<?>>, CompletionStage<Done>> sink;
 
     @SuppressWarnings("unused")
     private EnforcerActor(final ActorRef pubSubMediator,
@@ -113,7 +113,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
     }
 
     @Override
-    protected Sink<Contextual<WithDittoHeaders>, ?> createSink() {
+    protected Sink<Contextual<WithDittoHeaders<?>>, ?> createSink() {
         return sink;
     }
 
@@ -126,16 +126,16 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * @return a handler as {@link Flow} of {@link Contextual} messages.
      */
     @SuppressWarnings("unchecked") // due to GraphDSL usage
-    private Sink<Contextual<WithDittoHeaders>, CompletionStage<Done>> assembleSink(
+    private Sink<Contextual<WithDittoHeaders<?>>, CompletionStage<Done>> assembleSink(
             final Set<EnforcementProvider<?>> enforcementProviders,
             @Nullable final PreEnforcer preEnforcer,
             final ActorRef enforcementScheduler) {
 
         final PreEnforcer preEnforcerStep =
                 preEnforcer != null ? preEnforcer : CompletableFuture::completedStage;
-        final Graph<FlowShape<Contextual<WithDittoHeaders>, EnforcementTask>, NotUsed> enforcerFlow =
+        final Graph<FlowShape<Contextual<WithDittoHeaders<?>>, EnforcementTask>, NotUsed> enforcerFlow =
                 GraphDSL.create(
-                        Broadcast.<Contextual<WithDittoHeaders>>create(enforcementProviders.size()),
+                        Broadcast.<Contextual<WithDittoHeaders<?>>>create(enforcementProviders.size()),
                         Merge.<EnforcementTask>create(enforcementProviders.size(), true),
                         (notUsed1, notUsed2) -> notUsed1,
                         (builder, bcast, merge) -> {
@@ -149,7 +149,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
                             return FlowShape.of(bcast.in(), merge.out());
                         });
 
-        return Flow.<Contextual<WithDittoHeaders>>create()
+        return Flow.<Contextual<WithDittoHeaders<?>>>create()
                 .via(enforcerFlow)
                 .toMat(Sink.foreach(task -> enforcementScheduler.tell(task, ActorRef.noSender())), Keep.right());
     }

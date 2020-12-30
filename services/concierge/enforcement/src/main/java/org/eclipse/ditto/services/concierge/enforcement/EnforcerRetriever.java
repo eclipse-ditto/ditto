@@ -82,8 +82,8 @@ public final class EnforcerRetriever {
      * @param handler handler of cache lookup results.
      * @return future after retrieved cache entries are given to the consumer.
      */
-    public CompletionStage<Contextual<WithDittoHeaders>> retrieve(final EntityIdWithResourceType entityKey,
-            final BiFunction<Entry<EntityIdWithResourceType>, Entry<Enforcer>, CompletionStage<Contextual<WithDittoHeaders>>> handler) {
+    public CompletionStage<Contextual<WithDittoHeaders<?>>> retrieve(final EntityIdWithResourceType entityKey,
+            final BiFunction<Entry<EntityIdWithResourceType>, Entry<Enforcer>, CompletionStage<Contextual<WithDittoHeaders<?>>>> handler) {
         return idCache.get(entityKey).thenCompose(enforcerKeyEntryOptional -> {
             if (enforcerKeyEntryOptional.isEmpty()) {
                 // may happen due to namespace blocking
@@ -116,9 +116,9 @@ public final class EnforcerRetriever {
      * @param enforcerKey key of the enforcer.
      * @param handler what to do with the enforcer.
      */
-    public CompletionStage<Contextual<WithDittoHeaders>> retrieveByEnforcerKey(
+    public CompletionStage<Contextual<WithDittoHeaders<?>>> retrieveByEnforcerKey(
             final EntityIdWithResourceType enforcerKey,
-            final Function<Entry<Enforcer>, CompletionStage<Contextual<WithDittoHeaders>>> handler) {
+            final Function<Entry<Enforcer>, CompletionStage<Contextual<WithDittoHeaders<?>>>> handler) {
         final String resourceType = enforcerKey.getResourceType();
         final Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache =
                 enforcerCacheFunction.apply(resourceType);

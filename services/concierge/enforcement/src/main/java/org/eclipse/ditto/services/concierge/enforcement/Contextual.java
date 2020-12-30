@@ -104,7 +104,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         this.changesAuthorization = changesAuthorization;
     }
 
-    static <T extends WithDittoHeaders<T>> Contextual<T> forActor(final ActorRef self,
+    static <T extends WithDittoHeaders<?>> Contextual<T> forActor(final ActorRef self,
             final ActorRef deadLetters,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,

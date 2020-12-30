@@ -61,7 +61,7 @@ import akka.pattern.AskTimeoutException;
  * Authorize {@link PolicyCommand}.
  */
 public final class PolicyCommandEnforcement
-        extends AbstractEnforcementWithAsk<PolicyCommand<?>, PolicyQueryCommandResponse> {
+        extends AbstractEnforcementWithAsk<PolicyCommand<?>, PolicyQueryCommandResponse<?>> {
 
     /**
      * Json fields that are always shown regardless of authorization.
@@ -90,7 +90,7 @@ public final class PolicyCommandEnforcement
      * @param command the command to authorize.
      * @return optionally the authorized command.
      */
-    public static <T extends PolicyCommand> Optional<T> authorizePolicyCommand(final T command,
+    public static <T extends PolicyCommand<?>> Optional<T> authorizePolicyCommand(final T command,
             final Enforcer enforcer) {
 
         final ResourceKey policyResourceKey = PoliciesResourceType.policyResource(command.getResourcePath());
@@ -141,7 +141,7 @@ public final class PolicyCommandEnforcement
     }
 
     private static JsonObject getJsonViewForPolicyQueryCommandResponse(final JsonObject responseEntity,
-            final PolicyQueryCommandResponse response,
+            final PolicyQueryCommandResponse<?> response,
             final Enforcer enforcer) {
 
 
@@ -153,7 +153,7 @@ public final class PolicyCommandEnforcement
                 POLICY_QUERY_COMMAND_RESPONSE_ALLOWLIST, Permissions.newInstance(Permission.READ));
     }
 
-    private static PolicyCommand transformModifyPolicyToCreatePolicy(final PolicyCommand receivedCommand) {
+    private static PolicyCommand<?> transformModifyPolicyToCreatePolicy(final PolicyCommand<?> receivedCommand) {
         if (receivedCommand instanceof ModifyPolicy) {
             final ModifyPolicy modifyPolicy = (ModifyPolicy) receivedCommand;
             return CreatePolicy.of(modifyPolicy.getPolicy(), modifyPolicy.getDittoHeaders());
@@ -168,8 +168,8 @@ public final class PolicyCommandEnforcement
      * @param policyCommand the command.
      * @return the error.
      */
-    private static DittoRuntimeException errorForPolicyCommand(final PolicyCommand policyCommand) {
-        final CommandToExceptionRegistry<PolicyCommand, DittoRuntimeException> registry =
+    private static DittoRuntimeException errorForPolicyCommand(final PolicyCommand<?> policyCommand) {
+        final CommandToExceptionRegistry<PolicyCommand<?>, DittoRuntimeException> registry =
                 policyCommand instanceof PolicyModifyCommand
                         ? PolicyCommandToModifyExceptionRegistry.getInstance()
                         : PolicyCommandToAccessExceptionRegistry.getInstance();
@@ -177,7 +177,7 @@ public final class PolicyCommandEnforcement
     }
 
     @Override
-    public CompletionStage<Contextual<WithDittoHeaders>> enforce() {
+    public CompletionStage<Contextual<WithDittoHeaders<?>>> enforce() {
         return enforcerRetriever.retrieve(entityId(), (idEntry, enforcerEntry) -> {
             try {
                 return CompletableFuture.completedFuture(doEnforce(enforcerEntry));
@@ -187,7 +187,7 @@ public final class PolicyCommandEnforcement
         });
     }
 
-    private Contextual<WithDittoHeaders> doEnforce(final Entry<Enforcer> enforcerEntry) {
+    private Contextual<WithDittoHeaders<?>> doEnforce(final Entry<Enforcer> enforcerEntry) {
         if (enforcerEntry.exists()) {
             return enforcePolicyCommandByEnforcer(enforcerEntry.getValueOrThrow());
         } else {
@@ -195,7 +195,7 @@ public final class PolicyCommandEnforcement
         }
     }
 
-    private Contextual<WithDittoHeaders> enforcePolicyCommandByEnforcer(final Enforcer enforcer) {
+    private Contextual<WithDittoHeaders<?>> enforcePolicyCommandByEnforcer(final Enforcer enforcer) {
         final PolicyCommand<?> policyCommand = signal();
         final Optional<? extends PolicyCommand<?>> authorizedCommandOpt =
                 authorizePolicyCommand(policyCommand, enforcer);
@@ -219,7 +219,7 @@ public final class PolicyCommandEnforcement
     }
 
     private CreatePolicy enforcePolicyCommandByNonexistentEnforcer() {
-        final PolicyCommand policyCommand = transformModifyPolicyToCreatePolicy(signal());
+        final PolicyCommand<?> policyCommand = transformModifyPolicyToCreatePolicy(signal());
         if (policyCommand instanceof CreatePolicy) {
             final CreatePolicy createPolicy = (CreatePolicy) policyCommand;
             final Enforcer enforcer = PolicyEnforcers.defaultEvaluator(createPolicy.getPolicy());
@@ -242,7 +242,7 @@ public final class PolicyCommandEnforcement
      * @param command command to forward.
      * @return the contextual including message and receiver
      */
-    private Contextual<WithDittoHeaders> forwardToPoliciesShardRegion(final PolicyCommand command) {
+    private Contextual<WithDittoHeaders<?>> forwardToPoliciesShardRegion(final PolicyCommand<?> command) {
         final PolicyCommand<?> commandToForward;
         if (command instanceof PolicyModifyCommand) {
             invalidateCaches(command.getEntityId());
@@ -283,8 +283,8 @@ public final class PolicyCommandEnforcement
     }
 
     @Override
-    protected PolicyQueryCommandResponse filterJsonView(
-            final PolicyQueryCommandResponse policyQueryCommandResponse,
+    protected PolicyQueryCommandResponse<?> filterJsonView(
+            final PolicyQueryCommandResponse<?> policyQueryCommandResponse,
             final Enforcer enforcer) {
         try {
             return buildJsonViewForPolicyQueryCommandResponse(policyQueryCommandResponse, enforcer);
@@ -299,7 +299,7 @@ public final class PolicyCommandEnforcement
     public static final class Provider implements EnforcementProvider<PolicyCommand<?>> {
 
         private final Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache;
-        private ActorRef policiesShardRegion;
+        private final ActorRef policiesShardRegion;
 
         /**
          * Constructor.
