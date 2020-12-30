@@ -151,7 +151,7 @@ public final class PoliciesRouteTest extends EndpointTestBase {
         getRoute(getTokenAuthResult()).run(HttpRequest.POST("/policies/ns%3An/actions/activateTokenIntegration/"))
                 .assertStatusCode(StatusCodes.OK)
                 .assertEntity(ActivateSubjects.of(PolicyId.of("ns:n"),
-                        SubjectId.newInstance("integration:{{policy-entry:label}}:dummy-issuer:dummy-subject"),
+                        SubjectId.newInstance("dummy-issuer:{{policy-entry:label}}:dummy-subject"),
                         DummyJwt.EXPIRY,
                         List.of(),
                         DittoHeaders.empty()
@@ -163,7 +163,7 @@ public final class PoliciesRouteTest extends EndpointTestBase {
         getRoute(getTokenAuthResult()).run(HttpRequest.POST("/policies/ns%3An/actions/deactivateTokenIntegration"))
                 .assertStatusCode(StatusCodes.OK)
                 .assertEntity(DeactivateSubjects.of(PolicyId.of("ns:n"),
-                        SubjectId.newInstance("integration:{{policy-entry:label}}:dummy-issuer:dummy-subject"),
+                        SubjectId.newInstance("dummy-issuer:{{policy-entry:label}}:dummy-subject"),
                         List.of(),
                         DittoHeaders.empty()
                 ).toJsonString());
@@ -183,7 +183,7 @@ public final class PoliciesRouteTest extends EndpointTestBase {
                 .assertStatusCode(StatusCodes.OK)
                 .assertEntity(ActivateSubject.of(PolicyId.of("ns:n"),
                         Label.of("label"),
-                        SubjectId.newInstance("integration:{{policy-entry:label}}:dummy-issuer:dummy-subject"),
+                        SubjectId.newInstance("dummy-issuer:{{policy-entry:label}}:dummy-subject"),
                         DummyJwt.EXPIRY,
                         DittoHeaders.empty()
                 ).toJsonString());
@@ -196,7 +196,7 @@ public final class PoliciesRouteTest extends EndpointTestBase {
                 .assertStatusCode(StatusCodes.OK)
                 .assertEntity(DeactivateSubject.of(PolicyId.of("ns:n"),
                         Label.of("label"),
-                        SubjectId.newInstance("integration:{{policy-entry:label}}:dummy-issuer:dummy-subject"),
+                        SubjectId.newInstance("dummy-issuer:{{policy-entry:label}}:dummy-subject"),
                         DittoHeaders.empty()
                 ).toJsonString());
     }

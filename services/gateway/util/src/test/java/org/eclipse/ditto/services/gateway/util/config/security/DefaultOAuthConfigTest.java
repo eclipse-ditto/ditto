@@ -77,7 +77,7 @@ public final class DefaultOAuthConfigTest {
                 .isEqualTo(OAuthConfig.OAuthConfigValue.OPENID_CONNECT_ISSUERS_EXTENSION.getDefaultValue());
 
         softly.assertThat(underTest.getTokenIntegrationSubject())
-                .isEqualTo("integration:{{policy-entry:label}}:{{jwt:iss}}:{{jwt:sub}}");
+                .isEqualTo(OAuthConfig.OAuthConfigValue.TOKEN_INTEGRATION_SUBJECT.getDefaultValue());
     }
 
     @Test
