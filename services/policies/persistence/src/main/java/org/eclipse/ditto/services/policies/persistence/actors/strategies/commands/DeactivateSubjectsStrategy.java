@@ -45,7 +45,7 @@ import org.eclipse.ditto.signals.events.policies.SubjectsDeactivated;
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.modify.DeactivateSubjects} command.
  */
-final class DeactivateSubjectsStrategy extends AbstractPolicyCommandStrategy<DeactivateSubjects> {
+final class DeactivateSubjectsStrategy extends AbstractPolicyActionCommandStrategy<DeactivateSubjects> {
 
     DeactivateSubjectsStrategy(final PolicyConfig policyConfig) {
         super(DeactivateSubjects.class, policyConfig);
@@ -75,7 +75,7 @@ final class DeactivateSubjectsStrategy extends AbstractPolicyCommandStrategy<Dea
         for (final PolicyEntry entry : entries) {
             final SubjectId subjectId;
             try {
-                subjectId = PolicyEntryPlaceholder.resolveSubjectId(entry, command.getSubjectId());
+                subjectId = resolveSubjectId(entry, command);
             } catch (final DittoRuntimeException e) {
                 return ResultFactory.newErrorResult(e, command);
             }

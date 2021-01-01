@@ -20,28 +20,43 @@ import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.SubjectId;
+import org.eclipse.ditto.signals.commands.policies.modify.PolicyActionCommand;
 
 /**
  * Placeholder with prefix policy-entry.
  */
 public final class PolicyEntryPlaceholder implements Placeholder<PolicyEntry> {
 
-    private static PolicyEntryPlaceholder INSTANCE = new PolicyEntryPlaceholder();
+    private static final PolicyEntryPlaceholder INSTANCE = new PolicyEntryPlaceholder();
 
     private static final String PREFIX = "policy-entry";
     private static final String LABEL = "label";
 
     /**
+     * Retrieve the unique instance of policy entry placeholder.
+     *
+     * @return the instance.
+     */
+    public static PolicyEntryPlaceholder getInstance() {
+        return INSTANCE;
+    }
+
+    /**
      * Resolve a subject ID containing policy-entry placeholders.
      *
      * @param entry the policy entry.
-     * @param subjectIdWithPlaceholder the subject ID containing placeholders.
+     * @param policyActionCommand the policy action command.
      * @return the subject ID after resolution, or an empty optional if it contains an unresolvable placeholder.
      * @throws org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException if the subject ID contains unsupported placeholders.
      * @throws org.eclipse.ditto.model.policies.SubjectIdInvalidException if the resolved subject ID is invalid.
      */
+    @SuppressWarnings("unused") // called by reflection
     public static SubjectId resolveSubjectId(final PolicyEntry entry,
-            final SubjectId subjectIdWithPlaceholder) {
+            final PolicyActionCommand<?> policyActionCommand) {
+        return resolveSubjectId(entry, policyActionCommand.getSubjectId());
+    }
+
+    static SubjectId resolveSubjectId(final PolicyEntry entry, final SubjectId subjectIdWithPlaceholder) {
         return PlaceholderFactory.newExpressionResolver(PlaceholderFactory.newPlaceholderResolver(INSTANCE, entry))
                 .resolve(subjectIdWithPlaceholder.toString())
                 .toOptional()

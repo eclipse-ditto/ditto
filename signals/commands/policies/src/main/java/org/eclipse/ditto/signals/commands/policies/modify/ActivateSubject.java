@@ -127,11 +127,7 @@ public final class ActivateSubject extends AbstractCommand<ActivateSubject>
         return label;
     }
 
-    /**
-     * Returns the subject ID introduced by the activation.
-     *
-     * @return the subject ID.
-     */
+    @Override
     public SubjectId getSubjectId() {
         return subjectId;
     }

@@ -30,7 +30,6 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
-import org.eclipse.ditto.services.policies.persistence.actors.placeholders.PolicyEntryPlaceholder;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.modify.DeactivateSubject;
@@ -41,7 +40,7 @@ import org.eclipse.ditto.signals.events.policies.SubjectDeactivated;
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.modify.DeactivateSubject} command.
  */
-final class DeactivateSubjectStrategy extends AbstractPolicyCommandStrategy<DeactivateSubject> {
+final class DeactivateSubjectStrategy extends AbstractPolicyActionCommandStrategy<DeactivateSubject> {
 
     DeactivateSubjectStrategy(final PolicyConfig policyConfig) {
         super(DeactivateSubject.class, policyConfig);
@@ -64,7 +63,7 @@ final class DeactivateSubjectStrategy extends AbstractPolicyCommandStrategy<Deac
             final SubjectId subjectId;
             final PolicyEntry policyEntry = optionalEntry.get();
             try {
-                subjectId = PolicyEntryPlaceholder.resolveSubjectId(policyEntry, command.getSubjectId());
+                subjectId = resolveSubjectId(policyEntry, command);
             } catch (final DittoRuntimeException e) {
                 return ResultFactory.newErrorResult(e, command);
             }

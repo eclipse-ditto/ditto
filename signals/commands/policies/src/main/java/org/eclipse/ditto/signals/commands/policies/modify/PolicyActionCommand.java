@@ -13,6 +13,7 @@
 package org.eclipse.ditto.signals.commands.policies.modify;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
@@ -22,4 +23,11 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
  * @param <T> the type of the implementing class.
  */
 public interface PolicyActionCommand<T extends PolicyActionCommand<T>> extends PolicyModifyCommand<T> {
+
+    /**
+     * Get the subject ID of this command.
+     *
+     * @return the subject ID.
+     */
+    SubjectId getSubjectId();
 }

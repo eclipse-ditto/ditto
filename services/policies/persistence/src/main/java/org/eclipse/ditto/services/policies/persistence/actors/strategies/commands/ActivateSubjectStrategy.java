@@ -32,7 +32,6 @@ import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
-import org.eclipse.ditto.services.policies.persistence.actors.placeholders.PolicyEntryPlaceholder;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.modify.ActivateSubject;
@@ -43,7 +42,7 @@ import org.eclipse.ditto.signals.events.policies.SubjectActivated;
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.modify.ActivateSubject} command.
  */
-final class ActivateSubjectStrategy extends AbstractPolicyCommandStrategy<ActivateSubject> {
+final class ActivateSubjectStrategy extends AbstractPolicyActionCommandStrategy<ActivateSubject> {
 
     ActivateSubjectStrategy(final PolicyConfig policyConfig) {
         super(ActivateSubject.class, policyConfig);
@@ -66,7 +65,7 @@ final class ActivateSubjectStrategy extends AbstractPolicyCommandStrategy<Activa
         if (optionalEntry.isPresent()) {
             final SubjectId subjectId;
             try {
-                subjectId = PolicyEntryPlaceholder.resolveSubjectId(optionalEntry.get(), command.getSubjectId());
+                subjectId = resolveSubjectId(optionalEntry.get(), command);
             } catch (final DittoRuntimeException e) {
                 return ResultFactory.newErrorResult(e, command);
             }

@@ -120,11 +120,7 @@ public final class DeactivateSubjects extends AbstractCommand<DeactivateSubjects
         });
     }
 
-    /**
-     * Returns the subject ID to be deactivated.
-     *
-     * @return the subject ID.
-     */
+    @Override
     public SubjectId getSubjectId() {
         return subjectId;
     }

@@ -45,6 +45,13 @@ public interface PolicyConfig extends WithSupervisorConfig, WithActivityCheckCon
     Duration getSubjectExpiryGranularity();
 
     /**
+     * Return the class responsible for placeholder resolution in the subject ID of policy action commands.
+     *
+     * @return the class for subject resolution.
+     */
+    String getSubjectIdResolver();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for {@code PolicyConfig}.
      */
     enum PolicyConfigValue implements KnownConfigValue {
@@ -52,7 +59,10 @@ public interface PolicyConfig extends WithSupervisorConfig, WithActivityCheckCon
         /**
          * The granularity to round up policy subject {@code expiry} timestamps to.
          */
-        SUBJECT_EXPIRY_GRANULARITY("subject-expiry-granularity", Duration.ofHours(1L));
+        SUBJECT_EXPIRY_GRANULARITY("subject-expiry-granularity", Duration.ofHours(1L)),
+
+        SUBJECT_ID_RESOLVER("subject-id-resolver",
+                "org.eclipse.ditto.services.policies.persistence.actors.placeholders.PolicyEntryPlaceholder");
 
         private final String path;
         private final Object defaultValue;
