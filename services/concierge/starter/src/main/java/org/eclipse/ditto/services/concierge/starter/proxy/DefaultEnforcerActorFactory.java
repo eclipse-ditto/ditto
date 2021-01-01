@@ -170,7 +170,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
      * @param originalSignal A signal with authorization context.
      * @return A copy of the signal with the header "ditto-originator" set.
      */
-    public static <T extends WithDittoHeaders<T>> WithDittoHeaders<T> setOriginatorHeader(final T originalSignal) {
+    public static WithDittoHeaders<?> setOriginatorHeader(final WithDittoHeaders<?> originalSignal) {
         final DittoHeaders dittoHeaders = originalSignal.getDittoHeaders();
         final AuthorizationContext authorizationContext = dittoHeaders.getAuthorizationContext();
         return authorizationContext.getFirstAuthorizationSubject()
@@ -178,7 +178,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
                 .map(originatorSubjectId -> DittoHeaders.newBuilder(dittoHeaders)
                         .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), originatorSubjectId)
                         .build())
-                .map(originalSignal::setDittoHeaders)
+                .<WithDittoHeaders<?>>map(originalSignal::setDittoHeaders)
                 .orElse(originalSignal);
     }
 
@@ -194,7 +194,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
                         .thenCompose(placeholderSubstitution);
     }
 
-    private static WithDittoHeaders prependDefaultNamespaceToCreateThing(final WithDittoHeaders<?> signal) {
+    private static WithDittoHeaders<?> prependDefaultNamespaceToCreateThing(final WithDittoHeaders<?> signal) {
         if (signal instanceof CreateThing) {
             final CreateThing createThing = (CreateThing) signal;
             final Thing thing = createThing.getThing();
