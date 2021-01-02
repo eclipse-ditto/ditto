@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.modify.DeactivateSubject;
 import org.eclipse.ditto.signals.commands.policies.modify.DeactivateSubjectResponse;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
@@ -88,9 +89,10 @@ final class DeactivateSubjectStrategy extends AbstractPolicyActionCommandStrateg
                 return ResultFactory.newMutationResult(adjustedCommand, event, rawResponse);
             }
         } else {
-            // Command is constructed incorrectly. This is a bug.
+            // Policy is configured incorrectly
             return ResultFactory.newErrorResult(
-                    PolicyActionFailedException.newBuilderForDeactivateTokenIntegration().build(), command);
+                    PolicyEntryNotAccessibleException.newBuilder(policyId, label).dittoHeaders(dittoHeaders).build(),
+                    command);
         }
     }
 

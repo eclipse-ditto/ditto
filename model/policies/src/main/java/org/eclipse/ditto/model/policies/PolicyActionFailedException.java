@@ -20,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
@@ -121,7 +122,9 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
      * format.
      */
     public static PolicyActionFailedException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
+        final HttpStatusCode status = HttpStatusCode.forInt(jsonObject.getValueOrThrow(JsonFields.STATUS))
+                .orElseThrow(() -> new JsonParseException("Unsupported status"));
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder().status(status));
     }
 
     @Override

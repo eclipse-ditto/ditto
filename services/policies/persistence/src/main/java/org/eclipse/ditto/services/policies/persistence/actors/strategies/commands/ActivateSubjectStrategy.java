@@ -24,7 +24,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.model.policies.PolicyActionFailedException;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
@@ -34,6 +33,7 @@ import org.eclipse.ditto.services.models.policies.PoliciesValidator;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.modify.ActivateSubject;
 import org.eclipse.ditto.signals.commands.policies.modify.ActivateSubjectResponse;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
@@ -92,9 +92,10 @@ final class ActivateSubjectStrategy extends AbstractPolicyActionCommandStrategy<
                         command);
             }
         } else {
-            // Command is constructed incorrectly. This is a bug.
+            // Policy is configured incorrectly
             return ResultFactory.newErrorResult(
-                    PolicyActionFailedException.newBuilderForActivateTokenIntegration().build(), command);
+                    PolicyEntryNotAccessibleException.newBuilder(policyId, label).dittoHeaders(dittoHeaders).build(),
+                    command);
         }
     }
 
