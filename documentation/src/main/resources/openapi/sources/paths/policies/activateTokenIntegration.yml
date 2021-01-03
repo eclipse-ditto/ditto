@@ -1,0 +1,31 @@
+# Copyright (c) 2021 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+post:
+  summary: Activate token integration subjects for this policy
+  description: |-
+    Only possible with JWT authentication.
+    For each entry the user is granted the EXECUTE permission, inject a subject calculated according to the JWT
+    with which the user is authenticated.
+    This subject is configurable.
+    The injected subjects expire when the JWT expires.
+  tags:
+    - Policies
+  parameters:
+    - $ref: '../../parameters/policyIdPathParam.yml'
+  responses:
+    '200':
+      description: The request was successful. Subjects were injected into authorized policy entries.
+    '400':
+      description: The request could not be completed because the user did not authenticate itself with a JWT.
+    '403':
+      description: |-
+        The request could not be completed because the user does not have the EXECUTE permission on any entries of
+        the policy.

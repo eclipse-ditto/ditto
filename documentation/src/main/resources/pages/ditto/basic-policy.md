@@ -59,6 +59,45 @@ When providing an `"expiry"` for a Policy subject, this timestamp is rounded up:
 Once an expired subject is deleted, it will immediately no longer have access to the resources protected by the policy
 it was deleted from.
 
+### Token integration subjects
+
+When authenticated using OpenID Connect, it is possible to inject a subject into policies that expires when
+the JSON web token expires. The form of the injected subject (i. e., token integration subject) is configurable.
+A user is authorized to inject the token integration subject when granted the `EXECUTE` permission on a policy entry.
+The `WRITE` permission is not necessary. To activate or deactivate a token integration subject, send a POST request
+to the following HTTP routes:
+
+- [POST /api/2/policies/{policy-id}/actions/activateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__actions_activateTokenIntegration)<br/>
+  Inject token integration subjects into all policy entries for which the user has the `EXECUTE` permission.
+- [POST /api/2/policies/{policy-id}/actions/deactivateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__actions_deactivateTokenIntegration)<br/>
+  Remove token integration subjects from all policy entries for which the user has the `EXECUTE` permission.
+- [POST /api/2/policies/{policy-id}/entries/{label}/actions/activateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__entries__label__actions_activateTokenIntegration)<br/>
+  Inject the token integration subject into 1 policy entry.
+- [POST /api/2/policies/{policy-id}/entries/{label}/actions/deactivateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__entries__label__actions_deactivateTokenIntegration)<br/>
+  Remove the token integration subject from 1 policy entry.
+
+To configure the token integration subject, set the path
+```
+ditto.gateway.authentication.oauth.token-integration-subject
+```
+in `gateway-extension.conf`, or set the environment variable `OAUTH_TOKEN_INTEGRATION_SUBJECT` for Gateway Service.
+```
+{%raw%}
+ditto.gateway.authentication.oauth.token-integration-subject =
+  "my-token-integration-issuer:{{policy-entry:label}}:{{jwt:sub}}"
+
+ditto.gateway.authentication.oauth.token-integration-subject =
+  ${?OAUTH_TOKEN_INTEGRATION_SUBJECT}
+{%endraw%}
+```
+
+The [placeholders](basic-placeholders.html) below are usable as a part of the `token-integration-subject` configuration:
+
+| Placeholder    |  Description   |
+|----------------|----------------|
+| `{%raw%}{{ policy-entry:label }}{%endraw%}` | label of the policy entry in which the token integration subject is injected |
+| `{%raw%}{{ jwt:<jwt-body-claim> }}{%endraw%}` | any standard or custom claims in the body of the JSON web token, e.g., `jwt:sub` |
+
 
 ## Which Resources can be controlled?
 

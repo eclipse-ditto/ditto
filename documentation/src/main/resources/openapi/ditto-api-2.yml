@@ -3459,6 +3459,49 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
+  '/policies/{policyId}/actions/activateTokenIntegration':
+    post:
+      summary: Activate token integration subjects for this policy
+      description: |-
+        Only possible with JWT authentication.
+        For each entry the user is granted the EXECUTE permission, inject a subject calculated according to the JWT
+        with which the user is authenticated.
+        This subject is configurable.
+        The injected subjects expire when the JWT expires.
+      tags:
+        - Policies
+      parameters:
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+      responses:
+        '200':
+          description: The request was successful. Subjects were injected into authorized policy entries.
+        '400':
+          description: The request could not be completed because the user did not authenticate itself with a JWT.
+        '403':
+          description: |-
+            The request could not be completed because the user does not have the EXECUTE permission on any entries of
+            the policy.
+  '/policies/{policyId}/actions/deactivateTokenIntegration':
+    post:
+      summary: Deactivate token integration subjects for this policy
+      description: |-
+        Only possible with JWT authentication.
+        For each entry the user is granted the EXECUTE permission, remove a subject calculated according to the JWT
+        with which the user is authenticated.
+        This subject is configurable.
+      tags:
+        - Policies
+      parameters:
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+      responses:
+        '200':
+          description: The request was successful. Subjects were removed from authorized policy entries.
+        '400':
+          description: The request could not be completed because the user did not authenticate itself with a JWT.
+        '403':
+          description: |-
+            The request could not be completed because the user does not have the EXECUTE permission on any entries of
+            the policy.
   '/policies/{policyId}/entries':
     get:
       summary: Retrieve the entries of a specific policy
@@ -3863,6 +3906,47 @@ paths:
                 $ref: '#/components/schemas/AdvancedError'
         '412':
           $ref: '#/components/responses/PreconditionFailed'
+  '/policies/{policyId}/entries/{label}/actions/activateTokenIntegration':
+    post:
+      summary: Activate the token integration subject for this policy entry
+      description: |-
+        Only possible with JWT authentication.
+        If the user is granted the EXECUTE permission for this entry, inject a subject calculated according to the JWT
+        with which the user is authenticated.
+        This subject is configurable.
+        The injected subject expires when the JWT expires.
+      tags:
+        - Policies
+      parameters:
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/LabelPathParam'
+      responses:
+        '200':
+          description: The request was successful. The subject was injected.
+        '400':
+          description: The request could not be completed because the user did not authenticate itself with a JWT.
+        '403':
+          description: The request could not be completed because the user does not have the EXECUTE permission on this policy entry.
+  '/policies/{policyId}/entries/{label}/actions/deactivageTokenIntegration':
+    post:
+      summary: Deactivate token integration subjects for this policy
+      description: |-
+        Only possible with JWT authentication.
+        If the user is granted the EXECUTE permission, remove a subject calculated according to the JWT
+        with which the user is authenticated.
+        This subject is configurable.
+      tags:
+        - Policies
+      parameters:
+        - $ref: '#/components/parameters/PolicyIdPathParam'
+        - $ref: '#/components/parameters/LabelPathParam'
+      responses:
+        '200':
+          description: The request was successful. The subject was removed.
+        '400':
+          description: The request could not be completed because the user did not authenticate itself with a JWT.
+        '403':
+          description: The request could not be completed because the user does not have the EXECUTE permission on this policy entry.
   '/policies/{policyId}/entries/{label}/subjects':
     get:
       summary: Retrieve all Subjects for a specific Label of a specific policy
