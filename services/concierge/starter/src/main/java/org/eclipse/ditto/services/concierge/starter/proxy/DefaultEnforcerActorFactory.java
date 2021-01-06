@@ -45,7 +45,6 @@ import org.eclipse.ditto.services.concierge.starter.actors.DispatcherActor;
 import org.eclipse.ditto.services.models.concierge.ConciergeMessagingConstants;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeEnforcerClusterRouterFactory;
 import org.eclipse.ditto.services.models.concierge.actors.ConciergeForwarderActor;
-import org.eclipse.ditto.services.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CacheFactory;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
@@ -59,6 +58,7 @@ import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespacesUpdater;
 import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
+import org.eclipse.ditto.services.utils.pubsub.LiveSignalPub;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 
@@ -119,7 +119,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
         final BlockedNamespaces blockedNamespaces = BlockedNamespaces.of(actorSystem);
         final PreEnforcer preEnforcer = newPreEnforcer(blockedNamespaces, PlaceholderSubstitution.newInstance());
 
-        final DistributedAcks distributedAcks = DistributedAcks.create(context);
+        final DistributedAcks distributedAcks = DistributedAcks.lookup(actorSystem);
         final LiveSignalPub liveSignalPub = LiveSignalPub.of(context, distributedAcks);
 
         final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
@@ -149,7 +149,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
 
         // start cluster singleton that writes to the distributed cache of blocked namespaces
         final Props blockedNamespacesUpdaterProps = BlockedNamespacesUpdater.props(blockedNamespaces, pubSubMediator);
-        ClusterUtil.startSingleton(actorSystem, actorSystem, CLUSTER_ROLE,
+        ClusterUtil.startSingleton(actorSystem, context, CLUSTER_ROLE,
                 ConciergeMessagingConstants.BLOCKED_NAMESPACES_UPDATER_NAME,
                 blockedNamespacesUpdaterProps);
 
