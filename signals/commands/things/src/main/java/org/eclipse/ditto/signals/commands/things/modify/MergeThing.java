@@ -408,7 +408,6 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
 
     @Override
     public Category getCategory() {
-        // TODO what about null values? they actually _delete_ properties. check what are the impacts!
         return Category.MODIFY;
     }
 

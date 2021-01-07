@@ -50,6 +50,10 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 
+/**
+ * Tests {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing} by applying command enforcement to
+ * combinations of merge commands (at different levels) and policies (with permissions at different levels).
+ */
 public final class MergeThingCommandEnforcementTest {
 
     private static final JsonPointer PATH = JsonFactory.newPointer("/features/device/properties/location");
@@ -75,6 +79,9 @@ public final class MergeThingCommandEnforcementTest {
      */
     private static final JsonObject PATCH = JsonFactory.newObject(PATH, VALUE).asObject();
 
+    /**
+     * The resources that are granted or revoked WRITE permission.
+     */
     private static final Set<Set<String>> RESOURCES = Set.of(
             Set.of("/"),
             Set.of("/features"),
@@ -84,6 +91,9 @@ public final class MergeThingCommandEnforcementTest {
             Set.of("/features/device/properties/location/longitude", "/features/device/properties/location" +
                     "/latitude"));
 
+    /**
+     * Paths that are modified in merge commands.
+     */
     private static final Set<String> PATHS = Set.of(
             "/",
             "/features",
@@ -186,7 +196,7 @@ public final class MergeThingCommandEnforcementTest {
     }
 
     /**
-     * Prepares and holds arguments for parameterized tests.
+     * Prepares and holds arguments for parameterized merge thing command tests.
      */
     static class TestArgument {
 

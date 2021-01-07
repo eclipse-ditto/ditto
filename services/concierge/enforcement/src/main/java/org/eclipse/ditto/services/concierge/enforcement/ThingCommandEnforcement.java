@@ -873,18 +873,8 @@ public final class ThingCommandEnforcement
 
         final boolean authorized;
         if (command instanceof MergeThing) {
-            if (policyEnforcer.hasUnrestrictedPermissions(thingResourceKey, authorizationContext, Permission.WRITE)) {
-                authorized = true;
-            } else {
-                if (policyEnforcer.hasPartialPermissions(thingResourceKey, authorizationContext, Permission.WRITE)) {
-                    final MergeThing mergeThing = (MergeThing) command;
-                    final Set<ResourceKey> resourceKeys = calculateLeaves(mergeThing.getPath(), mergeThing.getValue());
-                    authorized = policyEnforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext,
-                            Permission.WRITE);
-                } else {
-                    authorized = false;
-                }
-            }
+            authorized = enforceMergeThingCommand(policyEnforcer, (MergeThing) command, thingResourceKey,
+                    authorizationContext);
         } else if (command instanceof ThingModifyCommand) {
             authorized = policyEnforcer.hasUnrestrictedPermissions(thingResourceKey, authorizationContext,
                     Permission.WRITE);
@@ -896,6 +886,23 @@ public final class ThingCommandEnforcement
             return AbstractEnforcement.addEffectedReadSubjectsToThingSignal(command, policyEnforcer);
         } else {
             throw errorForThingCommand(command);
+        }
+    }
+
+    private static boolean enforceMergeThingCommand(final Enforcer policyEnforcer,
+            final MergeThing command, final ResourceKey thingResourceKey,
+            final AuthorizationContext authorizationContext) {
+        if (policyEnforcer.hasUnrestrictedPermissions(thingResourceKey, authorizationContext, Permission.WRITE)) {
+            // unrestricted permissions at thingResourceKey level
+            return true;
+        } else if (policyEnforcer.hasPartialPermissions(thingResourceKey, authorizationContext, Permission.WRITE)) {
+            // in case of partial permissions at thingResourceKey level check all leaves of merge patch for
+            // unrestricted permissions
+            final Set<ResourceKey> resourceKeys = calculateLeaves(command.getPath(), command.getValue());
+            return policyEnforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext, Permission.WRITE);
+        } else {
+            // not even partial permission
+            return false;
         }
     }
 
