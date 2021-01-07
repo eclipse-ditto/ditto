@@ -18,6 +18,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -28,8 +29,8 @@ import org.eclipse.ditto.signals.commands.base.Command;
  */
 abstract class AbstractPolicyQueryCommandStrategy<C extends Command<C>> extends AbstractPolicyCommandStrategy<C> {
 
-    AbstractPolicyQueryCommandStrategy(final Class<C> theMatchingClass) {
-        super(theMatchingClass);
+    AbstractPolicyQueryCommandStrategy(final Class<C> theMatchingClass, final PolicyConfig policyConfig) {
+        super(theMatchingClass, policyConfig);
     }
 
     @Override

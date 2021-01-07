@@ -36,7 +36,7 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/features.yml'
+            $ref: '../../schemas/features/features.yml'
           example:
             {
               "featureId1": {
@@ -58,13 +58,13 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. The thing with the given ID was
@@ -72,7 +72,7 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'
 put:
@@ -94,26 +94,26 @@ put:
 
     ```
     {
-         "coffee-brewer": {
-           "definition": ["com.acme:coffeebrewer:0.1.0"],
-           "properties": {
-             "brewed-coffees": 0
-           }
-         },
-         "water-tank": {
-           "properties": {
-             "configuration": {
-               "smartMode": true,
-               "brewingTemp": 87,
-               "tempToHold": 44,
-               "timeoutSeconds": 6000
-             },
-             "status": {
-               "waterAmount": 731,
-               "temperature": 44
-             }
-           }
-         }
+      "coffee-brewer": {
+        "definition": ["com.acme:coffeebrewer:0.1.0"],
+        "properties": {
+          "brewed-coffees": 0
+        }
+      },
+      "water-tank": {
+        "properties": {
+          "configuration": {
+            "smartMode": true,
+            "brewingTemp": 87,
+            "tempToHold": 44,
+            "timeoutSeconds": 6000
+          },
+          "status": {
+            "waterAmount": 731,
+            "temperature": 44
+          }
+        }
+      }
     }
     ```
   tags:
@@ -142,7 +142,7 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/features.yml'
+            $ref: '../../schemas/features/features.yml'
           example:
             {}
     '204':
@@ -162,23 +162,22 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '403':
       description: |-
         The request could not be completed. Possible reasons:
-
           * the caller has insufficient permissions.
             For modifying all features of an existing thing, `WRITE` permission is required.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. The thing with the given ID was
@@ -186,7 +185,7 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'
     '413':
@@ -195,7 +194,7 @@ put:
     content:
       application/json:
         schema:
-          $ref: '../../schemas/features.yml'
+          $ref: '../../schemas/features/features.yml'
         example: {
           "coffee-brewer": {
             "properties": {
@@ -255,13 +254,13 @@ delete:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '403':
       description: |-
         The request could not be completed. Possible reasons:
@@ -270,7 +269,7 @@ delete:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. The thing with the given ID was
@@ -278,6 +277,6 @@ delete:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'

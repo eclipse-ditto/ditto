@@ -21,6 +21,8 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.time.Instant;
+
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.junit.Test;
@@ -32,11 +34,20 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class ImmutableSubjectTest {
 
+    private static final String KNOWN_SUBJECT_TYPE = "custom";
+    private static final Instant KNOWN_SUBJECT_EXPIRY = Instant.now();
+    private static final String KNOWN_SUBJECT_EXPIRY_STR = KNOWN_SUBJECT_EXPIRY.toString();
+    private static final JsonObject KNOWN_SUBJECT_JSON = JsonObject.newBuilder()
+            .set(Subject.JsonFields.TYPE, KNOWN_SUBJECT_TYPE)
+            .set(Subject.JsonFields.EXPIRY, KNOWN_SUBJECT_EXPIRY_STR)
+            .build();
+
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableSubject.class,
                 areImmutable(),
-                provided(SubjectId.class, SubjectType.class, JsonFieldDefinition.class).areAlsoImmutable());
+                provided(SubjectId.class, SubjectType.class, SubjectExpiry.class, JsonFieldDefinition.class)
+                        .areAlsoImmutable());
     }
 
     @Test
@@ -53,6 +64,18 @@ public final class ImmutableSubjectTest {
 
         final JsonObject subjectJson = subject.toJson();
         final Subject subject1 = ImmutableSubject.fromJson(SubjectIssuer.GOOGLE + ":myself", subjectJson);
+
+        assertThat(subject).isEqualTo(subject1);
+    }
+
+    @Test
+    public void testToAndFromJsonWithAllFields() {
+        final Subject subject = ImmutableSubject.of(SubjectId.newInstance(SubjectIssuer.GOOGLE, "myself"),
+                        SubjectType.newInstance(KNOWN_SUBJECT_TYPE),
+                        SubjectExpiry.newInstance(KNOWN_SUBJECT_EXPIRY_STR));
+
+        final Subject subject1 = ImmutableSubject.fromJson(SubjectIssuer.GOOGLE + ":myself",
+                KNOWN_SUBJECT_JSON);
 
         assertThat(subject).isEqualTo(subject1);
     }

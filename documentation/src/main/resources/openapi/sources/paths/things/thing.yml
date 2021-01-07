@@ -39,7 +39,7 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/thing.yml'
+            $ref: '../../schemas/things/thing.yml'
     '304':
       $ref: '../../responses/notModified.yml'
     '400':
@@ -51,13 +51,13 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. The thing with the given ID was
@@ -65,7 +65,7 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'
 put:
@@ -87,38 +87,38 @@ put:
     and the body part, like in the following snippet.
 
     ```
-     {
-       "definition": "com.acme:coffeebrewer:0.1.0",
-       "attributes": {
-         "manufacturer": "ACME demo corp.",
-         "location": "Berlin, main floor",
-         "serialno": "42",
-         "model": "Speaking coffee machine"
-       },
-       "features": {
-         "coffee-brewer": {
-           "definition": [ "com.acme:coffeebrewer:0.1.0" ],
-           "properties": {
-             "brewed-coffees": 0
-           }
-         },
-         "water-tank": {
-           "properties": {
-             "configuration": {
-               "smartMode": true,
-               "brewingTemp": 87,
-               "tempToHold": 44,
-               "timeoutSeconds": 6000
-             },
-             "status": {
-               "waterAmount": 731,
-               "temperature": 44
-             }
-           }
-         }
-       }
+    {
+      "definition": "com.acme:coffeebrewer:0.1.0",
+      "attributes": {
+        "manufacturer": "ACME demo corp.",
+        "location": "Berlin, main floor",
+        "serialno": "42",
+        "model": "Speaking coffee machine"
+      },
+      "features": {
+        "coffee-brewer": {
+          "definition": ["com.acme:coffeebrewer:0.1.0"],
+          "properties": {
+            "brewed-coffees": 0
+          }
+        },
+        "water-tank": {
+          "properties": {
+            "configuration": {
+              "smartMode": true,
+              "brewingTemp": 87,
+              "tempToHold": 44,
+              "timeoutSeconds": 6000
+            },
+            "status": {
+              "waterAmount": 731,
+              "temperature": 44
+            }
+          }
+        }
       }
-     ```
+    }
+    ```
     As the example does not set a policy in the request body, but the thing concept requires one,
     the service will create a default policy. The default policy, has the exactly same id
     as the thing, and grants ALL permissions to the authorized subject.
@@ -216,7 +216,7 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/thing.yml'
+            $ref: '../../schemas/things/thing.yml'
     '204':
       description: The thing was successfully modified.
       headers:
@@ -237,13 +237,13 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '403':
       description: |-
         The request could not be completed. Possible reasons:
@@ -253,7 +253,7 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. Possible reasons:
@@ -264,7 +264,7 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'
     '413':
@@ -273,7 +273,7 @@ put:
     content:
       application/json:
         schema:
-          $ref: '../../schemas/newThing.yml'
+          $ref: '../../schemas/things/newThing.yml'
         example: {
           "definition": "com.acme:coffeebrewer:0.1.0",
           "attributes": {
@@ -333,13 +333,13 @@ delete:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '403':
       description: |-
         The request could not be completed. Possible reasons:
@@ -348,7 +348,7 @@ delete:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. The thing with the given ID was
@@ -356,6 +356,6 @@ delete:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'

@@ -13,15 +13,24 @@
 package org.eclipse.ditto.services.thingsearch.persistence.write.model;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThingResponse;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
+
+import akka.actor.ActorRef;
 
 /**
  * Data class holding information about a "thingEntities" database record.
@@ -34,18 +43,21 @@ public final class Metadata {
     @Nullable private final PolicyId policyId;
     @Nullable private final Long policyRevision;
     @Nullable final Instant modified;
+    private final List<ActorRef> senders;
 
     private Metadata(final ThingId thingId,
             final long thingRevision,
             @Nullable final PolicyId policyId,
             @Nullable final Long policyRevision,
-            @Nullable final Instant modified) {
+            @Nullable final Instant modified,
+            final List<ActorRef> senders) {
 
         this.thingId = thingId;
         this.thingRevision = thingRevision;
         this.policyId = policyId;
         this.policyRevision = policyRevision;
         this.modified = modified;
+        this.senders = senders; // does not need to be made unmodifiable as there is no getter returning that to the "outside world"
     }
 
     /**
@@ -62,7 +74,26 @@ public final class Metadata {
             @Nullable final PolicyId policyId,
             @Nullable final Long policyRevision) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, null);
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, null, List.of());
+    }
+
+    /**
+     * Create an Metadata object retaining the original sender of an event.
+     *
+     * @param thingId the Thing ID.
+     * @param thingRevision the Thing revision.
+     * @param policyId the Policy ID if the Thing has one.
+     * @param policyRevision the Policy revision if the Thing has a policy, or null if it does not.
+     * @param sender the sender
+     * @return the new Metadata object.
+     */
+    public static Metadata of(final ThingId thingId,
+            final long thingRevision,
+            @Nullable final PolicyId policyId,
+            @Nullable final Long policyRevision,
+            final ActorRef sender) {
+
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, null, List.of(sender));
     }
 
     /**
@@ -81,7 +112,7 @@ public final class Metadata {
             @Nullable final Long policyRevision,
             @Nullable final Instant modified) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified);
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, List.of());
     }
 
     /**
@@ -151,6 +182,39 @@ public final class Metadata {
         return Optional.ofNullable(modified);
     }
 
+    /**
+     * Prepend new senders to the senders stored in this object.
+     *
+     * @param newMetadata a previous metadata record.
+     * @return the new metadata with concatenated senders.
+     */
+    public Metadata prependSenders(final Metadata newMetadata) {
+        final List<ActorRef> newSenders =
+                Stream.concat(newMetadata.senders.stream(), senders.stream()).collect(Collectors.toList());
+        return new Metadata(newMetadata.thingId, newMetadata.thingRevision, newMetadata.policyId,
+                newMetadata.policyRevision, newMetadata.modified, newSenders);
+    }
+
+    /**
+     * Send negative acknowledgements to senders.
+     */
+    public void sendNAck() {
+        send(Acknowledgement.of(DittoAcknowledgementLabel.SEARCH_PERSISTED, thingId,
+                HttpStatusCode.INTERNAL_SERVER_ERROR, DittoHeaders.empty()));
+    }
+
+    /**
+     * Send positive acknowledgements to senders.
+     */
+    public void sendAck() {
+        send(Acknowledgement.of(DittoAcknowledgementLabel.SEARCH_PERSISTED, thingId, HttpStatusCode.NO_CONTENT,
+                DittoHeaders.empty()));
+    }
+
+    private void send(final Acknowledgement ack) {
+        senders.forEach(sender -> sender.tell(ack, ActorRef.noSender()));
+    }
+
     @Override
     public boolean equals(final Object o) {
         if (this == o) {
@@ -164,12 +228,13 @@ public final class Metadata {
                 Objects.equals(policyRevision, that.policyRevision) &&
                 Objects.equals(thingId, that.thingId) &&
                 Objects.equals(policyId, that.policyId) &&
-                Objects.equals(modified, that.modified);
+                Objects.equals(modified, that.modified) &&
+                Objects.equals(senders, that.senders);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified);
+        return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified, senders);
     }
 
     @Override
@@ -180,6 +245,7 @@ public final class Metadata {
                 ", policyId=" + policyId +
                 ", policyRevision=" + policyRevision +
                 ", modified=" + modified +
+                ", senders=" + senders +
                 "]";
     }
 

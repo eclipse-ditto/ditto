@@ -24,6 +24,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
@@ -71,10 +73,10 @@ public final class PolicyCommandEnforcement
     private final EnforcerRetriever enforcerRetriever;
     private final Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache;
 
-    private PolicyCommandEnforcement(final Contextual<PolicyCommand<?>> data, final ActorRef policiesShardRegion,
+    private PolicyCommandEnforcement(final Contextual<PolicyCommand<?>> context, final ActorRef policiesShardRegion,
             final Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache) {
 
-        super(data, PolicyQueryCommandResponse.class);
+        super(context, PolicyQueryCommandResponse.class);
         this.policiesShardRegion = requireNonNull(policiesShardRegion);
         this.enforcerCache = requireNonNull(enforcerCache);
         enforcerRetriever = new EnforcerRetriever(IdentityCache.INSTANCE, enforcerCache);
@@ -241,10 +243,18 @@ public final class PolicyCommandEnforcement
      * @return the contextual including message and receiver
      */
     private Contextual<WithDittoHeaders> forwardToPoliciesShardRegion(final PolicyCommand command) {
+        final PolicyCommand<?> commandToForward;
         if (command instanceof PolicyModifyCommand) {
             invalidateCaches(command.getEntityId());
+            final DittoHeaders adjustedHeaders = command.getDittoHeaders().toBuilder()
+                    .putHeader(DittoHeaderDefinition.POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY.getKey(),
+                            Boolean.TRUE.toString())
+                    .build();
+            commandToForward = command.setDittoHeaders(adjustedHeaders);
+        } else {
+            commandToForward = command;
         }
-        return withMessageToReceiver(command, policiesShardRegion);
+        return withMessageToReceiver(commandToForward, policiesShardRegion);
     }
 
     /**

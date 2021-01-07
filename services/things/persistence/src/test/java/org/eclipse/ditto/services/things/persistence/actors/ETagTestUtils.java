@@ -64,9 +64,11 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThingResponse;
 /**
  * Provides methods to get command responses that include the correct eTag header value.
  */
-public abstract class ETagTestUtils {
+public final class ETagTestUtils {
 
-    private ETagTestUtils() {}
+    private ETagTestUtils() {
+        throw new AssertionError();
+    }
 
     // Thing
 

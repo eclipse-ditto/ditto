@@ -12,7 +12,7 @@ type: object
 properties:
   _policy:
     allOf:
-      - $ref: "./policy.yml"
+      - $ref: "../policies/policy.yml"
     description: |-
       The initial policy to create for this thing. This will create a separate policy entity managed by resource `/policies/{thingId}`.
 
@@ -52,4 +52,6 @@ properties:
   attributes:
     $ref: 'attributes.yml'
   features:
-    $ref: 'features.yml'
+    $ref: '../features/features.yml'
+required:
+  - policyId

@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.concierge.common.ConciergeConfig;
 import org.eclipse.ditto.services.concierge.common.DittoConciergeConfig;
 import org.eclipse.ditto.services.concierge.common.EnforcementConfig;
+import org.eclipse.ditto.services.models.policies.PolicyTag;
 import org.eclipse.ditto.services.utils.akka.controlflow.AbstractGraphActor;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.services.utils.metrics.instruments.timer.ExpiringTimerB
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 
@@ -97,15 +99,25 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
         // register for sending messages via pub/sub to this enforcer
         // used for receiving cache invalidations from brother concierge nodes
         pubSubMediator.tell(DistPubSubAccess.put(getSelf()), getSelf());
+        // register for receiving invalidate policy enforcers
+        pubSubMediator.tell(DistPubSubAccess.subscribe(PolicyTag.PUB_SUB_TOPIC_INVALIDATE_ENFORCERS, self()),
+                ActorRef.noSender());
     }
 
     @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
-        receiveBuilder.match(InvalidateCacheEntry.class, invalidateCacheEntry -> {
-            logger.debug("Received <{}>.", invalidateCacheEntry);
-            final EntityIdWithResourceType entityId = invalidateCacheEntry.getEntityId();
-            invalidateCaches(entityId);
-        });
+        receiveBuilder
+                .match(PolicyTag.class, policyTag -> {
+                    logger.debug("Received <{}> -> Invalidating caches...", policyTag);
+                    final EntityIdWithResourceType entityId = EntityIdWithResourceType.of(PolicyCommand.RESOURCE_TYPE,
+                            policyTag.getEntityId());
+                    invalidateCaches(entityId);
+                })
+                .match(InvalidateCacheEntry.class, invalidateCacheEntry -> {
+                    logger.debug("Received <{}> -> Invalidating caches...", invalidateCacheEntry);
+                    final EntityIdWithResourceType entityId = invalidateCacheEntry.getEntityId();
+                    invalidateCaches(entityId);
+                });
     }
 
     private void invalidateCaches(final EntityIdWithResourceType entityId) {
