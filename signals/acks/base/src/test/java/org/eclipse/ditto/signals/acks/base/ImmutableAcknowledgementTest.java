@@ -24,7 +24,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
@@ -45,7 +45,7 @@ public final class ImmutableAcknowledgementTest {
 
     private static final AcknowledgementLabel KNOWN_ACK_LABEL = AcknowledgementLabel.of("welcome-ack");
     private static final ThingId KNOWN_ENTITY_ID = ThingId.generateRandom();
-    private static final HttpStatusCode KNOWN_STATUS_CODE = HttpStatusCode.OK;
+    private static final HttpStatus KNOWN_STATUS_CODE = HttpStatus.OK;
     private static final JsonValue KNOWN_PAYLOAD = JsonObject.newBuilder().set("known", "payload").build();
 
     @Rule
@@ -102,11 +102,11 @@ public final class ImmutableAcknowledgementTest {
     }
 
     @Test
-    public void tryToGetInstanceWithNullStatusCode() {
+    public void tryToGetInstanceWithNullHttpStatus() {
         assertThatNullPointerException()
                 .isThrownBy(
                         () -> ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, null, dittoHeaders, null))
-                .withMessage("The statusCode must not be null!")
+                .withMessage("The httpStatus must not be null!")
                 .withNoCause();
     }
 
@@ -125,7 +125,7 @@ public final class ImmutableAcknowledgementTest {
                 .set(Acknowledgement.JsonFields.LABEL, KNOWN_ACK_LABEL.toString())
                 .set(Acknowledgement.JsonFields.ENTITY_ID, KNOWN_ENTITY_ID.toString())
                 .set(Acknowledgement.JsonFields.ENTITY_TYPE, KNOWN_ENTITY_ID.getEntityType().toString())
-                .set(Acknowledgement.JsonFields.STATUS_CODE, KNOWN_STATUS_CODE.toInt())
+                .set(Acknowledgement.JsonFields.STATUS_CODE, KNOWN_STATUS_CODE.getCode())
                 .set(Acknowledgement.JsonFields.DITTO_HEADERS, dittoHeaders.toJson())
                 .build();
 
@@ -146,12 +146,12 @@ public final class ImmutableAcknowledgementTest {
                 .set(Acknowledgement.JsonFields.LABEL, KNOWN_ACK_LABEL.toString())
                 .set(Acknowledgement.JsonFields.ENTITY_ID, KNOWN_ENTITY_ID.toString())
                 .set(Acknowledgement.JsonFields.ENTITY_TYPE, KNOWN_ENTITY_ID.getEntityType().toString())
-                .set(Acknowledgement.JsonFields.STATUS_CODE, KNOWN_STATUS_CODE.toInt())
+                .set(Acknowledgement.JsonFields.STATUS_CODE, KNOWN_STATUS_CODE.getCode())
                 .set(Acknowledgement.JsonFields.PAYLOAD, KNOWN_PAYLOAD)
                 .set(Acknowledgement.JsonFields.DITTO_HEADERS, dittoHeaders.toJson())
                 .build();
 
-        final DittoHeaders dittoHeadersWithAckRequests = this.dittoHeaders.toBuilder()
+        final DittoHeaders dittoHeadersWithAckRequests = dittoHeaders.toBuilder()
                 .acknowledgementRequest(AcknowledgementRequest.of(AcknowledgementLabel.of("foo:bar")))
                 .build();
 
@@ -181,28 +181,28 @@ public final class ImmutableAcknowledgementTest {
     }
 
     @Test
-    public void acknowledgementWithStatusCodeNotFoundIsNotSuccess() {
-        final HttpStatusCode statusCode = HttpStatusCode.NOT_FOUND;
+    public void acknowledgementWithHttpStatusNotFoundIsNotSuccess() {
+        final HttpStatus httpStatus = HttpStatus.NOT_FOUND;
         final ImmutableAcknowledgement<ThingId> underTest =
-                ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, statusCode, dittoHeaders, KNOWN_PAYLOAD);
+                ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, httpStatus, dittoHeaders, KNOWN_PAYLOAD);
 
         assertThat(underTest.isSuccess()).isFalse();
     }
 
     @Test
-    public void acknowledgementWithStatusCodeOkIsSuccess() {
-        final HttpStatusCode statusCode = HttpStatusCode.OK;
+    public void acknowledgementWithHttpStatusOkIsSuccess() {
+        final HttpStatus httpStatus = HttpStatus.OK;
         final ImmutableAcknowledgement<ThingId> underTest =
-                ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, statusCode, dittoHeaders, KNOWN_PAYLOAD);
+                ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, httpStatus, dittoHeaders, KNOWN_PAYLOAD);
 
         assertThat(underTest.isSuccess()).isTrue();
     }
 
     @Test
     public void liveResponseAcknowledgementWithNonTimeoutIsSuccess() {
-        final HttpStatusCode statusCode = HttpStatusCode.NOT_FOUND;
+        final HttpStatus httpStatus = HttpStatus.NOT_FOUND;
         final ImmutableAcknowledgement<ThingId> underTest =
-                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.LIVE_RESPONSE, KNOWN_ENTITY_ID, statusCode,
+                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.LIVE_RESPONSE, KNOWN_ENTITY_ID, httpStatus,
                         dittoHeaders, KNOWN_PAYLOAD);
 
         assertThat(underTest.isSuccess()).isTrue();
@@ -210,39 +210,39 @@ public final class ImmutableAcknowledgementTest {
 
     @Test
     public void liveResponseAcknowledgementWithTimeoutIsFailed() {
-        final HttpStatusCode statusCode = HttpStatusCode.REQUEST_TIMEOUT;
+        final HttpStatus httpStatus = HttpStatus.REQUEST_TIMEOUT;
         final ImmutableAcknowledgement<ThingId> underTest =
-                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.LIVE_RESPONSE, KNOWN_ENTITY_ID, statusCode,
+                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.LIVE_RESPONSE, KNOWN_ENTITY_ID, httpStatus,
                         dittoHeaders, KNOWN_PAYLOAD);
 
         assertThat(underTest.isSuccess()).isFalse();
     }
 
     @Test
-    public void acknowledgementWithStatusCodeOkIsNotTimeout() {
-        final HttpStatusCode statusCode = HttpStatusCode.OK;
+    public void acknowledgementWithHttpStatusOkIsNotTimeout() {
+        final HttpStatus httpStatus = HttpStatus.OK;
         final ImmutableAcknowledgement<ThingId> underTest =
-                ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, statusCode, dittoHeaders, KNOWN_PAYLOAD);
+                ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, httpStatus, dittoHeaders, KNOWN_PAYLOAD);
 
         assertThat(underTest.isTimeout()).isFalse();
     }
 
     @Test
-    public void acknowledgementWithStatusCodeRequestTimeoutIsTimeout() {
-        final HttpStatusCode statusCode = HttpStatusCode.REQUEST_TIMEOUT;
+    public void acknowledgementWithHttpStatusRequestTimeoutIsTimeout() {
+        final HttpStatus httpStatus = HttpStatus.REQUEST_TIMEOUT;
         final ImmutableAcknowledgement<ThingId> underTest =
-                ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, statusCode, dittoHeaders, KNOWN_PAYLOAD);
+                ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, httpStatus, dittoHeaders, KNOWN_PAYLOAD);
 
         assertThat(underTest.isTimeout()).isTrue();
     }
 
     @Test
-    public void getStatusCodeReturnsExpected() {
-        final HttpStatusCode statusCode = KNOWN_STATUS_CODE;
+    public void getHttpStatusReturnsExpected() {
+        final HttpStatus httpStatus = KNOWN_STATUS_CODE;
         final ImmutableAcknowledgement<ThingId> underTest =
-                ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, statusCode, dittoHeaders, KNOWN_PAYLOAD);
+                ImmutableAcknowledgement.of(KNOWN_ACK_LABEL, KNOWN_ENTITY_ID, httpStatus, dittoHeaders, KNOWN_PAYLOAD);
 
-        assertThat(underTest.getStatusCode()).isEqualTo(statusCode);
+        assertThat(underTest.getHttpStatus()).isEqualTo(httpStatus);
     }
 
     @Test
@@ -313,9 +313,9 @@ public final class ImmutableAcknowledgementTest {
             softly.assertThat(newAcknowledgement.isTimeout())
                     .as("indicates same timeout")
                     .isEqualTo(underTest.isTimeout());
-            softly.assertThat(newAcknowledgement.getStatusCode())
-                    .as("same status code")
-                    .isEqualTo(underTest.getStatusCode());
+            softly.assertThat(newAcknowledgement.getHttpStatus())
+                    .as("same HTTP status")
+                    .isEqualTo(underTest.getHttpStatus());
             softly.assertThat(newAcknowledgement.getEntity())
                     .as("same entity")
                     .isEqualTo(underTest.getEntity());

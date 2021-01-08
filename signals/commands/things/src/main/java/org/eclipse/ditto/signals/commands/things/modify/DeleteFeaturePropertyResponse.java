@@ -26,7 +26,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link DeleteFeatureProperty} command.
@@ -61,17 +62,18 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
     private final String featureId;
     private final JsonPointer propertyPointer;
 
-    private DeleteFeaturePropertyResponse(final ThingId thingId, final String featureId,
+    private DeleteFeaturePropertyResponse(final ThingId thingId,
+            final String featureId,
             final JsonPointer propertyPointer,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
+        super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.featureId = checkNotNull(featureId, "Feature ID");
         this.propertyPointer = checkPropertyPointer(propertyPointer);
     }
 
-    private JsonPointer checkPropertyPointer(final JsonPointer propertyPointer) {
+    private static JsonPointer checkPropertyPointer(final JsonPointer propertyPointer) {
         checkNotNull(propertyPointer, "Property JsonPointer");
         return ThingsModelFactory.validateFeaturePropertyPointer(propertyPointer);
     }
@@ -93,8 +95,10 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
      * instead.
      */
     @Deprecated
-    public static DeleteFeaturePropertyResponse of(final String thingId, final String featureId,
-            final JsonPointer propertyPointer, final DittoHeaders dittoHeaders) {
+    public static DeleteFeaturePropertyResponse of(final String thingId,
+            final String featureId,
+            final JsonPointer propertyPointer,
+            final DittoHeaders dittoHeaders) {
 
         return of(ThingId.of(thingId), featureId, propertyPointer, dittoHeaders);
     }
@@ -111,8 +115,10 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code propertyPointer} are not valid
      * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
-    public static DeleteFeaturePropertyResponse of(final ThingId thingId, final String featureId,
-            final JsonPointer propertyPointer, final DittoHeaders dittoHeaders) {
+    public static DeleteFeaturePropertyResponse of(final ThingId thingId,
+            final String featureId,
+            final JsonPointer propertyPointer,
+            final DittoHeaders dittoHeaders) {
 
         return new DeleteFeaturePropertyResponse(thingId, featureId, propertyPointer, dittoHeaders);
     }
@@ -146,13 +152,11 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of property pointer are not valid
      * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
-    public static DeleteFeaturePropertyResponse fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
-
-        return new CommandResponseJsonDeserializer<DeleteFeaturePropertyResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+    public static DeleteFeaturePropertyResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandResponseJsonDeserializer<DeleteFeaturePropertyResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
                     final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
                     final String extractedPointerString = jsonObject.getValueOrThrow(JSON_PROPERTY);
@@ -195,7 +199,7 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
             final Predicate<JsonField> predicate) {
 
         final Predicate<JsonField> p = schemaVersion.and(predicate);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), p);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), p);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, p);
         jsonObjectBuilder.set(JSON_PROPERTY, propertyPointer.toString(), p);
     }
@@ -214,10 +218,11 @@ public final class DeleteFeaturePropertyResponse extends AbstractCommandResponse
             return false;
         }
         final DeleteFeaturePropertyResponse that = (DeleteFeaturePropertyResponse) o;
-        return Objects.equals(thingId, that.thingId) && Objects.equals(featureId, that.featureId)
-                && Objects.equals(propertyPointer, that.propertyPointer)
-                && that.canEqual(this)
-                && super.equals(o);
+        return Objects.equals(thingId, that.thingId) &&
+                Objects.equals(featureId, that.featureId) &&
+                Objects.equals(propertyPointer, that.propertyPointer) &&
+                that.canEqual(this) &&
+                super.equals(o);
     }
 
     @Override

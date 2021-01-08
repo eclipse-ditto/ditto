@@ -26,7 +26,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -51,7 +51,7 @@ public final class ResetConnectionLogsResponse extends AbstractCommandResponse<R
     private final ConnectionId connectionId;
 
     private ResetConnectionLogsResponse(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+        super(TYPE, HttpStatus.OK, dittoHeaders);
         this.connectionId = connectionId;
     }
 
@@ -92,19 +92,22 @@ public final class ResetConnectionLogsResponse extends AbstractCommandResponse<R
      * format.
      */
     public static ResetConnectionLogsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ResetConnectionLogsResponse>(TYPE, jsonObject).deserialize(statusCode -> {
-            final String readConnectionId = jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-            final ConnectionId connectionId = ConnectionId.of(readConnectionId);
+        return new CommandResponseJsonDeserializer<ResetConnectionLogsResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
+                    final String readConnectionId =
+                            jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
 
-            return of(connectionId, dittoHeaders);
-        });
+                    return of(ConnectionId.of(readConnectionId), dittoHeaders);
+                });
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId), predicate);
+        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
+                predicate);
     }
 
     @Override
@@ -124,7 +127,7 @@ public final class ResetConnectionLogsResponse extends AbstractCommandResponse<R
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof ResetConnectionLogsResponse);
+        return other instanceof ResetConnectionLogsResponse;
     }
 
     @Override

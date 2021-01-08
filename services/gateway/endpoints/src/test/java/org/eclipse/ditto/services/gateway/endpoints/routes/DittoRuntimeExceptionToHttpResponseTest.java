@@ -91,7 +91,7 @@ public final class DittoRuntimeExceptionToHttpResponseTest {
         final List<HttpHeader> httpHeaders = new ArrayList<>(externalHeaders.size());
         externalHeaders.forEach((key, value) -> httpHeaders.add(HttpHeader.parse(key, value)));
         final HttpResponse expected = HttpResponse.create()
-                .withStatus(exception.getStatusCode().toInt())
+                .withStatus(exception.getHttpStatus().getCode())
                 .withHeaders(httpHeaders)
                 .withEntity(ContentTypes.APPLICATION_JSON, ByteString.fromString(exception.toJsonString()));
 

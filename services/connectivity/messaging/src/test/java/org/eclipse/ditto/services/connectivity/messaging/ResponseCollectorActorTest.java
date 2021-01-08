@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageBuilder;
@@ -89,7 +89,7 @@ public final class ResponseCollectorActorTest {
             final ThingId thingId = ThingId.generateRandom();
             final SendThingMessageResponse<Object> badRequestLiveResponse =
                     SendThingMessageResponse.of(thingId, Message.newBuilder(MessageBuilder.newHeadersBuilder(
-                            MessageDirection.TO, thingId, "test").build()).build(), HttpStatusCode.BAD_REQUEST,
+                            MessageDirection.TO, thingId, "test").build()).build(), HttpStatus.BAD_REQUEST,
                             DittoHeaders.empty());
             final ActorRef underTest = watch(actorSystem.actorOf(ResponseCollectorActor.props(Duration.ofMinutes(1L))));
             underTest.tell(ResponseCollectorActor.query(), getRef());
@@ -110,7 +110,7 @@ public final class ResponseCollectorActorTest {
             final ThingId thingId = ThingId.generateRandom();
             final SendThingMessageResponse<Object> timedOutLiveResponse =
                     SendThingMessageResponse.of(thingId, Message.newBuilder(MessageBuilder.newHeadersBuilder(
-                            MessageDirection.TO, thingId, "test").build()).build(), HttpStatusCode.REQUEST_TIMEOUT,
+                            MessageDirection.TO, thingId, "test").build()).build(), HttpStatus.REQUEST_TIMEOUT,
                             DittoHeaders.empty());
             final ActorRef underTest = watch(actorSystem.actorOf(ResponseCollectorActor.props(Duration.ofMinutes(1L))));
             underTest.tell(ResponseCollectorActor.query(), getRef());

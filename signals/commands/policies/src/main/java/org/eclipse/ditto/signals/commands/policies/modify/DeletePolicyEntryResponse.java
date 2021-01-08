@@ -26,7 +26,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -36,6 +36,7 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 
 /**
  * Response to a {@link DeletePolicyEntry} command.
@@ -58,7 +59,7 @@ public final class DeletePolicyEntryResponse extends AbstractCommandResponse<Del
 
     private DeletePolicyEntryResponse(final PolicyId policyId,
             final Label label,
-            final HttpStatusCode statusCode,
+            final HttpStatus statusCode,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, statusCode, dittoHeaders);
@@ -82,7 +83,7 @@ public final class DeletePolicyEntryResponse extends AbstractCommandResponse<Del
     public static DeletePolicyEntryResponse of(final String policyId, final Label label,
             final DittoHeaders dittoHeaders) {
 
-        return new DeletePolicyEntryResponse(PolicyId.of(policyId), label, HttpStatusCode.NO_CONTENT, dittoHeaders);
+        return new DeletePolicyEntryResponse(PolicyId.of(policyId), label, HttpStatus.NO_CONTENT, dittoHeaders);
     }
 
     /**
@@ -97,7 +98,7 @@ public final class DeletePolicyEntryResponse extends AbstractCommandResponse<Del
     public static DeletePolicyEntryResponse of(final PolicyId policyId, final Label label,
             final DittoHeaders dittoHeaders) {
 
-        return new DeletePolicyEntryResponse(policyId, label, HttpStatusCode.NO_CONTENT, dittoHeaders);
+        return new DeletePolicyEntryResponse(policyId, label, HttpStatus.NO_CONTENT, dittoHeaders);
     }
 
     /**
@@ -126,11 +127,11 @@ public final class DeletePolicyEntryResponse extends AbstractCommandResponse<Del
      * format.
      */
     public static DeletePolicyEntryResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<DeletePolicyEntryResponse>(TYPE, jsonObject)
-                .deserialize(statusCode -> {
-            final String extractedPolicyId =
-                    jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
-            final PolicyId policyId = PolicyId.of(extractedPolicyId);
+        return new CommandResponseJsonDeserializer<DeletePolicyEntryResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
+                    final String extractedPolicyId =
+                            jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
+                    final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
 
                     return of(policyId, label, dittoHeaders);
@@ -162,8 +163,7 @@ public final class DeletePolicyEntryResponse extends AbstractCommandResponse<Del
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
-                predicate);
+        jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
     }
 

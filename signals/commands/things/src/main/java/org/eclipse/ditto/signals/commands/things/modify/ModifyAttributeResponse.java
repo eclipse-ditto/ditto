@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -37,6 +37,7 @@ import org.eclipse.ditto.model.things.AttributesModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
 
 /**
@@ -44,8 +45,8 @@ import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInva
  */
 @Immutable
 @JsonParsableCommandResponse(type = ModifyAttributeResponse.TYPE)
-public final class ModifyAttributeResponse extends AbstractCommandResponse<ModifyAttributeResponse> implements
-        ThingModifyCommandResponse<ModifyAttributeResponse> {
+public final class ModifyAttributeResponse extends AbstractCommandResponse<ModifyAttributeResponse>
+        implements ThingModifyCommandResponse<ModifyAttributeResponse> {
 
     /**
      * Type of this response.
@@ -64,16 +65,21 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     private final JsonPointer attributePointer;
     @Nullable private final JsonValue attributeValue;
 
-    private ModifyAttributeResponse(final ThingId thingId, final HttpStatusCode statusCode,
-            final JsonPointer attributePointer, @Nullable final JsonValue attributeValue,
+    private ModifyAttributeResponse(final ThingId thingId,
+            final HttpStatus statusCode,
+            final JsonPointer attributePointer,
+            @Nullable final JsonValue attributeValue,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.attributePointer = checkAttributePointer(attributePointer, dittoHeaders);
         this.attributeValue = attributeValue;
     }
 
-    private JsonPointer checkAttributePointer(final JsonPointer attributePointer, final DittoHeaders dittoHeaders) {
+    private static JsonPointer checkAttributePointer(final JsonPointer attributePointer,
+            final DittoHeaders dittoHeaders) {
+
         checkNotNull(attributePointer, "The Attribute Pointer must not be null!");
         if (attributePointer.isEmpty()) {
             throw AttributePointerInvalidException.newBuilder(attributePointer)
@@ -85,7 +91,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
 
     /**
      * Returns a new {@code ModifyAttributeResponse} for a created Attribute. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#CREATED}.
+     * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created attribute.
      * @param attributePointer the pointer of the created Attribute.
@@ -103,15 +109,17 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
      * instead.
      */
     @Deprecated
-    public static ModifyAttributeResponse created(final String thingId, final JsonPointer attributePointer,
-            final JsonValue attributeValue, final DittoHeaders dittoHeaders) {
+    public static ModifyAttributeResponse created(final String thingId,
+            final JsonPointer attributePointer,
+            final JsonValue attributeValue,
+            final DittoHeaders dittoHeaders) {
 
         return created(ThingId.of(thingId), attributePointer, attributeValue, dittoHeaders);
     }
 
     /**
      * Returns a new {@code ModifyAttributeResponse} for a created Attribute. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#CREATED}.
+     * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created attribute.
      * @param attributePointer the pointer of the created Attribute.
@@ -124,15 +132,18 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
      * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
-    public static ModifyAttributeResponse created(final ThingId thingId, final JsonPointer attributePointer,
-            final JsonValue attributeValue, final DittoHeaders dittoHeaders) {
-        return new ModifyAttributeResponse(thingId, HttpStatusCode.CREATED, attributePointer, attributeValue,
+    public static ModifyAttributeResponse created(final ThingId thingId,
+            final JsonPointer attributePointer,
+            final JsonValue attributeValue,
+            final DittoHeaders dittoHeaders) {
+
+        return new ModifyAttributeResponse(thingId, HttpStatus.CREATED, attributePointer, attributeValue,
                 dittoHeaders);
     }
 
     /**
      * Returns a new {@code ModifyAttributeResponse} for a modified Attribute. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#NO_CONTENT}.
+     * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified attribute.
      * @param attributePointer the pointer of the modified Attribute.
@@ -151,12 +162,13 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     @Deprecated
     public static ModifyAttributeResponse modified(final String thingId, final JsonPointer attributePointer,
             final DittoHeaders dittoHeaders) {
+
         return modified(ThingId.of(thingId), attributePointer, dittoHeaders);
     }
 
     /**
      * Returns a new {@code ModifyAttributeResponse} for a modified Attribute. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#NO_CONTENT}.
+     * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified attribute.
      * @param attributePointer the pointer of the modified Attribute.
@@ -170,7 +182,8 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
      */
     public static ModifyAttributeResponse modified(final ThingId thingId, final JsonPointer attributePointer,
             final DittoHeaders dittoHeaders) {
-        return new ModifyAttributeResponse(thingId, HttpStatusCode.NO_CONTENT, attributePointer, null, dittoHeaders);
+
+        return new ModifyAttributeResponse(thingId, HttpStatus.NO_CONTENT, attributePointer, null, dittoHeaders);
     }
 
     /**
@@ -203,18 +216,13 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
      * according to pattern {@link org.eclipse.ditto.model.base.entity.id.RegexPatterns#NO_CONTROL_CHARS_NO_SLASHES_PATTERN}.
      */
     public static ModifyAttributeResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ModifyAttributeResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
-                    final ThingId thingId = ThingId.of(extractedThingId);
-                    final String pointerString = jsonObject.getValueOrThrow(JSON_ATTRIBUTE);
-                    final JsonPointer extractedAttributePointer = JsonFactory.newPointer(pointerString);
-                    final JsonValue extractedValue = jsonObject.getValue(JSON_VALUE).orElse(null);
-
-                    return new ModifyAttributeResponse(thingId, statusCode, extractedAttributePointer, extractedValue,
-                            dittoHeaders);
-                });
+        return new CommandResponseJsonDeserializer<ModifyAttributeResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> new ModifyAttributeResponse(
+                        ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                        httpStatus,
+                        JsonFactory.newPointer(jsonObject.getValueOrThrow(JSON_ATTRIBUTE)),
+                        jsonObject.getValue(JSON_VALUE).orElse(null),
+                        dittoHeaders));
     }
 
     @Override
@@ -254,8 +262,9 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_ATTRIBUTE, attributePointer.toString(), predicate);
         if (null != attributeValue) {
             jsonObjectBuilder.set(JSON_VALUE, attributeValue, predicate);
@@ -264,14 +273,14 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
 
     @Override
     public ModifyAttributeResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return (null != attributeValue) ?
-                created(thingId, attributePointer, attributeValue, dittoHeaders)
+        return null != attributeValue
+                ? created(thingId, attributePointer, attributeValue, dittoHeaders)
                 : modified(thingId, attributePointer, dittoHeaders);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof ModifyAttributeResponse);
+        return other instanceof ModifyAttributeResponse;
     }
 
     @Override
@@ -283,9 +292,11 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
             return false;
         }
         final ModifyAttributeResponse that = (ModifyAttributeResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(attributePointer, that.attributePointer)
-                && Objects.equals(attributeValue, that.attributeValue) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(attributePointer, that.attributePointer) &&
+                Objects.equals(attributeValue, that.attributeValue) &&
+                super.equals(o);
     }
 
     @Override

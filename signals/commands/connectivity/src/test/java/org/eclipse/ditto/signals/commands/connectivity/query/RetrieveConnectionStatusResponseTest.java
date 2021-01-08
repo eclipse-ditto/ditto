@@ -33,7 +33,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -73,7 +73,7 @@ public final class RetrieveConnectionStatusResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(CommandResponse.JsonFields.TYPE, RetrieveConnectionStatusResponse.TYPE)
-            .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
+            .set(CommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
             .set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, TestConstants.ID.toString())
             .set(RetrieveConnectionStatusResponse.JsonFields.CONNECTION_STATUS, ConnectivityStatus.OPEN.getName())
             .set(RetrieveConnectionStatusResponse.JsonFields.LIVE_STATUS, ConnectivityStatus.CLOSED.getName())

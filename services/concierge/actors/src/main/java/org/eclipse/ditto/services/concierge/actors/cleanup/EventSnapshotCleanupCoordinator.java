@@ -265,12 +265,12 @@ public final class EventSnapshotCleanupCoordinator
     }
 
     private static JsonObject renderAction(final Pair<Instant, CleanupPersistenceResponse> element) {
-        final CleanupPersistenceResponse response = element.second();
-        final DittoHeaders headers = response.getDittoHeaders();
-        final int status = response.getStatusCodeValue();
-        final String start = headers.getOrDefault(START, "unknown");
-        final String message = getResponseMessage(response);
-        final String tagLine = String.format("%d start=%s <%s>", status, start, message);
+        final var response = element.second();
+        final var headers = response.getDittoHeaders();
+        final var status = response.getHttpStatus();
+        final var start = headers.getOrDefault(START, "unknown");
+        final var message = getResponseMessage(response);
+        final var tagLine = String.format("%d start=%s <%s>", status.getCode(), start, message);
         return JsonObject.newBuilder()
                 .set(element.first().toString(), tagLine)
                 .build();

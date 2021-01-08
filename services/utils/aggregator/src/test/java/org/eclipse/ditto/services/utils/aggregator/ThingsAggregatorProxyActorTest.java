@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.utils.aggregator;
 
 import java.util.UUID;
 
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
@@ -34,12 +34,12 @@ import akka.testkit.javadsl.TestKit;
 /**
  * Tests {@link ThingsAggregatorProxyActor}.
  */
-public class ThingsAggregatorProxyActorTest {
+public final class ThingsAggregatorProxyActorTest {
 
     private static final DittoHeaders DITTO_HEADERS =
             DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
     private static final DittoRuntimeException DITTO_RUNTIME_EXCEPTION =
-            DittoRuntimeException.newBuilder("test.error", HttpStatusCode.BAD_REQUEST)
+            DittoRuntimeException.newBuilder("test.error", HttpStatus.BAD_REQUEST)
                     .dittoHeaders(DITTO_HEADERS)
                     .build();
     private static final GatewayInternalErrorException GATEWAY_INTERNAL_ERROR_EXCEPTION =
@@ -79,7 +79,7 @@ public class ThingsAggregatorProxyActorTest {
         }};
     }
 
-    private static class AutoPilotAnsweringWithException extends AutoPilot {
+    private static final class AutoPilotAnsweringWithException extends AutoPilot {
 
         private final Exception exceptionToRespond;
 

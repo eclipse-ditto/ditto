@@ -34,15 +34,15 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.signals.commands.base.WithNamespace;
@@ -52,8 +52,8 @@ import org.eclipse.ditto.signals.commands.base.WithNamespace;
  */
 @Immutable
 @JsonParsableCommandResponse(type = RetrieveThingsResponse.TYPE)
-public final class RetrieveThingsResponse extends AbstractCommandResponse<RetrieveThingsResponse> implements
-        ThingQueryCommandResponse<RetrieveThingsResponse>, WithNamespace {
+public final class RetrieveThingsResponse extends AbstractCommandResponse<RetrieveThingsResponse>
+        implements ThingQueryCommandResponse<RetrieveThingsResponse>, WithNamespace {
 
     /**
      * Type of this response.
@@ -75,12 +75,16 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
     private static final String PROPERTY_NAME_THINGS = "Things";
 
     private final String thingsPlainJson;
-    @Nullable private final String namespace;
 
+    @Nullable private final String namespace;
     @Nullable private JsonArray things;
 
-    private RetrieveThingsResponse(final HttpStatusCode statusCode, @Nullable final JsonArray things,
-            final String thingsPlainJson, @Nullable final String namespace, final DittoHeaders dittoHeaders) {
+    private RetrieveThingsResponse(final HttpStatus statusCode,
+            @Nullable final JsonArray things,
+            final String thingsPlainJson,
+            @Nullable final String namespace,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.thingsPlainJson = checkNotNull(thingsPlainJson, "Things plain JSON");
         this.namespace = namespace;
@@ -98,7 +102,8 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      */
     public static RetrieveThingsResponse of(final List<String> thingsPlainJson, @Nullable final String namespace,
             final DittoHeaders dittoHeaders) {
-        return new RetrieveThingsResponse(HttpStatusCode.OK, null, thingsPlainJson.stream()
+
+        return new RetrieveThingsResponse(HttpStatus.OK, null, thingsPlainJson.stream()
                 .collect(Collectors.joining(",", "[", "]")), namespace, dittoHeaders);
     }
 
@@ -113,7 +118,8 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      */
     public static RetrieveThingsResponse of(final String thingsPlainJson, @Nullable final String namespace,
             final DittoHeaders dittoHeaders) {
-        return new RetrieveThingsResponse(HttpStatusCode.OK, null, thingsPlainJson, namespace, dittoHeaders);
+
+        return new RetrieveThingsResponse(HttpStatus.OK, null, thingsPlainJson, namespace, dittoHeaders);
     }
 
     /**
@@ -127,7 +133,8 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      */
     public static RetrieveThingsResponse of(final JsonArray things, @Nullable final String namespace,
             final DittoHeaders dittoHeaders) {
-        return new RetrieveThingsResponse(HttpStatusCode.OK, things, things.toString(), namespace, dittoHeaders);
+
+        return new RetrieveThingsResponse(HttpStatus.OK, things, things.toString(), namespace, dittoHeaders);
     }
 
     /**
@@ -140,13 +147,15 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveThingsResponse of(final List<Thing> things, final Predicate<JsonField> predicate,
-            @Nullable final String namespace, final DittoHeaders dittoHeaders) {
+    public static RetrieveThingsResponse of(final List<Thing> things,
+            final Predicate<JsonField> predicate,
+            @Nullable final String namespace,
+            final DittoHeaders dittoHeaders) {
+
         final JsonArray thingsArray = checkNotNull(things, PROPERTY_NAME_THINGS).stream()
-                .map(thing -> thing.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST),
-                        predicate))
+                .map(thing -> thing.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST), predicate))
                 .collect(JsonCollectors.valuesToArray());
-        return new RetrieveThingsResponse(HttpStatusCode.OK, thingsArray, thingsArray.toString(), namespace, dittoHeaders);
+        return new RetrieveThingsResponse(HttpStatus.OK, thingsArray, thingsArray.toString(), namespace, dittoHeaders);
     }
 
     /**
@@ -160,20 +169,28 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveThingsResponse of(final List<Thing> things, @Nullable final JsonFieldSelector fieldSelector,
-            @Nullable final Predicate<JsonField> predicate, @Nullable final String namespace, final DittoHeaders dittoHeaders) {
+    public static RetrieveThingsResponse of(final List<Thing> things,
+            @Nullable final JsonFieldSelector fieldSelector,
+            @Nullable final Predicate<JsonField> predicate,
+            @Nullable final String namespace,
+            final DittoHeaders dittoHeaders) {
+
         final JsonArray thingsArray = checkNotNull(things, PROPERTY_NAME_THINGS).stream()
                 .map(thing -> getJsonFields(fieldSelector, predicate, dittoHeaders, thing))
                 .collect(JsonCollectors.valuesToArray());
-        return new RetrieveThingsResponse(HttpStatusCode.OK, thingsArray, thingsArray.toString(), namespace, dittoHeaders);
+        return new RetrieveThingsResponse(HttpStatus.OK, thingsArray, thingsArray.toString(), namespace, dittoHeaders);
     }
 
     private static JsonObject getJsonFields(@Nullable final JsonFieldSelector fieldSelector,
-            @Nullable final Predicate<JsonField> predicate, final DittoHeaders dittoHeaders,
+            @Nullable final Predicate<JsonField> predicate,
+            final DittoHeaders dittoHeaders,
             final Thing thing) {
+
         if (fieldSelector != null) {
             return predicate != null ?
-                    thing.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST), fieldSelector, predicate) :
+                    thing.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST),
+                            fieldSelector,
+                            predicate) :
                     thing.toJson(dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST), fieldSelector);
         } else {
             return predicate != null ?
@@ -196,6 +213,7 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
     public static RetrieveThingsResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         final JsonObject jsonObject =
                 DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
+
         return fromJson(jsonObject, dittoHeaders);
     }
 
@@ -210,15 +228,14 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      * format.
      */
     public static RetrieveThingsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveThingsResponse>(TYPE, jsonObject)
-                .deserialize(statusCode -> {
-                    final JsonArray thingsJsonArray = jsonObject.getValue(JSON_THINGS).orElse(null);
-                    final String plainJsonString = jsonObject.getValue(JSON_THINGS_PLAIN_JSON)
-                            .orElseGet(() -> thingsJsonArray != null ? thingsJsonArray.toString() : null);
-                    final String namespace = jsonObject.getValue(JSON_NAMESPACE).orElse(null);
-                    return new RetrieveThingsResponse(HttpStatusCode.OK, thingsJsonArray, plainJsonString, namespace,
-                            dittoHeaders);
-                });
+        return new CommandResponseJsonDeserializer<RetrieveThingsResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
+            final JsonArray thingsJsonArray = jsonObject.getValue(JSON_THINGS).orElse(null);
+            final String plainJsonString = jsonObject.getValue(JSON_THINGS_PLAIN_JSON)
+                    .orElseGet(() -> String.valueOf(thingsJsonArray));
+            final String namespace = jsonObject.getValue(JSON_NAMESPACE).orElse(null);
+
+            return new RetrieveThingsResponse(HttpStatus.OK, thingsJsonArray, plainJsonString, namespace, dittoHeaders);
+        });
     }
 
     @Override
@@ -240,7 +257,7 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
         return getThingStream(lazyLoadThingsJsonArray()).collect(Collectors.toList());
     }
 
-    private Stream<Thing> getThingStream(JsonArray thingsArray) {
+    private static Stream<Thing> getThingStream(final JsonArray thingsArray) {
         return thingsArray.stream()
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
@@ -283,6 +300,7 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_THINGS_PLAIN_JSON, thingsPlainJson, predicate);
         if (namespace != null) {
@@ -292,7 +310,7 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof RetrieveThingsResponse);
+        return other instanceof RetrieveThingsResponse;
     }
 
     @Override
@@ -304,8 +322,10 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
             return false;
         }
         final RetrieveThingsResponse that = (RetrieveThingsResponse) o;
-        return that.canEqual(this) && Objects.equals(things, that.things) &&
-                Objects.equals(thingsPlainJson, that.thingsPlainJson) && Objects.equals(namespace, that.namespace) &&
+        return that.canEqual(this) &&
+                Objects.equals(things, that.things) &&
+                Objects.equals(thingsPlainJson, that.thingsPlainJson) &&
+                Objects.equals(namespace, that.namespace) &&
                 super.equals(o);
     }
 

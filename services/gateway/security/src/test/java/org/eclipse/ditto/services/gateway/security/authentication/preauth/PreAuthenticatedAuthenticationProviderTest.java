@@ -21,7 +21,7 @@ import javax.annotation.Nullable;
 import org.assertj.core.api.AssertionsForClassTypes;
 import org.eclipse.ditto.model.base.auth.AuthorizationContextType;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
@@ -154,7 +154,7 @@ public final class PreAuthenticatedAuthenticationProviderTest {
     @Test
     public void toFailedAuthenticationResultExtractsDittoRuntimeExceptionFromCause() {
         final DittoRuntimeException dre =
-                DittoRuntimeException.newBuilder("none", HttpStatusCode.INTERNAL_SERVER_ERROR).build();
+                DittoRuntimeException.newBuilder("none", HttpStatus.INTERNAL_SERVER_ERROR).build();
         final IllegalStateException illegalStateException = new IllegalStateException("notExpected", dre);
 
         final Throwable reasonOfFailure =
@@ -166,7 +166,7 @@ public final class PreAuthenticatedAuthenticationProviderTest {
     @Test
     public void toFailedAuthenticationResult() {
         final DittoRuntimeException dre =
-                DittoRuntimeException.newBuilder("none", HttpStatusCode.INTERNAL_SERVER_ERROR).build();
+                DittoRuntimeException.newBuilder("none", HttpStatus.INTERNAL_SERVER_ERROR).build();
 
         final Throwable reasonOfFailure =
                 underTest.toFailedAuthenticationResult(dre, knownDittoHeaders).getReasonOfFailure();

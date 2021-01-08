@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.model.base.common;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -29,7 +30,9 @@ import javax.annotation.concurrent.Immutable;
  * @since 2.0.0
  */
 @Immutable
-public final class HttpStatus {
+public final class HttpStatus implements Serializable {
+
+    private static final long serialVersionUID = -8885963617558010628L;
 
     private static final Map<Integer, HttpStatus> ASSIGNED = new HashMap<>();
 
@@ -407,7 +410,7 @@ public final class HttpStatus {
     public static final HttpStatus NETWORK_CONNECT_TIMEOUT = assign(599);
 
     private final int code;
-    private final Category category;
+    private final transient Category category;
 
     private HttpStatus(final int code, final Category category) {
         this.code = code;
@@ -499,12 +502,12 @@ public final class HttpStatus {
             return false;
         }
         final HttpStatus that = (HttpStatus) o;
-        return code == that.code && category == that.category;
+        return code == that.code;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(code, category);
+        return Objects.hash(code);
     }
 
     @Override

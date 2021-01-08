@@ -26,7 +26,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageDirection;
@@ -91,7 +91,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
             final ModifyAttributeResponse createAttributeResponse =
                     ModifyAttributeResponse.created(thingId, attributePointer, attributeValue, dittoHeaders);
             final Acknowledgement customAcknowledgement =
-                    Acknowledgement.of(customAckLabel, thingId, HttpStatusCode.FORBIDDEN, DittoHeaders.empty());
+                    Acknowledgement.of(customAckLabel, thingId, HttpStatus.FORBIDDEN, DittoHeaders.empty());
 
             final TestProbe proxyActorProbe = TestProbe.apply(system);
 
@@ -107,7 +107,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
             proxyActorProbe.reply(customAcknowledgement);
 
             final HttpResponse response = responseFuture.get();
-            assertThat(HttpStatusCode.forInt(response.status().intValue())).contains(HttpStatusCode.FAILED_DEPENDENCY);
+            assertThat(response.status()).isEqualTo(StatusCodes.FAILED_DEPENDENCY);
 
             final JsonObject responseBody = JsonObject.of(
                     response.entity()
@@ -118,7 +118,7 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                             .utf8String()
             );
             assertThat(responseBody.getValue("twin-persisted/status"))
-                    .contains(JsonValue.of(HttpStatusCode.CREATED.toInt()));
+                    .contains(JsonValue.of(HttpStatus.CREATED.getCode()));
             assertThat(responseBody.getValue("twin-persisted/headers/location"))
                     .contains(JsonValue.of("/api/2/things/" + thingId + "/attributes/" + attributeName));
         }};
@@ -140,10 +140,10 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
             final ModifyAttributeResponse probeResponse =
                     ModifyAttributeResponse.modified(thingId, attributePointer, expectedHeaders);
 
-            final StatusCode expectedHttpStatusCode = StatusCodes.NO_CONTENT;
+            final StatusCode expectedHttpStatus = StatusCodes.NO_CONTENT;
 
             testThingModifyCommand(thingId, attributeName, attributePointer, dittoHeaders, expectedHeaders,
-                    probeResponse, expectedHttpStatusCode, expectedHeaders.toBuilder().responseRequired(false).build());
+                    probeResponse, expectedHttpStatus, expectedHeaders.toBuilder().responseRequired(false).build());
         }};
     }
 
@@ -166,10 +166,10 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
             final ModifyAttributeResponse probeResponse =
                     ModifyAttributeResponse.modified(thingId, attributePointer, expectedHeaders);
 
-            final StatusCode expectedHttpStatusCode = StatusCodes.NO_CONTENT;
+            final StatusCode expectedHttpStatus = StatusCodes.NO_CONTENT;
 
             testThingModifyCommand(thingId, attributeName, attributePointer, dittoHeaders, expectedHeaders,
-                    probeResponse, expectedHttpStatusCode, expectedHeaders.toBuilder().responseRequired(false).build());
+                    probeResponse, expectedHttpStatus, expectedHeaders.toBuilder().responseRequired(false).build());
         }};
     }
 
@@ -195,10 +195,10 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
             final ModifyAttributeResponse probeResponse =
                     ModifyAttributeResponse.modified(thingId, attributePointer, responseRequiredFalseHeaders);
 
-            final StatusCode expectedHttpStatusCode = StatusCodes.NO_CONTENT;
+            final StatusCode expectedHttpStatus = StatusCodes.NO_CONTENT;
 
             testThingModifyCommand(thingId, attributeName, attributePointer, dittoHeaders, expectedHeaders,
-                    probeResponse, expectedHttpStatusCode, null);
+                    probeResponse, expectedHttpStatus, null);
         }};
 
     }
@@ -221,10 +221,10 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
 
             final ModifyAttributeResponse probeResponse = null;
 
-            final StatusCode expectedHttpStatusCode = StatusCodes.ACCEPTED;
+            final StatusCode expectedHttpStatus = StatusCodes.ACCEPTED;
 
             testThingModifyCommand(thingId, attributeName, attributePointer, dittoHeaders, expectedHeaders,
-                    probeResponse, expectedHttpStatusCode, null);
+                    probeResponse, expectedHttpStatus, null);
         }};
     }
 
@@ -249,10 +249,10 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
             final ModifyAttributeResponse probeResponse =
                     ModifyAttributeResponse.modified(thingId, attributePointer, expectedHeaders);
 
-            final StatusCode expectedHttpStatusCode = StatusCodes.ACCEPTED;
+            final StatusCode expectedHttpStatus = StatusCodes.ACCEPTED;
 
             testThingModifyCommand(thingId, attributeName, attributePointer, dittoHeaders, expectedHeaders,
-                    probeResponse, expectedHttpStatusCode, null);
+                    probeResponse, expectedHttpStatus, null);
         }};
     }
 
@@ -280,13 +280,13 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                     buildSendThingMessageResponse(thingId, messageSubject, expectedHeaders, contentType,
                             responsePayload);
 
-            final StatusCode expectedHttpStatusCode = StatusCodes.IMUSED;
+            final StatusCode expectedHttpStatus = StatusCodes.IMUSED;
             final ResponseEntity expectedHttpResponseEntity = HttpEntities.create(
                     ContentTypes.parse(contentType), ByteString.ByteStrings.fromString(responsePayload.toString(),
                             Charset.defaultCharset()));
 
             testMessageCommand(thingId, messageSubject, dittoHeaders, expectedHeaders, probeResponse,
-                    expectedHttpStatusCode, expectedHeaders.toBuilder().responseRequired(false).build(),
+                    expectedHttpStatus, expectedHeaders.toBuilder().responseRequired(false).build(),
                     expectedHttpResponseEntity);
         }};
     }
@@ -319,19 +319,19 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
             final Message<ByteBuffer> responseMessage =
                     Message.<ByteBuffer>newBuilder(
                             MessageHeaders.newBuilder(MessageDirection.TO, thingId, messageSubject)
-                                    .statusCode(HttpStatusCode.IMUSED)
+                                    .httpStatus(HttpStatus.IM_USED)
                                     .contentType("null")
                                     .build())
                             .payload(responseBytePayload)
                             .rawPayload(responseBytePayload)
                             .build();
             final SendThingMessageResponse<?> probeResponse =
-                    SendThingMessageResponse.of(thingId, responseMessage, HttpStatusCode.IMUSED, expectedHeaders);
+                    SendThingMessageResponse.of(thingId, responseMessage, HttpStatus.IM_USED, expectedHeaders);
 
             final HttpResponse response =
                     testMessageCommand(thingId, messageSubject, dittoHeaders, expectedHeaders, probeResponse);
 
-            assertThat(response.status().intValue()).isEqualTo(HttpStatusCode.IMUSED.toInt());
+            assertThat(response.status().intValue()).isEqualTo(HttpStatus.IM_USED.getCode());
 
             final ByteString responseBody = response.entity()
                     .toStrict(10000, SystemMaterializer.get(system).materializer())
@@ -365,11 +365,11 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
                     buildSendThingMessageResponse(thingId, messageSubject, expectedHeaders, contentType,
                             responsePayload);
 
-            final StatusCode expectedHttpStatusCode = StatusCodes.ACCEPTED;
+            final StatusCode expectedHttpStatus = StatusCodes.ACCEPTED;
             final ResponseEntity expectedHttpResponseEntity = null;
 
             testMessageCommand(thingId, messageSubject, dittoHeaders, expectedHeaders,
-                    probeResponse, expectedHttpStatusCode, null, expectedHttpResponseEntity);
+                    probeResponse, expectedHttpStatus, null, expectedHttpResponseEntity);
         }};
     }
 
@@ -391,11 +391,11 @@ public final class HttpRequestActorTest extends AbstractHttpRequestActorTest {
 
             final SendThingMessageResponse<?> probeResponse = null;
 
-            final StatusCode expectedHttpStatusCode = StatusCodes.ACCEPTED;
+            final StatusCode expectedHttpStatus = StatusCodes.ACCEPTED;
             final ResponseEntity expectedHttpResponseEntity = null;
 
             testMessageCommand(thingId, messageSubject, dittoHeaders, expectedHeaders,
-                    probeResponse, expectedHttpStatusCode, null, expectedHttpResponseEntity);
+                    probeResponse, expectedHttpStatus, null, expectedHttpResponseEntity);
         }};
     }
 

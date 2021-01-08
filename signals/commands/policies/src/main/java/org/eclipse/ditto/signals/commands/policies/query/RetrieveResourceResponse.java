@@ -27,7 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -39,6 +39,7 @@ import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 
 /**
  * Response to a {@link RetrieveResource} command.
@@ -71,7 +72,7 @@ public final class RetrieveResourceResponse extends AbstractCommandResponse<Retr
             final Label label,
             final ResourceKey resourceKey,
             final JsonObject resource,
-            final HttpStatusCode statusCode,
+            final HttpStatus statusCode,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, statusCode, dittoHeaders);
@@ -165,7 +166,7 @@ public final class RetrieveResourceResponse extends AbstractCommandResponse<Retr
             final JsonObject resource,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveResourceResponse(policyId, label, resourceKey, resource, HttpStatusCode.OK, dittoHeaders);
+        return new RetrieveResourceResponse(policyId, label, resourceKey, resource, HttpStatus.OK, dittoHeaders);
     }
 
     /**
@@ -194,10 +195,10 @@ public final class RetrieveResourceResponse extends AbstractCommandResponse<Retr
      * format.
      */
     public static RetrieveResourceResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveResourceResponse>(TYPE, jsonObject)
-                .deserialize(statusCode -> {
+        return new CommandResponseJsonDeserializer<RetrieveResourceResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
                     final String extractedPolicyId =
-                            jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+                            jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
                     final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
                     final String extractedResourceKey = jsonObject.getValueOrThrow(JSON_RESOURCE_KEY);
@@ -267,8 +268,7 @@ public final class RetrieveResourceResponse extends AbstractCommandResponse<Retr
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
-                predicate);
+        jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_RESOURCE_KEY, resourceKey.toString(), predicate);
         jsonObjectBuilder.set(JSON_RESOURCE, resource, predicate);

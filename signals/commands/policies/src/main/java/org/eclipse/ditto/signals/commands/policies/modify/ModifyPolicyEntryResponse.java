@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -65,7 +65,7 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
     @Nullable private final PolicyEntry policyEntryCreated;
 
     private ModifyPolicyEntryResponse(final PolicyId policyId,
-            final HttpStatusCode statusCode,
+            final HttpStatus statusCode,
             @Nullable final PolicyEntry policyEntryCreated,
             @Nullable final Label label,
             final DittoHeaders dittoHeaders) {
@@ -105,7 +105,7 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
     public static ModifyPolicyEntryResponse created(final PolicyId policyId, final PolicyEntry policyEntryCreated,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyPolicyEntryResponse(policyId, HttpStatusCode.CREATED, policyEntryCreated,
+        return new ModifyPolicyEntryResponse(policyId, HttpStatus.CREATED, policyEntryCreated,
                 policyEntryCreated.getLabel(), dittoHeaders);
     }
 
@@ -147,9 +147,10 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
      * @throws NullPointerException if any argument is {@code null}.
      * @since 1.1.0
      */
-    public static ModifyPolicyEntryResponse modified(final PolicyId policyId,
-            final Label label, final DittoHeaders dittoHeaders) {
-        return new ModifyPolicyEntryResponse(policyId, HttpStatusCode.NO_CONTENT, null, label, dittoHeaders);
+    public static ModifyPolicyEntryResponse modified(final PolicyId policyId, final Label label,
+            final DittoHeaders dittoHeaders) {
+
+        return new ModifyPolicyEntryResponse(policyId, HttpStatus.NO_CONTENT, null, label, dittoHeaders);
     }
 
     /**
@@ -179,7 +180,7 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
      */
     public static ModifyPolicyEntryResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyPolicyEntryResponse>(TYPE, jsonObject)
-                .deserialize(statusCode -> {
+                .deserialize(httpStatus -> {
                     final String extractedPolicyId =
                             jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
                     final PolicyId policyId = PolicyId.of(extractedPolicyId);
@@ -192,9 +193,8 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
                             .flatMap(obj -> readLabel.map(label -> PoliciesModelFactory.newPolicyEntry(label, obj)))
                             .orElse(null);
 
-                    return new ModifyPolicyEntryResponse(policyId, statusCode, extractedPolicyEntryCreated,
-                            readLabel.map(Label::of).orElse(null),
-                            dittoHeaders);
+                    return new ModifyPolicyEntryResponse(policyId, httpStatus, extractedPolicyEntryCreated,
+                            readLabel.map(Label::of).orElse(null), dittoHeaders);
                 });
     }
 
@@ -243,7 +243,7 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
 
     @Override
     public ModifyPolicyEntryResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return (policyEntryCreated != null) ? created(policyId, policyEntryCreated, dittoHeaders) :
+        return policyEntryCreated != null ? created(policyId, policyEntryCreated, dittoHeaders) :
                 modified(policyId, label, dittoHeaders);
     }
 

@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link ModifyAttributes} command.
@@ -60,7 +61,7 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
     private final Attributes attributesCreated;
 
     private ModifyAttributesResponse(final ThingId thingId,
-            final HttpStatusCode statusCode,
+            final HttpStatus statusCode,
             final Attributes attributesCreated,
             final DittoHeaders dittoHeaders) {
 
@@ -71,7 +72,7 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
 
     /**
      * Returns a new {@code ModifyAttributesResponse} for a created Attributes. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#CREATED}.
+     * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created Attributes.
      * @param attributes the created Attributes.
@@ -91,7 +92,7 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
 
     /**
      * Returns a new {@code ModifyAttributesResponse} for a created Attributes. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#CREATED}.
+     * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created Attributes.
      * @param attributes the created Attributes.
@@ -102,12 +103,12 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
     public static ModifyAttributesResponse created(final ThingId thingId, final Attributes attributes,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyAttributesResponse(thingId, HttpStatusCode.CREATED, attributes, dittoHeaders);
+        return new ModifyAttributesResponse(thingId, HttpStatus.CREATED, attributes, dittoHeaders);
     }
 
     /**
      * Returns a new {@code ModifyAttributesResponse} for a modified Attributes. This corresponds to the HTTP status
-     * code {@link HttpStatusCode#NO_CONTENT}.
+     * code {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified Attributes.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
@@ -124,7 +125,7 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
 
     /**
      * Returns a new {@code ModifyAttributesResponse} for a modified Attributes. This corresponds to the HTTP status
-     * code {@link HttpStatusCode#NO_CONTENT}.
+     * code {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified Attributes.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
@@ -132,7 +133,7 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static ModifyAttributesResponse modified(final ThingId thingId, final DittoHeaders dittoHeaders) {
-        return new ModifyAttributesResponse(thingId, HttpStatusCode.NO_CONTENT, ThingsModelFactory.nullAttributes(),
+        return new ModifyAttributesResponse(thingId, HttpStatus.NO_CONTENT, ThingsModelFactory.nullAttributes(),
                 dittoHeaders);
     }
 
@@ -163,18 +164,17 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
      */
     public static ModifyAttributesResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyAttributesResponse>(TYPE, jsonObject).deserialize(
-                statusCode -> {
-
+                httpStatus -> {
                     final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
                     final JsonObject attributesJsonObject = jsonObject.getValueOrThrow(JSON_ATTRIBUTES);
 
-                    final Attributes extractedAttributes = (!attributesJsonObject.isNull())
+                    final Attributes extractedAttributes = !attributesJsonObject.isNull()
                             ? ThingsModelFactory.newAttributes(attributesJsonObject)
                             : ThingsModelFactory.nullAttributes();
 
-                    return new ModifyAttributesResponse(thingId, statusCode, extractedAttributes, dittoHeaders);
+                    return new ModifyAttributesResponse(thingId, httpStatus, extractedAttributes, dittoHeaders);
                 });
     }
 
@@ -205,21 +205,22 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_ATTRIBUTES, attributesCreated.toJson(schemaVersion, thePredicate), predicate);
     }
 
     @Override
     public ModifyAttributesResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return (HttpStatusCode.CREATED == getStatusCode())
+        return HttpStatus.CREATED.equals(getHttpStatus())
                 ? created(thingId, attributesCreated, dittoHeaders)
                 : modified(thingId, dittoHeaders);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof ModifyAttributesResponse);
+        return other instanceof ModifyAttributesResponse;
     }
 
     @Override
@@ -231,8 +232,10 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
             return false;
         }
         final ModifyAttributesResponse that = (ModifyAttributesResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(attributesCreated, that.attributesCreated) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(attributesCreated, that.attributesCreated) &&
+                super.equals(o);
     }
 
     @Override

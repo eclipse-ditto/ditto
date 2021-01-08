@@ -18,7 +18,7 @@ import java.util.Collections;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -176,7 +176,7 @@ public final class ThingPersistenceActorSnapshottingTest extends PersistenceActo
                 LOGGER.info("Told ModifyThing, expecting ModifyThingResponse. ..");
 
                 final ModifyThingResponse modifyThingResponse = expectMsgClass(ModifyThingResponse.class);
-                ThingCommandAssertions.assertThat(modifyThingResponse).hasStatus(HttpStatusCode.NO_CONTENT);
+                ThingCommandAssertions.assertThat(modifyThingResponse).hasStatus(HttpStatus.NO_CONTENT);
 
                 LOGGER.info("Expecting Event made it to Journal and snapshots contain Thing..");
 

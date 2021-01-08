@@ -123,13 +123,13 @@ public final class RequestTimeoutHandlingDirective {
 
         /* We have to log and create a trace here because the RequestResultLoggingDirective won't be called by akka
            in case of a timeout */
-        final int statusCode = cre.getStatusCode().toInt();
+        final int statusCode = cre.getHttpStatus().getCode();
 
         final String requestMethod = request.method().name();
         final String requestUri = request.getUri().toRelative().toString();
         logger.warn("Request <{} {}> timed out after <{}>!", requestMethod, requestUri,
                 httpConfig.getRequestTimeout());
-        logger.info("StatusCode of request <{} {}> was <{}>.", requestMethod, requestUri, statusCode);
+        logger.info("Status code of request <{} {}> was <{}>.", requestMethod, requestUri, statusCode);
         final String rawRequestUri = getRawRequestUri(request);
         logger.debug("Raw request URI was <{}>.", rawRequestUri);
 

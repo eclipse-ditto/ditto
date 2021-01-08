@@ -21,7 +21,7 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 
@@ -46,7 +46,6 @@ public final class TimeoutInvalidException extends DittoRuntimeException {
 
     private static final long serialVersionUID = -3108409113724423689L;
 
-
     /**
      * Constructs a new {@code TimeoutInvalidException} object.
      *
@@ -63,7 +62,7 @@ public final class TimeoutInvalidException extends DittoRuntimeException {
             @Nullable final Throwable cause,
             @Nullable final URI href) {
 
-        super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
     /**

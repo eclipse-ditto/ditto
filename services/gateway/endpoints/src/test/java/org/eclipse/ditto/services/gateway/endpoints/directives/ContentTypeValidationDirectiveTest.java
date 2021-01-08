@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.directives;
 
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.eclipse.ditto.services.gateway.endpoints.directives.ContentTypeValidationDirective.ensureValidContentType;
@@ -23,7 +22,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.UnsupportedMediaTypeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.Test;
@@ -39,7 +38,7 @@ import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.JUnitRouteTest;
 import akka.http.javadsl.testkit.TestRouteResult;
 
-public class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
+public final class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
 
     private final Supplier<Route> COMPLETE_OK = () -> complete(StatusCodes.OK);
 
@@ -77,7 +76,7 @@ public class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
 
         // Assert
         assertThat(result).hasMessageContaining(differentType.toString());
-        assertThat(result.getStatusCode()).isEqualTo(HttpStatusCode.UNSUPPORTED_MEDIA_TYPE);
+        assertThat(result.getHttpStatus()).isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
     }
 
     @Test
@@ -112,7 +111,7 @@ public class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
                         UnsupportedMediaTypeException.class);
 
         // Assert
-        assertThat(result.getStatusCode()).isEqualTo(HttpStatusCode.UNSUPPORTED_MEDIA_TYPE);
+        assertThat(result.getHttpStatus()).isEqualTo(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
     }
 
     @Test
@@ -172,4 +171,5 @@ public class ContentTypeValidationDirectiveTest extends JUnitRouteTest {
         // Assert
         result.assertStatusCode(StatusCodes.OK);
     }
+
 }

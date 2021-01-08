@@ -25,13 +25,14 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 
 /**
  * Response to a {@link ModifyPolicyEntries} command.
@@ -48,7 +49,7 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
 
     private final PolicyId policyId;
 
-    private ModifyPolicyEntriesResponse(final PolicyId policyId, final HttpStatusCode statusCode,
+    private ModifyPolicyEntriesResponse(final PolicyId policyId, final HttpStatus statusCode,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, statusCode, dittoHeaders);
@@ -79,7 +80,7 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyPolicyEntriesResponse of(final PolicyId policyId, final DittoHeaders dittoHeaders) {
-        return new ModifyPolicyEntriesResponse(policyId, HttpStatusCode.NO_CONTENT, dittoHeaders);
+        return new ModifyPolicyEntriesResponse(policyId, HttpStatus.NO_CONTENT, dittoHeaders);
     }
 
     /**
@@ -107,14 +108,12 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static ModifyPolicyEntriesResponse fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
-
+    public static ModifyPolicyEntriesResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyPolicyEntriesResponse>(TYPE, jsonObject)
-                .deserialize(statusCode -> {
-            final String extractedPolicyId =
-                    jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
-            final PolicyId policyId = PolicyId.of(extractedPolicyId);
+                .deserialize(httpStatus -> {
+                    final String extractedPolicyId =
+                            jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
+                    final PolicyId policyId = PolicyId.of(extractedPolicyId);
 
                     return of(policyId, dittoHeaders);
                 });
@@ -135,8 +134,7 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
-                predicate);
+        jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
     }
 
     @Override

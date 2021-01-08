@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
@@ -29,7 +29,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -39,6 +39,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link ModifyFeatureDesiredProperties} command.
@@ -66,13 +67,15 @@ public final class ModifyFeatureDesiredPropertiesResponse
     private final String featureId;
     @Nullable private final FeatureProperties desiredPropertiesCreated;
 
-    private ModifyFeatureDesiredPropertiesResponse(final ThingId thingId, final CharSequence featureId,
+    private ModifyFeatureDesiredPropertiesResponse(final ThingId thingId,
+            final CharSequence featureId,
             @Nullable final FeatureProperties desiredPropertiesCreated,
-            final HttpStatusCode statusCode, final DittoHeaders dittoHeaders) {
+            final HttpStatus statusCode,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
-        this.featureId = checkNotNull(featureId == null || featureId.toString().isEmpty() ? null : featureId.toString(),
-                "featureId");
+        this.featureId = argumentNotEmpty(featureId, "featureId").toString();
         this.desiredPropertiesCreated = desiredPropertiesCreated;
     }
 
@@ -80,7 +83,7 @@ public final class ModifyFeatureDesiredPropertiesResponse
     /**
      * Returns a new {@code ModifyFeatureDesiredPropertiesResponse} for created desired properties of a
      * {@link org.eclipse.ditto.model.things.Feature}. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#CREATED}.
+     * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created desired properties.
      * @param featureId the {@code Feature}'s ID whose desired properties were created.
@@ -94,7 +97,7 @@ public final class ModifyFeatureDesiredPropertiesResponse
             final FeatureProperties desiredProperties,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyFeatureDesiredPropertiesResponse(thingId, featureId, desiredProperties, HttpStatusCode.CREATED,
+        return new ModifyFeatureDesiredPropertiesResponse(thingId, featureId, desiredProperties, HttpStatus.CREATED,
                 dittoHeaders);
     }
 
@@ -102,7 +105,7 @@ public final class ModifyFeatureDesiredPropertiesResponse
     /**
      * Returns a new {@code ModifyFeatureDesiredPropertiesResponse} for modified desired properties of a
      * {@link org.eclipse.ditto.model.things.Feature}. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#NO_CONTENT}.
+     * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified desired properties.
      * @param featureId the {@code Feature}'s ID whose desired properties were modified.
@@ -113,7 +116,7 @@ public final class ModifyFeatureDesiredPropertiesResponse
     public static ModifyFeatureDesiredPropertiesResponse modified(final ThingId thingId, final CharSequence featureId,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyFeatureDesiredPropertiesResponse(thingId, featureId, null, HttpStatusCode.NO_CONTENT,
+        return new ModifyFeatureDesiredPropertiesResponse(thingId, featureId, null, HttpStatus.NO_CONTENT,
                 dittoHeaders);
     }
 
@@ -148,9 +151,9 @@ public final class ModifyFeatureDesiredPropertiesResponse
             final DittoHeaders dittoHeaders) {
 
         return new CommandResponseJsonDeserializer<ModifyFeatureDesiredPropertiesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+                .deserialize(httpStatus -> {
                     final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
 
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
@@ -158,9 +161,11 @@ public final class ModifyFeatureDesiredPropertiesResponse
                             .map(ThingsModelFactory::newFeatureProperties)
                             .orElse(null);
 
-                    return new ModifyFeatureDesiredPropertiesResponse(thingId, extractedFeatureId,
+                    return new ModifyFeatureDesiredPropertiesResponse(thingId,
+                            extractedFeatureId,
                             extractedFeatureCreated,
-                            statusCode, dittoHeaders);
+                            httpStatus,
+                            dittoHeaders);
                 });
     }
 
@@ -213,7 +218,7 @@ public final class ModifyFeatureDesiredPropertiesResponse
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
         if (null != desiredPropertiesCreated) {
             jsonObjectBuilder.set(JSON_DESIRED_PROPERTIES, desiredPropertiesCreated.toJson(schemaVersion, thePredicate),
@@ -223,9 +228,9 @@ public final class ModifyFeatureDesiredPropertiesResponse
 
     @Override
     public ModifyFeatureDesiredPropertiesResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return desiredPropertiesCreated != null ?
-                created(thingId, featureId, desiredPropertiesCreated, dittoHeaders) :
-                modified(thingId, featureId, dittoHeaders);
+        return desiredPropertiesCreated != null
+                ? created(thingId, featureId, desiredPropertiesCreated, dittoHeaders)
+                : modified(thingId, featureId, dittoHeaders);
     }
 
     @Override
@@ -242,9 +247,11 @@ public final class ModifyFeatureDesiredPropertiesResponse
             return false;
         }
         final ModifyFeatureDesiredPropertiesResponse that = (ModifyFeatureDesiredPropertiesResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(featureId, that.featureId)
-                && Objects.equals(desiredPropertiesCreated, that.desiredPropertiesCreated) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(featureId, that.featureId) &&
+                Objects.equals(desiredPropertiesCreated, that.desiredPropertiesCreated) &&
+                super.equals(o);
     }
 
     @Override

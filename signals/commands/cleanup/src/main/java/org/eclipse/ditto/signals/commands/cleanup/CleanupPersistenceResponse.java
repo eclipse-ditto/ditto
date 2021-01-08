@@ -22,7 +22,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -37,8 +37,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
  */
 @Immutable
 @JsonParsableCommandResponse(type = CleanupPersistenceResponse.TYPE)
-public final class CleanupPersistenceResponse
-        extends AbstractCommandResponse<CleanupPersistenceResponse> implements CleanupCommandResponse<CleanupPersistenceResponse> {
+public final class CleanupPersistenceResponse extends AbstractCommandResponse<CleanupPersistenceResponse>
+        implements CleanupCommandResponse<CleanupPersistenceResponse> {
 
     /**
      * The type of the {@code CleanupCommandResponse}.
@@ -47,8 +47,9 @@ public final class CleanupPersistenceResponse
 
     private final EntityId entityId;
 
-    private CleanupPersistenceResponse(final EntityId entityId, final HttpStatusCode statusCode,
+    private CleanupPersistenceResponse(final EntityId entityId, final HttpStatus statusCode,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.entityId = ConditionChecker.checkNotNull(entityId, "entityId");
     }
@@ -61,7 +62,7 @@ public final class CleanupPersistenceResponse
      * @return a command response for cleanupPersistence.
      */
     public static CleanupPersistenceResponse success(final EntityId entityId, final DittoHeaders dittoHeaders) {
-        return new CleanupPersistenceResponse(entityId, HttpStatusCode.OK, dittoHeaders);
+        return new CleanupPersistenceResponse(entityId, HttpStatus.OK, dittoHeaders);
     }
 
     /**
@@ -72,7 +73,7 @@ public final class CleanupPersistenceResponse
      * @return a command response for cleanupPersistence.
      */
     public static CleanupPersistenceResponse failure(final EntityId entityId, final DittoHeaders dittoHeaders) {
-        return new CleanupPersistenceResponse(entityId, HttpStatusCode.INTERNAL_SERVER_ERROR, dittoHeaders);
+        return new CleanupPersistenceResponse(entityId, HttpStatus.INTERNAL_SERVER_ERROR, dittoHeaders);
     }
 
     @Override
@@ -82,12 +83,13 @@ public final class CleanupPersistenceResponse
 
     @Override
     public CleanupPersistenceResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new CleanupPersistenceResponse(this.getEntityId(), this.getStatusCode(), dittoHeaders);
+        return new CleanupPersistenceResponse(getEntityId(), getHttpStatus(), dittoHeaders);
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
+
         jsonObjectBuilder.set(CleanupCommandResponse.JsonFields.ENTITY_ID, String.valueOf(entityId), predicate);
     }
 
@@ -105,10 +107,9 @@ public final class CleanupPersistenceResponse
      */
     public static CleanupPersistenceResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<CleanupPersistenceResponse>(TYPE, jsonObject).deserialize(
-                statusCode -> {
+                httpStatus -> {
                     final String readEntityId = jsonObject.getValueOrThrow(CleanupCommandResponse.JsonFields.ENTITY_ID);
-                    final EntityId entityId = DefaultEntityId.of(readEntityId);
-                    return new CleanupPersistenceResponse(entityId, statusCode, dittoHeaders);
+                    return new CleanupPersistenceResponse(DefaultEntityId.of(readEntityId), httpStatus, dittoHeaders);
                 }
         );
     }

@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -73,7 +73,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
             final Label label,
             @Nullable final ResourceKey resourceKey,
             @Nullable final Resource resourceCreated,
-            final HttpStatusCode statusCode,
+            final HttpStatus statusCode,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, statusCode, dittoHeaders);
@@ -119,7 +119,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
             final DittoHeaders dittoHeaders) {
 
         return new ModifyResourceResponse(policyId, label, resourceCreated.getResourceKey(), resourceCreated,
-                HttpStatusCode.CREATED, dittoHeaders);
+                HttpStatus.CREATED, dittoHeaders);
     }
 
     /**
@@ -183,7 +183,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
     public static ModifyResourceResponse modified(final PolicyId policyId, final Label label,
             final ResourceKey resourceKey, final DittoHeaders dittoHeaders) {
 
-        return new ModifyResourceResponse(policyId, label, resourceKey, null, HttpStatusCode.NO_CONTENT, dittoHeaders);
+        return new ModifyResourceResponse(policyId, label, resourceKey, null, HttpStatus.NO_CONTENT, dittoHeaders);
     }
 
     /**
@@ -212,7 +212,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      * format.
      */
     public static ModifyResourceResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ModifyResourceResponse>(TYPE, jsonObject).deserialize(statusCode -> {
+        return new CommandResponseJsonDeserializer<ModifyResourceResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
             final String extractedPolicyId =
                     jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
@@ -223,15 +223,13 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
             final Optional<ResourceKey> extractedResourceKey = jsonObject.getValue(JSON_RESOURCE_KEY)
                     .map(ResourceKey::newInstance);
 
-            @Nullable
-            final Resource extractedResourceCreated = jsonObject.getValue(JSON_RESOURCE)
+            @Nullable final Resource extractedResourceCreated = jsonObject.getValue(JSON_RESOURCE)
                     .map(JsonValue::asObject)
-                    .flatMap(obj -> extractedResourceKey.map(resourceKey -> PoliciesModelFactory.newResource(resourceKey, obj)))
+                    .flatMap(obj -> extractedResourceKey.map(resKey -> PoliciesModelFactory.newResource(resKey, obj)))
                     .orElse(null);
 
-            return new ModifyResourceResponse(policyId, label,
-                    extractedResourceKey.map(ResourceKey::newInstance).orElse(null), extractedResourceCreated,
-                    statusCode, dittoHeaders);
+            return new ModifyResourceResponse(policyId, label, extractedResourceKey.orElse(null),
+                    extractedResourceCreated, httpStatus, dittoHeaders);
         });
     }
 

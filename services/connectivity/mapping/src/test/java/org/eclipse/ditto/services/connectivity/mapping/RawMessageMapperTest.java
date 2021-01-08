@@ -23,7 +23,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageBuilder;
@@ -330,7 +330,7 @@ public final class RawMessageMapperTest {
         final Signal<?> signal = ADAPTER.fromAdaptable(adaptables.get(0));
         assertThat(signal).isInstanceOf(SendFeatureMessageResponse.class);
         final SendFeatureMessageResponse<?> response = (SendFeatureMessageResponse<?>) signal;
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatusCode.IM_A_TEAPOT);
+        assertThat(response.getHttpStatus()).isEqualTo(HttpStatus.IM_A_TEAPOT);
         assertThat(response.getEntityId().toString()).isEqualTo("thing:id");
         assertThat(response.getFeatureId()).isEqualTo("accelerometer");
         assertThat(response.getMessage().getPayload().orElseThrow()).isEqualTo(JsonObject.of(payload));
@@ -347,11 +347,11 @@ public final class RawMessageMapperTest {
         assertThat(mapped.get(0)).isEqualTo(adaptable);
     }
 
-    private MessageBuilder<Object> messageBuilder(@Nullable final String contentType) {
+    private static MessageBuilder<Object> messageBuilder(@Nullable final String contentType) {
         return MessagesModelFactory.newMessageBuilder(
                 MessagesModelFactory.newHeadersBuilder(MessageDirection.TO, THING_ID, "subject")
                         .contentType(contentType)
-                        .build()
-        );
+                        .build());
     }
+
 }

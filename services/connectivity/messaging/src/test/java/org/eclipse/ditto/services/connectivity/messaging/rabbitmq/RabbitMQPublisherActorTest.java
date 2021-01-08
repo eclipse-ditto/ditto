@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
 import org.eclipse.ditto.services.connectivity.messaging.TestConstants;
@@ -101,11 +101,11 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
             final Acknowledgements acks = expectMsgClass(Acknowledgements.class);
             for (final Acknowledgement ack : acks.getSuccessfulAcknowledgements()) {
                 assertThat(ack.getLabel().toString()).isBetween("rabbit1", "rabbit3");
-                assertThat(ack.getStatusCode()).isEqualTo(HttpStatusCode.OK);
+                assertThat(ack.getHttpStatus()).isEqualTo(HttpStatus.OK);
             }
             for (final Acknowledgement ack : acks.getFailedAcknowledgements()) {
                 assertThat(ack.getLabel().toString()).isBetween("rabbit4", "rabbit6");
-                assertThat(ack.getStatusCode()).isEqualTo(HttpStatusCode.SERVICE_UNAVAILABLE);
+                assertThat(ack.getHttpStatus()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
             }
         }};
     }
@@ -137,7 +137,7 @@ public class RabbitMQPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(acks.getSize()).describedAs("Expect 1 acknowledgement in: " + acks).isEqualTo(1);
         final Acknowledgement ack = acks.stream().findAny().orElseThrow();
         assertThat(ack.getLabel().toString()).describedAs("Ack label").isEqualTo("please-verify");
-        assertThat(ack.getStatusCode()).describedAs("Ack status").isEqualTo(HttpStatusCode.OK);
+        assertThat(ack.getHttpStatus()).describedAs("Ack status").isEqualTo(HttpStatus.OK);
     }
 
     @Override

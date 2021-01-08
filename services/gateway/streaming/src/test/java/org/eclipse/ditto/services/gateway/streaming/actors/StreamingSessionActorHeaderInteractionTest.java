@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.streaming.actors;
 
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -28,7 +27,7 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -154,8 +153,8 @@ public final class StreamingSessionActorHeaderInteractionTest {
             final ActorRef underTest = createStreamingSessionActor();
             final ModifyThing modifyThing = getModifyThing();
             underTest.tell(IncomingSignal.of(modifyThing), getRef());
-            final Optional<HttpStatusCode> expectedStatusCode = getExpectedOutcome();
-            final boolean isBadRequest = expectedStatusCode.filter(HttpStatusCode.BAD_REQUEST::equals).isPresent();
+            final Optional<HttpStatus> expectedStatusCode = getExpectedOutcome();
+            final boolean isBadRequest = expectedStatusCode.filter(HttpStatus.BAD_REQUEST::equals).isPresent();
             if (!isBadRequest) {
                 commandRouterProbe.expectMsg(modifyThing);
                 // Regardless whether downstream sends reply, streaming session actor should not publish response
@@ -165,7 +164,7 @@ public final class StreamingSessionActorHeaderInteractionTest {
             if (expectedStatusCode.isPresent()) {
                 final SessionedResponseErrorOrAck response =
                         eventResponsePublisherProbe.expectMsgClass(SessionedResponseErrorOrAck.class);
-                assertThat(getStatusCode(response)).isEqualTo(expectedStatusCode.get());
+                assertThat(getHttpStatus(response)).isEqualTo(expectedStatusCode.get());
             } else {
                 eventResponsePublisherProbe.expectNoMessage((FiniteDuration) FiniteDuration.apply("250ms"));
             }
@@ -201,11 +200,11 @@ public final class StreamingSessionActorHeaderInteractionTest {
                 .build();
     }
 
-    private Optional<HttpStatusCode> getExpectedOutcome() {
-        final Optional<HttpStatusCode> status;
-        final HttpStatusCode successCode = HttpStatusCode.NO_CONTENT;
-        final HttpStatusCode errorCode = HttpStatusCode.NOT_FOUND;
-        final HttpStatusCode badRequest = HttpStatusCode.BAD_REQUEST;
+    private Optional<HttpStatus> getExpectedOutcome() {
+        final Optional<HttpStatus> status;
+        final HttpStatus successCode = HttpStatus.NO_CONTENT;
+        final HttpStatus errorCode = HttpStatus.NOT_FOUND;
+        final HttpStatus badRequest = HttpStatus.BAD_REQUEST;
         if (timeout.isZero()) {
             status = (responseRequired || !requestedAcks.isEmpty()) ? Optional.of(badRequest) : Optional.empty();
         } else {
@@ -221,12 +220,12 @@ public final class StreamingSessionActorHeaderInteractionTest {
         return status;
     }
 
-    private static HttpStatusCode getStatusCode(final SessionedResponseErrorOrAck sessionedResponseErrorOrAck) {
+    private static HttpStatus getHttpStatus(final SessionedResponseErrorOrAck sessionedResponseErrorOrAck) {
         final Jsonifiable<?> jsonifiable = sessionedResponseErrorOrAck.getJsonifiable();
         if (jsonifiable instanceof DittoRuntimeException) {
-            return ((DittoRuntimeException) jsonifiable).getStatusCode();
+            return ((DittoRuntimeException) jsonifiable).getHttpStatus();
         } else {
-            return ((CommandResponse<?>) jsonifiable).getStatusCode();
+            return ((CommandResponse<?>) jsonifiable).getHttpStatus();
         }
     }
 

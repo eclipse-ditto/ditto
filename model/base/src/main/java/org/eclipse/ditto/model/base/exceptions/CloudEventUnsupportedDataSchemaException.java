@@ -20,7 +20,7 @@
  import javax.annotation.concurrent.NotThreadSafe;
 
  import org.eclipse.ditto.json.JsonObject;
- import org.eclipse.ditto.model.base.common.HttpStatusCode;
+ import org.eclipse.ditto.model.base.common.HttpStatus;
  import org.eclipse.ditto.model.base.headers.DittoHeaders;
  import org.eclipse.ditto.model.base.json.JsonParsableException;
 
@@ -45,7 +45,7 @@
      private static final String DESCRIPTION = "Ensure that the URI's scheme is 'ditto', so the complete dataschema " +
              "starts with 'ditto:'";
 
-     private static final HttpStatusCode STATUS_CODE = HttpStatusCode.BAD_REQUEST;
+     private static final HttpStatus HTTP_STATUS = HttpStatus.BAD_REQUEST;
 
      /**
       * Constructs a new {@code CloudEventUnsupportedDataSchemaException} object.
@@ -62,7 +62,8 @@
              @Nullable final String description,
              @Nullable final Throwable cause,
              @Nullable final URI href) {
-         super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
+
+         super(ERROR_CODE, HTTP_STATUS, dittoHeaders, message, description, cause, href);
      }
 
      /**
@@ -94,6 +95,7 @@
       */
      public static CloudEventUnsupportedDataSchemaException fromJson(final JsonObject jsonObject,
              final DittoHeaders dittoHeaders) {
+
          return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
      }
 
@@ -127,6 +129,7 @@
 
              return new CloudEventUnsupportedDataSchemaException(dittoHeaders, message, description, cause, href);
          }
+
      }
 
  }

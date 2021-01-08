@@ -34,7 +34,8 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -75,7 +76,7 @@ public final class ImmutableMessageHeadersTest {
     private static final String FEATURE_ID = "flux-condensator-0815";
     private static final Duration TIMEOUT = Duration.ofSeconds(5);
     private static final String TIMESTAMP = "2017-09-22T09:47:23+01:00";
-    private static final HttpStatusCode STATUS_CODE = HttpStatusCode.OK;
+    private static final HttpStatus HTTP_STATUS = HttpStatus.OK;
     private static final String CONTENT_TYPE = "application/json";
 
     @Test
@@ -105,7 +106,7 @@ public final class ImmutableMessageHeadersTest {
                 .featureId(FEATURE_ID)
                 .timeout(TIMEOUT)
                 .timestamp(TIMESTAMP)
-                .statusCode(STATUS_CODE)
+                .httpStatus(HTTP_STATUS)
                 .contentType(CONTENT_TYPE)
                 .build();
 
@@ -159,7 +160,7 @@ public final class ImmutableMessageHeadersTest {
                 .withMessageContaining(key)
                 .withMessageContaining(value)
                 .withMessageEndingWith("is not a valid HTTP status code.")
-                .withNoCause();
+                .withCauseInstanceOf(HttpStatusCodeOutOfRangeException.class);
     }
 
     @Test
@@ -222,10 +223,10 @@ public final class ImmutableMessageHeadersTest {
     @Test
     public void getStatusCodeReturnsExpected() {
         final MessageHeaders underTest = MessageHeadersBuilder.newInstance(DIRECTION, THING_ID, SUBJECT)
-                .statusCode(STATUS_CODE)
+                .httpStatus(HTTP_STATUS)
                 .build();
 
-        assertThat(underTest.getStatusCode()).contains(STATUS_CODE);
+        assertThat(underTest.getHttpStatus()).contains(HTTP_STATUS);
     }
 
     @Test
@@ -278,7 +279,7 @@ public final class ImmutableMessageHeadersTest {
         result.put(MessageHeaderDefinition.THING_ID.getKey(), THING_ID.toString());
         result.put(MessageHeaderDefinition.FEATURE_ID.getKey(), FEATURE_ID);
         result.put(MessageHeaderDefinition.TIMESTAMP.getKey(), TIMESTAMP);
-        result.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(STATUS_CODE.toInt()));
+        result.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(HTTP_STATUS.getCode()));
         result.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE);
         result.put(DittoHeaderDefinition.TIMEOUT.getKey(), TIMEOUT.toMillis() + "ms");
 

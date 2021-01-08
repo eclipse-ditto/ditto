@@ -20,7 +20,7 @@ import java.net.URI;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -36,7 +36,7 @@ import org.junit.Test;
 public final class ThingNotDeletableExceptionTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(DittoRuntimeException.JsonFields.STATUS, HttpStatusCode.NOT_FOUND.toInt())
+            .set(DittoRuntimeException.JsonFields.STATUS, HttpStatus.NOT_FOUND.getCode())
             .set(DittoRuntimeException.JsonFields.ERROR_CODE, ThingNotDeletableException.ERROR_CODE)
             .set(DittoRuntimeException.JsonFields.MESSAGE,
                     TestConstants.Thing.THING_NOT_DELETABLE_EXCEPTION.getMessage())

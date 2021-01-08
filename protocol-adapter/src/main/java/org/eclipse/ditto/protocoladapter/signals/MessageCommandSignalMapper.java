@@ -14,7 +14,7 @@ package org.eclipse.ditto.protocoladapter.signals;
 
 import java.util.Optional;
 
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 
@@ -26,12 +26,13 @@ final class MessageCommandSignalMapper extends AbstractMessageSignalMapper<Messa
     }
 
     @Override
-    Optional<HttpStatusCode> extractStatusCode(final MessageCommand<?, ?> command) {
-        return command.getMessage().getStatusCode();
+    Optional<HttpStatus> extractHttpStatus(final MessageCommand<?, ?> command) {
+        return command.getMessage().getHttpStatus();
     }
 
     @Override
     MessageHeaders extractMessageHeaders(final MessageCommand<?, ?> command) {
         return command.getMessage().getHeaders();
     }
+
 }

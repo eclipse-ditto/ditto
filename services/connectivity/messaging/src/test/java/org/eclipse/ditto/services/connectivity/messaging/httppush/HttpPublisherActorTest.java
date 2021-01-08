@@ -31,7 +31,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.DittoConstants;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -154,7 +154,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
         assertThat(acks.getSize()).describedAs("Expect 1 acknowledgement in: " + acks).isEqualTo(1);
         final Acknowledgement ack = acks.stream().findAny().orElseThrow();
         assertThat(ack.getLabel().toString()).describedAs("Ack label").isEqualTo("please-verify");
-        assertThat(ack.getStatusCode()).describedAs("Ack status").isEqualTo(HttpStatusCode.OK);
+        assertThat(ack.getHttpStatus()).describedAs("Ack status").isEqualTo(HttpStatus.OK);
         assertThat(ack.getEntity()).contains(JsonFactory.readFrom(BODY));
         assertThat(ack.getDittoHeaders()).containsAllEntriesOf(
                 Map.of("content-type", "application/vnd.eclipse.ditto+json; PARAM_NAME=PARAM_VALUE", CUSTOM_HEADER_NAME,
@@ -255,15 +255,14 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final SendThingMessageResponse<JsonValue> sendThingMessageResponse =
                     expectMsgClass(SendThingMessageResponse.class);
             assertThat((CharSequence) sendThingMessageResponse.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
-            assertThat(sendThingMessageResponse.getStatusCode().toInt()).isEqualTo(statusCode.intValue());
+            assertThat(sendThingMessageResponse.getHttpStatus().getCode()).isEqualTo(statusCode.intValue());
             assertThat(sendThingMessageResponse.getDittoHeaders().getCorrelationId())
                     .contains(TestConstants.CORRELATION_ID);
             final Message<JsonValue> responseMessage = sendThingMessageResponse.getMessage();
             assertThat(responseMessage.getContentType()).contains(customContentType);
             assertThat(responseMessage.getSubject()).isEqualTo(messageSubject);
             assertThat(responseMessage.getDirection()).isEqualTo(messageDirection);
-            assertThat(responseMessage.getStatusCode()).contains(
-                    HttpStatusCode.forInt(statusCode.intValue()).orElseThrow());
+            assertThat(responseMessage.getHttpStatus()).isEqualTo(HttpStatus.tryGetInstance(statusCode.intValue()));
             assertThat(responseMessage.getPayload()).contains(jsonResponse);
             final MessageHeaders responseMessageHeaders = responseMessage.getHeaders();
             assertThat(responseMessageHeaders.get(CUSTOM_HEADER_NAME)).isEqualTo(CUSTOM_HEADER_VALUE);
@@ -322,7 +321,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             assertThat(acknowledgements).hasSize(1);
             final Acknowledgement acknowledgement = acknowledgements.getAcknowledgement(autoAckLabel).get();
             assertThat(acknowledgement).isNotNull();
-            assertThat(acknowledgement.getStatusCode().toInt()).isEqualTo(statusCode.intValue());
+            assertThat(acknowledgement.getHttpStatus().getCode()).isEqualTo(statusCode.intValue());
             assertThat(acknowledgement.getEntityId().toString()).hasToString(TestConstants.Things.THING_ID.toString());
         }};
     }
@@ -344,7 +343,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final Message<JsonValue> response =
                     Message.<JsonValue>newBuilder(messageHeaders).payload(jsonResponse).build();
             final SendThingMessageResponse<JsonValue> sendMessageResponse =
-                    SendThingMessageResponse.of(TestConstants.Things.THING_ID, response, HttpStatusCode.IM_A_TEAPOT,
+                    SendThingMessageResponse.of(TestConstants.Things.THING_ID, response, HttpStatus.IM_A_TEAPOT,
                             messageHeaders);
             final Adaptable messageResponseAdaptable =
                     DittoProtocolAdapter.newInstance().toAdaptable(sendMessageResponse);
@@ -393,15 +392,14 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final SendThingMessageResponse<JsonValue> sendThingMessageResponse =
                     expectMsgClass(SendThingMessageResponse.class);
             assertThat((CharSequence) sendThingMessageResponse.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
-            assertThat(sendThingMessageResponse.getStatusCode().toInt()).isEqualTo(statusCode.intValue());
+            assertThat(sendThingMessageResponse.getHttpStatus().getCode()).isEqualTo(statusCode.intValue());
             assertThat(sendThingMessageResponse.getDittoHeaders().getCorrelationId())
                     .contains(TestConstants.CORRELATION_ID);
             final Message<JsonValue> responseMessage = sendThingMessageResponse.getMessage();
             assertThat(responseMessage.getContentType()).contains(customContentType);
             assertThat(responseMessage.getSubject()).isEqualTo(messageSubject);
             assertThat(responseMessage.getDirection()).isEqualTo(messageDirection);
-            assertThat(responseMessage.getStatusCode()).contains(
-                    HttpStatusCode.forInt(statusCode.intValue()).orElseThrow());
+            assertThat(responseMessage.getHttpStatus()).isEqualTo(HttpStatus.tryGetInstance(statusCode.intValue()));
             assertThat(responseMessage.getPayload()).contains(jsonResponse);
             final MessageHeaders responseMessageHeaders = responseMessage.getHeaders();
             assertThat(responseMessageHeaders.get(CUSTOM_HEADER_NAME)).isEqualTo(CUSTOM_HEADER_VALUE);
@@ -425,7 +423,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final Message<JsonValue> response =
                     Message.<JsonValue>newBuilder(messageHeaders).payload(jsonResponse).build();
             final SendThingMessageResponse<JsonValue> sendMessageResponse =
-                    SendThingMessageResponse.of(TestConstants.Things.THING_ID, response, HttpStatusCode.IM_A_TEAPOT,
+                    SendThingMessageResponse.of(TestConstants.Things.THING_ID, response, HttpStatus.IM_A_TEAPOT,
                             messageHeaders);
             final Adaptable messageResponseAdaptable =
                     DittoProtocolAdapter.newInstance().toAdaptable(sendMessageResponse);
@@ -473,7 +471,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
             final Acknowledgements acknowledgements = expectMsgClass(Acknowledgements.class);
             assertThat((CharSequence) acknowledgements.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
-            assertThat(acknowledgements.getStatusCode()).isEqualTo(HttpStatusCode.BAD_REQUEST);
+            assertThat(acknowledgements.getHttpStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
             assertThat(acknowledgements.getDittoHeaders().getCorrelationId())
                     .contains(TestConstants.CORRELATION_ID);
             assertThat(acknowledgements.getSize()).isOne();
@@ -504,8 +502,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final Message<JsonValue> response =
                     Message.<JsonValue>newBuilder(messageHeaders).payload(jsonResponse).build();
             final SendThingMessageResponse<JsonValue> sendMessageResponse =
-                    SendThingMessageResponse.of(wrongThingId, response, HttpStatusCode.IM_A_TEAPOT,
-                            messageHeaders);
+                    SendThingMessageResponse.of(wrongThingId, response, HttpStatus.IM_A_TEAPOT, messageHeaders);
             final Adaptable messageResponseAdaptable =
                     DittoProtocolAdapter.newInstance().toAdaptable(sendMessageResponse);
             final JsonObject messageResponseJson =
@@ -552,7 +549,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
             final Acknowledgements acknowledgements = expectMsgClass(Acknowledgements.class);
             assertThat((CharSequence) acknowledgements.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
-            assertThat(acknowledgements.getStatusCode()).isEqualTo(HttpStatusCode.BAD_REQUEST);
+            assertThat(acknowledgements.getHttpStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
             assertThat(acknowledgements.getDittoHeaders().getCorrelationId())
                     .contains(TestConstants.CORRELATION_ID);
             assertThat(acknowledgements.getSize()).isOne();
@@ -584,8 +581,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
                     Message.<JsonValue>newBuilder(messageHeaders).payload(jsonResponse).build();
             final SendFeatureMessageResponse<JsonValue> sendMessageResponse =
                     SendFeatureMessageResponse.of(TestConstants.Things.THING_ID, "wrongId", response,
-                            HttpStatusCode.IM_A_TEAPOT,
-                            messageHeaders);
+                            HttpStatus.IM_A_TEAPOT, messageHeaders);
             final Adaptable messageResponseAdaptable =
                     DittoProtocolAdapter.newInstance().toAdaptable(sendMessageResponse);
             final JsonObject messageResponseJson =
@@ -632,7 +628,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
             final Acknowledgements acknowledgements = expectMsgClass(Acknowledgements.class);
             assertThat((CharSequence) acknowledgements.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
-            assertThat(acknowledgements.getStatusCode()).isEqualTo(HttpStatusCode.BAD_REQUEST);
+            assertThat(acknowledgements.getHttpStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
             assertThat(acknowledgements.getDittoHeaders().getCorrelationId())
                     .contains(TestConstants.CORRELATION_ID);
             assertThat(acknowledgements.getSize()).isOne();

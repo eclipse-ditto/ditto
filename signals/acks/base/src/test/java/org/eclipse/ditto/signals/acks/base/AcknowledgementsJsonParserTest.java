@@ -29,7 +29,7 @@ import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -58,9 +58,9 @@ public final class AcknowledgementsJsonParserTest {
         dittoHeaders = DittoHeaders.newBuilder().correlationId(testName.getMethodName()).build();
         final ThingId thingId = ThingId.generateRandom();
         knownAcknowledgement =
-                Acknowledgement.of(AcknowledgementLabel.of("foo"), thingId, HttpStatusCode.OK, dittoHeaders);
+                Acknowledgement.of(AcknowledgementLabel.of("foo"), thingId, HttpStatus.OK, dittoHeaders);
         final Acknowledgement knownAcknowledgement2 =
-                Acknowledgement.of(AcknowledgementLabel.of("bar"), thingId, HttpStatusCode.NOT_FOUND, dittoHeaders,
+                Acknowledgement.of(AcknowledgementLabel.of("bar"), thingId, HttpStatus.NOT_FOUND, dittoHeaders,
                         JsonValue.of("bar does not exist!"));
         knownAcknowledgements =
                 Acknowledgements.of(Sets.newSet(knownAcknowledgement, knownAcknowledgement2), dittoHeaders);
@@ -95,8 +95,8 @@ public final class AcknowledgementsJsonParserTest {
     public void parseJsonWithSeveralAcksOfSameLabel() {
         final AcknowledgementLabel label = AcknowledgementLabel.of("same-label");
         final Acknowledgements acks = Acknowledgements.of(Arrays.asList(
-                Acknowledgement.of(label, ThingId.dummy(), HttpStatusCode.OK, DittoHeaders.empty()),
-                Acknowledgement.of(label, ThingId.dummy(), HttpStatusCode.FORBIDDEN, DittoHeaders.empty())
+                Acknowledgement.of(label, ThingId.dummy(), HttpStatus.OK, DittoHeaders.empty()),
+                Acknowledgement.of(label, ThingId.dummy(), HttpStatus.FORBIDDEN, DittoHeaders.empty())
         ), DittoHeaders.empty());
 
         final Acknowledgements parsedAcknowledgements = underTest.apply(acks.toJson());
@@ -260,7 +260,7 @@ public final class AcknowledgementsJsonParserTest {
     public void parseJsonRepresentationWithDifferentAcknowledgementEntityId() {
         final ThingId differentEntityId = ThingId.generateRandom();
         final Acknowledgement ackWithDifferentEntityId =
-                Acknowledgement.of(AcknowledgementLabel.of("baz"), differentEntityId, HttpStatusCode.OK, dittoHeaders);
+                Acknowledgement.of(AcknowledgementLabel.of("baz"), differentEntityId, HttpStatus.OK, dittoHeaders);
         final JsonFieldDefinition<JsonObject> acknowledgementsFieldDefinition =
                 Acknowledgements.JsonFields.ACKNOWLEDGEMENTS;
         final JsonPointer ackWithDifferentEntityIdJsonPointer = acknowledgementsFieldDefinition.getPointer()
@@ -306,15 +306,15 @@ public final class AcknowledgementsJsonParserTest {
     @Test
     public void parseJsonRepresentationWithUnexpectedStatusCode() {
         final JsonFieldDefinition<Integer> statusCodeFieldDefinition = Acknowledgements.JsonFields.STATUS_CODE;
-        final HttpStatusCode unexpectedStatusCode = HttpStatusCode.PAYMENT_REQUIRED;
+        final HttpStatus unexpectedStatusCode = HttpStatus.PAYMENT_REQUIRED;
         final JsonObject jsonRepresentation = JsonFactory.newObjectBuilder(knownAcknowledgements.toJson())
-                .set(statusCodeFieldDefinition, unexpectedStatusCode.toInt())
+                .set(statusCodeFieldDefinition, unexpectedStatusCode.getCode())
                 .build();
 
         assertThatExceptionOfType(JsonParseException.class)
                 .isThrownBy(() -> underTest.apply(jsonRepresentation))
-                .withMessage("The read status code <%d> differs from the expected <%d>!", unexpectedStatusCode.toInt(),
-                        knownAcknowledgements.getStatusCode().toInt())
+                .withMessage("The read status code <%d> differs from the expected <%d>!",
+                        unexpectedStatusCode.getCode(), knownAcknowledgements.getHttpStatus().getCode())
                 .withNoCause();
     }
 

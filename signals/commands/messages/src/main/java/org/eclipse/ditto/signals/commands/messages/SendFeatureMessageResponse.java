@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.signals.commands.messages;
 
-import static java.util.Objects.requireNonNull;
-
 import java.text.MessageFormat;
 import java.util.Objects;
 import java.util.Optional;
@@ -26,6 +24,8 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -66,17 +66,17 @@ public final class SendFeatureMessageResponse<T>
     private SendFeatureMessageResponse(final ThingId thingId,
             final String featureId,
             final Message<T> message,
-            final HttpStatusCode responseStatusCode,
+            final HttpStatus responseStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, thingId, message, responseStatusCode, dittoHeaders);
-        this.featureId = requireNonNull(featureId, "The featureId cannot be null.");
+        super(TYPE, thingId, message, responseStatus, dittoHeaders);
+        this.featureId = ConditionChecker.checkNotNull(featureId, "featureId");
         validateMessageFeatureId(this.featureId, message, dittoHeaders);
     }
 
     @Override
     public SendFeatureMessageResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(getThingEntityId(), getFeatureId(), getMessage(), getStatusCode(), dittoHeaders);
+        return of(getThingEntityId(), getFeatureId(), getMessage(), getHttpStatus(), dittoHeaders);
     }
 
     /**
@@ -90,8 +90,7 @@ public final class SendFeatureMessageResponse<T>
      * @param <T> the type of the message's payload.
      * @return new instance of {@code SendFeatureMessageResponse}.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use
-     * {@link #of(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.messages.Message, org.eclipse.ditto.model.base.common.HttpStatusCode, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * @deprecated Thing ID is now typed. Use {@link #of(ThingId, String, Message, HttpStatusCode, DittoHeaders)}
      * instead.
      */
     @Deprecated
@@ -101,7 +100,7 @@ public final class SendFeatureMessageResponse<T>
             final HttpStatusCode responseStatusCode,
             final DittoHeaders dittoHeaders) {
 
-        return of(ThingId.of(thingId), featureId, message, responseStatusCode, dittoHeaders);
+        return of(ThingId.of(thingId), featureId, message, responseStatusCode.getAsHttpStatus(), dittoHeaders);
     }
 
     /**
@@ -115,14 +114,38 @@ public final class SendFeatureMessageResponse<T>
      * @param <T> the type of the message's payload.
      * @return new instance of {@code SendFeatureMessageResponse}.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated as of 2.0.0 please use {@link #of(ThingId, String, Message, HttpStatus, DittoHeaders)} instead.
      */
+    @Deprecated
     public static <T> SendFeatureMessageResponse<T> of(final ThingId thingId,
             final String featureId,
             final Message<T> message,
             final HttpStatusCode responseStatusCode,
             final DittoHeaders dittoHeaders) {
 
-        return new SendFeatureMessageResponse<>(thingId, featureId, message, responseStatusCode, dittoHeaders);
+        return of(thingId, featureId, message, responseStatusCode.getAsHttpStatus(), dittoHeaders);
+    }
+
+    /**
+     * Creates a new instance of {@code SendFeatureMessageResponse}.
+     *
+     * @param thingId the ID of the Thing to send the message from.
+     * @param featureId the ID of the Feature to send the message from.
+     * @param message the response message to send from the Thing.
+     * @param responseStatus the optional HTTP status of this response.
+     * @param dittoHeaders the DittoHeaders of this message.
+     * @param <T> the type of the message's payload.
+     * @return new instance of {@code SendFeatureMessageResponse}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 2.0.0
+     */
+    public static <T> SendFeatureMessageResponse<T> of(final ThingId thingId,
+            final String featureId,
+            final Message<T> message,
+            final HttpStatus responseStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new SendFeatureMessageResponse<>(thingId, featureId, message, responseStatus, dittoHeaders);
     }
 
     /**

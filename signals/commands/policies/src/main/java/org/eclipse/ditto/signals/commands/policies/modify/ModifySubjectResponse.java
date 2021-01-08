@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -74,7 +74,7 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
             final Label label,
             @Nullable final SubjectId subjectId,
             @Nullable final Subject subjectCreated,
-            final HttpStatusCode statusCode,
+            final HttpStatus statusCode,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, statusCode, dittoHeaders);
@@ -120,7 +120,7 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
             final DittoHeaders dittoHeaders) {
 
         return new ModifySubjectResponse(policyId, label, subjectCreated.getId(), subjectCreated,
-                HttpStatusCode.CREATED, dittoHeaders);
+                HttpStatus.CREATED, dittoHeaders);
     }
 
     /**
@@ -134,7 +134,8 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
      * @deprecated Policy ID is now typed. Use {@link #modified(PolicyId, Label, SubjectId, DittoHeaders)} instead.
      */
     @Deprecated
-    public static ModifySubjectResponse modified(final String policyId, final Label label, final DittoHeaders dittoHeaders) {
+    public static ModifySubjectResponse modified(final String policyId, final Label label,
+            final DittoHeaders dittoHeaders) {
 
         return modified(PolicyId.of(policyId), label, null, dittoHeaders);
     }
@@ -150,8 +151,9 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
      * @deprecated since 1.1.0, use {@link #modified(PolicyId, Label, SubjectId, DittoHeaders)} instead.
      */
     @Deprecated
-    public static ModifySubjectResponse modified(final PolicyId policyId, final Label label, final DittoHeaders dittoHeaders) {
-        return new ModifySubjectResponse(policyId, label, null, null, HttpStatusCode.NO_CONTENT, dittoHeaders);
+    public static ModifySubjectResponse modified(final PolicyId policyId, final Label label,
+            final DittoHeaders dittoHeaders) {
+        return new ModifySubjectResponse(policyId, label, null, null, HttpStatus.NO_CONTENT, dittoHeaders);
     }
 
     /**
@@ -166,7 +168,9 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
      * @deprecated Policy ID is now typed. Use {@link #modified(PolicyId, Label, SubjectId, DittoHeaders)} instead.
      */
     @Deprecated
-    public static ModifySubjectResponse modified(final String policyId, final Label label, final SubjectId subjectId,
+    public static ModifySubjectResponse modified(final String policyId,
+            final Label label,
+            final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
 
         return modified(PolicyId.of(policyId), label, subjectId, dittoHeaders);
@@ -183,9 +187,11 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
      * @throws NullPointerException if any argument is {@code null}.
      * @since 1.1.0
      */
-    public static ModifySubjectResponse modified(final PolicyId policyId, final Label label, final SubjectId subjectId,
+    public static ModifySubjectResponse modified(final PolicyId policyId,
+            final Label label,
+            final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
-        return new ModifySubjectResponse(policyId, label, subjectId, null, HttpStatusCode.NO_CONTENT, dittoHeaders);
+        return new ModifySubjectResponse(policyId, label, subjectId, null, HttpStatus.NO_CONTENT, dittoHeaders);
     }
 
     /**
@@ -212,23 +218,25 @@ public final class ModifySubjectResponse extends AbstractCommandResponse<ModifyS
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected format.
      */
     public static ModifySubjectResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ModifySubjectResponse>(TYPE, jsonObject).deserialize(statusCode -> {
+        return new CommandResponseJsonDeserializer<ModifySubjectResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
             final String extractedPolicyId =
                     jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
 
-            final Optional<String> extractedSubjectId = jsonObject.getValue(JSON_SUBJECT_ID);
+            final Optional<SubjectId> extractedSubjectId =
+                    jsonObject.getValue(JSON_SUBJECT_ID).map(SubjectId::newInstance);
 
-            @Nullable
-            final Subject extractedSubjectCreated = jsonObject.getValue(JSON_SUBJECT)
+            @Nullable final Subject extractedSubjectCreated = jsonObject.getValue(JSON_SUBJECT)
                     .map(JsonValue::asObject)
-                    .flatMap(obj -> extractedSubjectId.map(subjectId -> PoliciesModelFactory.newSubject(subjectId, obj)))
+                    .flatMap(obj -> extractedSubjectId.map(subId -> PoliciesModelFactory.newSubject(subId, obj)))
                     .orElse(null);
 
-            return new ModifySubjectResponse(policyId, label,
-                    extractedSubjectId.map(SubjectId::newInstance).orElse(null),
-                    extractedSubjectCreated, statusCode,
+            return new ModifySubjectResponse(policyId,
+                    label,
+                    extractedSubjectId.orElse(null),
+                    extractedSubjectCreated,
+                    httpStatus,
                     dittoHeaders);
         });
     }

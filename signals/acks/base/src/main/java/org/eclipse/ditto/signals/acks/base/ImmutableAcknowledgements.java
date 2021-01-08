@@ -41,7 +41,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -59,17 +59,17 @@ final class ImmutableAcknowledgements implements Acknowledgements {
 
     private final EntityIdWithType entityId;
     private final List<Acknowledgement> acknowledgements;
-    private final HttpStatusCode statusCode;
+    private final HttpStatus httpStatus;
     private final DittoHeaders dittoHeaders;
 
     private ImmutableAcknowledgements(final EntityIdWithType entityId,
             final Collection<? extends Acknowledgement> acknowledgements,
-            final HttpStatusCode statusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
         this.entityId = entityId;
         this.acknowledgements = Collections.unmodifiableList(new ArrayList<>(acknowledgements));
-        this.statusCode = checkNotNull(statusCode, "statusCode");
+        this.httpStatus = checkNotNull(httpStatus, "httpStatus");
         final DittoHeadersBuilder<?, ?> dittoHeadersBuilder =
                 checkNotNull(dittoHeaders, "dittoHeaders").isResponseRequired() ? dittoHeaders
                         .toBuilder()
@@ -95,7 +95,7 @@ final class ImmutableAcknowledgements implements Acknowledgements {
         argumentNotEmpty(acknowledgements, "acknowledgements");
 
         return new ImmutableAcknowledgements(getEntityId(acknowledgements), acknowledgements,
-                getCombinedStatusCode(acknowledgements), dittoHeaders);
+                getCombinedHttpStatus(acknowledgements), dittoHeaders);
     }
 
     /**
@@ -103,24 +103,25 @@ final class ImmutableAcknowledgements implements Acknowledgements {
      *
      * @param entityId the ID of the affected entity being acknowledged.
      * @param acknowledgements the map of acknowledgements to be included in the result.
-     * @param statusCode the status code (HTTP semantics) of the combined Acknowledgements.
+     * @param httpStatus the status code (HTTP semantics) of the combined Acknowledgements.
      * @param dittoHeaders the headers of the returned Acknowledgements instance.
      * @return the Acknowledgements.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if the given {@code acknowledgements} are empty or if the entity IDs or entity
      * types of the given acknowledgements are not equal.
+     * @since 2.0.0
      */
     static ImmutableAcknowledgements of(final EntityIdWithType entityId,
             final Collection<? extends Acknowledgement> acknowledgements,
-            final HttpStatusCode statusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
         checkNotNull(entityId, "entityId");
         argumentNotEmpty(acknowledgements, "acknowledgements");
-        checkNotNull(statusCode, "statusCode");
+        checkNotNull(httpStatus, "httpStatus");
         checkNotNull(dittoHeaders, "dittoHeaders");
 
-        return new ImmutableAcknowledgements(entityId, acknowledgements, statusCode, dittoHeaders);
+        return new ImmutableAcknowledgements(entityId, acknowledgements, httpStatus, dittoHeaders);
     }
 
     private static EntityIdWithType getEntityId(final Iterable<? extends Acknowledgement> acknowledgements) {
@@ -135,20 +136,20 @@ final class ImmutableAcknowledgements implements Acknowledgements {
         return entityId;
     }
 
-    private static HttpStatusCode getCombinedStatusCode(final Collection<? extends Acknowledgement> acknowledgements) {
-        final HttpStatusCode result;
+    private static HttpStatus getCombinedHttpStatus(final Collection<? extends Acknowledgement> acknowledgements) {
+        final HttpStatus result;
         if (1 == acknowledgements.size()) {
             result = acknowledgements.stream()
                     .findFirst()
-                    .map(Acknowledgement::getStatusCode)
-                    .orElse(HttpStatusCode.INTERNAL_SERVER_ERROR);
+                    .map(Acknowledgement::getHttpStatus)
+                    .orElse(HttpStatus.INTERNAL_SERVER_ERROR);
         } else {
             final Stream<? extends Acknowledgement> acknowledgementStream = acknowledgements.stream();
             final boolean allAcknowledgementsSuccessful = acknowledgementStream.allMatch(Acknowledgement::isSuccess);
             if (allAcknowledgementsSuccessful) {
-                result = HttpStatusCode.OK;
+                result = HttpStatus.OK;
             } else {
-                result = HttpStatusCode.FAILED_DEPENDENCY;
+                result = HttpStatus.FAILED_DEPENDENCY;
             }
         }
         return result;
@@ -167,13 +168,13 @@ final class ImmutableAcknowledgements implements Acknowledgements {
 
         return new ImmutableAcknowledgements(checkNotNull(entityId, "entityId"),
                 acknowledgements,
-                getCombinedStatusCode(acknowledgements),
+                getCombinedHttpStatus(acknowledgements),
                 dittoHeaders);
     }
 
     @Override
-    public HttpStatusCode getStatusCode() {
-        return statusCode;
+    public HttpStatus getHttpStatus() {
+        return httpStatus;
     }
 
     @Override
@@ -235,7 +236,7 @@ final class ImmutableAcknowledgements implements Acknowledgements {
 
     @Override
     public ImmutableAcknowledgements setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new ImmutableAcknowledgements(entityId, acknowledgements, statusCode, dittoHeaders);
+        return new ImmutableAcknowledgements(entityId, acknowledgements, httpStatus, dittoHeaders);
     }
 
     @Override
@@ -269,10 +270,9 @@ final class ImmutableAcknowledgements implements Acknowledgements {
     }
 
     private JsonObject acknowledgementsEntitiesToJson(final JsonSchemaVersion schemaVersion) {
-
         return acknowledgementsToJsonWithDisambiguation(schemaVersion, FieldType.all(), (ack, version, predicate) -> {
             final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder()
-                    .set(Acknowledgement.JsonFields.STATUS_CODE, ack.getStatusCode().toInt());
+                    .set(Acknowledgement.JsonFields.STATUS_CODE, ack.getHttpStatus().getCode());
 
             final Optional<JsonValue> ackEntity = ack.getEntity(version);
             ackEntity.ifPresent(ae -> jsonObjectBuilder.set(Acknowledgement.JsonFields.PAYLOAD, ae));
@@ -284,7 +284,6 @@ final class ImmutableAcknowledgements implements Acknowledgements {
     }
 
     private static JsonObject buildHeadersJson(final DittoHeaders dittoHeaders) {
-
         final boolean containsDittoContentType = dittoHeaders.getDittoContentType()
                 .filter(ContentType::isDittoProtocol)
                 .isPresent();
@@ -338,7 +337,7 @@ final class ImmutableAcknowledgements implements Acknowledgements {
         return JsonObject.newBuilder()
                 .set(JsonFields.ENTITY_ID, entityId.toString(), predicate)
                 .set(JsonFields.ENTITY_TYPE, getEntityType().toString(), predicate)
-                .set(JsonFields.STATUS_CODE, statusCode.toInt(), predicate)
+                .set(JsonFields.STATUS_CODE, httpStatus.getCode(), predicate)
                 .set(JsonFields.ACKNOWLEDGEMENTS, acksJsonObject, predicate)
                 .set(JsonFields.DITTO_HEADERS, dittoHeaders.toJson(), predicate)
                 .build();
@@ -355,13 +354,13 @@ final class ImmutableAcknowledgements implements Acknowledgements {
         final ImmutableAcknowledgements that = (ImmutableAcknowledgements) o;
         return entityId.equals(that.entityId) &&
                 acknowledgements.equals(that.acknowledgements) &&
-                statusCode.equals(that.statusCode) &&
+                httpStatus.equals(that.httpStatus) &&
                 dittoHeaders.equals(that.dittoHeaders);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(entityId, acknowledgements, statusCode, dittoHeaders);
+        return Objects.hash(entityId, acknowledgements, httpStatus, dittoHeaders);
     }
 
     @Override
@@ -369,7 +368,7 @@ final class ImmutableAcknowledgements implements Acknowledgements {
         return getClass().getSimpleName() + " [" +
                 "entityId=" + entityId +
                 ", acknowledgements=" + acknowledgements +
-                ", statusCode=" + statusCode +
+                ", httpStatus=" + httpStatus +
                 ", dittoHeaders=" + dittoHeaders +
                 "]";
     }
@@ -378,6 +377,7 @@ final class ImmutableAcknowledgements implements Acknowledgements {
     private interface AcknowledgementToJson {
 
         JsonObject toJson(Acknowledgement ack, JsonSchemaVersion schemaVersion, Predicate<JsonField> predicate);
+
     }
 
 }

@@ -26,7 +26,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -41,7 +41,7 @@ import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandRespon
 @Immutable
 @JsonParsableCommandResponse(type = EnableConnectionLogsResponse.TYPE)
 public final class EnableConnectionLogsResponse extends AbstractCommandResponse<EnableConnectionLogsResponse>
-    implements ConnectivityModifyCommandResponse<EnableConnectionLogsResponse> {
+        implements ConnectivityModifyCommandResponse<EnableConnectionLogsResponse> {
 
     /**
      * Type of this command.
@@ -51,7 +51,7 @@ public final class EnableConnectionLogsResponse extends AbstractCommandResponse<
     private final ConnectionId connectionId;
 
     private EnableConnectionLogsResponse(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+        super(TYPE, HttpStatus.OK, dittoHeaders);
         this.connectionId = connectionId;
     }
 
@@ -70,6 +70,7 @@ public final class EnableConnectionLogsResponse extends AbstractCommandResponse<
 
     /**
      * Creates a new {@code EnableConnectionLogsResponse} from a JSON string.
+     *
      * @param jsonString the JSON containing the command.
      * @param dittoHeaders the headers of the command.
      * @return the command.
@@ -84,6 +85,7 @@ public final class EnableConnectionLogsResponse extends AbstractCommandResponse<
 
     /**
      * Creates a new {@code EnableConnectionLogsResponse} from a JSON object.
+     *
      * @param jsonObject the JSON containing the command.
      * @param dittoHeaders the headers of the command.
      * @return the command.
@@ -92,19 +94,21 @@ public final class EnableConnectionLogsResponse extends AbstractCommandResponse<
      * format.
      */
     public static EnableConnectionLogsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<EnableConnectionLogsResponse>(TYPE, jsonObject).deserialize(statusCode -> {
-            final String readConnectionId = jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-            final ConnectionId connectionId = ConnectionId.of(readConnectionId);
-
-            return of(connectionId, dittoHeaders);
-        });
+        return new CommandResponseJsonDeserializer<EnableConnectionLogsResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
+                    final String readConnectionId =
+                            jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
+                    return of(ConnectionId.of(readConnectionId), dittoHeaders);
+                });
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId), predicate);
+        jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
+                predicate);
     }
 
     @Override
@@ -124,7 +128,7 @@ public final class EnableConnectionLogsResponse extends AbstractCommandResponse<
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof EnableConnectionLogsResponse);
+        return other instanceof EnableConnectionLogsResponse;
     }
 
     @Override

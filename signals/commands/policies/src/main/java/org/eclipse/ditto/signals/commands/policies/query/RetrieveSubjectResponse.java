@@ -27,7 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -38,14 +38,15 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 
 /**
  * Response to a {@link RetrieveSubject} command.
  */
 @Immutable
 @JsonParsableCommandResponse(type = RetrieveSubjectResponse.TYPE)
-public final class RetrieveSubjectResponse extends AbstractCommandResponse<RetrieveSubjectResponse> implements
-        PolicyQueryCommandResponse<RetrieveSubjectResponse> {
+public final class RetrieveSubjectResponse extends AbstractCommandResponse<RetrieveSubjectResponse>
+        implements PolicyQueryCommandResponse<RetrieveSubjectResponse> {
 
     /**
      * Type of this response.
@@ -70,7 +71,7 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
             final Label label,
             final String subjectId,
             final JsonObject subject,
-            final HttpStatusCode statusCode,
+            final HttpStatus statusCode,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, statusCode, dittoHeaders);
@@ -121,7 +122,7 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
             final JsonObject subject,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveSubjectResponse(policyId, label, subjectId, subject, HttpStatusCode.OK, dittoHeaders);
+        return new RetrieveSubjectResponse(policyId, label, subjectId, subject, HttpStatus.OK, dittoHeaders);
     }
 
     /**
@@ -195,9 +196,9 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
      */
     public static RetrieveSubjectResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveSubjectResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+                .deserialize(httpStatus -> {
                     final String extractedPolicyId =
-                            jsonObject.getValueOrThrow(PolicyQueryCommand.JsonFields.JSON_POLICY_ID);
+                            jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
                     final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
                     final String extractedSubjectId = jsonObject.getValueOrThrow(JSON_SUBJECT_ID);
@@ -257,8 +258,7 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
-                predicate);
+        jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_SUBJECT_ID, subjectId, predicate);
         jsonObjectBuilder.set(JSON_SUBJECT, subject, predicate);
@@ -278,9 +278,12 @@ public final class RetrieveSubjectResponse extends AbstractCommandResponse<Retri
             return false;
         }
         final RetrieveSubjectResponse that = (RetrieveSubjectResponse) o;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId)
-                && Objects.equals(label, that.label) && Objects.equals(subjectId, that.subjectId)
-                && Objects.equals(subject, that.subject) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(label, that.label) &&
+                Objects.equals(subjectId, that.subjectId) &&
+                Objects.equals(subject, that.subject) &&
+                super.equals(o);
     }
 
     @Override

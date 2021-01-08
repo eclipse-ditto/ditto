@@ -35,7 +35,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.common.BinaryValidationResult;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
@@ -71,11 +71,9 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.PoisonPill;
 import akka.actor.Props;
-import akka.japi.Pair;
 import akka.stream.KillSwitch;
 import akka.stream.KillSwitches;
 import akka.stream.OverflowStrategy;
-import akka.stream.UniqueKillSwitch;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -112,9 +110,7 @@ public final class StreamingSessionActorTest {
                 TestSink.probe(actorSystem);
         final Source<SessionedJsonifiable, SourceQueueWithComplete<SessionedJsonifiable>> source =
                 Source.queue(100, OverflowStrategy.fail());
-        final Pair<Pair<SourceQueueWithComplete<SessionedJsonifiable>, UniqueKillSwitch>,
-                TestSubscriber.Probe<SessionedJsonifiable>> pair =
-                source.viaMat(KillSwitches.single(), Keep.both()).toMat(sink, Keep.both()).run(actorSystem);
+        final var pair = source.viaMat(KillSwitches.single(), Keep.both()).toMat(sink, Keep.both()).run(actorSystem);
         sourceQueue = pair.first().first();
         sinkProbe = pair.second();
         killSwitch = pair.first().second();
@@ -158,10 +154,9 @@ public final class StreamingSessionActorTest {
     public void sendDeclaredAckForGlobalDispatching() {
         onDeclareAckLabels(CompletableFuture.completedStage(null));
         new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(actorSystem.actorOf(getProps("ack")));
-            final Acknowledgement ack =
-                    Acknowledgement.of(AcknowledgementLabel.of("ack"), ThingId.of("thing:id"), HttpStatusCode.OK,
-                            DittoHeaders.newBuilder().correlationId("corr:" + testName.getMethodName()).build());
+            final var underTest = watch(actorSystem.actorOf(getProps("ack")));
+            final var ack = Acknowledgement.of(AcknowledgementLabel.of("ack"), ThingId.of("thing:id"), HttpStatus.OK,
+                    DittoHeaders.newBuilder().correlationId("corr:" + testName.getMethodName()).build());
             underTest.tell(IncomingSignal.of(ack), ActorRef.noSender());
             commandRouterProbe.expectMsg(ack);
         }};
@@ -171,12 +166,12 @@ public final class StreamingSessionActorTest {
     public void sendMalformedAck() {
         onDeclareAckLabels(CompletableFuture.completedStage(null));
         new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(actorSystem.actorOf(getProps("ack")));
-            final Acknowledgement ack =
-                    Acknowledgement.of(AcknowledgementLabel.of("ack"), ThingId.of("thing:id"), HttpStatusCode.OK,
-                            DittoHeaders.empty());
+            final var underTest = watch(actorSystem.actorOf(getProps("ack")));
+            final var ack = Acknowledgement.of(AcknowledgementLabel.of("ack"), ThingId.of("thing:id"), HttpStatus.OK,
+                    DittoHeaders.empty());
             underTest.tell(IncomingSignal.of(ack), ActorRef.noSender());
-            final SessionedJsonifiable sessionedJsonifiable = sinkProbe.requestNext();
+            final var sessionedJsonifiable = sinkProbe.requestNext();
+
             assertThat(sessionedJsonifiable.getJsonifiable())
                     .isInstanceOf(AcknowledgementCorrelationIdMissingException.class);
         }};
@@ -186,12 +181,12 @@ public final class StreamingSessionActorTest {
     public void sendNonDeclaredAck() {
         onDeclareAckLabels(CompletableFuture.completedStage(null));
         new TestKit(actorSystem) {{
-            final ActorRef underTest = watch(actorSystem.actorOf(getProps("ack")));
-            final Acknowledgement ack =
-                    Acknowledgement.of(AcknowledgementLabel.of("ack2"), ThingId.of("thing:id"), HttpStatusCode.OK,
-                            DittoHeaders.empty());
+            final var underTest = watch(actorSystem.actorOf(getProps("ack")));
+            final var ack = Acknowledgement.of(AcknowledgementLabel.of("ack2"), ThingId.of("thing:id"), HttpStatus.OK,
+                    DittoHeaders.empty());
             underTest.tell(IncomingSignal.of(ack), ActorRef.noSender());
-            final SessionedJsonifiable sessionedJsonifiable = sinkProbe.requestNext();
+            final var sessionedJsonifiable = sinkProbe.requestNext();
+
             assertThat(sessionedJsonifiable.getJsonifiable())
                     .isInstanceOf(AcknowledgementLabelNotDeclaredException.class);
         }};

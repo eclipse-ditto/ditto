@@ -21,7 +21,7 @@ import java.time.Duration;
 import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.Test;
@@ -41,7 +41,7 @@ public final class AcknowledgementRequestTimeoutExceptionTest {
                             KNOWN_TIMEOUT.toMillis()))
             .set(DittoRuntimeException.JsonFields.DESCRIPTION,
                     AcknowledgementRequestTimeoutException.DEFAULT_DESCRIPTION)
-            .set(DittoRuntimeException.JsonFields.STATUS, HttpStatusCode.REQUEST_TIMEOUT.toInt())
+            .set(DittoRuntimeException.JsonFields.STATUS, HttpStatus.REQUEST_TIMEOUT.getCode())
             .build();
 
     @Test

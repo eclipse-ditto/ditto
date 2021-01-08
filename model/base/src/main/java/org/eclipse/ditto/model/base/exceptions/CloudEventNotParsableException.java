@@ -20,7 +20,7 @@
  import javax.annotation.concurrent.NotThreadSafe;
 
  import org.eclipse.ditto.json.JsonObject;
- import org.eclipse.ditto.model.base.common.HttpStatusCode;
+ import org.eclipse.ditto.model.base.common.HttpStatus;
  import org.eclipse.ditto.model.base.headers.DittoHeaders;
  import org.eclipse.ditto.model.base.json.JsonParsableException;
 
@@ -45,7 +45,7 @@
      private static final URI DEFAULT_URI =
              URI.create("https://github.com/cloudevents/spec/blob/v1.0/http-protocol-binding.md");
 
-     private static final HttpStatusCode STATUS_CODE = HttpStatusCode.BAD_REQUEST;
+     private static final HttpStatus HTTP_STATUS = HttpStatus.BAD_REQUEST;
 
      /**
       * Constructs a new {@code CloudEventNotParsableException} object.
@@ -62,7 +62,8 @@
              @Nullable final String description,
              @Nullable final Throwable cause,
              @Nullable final URI href) {
-         super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href == null ? DEFAULT_URI : href);
+
+         super(ERROR_CODE, HTTP_STATUS, dittoHeaders, message, description, cause, href == null ? DEFAULT_URI : href);
      }
 
      /**
@@ -93,6 +94,7 @@
       */
      public static CloudEventNotParsableException fromJson(final JsonObject jsonObject,
              final DittoHeaders dittoHeaders) {
+
          return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
      }
 
@@ -126,6 +128,7 @@
 
              return new CloudEventNotParsableException(dittoHeaders, message, description, cause, href);
          }
+
      }
 
  }

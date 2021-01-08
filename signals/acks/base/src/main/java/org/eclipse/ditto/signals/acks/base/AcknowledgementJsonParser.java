@@ -25,7 +25,8 @@ import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -56,11 +57,11 @@ public abstract class AcknowledgementJsonParser<I extends EntityIdWithType>
         final AcknowledgementLabel label = tryToGetAcknowledgementLabel(jsonObject);
         final I entityId = getEntityId(jsonObject);
         validateEntityType(getEntityType(jsonObject), entityId.getEntityType());
-        final HttpStatusCode statusCode = getStatusCode(jsonObject);
+        final HttpStatus httpStatus = getHttpStatus(jsonObject);
         final DittoHeaders dittoHeaders = getDittoHeaders(jsonObject);
         @Nullable final JsonValue payload = getPayloadOrNull(jsonObject);
 
-        return AcknowledgementFactory.newAcknowledgement(label, entityId, statusCode, dittoHeaders, payload);
+        return AcknowledgementFactory.newAcknowledgement(label, entityId, httpStatus, dittoHeaders, payload);
     }
 
     private static AcknowledgementLabel tryToGetAcknowledgementLabel(final JsonObject jsonObject) {
@@ -126,13 +127,14 @@ public abstract class AcknowledgementJsonParser<I extends EntityIdWithType>
         }
     }
 
-    private static HttpStatusCode getStatusCode(final JsonObject jsonObject) {
+    private static HttpStatus getHttpStatus(final JsonObject jsonObject) {
         final Integer statusCodeValue = jsonObject.getValueOrThrow(Acknowledgement.JsonFields.STATUS_CODE);
-        return HttpStatusCode.forInt(statusCodeValue)
-                .orElseThrow(() -> {
-                    final String msgPattern = "Status code <{0}> is not supported!";
-                    return new JsonParseException(MessageFormat.format(msgPattern, statusCodeValue));
-                });
+        try {
+            return HttpStatus.getInstance(statusCodeValue);
+        } catch (final HttpStatusCodeOutOfRangeException e) {
+            final String msgPattern = "Status code <{0}> is not supported!";
+            throw new JsonParseException(MessageFormat.format(msgPattern, statusCodeValue));
+        }
     }
 
     private static DittoHeaders getDittoHeaders(final JsonObject jsonObject) {

@@ -26,7 +26,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 
 /**
@@ -38,7 +39,7 @@ final class ImmutablePayload implements Payload {
     private final MessagePath path;
     @Nullable private final JsonValue value;
     @Nullable private final JsonObject extra;
-    @Nullable private final HttpStatusCode status;
+    @Nullable private final HttpStatus status;
     @Nullable private final Long revision;
     @Nullable private final Instant timestamp;
     @Nullable private final Metadata metadata;
@@ -78,7 +79,7 @@ final class ImmutablePayload implements Payload {
         final ImmutablePayloadBuilder payloadBuilder = getBuilder(JsonFactory.newPointer(readPath))
                 .withValue(jsonObject.getValue(JsonFields.VALUE).orElse(null))
                 .withExtra(jsonObject.getValue(JsonFields.EXTRA).orElse(null))
-                .withStatus(jsonObject.getValue(JsonFields.STATUS).flatMap(HttpStatusCode::forInt).orElse(null))
+                .withStatus(jsonObject.getValue(JsonFields.STATUS).flatMap(HttpStatus::tryGetInstance).orElse(null))
                 .withTimestamp(jsonObject.getValue(JsonFields.TIMESTAMP).map(Instant::parse).orElse(null))
                 .withMetadata(jsonObject.getValue(JsonFields.METADATA).map(Metadata::newMetadata).orElse(null))
                 .withFields(jsonObject.getValue(JsonFields.FIELDS)
@@ -106,7 +107,7 @@ final class ImmutablePayload implements Payload {
     }
 
     @Override
-    public Optional<HttpStatusCode> getStatus() {
+    public Optional<HttpStatus> getHttpStatus() {
         return Optional.ofNullable(status);
     }
 
@@ -142,7 +143,7 @@ final class ImmutablePayload implements Payload {
             jsonObjectBuilder.set(JsonFields.EXTRA, extra);
         }
         if (null != status) {
-            jsonObjectBuilder.set(JsonFields.STATUS, status.toInt());
+            jsonObjectBuilder.set(JsonFields.STATUS, status.getCode());
         }
         if (null != revision) {
             jsonObjectBuilder.set(JsonFields.REVISION, revision);
@@ -172,7 +173,7 @@ final class ImmutablePayload implements Payload {
         return Objects.equals(path, that.path)
                 && Objects.equals(value, that.value)
                 && Objects.equals(extra, that.extra)
-                && status == that.status
+                && Objects.equals(status, that.status)
                 && Objects.equals(revision, that.revision)
                 && Objects.equals(timestamp, that.timestamp)
                 && Objects.equals(metadata, that.metadata)
@@ -208,7 +209,7 @@ final class ImmutablePayload implements Payload {
 
         @Nullable private JsonValue value;
         @Nullable private JsonObject extra;
-        @Nullable private HttpStatusCode status;
+        @Nullable private HttpStatus status;
         @Nullable private Long revision;
         @Nullable private Instant timestamp;
         @Nullable private Metadata metadata;
@@ -243,15 +244,18 @@ final class ImmutablePayload implements Payload {
         }
 
         @Override
-        public ImmutablePayloadBuilder withStatus(final HttpStatusCode status) {
+        public ImmutablePayloadBuilder withStatus(@Nullable final HttpStatus status) {
             this.status = status;
             return this;
         }
 
         @Override
         public ImmutablePayloadBuilder withStatus(final int status) {
-            this.status = HttpStatusCode.forInt(status) //
-                    .orElseThrow(() -> new IllegalArgumentException("Status code not supported!"));
+            try {
+                this.status = HttpStatus.getInstance(status);
+            } catch (final HttpStatusCodeOutOfRangeException e) {
+                throw new IllegalArgumentException("Status code not supported!", e);
+            }
             return this;
         }
 

@@ -29,7 +29,8 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -103,7 +104,7 @@ public final class AcknowledgementsJsonParser<I extends EntityIdWithType>
             result = Acknowledgements.of(acknowledgements, dittoHeaders);
         }
         validateEntityType(entityType, result.getEntityType());
-        validateStatusCode(getStatusCode(jsonObject), result.getStatusCode());
+        validateHttpStatus(getHttpStatus(jsonObject), result.getHttpStatus());
         return result;
     }
 
@@ -169,19 +170,20 @@ public final class AcknowledgementsJsonParser<I extends EntityIdWithType>
         }
     }
 
-    private static HttpStatusCode getStatusCode(final JsonObject jsonObject) {
-        final Integer statusCodeValue = jsonObject.getValueOrThrow(Acknowledgements.JsonFields.STATUS_CODE);
-        return HttpStatusCode.forInt(statusCodeValue)
-                .orElseThrow(() -> {
-                    final String msgPattern = "Status code <{0}> is not supported!";
-                    return new JsonParseException(MessageFormat.format(msgPattern, statusCodeValue));
-                });
+    private static HttpStatus getHttpStatus(final JsonObject jsonObject) {
+        final Integer statusCode = jsonObject.getValueOrThrow(Acknowledgements.JsonFields.STATUS_CODE);
+        try {
+            return HttpStatus.getInstance(statusCode);
+        } catch (final HttpStatusCodeOutOfRangeException e) {
+            final String msgPattern = "Status code <{0}> is not supported!";
+            throw new JsonParseException(MessageFormat.format(msgPattern, statusCode));
+        }
     }
 
-    private static void validateStatusCode(final HttpStatusCode actual, final HttpStatusCode expected) {
-        if (actual != expected) {
+    private static void validateHttpStatus(final HttpStatus actual, final HttpStatus expected) {
+        if (!actual.equals(expected)) {
             final String msgPattern = "The read status code <{0}> differs from the expected <{1}>!";
-            throw new JsonParseException(MessageFormat.format(msgPattern, actual.toInt(), expected.toInt()));
+            throw new JsonParseException(MessageFormat.format(msgPattern, actual.getCode(), expected.getCode()));
         }
     }
 

@@ -44,7 +44,7 @@ import org.apache.qpid.jms.provider.amqp.message.AmqpJmsTextMessageFacade;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
@@ -362,7 +362,7 @@ public class AmqpPublisherActorTest extends AbstractPublisherActorTest {
         for (final Acknowledgement ack : acks.getSuccessfulAcknowledgements()) {
             System.out.println(ack);
             assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
-            assertThat(ack.getStatusCode()).isEqualTo(HttpStatusCode.OK);
+            assertThat(ack.getHttpStatus()).isEqualTo(HttpStatus.OK);
         }
     }
 

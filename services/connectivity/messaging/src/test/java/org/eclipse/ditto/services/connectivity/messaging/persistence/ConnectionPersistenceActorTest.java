@@ -31,7 +31,7 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import org.awaitility.Awaitility;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -227,7 +227,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             underTest.tell(testConnectionCausingFailure, getRef());
 
             final DittoRuntimeException exception =
-                    DittoRuntimeException.newBuilder("some.error", HttpStatusCode.BAD_REQUEST).build();
+                    DittoRuntimeException.newBuilder("some.error", HttpStatus.BAD_REQUEST).build();
             expectMsg(exception);
         }};
     }
@@ -242,7 +242,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
             underTest.tell(testConnectionCausingException, getRef());
 
             final DittoRuntimeException exception =
-                    DittoRuntimeException.newBuilder("some.error", HttpStatusCode.BAD_REQUEST).build();
+                    DittoRuntimeException.newBuilder("some.error", HttpStatus.BAD_REQUEST).build();
             expectMsg(exception);
         }};
     }

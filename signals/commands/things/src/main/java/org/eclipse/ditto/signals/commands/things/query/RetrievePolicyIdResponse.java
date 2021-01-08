@@ -27,7 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -36,14 +36,15 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link RetrievePolicyId} command.
  */
 @Immutable
 @JsonParsableCommandResponse(type = RetrievePolicyIdResponse.TYPE)
-public final class RetrievePolicyIdResponse extends AbstractCommandResponse<RetrievePolicyIdResponse> implements
-        ThingQueryCommandResponse<RetrievePolicyIdResponse> {
+public final class RetrievePolicyIdResponse extends AbstractCommandResponse<RetrievePolicyIdResponse>
+        implements ThingQueryCommandResponse<RetrievePolicyIdResponse> {
 
     /**
      * Type of this response.
@@ -56,8 +57,11 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
     private final ThingId thingId;
     private final PolicyId policyId;
 
-    private RetrievePolicyIdResponse(final ThingId thingId, final HttpStatusCode statusCode,
-            final PolicyId policyId, final DittoHeaders dittoHeaders) {
+    private RetrievePolicyIdResponse(final ThingId thingId,
+            final HttpStatus statusCode,
+            final PolicyId policyId,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thing ID");
         this.policyId = checkNotNull(policyId, "Policy ID");
@@ -78,6 +82,7 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
     @Deprecated
     public static RetrievePolicyIdResponse of(final String thingId, final String policyId,
             final DittoHeaders dittoHeaders) {
+
         return of(ThingId.of(thingId), PolicyId.of(policyId), dittoHeaders);
     }
 
@@ -92,7 +97,8 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
      */
     public static RetrievePolicyIdResponse of(final ThingId thingId, final PolicyId policyId,
             final DittoHeaders dittoHeaders) {
-        return new RetrievePolicyIdResponse(thingId, HttpStatusCode.OK, policyId, dittoHeaders);
+
+        return new RetrievePolicyIdResponse(thingId, HttpStatus.OK, policyId, dittoHeaders);
     }
 
     /**
@@ -122,9 +128,9 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
      */
     public static RetrievePolicyIdResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrievePolicyIdResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+                .deserialize(httpStatus -> {
                     final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
                     final String readPolicyId = jsonObject.getValueOrThrow(JSON_POLICY_ID);
                     final PolicyId policyId = PolicyId.of(readPolicyId);
@@ -192,14 +198,15 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, String.valueOf(thingId), predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, String.valueOf(thingId), predicate);
         jsonObjectBuilder.set(JSON_POLICY_ID, String.valueOf(policyId), predicate);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof RetrievePolicyIdResponse);
+        return other instanceof RetrievePolicyIdResponse;
     }
 
     @Override
@@ -211,8 +218,10 @@ public final class RetrievePolicyIdResponse extends AbstractCommandResponse<Retr
             return false;
         }
         final RetrievePolicyIdResponse that = (RetrievePolicyIdResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(policyId, that.policyId) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(policyId, that.policyId) &&
+                super.equals(o);
     }
 
     @Override

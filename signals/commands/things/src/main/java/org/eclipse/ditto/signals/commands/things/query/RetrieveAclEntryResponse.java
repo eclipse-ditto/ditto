@@ -27,7 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link RetrieveAclEntry} command.
@@ -47,8 +48,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 @Deprecated
 @Immutable
 @JsonParsableCommandResponse(type = RetrieveAclEntryResponse.TYPE)
-public final class RetrieveAclEntryResponse extends AbstractCommandResponse<RetrieveAclEntryResponse> implements
-        ThingQueryCommandResponse<RetrieveAclEntryResponse> {
+public final class RetrieveAclEntryResponse extends AbstractCommandResponse<RetrieveAclEntryResponse>
+        implements ThingQueryCommandResponse<RetrieveAclEntryResponse> {
 
     /**
      * Type of this response.
@@ -66,7 +67,7 @@ public final class RetrieveAclEntryResponse extends AbstractCommandResponse<Retr
     private final JsonObject aclEntryPermissions;
 
     private RetrieveAclEntryResponse(final ThingId thingId,
-            final HttpStatusCode statusCode,
+            final HttpStatus statusCode,
             final String aclEntrySubject,
             final JsonObject aclEntryPermissions,
             final DittoHeaders dittoHeaders) {
@@ -109,7 +110,9 @@ public final class RetrieveAclEntryResponse extends AbstractCommandResponse<Retr
             final DittoHeaders dittoHeaders) {
 
         checkNotNull(aclEntry, "AclEntry");
-        return new RetrieveAclEntryResponse(thingId, HttpStatusCode.OK, aclEntry.getAuthorizationSubject().getId(),
+        return new RetrieveAclEntryResponse(thingId,
+                HttpStatus.OK,
+                aclEntry.getAuthorizationSubject().getId(),
                 aclEntry.getPermissions()
                         .toJson(dittoHeaders.getSchemaVersion().orElse(aclEntry.getLatestSchemaVersion())),
                 dittoHeaders);
@@ -141,10 +144,11 @@ public final class RetrieveAclEntryResponse extends AbstractCommandResponse<Retr
      * format.
      */
     public static RetrieveAclEntryResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveAclEntryResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+        return new CommandResponseJsonDeserializer<RetrieveAclEntryResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
+
                     final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
                     final String aclEntrySubject = jsonObject.getValueOrThrow(JSON_ACL_ENTRY_SUBJECT);
                     final JsonObject aclEntryPermissions = jsonObject.getValueOrThrow(JSON_ACL_ENTRY_PERMISSIONS);
@@ -195,8 +199,9 @@ public final class RetrieveAclEntryResponse extends AbstractCommandResponse<Retr
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_ACL_ENTRY_SUBJECT, aclEntrySubject, predicate);
         jsonObjectBuilder.set(JSON_ACL_ENTRY_PERMISSIONS, aclEntryPermissions, predicate);
     }
@@ -225,9 +230,11 @@ public final class RetrieveAclEntryResponse extends AbstractCommandResponse<Retr
             return false;
         }
         final RetrieveAclEntryResponse that = (RetrieveAclEntryResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(aclEntrySubject, that.aclEntrySubject)
-                && Objects.equals(aclEntryPermissions, that.aclEntryPermissions) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(aclEntrySubject, that.aclEntrySubject) &&
+                Objects.equals(aclEntryPermissions, that.aclEntryPermissions) &&
+                super.equals(o);
     }
 
     @Override

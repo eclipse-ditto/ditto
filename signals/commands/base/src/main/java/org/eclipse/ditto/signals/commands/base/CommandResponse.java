@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -74,8 +75,18 @@ public interface CommandResponse<T extends CommandResponse<T>> extends Signal<T>
      * Codes (e.g.: {@literal 200} for "OK", {@literal 409} for "Conflict").
      *
      * @return the status code of the issued CommandType.
+     * @deprecated as of 2.0.0 please use {@link #getHttpStatus()} instead.
      */
+    @Deprecated
     HttpStatusCode getStatusCode();
+
+    /**
+     * Returns the HTTP status of the issued command.
+     *
+     * @return the status code of the issued command.
+     * @since 2.0.0
+     */
+    HttpStatus getHttpStatus();
 
     /**
      * This convenience method returns the status code value of the issued {@link Command}. The semantics of the codes
@@ -83,10 +94,12 @@ public interface CommandResponse<T extends CommandResponse<T>> extends Signal<T>
      *
      * @return the status code value of the issued CommandType.
      * @see #getStatusCode()
+     * @deprecated as of 2.0.0 please use {@link #getHttpStatus()}{@link HttpStatus#getCode() .getCode()} instead.
      */
+    @Deprecated
     default int getStatusCodeValue() {
-        final HttpStatusCode statusCode = getStatusCode();
-        return statusCode.toInt();
+        final HttpStatus httpStatus = getHttpStatus();
+        return httpStatus.getCode();
     }
 
     /**

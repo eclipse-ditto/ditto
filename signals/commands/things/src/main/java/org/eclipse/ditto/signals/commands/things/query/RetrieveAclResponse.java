@@ -27,7 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -38,6 +38,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link RetrieveAcl} command.
@@ -47,8 +48,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 @Deprecated
 @Immutable
 @JsonParsableCommandResponse(type = RetrieveAclResponse.TYPE)
-public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveAclResponse> implements
-        ThingQueryCommandResponse<RetrieveAclResponse> {
+public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveAclResponse>
+        implements ThingQueryCommandResponse<RetrieveAclResponse> {
 
     /**
      * Type of this response.
@@ -61,8 +62,9 @@ public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveA
     private final ThingId thingId;
     private final JsonObject acl;
 
-    private RetrieveAclResponse(final ThingId thingId, final HttpStatusCode statusCode, final JsonObject acl,
+    private RetrieveAclResponse(final ThingId thingId, final HttpStatus statusCode, final JsonObject acl,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thing ID");
         this.acl = checkNotNull(acl, "AccessControlList");
@@ -81,9 +83,7 @@ public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveA
      * instead.
      */
     @Deprecated
-    public static RetrieveAclResponse of(final String thingId, final JsonObject acl,
-            final DittoHeaders dittoHeaders) {
-
+    public static RetrieveAclResponse of(final String thingId, final JsonObject acl, final DittoHeaders dittoHeaders) {
         return of(ThingId.of(thingId), acl, dittoHeaders);
     }
 
@@ -96,9 +96,8 @@ public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveA
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveAclResponse of(final ThingId thingId, final JsonObject acl,
-            final DittoHeaders dittoHeaders) {
-        return new RetrieveAclResponse(thingId, HttpStatusCode.OK, acl, dittoHeaders);
+    public static RetrieveAclResponse of(final ThingId thingId, final JsonObject acl, final DittoHeaders dittoHeaders) {
+        return new RetrieveAclResponse(thingId, HttpStatus.OK, acl, dittoHeaders);
     }
 
     /**
@@ -116,6 +115,7 @@ public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveA
     @Deprecated
     public static RetrieveAclResponse of(final String thingId, final AccessControlList acl,
             final DittoHeaders dittoHeaders) {
+
         return of(ThingId.of(thingId), acl, dittoHeaders);
     }
 
@@ -130,9 +130,11 @@ public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveA
      */
     public static RetrieveAclResponse of(final ThingId thingId, final AccessControlList acl,
             final DittoHeaders dittoHeaders) {
-        return new RetrieveAclResponse(thingId, HttpStatusCode.OK,
-                checkNotNull(acl, "AccessControlList")
-                        .toJson(dittoHeaders.getSchemaVersion().orElse(acl.getLatestSchemaVersion())),
+
+        return new RetrieveAclResponse(thingId,
+                HttpStatus.OK,
+                checkNotNull(acl, "AccessControlList").toJson(dittoHeaders.getSchemaVersion()
+                        .orElse(acl.getLatestSchemaVersion())),
                 dittoHeaders);
     }
 
@@ -163,9 +165,9 @@ public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveA
      */
     public static RetrieveAclResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveAclResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+                .deserialize(httpStatus -> {
                     final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
                     final JsonObject aclJsonObject = jsonObject.getValueOrThrow(JSON_ACL);
                     final AccessControlList extractedAcl = ThingsModelFactory.newAcl(aclJsonObject);
@@ -212,8 +214,9 @@ public final class RetrieveAclResponse extends AbstractCommandResponse<RetrieveA
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_ACL, acl, predicate);
     }
 

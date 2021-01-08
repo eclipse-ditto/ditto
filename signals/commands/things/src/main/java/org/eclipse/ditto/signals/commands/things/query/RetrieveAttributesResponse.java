@@ -27,7 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -37,14 +37,15 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link RetrieveAttributes} command.
  */
 @Immutable
 @JsonParsableCommandResponse(type = RetrieveAttributesResponse.TYPE)
-public final class RetrieveAttributesResponse extends AbstractCommandResponse<RetrieveAttributesResponse> implements
-        ThingQueryCommandResponse<RetrieveAttributesResponse> {
+public final class RetrieveAttributesResponse extends AbstractCommandResponse<RetrieveAttributesResponse>
+        implements ThingQueryCommandResponse<RetrieveAttributesResponse> {
 
     /**
      * Type of this response.
@@ -60,7 +61,8 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
 
     private RetrieveAttributesResponse(final ThingId thingId, final Attributes attributes,
             final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+
+        super(TYPE, HttpStatus.OK, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thing ID");
         this.attributes = checkNotNull(attributes, "Attributes");
     }
@@ -80,6 +82,7 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
     @Deprecated
     public static RetrieveAttributesResponse of(final String thingId, final Attributes attributes,
             final DittoHeaders dittoHeaders) {
+
         return of(ThingId.of(thingId), attributes, dittoHeaders);
     }
 
@@ -94,6 +97,7 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
      */
     public static RetrieveAttributesResponse of(final ThingId thingId, final Attributes attributes,
             final DittoHeaders dittoHeaders) {
+
         return new RetrieveAttributesResponse(thingId, attributes, dittoHeaders);
     }
 
@@ -113,7 +117,7 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
     public static RetrieveAttributesResponse of(final String thingId, @Nullable final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        final Attributes attributes = (null != jsonObject)
+        final Attributes attributes = null != jsonObject
                 ? ThingsModelFactory.newAttributes(jsonObject)
                 : ThingsModelFactory.nullAttributes();
 
@@ -132,7 +136,7 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
     public static RetrieveAttributesResponse of(final ThingId thingId, @Nullable final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        final Attributes attributes = (null != jsonObject)
+        final Attributes attributes = null != jsonObject
                 ? ThingsModelFactory.newAttributes(jsonObject)
                 : ThingsModelFactory.nullAttributes();
 
@@ -164,12 +168,11 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static RetrieveAttributesResponse fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveAttributesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+    public static RetrieveAttributesResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandResponseJsonDeserializer<RetrieveAttributesResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
                     final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
                     final JsonObject attributesJsonObject = jsonObject.getValueOrThrow(JSON_ATTRIBUTES);
                     final Attributes extractedAttributes = ThingsModelFactory.newAttributes(attributesJsonObject);
@@ -216,14 +219,15 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_ATTRIBUTES, attributes, predicate);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof RetrieveAttributesResponse);
+        return other instanceof RetrieveAttributesResponse;
     }
 
     @Override
@@ -235,8 +239,10 @@ public final class RetrieveAttributesResponse extends AbstractCommandResponse<Re
             return false;
         }
         final RetrieveAttributesResponse that = (RetrieveAttributesResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(attributes, that.attributes) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(attributes, that.attributes) &&
+                super.equals(o);
     }
 
     @Override

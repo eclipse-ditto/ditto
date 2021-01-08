@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -38,14 +38,15 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link ModifyPolicyId} command.
  */
 @Immutable
 @JsonParsableCommandResponse(type = ModifyPolicyIdResponse.TYPE)
-public final class ModifyPolicyIdResponse extends AbstractCommandResponse<ModifyPolicyIdResponse> implements
-        ThingModifyCommandResponse<ModifyPolicyIdResponse> {
+public final class ModifyPolicyIdResponse extends AbstractCommandResponse<ModifyPolicyIdResponse>
+        implements ThingModifyCommandResponse<ModifyPolicyIdResponse> {
 
     /**
      * Type of this response.
@@ -59,8 +60,11 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
     private final ThingId thingId;
     @Nullable private final PolicyId policyId;
 
-    private ModifyPolicyIdResponse(final ThingId thingId, final HttpStatusCode statusCode,
-            @Nullable final PolicyId policyId, final DittoHeaders dittoHeaders) {
+    private ModifyPolicyIdResponse(final ThingId thingId,
+            final HttpStatus statusCode,
+            @Nullable final PolicyId policyId,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.policyId = policyId;
@@ -78,7 +82,7 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
 
     /**
      * Returns a new {@code ModifyPolicyIdResponse} for a created Policy ID. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#CREATED}.
+     * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created policy ID.
      * @param policyId the created Policy ID.
@@ -92,12 +96,13 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
     @Deprecated
     public static ModifyPolicyIdResponse created(final String thingId, final String policyId,
             final DittoHeaders dittoHeaders) {
+
         return created(ThingId.of(thingId), PolicyId.of(policyId), dittoHeaders);
     }
 
     /**
      * Returns a new {@code ModifyPolicyIdResponse} for a created Policy ID. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#CREATED}.
+     * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created policy ID.
      * @param policyId the created Policy ID.
@@ -107,12 +112,13 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
      */
     public static ModifyPolicyIdResponse created(final ThingId thingId, final PolicyId policyId,
             final DittoHeaders dittoHeaders) {
-        return new ModifyPolicyIdResponse(thingId, HttpStatusCode.CREATED, policyId, dittoHeaders);
+
+        return new ModifyPolicyIdResponse(thingId, HttpStatus.CREATED, policyId, dittoHeaders);
     }
 
     /**
      * Returns a new {@code ModifyPolicyIdResponse} for a modified Policy ID. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#NO_CONTENT}.
+     * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified policy ID.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
@@ -129,7 +135,7 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
 
     /**
      * Returns a new {@code ModifyPolicyIdResponse} for a modified Policy ID. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#NO_CONTENT}.
+     * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified policy ID.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
@@ -137,7 +143,7 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
     public static ModifyPolicyIdResponse modified(final ThingId thingId, final DittoHeaders dittoHeaders) {
-        return new ModifyPolicyIdResponse(thingId, HttpStatusCode.NO_CONTENT, null, dittoHeaders);
+        return new ModifyPolicyIdResponse(thingId, HttpStatus.NO_CONTENT, null, dittoHeaders);
     }
 
     /**
@@ -166,18 +172,14 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
      * format.
      */
     public static ModifyPolicyIdResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ModifyPolicyIdResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
-                    final ThingId thingId = ThingId.of(extractedThingId);
-                    final String extractedPolicyId = jsonObject.getValue(JSON_POLICY_ID).orElse(null);
-                    final PolicyId thingPolicyId = extractedPolicyId == null ?
-                            null :
-                            PolicyId.of(extractedPolicyId);
+        return new CommandResponseJsonDeserializer<ModifyPolicyIdResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
+            final String extractedPolicyId = jsonObject.getValue(JSON_POLICY_ID).orElse(null);
+            final PolicyId thingPolicyId = extractedPolicyId == null ? null : PolicyId.of(extractedPolicyId);
 
-                    return new ModifyPolicyIdResponse(thingId, statusCode, thingPolicyId, dittoHeaders);
-                });
+            return new ModifyPolicyIdResponse(thingId, httpStatus, thingPolicyId, dittoHeaders);
+        });
     }
 
     @Override
@@ -220,7 +222,7 @@ public final class ModifyPolicyIdResponse extends AbstractCommandResponse<Modify
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         if (policyId != null) {
             jsonObjectBuilder.set(JSON_POLICY_ID, String.valueOf(policyId), predicate);
         }

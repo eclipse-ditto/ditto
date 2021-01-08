@@ -29,7 +29,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -40,6 +40,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link ModifyAclEntry} command.
@@ -49,8 +50,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 @Deprecated
 @Immutable
 @JsonParsableCommandResponse(type = ModifyAclEntryResponse.TYPE)
-public final class ModifyAclEntryResponse extends AbstractCommandResponse<ModifyAclEntryResponse> implements
-        ThingModifyCommandResponse<ModifyAclEntryResponse> {
+public final class ModifyAclEntryResponse extends AbstractCommandResponse<ModifyAclEntryResponse>
+        implements ThingModifyCommandResponse<ModifyAclEntryResponse> {
 
     /**
      * Type of this response.
@@ -63,8 +64,9 @@ public final class ModifyAclEntryResponse extends AbstractCommandResponse<Modify
     private final ThingId thingId;
     private final AclEntry modifiedAclEntry;
 
-    private ModifyAclEntryResponse(final ThingId thingId, final AclEntry modifiedAclEntry,
-            final HttpStatusCode statusCode,
+    private ModifyAclEntryResponse(final ThingId thingId,
+            final AclEntry modifiedAclEntry,
+            final HttpStatus statusCode,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, statusCode, dittoHeaders);
@@ -74,7 +76,7 @@ public final class ModifyAclEntryResponse extends AbstractCommandResponse<Modify
 
     /**
      * Returns a new {@code ModifyAclEntryResponse} for a created AclEntry. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#CREATED}.
+     * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created ACL entry.
      * @param aclEntry the created AclEntry.
@@ -88,12 +90,13 @@ public final class ModifyAclEntryResponse extends AbstractCommandResponse<Modify
     @Deprecated
     public static ModifyAclEntryResponse created(final String thingId, final AclEntry aclEntry,
             final DittoHeaders dittoHeaders) {
+
         return created(ThingId.of(thingId), aclEntry, dittoHeaders);
     }
 
     /**
      * Returns a new {@code ModifyAclEntryResponse} for a created AclEntry. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#CREATED}.
+     * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created ACL entry.
      * @param aclEntry the created AclEntry.
@@ -103,12 +106,13 @@ public final class ModifyAclEntryResponse extends AbstractCommandResponse<Modify
      */
     public static ModifyAclEntryResponse created(final ThingId thingId, final AclEntry aclEntry,
             final DittoHeaders dittoHeaders) {
-        return new ModifyAclEntryResponse(thingId, aclEntry, HttpStatusCode.CREATED, dittoHeaders);
+
+        return new ModifyAclEntryResponse(thingId, aclEntry, HttpStatus.CREATED, dittoHeaders);
     }
 
     /**
      * Returns a new {@code ModifyAclEntryResponse} for a modified AclEntry. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#NO_CONTENT}.
+     * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified ACL entry.
      * @param aclEntry the modified AclEntry.
@@ -122,12 +126,13 @@ public final class ModifyAclEntryResponse extends AbstractCommandResponse<Modify
     @Deprecated
     public static ModifyAclEntryResponse modified(final String thingId, final AclEntry aclEntry,
             final DittoHeaders dittoHeaders) {
+
         return modified(ThingId.of(thingId), aclEntry, dittoHeaders);
     }
 
     /**
      * Returns a new {@code ModifyAclEntryResponse} for a modified AclEntry. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#NO_CONTENT}.
+     * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified ACL entry.
      * @param aclEntry the modified AclEntry.
@@ -137,7 +142,8 @@ public final class ModifyAclEntryResponse extends AbstractCommandResponse<Modify
      */
     public static ModifyAclEntryResponse modified(final ThingId thingId, final AclEntry aclEntry,
             final DittoHeaders dittoHeaders) {
-        return new ModifyAclEntryResponse(thingId, aclEntry, HttpStatusCode.NO_CONTENT, dittoHeaders);
+
+        return new ModifyAclEntryResponse(thingId, aclEntry, HttpStatus.NO_CONTENT, dittoHeaders);
     }
 
     /**
@@ -166,16 +172,14 @@ public final class ModifyAclEntryResponse extends AbstractCommandResponse<Modify
      * format.
      */
     public static ModifyAclEntryResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ModifyAclEntryResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
-                    final ThingId thingId = ThingId.of(extractedThingId);
-                    final JsonObject aclEntryJsonObject = jsonObject.getValueOrThrow(JSON_ACL_ENTRY);
-                    final AclEntry extractedAclEntry = ThingsModelFactory.newAclEntry(aclEntryJsonObject);
+        return new CommandResponseJsonDeserializer<ModifyAclEntryResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
+            final JsonObject aclEntryJsonObject = jsonObject.getValueOrThrow(JSON_ACL_ENTRY);
+            final AclEntry extractedAclEntry = ThingsModelFactory.newAclEntry(aclEntryJsonObject);
 
-                    return new ModifyAclEntryResponse(thingId, extractedAclEntry, statusCode, dittoHeaders);
-                });
+            return new ModifyAclEntryResponse(thingId, extractedAclEntry, httpStatus, dittoHeaders);
+        });
     }
 
     @Override
@@ -202,7 +206,7 @@ public final class ModifyAclEntryResponse extends AbstractCommandResponse<Modify
     }
 
     private boolean isCreated() {
-        return HttpStatusCode.CREATED == getStatusCode();
+        return HttpStatus.CREATED.equals(getHttpStatus());
     }
 
     @Override
@@ -216,13 +220,13 @@ public final class ModifyAclEntryResponse extends AbstractCommandResponse<Modify
             final Predicate<JsonField> predicate) {
 
         final Predicate<JsonField> p = schemaVersion.and(predicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), p);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), p);
         jsonObjectBuilder.set(JSON_ACL_ENTRY, modifiedAclEntry.toJson(schemaVersion, predicate), p);
     }
 
     @Override
     public ModifyAclEntryResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new ModifyAclEntryResponse(thingId, modifiedAclEntry, getStatusCode(), dittoHeaders);
+        return new ModifyAclEntryResponse(thingId, modifiedAclEntry, getHttpStatus(), dittoHeaders);
     }
 
     /**
@@ -244,8 +248,10 @@ public final class ModifyAclEntryResponse extends AbstractCommandResponse<Modify
             return false;
         }
         final ModifyAclEntryResponse that = (ModifyAclEntryResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(modifiedAclEntry, that.modifiedAclEntry) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(modifiedAclEntry, that.modifiedAclEntry) &&
+                super.equals(o);
     }
 
     @Override

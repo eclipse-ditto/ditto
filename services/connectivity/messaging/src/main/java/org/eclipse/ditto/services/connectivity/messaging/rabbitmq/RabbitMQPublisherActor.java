@@ -41,7 +41,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -287,7 +287,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
     private static Acknowledgement getTimeoutAck(final Signal<?> signal, @Nullable final Target autoAckTarget,
             final ExpressionResolver connectionIdResolver) {
-        return buildAcknowledgement(signal, autoAckTarget, HttpStatusCode.REQUEST_TIMEOUT,
+        return buildAcknowledgement(signal, autoAckTarget, HttpStatus.REQUEST_TIMEOUT,
                 "No publisher confirm arrived.", connectionIdResolver);
     }
 
@@ -295,7 +295,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
             final ExpressionResolver connectionIdResolver) {
         if (autoAckTarget != null && autoAckTarget.getIssuedAcknowledgementLabel().isPresent()) {
             // Not possible to recover without broker upgrade. Use status 400 to prevent redelivery at the source.
-            return buildAcknowledgement(signal, autoAckTarget, HttpStatusCode.BAD_REQUEST,
+            return buildAcknowledgement(signal, autoAckTarget, HttpStatus.BAD_REQUEST,
                     "The external broker does not support RabbitMQ publisher confirms. " +
                             "Acknowledgement is not possible.", connectionIdResolver);
         } else {
@@ -305,11 +305,11 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
 
     private static Acknowledgement getSuccessAck(final Signal<?> signal, @Nullable final Target autoAckTarget,
             final ExpressionResolver connectionIdResolver) {
-        return buildAcknowledgement(signal, autoAckTarget, HttpStatusCode.OK, null, connectionIdResolver);
+        return buildAcknowledgement(signal, autoAckTarget, HttpStatus.OK, null, connectionIdResolver);
     }
 
     private static Acknowledgement buildAcknowledgement(final Signal<?> signal, @Nullable final Target autoAckTarget,
-            final HttpStatusCode statusCode, @Nullable final String message,
+            final HttpStatus statusCode, @Nullable final String message,
             final ExpressionResolver connectionIdResolver) {
 
         final AcknowledgementLabel label =
@@ -512,7 +512,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         }
 
         private Acknowledgement getFailureAck(final Signal<?> signal, @Nullable final Target target) {
-            return buildAcknowledgement(signal, target, HttpStatusCode.SERVICE_UNAVAILABLE,
+            return buildAcknowledgement(signal, target, HttpStatus.SERVICE_UNAVAILABLE,
                     "Received negative confirm from the external broker.", connectionIdResolver);
         }
 
@@ -525,7 +525,7 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                 final int replyCode,
                 final String replyText) {
 
-            return buildAcknowledgement(signal, autoAckTarget, HttpStatusCode.SERVICE_UNAVAILABLE,
+            return buildAcknowledgement(signal, autoAckTarget, HttpStatus.SERVICE_UNAVAILABLE,
                     String.format("Received basic.return from the external broker: %d %s", replyCode, replyText),
                     connectionIdResolver);
         }

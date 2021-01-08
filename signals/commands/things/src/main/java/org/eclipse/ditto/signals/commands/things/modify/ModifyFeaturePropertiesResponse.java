@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
-import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
@@ -29,7 +28,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -39,6 +38,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link ModifyFeatureProperties} command.
@@ -65,18 +65,21 @@ public final class ModifyFeaturePropertiesResponse extends AbstractCommandRespon
     private final String featureId;
     @Nullable private final FeatureProperties featurePropertiesCreated;
 
-    private ModifyFeaturePropertiesResponse(final ThingId thingId, final String featureId,
+    private ModifyFeaturePropertiesResponse(final ThingId thingId,
+            final String featureId,
             @Nullable final FeatureProperties featurePropertiesCreated,
-            final HttpStatusCode statusCode, final DittoHeaders dittoHeaders) {
+            final HttpStatus statusCode,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, statusCode, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
-        this.featureId = requireNonNull(featureId, "The Feature ID must not be null!");
+        this.featureId = checkNotNull(featureId, "The Feature ID must not be null!");
         this.featurePropertiesCreated = featurePropertiesCreated;
     }
 
     /**
      * Returns a new {@code ModifyFeaturePropertiesResponse} for a created FeatureProperties. This corresponds to the
-     * HTTP status code {@link HttpStatusCode#CREATED}.
+     * HTTP status code {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created feature properties.
      * @param featureId the {@code Feature}'s ID whose Properties were created.
@@ -89,14 +92,17 @@ public final class ModifyFeaturePropertiesResponse extends AbstractCommandRespon
      * instead.
      */
     @Deprecated
-    public static ModifyFeaturePropertiesResponse created(final String thingId, final String featureId,
-            final FeatureProperties featureProperties, final DittoHeaders dittoHeaders) {
+    public static ModifyFeaturePropertiesResponse created(final String thingId,
+            final String featureId,
+            final FeatureProperties featureProperties,
+            final DittoHeaders dittoHeaders) {
+
         return created(ThingId.of(thingId), featureId, featureProperties, dittoHeaders);
     }
 
     /**
      * Returns a new {@code ModifyFeaturePropertiesResponse} for a created FeatureProperties. This corresponds to the
-     * HTTP status code {@link HttpStatusCode#CREATED}.
+     * HTTP status code {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created feature properties.
      * @param featureId the {@code Feature}'s ID whose Properties were created.
@@ -105,15 +111,18 @@ public final class ModifyFeaturePropertiesResponse extends AbstractCommandRespon
      * @return a command response for a created FeatureProperties.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ModifyFeaturePropertiesResponse created(final ThingId thingId, final String featureId,
-            final FeatureProperties featureProperties, final DittoHeaders dittoHeaders) {
-        return new ModifyFeaturePropertiesResponse(thingId, featureId, featureProperties, HttpStatusCode.CREATED,
+    public static ModifyFeaturePropertiesResponse created(final ThingId thingId,
+            final String featureId,
+            final FeatureProperties featureProperties,
+            final DittoHeaders dittoHeaders) {
+
+        return new ModifyFeaturePropertiesResponse(thingId, featureId, featureProperties, HttpStatus.CREATED,
                 dittoHeaders);
     }
 
     /**
      * Returns a new {@code ModifyFeaturePropertiesResponse} for a modified FeatureProperties. This corresponds to the
-     * HTTP status code {@link HttpStatusCode#NO_CONTENT}.
+     * HTTP status code {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified feature properties.
      * @param featureId the {@code Feature}'s ID whose Properties were modified.
@@ -133,7 +142,7 @@ public final class ModifyFeaturePropertiesResponse extends AbstractCommandRespon
 
     /**
      * Returns a new {@code ModifyFeaturePropertiesResponse} for a modified FeatureProperties. This corresponds to the
-     * HTTP status code {@link HttpStatusCode#NO_CONTENT}.
+     * HTTP status code {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified feature properties.
      * @param featureId the {@code Feature}'s ID whose Properties were modified.
@@ -143,7 +152,8 @@ public final class ModifyFeaturePropertiesResponse extends AbstractCommandRespon
      */
     public static ModifyFeaturePropertiesResponse modified(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
-        return new ModifyFeaturePropertiesResponse(thingId, featureId, null, HttpStatusCode.NO_CONTENT, dittoHeaders);
+
+        return new ModifyFeaturePropertiesResponse(thingId, featureId, null, HttpStatus.NO_CONTENT, dittoHeaders);
     }
 
     /**
@@ -157,8 +167,7 @@ public final class ModifyFeaturePropertiesResponse extends AbstractCommandRespon
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      */
-    public static ModifyFeaturePropertiesResponse fromJson(final String jsonString,
-            final DittoHeaders dittoHeaders) {
+    public static ModifyFeaturePropertiesResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
@@ -174,10 +183,11 @@ public final class ModifyFeaturePropertiesResponse extends AbstractCommandRespon
      */
     public static ModifyFeaturePropertiesResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ModifyFeaturePropertiesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+
+        return new CommandResponseJsonDeserializer<ModifyFeaturePropertiesResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
                     final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
 
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
@@ -186,7 +196,7 @@ public final class ModifyFeaturePropertiesResponse extends AbstractCommandRespon
                             .orElse(null);
 
                     return new ModifyFeaturePropertiesResponse(thingId, extractedFeatureId, extractedFeatureCreated,
-                            statusCode, dittoHeaders);
+                            httpStatus, dittoHeaders);
                 });
     }
 
@@ -227,8 +237,9 @@ public final class ModifyFeaturePropertiesResponse extends AbstractCommandRespon
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
         if (null != featurePropertiesCreated) {
             jsonObjectBuilder.set(JSON_FEATURE_PROPERTIES, featurePropertiesCreated.toJson(schemaVersion, thePredicate),
@@ -238,9 +249,9 @@ public final class ModifyFeaturePropertiesResponse extends AbstractCommandRespon
 
     @Override
     public ModifyFeaturePropertiesResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return featurePropertiesCreated != null ?
-                created(thingId, featureId, featurePropertiesCreated, dittoHeaders) :
-                modified(thingId, featureId, dittoHeaders);
+        return featurePropertiesCreated != null
+                ? created(thingId, featureId, featurePropertiesCreated, dittoHeaders)
+                : modified(thingId, featureId, dittoHeaders);
     }
 
     @Override
@@ -257,9 +268,11 @@ public final class ModifyFeaturePropertiesResponse extends AbstractCommandRespon
             return false;
         }
         final ModifyFeaturePropertiesResponse that = (ModifyFeaturePropertiesResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(featureId, that.featureId)
-                && Objects.equals(featurePropertiesCreated, that.featurePropertiesCreated) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(featureId, that.featureId) &&
+                Objects.equals(featurePropertiesCreated, that.featurePropertiesCreated) &&
+                super.equals(o);
     }
 
     @Override

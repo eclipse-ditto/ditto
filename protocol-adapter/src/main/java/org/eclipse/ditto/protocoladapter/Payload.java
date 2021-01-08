@@ -25,6 +25,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -100,8 +101,20 @@ public interface Payload extends Jsonifiable<JsonObject> {
      * Returns the {@code status} of this {@code Payload} if present.
      *
      * @return the optional status.
+     * @deprecated as of 2.0.0 please use {@link #getHttpStatus()} instead.
      */
-    Optional<HttpStatusCode> getStatus();
+    @Deprecated
+    default Optional<HttpStatusCode> getStatus() {
+        return getHttpStatus().map(HttpStatus::getCode).flatMap(HttpStatusCode::forInt);
+    }
+
+    /**
+     * Returns the {@code status} of this {@code Payload} if present.
+     *
+     * @return the optional status.
+     * @since 2.0.0
+     */
+    Optional<HttpStatus> getHttpStatus();
 
     /**
      * Returns the {@code revision} of this {@code Payload} if present.

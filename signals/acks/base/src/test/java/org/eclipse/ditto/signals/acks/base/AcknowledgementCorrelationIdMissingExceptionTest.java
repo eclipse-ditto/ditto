@@ -17,7 +17,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.Rule;
@@ -34,7 +34,7 @@ public final class AcknowledgementCorrelationIdMissingExceptionTest {
             .set(DittoRuntimeException.JsonFields.MESSAGE, AcknowledgementCorrelationIdMissingException.DEFAULT_MESSAGE)
             .set(DittoRuntimeException.JsonFields.DESCRIPTION,
                     AcknowledgementCorrelationIdMissingException.DEFAULT_DESCRIPTION)
-            .set(DittoRuntimeException.JsonFields.STATUS, HttpStatusCode.BAD_REQUEST.toInt())
+            .set(DittoRuntimeException.JsonFields.STATUS, HttpStatus.BAD_REQUEST.getCode())
             .build();
 
     @Rule

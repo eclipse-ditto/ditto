@@ -19,7 +19,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
@@ -41,7 +41,7 @@ import org.junit.Test;
 public final class AcknowledgementsAdapterTest implements ProtocolAdapterTest {
 
     private static final AcknowledgementLabel KNOWN_CUSTOM_LABEL = AcknowledgementLabel.of("success-ack");
-    private static final HttpStatusCode KNOWN_STATUS = HttpStatusCode.CREATED;
+    private static final HttpStatus KNOWN_STATUS = HttpStatus.CREATED;
     private static final DittoHeaders KNOWN_HEADERS = DittoHeaders.newBuilder()
             .correlationId("foobar")
             .responseRequired(false)
@@ -57,7 +57,7 @@ public final class AcknowledgementsAdapterTest implements ProtocolAdapterTest {
                     KNOWN_PAYLOAD);
 
     private static final AcknowledgementLabel KNOWN_CUSTOM_LABEL_2 = AcknowledgementLabel.of("error-ack");
-    private static final HttpStatusCode KNOWN_STATUS_2 = HttpStatusCode.CONFLICT;
+    private static final HttpStatus KNOWN_STATUS_2 = HttpStatus.CONFLICT;
     private static final DittoHeaders KNOWN_HEADERS_2 = DittoHeaders.newBuilder()
             .correlationId("foobar")
             .responseRequired(false)
@@ -71,7 +71,7 @@ public final class AcknowledgementsAdapterTest implements ProtocolAdapterTest {
                     KNOWN_PAYLOAD_2);
 
     private static final AcknowledgementLabel KNOWN_CUSTOM_LABEL_3 = AcknowledgementLabel.of("second-success-ack");
-    private static final HttpStatusCode KNOWN_STATUS_3 = HttpStatusCode.NO_CONTENT;
+    private static final HttpStatus KNOWN_STATUS_3 = HttpStatus.NO_CONTENT;
     private static final DittoHeaders KNOWN_HEADERS_3 = DittoHeaders.newBuilder()
             .correlationId("foobar")
             .responseRequired(false)
@@ -109,10 +109,10 @@ public final class AcknowledgementsAdapterTest implements ProtocolAdapterTest {
         final Adaptable adaptable = Adaptable.newBuilder(topicPathMyCustomAck)
                 .withHeaders(KNOWN_HEADERS)
                 .withPayload(Payload.newBuilder(JsonPointer.empty())
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(JsonObject.newBuilder()
                                 .set(KNOWN_CUSTOM_LABEL, JsonObject.newBuilder()
-                                        .set("status", KNOWN_STATUS.toInt())
+                                        .set("status", KNOWN_STATUS.getCode())
                                         .set("payload", KNOWN_PAYLOAD)
                                         .build())
                                 .build())
@@ -137,7 +137,7 @@ public final class AcknowledgementsAdapterTest implements ProtocolAdapterTest {
                         .withStatus(KNOWN_STATUS_2)
                         .withValue(JsonObject.newBuilder()
                                 .set(KNOWN_CUSTOM_LABEL_2, JsonObject.newBuilder()
-                                        .set("status", KNOWN_STATUS_2.toInt())
+                                        .set("status", KNOWN_STATUS_2.getCode())
                                         .set("headers", KNOWN_HEADERS_2.toJson())
                                         .build())
                                 .build())
@@ -157,17 +157,17 @@ public final class AcknowledgementsAdapterTest implements ProtocolAdapterTest {
                 .withPayload(Payload.newBuilder(JsonPointer.empty())
                         .withValue(JsonObject.newBuilder()
                                 .set(KNOWN_CUSTOM_LABEL, JsonObject.newBuilder()
-                                        .set("status", KNOWN_STATUS.toInt())
+                                        .set("status", KNOWN_STATUS.getCode())
                                         .set("payload", KNOWN_PAYLOAD)
                                         .set("headers", KNOWN_HEADERS.toJson())
                                         .build())
                                 .set(KNOWN_CUSTOM_LABEL_2, JsonObject.newBuilder()
-                                        .set("status", KNOWN_STATUS_2.toInt())
+                                        .set("status", KNOWN_STATUS_2.getCode())
                                         .set("headers", KNOWN_HEADERS_2.toJson())
                                         .build())
                                 .build()
                         )
-                        .withStatus(HttpStatusCode.FAILED_DEPENDENCY)
+                        .withStatus(HttpStatus.FAILED_DEPENDENCY)
                         .build())
                 .build();
 
@@ -186,15 +186,15 @@ public final class AcknowledgementsAdapterTest implements ProtocolAdapterTest {
 
         final Adaptable expected = Adaptable.newBuilder(topicPathMyCustomAck)
                 .withPayload(Payload.newBuilder(JsonPointer.empty())
-                        .withStatus(HttpStatusCode.FAILED_DEPENDENCY)
+                        .withStatus(HttpStatus.FAILED_DEPENDENCY)
                         .withValue(JsonObject.newBuilder()
                                 .set(KNOWN_CUSTOM_LABEL, JsonObject.newBuilder()
-                                        .set("status", KNOWN_STATUS.toInt())
+                                        .set("status", KNOWN_STATUS.getCode())
                                         .set("payload", KNOWN_PAYLOAD)
                                         .set("headers", KNOWN_HEADERS.toJson())
                                         .build())
                                 .set(KNOWN_CUSTOM_LABEL_2, JsonObject.newBuilder()
-                                        .set("status", KNOWN_STATUS_2.toInt())
+                                        .set("status", KNOWN_STATUS_2.getCode())
                                         .set("headers", KNOWN_HEADERS_2.toJson())
                                         .build())
                                 .build()
@@ -214,18 +214,18 @@ public final class AcknowledgementsAdapterTest implements ProtocolAdapterTest {
                 .withPayload(Payload.newBuilder(JsonPointer.empty())
                         .withValue(JsonObject.newBuilder()
                                 .set(KNOWN_CUSTOM_LABEL, JsonObject.newBuilder()
-                                        .set("status", KNOWN_STATUS.toInt())
+                                        .set("status", KNOWN_STATUS.getCode())
                                         .set("payload", KNOWN_PAYLOAD)
                                         .set("headers", KNOWN_HEADERS.toJson())
                                         .build())
                                 .set(KNOWN_CUSTOM_LABEL_3, JsonObject.newBuilder()
-                                        .set("status", KNOWN_STATUS_3.toInt())
+                                        .set("status", KNOWN_STATUS_3.getCode())
                                         .set("payload", KNOWN_PAYLOAD_3)
                                         .set("headers", KNOWN_HEADERS_3.toJson())
                                         .build())
                                 .build()
                         )
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .build())
                 .build();
 
@@ -244,15 +244,15 @@ public final class AcknowledgementsAdapterTest implements ProtocolAdapterTest {
 
         final Adaptable expected = Adaptable.newBuilder(topicPathMyCustomAck)
                 .withPayload(Payload.newBuilder(JsonPointer.empty())
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(JsonObject.newBuilder()
                                 .set(KNOWN_CUSTOM_LABEL, JsonObject.newBuilder()
-                                        .set("status", KNOWN_STATUS.toInt())
+                                        .set("status", KNOWN_STATUS.getCode())
                                         .set("payload", KNOWN_PAYLOAD)
                                         .set("headers", KNOWN_HEADERS.toJson())
                                         .build())
                                 .set(KNOWN_CUSTOM_LABEL_3, JsonObject.newBuilder()
-                                        .set("status", KNOWN_STATUS_3.toInt())
+                                        .set("status", KNOWN_STATUS_3.getCode())
                                         .set("payload", KNOWN_PAYLOAD_3)
                                         .set("headers", KNOWN_HEADERS_3.toJson())
                                         .build())
@@ -273,23 +273,23 @@ public final class AcknowledgementsAdapterTest implements ProtocolAdapterTest {
                 .withPayload(Payload.newBuilder(JsonPointer.empty())
                         .withValue(JsonObject.newBuilder()
                                 .set(KNOWN_CUSTOM_LABEL, JsonObject.newBuilder()
-                                        .set("status", KNOWN_STATUS.toInt())
+                                        .set("status", KNOWN_STATUS.getCode())
                                         .set("payload", KNOWN_PAYLOAD)
                                         .set("headers", KNOWN_HEADERS.toJson())
                                         .build())
                                 .set(KNOWN_CUSTOM_LABEL_2, JsonObject.newBuilder()
-                                        .set("status", KNOWN_STATUS_2.toInt())
+                                        .set("status", KNOWN_STATUS_2.getCode())
                                         .set("payload", JsonValue.of(KNOWN_PAYLOAD_2))
                                         .set("headers", KNOWN_HEADERS_2.toJson())
                                         .build())
                                 .set(KNOWN_CUSTOM_LABEL_3, JsonObject.newBuilder()
-                                        .set("status", KNOWN_STATUS_3.toInt())
+                                        .set("status", KNOWN_STATUS_3.getCode())
                                         .set("payload", KNOWN_PAYLOAD_3)
                                         .set("headers", KNOWN_HEADERS_3.toJson())
                                         .build())
                                 .build()
                         )
-                        .withStatus(HttpStatusCode.FAILED_DEPENDENCY)
+                        .withStatus(HttpStatus.FAILED_DEPENDENCY)
                         .build())
                 .build();
 
@@ -308,19 +308,19 @@ public final class AcknowledgementsAdapterTest implements ProtocolAdapterTest {
 
         final Adaptable expected = Adaptable.newBuilder(topicPathMyCustomAck)
                 .withPayload(Payload.newBuilder(JsonPointer.empty())
-                        .withStatus(HttpStatusCode.FAILED_DEPENDENCY)
+                        .withStatus(HttpStatus.FAILED_DEPENDENCY)
                         .withValue(JsonObject.newBuilder()
                                 .set(KNOWN_CUSTOM_LABEL, JsonObject.newBuilder()
-                                        .set("status", KNOWN_STATUS.toInt())
+                                        .set("status", KNOWN_STATUS.getCode())
                                         .set("payload", KNOWN_PAYLOAD)
                                         .set("headers", KNOWN_HEADERS.toJson())
                                         .build())
                                 .set(KNOWN_CUSTOM_LABEL_2, JsonObject.newBuilder()
-                                        .set("status", KNOWN_STATUS_2.toInt())
+                                        .set("status", KNOWN_STATUS_2.getCode())
                                         .set("headers", KNOWN_HEADERS_2.toJson())
                                         .build())
                                 .set(KNOWN_CUSTOM_LABEL_3, JsonObject.newBuilder()
-                                        .set("status", KNOWN_STATUS_3.toInt())
+                                        .set("status", KNOWN_STATUS_3.getCode())
                                         .set("payload", KNOWN_PAYLOAD_3)
                                         .set("headers", KNOWN_HEADERS_3.toJson())
                                         .build())

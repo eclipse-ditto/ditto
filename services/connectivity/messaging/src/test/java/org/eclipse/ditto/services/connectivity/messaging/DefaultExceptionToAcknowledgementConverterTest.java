@@ -22,7 +22,7 @@ import java.text.MessageFormat;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -110,7 +110,7 @@ public final class DefaultExceptionToAcknowledgementConverterTest {
                 .set(DittoRuntimeException.JsonFields.DESCRIPTION, exceptionMessage)
                 .build();
         final Acknowledgement expected =
-                Acknowledgement.of(ACK_LABEL, ENTITY_ID, HttpStatusCode.INTERNAL_SERVER_ERROR, dittoHeaders,
+                Acknowledgement.of(ACK_LABEL, ENTITY_ID, HttpStatus.INTERNAL_SERVER_ERROR, dittoHeaders,
                         expectedPayload);
 
         final Acknowledgement actual = underTest.convertException(exception, ACK_LABEL, ENTITY_ID, dittoHeaders);
@@ -133,7 +133,7 @@ public final class DefaultExceptionToAcknowledgementConverterTest {
                         getGenericExceptionDescriptionWithCause(exception, exception.getMessage()))
                 .build();
         final Acknowledgement expected =
-                Acknowledgement.of(ACK_LABEL, ENTITY_ID, HttpStatusCode.INTERNAL_SERVER_ERROR, dittoHeaders,
+                Acknowledgement.of(ACK_LABEL, ENTITY_ID, HttpStatus.INTERNAL_SERVER_ERROR, dittoHeaders,
                         expectedPayload);
 
         final Acknowledgement actual = underTest.convertException(exception, ACK_LABEL, ENTITY_ID, dittoHeaders);
@@ -154,7 +154,7 @@ public final class DefaultExceptionToAcknowledgementConverterTest {
                 .set(DittoRuntimeException.JsonFields.DESCRIPTION, "Unknown error.")
                 .build();
         final Acknowledgement expected =
-                Acknowledgement.of(ACK_LABEL, ENTITY_ID, HttpStatusCode.INTERNAL_SERVER_ERROR, dittoHeaders,
+                Acknowledgement.of(ACK_LABEL, ENTITY_ID, HttpStatus.INTERNAL_SERVER_ERROR, dittoHeaders,
                         expectedPayload);
 
         final Acknowledgement actual = underTest.convertException(exception, ACK_LABEL, ENTITY_ID, dittoHeaders);
@@ -172,7 +172,7 @@ public final class DefaultExceptionToAcknowledgementConverterTest {
                         getGenericExceptionDescriptionWithCause(exception, cause.toString()))
                 .build();
         final Acknowledgement expected =
-                Acknowledgement.of(ACK_LABEL, ENTITY_ID, HttpStatusCode.INTERNAL_SERVER_ERROR, dittoHeaders,
+                Acknowledgement.of(ACK_LABEL, ENTITY_ID, HttpStatus.INTERNAL_SERVER_ERROR, dittoHeaders,
                         expectedPayload);
 
         final Acknowledgement actual = underTest.convertException(exception, ACK_LABEL, ENTITY_ID, dittoHeaders);
@@ -188,7 +188,7 @@ public final class DefaultExceptionToAcknowledgementConverterTest {
                 .remove(DittoRuntimeException.JsonFields.STATUS)
                 .build();
         final Acknowledgement expected =
-                Acknowledgement.of(ACK_LABEL, ENTITY_ID, exception.getStatusCode(), dittoHeaders, expectedPayload);
+                Acknowledgement.of(ACK_LABEL, ENTITY_ID, exception.getHttpStatus(), dittoHeaders, expectedPayload);
 
         final Acknowledgement actual = underTest.convertException(exception, ACK_LABEL, ENTITY_ID, dittoHeaders);
 

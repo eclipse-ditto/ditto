@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.MessageHeaders;
@@ -29,7 +30,6 @@ import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
-
 
 /**
  * Base class of {@link SignalMapper} for query commands.
@@ -69,8 +69,22 @@ abstract class AbstractMessageSignalMapper<T extends Signal<?> & WithThingId> ex
      *
      * @param command the command that is processed
      * @return the status code
+     * @deprecated as of 2.0.0 please use {@link #extractStatusCode(Signal)} instead.
      */
-    abstract Optional<HttpStatusCode> extractStatusCode(final T command);
+    @Deprecated
+    Optional<HttpStatusCode> extractStatusCode(final T command) {
+        return extractHttpStatus(command).map(HttpStatus::getCode).flatMap(HttpStatusCode::forInt);
+    }
+
+    /**
+     * Extract the HTTP status from the message (message commands and message command responses do not have a common
+     * interface to extract that kind of information).
+     *
+     * @param command the command that is processed
+     * @return the status code
+     * @since 2.0.0
+     */
+    abstract Optional<HttpStatus> extractHttpStatus(T command);
 
     /**
      * Extract status code from the message (message commands and message command responses do not have a common

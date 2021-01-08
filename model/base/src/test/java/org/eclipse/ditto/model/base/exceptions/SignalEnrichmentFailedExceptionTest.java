@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.junit.Test;
 
 /**
@@ -33,7 +33,7 @@ public class SignalEnrichmentFailedExceptionTest {
     @Test
     public void buildDefault() {
         final SignalEnrichmentFailedException underTest = SignalEnrichmentFailedException.newBuilder().build();
-        assertThat(underTest.getStatusCode()).isEqualTo(HttpStatusCode.INTERNAL_SERVER_ERROR);
+        assertThat(underTest.getHttpStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @Test
@@ -44,7 +44,7 @@ public class SignalEnrichmentFailedExceptionTest {
 
         final SignalEnrichmentFailedException underTest = SignalEnrichmentFailedException.dueTo(cause);
 
-        assertThat(underTest.getStatusCode()).isEqualTo(cause.getStatusCode());
+        assertThat(underTest.getHttpStatus()).isEqualTo(cause.getHttpStatus());
         assertThat(underTest.getDescription().orElseThrow(() -> new AssertionError("Expect description")))
                 .contains(cause.getErrorCode())
                 .contains(cause.getMessage())

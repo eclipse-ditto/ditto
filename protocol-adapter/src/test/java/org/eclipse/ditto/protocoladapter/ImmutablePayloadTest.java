@@ -24,7 +24,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -38,7 +38,7 @@ public final class ImmutablePayloadTest {
 
     private static final JsonPointer KNOWN_PATH = JsonPointer.empty();
     private static final JsonValue KNOWN_VALUE = JsonValue.of("foo");
-    private static final HttpStatusCode KNOWN_STATUS = HttpStatusCode.OK;
+    private static final HttpStatus KNOWN_STATUS = HttpStatus.OK;
     private static final long KNOWN_REVISION = 1337;
     private static final Instant KNOWN_TIMESTAMP = Instant.now();
     private static final JsonFieldSelector KNOWN_FIELDS = JsonFieldSelector.newInstance("/foo");
@@ -65,7 +65,7 @@ public final class ImmutablePayloadTest {
                 .set(Payload.JsonFields.PATH, KNOWN_PATH.toString())
                 .set(Payload.JsonFields.VALUE, KNOWN_VALUE)
                 .set(Payload.JsonFields.EXTRA, knownExtra)
-                .set(Payload.JsonFields.STATUS, KNOWN_STATUS.toInt())
+                .set(Payload.JsonFields.STATUS, KNOWN_STATUS.getCode())
                 .set(Payload.JsonFields.REVISION, KNOWN_REVISION)
                 .set(Payload.JsonFields.TIMESTAMP, KNOWN_TIMESTAMP.toString())
                 .set(Payload.JsonFields.FIELDS, KNOWN_FIELDS.toString())
@@ -108,7 +108,7 @@ public final class ImmutablePayloadTest {
             softly.assertThat(knownPayload.getExtra())
                     .as("extra")
                     .contains(knownExtra);
-            softly.assertThat(knownPayload.getStatus())
+            softly.assertThat(knownPayload.getHttpStatus())
                     .as("status")
                     .contains(KNOWN_STATUS);
             softly.assertThat(knownPayload.getRevision())

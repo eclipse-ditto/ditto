@@ -22,7 +22,7 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 
@@ -38,7 +38,7 @@ public final class SignalEnrichmentFailedException extends DittoRuntimeException
      */
     public static final String ERROR_CODE = "signal.enrichment.failed";
 
-    private static final HttpStatusCode DEFAULT_STATUS_CODE = HttpStatusCode.INTERNAL_SERVER_ERROR;
+    private static final HttpStatus DEFAULT_HTTP_STATUS = HttpStatus.INTERNAL_SERVER_ERROR;
 
     private static final String DEFAULT_MESSAGE = "Signal enrichment failed.";
 
@@ -58,14 +58,14 @@ public final class SignalEnrichmentFailedException extends DittoRuntimeException
      * @throws NullPointerException if {@code errorCode}, {@code statusCode} or {@code dittoHeaders} is {@code null}.
      */
     private SignalEnrichmentFailedException(
-            final HttpStatusCode statusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
 
-        super(ERROR_CODE, statusCode, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, httpStatus, dittoHeaders, message, description, cause, href);
     }
 
     /**
@@ -74,7 +74,6 @@ public final class SignalEnrichmentFailedException extends DittoRuntimeException
      * @return the builder.
      */
     public static Builder newBuilder() {
-
         return new Builder();
     }
 
@@ -92,10 +91,11 @@ public final class SignalEnrichmentFailedException extends DittoRuntimeException
      */
     public static SignalEnrichmentFailedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders,
-                new Builder().status(jsonObject.getValue(JsonFields.STATUS)
-                        .flatMap(HttpStatusCode::forInt)
-                        .orElse(DEFAULT_STATUS_CODE)));
+
+        return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, newBuilder()
+                .status(jsonObject.getValue(JsonFields.STATUS)
+                        .flatMap(HttpStatus::tryGetInstance)
+                        .orElse(DEFAULT_HTTP_STATUS)));
     }
 
     /**
@@ -129,15 +129,15 @@ public final class SignalEnrichmentFailedException extends DittoRuntimeException
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<SignalEnrichmentFailedException> {
 
-        private HttpStatusCode statusCode = DEFAULT_STATUS_CODE;
+        private HttpStatus httpStatus = DEFAULT_HTTP_STATUS;
 
         private Builder() {
             message(DEFAULT_MESSAGE);
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder status(final HttpStatusCode statusCode) {
-            this.statusCode = statusCode;
+        private Builder status(final HttpStatus httpStatus) {
+            this.httpStatus = httpStatus;
             return this;
         }
 
@@ -151,9 +151,9 @@ public final class SignalEnrichmentFailedException extends DittoRuntimeException
          */
         public Builder dueTo(final DittoRuntimeException cause) {
             cause(checkNotNull(cause, "cause"));
-            description(MessageFormat.format(DESCRIPTION_TEMPLATE,
-                    cause.getErrorCode(), cause.getMessage(), cause.getDescription()));
-            statusCode = cause.getStatusCode();
+            description(MessageFormat.format(DESCRIPTION_TEMPLATE, cause.getErrorCode(), cause.getMessage(),
+                    cause.getDescription()));
+            httpStatus = cause.getHttpStatus();
             return this;
         }
 
@@ -164,7 +164,7 @@ public final class SignalEnrichmentFailedException extends DittoRuntimeException
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
 
-            return new SignalEnrichmentFailedException(statusCode, dittoHeaders, message, description, cause, href);
+            return new SignalEnrichmentFailedException(httpStatus, dittoHeaders, message, description, cause, href);
         }
 
     }

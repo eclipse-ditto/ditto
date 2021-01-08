@@ -22,7 +22,7 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
@@ -50,7 +50,6 @@ public final class DittoHeaderInvalidException extends DittoRuntimeException {
 
     private static final long serialVersionUID = -2338222496153977081L;
 
-
     /**
      * Constructs a new {@code DittoRuntimeException} object.
      *
@@ -67,7 +66,7 @@ public final class DittoHeaderInvalidException extends DittoRuntimeException {
             @Nullable final Throwable cause,
             @Nullable final URI href) {
 
-        super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
     /**

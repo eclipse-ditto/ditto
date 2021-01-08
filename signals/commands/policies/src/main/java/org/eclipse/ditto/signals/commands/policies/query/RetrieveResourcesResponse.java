@@ -27,7 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -38,14 +38,15 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 
 /**
  * Response to a {@link RetrieveResources} command.
  */
 @Immutable
 @JsonParsableCommandResponse(type = RetrieveResourcesResponse.TYPE)
-public final class RetrieveResourcesResponse extends AbstractCommandResponse<RetrieveResourcesResponse> implements
-        PolicyQueryCommandResponse<RetrieveResourcesResponse> {
+public final class RetrieveResourcesResponse extends AbstractCommandResponse<RetrieveResourcesResponse>
+        implements PolicyQueryCommandResponse<RetrieveResourcesResponse> {
 
     /**
      * Type of this response.
@@ -65,7 +66,7 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
     private RetrieveResourcesResponse(final PolicyId policyId,
             final Label label,
             final JsonObject resources,
-            final HttpStatusCode statusCode,
+            final HttpStatus statusCode,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, statusCode, dittoHeaders);
@@ -154,7 +155,7 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
             final JsonObject resources,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveResourcesResponse(policyId, label, resources, HttpStatusCode.OK, dittoHeaders);
+        return new RetrieveResourcesResponse(policyId, label, resources, HttpStatus.OK, dittoHeaders);
     }
 
     /**
@@ -183,10 +184,10 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
      * format.
      */
     public static RetrieveResourcesResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveResourcesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+        return new CommandResponseJsonDeserializer<RetrieveResourcesResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
                     final String extractedPolicyId =
-                            jsonObject.getValueOrThrow(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID);
+                            jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
                     final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
                     final JsonObject extractedResources = jsonObject.getValueOrThrow(JSON_RESOURCES);
@@ -245,8 +246,7 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyQueryCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
-                predicate);
+        jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JSON_RESOURCES, resources, predicate);
     }
@@ -265,8 +265,11 @@ public final class RetrieveResourcesResponse extends AbstractCommandResponse<Ret
             return false;
         }
         final RetrieveResourcesResponse that = (RetrieveResourcesResponse) o;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId)
-                && Objects.equals(label, that.label) && Objects.equals(resources, that.resources) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(label, that.label) &&
+                Objects.equals(resources, that.resources) &&
+                super.equals(o);
     }
 
     @Override

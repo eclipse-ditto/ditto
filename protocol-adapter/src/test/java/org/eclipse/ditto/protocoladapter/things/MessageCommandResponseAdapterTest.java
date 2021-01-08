@@ -23,14 +23,13 @@ import java.util.stream.Stream;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.messages.KnownMessageSubjects;
 import org.eclipse.ditto.model.messages.Message;
-import org.eclipse.ditto.model.messages.MessageBuilder;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaderDefinition;
 import org.eclipse.ditto.model.messages.MessageHeaders;
@@ -99,14 +98,14 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
             final Object javaPayload,
             final CharSequence contentType) {
 
-        final HttpStatusCode statusCode = HttpStatusCode.OK;
+        final HttpStatus statusCode = HttpStatus.OK;
 
         final MessageHeadersBuilder messageHeadersBuilder =
                 MessageHeaders.newBuilder(messageDirection, TestConstants.THING_ID, subject)
                         .contentType(contentType)
                         .correlationId(CORRELATION_ID)
                         .featureId(isFeatureResponse() ? FEATURE_ID : null)
-                        .statusCode(statusCode)
+                        .httpStatus(statusCode)
                         .channel(TopicPath.Channel.LIVE.getName())
                         .schemaVersion(JsonSchemaVersion.V_2)
                         .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), TestConstants.THING_ID);
@@ -156,7 +155,7 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
         final String subject = "newMsg:stuff";
         final JsonObject payload = JsonObject.newBuilder().set("hello", 42).set("foo", false).build();
         final String contentType = "application/json";
-        final HttpStatusCode statusCode = HttpStatusCode.OK;
+        final HttpStatus httpStatus = HttpStatus.OK;
 
         final TopicPath topicPath = TopicPath.newBuilder(TestConstants.THING_ID)
                 .live()
@@ -172,7 +171,7 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
                 .build();
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(statusCode)
+                        .withStatus(httpStatus)
                         .withValue(payload)
                         .build())
                 .withHeaders(expectedHeaders)
@@ -183,7 +182,7 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
                         .contentType(contentType)
                         .featureId(isFeatureResponse() ? FEATURE_ID : null)
                         .correlationId(CORRELATION_ID)
-                        .statusCode(statusCode)
+                        .httpStatus(httpStatus)
                         .schemaVersion(JsonSchemaVersion.V_2)
                         .build())
                 .payload(payload)
@@ -197,12 +196,12 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
     private MessageCommandResponse messageCommandResponse(final Message<Object> message, final DittoHeaders headers) {
         switch (type) {
             case SendThingMessageResponse.TYPE:
-                return SendThingMessageResponse.of(TestConstants.THING_ID, message, HttpStatusCode.OK, headers);
+                return SendThingMessageResponse.of(TestConstants.THING_ID, message, HttpStatus.OK, headers);
             case SendFeatureMessageResponse.TYPE:
                 return SendFeatureMessageResponse.of(TestConstants.THING_ID, TestConstants.FEATURE_ID, message,
-                        HttpStatusCode.OK, headers);
+                        HttpStatus.OK, headers);
             case SendClaimMessageResponse.TYPE:
-                return SendClaimMessageResponse.of(TestConstants.THING_ID, message, HttpStatusCode.OK, headers);
+                return SendClaimMessageResponse.of(TestConstants.THING_ID, message, HttpStatus.OK, headers);
             default:
                 throw new IllegalArgumentException(type + " not supported.");
         }

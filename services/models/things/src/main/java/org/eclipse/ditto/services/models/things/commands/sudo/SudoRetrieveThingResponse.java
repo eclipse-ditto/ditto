@@ -26,7 +26,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -61,7 +61,7 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
 
     private final JsonObject thing;
 
-    private SudoRetrieveThingResponse(final HttpStatusCode statusCode, final JsonObject thing,
+    private SudoRetrieveThingResponse(final HttpStatus statusCode, final JsonObject thing,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, statusCode, dittoHeaders);
@@ -77,7 +77,7 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static SudoRetrieveThingResponse of(final JsonObject thing, final DittoHeaders dittoHeaders) {
-        return new SudoRetrieveThingResponse(HttpStatusCode.OK, thing, dittoHeaders);
+        return new SudoRetrieveThingResponse(HttpStatus.OK, thing, dittoHeaders);
     }
 
     /**
@@ -107,12 +107,8 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
      * 'SudoRetrieveThingResponse' format.
      */
     public static SudoRetrieveThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<SudoRetrieveThingResponse>(TYPE, jsonObject)
-                .deserialize(statusCode -> {
-                    final JsonObject extractedThing = jsonObject.getValueOrThrow(JSON_THING);
-
-                    return of(extractedThing, dittoHeaders);
-                });
+        return new CommandResponseJsonDeserializer<SudoRetrieveThingResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> of(jsonObject.getValueOrThrow(JSON_THING), dittoHeaders));
     }
 
     /**

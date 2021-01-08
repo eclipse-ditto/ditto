@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
@@ -146,7 +146,7 @@ public class MockClientActor extends AbstractActor {
                 .match(TestConnection.class, testConnection -> {
                     log.info("Testing connection");
                     final DittoRuntimeException exception =
-                            DittoRuntimeException.newBuilder("some.error", HttpStatusCode.BAD_REQUEST).build();
+                            DittoRuntimeException.newBuilder("some.error", HttpStatus.BAD_REQUEST).build();
                     if (testConnection.getDittoHeaders().getOrDefault("error", "").equals("true")) {
                         sender().tell(exception, getSelf());
                     }

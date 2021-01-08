@@ -26,7 +26,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
@@ -263,13 +263,13 @@ final class Sending implements SendingOrDropped {
 
         @Override
         void monitor() {
-            final HttpStatusCode statusCode = cmdResponse.getStatusCode();
-            if (statusCode.isInternalError()) {
+            final var httpStatus = cmdResponse.getHttpStatus();
+            if (httpStatus.isServerError()) {
                 if (sendSuccess) {
                     monitorSendSuccess();
                 }
                 monitorAckFailure();
-            } else if (statusCode.isClientError()) {
+            } else if (httpStatus.isClientError()) {
                 monitorSendSuccess();
                 monitorAckFailure();
             } else {
@@ -281,7 +281,7 @@ final class Sending implements SendingOrDropped {
         @Override
         DittoRuntimeException getExceptionFor(final Acknowledgement acknowledgement) {
             return MessageSendingFailedException.newBuilder()
-                    .statusCode(acknowledgement.getStatusCode())
+                    .httpStatus(acknowledgement.getHttpStatus())
                     .message("Received negative acknowledgement for label <" + acknowledgement.getLabel() + ">.")
                     .description("Payload: " + acknowledgement.getEntity().map(JsonValue::toString).orElse("<empty>"))
                     .build();
@@ -297,9 +297,9 @@ final class Sending implements SendingOrDropped {
 
         @Override
         void monitor() {
-            final HttpStatusCode statusCode = cmdResponse.getStatusCode();
+            final var status = cmdResponse.getHttpStatus();
             monitorSendSuccess();
-            if (HttpStatusCode.REQUEST_TIMEOUT.equals(statusCode)) {
+            if (HttpStatus.REQUEST_TIMEOUT.equals(status)) {
                 monitorAckFailure();
             } else {
                 monitorAckSuccess();
@@ -309,7 +309,7 @@ final class Sending implements SendingOrDropped {
         @Override
         DittoRuntimeException getExceptionFor(final CommandResponse<?> response) {
             return MessageSendingFailedException.newBuilder()
-                    .statusCode(response.getStatusCode())
+                    .httpStatus(response.getHttpStatus())
                     .message("Received negative acknowledgement for label <" +
                             DittoAcknowledgementLabel.LIVE_RESPONSE.toString() + ">.")
                     .description("Payload: " + response.toJson())

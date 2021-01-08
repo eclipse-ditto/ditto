@@ -26,7 +26,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -56,7 +56,7 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
     private final JsonObject jsonObject;
 
     private RetrieveConnectionResponse(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+        super(TYPE, HttpStatus.OK, dittoHeaders);
         this.jsonObject = jsonObject;
     }
 
@@ -100,16 +100,13 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
      */
     public static RetrieveConnectionResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveConnectionResponse>(TYPE, jsonObject).deserialize(
-                statusCode -> {
-                    final JsonObject jsonConnection = jsonObject.getValueOrThrow(JSON_CONNECTION);
-
-                    return of(jsonConnection, dittoHeaders);
-                });
+                httpStatus -> of(jsonObject.getValueOrThrow(JSON_CONNECTION), dittoHeaders));
     }
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_CONNECTION, jsonObject, predicate);
     }
@@ -141,7 +138,7 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof RetrieveConnectionResponse);
+        return other instanceof RetrieveConnectionResponse;
     }
 
     @Override
@@ -169,4 +166,5 @@ public final class RetrieveConnectionResponse extends AbstractCommandResponse<Re
                 ", jsonObject=" + jsonObject +
                 "]";
     }
+
 }

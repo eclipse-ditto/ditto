@@ -26,7 +26,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -36,6 +36,7 @@ import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 
 /**
  * Response to a {@link ModifyResources} command.
@@ -58,7 +59,7 @@ public final class ModifyResourcesResponse extends AbstractCommandResponse<Modif
 
     private ModifyResourcesResponse(final PolicyId policyId,
             final Label label,
-            final HttpStatusCode statusCode,
+            final HttpStatus statusCode,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, statusCode, dittoHeaders);
@@ -97,7 +98,7 @@ public final class ModifyResourcesResponse extends AbstractCommandResponse<Modif
     public static ModifyResourcesResponse of(final PolicyId policyId, final Label label,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyResourcesResponse(policyId, label, HttpStatusCode.NO_CONTENT, dittoHeaders);
+        return new ModifyResourcesResponse(policyId, label, HttpStatus.NO_CONTENT, dittoHeaders);
     }
 
     /**
@@ -127,13 +128,13 @@ public final class ModifyResourcesResponse extends AbstractCommandResponse<Modif
      */
     public static ModifyResourcesResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<ModifyResourcesResponse>(TYPE, jsonObject)
-                .deserialize(statusCode -> {
+                .deserialize(httpStatus -> {
                     final String extractedPolicyId =
-                            jsonObject.getValueOrThrow(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID);
+                            jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
                     final PolicyId policyId = PolicyId.of(extractedPolicyId);
                     final Label label = PoliciesModelFactory.newLabel(jsonObject.getValueOrThrow(JSON_LABEL));
 
-                    return new ModifyResourcesResponse(policyId, label, statusCode, dittoHeaders);
+                    return new ModifyResourcesResponse(policyId, label, httpStatus, dittoHeaders);
                 });
     }
 
@@ -162,8 +163,7 @@ public final class ModifyResourcesResponse extends AbstractCommandResponse<Modif
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(PolicyModifyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
-                predicate);
+        jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
     }
 

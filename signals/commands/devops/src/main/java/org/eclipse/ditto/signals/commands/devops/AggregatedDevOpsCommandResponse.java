@@ -13,7 +13,6 @@
 package org.eclipse.ditto.signals.commands.devops;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -26,12 +25,12 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 import org.eclipse.ditto.signals.commands.base.WithEntity;
@@ -61,8 +60,11 @@ public final class AggregatedDevOpsCommandResponse
     private final String responsesType;
 
     private AggregatedDevOpsCommandResponse(final JsonObject aggregatedResponses,
-            final String responsesType, final HttpStatusCode httpStatusCode, final DittoHeaders dittoHeaders) {
-        super(TYPE, null, null, httpStatusCode, dittoHeaders);
+            final String responsesType,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        super(TYPE, null, null, httpStatus, dittoHeaders);
         this.aggregatedResponses = aggregatedResponses;
         this.responsesType = responsesType;
     }
@@ -75,11 +77,34 @@ public final class AggregatedDevOpsCommandResponse
      * @param httpStatusCode the {@link HttpStatusCode} to send back as response status.
      * @param dittoHeaders the headers of the request.
      * @return the new RetrieveLoggerConfigResponse response.
+     * @deprecated as of 2.0.0 please use {@link #of(List, String, HttpStatus, DittoHeaders)} instead.
+     */
+    @Deprecated
+    public static AggregatedDevOpsCommandResponse of(final List<CommandResponse<?>> commandResponses,
+            final String responsesType,
+            final HttpStatusCode httpStatusCode,
+            final DittoHeaders dittoHeaders) {
+
+        return of(commandResponses, responsesType, httpStatusCode.getAsHttpStatus(), dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code AggregatedDevOpsCommandResponse}.
+     *
+     * @param commandResponses the aggregated {@link DevOpsCommandResponse}s.
+     * @param responsesType the responses type of the responses to expect.
+     * @param httpStatus the HTTP status to send back as response status.
+     * @param dittoHeaders the headers of the request.
+     * @return the new RetrieveLoggerConfigResponse response.
+     * @since 2.0.0
      */
     public static AggregatedDevOpsCommandResponse of(final List<CommandResponse<?>> commandResponses,
-            final String responsesType, final HttpStatusCode httpStatusCode, final DittoHeaders dittoHeaders) {
+            final String responsesType,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
         final JsonObject jsonRepresentation = buildJsonRepresentation(commandResponses, dittoHeaders);
-        return new AggregatedDevOpsCommandResponse(jsonRepresentation, responsesType, httpStatusCode, dittoHeaders);
+        return new AggregatedDevOpsCommandResponse(jsonRepresentation, responsesType, httpStatus, dittoHeaders);
     }
 
     /**
@@ -90,10 +115,32 @@ public final class AggregatedDevOpsCommandResponse
      * @param httpStatusCode the {@link HttpStatusCode} to send back as response status.
      * @param dittoHeaders the headers of the request.
      * @return the new RetrieveLoggerConfigResponse response.
+     * @deprecated as of 2.0.0 please use {@link #of(JsonObject, String, HttpStatus, DittoHeaders)} instead.
+     */
+    @Deprecated
+    public static AggregatedDevOpsCommandResponse of(final JsonObject aggregatedResponses,
+            final String responsesType,
+            final HttpStatusCode httpStatusCode,
+            final DittoHeaders dittoHeaders) {
+
+        return of(aggregatedResponses, responsesType, httpStatusCode.getAsHttpStatus(), dittoHeaders);
+    }
+
+    /**
+     * Returns a new instance of {@code AggregatedDevOpsCommandResponse}.
+     *
+     * @param aggregatedResponses the aggregated {@link DevOpsCommandResponse}s as a JsonObject.
+     * @param responsesType the responses type of the responses to expect.
+     * @param httpStatus the HTTP status to send back as response status.
+     * @param dittoHeaders the headers of the request.
+     * @return the new RetrieveLoggerConfigResponse response.
      */
     public static AggregatedDevOpsCommandResponse of(final JsonObject aggregatedResponses,
-            final String responsesType, final HttpStatusCode httpStatusCode, final DittoHeaders dittoHeaders) {
-        return new AggregatedDevOpsCommandResponse(aggregatedResponses, responsesType, httpStatusCode, dittoHeaders);
+            final String responsesType,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return new AggregatedDevOpsCommandResponse(aggregatedResponses, responsesType, httpStatus, dittoHeaders);
     }
 
     /**
@@ -123,17 +170,18 @@ public final class AggregatedDevOpsCommandResponse
      */
     public static AggregatedDevOpsCommandResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return new CommandResponseJsonDeserializer<AggregatedDevOpsCommandResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String theResponsesType = jsonObject.getValueOrThrow(JSON_RESPONSES_TYPE);
+                .deserialize(httpStatus -> {
                     final JsonObject aggregatedResponsesJsonObj = jsonObject.getValueOrThrow(JSON_AGGREGATED_RESPONSES);
-                    return of(aggregatedResponsesJsonObj, theResponsesType, statusCode, dittoHeaders);
+                    final String theResponsesType = jsonObject.getValueOrThrow(JSON_RESPONSES_TYPE);
+                    return of(aggregatedResponsesJsonObj, theResponsesType, httpStatus, dittoHeaders);
                 });
     }
 
     @Override
     public AggregatedDevOpsCommandResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(aggregatedResponses, responsesType, getStatusCode(), dittoHeaders);
+        return of(aggregatedResponses, responsesType, getHttpStatus(), dittoHeaders);
     }
 
     /**
@@ -166,6 +214,7 @@ public final class AggregatedDevOpsCommandResponse
 
     private static JsonObject buildJsonRepresentation(final List<CommandResponse<?>> commandResponses,
             final DittoHeaders dittoHeaders) {
+
         final JsonObjectBuilder builder = JsonObject.newBuilder();
 
         int i = 0;
@@ -189,7 +238,7 @@ public final class AggregatedDevOpsCommandResponse
         }
     }
 
-    private static String calculateInstance(final CommandResponse<?> commandResponse, int i) {
+    private static String calculateInstance(final CommandResponse<?> commandResponse, final int i) {
         if (commandResponse instanceof DevOpsCommandResponse) {
             return ((DevOpsCommandResponse<?>) commandResponse).getInstance()
                     .orElse("?" + (i == 0 ? "" : String.valueOf(i)));
@@ -201,12 +250,20 @@ public final class AggregatedDevOpsCommandResponse
     @SuppressWarnings("squid:MethodCyclomaticComplexity")
     @Override
     public boolean equals(@Nullable final Object o) {
-        if (this == o) {return true;}
-        if (o == null || getClass() != o.getClass()) {return false;}
-        if (!super.equals(o)) {return false;}
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         final AggregatedDevOpsCommandResponse that = (AggregatedDevOpsCommandResponse) o;
-        return that.canEqual(this) && Objects.equals(responsesType, that.responsesType) &&
-                Objects.equals(aggregatedResponses, that.aggregatedResponses) && super.equals(that);
+        return that.canEqual(this) &&
+                Objects.equals(responsesType, that.responsesType) &&
+                Objects.equals(aggregatedResponses, that.aggregatedResponses) &&
+                super.equals(that);
     }
 
     @Override

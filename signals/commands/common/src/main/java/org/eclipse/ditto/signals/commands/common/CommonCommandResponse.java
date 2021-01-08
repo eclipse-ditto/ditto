@@ -13,7 +13,7 @@
 package org.eclipse.ditto.signals.commands.common;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
@@ -45,7 +45,7 @@ public abstract class CommonCommandResponse<T extends CommonCommandResponse<T>> 
      * @throws NullPointerException if any argument is {@code null}.
      */
     protected CommonCommandResponse(final String responseType,
-            final HttpStatusCode statusCode,
+            final HttpStatus statusCode,
             final DittoHeaders dittoHeaders) {
         super(responseType, statusCode, dittoHeaders);
     }
