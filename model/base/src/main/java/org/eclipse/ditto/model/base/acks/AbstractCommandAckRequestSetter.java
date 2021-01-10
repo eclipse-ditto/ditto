@@ -28,6 +28,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 
 /**
@@ -46,7 +47,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
  * @since 1.2.0
  */
 @Immutable
-public abstract class AbstractCommandAckRequestSetter<C extends WithDittoHeaders<? extends C>>
+public abstract class AbstractCommandAckRequestSetter<C extends DittoHeadersSettable<? extends C>>
         implements UnaryOperator<C> {
 
     private static final String LIVE_CHANNEL = "live";

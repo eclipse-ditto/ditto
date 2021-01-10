@@ -37,6 +37,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -717,7 +718,7 @@ public final class InboundDispatchingActor extends AbstractActor
                 isApplicable(MessageCommandAckRequestSetter.getInstance(), signal);
     }
 
-    private static <C extends WithDittoHeaders<? extends C>> boolean isApplicable(
+    private static <C extends DittoHeadersSettable<? extends C>> boolean isApplicable(
             final AbstractCommandAckRequestSetter<C> setter, final Signal<?> signal) {
         return setter.getMatchedClass().isInstance(signal) &&
                 setter.isApplicable(setter.getMatchedClass().cast(signal));
