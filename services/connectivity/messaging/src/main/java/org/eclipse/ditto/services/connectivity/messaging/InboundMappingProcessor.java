@@ -52,6 +52,7 @@ import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.ActorSystem;
+import akka.persistence.Protocol;
 
 /**
  * Processes incoming {@link ExternalMessage}s to {@link Signal}s.
@@ -115,6 +116,12 @@ public final class InboundMappingProcessor
 
         return new InboundMappingProcessor(connectionId, connectionType, registry, loggerWithConnectionId,
                 protocolAdapter, dittoHeadersSizeChecker);
+    }
+
+    static InboundMappingProcessor forTest(final ConnectionId connectionId, final ConnectionType connectionType,
+            final MessageMapperRegistry registry, final ThreadSafeDittoLoggingAdapter logger,
+            final ProtocolAdapter adapter, final DittoHeadersSizeChecker sizeChecker) {
+        return new InboundMappingProcessor(connectionId, connectionType, registry, logger, adapter, sizeChecker);
     }
 
     /**
@@ -203,23 +210,6 @@ public final class InboundMappingProcessor
                         e.getClass().getSimpleName(), e.getMessage());
             }
         });
-        message.getTextPayload()
-                .map(JsonFactory::readFrom)
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .flatMap(obj -> obj.getValue(JsonifiableAdaptable.JsonFields.HEADERS))
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .ifPresent(obj -> obj.forEach(field -> {
-                    try {
-                        final JsonValue value = field.getValue();
-                        headersBuilder.putHeader(field.getKey(), value.formatAsString());
-                    } catch (final Exception e) {
-                        // ignore this single invalid header
-                        logger.info("Putting a (payload) header resulted in an exception: {} - {}",
-                                e.getClass().getSimpleName(), e.getMessage());
-                    }
-                }));
         return headersBuilder.build();
     }
 
