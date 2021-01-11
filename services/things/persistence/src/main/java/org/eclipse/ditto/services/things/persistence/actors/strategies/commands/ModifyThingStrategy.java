@@ -113,7 +113,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
 
                 final ThingEvent<?>thingModified =
                         ThingModified.of(mergedThing, nextRevision, eventTs, dittoHeaders, metadata);
-                final WithDittoHeaders<?> response =
+                final WithDittoHeaders response =
                         appendETagHeaderIfProvided(command, ModifyThingResponse.modified(thingId, dittoHeaders),
                                 mergedThing);
                 return ResultFactory.newMutationResult(command, thingModified, response);
@@ -128,7 +128,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
                         .build();
                 final ThingEvent<?>thingModified =
                         ThingModified.of(modifiedThing, nextRevision, eventTs, dittoHeaders, metadata);
-                final WithDittoHeaders<?> response =
+                final WithDittoHeaders response =
                         appendETagHeaderIfProvided(command, ModifyThingResponse.modified(thingId, dittoHeaders),
                                 modifiedThing);
                 return ResultFactory.newMutationResult(command, thingModified, response);
@@ -145,7 +145,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
         final Thing thingWithoutAcl = removeACL(copyPolicyId(context, thing, command.getThing()), nextRevision);
         final ThingEvent<?> thingModified =
                 ThingModified.of(thingWithoutAcl, nextRevision, eventTs, command.getDittoHeaders(), metadata);
-        final WithDittoHeaders<?> response =
+        final WithDittoHeaders response =
                 appendETagHeaderIfProvided(command, ModifyThingResponse.modified(thingId, command.getDittoHeaders()),
                         thingWithoutAcl);
         return ResultFactory.newMutationResult(command, thingModified, response);
@@ -215,7 +215,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
 
         final ThingEvent<?> event =
                 ThingModified.of(modifiedThing, nextRevision, eventTs, dittoHeaders, metadata);
-        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                 ModifyThingResponse.modified(context.getState(), dittoHeaders), modifiedThing);
 
         return ResultFactory.newMutationResult(command, event, response);

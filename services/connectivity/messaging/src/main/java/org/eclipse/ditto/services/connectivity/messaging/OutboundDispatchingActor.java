@@ -120,7 +120,7 @@ final class OutboundDispatchingActor extends AbstractActor {
         outboundMappingProcessorActor.tell(outbound, getSender());
     }
 
-    private void logDroppedSignal(final WithDittoHeaders<?> withDittoHeaders, final String type, final String reason) {
+    private void logDroppedSignal(final WithDittoHeaders withDittoHeaders, final String type, final String reason) {
         logger.withCorrelationId(withDittoHeaders).debug("Signal ({}) dropped: {}", type, reason);
     }
 
@@ -171,7 +171,7 @@ final class OutboundDispatchingActor extends AbstractActor {
         }
     }
 
-    private void handleInboundResponseOrAcknowledgement(final WithDittoHeaders<?> responseOrAck) {
+    private void handleInboundResponseOrAcknowledgement(final WithDittoHeaders responseOrAck) {
         if (responseOrAck instanceof Acknowledgement) {
             final Acknowledgement ack = (Acknowledgement) responseOrAck;
             if (isNotSourceDeclaredAck(ack)) {

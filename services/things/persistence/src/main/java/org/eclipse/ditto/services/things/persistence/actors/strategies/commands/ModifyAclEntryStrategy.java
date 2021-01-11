@@ -93,7 +93,7 @@ final class ModifyAclEntryStrategy extends AbstractThingCommandStrategy<ModifyAc
 
         final ThingEvent<?> event =
                 AclEntryModified.of(thingId, aclEntry, nextRevision, getEventTimestamp(), dittoHeaders, metadata);
-        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                 ModifyAclEntryResponse.modified(thingId, aclEntry, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command, event, response);
@@ -107,7 +107,7 @@ final class ModifyAclEntryStrategy extends AbstractThingCommandStrategy<ModifyAc
 
         final ThingEvent<?> event =
                 AclEntryCreated.of(thingId, aclEntry, nextRevision, getEventTimestamp(), dittoHeaders, metadata);
-        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                 ModifyAclEntryResponse.created(thingId, aclEntry, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command, event, response);

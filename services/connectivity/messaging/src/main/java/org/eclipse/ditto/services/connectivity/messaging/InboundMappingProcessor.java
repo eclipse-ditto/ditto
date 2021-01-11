@@ -237,7 +237,7 @@ public final class InboundMappingProcessor
         );
 
         if (error instanceof WithDittoHeaders) {
-            final DittoHeaders existingHeaders = ((WithDittoHeaders<?>) error).getDittoHeaders();
+            final DittoHeaders existingHeaders = ((WithDittoHeaders) error).getDittoHeaders();
             final DittoHeaders mergedHeaders = bestEffortHeaders.toBuilder().putHeaders(existingHeaders)
                     .build();
             return dittoRuntimeException.setDittoHeaders(mergedHeaders);

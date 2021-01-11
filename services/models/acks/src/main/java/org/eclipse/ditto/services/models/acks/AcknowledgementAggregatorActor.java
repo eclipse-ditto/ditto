@@ -29,7 +29,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.WithThingId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -229,7 +229,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
         getContext().stop(getSelf());
     }
 
-    public static WithDittoHeaders<?> restoreCommandConnectivityHeaders(final WithDittoHeaders<?> signal,
+    public static DittoHeadersSettable<?> restoreCommandConnectivityHeaders(final DittoHeadersSettable<?> signal,
             final DittoHeaders requestCommandHeaders) {
         final DittoHeadersBuilder<?, ?> enhancedHeadersBuilder = signal.getDittoHeaders()
                 .toBuilder()
@@ -244,7 +244,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
         return signal.setDittoHeaders(enhancedHeadersBuilder.build());
     }
 
-    private void handleSignal(final WithDittoHeaders<?> signal) {
+    private void handleSignal(final DittoHeadersSettable<?> signal) {
         responseSignalConsumer.accept(restoreCommandConnectivityHeaders(signal, requestCommandHeaders));
     }
 

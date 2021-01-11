@@ -38,7 +38,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.base.headers.WithManifest;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -49,7 +49,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  */
 @IndexSubclasses
 public class DittoRuntimeException extends RuntimeException
-        implements Jsonifiable.WithPredicate<JsonObject, JsonField>, WithDittoHeaders<DittoRuntimeException>,
+        implements Jsonifiable.WithPredicate<JsonObject, JsonField>, DittoHeadersSettable<DittoRuntimeException>,
         WithManifest {
 
     private static final long serialVersionUID = -7010323324132561106L;
@@ -162,6 +162,7 @@ public class DittoRuntimeException extends RuntimeException
     public static Builder newBuilder(final String errorCode, final HttpStatusCode statusCode) {
         return new Builder(errorCode, statusCode);
     }
+
     /**
      * Returns a new mutable builder with a fluent API for a {@code dittoRuntimeException}. The builder is already
      * initialized with the properties of the given exception.

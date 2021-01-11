@@ -255,7 +255,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
             return sender;
         }
 
-        private ImmutableDispatch replaceMessage(final WithDittoHeaders<?> message) {
+        private ImmutableDispatch replaceMessage(final WithDittoHeaders message) {
             return new ImmutableDispatch(message, sender, thingsAggregatorActor);
         }
 

@@ -44,7 +44,7 @@ final class EnforcementTask {
      * @return the task.
      */
     @SuppressWarnings("unchecked") // due to parameterized cast
-    static <T extends WithDittoHeaders<?>> EnforcementTask of(final EntityId entityId,
+    static <T extends WithDittoHeaders> EnforcementTask of(final EntityId entityId,
             final boolean changesAuthorization,
             final Supplier<CompletionStage<Contextual<T>>> taskSupplier) {
         // The cast is safe: Supplier and CompletionStage are both covariant in its type parameter.

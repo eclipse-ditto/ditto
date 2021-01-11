@@ -383,9 +383,9 @@ public final class InboundDispatchingActor extends AbstractActor
                 final DittoHeaders originalHeaders = signal.getDittoHeaders();
                 Patterns.ask(proxyActor, signal, originalHeaders.getTimeout().orElse(Duration.ofSeconds(10)))
                         .thenApply(response -> {
-                            if (response instanceof WithDittoHeaders<?>) {
+                            if (response instanceof WithDittoHeaders) {
                                 return AcknowledgementAggregatorActor.restoreCommandConnectivityHeaders(
-                                        (WithDittoHeaders<?>) response,
+                                        (DittoHeadersSettable<?>) response,
                                         originalHeaders);
                             } else {
                                 final String messageTemplate =
@@ -511,7 +511,7 @@ public final class InboundDispatchingActor extends AbstractActor
         return newTopicPathBuilder(acks, acks).acks().aggregatedAcks().build();
     }
 
-    private TopicPathBuilder newTopicPathBuilder(final WithId withId, final WithDittoHeaders<?> withDittoHeaders) {
+    private TopicPathBuilder newTopicPathBuilder(final WithId withId, final WithDittoHeaders withDittoHeaders) {
         final TopicPathBuilder builder = ProtocolFactory.newTopicPathBuilder(ThingId.of(withId.getEntityId()));
         return withDittoHeaders.getDittoHeaders()
                 .getChannel()

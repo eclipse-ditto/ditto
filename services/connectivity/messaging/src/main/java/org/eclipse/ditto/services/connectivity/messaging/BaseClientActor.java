@@ -1257,7 +1257,7 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
     private DittoRuntimeException unhandledExceptionForSignalInState(final Object signal,
             final BaseClientState state) {
         final DittoHeaders headers = signal instanceof WithDittoHeaders
-                ? ((WithDittoHeaders<?>) signal).getDittoHeaders()
+                ? ((WithDittoHeaders) signal).getDittoHeaders()
                 : DittoHeaders.empty();
         switch (state) {
             case CONNECTING:

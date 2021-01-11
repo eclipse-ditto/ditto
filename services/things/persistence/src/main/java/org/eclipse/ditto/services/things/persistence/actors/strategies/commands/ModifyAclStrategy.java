@@ -67,7 +67,7 @@ final class ModifyAclStrategy extends AbstractThingCommandStrategy<ModifyAcl> {
         final ThingEvent<?> event =
                 AclModified.of(thingId, newAccessControlList, nextRevision, getEventTimestamp(), dittoHeaders,
                         metadata);
-        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                 ModifyAclResponse.modified(thingId, newAccessControlList, command.getDittoHeaders()), thing);
 
         return ResultFactory.newMutationResult(command, event, response);

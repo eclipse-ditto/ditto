@@ -68,7 +68,7 @@ final class DeleteAttributeStrategy extends AbstractThingCommandStrategy<DeleteA
         final ThingId thingId = context.getState();
         final JsonPointer attrPointer = command.getAttributePointer();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                 DeleteAttributeResponse.of(thingId, attrPointer, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command,

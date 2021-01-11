@@ -101,7 +101,7 @@ final class EnforcementScheduler extends AbstractActor {
     private Void dispatchEnforcedMessage(final Contextual<?> enforcementResult) {
         final Optional<? extends WithDittoHeaders> messageOpt = enforcementResult.getMessageOptional();
         if (messageOpt.isPresent()) {
-            final WithDittoHeaders<?> message = messageOpt.get();
+            final WithDittoHeaders message = messageOpt.get();
             final ThreadSafeDittoLoggingAdapter logger = enforcementResult.getLog().withCorrelationId(message);
             final Optional<ActorRef> receiverOpt = enforcementResult.getReceiver();
             final Optional<Supplier<CompletionStage<Object>>> askFutureOpt = enforcementResult.getAskFuture();

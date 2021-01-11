@@ -45,7 +45,7 @@ public interface PreEnforcer {
      * @param signal the signal.
      * @return future result of the pre-enforcement.
      */
-    CompletionStage<WithDittoHeaders<?>> apply(WithDittoHeaders<?> signal);
+    CompletionStage<WithDittoHeaders> apply(WithDittoHeaders signal);
 
     /**
      * Perform pre-enforcement with error handling.
@@ -61,7 +61,7 @@ public interface PreEnforcer {
     default <S extends WithSender<?>, T> CompletionStage<T> withErrorHandlingAsync(final S withSender,
             final T onError, final Function<S, CompletionStage<T>> andThen) {
 
-        final WithDittoHeaders<?> message = withSender.getMessage();
+        final WithDittoHeaders message = withSender.getMessage();
         return apply(message)
                 // the cast to (S) is safe if the post-condition of this.apply(WithDittoHeaders) holds.
                 .thenCompose(msg -> andThen.apply((S) withSender.withMessage(msg)))

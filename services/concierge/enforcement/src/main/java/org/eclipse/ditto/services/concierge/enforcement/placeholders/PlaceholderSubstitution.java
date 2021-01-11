@@ -35,7 +35,7 @@ import org.eclipse.ditto.services.concierge.enforcement.placeholders.strategies.
  */
 @Immutable
 public final class PlaceholderSubstitution
-        implements Function<WithDittoHeaders<?>, CompletionStage<WithDittoHeaders<?>>> {
+        implements Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>> {
 
     private final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm;
     private final SubstitutionStrategyRegistry substitutionStrategyRegistry;

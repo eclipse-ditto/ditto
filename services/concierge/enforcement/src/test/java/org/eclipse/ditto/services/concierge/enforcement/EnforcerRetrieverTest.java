@@ -61,7 +61,7 @@ public class EnforcerRetrieverTest {
         when(idCache.get(any(EntityIdWithResourceType.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
 
-        final CompletionStage<Contextual<WithDittoHeaders<?>>> result =
+        final CompletionStage<Contextual<WithDittoHeaders>> result =
                 retriever.retrieve(entityId, (entityIdEntry, enforcerEntry) -> {
                     throw expectedException;
                 });
@@ -83,7 +83,7 @@ public class EnforcerRetrieverTest {
                 CompletableFuture.completedFuture(Optional.of(Entry.permanent(innerEntityId))));
         when(enforcerCache.get(any(EntityIdWithResourceType.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
-        final CompletionStage<Contextual<WithDittoHeaders<?>>> result =
+        final CompletionStage<Contextual<WithDittoHeaders>> result =
                 retriever.retrieve(entityId, (entityIdEntry, enforcerEntry) -> {
                     throw expectedException;
                 });
@@ -102,7 +102,7 @@ public class EnforcerRetrieverTest {
         when(enforcerCache.get(any(EntityIdWithResourceType.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
 
-        final CompletionStage<Contextual<WithDittoHeaders<?>>> result =
+        final CompletionStage<Contextual<WithDittoHeaders>> result =
                 retriever.retrieveByEnforcerKey(entityId, enforcerEntry -> {
                     throw expectedException;
                 });
@@ -111,7 +111,7 @@ public class EnforcerRetrieverTest {
         verifyException(result, expectedException);
     }
 
-    private void verifyException(final CompletionStage<Contextual<WithDittoHeaders<?>>> completionStage,
+    private void verifyException(final CompletionStage<Contextual<WithDittoHeaders>> completionStage,
             final Throwable expectedException)
             throws ExecutionException, InterruptedException {
         assertThat(completionStage.thenApply(_void -> new RuntimeException("this should not be happening"))

@@ -28,7 +28,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  * Checks that commands that modify entities cause no harm downstream.
  */
 public final class CommandWithOptionalEntityValidator implements
-        Function<WithDittoHeaders<?>, WithDittoHeaders<?>> {
+        Function<WithDittoHeaders, WithDittoHeaders> {
 
     private static final CommandWithOptionalEntityValidator INSTANCE = new CommandWithOptionalEntityValidator();
 
@@ -37,11 +37,11 @@ public final class CommandWithOptionalEntityValidator implements
     }
 
     @Override
-    public WithDittoHeaders<?> apply(final WithDittoHeaders<?> withDittoHeaders) {
+    public WithDittoHeaders apply(final WithDittoHeaders withDittoHeaders) {
         return checkForHarmfulEntity(withDittoHeaders);
     }
 
-    private static WithDittoHeaders<?> checkForHarmfulEntity(final WithDittoHeaders<?> withDittoHeaders) {
+    private static WithDittoHeaders checkForHarmfulEntity(final WithDittoHeaders withDittoHeaders) {
         if (withDittoHeaders instanceof Command && withDittoHeaders instanceof WithOptionalEntity) {
             final Optional<JsonValue> optionalEntity = ((WithOptionalEntity) withDittoHeaders).getEntity();
             if (optionalEntity.isPresent() && isJsonValueIllegal(optionalEntity.get())) {
@@ -78,7 +78,7 @@ public final class CommandWithOptionalEntityValidator implements
         return false;
     }
 
-    private static DittoRuntimeException buildError(final WithDittoHeaders<?> withDittoHeaders) {
+    private static DittoRuntimeException buildError(final WithDittoHeaders withDittoHeaders) {
         final JsonParseException jsonException = JsonParseException.newBuilder()
                 .message("JSON contains a string with the forbidden character '\\u0000'")
                 .description("We do not accept any JSON strings containing the null character.")

@@ -39,7 +39,7 @@ public final class ResultFactory {
      * @return the result.
      */
     public static <E extends Event<?>> Result<E> newMutationResult(final Command<?> command, final E eventToPersist,
-            final WithDittoHeaders<?> response) {
+            final WithDittoHeaders response) {
 
         return new MutationResult<>(command, eventToPersist, response, false, false);
     }
@@ -57,7 +57,7 @@ public final class ResultFactory {
      */
     public static <E extends Event<?>> Result<E> newMutationResult(final Command<?> command,
             final E eventToPersist,
-            final WithDittoHeaders<?> response,
+            final WithDittoHeaders response,
             final boolean becomeCreated,
             final boolean becomeDeleted) {
 
@@ -86,7 +86,7 @@ public final class ResultFactory {
      * @return the result.
      */
     public static <E extends Event<?>> Result<E> newQueryResult(final Command<?> command,
-            final WithDittoHeaders<?> response) {
+            final WithDittoHeaders response) {
         return new QueryResult<>(command, response);
     }
 

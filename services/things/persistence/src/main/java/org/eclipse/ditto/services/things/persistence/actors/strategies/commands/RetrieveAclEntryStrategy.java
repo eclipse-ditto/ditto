@@ -57,7 +57,7 @@ final class RetrieveAclEntryStrategy extends AbstractThingCommandStrategy<Retrie
 
         return extractAclEntry(command, thing)
                 .map(aclEntry -> {
-                    final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+                    final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                             RetrieveAclEntryResponse.of(thingId, aclEntry, dittoHeaders), thing);
                     return ResultFactory.<ThingEvent<?>>newQueryResult(command, response);
                 })

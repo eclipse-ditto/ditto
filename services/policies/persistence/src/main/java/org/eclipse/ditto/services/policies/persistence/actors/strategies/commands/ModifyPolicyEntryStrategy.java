@@ -114,7 +114,7 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
                 createdOrModifiedResponse = ModifyPolicyEntryResponse.created(policyId, adjustedPolicyEntry,
                         dittoHeaders);
             }
-            final WithDittoHeaders<?> response =
+            final WithDittoHeaders response =
                     appendETagHeaderIfProvided(adjustedCommand, createdOrModifiedResponse, nonNullPolicy);
 
             return ResultFactory.newMutationResult(adjustedCommand, eventToPersist, response);

@@ -134,7 +134,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
     }
 
     @Override
-    public CompletionStage<Contextual<WithDittoHeaders<?>>> enforce() {
+    public CompletionStage<Contextual<WithDittoHeaders>> enforce() {
         final Signal<?> liveSignal = signal();
         return enforcerRetriever.retrieve(entityId(), (enforcerKeyEntry, enforcerEntry) -> {
             try {
@@ -145,7 +145,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         });
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders<?>>> doEnforce(final Signal<?> liveSignal,
+    private CompletionStage<Contextual<WithDittoHeaders>> doEnforce(final Signal<?> liveSignal,
             final Entry<Enforcer> enforcerEntry) {
 
         final Optional<String> correlationIdOpt = liveSignal.getDittoHeaders().getCorrelationId();
@@ -181,7 +181,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         }
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders<?>>> enforceLiveCommandResponse(final Signal<?> liveSignal,
+    private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveCommandResponse(final Signal<?> liveSignal,
             final String correlationId) {
 
         final Optional<Cache<String, ActorRef>> responseReceiversOptional = context.getResponseReceivers();
@@ -215,7 +215,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         }
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders<?>>> enforceLiveSignal(final StreamingType streamingType,
+    private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveSignal(final StreamingType streamingType,
             final Signal<?> liveSignal, final Enforcer enforcer) {
 
         switch (streamingType) {
@@ -242,7 +242,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         }
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders<?>>> enforceLiveEvent(final Signal<?> liveSignal,
+    private CompletionStage<Contextual<WithDittoHeaders>> enforceLiveEvent(final Signal<?> liveSignal,
             final Enforcer enforcer) {
 
         // enforce Live Events
@@ -275,7 +275,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         return StreamingType.isLiveSignal(signal);
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders<?>>> enforceMessageCommand(final MessageCommand<?, ?> command,
+    private CompletionStage<Contextual<WithDittoHeaders>> enforceMessageCommand(final MessageCommand<?, ?> command,
             final Enforcer enforcer) {
 
         if (isAuthorized(command, enforcer)) {
@@ -285,7 +285,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
         }
     }
 
-    private CompletionStage<Contextual<WithDittoHeaders<?>>> publishMessageCommand(final MessageCommand<?, ?> command,
+    private CompletionStage<Contextual<WithDittoHeaders>> publishMessageCommand(final MessageCommand<?, ?> command,
             final Enforcer enforcer) {
 
         final ResourceKey resourceKey =
@@ -314,7 +314,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
     }
 
     @SuppressWarnings("unchecked")
-    private <T extends Signal<?>, S extends T> CompletionStage<Contextual<WithDittoHeaders<?>>> publishLiveSignal(
+    private <T extends Signal<?>, S extends T> CompletionStage<Contextual<WithDittoHeaders>> publishLiveSignal(
             final S signal,
             final AckExtractor<S> ackExtractor,
             final DistributedPub<T> pub) {

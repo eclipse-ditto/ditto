@@ -54,7 +54,7 @@ abstract class AbstractConnectivityCommandStrategy<C extends ConnectivityCommand
     }
 
     ConnectionNotAccessibleException notAccessible(final Context<ConnectionState> context,
-            final WithDittoHeaders<?> command) {
+            final WithDittoHeaders command) {
         return ConnectionNotAccessibleException.newBuilder(context.getState().id())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();

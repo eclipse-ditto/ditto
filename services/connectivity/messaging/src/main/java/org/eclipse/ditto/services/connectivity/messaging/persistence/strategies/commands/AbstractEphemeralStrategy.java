@@ -42,7 +42,7 @@ abstract class AbstractEphemeralStrategy<C extends ConnectivityCommand<?>>
         super(theMatchingClass);
     }
 
-    abstract WithDittoHeaders<?> getResponse(final ConnectionState connectionId, final DittoHeaders headers);
+    abstract WithDittoHeaders getResponse(final ConnectionState connectionId, final DittoHeaders headers);
 
     abstract List<ConnectionAction> getActions();
 
@@ -54,7 +54,7 @@ abstract class AbstractEphemeralStrategy<C extends ConnectivityCommand<?>>
             @Nullable final Metadata metadata) {
 
         final ConnectivityEvent<?> event = StagedCommand.dummyEvent();
-        final WithDittoHeaders<?> response = getResponse(context.getState(), command.getDittoHeaders());
+        final WithDittoHeaders response = getResponse(context.getState(), command.getDittoHeaders());
         final List<ConnectionAction> actions = getActions();
         return newMutationResult(StagedCommand.of(command, event, response, actions), event, response);
     }

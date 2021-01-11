@@ -17,7 +17,7 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.signals.commands.base.Command;
 
@@ -56,8 +56,8 @@ public interface ETagEntityProvider<C extends Command, S> {
      * @param entity the thing with the next revision number, or null if it is being deleted.
      * @return response with ETag header appended.
      */
-    default WithDittoHeaders appendETagHeaderIfProvided(final C command,
-            final WithDittoHeaders withDittoHeaders, @Nullable final S entity) {
+    default DittoHeadersSettable<?> appendETagHeaderIfProvided(final C command,
+            final DittoHeadersSettable<?> withDittoHeaders, @Nullable final S entity) {
 
         final Optional<EntityTag> entityTagOpt = nextEntityTag(command, entity);
         if (entityTagOpt.isPresent()) {

@@ -124,7 +124,7 @@ public abstract class AbstractCommandStrategyTest {
 
     private static <T extends ThingModifiedEvent<?>> T assertModificationResult(final Result<ThingEvent<?>> result,
             final Class<T> eventClazz,
-            final WithDittoHeaders<?> expectedResponse,
+            final WithDittoHeaders expectedResponse,
             final boolean becomeDeleted) {
 
         final ArgumentCaptor<T> event = ArgumentCaptor.forClass(eventClazz);
@@ -138,7 +138,7 @@ public abstract class AbstractCommandStrategyTest {
         return event.getValue();
     }
 
-    private static void assertInfoResult(final Result<ThingEvent<?>> result, final WithDittoHeaders<?> infoResponse) {
+    private static void assertInfoResult(final Result<ThingEvent<?>> result, final WithDittoHeaders infoResponse) {
         final ResultVisitor<ThingEvent<?>> mock = mock(Dummy.class);
         result.accept(mock);
         verify(mock).onQuery(any(), eq(infoResponse));

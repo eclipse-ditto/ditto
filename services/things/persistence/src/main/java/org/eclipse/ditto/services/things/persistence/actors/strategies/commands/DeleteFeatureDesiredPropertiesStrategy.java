@@ -83,7 +83,7 @@ final class DeleteFeatureDesiredPropertiesStrategy
                     final ThingEvent<?> event =
                             FeatureDesiredPropertiesDeleted.of(thingId, featureId, nextRevision, getEventTimestamp(),
                                     dittoHeaders, metadata);
-                    final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+                    final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                             DeleteFeatureDesiredPropertiesResponse.of(thingId, featureId, dittoHeaders), thing);
                     return ResultFactory.<ThingEvent<?>>newMutationResult(command, event, response);
                 })

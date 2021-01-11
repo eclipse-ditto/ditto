@@ -87,7 +87,7 @@ final class DeleteAclEntryStrategy extends AbstractThingCommandStrategy<DeleteAc
                     ExceptionFactory.aclInvalid(thingId, validator.getReason(), dittoHeaders), command);
         }
 
-        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                 DeleteAclEntryResponse.of(thingId, authSubject, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command,

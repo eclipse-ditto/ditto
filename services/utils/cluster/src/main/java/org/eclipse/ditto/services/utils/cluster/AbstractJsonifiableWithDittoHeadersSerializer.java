@@ -213,7 +213,7 @@ public abstract class AbstractJsonifiableWithDittoHeadersSerializer extends Seri
 
     private static DittoHeaders getDittoHeadersOrEmpty(final Object object) {
         if (object instanceof WithDittoHeaders) {
-            @Nullable final DittoHeaders dittoHeaders = ((WithDittoHeaders<?>) object).getDittoHeaders();
+            @Nullable final DittoHeaders dittoHeaders = ((WithDittoHeaders) object).getDittoHeaders();
             if (null != dittoHeaders) {
                 return dittoHeaders;
             }
