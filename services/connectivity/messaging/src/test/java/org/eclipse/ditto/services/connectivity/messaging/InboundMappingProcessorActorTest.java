@@ -112,7 +112,7 @@ public final class InboundMappingProcessorActorTest {
         final ThreadSafeDittoLoggingAdapter logger = Mockito.mock(ThreadSafeDittoLoggingAdapter.class);
         Mockito.doAnswer(inv -> logger).when(logger).withCorrelationId(Mockito.<CharSequence>any());
         Mockito.doAnswer(inv -> logger).when(logger).withCorrelationId(Mockito.<DittoHeaders>any());
-        return InboundMappingProcessor.forTest(ConnectionId.of("connectionId"),
+        return InboundMappingProcessor.of(ConnectionId.of("connectionId"),
                 ConnectionType.MQTT,
                 registry,
                 logger,

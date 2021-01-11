@@ -110,11 +110,11 @@ public final class InboundMappingProcessor
         final DittoHeadersSizeChecker dittoHeadersSizeChecker =
                 DittoHeadersSizeChecker.of(limitsConfig.getHeadersMaxSize(), limitsConfig.getAuthSubjectsMaxCount());
 
-        return new InboundMappingProcessor(connectionId, connectionType, registry, loggerWithConnectionId,
-                protocolAdapter, dittoHeadersSizeChecker);
+        return of(connectionId, connectionType, registry, loggerWithConnectionId, protocolAdapter,
+                dittoHeadersSizeChecker);
     }
 
-    static InboundMappingProcessor forTest(final ConnectionId connectionId, final ConnectionType connectionType,
+    static InboundMappingProcessor of(final ConnectionId connectionId, final ConnectionType connectionType,
             final MessageMapperRegistry registry, final ThreadSafeDittoLoggingAdapter logger,
             final ProtocolAdapter adapter, final DittoHeadersSizeChecker sizeChecker) {
         return new InboundMappingProcessor(connectionId, connectionType, registry, logger, adapter, sizeChecker);
