@@ -23,8 +23,6 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -35,7 +33,6 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
@@ -52,7 +49,6 @@ import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapt
 import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.ActorSystem;
-import akka.persistence.Protocol;
 
 /**
  * Processes incoming {@link ExternalMessage}s to {@link Signal}s.
