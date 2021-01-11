@@ -55,14 +55,7 @@ public final class DittoRuntimeAssert extends AbstractAssert<DittoRuntimeAssert,
     @Deprecated
     public DittoRuntimeAssert hasStatusCode(final HttpStatusCode expectedStatusCode) {
         isNotNull();
-
-        final HttpStatusCode actualStatusCode = actual.getStatusCode();
-        assertThat(actualStatusCode)
-                .overridingErrorMessage("Expected status code of DittoRuntimeException to be \n<%s> but it was \n<%s>",
-                        expectedStatusCode, actualStatusCode)
-                .isEqualTo(expectedStatusCode);
-
-        return this;
+        return hasStatus(expectedStatusCode.getAsHttpStatus());
     }
 
     /**

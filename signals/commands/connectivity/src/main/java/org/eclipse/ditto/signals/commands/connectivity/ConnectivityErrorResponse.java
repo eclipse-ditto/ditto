@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
 
 /**
@@ -56,7 +57,7 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
     private ConnectivityErrorResponse(final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, dittoRuntimeException.getStatusCode(), dittoHeaders);
+        super(TYPE, dittoRuntimeException.getHttpStatus(), dittoHeaders);
         this.dittoRuntimeException = checkNotNull(dittoRuntimeException, "CR Runtime Exception");
     }
 
@@ -108,11 +109,9 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
      * @return the ConnectivityErrorResponse.
      */
     public static ConnectivityErrorResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final JsonObject payload = jsonObject.getValue(ConnectivityCommandResponse.JsonFields.PAYLOAD)
+        final JsonObject payload = jsonObject.getValue(CommandResponse.JsonFields.PAYLOAD)
                 .map(JsonValue::asObject)
-                .orElseThrow(
-                        () -> new JsonMissingFieldException(
-                                ConnectivityCommandResponse.JsonFields.PAYLOAD.getPointer()));
+                .orElseThrow(() -> new JsonMissingFieldException(CommandResponse.JsonFields.PAYLOAD.getPointer()));
         final DittoRuntimeException exception = ERROR_REGISTRY.parse(payload, dittoHeaders);
         return of(exception, dittoHeaders);
     }
@@ -141,8 +140,7 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(
-                ConnectivityCommandResponse.JsonFields.PAYLOAD,
+        jsonObjectBuilder.set(CommandResponse.JsonFields.PAYLOAD,
                 dittoRuntimeException.toJson(schemaVersion, thePredicate),
                 predicate);
     }
@@ -165,9 +163,10 @@ public final class ConnectivityErrorResponse extends AbstractCommandResponse<Con
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        if (!super.equals(o)) return false;
-        final ConnectivityErrorResponse
-                that = (ConnectivityErrorResponse) o;
+        if (!super.equals(o)) {
+            return false;
+        }
+        final ConnectivityErrorResponse that = (ConnectivityErrorResponse) o;
         return Objects.equals(dittoRuntimeException, that.dittoRuntimeException);
     }
 

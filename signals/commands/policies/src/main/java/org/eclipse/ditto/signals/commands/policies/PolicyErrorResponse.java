@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.signals.commands.policies;
 
-import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
@@ -34,6 +33,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.AbstractErrorResponse;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**
  * Response to a {@link PolicyCommand} which wraps the exception thrown while processing the command.
@@ -58,10 +58,9 @@ public final class PolicyErrorResponse extends AbstractErrorResponse<PolicyError
     private PolicyErrorResponse(final PolicyId policyId, final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, dittoRuntimeException.getStatusCode(), dittoHeaders);
+        super(TYPE, dittoRuntimeException.getHttpStatus(), dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
-        this.dittoRuntimeException =
-                requireNonNull(dittoRuntimeException, "The Ditto Runtime Exception must not be null");
+        this.dittoRuntimeException = checkNotNull(dittoRuntimeException, "dittoRuntimeException");
     }
 
     /**
@@ -160,7 +159,7 @@ public final class PolicyErrorResponse extends AbstractErrorResponse<PolicyError
     public static PolicyErrorResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
         final PolicyId policyId = PolicyId.of(extractedPolicyId);
-        final JsonObject payload = jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.PAYLOAD).asObject();
+        final JsonObject payload = jsonObject.getValueOrThrow(CommandResponse.JsonFields.PAYLOAD).asObject();
         final DittoRuntimeException exception = buildExceptionFromJson(GLOBAL_ERROR_REGISTRY, payload, dittoHeaders);
         return of(policyId, exception, dittoHeaders);
     }
@@ -183,10 +182,12 @@ public final class PolicyErrorResponse extends AbstractErrorResponse<PolicyError
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
-        jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.PAYLOAD,
-                dittoRuntimeException.toJson(schemaVersion, thePredicate), predicate);
+        jsonObjectBuilder.set(CommandResponse.JsonFields.PAYLOAD,
+                dittoRuntimeException.toJson(schemaVersion, thePredicate),
+                predicate);
     }
 
     @Override
@@ -195,8 +196,8 @@ public final class PolicyErrorResponse extends AbstractErrorResponse<PolicyError
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof PolicyErrorResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof PolicyErrorResponse;
     }
 
     @Override
@@ -208,8 +209,10 @@ public final class PolicyErrorResponse extends AbstractErrorResponse<PolicyError
             return false;
         }
         final PolicyErrorResponse that = (PolicyErrorResponse) o;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId) &&
-                Objects.equals(dittoRuntimeException, that.dittoRuntimeException) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(dittoRuntimeException, that.dittoRuntimeException) &&
+                super.equals(o);
     }
 
     @Override
