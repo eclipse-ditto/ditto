@@ -28,41 +28,38 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.model.policies.PolicyActionFailedException;
-import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
-import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectId;
-import org.eclipse.ditto.services.models.policies.PoliciesValidator;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.signals.commands.policies.modify.ActivateSubjects;
-import org.eclipse.ditto.signals.commands.policies.modify.ActivateSubjectsResponse;
+import org.eclipse.ditto.signals.commands.policies.actions.DeactivatePolicyTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.actions.DeactivatePolicyTokenIntegrationResponse;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
-import org.eclipse.ditto.signals.events.policies.SubjectsActivated;
+import org.eclipse.ditto.signals.events.policies.SubjectsDeactivated;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.modify.ActivateSubjects} command.
+ * This strategy handles the {@link DeactivatePolicyTokenIntegration} command.
  */
-final class ActivateSubjectsStrategy extends AbstractPolicyActionCommandStrategy<ActivateSubjects> {
+final class DeactivatePolicyTokenIntegrationStrategy
+        extends AbstractPolicyActionCommandStrategy<DeactivatePolicyTokenIntegration> {
 
-    ActivateSubjectsStrategy(final PolicyConfig policyConfig) {
-        super(ActivateSubjects.class, policyConfig);
+    DeactivatePolicyTokenIntegrationStrategy(final PolicyConfig policyConfig) {
+        super(DeactivatePolicyTokenIntegration.class, policyConfig);
     }
 
     @Override
     protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy policy,
             final long nextRevision,
-            final ActivateSubjects command,
+            final DeactivatePolicyTokenIntegration command,
             @Nullable final Metadata metadata) {
 
         final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyId policyId = context.getState();
-        final SubjectExpiry commandSubjectExpiry = SubjectExpiry.newInstance(command.getExpiry());
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final List<PolicyEntry> entries = command.getLabels()
                 .stream()
@@ -72,10 +69,9 @@ final class ActivateSubjectsStrategy extends AbstractPolicyActionCommandStrategy
         if (entries.isEmpty() || entries.size() != command.getLabels().size()) {
             // Command is constructed incorrectly. This is a bug.
             return ResultFactory.newErrorResult(
-                    PolicyActionFailedException.newBuilderForActivateTokenIntegration().build(), command);
+                    PolicyActionFailedException.newBuilderForDeactivateTokenIntegration().build(), command);
         }
-        final PolicyBuilder policyBuilder = nonNullPolicy.toBuilder();
-        final Map<Label, Subject> activatedSubjects = new HashMap<>();
+        final Map<Label, SubjectId> deactivatedSubjectsIds = new HashMap<>();
         for (final PolicyEntry entry : entries) {
             final SubjectId subjectId;
             try {
@@ -83,38 +79,37 @@ final class ActivateSubjectsStrategy extends AbstractPolicyActionCommandStrategy
             } catch (final DittoRuntimeException e) {
                 return ResultFactory.newErrorResult(e, command);
             }
-            final Subject subject = Subject.newInstance(subjectId, TOKEN_INTEGRATION, commandSubjectExpiry);
-            final Subject adjustedSubject = potentiallyAdjustSubject(subject);
-            policyBuilder.setSubjectFor(entry.getLabel(), adjustedSubject);
-            activatedSubjects.put(entry.getLabel(), adjustedSubject);
+            final Optional<Subject> optionalSubject = entry.getSubjects().getSubject(subjectId);
+            if (optionalSubject.isPresent()) {
+                if (optionalSubject.get().getExpiry().isEmpty()) {
+                    return ResultFactory.newErrorResult(
+                            PolicyActionFailedException.newBuilderForDeactivatingPermanentSubjects()
+                                    .dittoHeaders(dittoHeaders)
+                                    .build(),
+                            command);
+                }
+                deactivatedSubjectsIds.put(entry.getLabel(), subjectId);
+            }
         }
-
-        // Validation is necessary because activation may add expiry to the policy admin subject.
-        final Policy newPolicy = policyBuilder.build();
-        final PoliciesValidator validator = PoliciesValidator.newInstance(newPolicy);
-        if (validator.isValid()) {
-            final PolicyEvent<?> event =
-                    SubjectsActivated.of(policyId, activatedSubjects, nextRevision, getEventTimestamp(), dittoHeaders);
-            final ActivateSubjectsResponse rawResponse =
-                    ActivateSubjectsResponse.of(policyId, command.getSubjectId(), dittoHeaders);
-            // do not append ETag - activated subjects do not support ETags.
-            return ResultFactory.newMutationResult(command, event, rawResponse);
-        } else {
-            return ResultFactory.newErrorResult(
-                    policyInvalid(policyId, validator.getReason().orElse(null), dittoHeaders),
-                    command);
-        }
+        // Validation is not necessary because temporary subjects do not affect validity
+        final PolicyEvent<?> event =
+                SubjectsDeactivated.of(policyId, deactivatedSubjectsIds, nextRevision, getEventTimestamp(),
+                        dittoHeaders);
+        final DeactivatePolicyTokenIntegrationResponse rawResponse =
+                DeactivatePolicyTokenIntegrationResponse.of(policyId, command.getSubjectId(), dittoHeaders);
+        return ResultFactory.newMutationResult(command, event, rawResponse);
     }
 
     @Override
-    public Optional<EntityTag> previousEntityTag(final ActivateSubjects command,
+    public Optional<EntityTag> previousEntityTag(final DeactivatePolicyTokenIntegration command,
             @Nullable final Policy previousEntity) {
         // activated subjects do not support entity tag
         return Optional.empty();
     }
 
     @Override
-    public Optional<EntityTag> nextEntityTag(final ActivateSubjects command, @Nullable final Policy newEntity) {
+    public Optional<EntityTag> nextEntityTag(final DeactivatePolicyTokenIntegration command,
+            @Nullable final Policy newEntity) {
         // activated subjects do not support entity tag
         return Optional.empty();
     }

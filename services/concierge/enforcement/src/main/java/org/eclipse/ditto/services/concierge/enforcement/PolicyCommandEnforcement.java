@@ -50,15 +50,16 @@ import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
+import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.actions.DeactivatePolicyTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.actions.PolicyActionCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToAccessExceptionRegistry;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToActionsExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToModifyExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyUnavailableException;
-import org.eclipse.ditto.signals.commands.policies.modify.ActivateSubjects;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
-import org.eclipse.ditto.signals.commands.policies.modify.DeactivateSubjects;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy;
-import org.eclipse.ditto.signals.commands.policies.modify.PolicyActionCommand;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
@@ -160,16 +161,16 @@ public final class PolicyCommandEnforcement
                 .orElse(List.of());
         if (authorizedLabels.isEmpty()) {
             return Optional.empty();
-        } else if (command instanceof ActivateSubjects) {
-            final ActivateSubjects c = (ActivateSubjects) command;
+        } else if (command instanceof ActivatePolicyTokenIntegration) {
+            final ActivatePolicyTokenIntegration c = (ActivatePolicyTokenIntegration) command;
             final T adjustedCommand =
-                    (T) ActivateSubjects.of(c.getEntityId(), c.getSubjectId(), c.getExpiry(), authorizedLabels,
+                    (T) ActivatePolicyTokenIntegration.of(c.getEntityId(), c.getSubjectId(), c.getExpiry(), authorizedLabels,
                             c.getDittoHeaders());
             return Optional.of(adjustedCommand);
-        } else if (command instanceof DeactivateSubjects) {
-            final DeactivateSubjects c = (DeactivateSubjects) command;
+        } else if (command instanceof DeactivatePolicyTokenIntegration) {
+            final DeactivatePolicyTokenIntegration c = (DeactivatePolicyTokenIntegration) command;
             final T adjustedCommand =
-                    (T) DeactivateSubjects.of(c.getEntityId(), c.getSubjectId(), authorizedLabels, c.getDittoHeaders());
+                    (T) DeactivatePolicyTokenIntegration.of(c.getEntityId(), c.getSubjectId(), authorizedLabels, c.getDittoHeaders());
             return Optional.of(adjustedCommand);
         } else {
             return Optional.empty();
@@ -231,10 +232,14 @@ public final class PolicyCommandEnforcement
      * @return the error.
      */
     private static DittoRuntimeException errorForPolicyCommand(final PolicyCommand<?> policyCommand) {
-        final CommandToExceptionRegistry<PolicyCommand<?>, DittoRuntimeException> registry =
-                policyCommand instanceof PolicyModifyCommand
-                        ? PolicyCommandToModifyExceptionRegistry.getInstance()
-                        : PolicyCommandToAccessExceptionRegistry.getInstance();
+        final CommandToExceptionRegistry<PolicyCommand<?>, DittoRuntimeException> registry;
+        if (policyCommand instanceof PolicyActionCommand) {
+            registry = PolicyCommandToActionsExceptionRegistry.getInstance();
+        } else if (policyCommand instanceof PolicyModifyCommand) {
+            registry = PolicyCommandToModifyExceptionRegistry.getInstance();
+        } else {
+            registry = PolicyCommandToAccessExceptionRegistry.getInstance();
+        }
         return registry.exceptionFrom(policyCommand);
     }
 

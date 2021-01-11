@@ -24,7 +24,6 @@ import java.util.List;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.PolicyActionFailedException;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIdInvalidException;
@@ -32,8 +31,9 @@ import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.services.policies.common.config.DefaultPolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
-import org.eclipse.ditto.signals.commands.policies.modify.ActivateSubjects;
-import org.eclipse.ditto.signals.commands.policies.modify.ActivateSubjectsResponse;
+import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIntegrationResponse;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.signals.events.policies.SubjectsActivated;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,24 +41,24 @@ import org.junit.Test;
 import com.typesafe.config.ConfigFactory;
 
 /**
- * Unit test for {@link ActivateSubjectsStrategy}.
+ * Unit test for {@link ActivatePolicyTokenIntegrationStrategy}.
  */
-public final class ActivateSubjectsStrategyTest extends AbstractPolicyCommandStrategyTest {
+public final class ActivatePolicyTokenIntegrationStrategyTest extends AbstractPolicyCommandStrategyTest {
 
-    private ActivateSubjectsStrategy underTest;
+    private ActivatePolicyTokenIntegrationStrategy underTest;
 
     @Before
     public void setUp() {
-        underTest = new ActivateSubjectsStrategy(DefaultPolicyConfig.of(ConfigFactory.load("policy-test")));
+        underTest = new ActivatePolicyTokenIntegrationStrategy(DefaultPolicyConfig.of(ConfigFactory.load("policy-test")));
     }
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ActivateSubjectsStrategy.class, areImmutable());
+        assertInstancesOf(ActivatePolicyTokenIntegrationStrategy.class, areImmutable());
     }
 
     @Test
-    public void activateSubject() {
+    public void activateTokenIntegration() {
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final Instant expiry = Instant.now().plus(Duration.ofDays(1L));
         final SubjectId subjectId =
@@ -66,8 +66,8 @@ public final class ActivateSubjectsStrategyTest extends AbstractPolicyCommandStr
         final SubjectId expectedSubjectId =
                 SubjectId.newInstance(SubjectIssuer.INTEGRATION, LABEL + ":this-is-me");
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
-        final ActivateSubjects command =
-                ActivateSubjects.of(context.getState(), subjectId, expiry, List.of(LABEL), dittoHeaders);
+        final ActivatePolicyTokenIntegration command =
+                ActivatePolicyTokenIntegration.of(context.getState(), subjectId, expiry, List.of(LABEL), dittoHeaders);
         assertModificationResult(underTest, TestConstants.Policy.POLICY, command,
                 SubjectsActivated.class,
                 event -> {
@@ -75,9 +75,10 @@ public final class ActivateSubjectsStrategyTest extends AbstractPolicyCommandStr
                     assertThat(event.getActivatedSubjects().get(LABEL).getId()).isEqualTo(expectedSubjectId);
                     assertThat(event.getActivatedSubjects().get(LABEL).getExpiry()).isNotEmpty();
                 },
-                ActivateSubjectsResponse.class,
+                ActivatePolicyTokenIntegrationResponse.class,
                 response -> assertThat(response)
-                        .isEqualTo(ActivateSubjectsResponse.of(context.getState(), subjectId, dittoHeaders)));
+                        .isEqualTo(
+                                ActivatePolicyTokenIntegrationResponse.of(context.getState(), subjectId, dittoHeaders)));
     }
 
     @Test
@@ -86,8 +87,8 @@ public final class ActivateSubjectsStrategyTest extends AbstractPolicyCommandStr
         final Instant expiry = Instant.now().plus(Duration.ofDays(1L));
         final SubjectId subjectId = SubjectId.newInstance("{{policy-entry:label}}");
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
-        final ActivateSubjects command =
-                ActivateSubjects.of(context.getState(), subjectId, expiry, List.of(LABEL), dittoHeaders);
+        final ActivatePolicyTokenIntegration command =
+                ActivatePolicyTokenIntegration.of(context.getState(), subjectId, expiry, List.of(LABEL), dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
                 SubjectIdInvalidException.newBuilder(LABEL).build());
     }
@@ -98,20 +99,20 @@ public final class ActivateSubjectsStrategyTest extends AbstractPolicyCommandStr
         final Instant expiry = Instant.now().plus(Duration.ofDays(1L));
         final SubjectId subjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{fn:delete()}}");
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
-        final ActivateSubjects command =
-                ActivateSubjects.of(context.getState(), subjectId, expiry, List.of(LABEL), dittoHeaders);
+        final ActivatePolicyTokenIntegration command =
+                ActivatePolicyTokenIntegration.of(context.getState(), subjectId, expiry, List.of(LABEL), dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
                 UnresolvedPlaceholderException.newBuilder("integration:{{fn:delete()}}").build());
     }
 
     @Test
-    public void activateSubjectWithUnsupportedPlaceholder() {
+    public void activateTokenIntegrationWithUnsupportedPlaceholder() {
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final Instant expiry = Instant.now().plus(Duration.ofDays(1L));
         final SubjectId subjectId = SubjectId.newInstance("{{request:subjectId}}");
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
-        final ActivateSubjects command =
-                ActivateSubjects.of(context.getState(), subjectId, expiry, List.of(LABEL), dittoHeaders);
+        final ActivatePolicyTokenIntegration command =
+                ActivatePolicyTokenIntegration.of(context.getState(), subjectId, expiry, List.of(LABEL), dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
                 UnresolvedPlaceholderException.newBuilder("{{request:subjectId}}").build());
     }
@@ -122,8 +123,8 @@ public final class ActivateSubjectsStrategyTest extends AbstractPolicyCommandStr
         final Instant expiry = Instant.now().plus(Duration.ofDays(1L));
         final SubjectId subjectId = SubjectId.newInstance("integration:this-is-me");
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
-        final ActivateSubjects command =
-                ActivateSubjects.of(context.getState(), subjectId, expiry, List.of(), dittoHeaders);
+        final ActivatePolicyTokenIntegration command =
+                ActivatePolicyTokenIntegration.of(context.getState(), subjectId, expiry, List.of(), dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
                 PolicyActionFailedException.newBuilderForActivateTokenIntegration().build());
     }
@@ -135,8 +136,8 @@ public final class ActivateSubjectsStrategyTest extends AbstractPolicyCommandStr
         final Instant expiry = Instant.now().plus(Duration.ofDays(1L));
         final SubjectId subjectId = SubjectId.newInstance("integration:this-is-me");
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
-        final ActivateSubjects command =
-                ActivateSubjects.of(context.getState(), subjectId, expiry, List.of(nonexistentLabel), dittoHeaders);
+        final ActivatePolicyTokenIntegration command =
+                ActivatePolicyTokenIntegration.of(context.getState(), subjectId, expiry, List.of(nonexistentLabel), dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
                 PolicyActionFailedException.newBuilderForActivateTokenIntegration().build());
     }

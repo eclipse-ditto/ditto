@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,11 +10,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.policies.modify;
+package org.eclipse.ditto.signals.commands.policies.actions;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.model.base.json.FieldType.REGULAR;
-import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -29,6 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
@@ -45,25 +44,31 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
  * @since 2.0.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = DeactivateSubject.TYPE_PREFIX, name = DeactivateSubject.NAME)
-public final class DeactivateSubject extends AbstractCommand<DeactivateSubject>
-        implements PolicyActionCommand<DeactivateSubject> {
+@JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = DeactivateTokenIntegration.NAME)
+public final class DeactivateTokenIntegration extends AbstractCommand<DeactivateTokenIntegration>
+        implements PolicyActionCommand<DeactivateTokenIntegration> {
 
     /**
      * NAME of this command.
      */
-    public static final String NAME = "deactivateSubject";
+    public static final String NAME = "deactivateTokenIntegration";
 
     /**
      * Type of this command.
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    static final JsonFieldDefinition<String> JSON_SUBJECT_ID =
+            JsonFactory.newStringFieldDefinition("subjectId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
     private final PolicyId policyId;
     private final Label label;
     private final SubjectId subjectId;
 
-    private DeactivateSubject(final PolicyId policyId, final Label label, final SubjectId subjectId,
+    private DeactivateTokenIntegration(final PolicyId policyId, final Label label, final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policyId");
@@ -81,10 +86,10 @@ public final class DeactivateSubject extends AbstractCommand<DeactivateSubject>
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static DeactivateSubject of(final PolicyId policyId, final Label label, final SubjectId subjectId,
+    public static DeactivateTokenIntegration of(final PolicyId policyId, final Label label, final SubjectId subjectId,
             final DittoHeaders dittoHeaders) {
 
-        return new DeactivateSubject(policyId, label, subjectId, dittoHeaders);
+        return new DeactivateTokenIntegration(policyId, label, subjectId, dittoHeaders);
     }
 
     /**
@@ -97,14 +102,14 @@ public final class DeactivateSubject extends AbstractCommand<DeactivateSubject>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static DeactivateSubject fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<DeactivateSubject>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+    public static DeactivateTokenIntegration fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<DeactivateTokenIntegration>(TYPE, jsonObject).deserialize(() -> {
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
-            final Label label = Label.of(jsonObject.getValueOrThrow(JsonFields.LABEL));
+            final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
             final SubjectId subjectId =
-                    PoliciesModelFactory.newSubjectId(jsonObject.getValueOrThrow(JsonFields.SUBJECT_ID));
-            return new DeactivateSubject(policyId, label, subjectId, dittoHeaders);
+                    PoliciesModelFactory.newSubjectId(jsonObject.getValueOrThrow(JSON_SUBJECT_ID));
+            return new DeactivateTokenIntegration(policyId, label, subjectId, dittoHeaders);
         });
     }
 
@@ -129,7 +134,7 @@ public final class DeactivateSubject extends AbstractCommand<DeactivateSubject>
 
     @Override
     public JsonPointer getResourcePath() {
-        return ActivateSubject.toResourcePath(label, subjectId);
+        return ActivateTokenIntegration.toResourcePath(label, subjectId);
     }
 
     @Override
@@ -138,23 +143,18 @@ public final class DeactivateSubject extends AbstractCommand<DeactivateSubject>
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
-        jsonObjectBuilder.set(JsonFields.LABEL, label.toString(), predicate);
-        jsonObjectBuilder.set(JsonFields.SUBJECT_ID, subjectId.toString(), predicate);
+        jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
+        jsonObjectBuilder.set(JSON_SUBJECT_ID, subjectId.toString(), predicate);
     }
 
     @Override
-    public Category getCategory() {
-        return Category.MODIFY;
-    }
-
-    @Override
-    public DeactivateSubject setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new DeactivateSubject(policyId, label, subjectId, dittoHeaders);
+    public DeactivateTokenIntegration setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new DeactivateTokenIntegration(policyId, label, subjectId, dittoHeaders);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof DeactivateSubject;
+        return other instanceof DeactivateTokenIntegration;
     }
 
     @Override
@@ -165,7 +165,7 @@ public final class DeactivateSubject extends AbstractCommand<DeactivateSubject>
         if (null == obj || getClass() != obj.getClass()) {
             return false;
         }
-        final DeactivateSubject that = (DeactivateSubject) obj;
+        final DeactivateTokenIntegration that = (DeactivateTokenIntegration) obj;
         return Objects.equals(policyId, that.policyId) &&
                 Objects.equals(label, that.label) &&
                 Objects.equals(subjectId, that.subjectId) &&
@@ -184,15 +184,6 @@ public final class DeactivateSubject extends AbstractCommand<DeactivateSubject>
                 ", label=" + label +
                 ", subjectId=" + subjectId +
                 "]";
-    }
-
-    static final class JsonFields {
-
-        static final JsonFieldDefinition<String> LABEL =
-                JsonFactory.newStringFieldDefinition("label", REGULAR, V_2);
-
-        static final JsonFieldDefinition<String> SUBJECT_ID =
-                JsonFactory.newStringFieldDefinition("subjectId", REGULAR, V_2);
     }
 
 }

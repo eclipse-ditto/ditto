@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.policies;
+package org.eclipse.ditto.signals.commands.policies.exceptions;
 
 import java.net.URI;
 import java.text.MessageFormat;
@@ -27,6 +27,9 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
 
 /**
  * Thrown if an action on a policy failed.
@@ -40,21 +43,13 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "action.failed";
 
-    /**
-     * The action {@code activateTokenIntegration}.
-     */
-    public static final String ACTIVATE_TOKEN_INTEGRATION = "activateTokenIntegration";
-
-    /**
-     * The action {@code deactivateTokenIntegration}.
-     */
-    public static final String DEACTIVATE_TOKEN_INTEGRATION = "deactivateTokenIntegration";
-
     private static final HttpStatusCode DEFAULT_STATUS = HttpStatusCode.INTERNAL_SERVER_ERROR;
 
     private static final String MESSAGE_TEMPLATE = "Failed to execute action ''{0}''.";
 
     private static final String DEFAULT_DESCRIPTION = "Please contact the service team.";
+
+    private static final long serialVersionUID = 989346771203701232L;
 
     private PolicyActionFailedException(final DittoHeaders dittoHeaders,
             final HttpStatusCode status,
@@ -71,7 +66,7 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
      * @return the builder.
      */
     public static Builder newBuilderForActivateTokenIntegration() {
-        return new Builder().action(ACTIVATE_TOKEN_INTEGRATION);
+        return new Builder().action(ActivateTokenIntegration.NAME);
     }
 
     /**
@@ -80,7 +75,7 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
      * @return the builder.
      */
     public static Builder newBuilderForDeactivateTokenIntegration() {
-        return new Builder().action(DEACTIVATE_TOKEN_INTEGRATION);
+        return new Builder().action(DeactivateTokenIntegration.NAME);
     }
 
     /**
@@ -104,7 +99,7 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
     public static DittoRuntimeExceptionBuilder<PolicyActionFailedException>
     newBuilderForDeactivatingPermanentSubjects() {
         return new Builder()
-                .action(DEACTIVATE_TOKEN_INTEGRATION)
+                .action(DeactivateTokenIntegration.NAME)
                 .status(HttpStatusCode.BAD_REQUEST)
                 .description("Some matched subjects are permanent.");
     }

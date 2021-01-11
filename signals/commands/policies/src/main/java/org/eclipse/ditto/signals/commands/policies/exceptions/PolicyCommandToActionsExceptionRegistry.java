@@ -1,0 +1,82 @@
+/*
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information regarding copyright ownership.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
+package org.eclipse.ditto.signals.commands.policies.exceptions;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
+
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.signals.commands.base.AbstractCommandToExceptionRegistry;
+import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
+import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.actions.DeactivatePolicyTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
+
+/**
+ * Registry to map policy commands to their according policy actions exception.
+ */
+public final class PolicyCommandToActionsExceptionRegistry
+        extends AbstractCommandToExceptionRegistry<PolicyCommand<?>, DittoRuntimeException> {
+
+    private static final PolicyCommandToActionsExceptionRegistry INSTANCE = createInstance();
+
+    private PolicyCommandToActionsExceptionRegistry(
+            final Map<String, Function<PolicyCommand<?>, DittoRuntimeException>> mappingStrategies) {
+        super(mappingStrategies);
+    }
+
+    /**
+     * Returns an instance of {@code PolicyCommandToModifyExceptionRegistry}.
+     *
+     * @return the instance.
+     */
+    public static PolicyCommandToActionsExceptionRegistry getInstance() {
+        return INSTANCE;
+    }
+
+    private static PolicyCommandToActionsExceptionRegistry createInstance() {
+        final Map<String, Function<PolicyCommand<?>, DittoRuntimeException>> mappingStrategies = new HashMap<>();
+
+        final String insufficientPermissions = "The requester has insufficient permissions. 'EXECUTE' is required.";
+        mappingStrategies.put(ActivatePolicyTokenIntegration.TYPE,
+                command -> PolicyActionFailedException.newBuilderForActivateTokenIntegration()
+                        .status(HttpStatusCode.FORBIDDEN)
+                        .description(insufficientPermissions)
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
+        mappingStrategies.put(ActivateTokenIntegration.TYPE,
+                command -> PolicyActionFailedException.newBuilderForActivateTokenIntegration()
+                        .status(HttpStatusCode.FORBIDDEN)
+                        .description(insufficientPermissions)
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
+        mappingStrategies.put(DeactivatePolicyTokenIntegration.TYPE,
+                command -> PolicyActionFailedException.newBuilderForDeactivateTokenIntegration()
+                        .status(HttpStatusCode.FORBIDDEN)
+                        .description(insufficientPermissions)
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
+        mappingStrategies.put(DeactivateTokenIntegration.TYPE,
+                command -> PolicyActionFailedException.newBuilderForDeactivateTokenIntegration()
+                        .status(HttpStatusCode.FORBIDDEN)
+                        .description(insufficientPermissions)
+                        .dittoHeaders(command.getDittoHeaders())
+                        .build());
+
+        return new PolicyCommandToActionsExceptionRegistry(mappingStrategies);
+    }
+
+}

@@ -20,7 +20,7 @@ import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.SubjectId;
-import org.eclipse.ditto.signals.commands.policies.modify.PolicyActionCommand;
+import org.eclipse.ditto.signals.commands.policies.actions.PolicyActionCommand;
 
 /**
  * Placeholder with prefix policy-entry.

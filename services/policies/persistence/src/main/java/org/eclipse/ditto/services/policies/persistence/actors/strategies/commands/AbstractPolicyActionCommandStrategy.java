@@ -19,16 +19,15 @@ import java.util.concurrent.CompletionException;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
-import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.commands.policies.modify.PolicyActionCommand;
+import org.eclipse.ditto.signals.commands.policies.actions.PolicyActionCommand;
 
 /**
- * Abstract base class for {@link org.eclipse.ditto.signals.commands.policies.PolicyCommand} strategies.
+ * Abstract base class for {@link PolicyActionCommand} strategies.
  *
- * @param <C> the type of the handled command - of type {@code Command} as also
- * {@link org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand} are handled which are no PolicyCommands.
+ * @param <C> the type of the handled command
  */
-abstract class AbstractPolicyActionCommandStrategy<C extends Command<C>> extends AbstractPolicyCommandStrategy<C> {
+abstract class AbstractPolicyActionCommandStrategy<C extends PolicyActionCommand<C>>
+        extends AbstractPolicyCommandStrategy<C> {
 
     private static final String RESOLVE_SUBJECT_ID = "resolveSubjectId";
 

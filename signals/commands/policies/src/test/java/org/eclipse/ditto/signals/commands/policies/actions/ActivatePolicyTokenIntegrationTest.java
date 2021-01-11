@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.policies.modify;
+package org.eclipse.ditto.signals.commands.policies.actions;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
@@ -37,23 +37,23 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link ActivateSubjects}.
+ * Unit test for {@link ActivatePolicyTokenIntegration}.
  */
-public final class ActivateSubjectsTest {
+public final class ActivatePolicyTokenIntegrationTest {
 
     static final List<Label> LABELS = Collections.singletonList(TestConstants.Policy.LABEL);
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(PolicyCommand.JsonFields.TYPE, ActivateSubjects.TYPE)
+            .set(PolicyCommand.JsonFields.TYPE, ActivatePolicyTokenIntegration.TYPE)
             .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
-            .set(ActivateSubjects.JsonFields.SUBJECT_ID, TestConstants.Policy.SUBJECT_ID.toString())
-            .set(ActivateSubjects.JsonFields.EXPIRY, Instant.EPOCH.toString())
-            .set(ActivateSubjects.JsonFields.LABELS, JsonArray.of(TestConstants.Policy.LABEL))
+            .set(ActivatePolicyTokenIntegration.JSON_SUBJECT_ID, TestConstants.Policy.SUBJECT_ID.toString())
+            .set(ActivatePolicyTokenIntegration.JSON_EXPIRY, Instant.EPOCH.toString())
+            .set(ActivatePolicyTokenIntegration.JSON_LABELS, JsonArray.of(TestConstants.Policy.LABEL))
             .build();
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ActivateSubjects.class,
+        assertInstancesOf(ActivatePolicyTokenIntegration.class,
                 areImmutable(),
                 provided(SubjectId.class, PolicyId.class).areAlsoImmutable(),
                 assumingFields("labels").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
@@ -61,34 +61,34 @@ public final class ActivateSubjectsTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ActivateSubjects.class)
+        EqualsVerifier.forClass(ActivatePolicyTokenIntegration.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        ActivateSubjects.of(null, TestConstants.Policy.SUBJECT_ID, Instant.EPOCH, LABELS,
+        ActivatePolicyTokenIntegration.of(null, TestConstants.Policy.SUBJECT_ID, Instant.EPOCH, LABELS,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullSubject() {
-        ActivateSubjects.of(TestConstants.Policy.POLICY_ID, null, Instant.EPOCH, LABELS,
+        ActivatePolicyTokenIntegration.of(TestConstants.Policy.POLICY_ID, null, Instant.EPOCH, LABELS,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullExpiry() {
-        ActivateSubjects.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID, null, LABELS,
+        ActivatePolicyTokenIntegration.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID, null, LABELS,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
     public void toJsonReturnsExpected() {
-        final ActivateSubjects underTest =
-                ActivateSubjects.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID, Instant.EPOCH,
+        final ActivatePolicyTokenIntegration underTest =
+                ActivatePolicyTokenIntegration.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID, Instant.EPOCH,
                         LABELS, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
@@ -97,11 +97,11 @@ public final class ActivateSubjectsTest {
 
     @Test
     public void createInstanceFromValidJson() {
-        final ActivateSubjects underTest =
-                ActivateSubjects.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
+        final ActivatePolicyTokenIntegration underTest =
+                ActivatePolicyTokenIntegration.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
-        final ActivateSubjects expectedCommand =
-                ActivateSubjects.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID, Instant.EPOCH,
+        final ActivatePolicyTokenIntegration expectedCommand =
+                ActivatePolicyTokenIntegration.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID, Instant.EPOCH,
                         LABELS, TestConstants.EMPTY_DITTO_HEADERS);
         assertThat(underTest).isEqualTo(expectedCommand);
     }
@@ -109,10 +109,10 @@ public final class ActivateSubjectsTest {
     @Test(expected = JsonParseException.class)
     public void tryToCreateInstanceFromInvalidTimestampInJson() {
         final JsonObject jsonWithInvalidTimestamp = KNOWN_JSON.toBuilder()
-                .set(ActivateSubjects.JsonFields.EXPIRY, "not-a-timestamp")
+                .set(ActivatePolicyTokenIntegration.JSON_EXPIRY, "not-a-timestamp")
                 .build();
 
-        ActivateSubjects.fromJson(jsonWithInvalidTimestamp, TestConstants.EMPTY_DITTO_HEADERS);
+        ActivatePolicyTokenIntegration.fromJson(jsonWithInvalidTimestamp, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 }

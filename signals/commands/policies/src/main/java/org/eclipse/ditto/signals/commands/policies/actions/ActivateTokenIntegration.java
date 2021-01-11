@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,11 +10,9 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.policies.modify;
+package org.eclipse.ditto.signals.commands.policies.actions;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
-import static org.eclipse.ditto.model.base.json.FieldType.REGULAR;
-import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
 
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
@@ -33,6 +31,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
@@ -51,26 +50,35 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
  * @since 2.0.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = ActivateSubject.TYPE_PREFIX, name = ActivateSubject.NAME)
-public final class ActivateSubject extends AbstractCommand<ActivateSubject>
-        implements PolicyActionCommand<ActivateSubject> {
+@JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = ActivateTokenIntegration.NAME)
+public final class ActivateTokenIntegration extends AbstractCommand<ActivateTokenIntegration>
+        implements PolicyActionCommand<ActivateTokenIntegration> {
 
     /**
      * NAME of this command.
      */
-    public static final String NAME = "activateSubject";
+    public static final String NAME = "activateTokenIntegration";
 
     /**
      * Type of this command.
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
+    static final JsonFieldDefinition<String> JSON_LABEL =
+            JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    static final JsonFieldDefinition<String> JSON_SUBJECT_ID =
+            JsonFactory.newStringFieldDefinition("subjectId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    static final JsonFieldDefinition<String> JSON_EXPIRY =
+            JsonFactory.newStringFieldDefinition("expiry", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
     private final PolicyId policyId;
     private final Label label;
     private final SubjectId subjectId;
     private final Instant expiry;
 
-    private ActivateSubject(final PolicyId policyId, final Label label, final SubjectId subjectId,
+    private ActivateTokenIntegration(final PolicyId policyId, final Label label, final SubjectId subjectId,
             final Instant expiry, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policyId");
@@ -90,10 +98,10 @@ public final class ActivateSubject extends AbstractCommand<ActivateSubject>
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ActivateSubject of(final PolicyId policyId, final Label label, final SubjectId subjectId,
+    public static ActivateTokenIntegration of(final PolicyId policyId, final Label label, final SubjectId subjectId,
             final Instant expiry, final DittoHeaders dittoHeaders) {
 
-        return new ActivateSubject(policyId, label, subjectId, expiry, dittoHeaders);
+        return new ActivateTokenIntegration(policyId, label, subjectId, expiry, dittoHeaders);
     }
 
     /**
@@ -106,15 +114,15 @@ public final class ActivateSubject extends AbstractCommand<ActivateSubject>
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static ActivateSubject fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandJsonDeserializer<ActivateSubject>(TYPE, jsonObject).deserialize(() -> {
-            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyModifyCommand.JsonFields.JSON_POLICY_ID);
+    public static ActivateTokenIntegration fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandJsonDeserializer<ActivateTokenIntegration>(TYPE, jsonObject).deserialize(() -> {
+            final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
-            final Label label = Label.of(jsonObject.getValueOrThrow(JsonFields.LABEL));
+            final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
             final SubjectId subjectId =
-                    PoliciesModelFactory.newSubjectId(jsonObject.getValueOrThrow(JsonFields.SUBJECT_ID));
-            final Instant expiry = parseExpiry(jsonObject.getValueOrThrow(JsonFields.EXPIRY));
-            return new ActivateSubject(policyId, label, subjectId, expiry, dittoHeaders);
+                    PoliciesModelFactory.newSubjectId(jsonObject.getValueOrThrow(JSON_SUBJECT_ID));
+            final Instant expiry = parseExpiry(jsonObject.getValueOrThrow(JSON_EXPIRY));
+            return new ActivateTokenIntegration(policyId, label, subjectId, expiry, dittoHeaders);
         });
     }
 
@@ -157,24 +165,19 @@ public final class ActivateSubject extends AbstractCommand<ActivateSubject>
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
-        jsonObjectBuilder.set(JsonFields.LABEL, label.toString(), predicate);
-        jsonObjectBuilder.set(JsonFields.SUBJECT_ID, subjectId.toString(), predicate);
-        jsonObjectBuilder.set(JsonFields.EXPIRY, expiry.toString(), predicate);
+        jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
+        jsonObjectBuilder.set(JSON_SUBJECT_ID, subjectId.toString(), predicate);
+        jsonObjectBuilder.set(JSON_EXPIRY, expiry.toString(), predicate);
     }
 
     @Override
-    public Category getCategory() {
-        return Category.MODIFY;
-    }
-
-    @Override
-    public ActivateSubject setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new ActivateSubject(policyId, label, subjectId, expiry, dittoHeaders);
+    public ActivateTokenIntegration setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new ActivateTokenIntegration(policyId, label, subjectId, expiry, dittoHeaders);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof ActivateSubject;
+        return other instanceof ActivateTokenIntegration;
     }
 
     @Override
@@ -185,7 +188,7 @@ public final class ActivateSubject extends AbstractCommand<ActivateSubject>
         if (null == obj || getClass() != obj.getClass()) {
             return false;
         }
-        final ActivateSubject that = (ActivateSubject) obj;
+        final ActivateTokenIntegration that = (ActivateTokenIntegration) obj;
         return Objects.equals(policyId, that.policyId) &&
                 Objects.equals(label, that.label) &&
                 Objects.equals(subjectId, that.subjectId) &&
@@ -224,18 +227,6 @@ public final class ActivateSubject extends AbstractCommand<ActivateSubject>
                             "It must be provided as ISO-8601 formatted char sequence.", expiryString))
                     .build();
         }
-    }
-
-    static final class JsonFields {
-
-        static final JsonFieldDefinition<String> LABEL =
-                JsonFactory.newStringFieldDefinition("label", REGULAR, V_2);
-
-        static final JsonFieldDefinition<String> SUBJECT_ID =
-                JsonFactory.newStringFieldDefinition("subjectId", REGULAR, V_2);
-
-        static final JsonFieldDefinition<String> EXPIRY =
-                JsonFactory.newStringFieldDefinition("expiry", REGULAR, V_2);
     }
 
 }

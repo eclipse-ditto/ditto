@@ -26,7 +26,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.model.policies.PolicyActionFailedException;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -35,9 +34,12 @@ import org.eclipse.ditto.services.gateway.security.authentication.Authentication
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResult;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.actions.DeactivatePolicyTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyIdNotExplicitlySettableException;
-import org.eclipse.ditto.signals.commands.policies.modify.ActivateSubjects;
-import org.eclipse.ditto.signals.commands.policies.modify.DeactivateSubjects;
 import org.eclipse.ditto.signals.commands.policies.modify.DeletePolicy;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
@@ -53,9 +55,9 @@ import akka.http.javadsl.server.Route;
  */
 public final class PoliciesRoute extends AbstractRoute {
 
-    static final String PATH_ACTIONS = "actions";
-    static final String ACTIVATE_TOKEN_INTEGRATION = PolicyActionFailedException.ACTIVATE_TOKEN_INTEGRATION;
-    static final String DEACTIVATE_TOKEN_INTEGRATION = PolicyActionFailedException.DEACTIVATE_TOKEN_INTEGRATION;
+    private static final String PATH_ACTIONS = "actions";
+    private static final String ACTIVATE_TOKEN_INTEGRATION = ActivateTokenIntegration.NAME;
+    private static final String DEACTIVATE_TOKEN_INTEGRATION = DeactivateTokenIntegration.NAME;
 
     private static final String PATH_POLICIES = "policies";
     private static final String PATH_ENTRIES = "entries";
@@ -176,28 +178,28 @@ public final class PoliciesRoute extends AbstractRoute {
                         pathEndOrSingleSlash(() ->
                                 extractJwt(dittoHeaders, authenticationResult, ACTIVATE_TOKEN_INTEGRATION, jwt ->
                                         post(() -> handlePerRequest(ctx,
-                                                activateSubjects(dittoHeaders, policyId, jwt)))))),
+                                                activatePolicyTokenIntegration(dittoHeaders, policyId, jwt)))))),
                 rawPathPrefix(PathMatchers.slash().concat(DEACTIVATE_TOKEN_INTEGRATION), () ->
                         pathEndOrSingleSlash(() ->
                                 extractJwt(dittoHeaders, authenticationResult, DEACTIVATE_TOKEN_INTEGRATION, jwt ->
                                         post(() -> handlePerRequest(ctx,
-                                                deactivateSubjects(dittoHeaders, policyId, jwt))))))
+                                                deactivatePolicyTokenIntegration(dittoHeaders, policyId, jwt))))))
         ));
     }
 
-    private ActivateSubjects activateSubjects(final DittoHeaders dittoHeaders, final PolicyId policyId,
-            final JsonWebToken jwt) {
+    private ActivatePolicyTokenIntegration activatePolicyTokenIntegration(final DittoHeaders dittoHeaders,
+            final PolicyId policyId, final JsonWebToken jwt) {
 
         final SubjectId subjectId = tokenIntegrationSubjectIdFactory.getSubjectId(dittoHeaders, jwt);
         final Instant expiry = jwt.getExpirationTime();
-        return ActivateSubjects.of(policyId, subjectId, expiry, List.of(), dittoHeaders);
+        return ActivatePolicyTokenIntegration.of(policyId, subjectId, expiry, List.of(), dittoHeaders);
     }
 
-    private DeactivateSubjects deactivateSubjects(final DittoHeaders dittoHeaders, final PolicyId policyId,
-            final JsonWebToken jwt) {
+    private DeactivatePolicyTokenIntegration deactivatePolicyTokenIntegration(final DittoHeaders dittoHeaders,
+            final PolicyId policyId, final JsonWebToken jwt) {
 
         final SubjectId subjectId = tokenIntegrationSubjectIdFactory.getSubjectId(dittoHeaders, jwt);
-        return DeactivateSubjects.of(policyId, subjectId, List.of(), dittoHeaders);
+        return DeactivatePolicyTokenIntegration.of(policyId, subjectId, List.of(), dittoHeaders);
     }
 
     static Route extractJwt(final DittoHeaders dittoHeaders,

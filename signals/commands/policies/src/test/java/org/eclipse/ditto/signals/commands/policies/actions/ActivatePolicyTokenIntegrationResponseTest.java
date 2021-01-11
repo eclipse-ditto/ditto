@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.policies.modify;
+package org.eclipse.ditto.signals.commands.policies.actions;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -29,46 +29,46 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link ActivateSubjectsResponse}.
+ * Unit test for {@link ActivatePolicyTokenIntegrationResponse}.
  */
-public final class ActivateSubjectsResponseTest {
+public final class ActivatePolicyTokenIntegrationResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(PolicyCommandResponse.JsonFields.TYPE, ActivateSubjectsResponse.TYPE)
-            .set(PolicyCommandResponse.JsonFields.STATUS, ActivateSubjectsResponse.STATUS.toInt())
+            .set(PolicyCommandResponse.JsonFields.TYPE, ActivatePolicyTokenIntegrationResponse.TYPE)
+            .set(PolicyCommandResponse.JsonFields.STATUS, ActivatePolicyTokenIntegrationResponse.STATUS.toInt())
             .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
-            .set(ActivateSubjectsResponse.JsonFields.SUBJECT_ID, TestConstants.Policy.SUBJECT_ID.toString())
+            .set(ActivatePolicyTokenIntegrationResponse.JSON_SUBJECT_ID, TestConstants.Policy.SUBJECT_ID.toString())
             .build();
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ActivateSubjectsResponse.class,
+        assertInstancesOf(ActivatePolicyTokenIntegrationResponse.class,
                 areImmutable(),
                 provided(SubjectId.class, PolicyId.class).areAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ActivateSubjectsResponse.class)
+        EqualsVerifier.forClass(ActivatePolicyTokenIntegrationResponse.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        ActivateSubjectsResponse.of(null, TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS);
+        ActivatePolicyTokenIntegrationResponse.of(null, TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullSubject() {
-        ActivateSubjectsResponse.of(TestConstants.Policy.POLICY_ID, null, TestConstants.EMPTY_DITTO_HEADERS);
+        ActivatePolicyTokenIntegrationResponse.of(TestConstants.Policy.POLICY_ID, null, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
     public void toJsonReturnsExpected() {
-        final ActivateSubjectsResponse underTest =
-                ActivateSubjectsResponse.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID,
+        final ActivatePolicyTokenIntegrationResponse underTest =
+                ActivatePolicyTokenIntegrationResponse.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID,
                         TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
@@ -77,11 +77,11 @@ public final class ActivateSubjectsResponseTest {
 
     @Test
     public void createInstanceFromValidJson() {
-        final ActivateSubjectsResponse underTest =
-                ActivateSubjectsResponse.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
+        final ActivatePolicyTokenIntegrationResponse underTest =
+                ActivatePolicyTokenIntegrationResponse.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
-        final ActivateSubjectsResponse expectedCommand =
-                ActivateSubjectsResponse.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID,
+        final ActivatePolicyTokenIntegrationResponse expectedCommand =
+                ActivatePolicyTokenIntegrationResponse.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID,
                         TestConstants.EMPTY_DITTO_HEADERS);
         assertThat(underTest).isEqualTo(expectedCommand);
     }

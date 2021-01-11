@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,19 +10,19 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.policies.modify;
+package org.eclipse.ditto.signals.commands.policies.actions;
 
-import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 /**
- * Interface for policy modify commands requiring the EXECUTE permission as opposed to the usual WRITE permission.
+ * Interface for policy action commands requiring the EXECUTE permission.
  *
  * @param <T> the type of the implementing class.
+ * @since 2.0.0
  */
-public interface PolicyActionCommand<T extends PolicyActionCommand<T>> extends PolicyModifyCommand<T> {
+public interface PolicyActionCommand<T extends PolicyActionCommand<T>> extends PolicyCommand<T>, WithOptionalEntity {
 
     /**
      * Get the subject ID of this command.
@@ -30,4 +30,9 @@ public interface PolicyActionCommand<T extends PolicyActionCommand<T>> extends P
      * @return the subject ID.
      */
     SubjectId getSubjectId();
+
+    @Override
+    default Category getCategory() {
+        return Category.ACTION;
+    }
 }

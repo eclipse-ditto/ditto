@@ -21,7 +21,6 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.PolicyActionFailedException;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
@@ -29,10 +28,11 @@ import org.eclipse.ditto.services.gateway.security.authentication.Authentication
 import org.eclipse.ditto.services.gateway.security.authentication.DefaultAuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResult;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.signals.commands.policies.modify.ActivateSubject;
-import org.eclipse.ditto.signals.commands.policies.modify.ActivateSubjects;
-import org.eclipse.ditto.signals.commands.policies.modify.DeactivateSubject;
-import org.eclipse.ditto.signals.commands.policies.modify.DeactivateSubjects;
+import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.actions.DeactivatePolicyTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -115,7 +115,7 @@ public final class PoliciesRouteTest extends EndpointTestBase {
     }
 
     @Test
-    public void activateSubjectsWithPreAuthentication() {
+    public void activatePolicyTokenIntegrationWithPreAuthentication() {
         getRoute(getPreAuthResult()).run(HttpRequest.POST("/policies/ns%3An/actions/activateTokenIntegration/"))
                 .assertStatusCode(StatusCodes.BAD_REQUEST)
                 .assertEntity(PolicyActionFailedException.newBuilderForInappropriateAuthenticationMethod(
@@ -125,7 +125,7 @@ public final class PoliciesRouteTest extends EndpointTestBase {
     }
 
     @Test
-    public void deactivateSubjectsWithPreAuthentication() {
+    public void deactivatePolicyTokenIntegrationWithPreAuthentication() {
         getRoute(getPreAuthResult()).run(HttpRequest.POST("/policies/ns%3An/actions/deactivateTokenIntegration"))
                 .assertStatusCode(StatusCodes.BAD_REQUEST)
                 .assertEntity(PolicyActionFailedException.newBuilderForInappropriateAuthenticationMethod(
@@ -150,7 +150,7 @@ public final class PoliciesRouteTest extends EndpointTestBase {
     public void activateTokenIntegration() {
         getRoute(getTokenAuthResult()).run(HttpRequest.POST("/policies/ns%3An/actions/activateTokenIntegration/"))
                 .assertStatusCode(StatusCodes.OK)
-                .assertEntity(ActivateSubjects.of(PolicyId.of("ns:n"),
+                .assertEntity(ActivatePolicyTokenIntegration.of(PolicyId.of("ns:n"),
                         SubjectId.newInstance("dummy-issuer:{{policy-entry:label}}:dummy-subject"),
                         DummyJwt.EXPIRY,
                         List.of(),
@@ -162,7 +162,7 @@ public final class PoliciesRouteTest extends EndpointTestBase {
     public void deactivateTokenIntegration() {
         getRoute(getTokenAuthResult()).run(HttpRequest.POST("/policies/ns%3An/actions/deactivateTokenIntegration"))
                 .assertStatusCode(StatusCodes.OK)
-                .assertEntity(DeactivateSubjects.of(PolicyId.of("ns:n"),
+                .assertEntity(DeactivatePolicyTokenIntegration.of(PolicyId.of("ns:n"),
                         SubjectId.newInstance("dummy-issuer:{{policy-entry:label}}:dummy-subject"),
                         List.of(),
                         DittoHeaders.empty()
@@ -181,7 +181,7 @@ public final class PoliciesRouteTest extends EndpointTestBase {
         getRoute(getTokenAuthResult()).run(HttpRequest.POST(
                 "/policies/ns%3An/entries/label/actions/activateTokenIntegration/"))
                 .assertStatusCode(StatusCodes.OK)
-                .assertEntity(ActivateSubject.of(PolicyId.of("ns:n"),
+                .assertEntity(ActivateTokenIntegration.of(PolicyId.of("ns:n"),
                         Label.of("label"),
                         SubjectId.newInstance("dummy-issuer:{{policy-entry:label}}:dummy-subject"),
                         DummyJwt.EXPIRY,
@@ -194,7 +194,7 @@ public final class PoliciesRouteTest extends EndpointTestBase {
         getRoute(getTokenAuthResult()).run(HttpRequest.POST(
                 "/policies/ns%3An/entries/label/actions/deactivateTokenIntegration"))
                 .assertStatusCode(StatusCodes.OK)
-                .assertEntity(DeactivateSubject.of(PolicyId.of("ns:n"),
+                .assertEntity(DeactivateTokenIntegration.of(PolicyId.of("ns:n"),
                         Label.of("label"),
                         SubjectId.newInstance("dummy-issuer:{{policy-entry:label}}:dummy-subject"),
                         DittoHeaders.empty()
