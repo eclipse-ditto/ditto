@@ -67,7 +67,7 @@ public final class ThingAcknowledgementFactory {
      *
      * @param label the label of the new Acknowledgement.
      * @param thingId the ID of the affected Thing being acknowledged.
-     * @param httpStatus the HTTP status code of the Acknowledgement.
+     * @param httpStatus the HTTP status of the Acknowledgement.
      * @param dittoHeaders the DittoHeaders.
      * @param payload the optional payload of the Acknowledgement.
      * @return the instance.

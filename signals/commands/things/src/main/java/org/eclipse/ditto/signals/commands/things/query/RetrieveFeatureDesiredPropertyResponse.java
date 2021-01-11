@@ -73,10 +73,10 @@ public final class RetrieveFeatureDesiredPropertyResponse
             final CharSequence featureId,
             final JsonPointer desiredPropertyPointer,
             final JsonValue desiredPropertyValue,
-            final HttpStatus statusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
         this.featureId = argumentNotEmpty(featureId, "featureId").toString();
         this.desiredPropertyPointer = checkDesiredPropertyPointer(desiredPropertyPointer);
@@ -121,7 +121,7 @@ public final class RetrieveFeatureDesiredPropertyResponse
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -140,7 +140,7 @@ public final class RetrieveFeatureDesiredPropertyResponse
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of the desired property pointer are not valid

@@ -73,10 +73,10 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
             final Label label,
             @Nullable final ResourceKey resourceKey,
             @Nullable final Resource resourceCreated,
-            final HttpStatus statusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.label = checkNotNull(label, "Label");
         this.resourceKey = resourceKey;
@@ -111,15 +111,19 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      * @param resourceCreated the Resource created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyResourceResponse created(final PolicyId policyId,
             final Label label,
             final Resource resourceCreated,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyResourceResponse(policyId, label, resourceCreated.getResourceKey(), resourceCreated,
-                HttpStatus.CREATED, dittoHeaders);
+        return new ModifyResourceResponse(policyId,
+                label,
+                checkNotNull(resourceCreated, "resourceCreated").getResourceKey(),
+                resourceCreated,
+                HttpStatus.CREATED,
+                dittoHeaders);
     }
 
     /**
@@ -133,7 +137,9 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      * @deprecated Policy ID is now typed. Use {@link #modified(PolicyId, Label, ResourceKey, DittoHeaders)} instead.
      */
     @Deprecated
-    public static ModifyResourceResponse modified(final String policyId, final Label label, final DittoHeaders dittoHeaders) {
+    public static ModifyResourceResponse modified(final String policyId, final Label label,
+            final DittoHeaders dittoHeaders) {
+
         return modified(PolicyId.of(policyId), label, null, dittoHeaders);
     }
 
@@ -148,9 +154,12 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      * @deprecated since 1.1.0, use {@link #modified(PolicyId, Label, ResourceKey, DittoHeaders)} instead.
      */
     @Deprecated
-    public static ModifyResourceResponse modified(final PolicyId policyId, final Label label, final DittoHeaders dittoHeaders) {
+    public static ModifyResourceResponse modified(final PolicyId policyId, final Label label,
+            final DittoHeaders dittoHeaders) {
+
         return modified(PolicyId.of(policyId), label, null, dittoHeaders);
     }
+
     /**
      * Creates a response to a {@code ModifyResource} command.
      *
@@ -163,8 +172,10 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      * @deprecated Policy ID is now typed. Use {@link #modified(PolicyId, Label, ResourceKey, DittoHeaders)} instead.
      */
     @Deprecated
-    public static ModifyResourceResponse modified(final String policyId, final Label label,
-            final ResourceKey resourceKey, final DittoHeaders dittoHeaders) {
+    public static ModifyResourceResponse modified(final String policyId,
+            final Label label,
+            final ResourceKey resourceKey,
+            final DittoHeaders dittoHeaders) {
 
         return modified(PolicyId.of(policyId), label, resourceKey, dittoHeaders);
     }
@@ -177,13 +188,20 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      * @param resourceKey the resource key of the modified resource
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code resourceKey} is {@code null}.
      * @since 1.1.0
      */
-    public static ModifyResourceResponse modified(final PolicyId policyId, final Label label,
-            final ResourceKey resourceKey, final DittoHeaders dittoHeaders) {
+    public static ModifyResourceResponse modified(final PolicyId policyId,
+            final Label label,
+            @Nullable final ResourceKey resourceKey,
+            final DittoHeaders dittoHeaders) {
 
-        return new ModifyResourceResponse(policyId, label, resourceKey, null, HttpStatus.NO_CONTENT, dittoHeaders);
+        return new ModifyResourceResponse(policyId,
+                label,
+                resourceKey,
+                null,
+                HttpStatus.NO_CONTENT,
+                dittoHeaders);
     }
 
     /**
@@ -192,7 +210,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -207,7 +225,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */

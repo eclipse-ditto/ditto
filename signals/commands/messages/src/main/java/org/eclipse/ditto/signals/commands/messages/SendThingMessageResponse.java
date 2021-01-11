@@ -65,7 +65,7 @@ public final class SendThingMessageResponse<T> extends AbstractMessageCommandRes
      * @param <T> the type of the message's payload.
      * @return new instance of {@code SendThingMessageResponse}.
      * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Thing ID is now typed. Use {@link #of(ThingId, Message, HttpStatusCode, DittoHeaders)} instead.
+     * @deprecated Thing ID is now typed. Use {@link #of(ThingId, Message, HttpStatus, DittoHeaders)} instead.
      */
     @Deprecated
     public static <T> SendThingMessageResponse<T> of(final String thingId,
@@ -121,7 +121,7 @@ public final class SendThingMessageResponse<T> extends AbstractMessageCommandRes
      * @param jsonString the JSON string of which the SendClaimMessageResponse is to be created.
      * @param dittoHeaders the headers.
      * @return the command.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -136,20 +136,16 @@ public final class SendThingMessageResponse<T> extends AbstractMessageCommandRes
      * @param jsonObject the JSON object of which the SendClaimMessageResponse is to be created.
      * @param dittoHeaders the headers.
      * @return the command.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
     public static SendThingMessageResponse<?> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<SendThingMessageResponse<?>>(TYPE, jsonObject).deserialize(
-                statusCode -> {
-                    final String extractedThingId =
-                            jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID);
-                    final ThingId thingId = ThingId.of(extractedThingId);
-                    final Message<?> message = deserializeMessageFromJson(jsonObject);
-
-                    return of(thingId, message, statusCode, dittoHeaders);
-                });
+                httpStatus -> of(ThingId.of(jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID)),
+                        deserializeMessageFromJson(jsonObject),
+                        httpStatus,
+                        dittoHeaders));
     }
 
     @Override

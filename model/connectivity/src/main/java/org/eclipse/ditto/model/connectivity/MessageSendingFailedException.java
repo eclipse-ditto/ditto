@@ -46,6 +46,8 @@ public final class MessageSendingFailedException extends DittoRuntimeException i
             "please check if your connection is configured properly and the target system is available and consuming " +
             "messages.";
 
+    private static final long serialVersionUID = 8762467293113632771L;
+
     private MessageSendingFailedException(final DittoHeaders dittoHeaders,
             final HttpStatus httpStatus,
             @Nullable final String message,
@@ -132,9 +134,9 @@ public final class MessageSendingFailedException extends DittoRuntimeException i
         }
 
         /**
-         * Set the status code of this builder.
+         * Set the HTTP status of this builder.
          *
-         * @param httpStatus the new status code.
+         * @param httpStatus the new HTTP status.
          * @return this builder.
          * @since 2.0.0
          */

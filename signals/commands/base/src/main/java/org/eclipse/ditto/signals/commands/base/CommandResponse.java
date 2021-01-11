@@ -83,7 +83,7 @@ public interface CommandResponse<T extends CommandResponse<T>> extends Signal<T>
     /**
      * Returns the HTTP status of the issued command.
      *
-     * @return the status code of the issued command.
+     * @return the HTTP status.
      * @since 2.0.0
      */
     HttpStatus getHttpStatus();

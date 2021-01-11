@@ -389,7 +389,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         final Optional<ByteBuffer> optionalRawPayload = message.getRawPayload();
         final var responseStatus = Optional.of(messageCommandResponse.getHttpStatus())
                 .filter(httpStatus -> StatusCodes.lookup(httpStatus.getCode()).isPresent())
-                // only allow status code which are known to akka-http
+                // only allow HTTP status which are known to akka-http
                 .filter(httpStatus -> !HttpStatus.BAD_GATEWAY.equals(httpStatus));
         // filter "bad gateway" 502 from being used as this is used Ditto internally for graceful HTTP shutdown
 
@@ -424,7 +424,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 httpResponse = httpResponse.withEntity(HttpEntities.create(rawPayload.array()));
             }
         } else {
-            // if payload was missing OR statusCode was NO_CONTENT:
+            // if payload was missing OR HTTP status was NO_CONTENT:
             optionalRawPayload.ifPresent(byteBuffer -> logger.withCorrelationId(messageCommandResponse)
                     .info("Response payload was set but response status code was also set to <{}>." +
                                     " Ignoring the response payload. Command=<{}>", responseStatus,
@@ -502,9 +502,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             completionResponse = createHttpResponse(HttpStatus.ACCEPTED);
         }
 
-        final int statusCode = completionResponse.status().intValue();
         if (logger.isDebugEnabled()) {
-            logger.debug("Responding with HTTP response code <{}>.", statusCode);
+            logger.debug("Responding with HTTP response code <{}>.", completionResponse.status().intValue());
             logger.debug("Responding with entity <{}>.", completionResponse.entity());
         }
         httpResponseFuture.complete(completionResponse);
@@ -577,8 +576,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     /**
-     * Modify an HTTP response according to the HTTP response's status code, add the {@code Location} header
-     * when the status code was {@link HttpStatus#CREATED}.
+     * Modify an HTTP response according to the HTTP response's status, add the {@code Location} header when the status
+     * was {@link HttpStatus#CREATED}.
      *
      * @param response the candidate HTTP response.
      * @return the modified HTTP response.

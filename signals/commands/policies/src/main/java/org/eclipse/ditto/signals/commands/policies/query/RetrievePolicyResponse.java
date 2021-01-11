@@ -59,11 +59,11 @@ public final class RetrievePolicyResponse extends AbstractCommandResponse<Retrie
     private final JsonObject policy;
 
     private RetrievePolicyResponse(final PolicyId policyId,
-            final HttpStatus statusCode,
+            final HttpStatus httpStatus,
             final JsonObject policy,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.policy = checkNotNull(policy, "Policy");
     }
@@ -145,7 +145,7 @@ public final class RetrievePolicyResponse extends AbstractCommandResponse<Retrie
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -160,7 +160,7 @@ public final class RetrievePolicyResponse extends AbstractCommandResponse<Retrie
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */

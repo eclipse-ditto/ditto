@@ -74,10 +74,10 @@ public final class ModifyFeatureDesiredPropertyResponse
             final CharSequence featureId,
             final JsonPointer desiredPropertyPointer,
             @Nullable final JsonValue desiredPropertyValue,
-            final HttpStatus statusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
         this.featureId = argumentNotEmpty(featureId, "featureId").toString();
         this.desiredPropertyPointer = checkDesiredPropertyPointer(desiredPropertyPointer);
@@ -91,7 +91,7 @@ public final class ModifyFeatureDesiredPropertyResponse
 
     /**
      * Returns a new {@code ModifyFeatureDesiredPropertyResponse} for a created desired property. This corresponds to the HTTP
-     * status code {@link HttpStatus#CREATED}.
+     * status {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created desired property.
      * @param featureId the {@code Feature}'s ID whose desired property was created.
@@ -113,14 +113,14 @@ public final class ModifyFeatureDesiredPropertyResponse
 
     /**
      * Returns a new {@code ModifyFeatureDesiredPropertyResponse} for a modified desired property. This corresponds to the HTTP
-     * status code {@link HttpStatus#NO_CONTENT}.
+     * status {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified desired property.
      * @param featureId the {@code Feature}'s ID whose desired property was modified.
      * @param desiredPropertyPointer the pointer of the modified desired property.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified desired property.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyFeatureDesiredPropertyResponse modified(final ThingId thingId,
             final CharSequence featureId,
@@ -137,7 +137,7 @@ public final class ModifyFeatureDesiredPropertyResponse
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -156,7 +156,7 @@ public final class ModifyFeatureDesiredPropertyResponse
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of the desired property pointer are not valid
@@ -265,12 +265,12 @@ public final class ModifyFeatureDesiredPropertyResponse
             return false;
         }
         final ModifyFeatureDesiredPropertyResponse that = (ModifyFeatureDesiredPropertyResponse) o;
-        return that.canEqual(this)
-                && Objects.equals(thingId, that.thingId)
-                && Objects.equals(featureId, that.featureId)
-                && Objects.equals(desiredPropertyPointer, that.desiredPropertyPointer)
-                && Objects.equals(desiredPropertyValue, that.desiredPropertyValue)
-                && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(featureId, that.featureId) &&
+                Objects.equals(desiredPropertyPointer, that.desiredPropertyPointer) &&
+                Objects.equals(desiredPropertyValue, that.desiredPropertyValue) &&
+                super.equals(o);
     }
 
     @Override

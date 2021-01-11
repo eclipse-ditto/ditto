@@ -66,7 +66,7 @@ public final class CreateThingResponse extends AbstractCommandResponse<CreateThi
     }
 
     /**
-     * Returns a new {@code CreateThingResponse} for a created Thing. This corresponds to the HTTP status code
+     * Returns a new {@code CreateThingResponse} for a created Thing. This corresponds to the HTTP status
      * {@link HttpStatus#CREATED}.
      *
      * @param thing the created Thing.

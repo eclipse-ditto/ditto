@@ -79,13 +79,13 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
     @Nullable private final String namespace;
     @Nullable private JsonArray things;
 
-    private RetrieveThingsResponse(final HttpStatus statusCode,
+    private RetrieveThingsResponse(final HttpStatus httpStatus,
             @Nullable final JsonArray things,
             final String thingsPlainJson,
             @Nullable final String namespace,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingsPlainJson = checkNotNull(thingsPlainJson, "Things plain JSON");
         this.namespace = namespace;
         this.things = things;
@@ -114,7 +114,7 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      * @param namespace the namespace of this search request
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if {@code thingsPlainJson} or {@code dittoHeaders} is {@code null}.
      */
     public static RetrieveThingsResponse of(final String thingsPlainJson, @Nullable final String namespace,
             final DittoHeaders dittoHeaders) {
@@ -126,10 +126,10 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      * Creates a response to a {@link RetrieveThings} command.
      *
      * @param things the retrieved Things.
-     * @param namespace the namespace of this search request
+     * @param namespace the namespace of this search request.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if {@code things} or {@code dittoHeaders} is {@code null}.
      */
     public static RetrieveThingsResponse of(final JsonArray things, @Nullable final String namespace,
             final DittoHeaders dittoHeaders) {
@@ -142,10 +142,10 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      *
      * @param things the retrieved Things.
      * @param predicate the predicate to apply to the things when transforming to JSON.
-     * @param namespace the namespace of this search request
+     * @param namespace the namespace of this search request.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if any argument but {@code namespace} is {@code null}.
      */
     public static RetrieveThingsResponse of(final List<Thing> things,
             final Predicate<JsonField> predicate,
@@ -167,7 +167,7 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      * @param namespace the namespace of this retrieve things request
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if {@code things} or {@code dittoHeaders} is {@code null}.
      */
     public static RetrieveThingsResponse of(final List<Thing> things,
             @Nullable final JsonFieldSelector fieldSelector,
@@ -205,7 +205,7 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -223,7 +223,7 @@ public final class RetrieveThingsResponse extends AbstractCommandResponse<Retrie
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */

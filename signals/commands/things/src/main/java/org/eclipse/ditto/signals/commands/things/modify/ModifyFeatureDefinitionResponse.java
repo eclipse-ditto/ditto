@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -70,18 +70,18 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
     private ModifyFeatureDefinitionResponse(final ThingId thingId,
             final String featureId,
             @Nullable final FeatureDefinition definitionCreated,
-            final HttpStatus statusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = thingId;
-        this.featureId = requireNonNull(featureId, "The Feature ID must not be null!");
+        this.featureId = checkNotNull(featureId, "featureId");
         this.definitionCreated = definitionCreated;
     }
 
     /**
      * Returns a new {@code ModifyFeatureDefinitionResponse} for a created FeatureDefinition. This corresponds to the
-     * HTTP status code {@link HttpStatus#CREATED}.
+     * HTTP status {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created Feature Definition.
      * @param featureId the {@code Feature}'s ID whose Definition were created.
@@ -104,7 +104,7 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
 
     /**
      * Returns a new {@code ModifyFeatureDefinitionResponse} for a created FeatureDefinition. This corresponds to the
-     * HTTP status code {@link HttpStatus#CREATED}.
+     * HTTP status {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created Feature Definition.
      * @param featureId the {@code Feature}'s ID whose Definition were created.
@@ -118,19 +118,22 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
             final FeatureDefinition definitionCreated,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyFeatureDefinitionResponse(thingId, featureId, definitionCreated, HttpStatus.CREATED,
+        return new ModifyFeatureDefinitionResponse(thingId,
+                featureId,
+                checkNotNull(definitionCreated, "definitionCreated"),
+                HttpStatus.CREATED,
                 dittoHeaders);
     }
 
     /**
      * Returns a new {@code ModifyFeatureDefinitionResponse} for a modified FeatureDefinition. This corresponds to the
-     * HTTP status code {@link HttpStatus#NO_CONTENT}.
+     * HTTP status {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified Feature Definition.
      * @param featureId the {@code Feature}'s ID whose Definition were modified.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified FeatureDefinition.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @deprecated Thing ID is now typed. Use
      * {@link #modified(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.model.base.headers.DittoHeaders)}
      * instead.
@@ -144,13 +147,13 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
 
     /**
      * Returns a new {@code ModifyFeatureDefinitionResponse} for a modified FeatureDefinition. This corresponds to the
-     * HTTP status code {@link HttpStatus#NO_CONTENT}.
+     * HTTP status {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified Feature Definition.
      * @param featureId the {@code Feature}'s ID whose Definition were modified.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified FeatureDefinition.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyFeatureDefinitionResponse modified(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
@@ -164,14 +167,14 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the parsed {@code jsonString} did not contain any of
      * the required fields
      * <ul>
-     *     <li>{@link ThingModifyCommandResponse.JsonFields#JSON_THING_ID},</li>
+     *     <li>{@link ThingCommandResponse.JsonFields#JSON_THING_ID},</li>
      *     <li>{@link #JSON_FEATURE_ID} or</li>
      *     <li>{@link #JSON_DEFINITION}.</li>
      * </ul>
@@ -188,13 +191,13 @@ public final class ModifyFeatureDefinitionResponse extends AbstractCommandRespon
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain any of the
      * required fields
      * <ul>
-     *     <li>{@link ThingModifyCommandResponse.JsonFields#JSON_THING_ID},</li>
+     *     <li>{@link ThingCommandResponse.JsonFields#JSON_THING_ID},</li>
      *     <li>{@link #JSON_FEATURE_ID} or</li>
      *     <li>{@link #JSON_DEFINITION}.</li>
      * </ul>

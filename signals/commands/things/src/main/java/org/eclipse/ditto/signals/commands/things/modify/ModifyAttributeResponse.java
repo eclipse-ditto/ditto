@@ -66,12 +66,12 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     @Nullable private final JsonValue attributeValue;
 
     private ModifyAttributeResponse(final ThingId thingId,
-            final HttpStatus statusCode,
+            final HttpStatus httpStatus,
             final JsonPointer attributePointer,
             @Nullable final JsonValue attributeValue,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.attributePointer = checkAttributePointer(attributePointer, dittoHeaders);
         this.attributeValue = attributeValue;
@@ -90,7 +90,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     }
 
     /**
-     * Returns a new {@code ModifyAttributeResponse} for a created Attribute. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyAttributeResponse} for a created Attribute. This corresponds to the HTTP status
      * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created attribute.
@@ -118,7 +118,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     }
 
     /**
-     * Returns a new {@code ModifyAttributeResponse} for a created Attribute. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyAttributeResponse} for a created Attribute. This corresponds to the HTTP status
      * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created attribute.
@@ -142,14 +142,14 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     }
 
     /**
-     * Returns a new {@code ModifyAttributeResponse} for a modified Attribute. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyAttributeResponse} for a modified Attribute. This corresponds to the HTTP status
      * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified attribute.
      * @param attributePointer the pointer of the modified Attribute.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified FeatureProperties.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
      * {@code attributePointer} is empty.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
@@ -167,14 +167,14 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
     }
 
     /**
-     * Returns a new {@code ModifyAttributeResponse} for a modified Attribute. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyAttributeResponse} for a modified Attribute. This corresponds to the HTTP status
      * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified attribute.
      * @param attributePointer the pointer of the modified Attribute.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified FeatureProperties.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
      * {@code attributePointer} is empty.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
@@ -192,7 +192,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -209,7 +209,7 @@ public final class ModifyAttributeResponse extends AbstractCommandResponse<Modif
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of attribute pointer are not valid

@@ -28,9 +28,8 @@ import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 
 /**
  * This class helps to deserialize JSON to a sub-class of {@link CommandResponse}. Hereby this class extracts the
- * values which are common for all command responses. All remaining required values have to be extracted in {@link
- * FactoryMethodFunction#create(HttpStatusCode)}. There the actual command response object is
- * created, too.
+ * values which are common for all command responses. All remaining required values have to be extracted in
+ * {@link FactoryMethodFunction#create(HttpStatus)}. There the actual command response object is created, too.
  */
 @Immutable
 public final class CommandResponseJsonDeserializer<T extends CommandResponse> {

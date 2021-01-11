@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
-import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
@@ -61,13 +60,16 @@ public final class DeleteAttributeResponse extends AbstractCommandResponse<Delet
 
     private DeleteAttributeResponse(final ThingId thingId, final JsonPointer attributePointer,
             final DittoHeaders dittoHeaders) {
+
         super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
-        this.thingId = requireNonNull(thingId, "thing ID");
+        this.thingId = checkNotNull(thingId, "thingId");
         this.attributePointer = checkAttributePointer(attributePointer, dittoHeaders);
     }
 
-    private JsonPointer checkAttributePointer(final JsonPointer attributePointer, final DittoHeaders dittoHeaders) {
-        checkNotNull(attributePointer, "attribute pointer");
+    private static JsonPointer checkAttributePointer(final JsonPointer attributePointer,
+            final DittoHeaders dittoHeaders) {
+
+        checkNotNull(attributePointer, "attributePointer");
         if (attributePointer.isEmpty()) {
             throw AttributePointerInvalidException.newBuilder(attributePointer)
                     .dittoHeaders(dittoHeaders)
@@ -83,7 +85,7 @@ public final class DeleteAttributeResponse extends AbstractCommandResponse<Delet
      * @param attributePointer the JSON pointer of the deleted attribute.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
      * {@code attributePointer} is empty.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
@@ -96,6 +98,7 @@ public final class DeleteAttributeResponse extends AbstractCommandResponse<Delet
     @Deprecated
     public static DeleteAttributeResponse of(final String thingId, final JsonPointer attributePointer,
             final DittoHeaders dittoHeaders) {
+
         return of(ThingId.of(thingId), attributePointer, dittoHeaders);
     }
 
@@ -106,7 +109,7 @@ public final class DeleteAttributeResponse extends AbstractCommandResponse<Delet
      * @param attributePointer the JSON pointer of the deleted attribute.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException if
      * {@code attributePointer} is empty.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of {@code attributePointer} are not valid
@@ -114,6 +117,7 @@ public final class DeleteAttributeResponse extends AbstractCommandResponse<Delet
      */
     public static DeleteAttributeResponse of(final ThingId thingId, final JsonPointer attributePointer,
             final DittoHeaders dittoHeaders) {
+
         return new DeleteAttributeResponse(thingId, attributePointer, dittoHeaders);
     }
 

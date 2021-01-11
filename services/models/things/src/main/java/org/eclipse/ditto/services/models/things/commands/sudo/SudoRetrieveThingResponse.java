@@ -61,10 +61,10 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
 
     private final JsonObject thing;
 
-    private SudoRetrieveThingResponse(final HttpStatus statusCode, final JsonObject thing,
+    private SudoRetrieveThingResponse(final HttpStatus httpStatus, final JsonObject thing,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thing = checkNotNull(thing, "Thing");
     }
 
@@ -86,13 +86,12 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
      * @param jsonString the JSON string of which a new SudoRetrieveThingResponse instance is to be created.
      * @param dittoHeaders the optional command headers of the request.
      * @return the {@code SudoRetrieveThingResponse} which was created from the given JSON string.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws DittoJsonException if the passed in {@code jsonString} was {@code null}, empty or not in the expected
      * 'SudoRetrieveThingResponse' format.
      */
     public static SudoRetrieveThingResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
-        final JsonObject jsonObject =
-                DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
+        final var jsonObject = DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
         return fromJson(jsonObject, dittoHeaders);
     }
 
@@ -139,6 +138,7 @@ public final class SudoRetrieveThingResponse extends AbstractCommandResponse<Sud
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JSON_THING, thing, predicate);
     }

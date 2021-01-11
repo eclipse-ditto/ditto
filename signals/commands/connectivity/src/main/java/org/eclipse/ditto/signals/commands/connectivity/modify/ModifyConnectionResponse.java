@@ -62,7 +62,7 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
     }
 
     /**
-     * Returns a new {@code ModifyConnectionResponse}. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyConnectionResponse}. This corresponds to the HTTP status
      * {@link HttpStatus#NO_CONTENT}.
      *
      * @param connectionId the ID of the connection which was modified.
@@ -80,7 +80,7 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the response.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -95,7 +95,7 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the response.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
@@ -135,7 +135,7 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof ModifyConnectionResponse);
+        return other instanceof ModifyConnectionResponse;
     }
 
     @Override
@@ -165,4 +165,5 @@ public final class ModifyConnectionResponse extends AbstractCommandResponse<Modi
                 ", connectionId=" + connectionId +
                 "]";
     }
+
 }

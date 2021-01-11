@@ -73,10 +73,10 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
             final String featureId,
             final JsonPointer featurePropertyPointer,
             @Nullable final JsonValue featurePropertyValue,
-            final HttpStatus statusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
         this.featureId = checkNotNull(featureId, "featrueId");
         this.featurePropertyPointer = checkPropertyPointer(featurePropertyPointer);
@@ -90,7 +90,7 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
 
     /**
      * Returns a new {@code ModifyFeaturePropertyResponse} for a created FeatureProperty. This corresponds to the HTTP
-     * status code {@link HttpStatus#CREATED}.
+     * status {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created feature property.
      * @param featureId the {@code Feature}'s ID whose Property was created.
@@ -115,7 +115,7 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
 
     /**
      * Returns a new {@code ModifyFeaturePropertyResponse} for a created FeatureProperty. This corresponds to the HTTP
-     * status code {@link HttpStatus#CREATED}.
+     * status {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created feature property.
      * @param featureId the {@code Feature}'s ID whose Property was created.
@@ -137,14 +137,14 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
 
     /**
      * Returns a new {@code ModifyFeaturePropertyResponse} for a modified FeatureProperty. This corresponds to the HTTP
-     * status code {@link HttpStatus#NO_CONTENT}.
+     * status {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified feature property.
      * @param featureId the {@code Feature}'s ID whose Property was modified.
      * @param featurePropertyPointer the pointer of the modified FeatureProperty.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified FeatureProperty.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @deprecated Thing ID is now typed. Use
      * {@link #modified(org.eclipse.ditto.model.things.ThingId, String, org.eclipse.ditto.json.JsonPointer, org.eclipse.ditto.model.base.headers.DittoHeaders)}
      * instead.
@@ -160,14 +160,14 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
 
     /**
      * Returns a new {@code ModifyFeaturePropertyResponse} for a modified FeatureProperty. This corresponds to the HTTP
-     * status code {@link HttpStatus#NO_CONTENT}.
+     * status {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified feature property.
      * @param featureId the {@code Feature}'s ID whose Property was modified.
      * @param featurePropertyPointer the pointer of the modified FeatureProperty.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified FeatureProperty.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyFeaturePropertyResponse modified(final ThingId thingId,
             final String featureId,
@@ -188,7 +188,7 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -205,7 +205,7 @@ public final class ModifyFeaturePropertyResponse extends AbstractCommandResponse
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of property pointer are not valid

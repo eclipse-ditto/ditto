@@ -67,8 +67,6 @@ import akka.http.javadsl.model.HttpHeader;
 import akka.http.javadsl.model.HttpMethods;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
-import akka.http.javadsl.model.StatusCode;
-import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.model.Uri;
 import akka.japi.Pair;
 import akka.stream.Attributes;
@@ -99,7 +97,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
     @Override
     protected void setupMocks(final TestProbe probe) {
-        httpPushFactory = mockHttpPushFactory(CONTENT_TYPE, StatusCodes.OK, BODY);
+        httpPushFactory = mockHttpPushFactory(CONTENT_TYPE, HttpStatus.OK, BODY);
 
         // activate debug log to show responses
         actorSystem.eventStream().setLogLevel(Attributes.logLevelDebug());
@@ -164,7 +162,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
     @Test
     public void testPlainTextAck() {
         new TestKit(actorSystem) {{
-            httpPushFactory = mockHttpPushFactory("text/plain", StatusCodes.OK, "hello!");
+            httpPushFactory = mockHttpPushFactory("text/plain", HttpStatus.OK, "hello!");
 
             final AcknowledgementLabel label = AcknowledgementLabel.of("please-verify");
             final Target target = decorateTarget(createTestTarget(label));
@@ -186,7 +184,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
     @Test
     public void testBinaryAck() {
         new TestKit(actorSystem) {{
-            httpPushFactory = mockHttpPushFactory("application/octet-stream", StatusCodes.OK, "hello!");
+            httpPushFactory = mockHttpPushFactory("application/octet-stream", HttpStatus.OK, "hello!");
 
             final AcknowledgementLabel label = AcknowledgementLabel.of("please-verify");
             final Target target = decorateTarget(createTestTarget(label));
@@ -209,9 +207,9 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
     public void testMessageCommandHttpPushCreatesCommandResponse() {
         new TestKit(actorSystem) {{
             final String customContentType = "application/vnd.org.eclipse.ditto.foobar+json";
-            final StatusCode statusCode = StatusCodes.IM_A_TEAPOT;
+            final var httpStatus = HttpStatus.IM_A_TEAPOT;
             final JsonValue jsonResponse = JsonFactory.readFrom("{ \"foo\": true }");
-            httpPushFactory = mockHttpPushFactory(customContentType, statusCode, jsonResponse.toString());
+            httpPushFactory = mockHttpPushFactory(customContentType, httpStatus, jsonResponse.toString());
 
             final Target target = ConnectivityModelFactory.newTargetBuilder()
                     .address(getOutboundAddress())
@@ -255,15 +253,17 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final SendThingMessageResponse<JsonValue> sendThingMessageResponse =
                     expectMsgClass(SendThingMessageResponse.class);
             assertThat((CharSequence) sendThingMessageResponse.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
-            assertThat(sendThingMessageResponse.getHttpStatus().getCode()).isEqualTo(statusCode.intValue());
+            assertThat(sendThingMessageResponse.getHttpStatus()).isEqualTo(httpStatus);
             assertThat(sendThingMessageResponse.getDittoHeaders().getCorrelationId())
                     .contains(TestConstants.CORRELATION_ID);
+
             final Message<JsonValue> responseMessage = sendThingMessageResponse.getMessage();
             assertThat(responseMessage.getContentType()).contains(customContentType);
             assertThat(responseMessage.getSubject()).isEqualTo(messageSubject);
             assertThat(responseMessage.getDirection()).isEqualTo(messageDirection);
-            assertThat(responseMessage.getHttpStatus()).isEqualTo(HttpStatus.tryGetInstance(statusCode.intValue()));
+            assertThat(responseMessage.getHttpStatus()).hasValue(httpStatus);
             assertThat(responseMessage.getPayload()).contains(jsonResponse);
+
             final MessageHeaders responseMessageHeaders = responseMessage.getHeaders();
             assertThat(responseMessageHeaders.get(CUSTOM_HEADER_NAME)).isEqualTo(CUSTOM_HEADER_VALUE);
         }};
@@ -273,9 +273,9 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
     public void testMessageCommandHttpPushWithNonLiveResponseIssuedAcknowledgement() {
         new TestKit(actorSystem) {{
             final String contentType = "application/json";
-            final StatusCode statusCode = StatusCodes.IM_A_TEAPOT;
+            final var httpStatus = HttpStatus.IM_A_TEAPOT;
             final JsonValue jsonResponse = JsonFactory.readFrom("{ \"foo\": true }");
-            httpPushFactory = mockHttpPushFactory(contentType, statusCode, jsonResponse.toString());
+            httpPushFactory = mockHttpPushFactory(contentType, httpStatus, jsonResponse.toString());
             final AcknowledgementLabel autoAckLabel = AcknowledgementLabel.of("foo:bar");
             final Target target = ConnectivityModelFactory.newTargetBuilder()
                     .address(getOutboundAddress())
@@ -321,7 +321,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             assertThat(acknowledgements).hasSize(1);
             final Acknowledgement acknowledgement = acknowledgements.getAcknowledgement(autoAckLabel).get();
             assertThat(acknowledgement).isNotNull();
-            assertThat(acknowledgement.getHttpStatus().getCode()).isEqualTo(statusCode.intValue());
+            assertThat(acknowledgement.getHttpStatus()).isEqualTo(httpStatus);
             assertThat(acknowledgement.getEntityId().toString()).hasToString(TestConstants.Things.THING_ID.toString());
         }};
     }
@@ -332,7 +332,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final String customContentType = "application/vnd.org.eclipse.ditto.foobar+json";
             final String messageSubject = "please-respond";
             final String contentType = DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE;
-            final StatusCode statusCode = StatusCodes.IM_A_TEAPOT;
+            final var httpStatus = HttpStatus.IM_A_TEAPOT;
             final MessageHeaders messageHeaders =
                     MessageHeaders.newBuilder(MessageDirection.FROM, TestConstants.Things.THING_ID, messageSubject)
                             .contentType(customContentType)
@@ -343,13 +343,13 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final Message<JsonValue> response =
                     Message.<JsonValue>newBuilder(messageHeaders).payload(jsonResponse).build();
             final SendThingMessageResponse<JsonValue> sendMessageResponse =
-                    SendThingMessageResponse.of(TestConstants.Things.THING_ID, response, HttpStatus.IM_A_TEAPOT,
+                    SendThingMessageResponse.of(TestConstants.Things.THING_ID, response, httpStatus,
                             messageHeaders);
             final Adaptable messageResponseAdaptable =
                     DittoProtocolAdapter.newInstance().toAdaptable(sendMessageResponse);
             final JsonObject messageResponseJson =
                     ProtocolFactory.wrapAsJsonifiableAdaptable(messageResponseAdaptable).toJson();
-            httpPushFactory = mockHttpPushFactory(contentType, statusCode, messageResponseJson.toString());
+            httpPushFactory = mockHttpPushFactory(contentType, httpStatus, messageResponseJson.toString());
 
             final Target target = ConnectivityModelFactory.newTargetBuilder()
                     .address(getOutboundAddress())
@@ -392,15 +392,17 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final SendThingMessageResponse<JsonValue> sendThingMessageResponse =
                     expectMsgClass(SendThingMessageResponse.class);
             assertThat((CharSequence) sendThingMessageResponse.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
-            assertThat(sendThingMessageResponse.getHttpStatus().getCode()).isEqualTo(statusCode.intValue());
+            assertThat(sendThingMessageResponse.getHttpStatus()).isEqualTo(httpStatus);
             assertThat(sendThingMessageResponse.getDittoHeaders().getCorrelationId())
                     .contains(TestConstants.CORRELATION_ID);
+
             final Message<JsonValue> responseMessage = sendThingMessageResponse.getMessage();
             assertThat(responseMessage.getContentType()).contains(customContentType);
             assertThat(responseMessage.getSubject()).isEqualTo(messageSubject);
             assertThat(responseMessage.getDirection()).isEqualTo(messageDirection);
-            assertThat(responseMessage.getHttpStatus()).isEqualTo(HttpStatus.tryGetInstance(statusCode.intValue()));
+            assertThat(responseMessage.getHttpStatus()).hasValue(httpStatus);
             assertThat(responseMessage.getPayload()).contains(jsonResponse);
+
             final MessageHeaders responseMessageHeaders = responseMessage.getHeaders();
             assertThat(responseMessageHeaders.get(CUSTOM_HEADER_NAME)).isEqualTo(CUSTOM_HEADER_VALUE);
         }};
@@ -412,7 +414,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final String customContentType = "application/vnd.org.eclipse.ditto.foobar+json";
             final String messageSubject = "please-respond";
             final String contentType = DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE;
-            final StatusCode statusCode = StatusCodes.IM_A_TEAPOT;
+            final var httpStatus = HttpStatus.IM_A_TEAPOT;
             final MessageHeaders messageHeaders =
                     MessageHeaders.newBuilder(MessageDirection.FROM, TestConstants.Things.THING_ID, messageSubject)
                             .contentType(customContentType)
@@ -423,13 +425,12 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final Message<JsonValue> response =
                     Message.<JsonValue>newBuilder(messageHeaders).payload(jsonResponse).build();
             final SendThingMessageResponse<JsonValue> sendMessageResponse =
-                    SendThingMessageResponse.of(TestConstants.Things.THING_ID, response, HttpStatus.IM_A_TEAPOT,
-                            messageHeaders);
+                    SendThingMessageResponse.of(TestConstants.Things.THING_ID, response, httpStatus, messageHeaders);
             final Adaptable messageResponseAdaptable =
                     DittoProtocolAdapter.newInstance().toAdaptable(sendMessageResponse);
             final JsonObject messageResponseJson =
                     ProtocolFactory.wrapAsJsonifiableAdaptable(messageResponseAdaptable).toJson();
-            httpPushFactory = mockHttpPushFactory(contentType, statusCode, messageResponseJson.toString());
+            httpPushFactory = mockHttpPushFactory(contentType, httpStatus, messageResponseJson.toString());
 
             final Target target = ConnectivityModelFactory.newTargetBuilder()
                     .address(getOutboundAddress())
@@ -490,7 +491,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final String customContentType = "application/vnd.org.eclipse.ditto.foobar+json";
             final String messageSubject = "please-respond";
             final String contentType = DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE;
-            final StatusCode statusCode = StatusCodes.IM_A_TEAPOT;
+            final var httpStatus = HttpStatus.IM_A_TEAPOT;
             final ThingId wrongThingId = ThingId.of("namespace:wrongthing");
             final MessageHeaders messageHeaders =
                     MessageHeaders.newBuilder(MessageDirection.FROM, wrongThingId, messageSubject)
@@ -502,12 +503,12 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final Message<JsonValue> response =
                     Message.<JsonValue>newBuilder(messageHeaders).payload(jsonResponse).build();
             final SendThingMessageResponse<JsonValue> sendMessageResponse =
-                    SendThingMessageResponse.of(wrongThingId, response, HttpStatus.IM_A_TEAPOT, messageHeaders);
+                    SendThingMessageResponse.of(wrongThingId, response, httpStatus, messageHeaders);
             final Adaptable messageResponseAdaptable =
                     DittoProtocolAdapter.newInstance().toAdaptable(sendMessageResponse);
             final JsonObject messageResponseJson =
                     ProtocolFactory.wrapAsJsonifiableAdaptable(messageResponseAdaptable).toJson();
-            httpPushFactory = mockHttpPushFactory(contentType, statusCode, messageResponseJson.toString());
+            httpPushFactory = mockHttpPushFactory(contentType, httpStatus, messageResponseJson.toString());
 
             final Target target = ConnectivityModelFactory.newTargetBuilder()
                     .address(getOutboundAddress())
@@ -568,7 +569,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final String customContentType = "application/vnd.org.eclipse.ditto.foobar+json";
             final String messageSubject = "please-respond";
             final String contentType = DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE;
-            final StatusCode statusCode = StatusCodes.IM_A_TEAPOT;
+            final var httpStatus = HttpStatus.IM_A_TEAPOT;
             final MessageHeaders messageHeaders =
                     MessageHeaders.newBuilder(MessageDirection.FROM, TestConstants.Things.THING_ID, messageSubject)
                             .contentType(customContentType)
@@ -579,14 +580,17 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             final JsonValue jsonResponse = JsonFactory.readFrom("{ \"foo\": true }");
             final Message<JsonValue> response =
                     Message.<JsonValue>newBuilder(messageHeaders).payload(jsonResponse).build();
-            final SendFeatureMessageResponse<JsonValue> sendMessageResponse =
-                    SendFeatureMessageResponse.of(TestConstants.Things.THING_ID, "wrongId", response,
-                            HttpStatus.IM_A_TEAPOT, messageHeaders);
+            final SendFeatureMessageResponse<JsonValue> sendMessageResponse = SendFeatureMessageResponse.of(
+                    TestConstants.Things.THING_ID,
+                    "wrongId",
+                    response,
+                    httpStatus,
+                    messageHeaders);
             final Adaptable messageResponseAdaptable =
                     DittoProtocolAdapter.newInstance().toAdaptable(sendMessageResponse);
             final JsonObject messageResponseJson =
                     ProtocolFactory.wrapAsJsonifiableAdaptable(messageResponseAdaptable).toJson();
-            httpPushFactory = mockHttpPushFactory(contentType, statusCode, messageResponseJson.toString());
+            httpPushFactory = mockHttpPushFactory(contentType, httpStatus, messageResponseJson.toString());
 
             final Target target = ConnectivityModelFactory.newTargetBuilder()
                     .address(getOutboundAddress())
@@ -662,13 +666,13 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
         );
     }
 
-    private HttpPushFactory mockHttpPushFactory(final String contentType, final StatusCode statusCode,
+    private HttpPushFactory mockHttpPushFactory(final String contentType, final HttpStatus httpStatus,
             final String body) {
 
         return new DummyHttpPushFactory("8.8.4.4", request -> {
             received.offer(request);
             return HttpResponse.create()
-                    .withStatus(statusCode)
+                    .withStatus(httpStatus.getCode())
                     .addHeader(HttpHeader.parse(CUSTOM_HEADER_NAME, CUSTOM_HEADER_VALUE))
                     .withEntity(new akka.http.scaladsl.model.HttpEntity.Strict(
                             (akka.http.scaladsl.model.ContentType) ContentTypes.parse(contentType),
@@ -701,6 +705,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
             return Flow.<Pair<HttpRequest, T>>create()
                     .map(pair -> Pair.create(Try.apply(() -> mapper.apply(pair.first())), pair.second()));
         }
+
     }
 
 }

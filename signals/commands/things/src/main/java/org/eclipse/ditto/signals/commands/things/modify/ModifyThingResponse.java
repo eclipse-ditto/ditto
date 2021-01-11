@@ -61,17 +61,17 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
     @Nullable private final Thing thingCreated;
 
     private ModifyThingResponse(final ThingId thingId,
-            final HttpStatus statusCode,
+            final HttpStatus httpStatus,
             @Nullable final Thing thingCreated,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.thingCreated = thingCreated;
     }
 
     /**
-     * Returns a new {@code ModifyThingResponse} for a created Thing. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyThingResponse} for a created Thing. This corresponds to the HTTP status
      * {@link HttpStatus#CREATED}.
      *
      * @param thing the created Thing.
@@ -85,13 +85,13 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
     }
 
     /**
-     * Returns a new {@code ModifyThingResponse} for a modified Thing. This corresponds to the HTTP status code {@link
-     * HttpStatus#NO_CONTENT}.
+     * Returns a new {@code ModifyThingResponse} for a modified Thing. This corresponds to the HTTP status
+     * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified Thing.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified Thing.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @deprecated Thing ID is now typed. Use
      * {@link #modified(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
      * instead.
@@ -102,13 +102,13 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
     }
 
     /**
-     * Returns a new {@code ModifyThingResponse} for a modified Thing. This corresponds to the HTTP status code {@link
-     * HttpStatus#NO_CONTENT}.
+     * Returns a new {@code ModifyThingResponse} for a modified Thing. This corresponds to the HTTP status
+     * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified Thing.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified Thing.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyThingResponse modified(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return new ModifyThingResponse(thingId, HttpStatus.NO_CONTENT, null, dittoHeaders);
@@ -120,7 +120,7 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -135,7 +135,7 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
@@ -206,8 +206,10 @@ public final class ModifyThingResponse extends AbstractCommandResponse<ModifyThi
             return false;
         }
         final ModifyThingResponse that = (ModifyThingResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(thingCreated, that.thingCreated) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(thingCreated, that.thingCreated) &&
+                super.equals(o);
     }
 
     @Override

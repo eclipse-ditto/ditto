@@ -89,7 +89,7 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      *
      * @param label the label of the new Acknowledgement.
      * @param entityId the ID of the affected entity being acknowledged.
-     * @param httpStatus the status code (HTTP semantics) of the Acknowledgement.
+     * @param httpStatus the HTTP status of the Acknowledgement.
      * @param dittoHeaders the DittoHeaders.
      * @param payload the optional payload of the Acknowledgement.
      * @return the ImmutableAcknowledgement.
@@ -153,7 +153,7 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      *
      * @param label the label of the new Acknowledgement.
      * @param entityId the ID of the affected entity being acknowledged.
-     * @param httpStatus the status code (HTTP semantics) of the Acknowledgement.
+     * @param httpStatus the HTTP status of the Acknowledgement.
      * @param dittoHeaders the DittoHeaders.
      * @return the ImmutableAcknowledgement.
      * @throws NullPointerException if one of the required parameters was {@code null}.

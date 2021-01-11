@@ -308,16 +308,20 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
         return buildAcknowledgement(signal, autoAckTarget, HttpStatus.OK, null, connectionIdResolver);
     }
 
-    private static Acknowledgement buildAcknowledgement(final Signal<?> signal, @Nullable final Target autoAckTarget,
-            final HttpStatus statusCode, @Nullable final String message,
+    private static Acknowledgement buildAcknowledgement(final Signal<?> signal,
+            @Nullable final Target autoAckTarget,
+            final HttpStatus httpStatus,
+            @Nullable final String message,
             final ExpressionResolver connectionIdResolver) {
 
-        final AcknowledgementLabel label =
-                Optional.ofNullable(autoAckTarget)
-                        .flatMap(Target::getIssuedAcknowledgementLabel)
-                        .flatMap(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
-                        .orElse(NO_ACK_LABEL);
-        return Acknowledgement.of(label, ThingId.of(signal.getEntityId()), statusCode, signal.getDittoHeaders(),
+        final var label = Optional.ofNullable(autoAckTarget)
+                .flatMap(Target::getIssuedAcknowledgementLabel)
+                .flatMap(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
+                .orElse(NO_ACK_LABEL);
+        return Acknowledgement.of(label,
+                ThingId.of(signal.getEntityId()),
+                httpStatus,
+                signal.getDittoHeaders(),
                 message == null ? null : JsonValue.of(message));
     }
 

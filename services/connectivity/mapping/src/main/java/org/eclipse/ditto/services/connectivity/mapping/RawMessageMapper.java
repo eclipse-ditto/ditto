@@ -228,14 +228,17 @@ public final class RawMessageMapper extends AbstractMessageMapper {
 
     private static Map<String, String> evaluateOutgoingMessageHeaders(final Adaptable adaptable,
             @Nullable final ContentType contentType) {
-        final TopicPath topicPath = adaptable.getTopicPath();
-        final MessagePath messagePath = adaptable.getPayload().getPath();
+
+        final var adaptablePayload = adaptable.getPayload();
+        final MessagePath messagePath = adaptablePayload.getPath();
         final MessageDirection direction = messagePath.getDirection().orElseThrow();
-        final ThingId thingId = ThingId.of(topicPath.getNamespace(), topicPath.getId());
+        final TopicPath topicPath = adaptable.getTopicPath();
+        final ThingId thingId = ThingId.of(topicPath.getNamespace(), topicPath.getEntityName());
         final String subject = topicPath.getSubject().orElseThrow();
+
         return MessagesModelFactory.newHeadersBuilder(direction, thingId, subject)
                 .contentType(contentType)
-                .statusCode(adaptable.getPayload().getStatus().orElse(null))
+                .httpStatus(adaptablePayload.getHttpStatus().orElse(null))
                 .featureId(messagePath.getFeatureId().orElse(null))
                 .build();
     }
@@ -293,7 +296,7 @@ public final class RawMessageMapper extends AbstractMessageMapper {
 
     private static Payload toPayload(final ExternalMessage externalMessage, final MessageHeaders messageHeaders) {
         final PayloadBuilder payloadBuilder = ProtocolFactory.newPayloadBuilder(toMessagePath(messageHeaders));
-        messageHeaders.getStatusCode().ifPresent(payloadBuilder::withStatus);
+        messageHeaders.getHttpStatus().ifPresent(payloadBuilder::withStatus);
         getPayloadValue(externalMessage, messageHeaders.getDittoContentType().orElseThrow())
                 .ifPresent(payloadBuilder::withValue);
         return payloadBuilder.build();

@@ -59,10 +59,10 @@ public final class DeletePolicyEntryResponse extends AbstractCommandResponse<Del
 
     private DeletePolicyEntryResponse(final PolicyId policyId,
             final Label label,
-            final HttpStatus statusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.label = checkNotNull(label, "Label");
     }
@@ -74,7 +74,7 @@ public final class DeletePolicyEntryResponse extends AbstractCommandResponse<Del
      * @param label the Label of the deleted PolicyEntry.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @deprecated Policy ID is now typed. Use
      * {@link #of(org.eclipse.ditto.model.policies.PolicyId, org.eclipse.ditto.model.policies.Label, org.eclipse.ditto.model.base.headers.DittoHeaders)}
      * instead.
@@ -93,7 +93,7 @@ public final class DeletePolicyEntryResponse extends AbstractCommandResponse<Del
      * @param label the Label of the deleted PolicyEntry.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static DeletePolicyEntryResponse of(final PolicyId policyId, final Label label,
             final DittoHeaders dittoHeaders) {
@@ -107,7 +107,7 @@ public final class DeletePolicyEntryResponse extends AbstractCommandResponse<Del
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -122,7 +122,7 @@ public final class DeletePolicyEntryResponse extends AbstractCommandResponse<Del
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */

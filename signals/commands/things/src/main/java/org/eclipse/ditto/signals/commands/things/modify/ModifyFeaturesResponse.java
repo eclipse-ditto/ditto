@@ -61,17 +61,17 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
     private final Features featuresCreated;
 
     private ModifyFeaturesResponse(final ThingId thingId,
-            final HttpStatus statusCode,
+            final HttpStatus httpStatus,
             final Features featuresCreated,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.featuresCreated = featuresCreated;
     }
 
     /**
-     * Returns a new {@code ModifyFeaturesResponse} for a created Feature. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyFeaturesResponse} for a created Feature. This corresponds to the HTTP status
      * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created features.
@@ -91,7 +91,7 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
     }
 
     /**
-     * Returns a new {@code ModifyFeaturesResponse} for a created Feature. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyFeaturesResponse} for a created Feature. This corresponds to the HTTP status
      * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created features.
@@ -108,13 +108,13 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
     }
 
     /**
-     * Returns a new {@code ModifyFeaturesResponse} for a modified Feature. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyFeaturesResponse} for a modified Feature. This corresponds to the HTTP status
      * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified features.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified Feature.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @deprecated Thing ID is now typed. Use
      * {@link #modified(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
      * instead.
@@ -125,13 +125,13 @@ public final class ModifyFeaturesResponse extends AbstractCommandResponse<Modify
     }
 
     /**
-     * Returns a new {@code ModifyFeaturesResponse} for a modified Feature. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyFeaturesResponse} for a modified Feature. This corresponds to the HTTP status
      * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified features.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified Feature.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyFeaturesResponse modified(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return new ModifyFeaturesResponse(thingId, HttpStatus.NO_CONTENT, ThingsModelFactory.nullFeatures(),

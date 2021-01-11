@@ -65,7 +65,7 @@ abstract class AbstractMappingStrategies<T extends Jsonifiable.WithPredicate<Jso
      * Checks if the given {@link Adaptable} is a {@link HttpStatus#CREATED} response.
      *
      * @param adaptable an {@link Adaptable}
-     * @return {@code true} if the given {@code adaptable} is a response (has a status field) and the status code is
+     * @return {@code true} if the given {@code adaptable} is a response (has a status field) and the status is
      * {@link HttpStatus#CREATED}.
      */
     protected static boolean isCreated(final Adaptable adaptable) {

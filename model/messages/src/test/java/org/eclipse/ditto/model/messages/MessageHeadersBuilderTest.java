@@ -153,11 +153,11 @@ public final class MessageHeadersBuilderTest {
 
     @Test
     public void setStatusCodeAsIntWorksAsExpected() {
-        final int knownCode = 404;
+        final HttpStatus knownStatus = HttpStatus.NOT_FOUND;
 
-        final MessageHeaders messageHeaders = underTest.statusCode(knownCode).build();
+        final MessageHeaders messageHeaders = underTest.statusCode(knownStatus.getCode()).build();
 
-        assertThat(messageHeaders.getHttpStatus()).contains(HttpStatus.NOT_FOUND);
+        assertThat(messageHeaders.getHttpStatus()).contains(knownStatus);
     }
 
     @Test

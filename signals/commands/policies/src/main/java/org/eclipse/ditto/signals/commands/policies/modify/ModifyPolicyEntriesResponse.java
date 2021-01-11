@@ -49,10 +49,10 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
 
     private final PolicyId policyId;
 
-    private ModifyPolicyEntriesResponse(final PolicyId policyId, final HttpStatus statusCode,
+    private ModifyPolicyEntriesResponse(final PolicyId policyId, final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
     }
 
@@ -89,7 +89,7 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -104,7 +104,7 @@ public final class ModifyPolicyEntriesResponse extends AbstractCommandResponse<M
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */

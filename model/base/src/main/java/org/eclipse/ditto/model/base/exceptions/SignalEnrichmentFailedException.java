@@ -46,17 +46,8 @@ public final class SignalEnrichmentFailedException extends DittoRuntimeException
 
     private static final String DEFAULT_DESCRIPTION = "The cause is unknown. Please try again later.";
 
+    private static final long serialVersionUID = -9012995799489161220L;
 
-    /**
-     * Constructs a new {@code SignalEnrichmentFailedException} object.
-     *
-     * @param dittoHeaders the headers with which this Exception should be reported back to the user.
-     * @param message the detail message for later retrieval with {@link #getMessage()}.
-     * @param description a description with further information about the exception.
-     * @param cause the cause of the exception for later retrieval with {@link #getCause()}.
-     * @param href a link to a resource which provides further information about the exception.
-     * @throws NullPointerException if {@code errorCode}, {@code statusCode} or {@code dittoHeaders} is {@code null}.
-     */
     private SignalEnrichmentFailedException(
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders,

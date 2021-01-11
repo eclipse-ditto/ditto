@@ -185,6 +185,7 @@ public interface MessageHeaders extends DittoHeaders {
      *
      * @return the content type.
      */
+    @Override
     Optional<String> getContentType();
 
     /**
@@ -192,6 +193,7 @@ public interface MessageHeaders extends DittoHeaders {
      *
      * @return the timeout.
      */
+    @Override
     Optional<Duration> getTimeout();
 
     /**

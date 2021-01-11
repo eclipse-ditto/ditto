@@ -47,10 +47,10 @@ public final class CleanupPersistenceResponse extends AbstractCommandResponse<Cl
 
     private final EntityId entityId;
 
-    private CleanupPersistenceResponse(final EntityId entityId, final HttpStatus statusCode,
+    private CleanupPersistenceResponse(final EntityId entityId, final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.entityId = ConditionChecker.checkNotNull(entityId, "entityId");
     }
 
@@ -99,7 +99,7 @@ public final class CleanupPersistenceResponse extends AbstractCommandResponse<Cl
      * @param jsonObject the JSON object of which the CleanupPersistenceResponse is to be created.
      * @param dittoHeaders the headers.
      * @return the command.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain
      * {@link Command.JsonFields#ID}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected

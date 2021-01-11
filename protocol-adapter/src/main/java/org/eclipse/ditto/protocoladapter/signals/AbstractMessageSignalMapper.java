@@ -69,7 +69,7 @@ abstract class AbstractMessageSignalMapper<T extends Signal<?> & WithThingId> ex
      *
      * @param command the command that is processed
      * @return the status code
-     * @deprecated as of 2.0.0 please use {@link #extractStatusCode(Signal)} instead.
+     * @deprecated as of 2.0.0 please use {@link #extractHttpStatus(Signal)} instead.
      */
     @Deprecated
     Optional<HttpStatusCode> extractStatusCode(final T command) {
@@ -80,8 +80,8 @@ abstract class AbstractMessageSignalMapper<T extends Signal<?> & WithThingId> ex
      * Extract the HTTP status from the message (message commands and message command responses do not have a common
      * interface to extract that kind of information).
      *
-     * @param command the command that is processed
-     * @return the status code
+     * @param command the command that is processed.
+     * @return the HTTP status.
      * @since 2.0.0
      */
     abstract Optional<HttpStatus> extractHttpStatus(T command);
@@ -93,7 +93,7 @@ abstract class AbstractMessageSignalMapper<T extends Signal<?> & WithThingId> ex
      * @param command the command that is processed
      * @return the message headers
      */
-    abstract MessageHeaders extractMessageHeaders(final T command);
+    abstract MessageHeaders extractMessageHeaders(T command);
 
     @Override
     void enhancePayloadBuilder(final T command, final PayloadBuilder payloadBuilder) {

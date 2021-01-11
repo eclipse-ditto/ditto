@@ -66,16 +66,16 @@ public final class ModifyAclEntryResponse extends AbstractCommandResponse<Modify
 
     private ModifyAclEntryResponse(final ThingId thingId,
             final AclEntry modifiedAclEntry,
-            final HttpStatus statusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.modifiedAclEntry = checkNotNull(modifiedAclEntry, "ACL entry");
     }
 
     /**
-     * Returns a new {@code ModifyAclEntryResponse} for a created AclEntry. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyAclEntryResponse} for a created AclEntry. This corresponds to the HTTP status
      * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created ACL entry.
@@ -95,7 +95,7 @@ public final class ModifyAclEntryResponse extends AbstractCommandResponse<Modify
     }
 
     /**
-     * Returns a new {@code ModifyAclEntryResponse} for a created AclEntry. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyAclEntryResponse} for a created AclEntry. This corresponds to the HTTP status
      * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created ACL entry.
@@ -111,7 +111,7 @@ public final class ModifyAclEntryResponse extends AbstractCommandResponse<Modify
     }
 
     /**
-     * Returns a new {@code ModifyAclEntryResponse} for a modified AclEntry. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyAclEntryResponse} for a modified AclEntry. This corresponds to the HTTP status
      * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified ACL entry.
@@ -131,7 +131,7 @@ public final class ModifyAclEntryResponse extends AbstractCommandResponse<Modify
     }
 
     /**
-     * Returns a new {@code ModifyAclEntryResponse} for a modified AclEntry. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyAclEntryResponse} for a modified AclEntry. This corresponds to the HTTP status
      * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified ACL entry.
@@ -172,14 +172,13 @@ public final class ModifyAclEntryResponse extends AbstractCommandResponse<Modify
      * format.
      */
     public static ModifyAclEntryResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ModifyAclEntryResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
-            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
-            final ThingId thingId = ThingId.of(extractedThingId);
-            final JsonObject aclEntryJsonObject = jsonObject.getValueOrThrow(JSON_ACL_ENTRY);
-            final AclEntry extractedAclEntry = ThingsModelFactory.newAclEntry(aclEntryJsonObject);
-
-            return new ModifyAclEntryResponse(thingId, extractedAclEntry, httpStatus, dittoHeaders);
-        });
+        return new CommandResponseJsonDeserializer<ModifyAclEntryResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> new ModifyAclEntryResponse(
+                        ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                        ThingsModelFactory.newAclEntry(jsonObject.getValueOrThrow(JSON_ACL_ENTRY)),
+                        httpStatus,
+                        dittoHeaders
+                ));
     }
 
     @Override

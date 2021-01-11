@@ -46,16 +46,6 @@ public final class TimeoutInvalidException extends DittoRuntimeException {
 
     private static final long serialVersionUID = -3108409113724423689L;
 
-    /**
-     * Constructs a new {@code TimeoutInvalidException} object.
-     *
-     * @param dittoHeaders the headers with which this Exception should be reported back to the user.
-     * @param message the detail message for later retrieval with {@link #getMessage()}.
-     * @param description a description with further information about the exception.
-     * @param cause the cause of the exception for later retrieval with {@link #getCause()}.
-     * @param href a link to a resource which provides further information about the exception.
-     * @throws NullPointerException if {@code errorCode}, {@code statusCode} or {@code dittoHeaders} is {@code null}.
-     */
     private TimeoutInvalidException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,

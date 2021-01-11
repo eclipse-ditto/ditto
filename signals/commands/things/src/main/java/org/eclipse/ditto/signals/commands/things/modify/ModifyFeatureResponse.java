@@ -63,21 +63,19 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
 
     private final ThingId thingId;
     private final Feature featureCreated;
-    private final HttpStatus statusCode;
 
     private ModifyFeatureResponse(final ThingId thingId,
             final Feature featureCreated,
-            final HttpStatus statusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.featureCreated = featureCreated;
-        this.statusCode = statusCode;
     }
 
     /**
-     * Returns a new {@code ModifyFeatureResponse} for a created Feature. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyFeatureResponse} for a created Feature. This corresponds to the HTTP status
      * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created feature.
@@ -97,7 +95,7 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
     }
 
     /**
-     * Returns a new {@code ModifyFeatureResponse} for a created Feature. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyFeatureResponse} for a created Feature. This corresponds to the HTTP status
      * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created feature.
@@ -114,7 +112,7 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
     }
 
     /**
-     * Returns a new {@code ModifyFeatureResponse} for a modified Feature. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyFeatureResponse} for a modified Feature. This corresponds to the HTTP status
      * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified feature.
@@ -134,7 +132,7 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
     }
 
     /**
-     * Returns a new {@code ModifyFeatureResponse} for a modified Feature. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyFeatureResponse} for a modified Feature. This corresponds to the HTTP status
      * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified feature.
@@ -232,7 +230,7 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
 
     @Override
     public ModifyFeatureResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new ModifyFeatureResponse(thingId, featureCreated, statusCode, dittoHeaders);
+        return new ModifyFeatureResponse(thingId, featureCreated, getHttpStatus(), dittoHeaders);
     }
 
     @Override
@@ -247,13 +245,12 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
         return that.canEqual(this) &&
                 Objects.equals(thingId, that.thingId) &&
                 Objects.equals(featureCreated, that.featureCreated) &&
-                Objects.equals(statusCode, that.statusCode) &&
                 super.equals(that);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), thingId, featureCreated, statusCode);
+        return Objects.hash(super.hashCode(), thingId, featureCreated);
     }
 
     @Override
@@ -262,7 +259,6 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
                 super.toString() +
                 ", thingId=" + thingId +
                 ", featureCreated=" + featureCreated +
-                ", statusCode=" + statusCode +
                 "]";
     }
 

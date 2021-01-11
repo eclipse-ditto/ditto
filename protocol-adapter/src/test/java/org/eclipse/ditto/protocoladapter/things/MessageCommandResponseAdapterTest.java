@@ -98,14 +98,14 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
             final Object javaPayload,
             final CharSequence contentType) {
 
-        final HttpStatus statusCode = HttpStatus.OK;
+        final HttpStatus httpStatus = HttpStatus.OK;
 
         final MessageHeadersBuilder messageHeadersBuilder =
                 MessageHeaders.newBuilder(messageDirection, TestConstants.THING_ID, subject)
                         .contentType(contentType)
                         .correlationId(CORRELATION_ID)
                         .featureId(isFeatureResponse() ? FEATURE_ID : null)
-                        .httpStatus(statusCode)
+                        .httpStatus(httpStatus)
                         .channel(TopicPath.Channel.LIVE.getName())
                         .schemaVersion(JsonSchemaVersion.V_2)
                         .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), TestConstants.THING_ID);
@@ -135,7 +135,7 @@ public final class MessageCommandResponseAdapterTest implements ProtocolAdapterT
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(statusCode)
+                        .withStatus(httpStatus)
                         .withValue(jsonPayload)
                         .build())
                 .withHeaders(theHeaders)

@@ -25,6 +25,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
  */
 public abstract class CommonCommandResponse<T extends CommonCommandResponse<T>> extends AbstractCommandResponse<T>
         implements WithIdButActuallyNot {
+
     /**
      * Type prefix.
      */
@@ -35,19 +36,18 @@ public abstract class CommonCommandResponse<T extends CommonCommandResponse<T>> 
      */
     protected static final String RESOURCE_TYPE = "common";
 
-
     /**
      * Constructs a new {@code AbstractCommandResponse} object.
      *
      * @param responseType the type of this response.
-     * @param statusCode the HTTP statusCode of this response.
+     * @param httpStatus the HTTP status of this response.
      * @param dittoHeaders the headers of the CommandType which caused this CommandResponseType.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    protected CommonCommandResponse(final String responseType,
-            final HttpStatus statusCode,
+    protected CommonCommandResponse(final String responseType, final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
-        super(responseType, statusCode, dittoHeaders);
+
+        super(responseType, httpStatus, dittoHeaders);
     }
 
     @Override
@@ -59,4 +59,5 @@ public abstract class CommonCommandResponse<T extends CommonCommandResponse<T>> 
     public String getResourceType() {
         return RESOURCE_TYPE;
     }
+
 }

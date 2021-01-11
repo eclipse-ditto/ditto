@@ -200,7 +200,7 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
     }
 
     @Override
-    public MessageHeadersBuilder timeout(final Duration timeout) {
+    public MessageHeadersBuilder timeout(@Nullable final Duration timeout) {
         return super.timeout(timeout);
     }
 
@@ -270,7 +270,7 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
     /**
      * Sets the Http status of the Message to build.
      *
-     * @param httpStatus the HTTP status code.
+     * @param httpStatus the HTTP status.
      * @return this builder to allow method chaining.
      * @since 2.0.0
      */

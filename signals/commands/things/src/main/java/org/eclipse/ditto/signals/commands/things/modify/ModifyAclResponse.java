@@ -63,17 +63,17 @@ public final class ModifyAclResponse extends AbstractCommandResponse<ModifyAclRe
     private final AccessControlList modifiedAcl;
 
     private ModifyAclResponse(final ThingId thingId,
-            final HttpStatus statusCode,
+            final HttpStatus httpStatus,
             final AccessControlList modifiedAcl,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.modifiedAcl = modifiedAcl;
     }
 
     /**
-     * Returns a new {@code ModifyAclResponse} for a created AccessControlList. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyAclResponse} for a created AccessControlList. This corresponds to the HTTP status
      * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created ACL.
@@ -93,7 +93,7 @@ public final class ModifyAclResponse extends AbstractCommandResponse<ModifyAclRe
     }
 
     /**
-     * Returns a new {@code ModifyAclResponse} for a created AccessControlList. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyAclResponse} for a created AccessControlList. This corresponds to the HTTP status
      * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created ACL.
@@ -116,7 +116,7 @@ public final class ModifyAclResponse extends AbstractCommandResponse<ModifyAclRe
      * @param acl the modified ACL.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified Thing.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @deprecated Thing ID is now typed. Use
      * {@link #modified(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.AccessControlList, org.eclipse.ditto.model.base.headers.DittoHeaders)}
      * instead.
@@ -245,8 +245,10 @@ public final class ModifyAclResponse extends AbstractCommandResponse<ModifyAclRe
             return false;
         }
         final ModifyAclResponse that = (ModifyAclResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(modifiedAcl, that.modifiedAcl) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(modifiedAcl, that.modifiedAcl) &&
+                super.equals(o);
     }
 
     @Override

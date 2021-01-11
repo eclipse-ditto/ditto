@@ -70,10 +70,10 @@ public final class ModifyFeatureDesiredPropertiesResponse
     private ModifyFeatureDesiredPropertiesResponse(final ThingId thingId,
             final CharSequence featureId,
             @Nullable final FeatureProperties desiredPropertiesCreated,
-            final HttpStatus statusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
         this.featureId = argumentNotEmpty(featureId, "featureId").toString();
         this.desiredPropertiesCreated = desiredPropertiesCreated;
@@ -82,8 +82,7 @@ public final class ModifyFeatureDesiredPropertiesResponse
 
     /**
      * Returns a new {@code ModifyFeatureDesiredPropertiesResponse} for created desired properties of a
-     * {@link org.eclipse.ditto.model.things.Feature}. This corresponds to the HTTP status code
-     * {@link HttpStatus#CREATED}.
+     * {@link org.eclipse.ditto.model.things.Feature}. This corresponds to the HTTP status {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created desired properties.
      * @param featureId the {@code Feature}'s ID whose desired properties were created.
@@ -97,21 +96,24 @@ public final class ModifyFeatureDesiredPropertiesResponse
             final FeatureProperties desiredProperties,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyFeatureDesiredPropertiesResponse(thingId, featureId, desiredProperties, HttpStatus.CREATED,
+        return new ModifyFeatureDesiredPropertiesResponse(thingId,
+                featureId,
+                checkNotNull(desiredProperties, "desiredProperties"),
+                HttpStatus.CREATED,
                 dittoHeaders);
     }
 
 
     /**
      * Returns a new {@code ModifyFeatureDesiredPropertiesResponse} for modified desired properties of a
-     * {@link org.eclipse.ditto.model.things.Feature}. This corresponds to the HTTP status code
+     * {@link org.eclipse.ditto.model.things.Feature}. This corresponds to the HTTP status
      * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified desired properties.
      * @param featureId the {@code Feature}'s ID whose desired properties were modified.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for modified desired properties.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyFeatureDesiredPropertiesResponse modified(final ThingId thingId, final CharSequence featureId,
             final DittoHeaders dittoHeaders) {
@@ -126,7 +128,7 @@ public final class ModifyFeatureDesiredPropertiesResponse
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -143,7 +145,7 @@ public final class ModifyFeatureDesiredPropertiesResponse
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */

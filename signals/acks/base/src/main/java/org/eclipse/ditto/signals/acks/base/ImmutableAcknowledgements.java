@@ -103,7 +103,7 @@ final class ImmutableAcknowledgements implements Acknowledgements {
      *
      * @param entityId the ID of the affected entity being acknowledged.
      * @param acknowledgements the map of acknowledgements to be included in the result.
-     * @param httpStatus the status code (HTTP semantics) of the combined Acknowledgements.
+     * @param httpStatus the HTTP status of the combined Acknowledgements.
      * @param dittoHeaders the headers of the returned Acknowledgements instance.
      * @return the Acknowledgements.
      * @throws NullPointerException if any argument is {@code null}.

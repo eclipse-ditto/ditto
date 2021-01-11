@@ -358,16 +358,16 @@ public final class AcknowledgementAggregatorTest {
                 .withNoCause();
     }
 
-    private Acknowledgement createAcknowledgement(final HttpStatus statusCode) {
-        final List<Acknowledgement> acknowledgements = createAcknowledgements(1, statusCode);
+    private Acknowledgement createAcknowledgement(final HttpStatus httpStatus) {
+        final List<Acknowledgement> acknowledgements = createAcknowledgements(1, httpStatus);
         return acknowledgements.get(0);
     }
 
-    private List<Acknowledgement> createAcknowledgements(final int amount, final HttpStatus statusCode) {
+    private List<Acknowledgement> createAcknowledgements(final int amount, final HttpStatus httpStatus) {
         final List<Acknowledgement> result = new ArrayList<>(amount);
         for (int i = 0; i < amount; i++) {
-            final AcknowledgementLabel ackLabel = AcknowledgementLabel.of("status-" + statusCode.getCode() + "-" + i);
-            result.add(Acknowledgement.of(ackLabel, ENTITY_ID, statusCode, dittoHeaders));
+            final AcknowledgementLabel ackLabel = AcknowledgementLabel.of("status-" + httpStatus.getCode() + "-" + i);
+            result.add(Acknowledgement.of(ackLabel, ENTITY_ID, httpStatus, dittoHeaders));
         }
         return result;
     }

@@ -61,17 +61,17 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
     private final Attributes attributesCreated;
 
     private ModifyAttributesResponse(final ThingId thingId,
-            final HttpStatus statusCode,
+            final HttpStatus httpStatus,
             final Attributes attributesCreated,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.attributesCreated = checkNotNull(attributesCreated, "Attributes");
     }
 
     /**
-     * Returns a new {@code ModifyAttributesResponse} for a created Attributes. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyAttributesResponse} for a created Attributes. This corresponds to the HTTP status
      * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created Attributes.
@@ -91,7 +91,7 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
     }
 
     /**
-     * Returns a new {@code ModifyAttributesResponse} for a created Attributes. This corresponds to the HTTP status code
+     * Returns a new {@code ModifyAttributesResponse} for a created Attributes. This corresponds to the HTTP status
      * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created Attributes.
@@ -113,7 +113,7 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
      * @param thingId the Thing ID of the modified Attributes.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified FeatureProperties.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @deprecated Thing ID is now typed. Use
      * {@link #modified(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.base.headers.DittoHeaders)}
      * instead.
@@ -130,7 +130,7 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
      * @param thingId the Thing ID of the modified Attributes.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified FeatureProperties.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyAttributesResponse modified(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return new ModifyAttributesResponse(thingId, HttpStatus.NO_CONTENT, ThingsModelFactory.nullAttributes(),
@@ -144,7 +144,7 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
-     * @throws IllegalArgumentException if {@code jsonString} is empty.
+     * @throws IllegalArgumentException if any argument is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
      */
@@ -158,7 +158,7 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */

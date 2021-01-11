@@ -18,7 +18,7 @@ import org.eclipse.ditto.model.base.common.HttpStatus;
 
 /**
  * Default implementation of {@link ExceptionToAcknowledgementConverter} which uses
- * {@link HttpStatus#INTERNAL_SERVER_ERROR} as status code for generic exceptions.
+ * {@link HttpStatus#INTERNAL_SERVER_ERROR} as status for generic exceptions.
  *
  * @since 1.3.0
  */

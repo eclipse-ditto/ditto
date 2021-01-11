@@ -65,12 +65,12 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
     @Nullable private final PolicyEntry policyEntryCreated;
 
     private ModifyPolicyEntryResponse(final PolicyId policyId,
-            final HttpStatus statusCode,
+            final HttpStatus httpStatus,
             @Nullable final PolicyEntry policyEntryCreated,
             @Nullable final Label label,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.policyEntryCreated = policyEntryCreated;
         this.label = label;
@@ -100,13 +100,16 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
      * @param policyEntryCreated (optional) the PolicyEntry created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyPolicyEntryResponse created(final PolicyId policyId, final PolicyEntry policyEntryCreated,
             final DittoHeaders dittoHeaders) {
 
-        return new ModifyPolicyEntryResponse(policyId, HttpStatus.CREATED, policyEntryCreated,
-                policyEntryCreated.getLabel(), dittoHeaders);
+        return new ModifyPolicyEntryResponse(policyId,
+                HttpStatus.CREATED,
+                checkNotNull(policyEntryCreated, "policyEntryCreated"),
+                policyEntryCreated.getLabel(),
+                dittoHeaders);
     }
 
     /**
@@ -144,10 +147,10 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
      * @param label the label of the modified policy entry.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if {@code policyId} or {@code dittoHeaders} is {@code null}.
      * @since 1.1.0
      */
-    public static ModifyPolicyEntryResponse modified(final PolicyId policyId, final Label label,
+    public static ModifyPolicyEntryResponse modified(final PolicyId policyId, @Nullable final Label label,
             final DittoHeaders dittoHeaders) {
 
         return new ModifyPolicyEntryResponse(policyId, HttpStatus.NO_CONTENT, null, label, dittoHeaders);
@@ -159,7 +162,7 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -174,7 +177,7 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
@@ -243,8 +246,9 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
 
     @Override
     public ModifyPolicyEntryResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return policyEntryCreated != null ? created(policyId, policyEntryCreated, dittoHeaders) :
-                modified(policyId, label, dittoHeaders);
+        return policyEntryCreated != null
+                ? created(policyId, policyEntryCreated, dittoHeaders)
+                : modified(policyId, label, dittoHeaders);
     }
 
     @Override
@@ -261,10 +265,11 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
             return false;
         }
         final ModifyPolicyEntryResponse that = (ModifyPolicyEntryResponse) o;
-        return that.canEqual(this) && Objects.equals(policyId, that.policyId)
-                && Objects.equals(policyEntryCreated, that.policyEntryCreated)
-                && Objects.equals(label, that.label)
-                && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
+                Objects.equals(policyEntryCreated, that.policyEntryCreated) &&
+                Objects.equals(label, that.label) &&
+                super.equals(o);
     }
 
     @Override
