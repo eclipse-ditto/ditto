@@ -299,8 +299,7 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
         try {
             return HttpStatus.getInstance(statusCode);
         } catch (final HttpStatusCodeOutOfRangeException e) {
-            final String msg = MessageFormat.format("HTTP status code <{0}> is unknown!", statusCode);
-            throw new IllegalArgumentException(msg, e);
+            throw new IllegalArgumentException(e.getMessage(), e);
         }
     }
 

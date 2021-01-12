@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
@@ -225,8 +226,7 @@ public final class ThingAcknowledgementJsonParserTest {
 
         assertThatExceptionOfType(JsonParseException.class)
                 .isThrownBy(() -> underTest.apply(jsonRepresentation))
-                .withMessage("Status code <%d> is not supported!", unknownStatusCode)
-                .withNoCause();
+                .withCauseInstanceOf(HttpStatusCodeOutOfRangeException.class);
     }
 
     @Test

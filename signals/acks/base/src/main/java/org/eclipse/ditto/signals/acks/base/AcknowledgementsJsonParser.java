@@ -175,8 +175,10 @@ public final class AcknowledgementsJsonParser<I extends EntityIdWithType>
         try {
             return HttpStatus.getInstance(statusCode);
         } catch (final HttpStatusCodeOutOfRangeException e) {
-            final String msgPattern = "Status code <{0}> is not supported!";
-            throw new JsonParseException(MessageFormat.format(msgPattern, statusCode));
+            throw JsonParseException.newBuilder()
+                    .message(e.getMessage())
+                    .cause(e)
+                    .build();
         }
     }
 

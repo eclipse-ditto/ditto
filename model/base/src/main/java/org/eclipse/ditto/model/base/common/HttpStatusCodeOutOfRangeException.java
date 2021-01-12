@@ -16,13 +16,20 @@ import java.text.MessageFormat;
 
 /**
  * Thrown to indicate that a HTTP status code is out of range, i.e. not within {@code 100} - {@code 599}.
+ *
+ * @since 2.0.0
  */
-public class HttpStatusCodeOutOfRangeException extends Exception {
+public final class HttpStatusCodeOutOfRangeException extends Exception {
 
     private static final long serialVersionUID = 8920002289261171460L;
-    
-    private static final String MSG_PATTERN = "<{0}> is not within the range of valid HTTP status codes (100 - 599)!";
-    
+
+    private static final String MSG_PATTERN = "Provided HTTP status code <{0}> is not within the range of 100 to 599.";
+
+    /**
+     * Constructs a new HttpStatusCodeOutOfRangeException.
+     *
+     * @param statusCode the invalid status code.
+     */
     public HttpStatusCodeOutOfRangeException(final int statusCode) {
         super(MessageFormat.format(MSG_PATTERN, statusCode));
     }

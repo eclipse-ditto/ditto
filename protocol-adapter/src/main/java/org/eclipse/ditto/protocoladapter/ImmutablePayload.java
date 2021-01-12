@@ -254,7 +254,7 @@ final class ImmutablePayload implements Payload {
             try {
                 this.status = HttpStatus.getInstance(status);
             } catch (final HttpStatusCodeOutOfRangeException e) {
-                throw new IllegalArgumentException("Status code not supported!", e);
+                throw new IllegalArgumentException(e.getMessage(), e);
             }
             return this;
         }

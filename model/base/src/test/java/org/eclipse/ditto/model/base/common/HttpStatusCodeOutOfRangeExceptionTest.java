@@ -28,7 +28,7 @@ public final class HttpStatusCodeOutOfRangeExceptionTest {
         final HttpStatusCodeOutOfRangeException underTest = new HttpStatusCodeOutOfRangeException(statusCode);
 
         assertThat(underTest.getMessage()).isEqualTo(
-                String.format("<%d> is not within the range of valid HTTP status codes (100 - 599)!", statusCode));
+                String.format("Provided HTTP status code <%d> is not within the range of 100 to 599.", statusCode));
     }
 
 }
