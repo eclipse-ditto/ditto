@@ -72,7 +72,9 @@ public interface PayloadBuilder {
      * @param status the status to set.
      * @return this builder to allow method chaining.
      * @throws IllegalArgumentException if {@code status} is not supported.
+     * @deprecated as of 2.0.0 please use {@link #withStatus(HttpStatus)} instead.
      */
+    @Deprecated
     PayloadBuilder withStatus(int status);
 
     /**

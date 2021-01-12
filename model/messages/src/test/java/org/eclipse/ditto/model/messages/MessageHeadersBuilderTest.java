@@ -147,7 +147,6 @@ public final class MessageHeadersBuilderTest {
 
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> underTest.statusCode(unknownCode))
-                .withMessage("HTTP status code <%s> is unknown!", unknownCode)
                 .withCauseInstanceOf(HttpStatusCodeOutOfRangeException.class);
     }
 
@@ -156,6 +155,15 @@ public final class MessageHeadersBuilderTest {
         final HttpStatus knownStatus = HttpStatus.NOT_FOUND;
 
         final MessageHeaders messageHeaders = underTest.statusCode(knownStatus.getCode()).build();
+
+        assertThat(messageHeaders.getHttpStatus()).contains(knownStatus);
+    }
+
+    @Test
+    public void setHttpStatusWorksAsExpected() {
+        final HttpStatus knownStatus = HttpStatus.NOT_FOUND;
+
+        final MessageHeaders messageHeaders = underTest.httpStatus(knownStatus).build();
 
         assertThat(messageHeaders.getHttpStatus()).contains(knownStatus);
     }

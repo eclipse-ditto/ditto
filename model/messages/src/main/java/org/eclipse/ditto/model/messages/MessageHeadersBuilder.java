@@ -290,7 +290,9 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
      * @param statusCode the status code.
      * @return this builder to allow method chaining.
      * @throws IllegalArgumentException if {@code statusCode} is unknown.
+     * @deprecated as of 2.0.0 please use {@link #httpStatus(HttpStatus)} instead.
      */
+    @Deprecated
     public MessageHeadersBuilder statusCode(final int statusCode) {
         return httpStatus(getHttpStatus(statusCode));
     }
