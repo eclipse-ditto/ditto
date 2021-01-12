@@ -56,7 +56,8 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
  */
 public final class MergeThingCommandEnforcementTest {
 
-    private static final JsonPointer PATH = JsonFactory.newPointer("/features/device/properties/location");
+    private static final JsonPointer PATH =
+            JsonFactory.newPointer("/features/device/properties/location");
     private static final JsonObject VALUE =
             JsonFactory.newObjectBuilder().set("longitude", 44.673).set("latitude", 8.261).build();
 
@@ -88,8 +89,7 @@ public final class MergeThingCommandEnforcementTest {
             Set.of("/features/device"),
             Set.of("/features/device/properties"),
             Set.of("/features/device/properties/location"),
-            Set.of("/features/device/properties/location/longitude", "/features/device/properties/location" +
-                    "/latitude"));
+            Set.of("/features/device/properties/location/longitude", "/features/device/properties/location/latitude"));
 
     /**
      * Paths that are modified in merge commands.
@@ -148,7 +148,6 @@ public final class MergeThingCommandEnforcementTest {
                             .map(resources -> Arguments.of(
                                     TestArgument.of(path, Collections.emptySet(), resources)
                                             .withAdditionalPermission("/", GRANT))));
-
         }
     }
 
@@ -169,8 +168,8 @@ public final class MergeThingCommandEnforcementTest {
                     .filter(p -> PATCH_ONLY_LONGITUDE.getValue(p).isPresent())
                     .flatMap(path -> REVOKE_FOR_LATITUDE.stream()
                             .map(resources -> Arguments.of(
-                                    TestArgument.of(path, Collections.emptySet(), resources,
-                                            PATCH_ONLY_LONGITUDE).withAdditionalPermission("/", GRANT))));
+                                    TestArgument.of(path, Collections.emptySet(), resources, PATCH_ONLY_LONGITUDE)
+                                            .withAdditionalPermission("/", GRANT))));
         }
     }
 
@@ -185,9 +184,7 @@ public final class MergeThingCommandEnforcementTest {
         @Override
         public Stream<? extends Arguments> provideArguments(final ExtensionContext context) {
             return PATHS.stream()
-                    .peek(System.out::println)
                     .filter(p -> !p.endsWith("longitude")) // skip longitude which is not affected by revoke
-                    .peek(System.out::println)
                     .flatMap(path -> REVOKE_FIELD_BELOW_LATITUDE.stream()
                             .map(resources -> Arguments.of(
                                     TestArgument.of(path, Collections.emptySet(), resources)
@@ -200,7 +197,7 @@ public final class MergeThingCommandEnforcementTest {
      */
     static class TestArgument {
 
-        private static final String MERGE_LABEL = "MERGE";
+        static final String MERGE_LABEL = "MERGE";
         static final EffectedPermissions GRANT =
                 PoliciesModelFactory.newEffectedPermissions(List.of(Permission.WRITE), Collections.emptyList());
         static final EffectedPermissions REVOKE =
