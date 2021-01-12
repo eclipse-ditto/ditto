@@ -7,7 +7,7 @@ summary: "Version 1.5.1 of Eclipse Ditto, released on 22.12.2020"
 permalink: release_notes_151.html
 ---
 
-This is a bugfix release, no new features since [1.5.1](release_notes_150.html) were added.
+This is a bugfix release, no new features since [1.5.0](release_notes_150.html) were added.
 
 ## Changelog
 
