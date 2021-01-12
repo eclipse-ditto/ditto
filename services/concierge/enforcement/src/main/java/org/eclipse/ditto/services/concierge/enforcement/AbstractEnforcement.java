@@ -259,7 +259,7 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
             @Nullable final S message,
             @Nullable final ActorRef receiver) {
 
-        return context.withMessage(message).withReceiver(receiver);
+        return context.setMessage(message).withReceiver(receiver);
     }
 
     /**
@@ -277,7 +277,7 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
             final ActorRef receiver,
             final Supplier<CompletionStage<T>> askFutureWithoutErrorHandling) {
 
-        return this.<WithDittoHeaders>withMessageToReceiver(message, receiver)
+        return this.withMessageToReceiver(message, receiver)
                 .withAskFuture(() -> askFutureWithoutErrorHandling.get()
                         .<Object>thenApply(x -> x)
                         .exceptionally(error -> this.reportError("Error thrown during enforcement", error))
@@ -299,7 +299,7 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
             final ActorRef receiver,
             final Function<Object, Object> wrapperFunction) {
 
-        return context.withMessage(message).withReceiver(receiver).withReceiverWrapperFunction(wrapperFunction);
+        return context.setMessage(message).withReceiver(receiver).withReceiverWrapperFunction(wrapperFunction);
     }
 
     /**

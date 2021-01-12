@@ -23,6 +23,7 @@ import java.util.function.Consumer;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.services.concierge.common.DittoConciergeConfig;
 import org.eclipse.ditto.services.concierge.common.EnforcementConfig;
@@ -52,7 +53,8 @@ import akka.stream.javadsl.Sink;
 /**
  * Actor that dispatches signals not authorized by any entity meaning signals without entityId.
  */
-public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.ImmutableDispatch, WithDittoHeaders> {
+public final class DispatcherActor
+        extends AbstractGraphActor<DispatcherActor.ImmutableDispatch, DittoHeadersSettable<?>> {
 
     /**
      * The name of this actor.
@@ -82,7 +84,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
     }
 
     @Override
-    protected DispatcherActor.ImmutableDispatch mapMessage(final WithDittoHeaders message) {
+    protected DispatcherActor.ImmutableDispatch mapMessage(final DittoHeadersSettable<?> message) {
         return new ImmutableDispatch(message, getSender(), thingsAggregatorActor);
     }
 
@@ -231,13 +233,13 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
      * reference.
      */
     @Immutable
-    static final class ImmutableDispatch implements WithSender<WithDittoHeaders> {
+    static final class ImmutableDispatch implements WithSender<DittoHeadersSettable<?>> {
 
-        private final WithDittoHeaders message;
+        private final DittoHeadersSettable<?> message;
         private final ActorRef sender;
         private final ActorRef thingsAggregatorActor;
 
-        private ImmutableDispatch(final WithDittoHeaders message, final ActorRef sender,
+        private ImmutableDispatch(final DittoHeadersSettable<?> message, final ActorRef sender,
                 final ActorRef thingsAggregatorActor) {
 
             this.message = message;
@@ -246,7 +248,7 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
         }
 
         @Override
-        public WithDittoHeaders getMessage() {
+        public DittoHeadersSettable<?> getMessage() {
             return message;
         }
 
@@ -255,13 +257,9 @@ public final class DispatcherActor extends AbstractGraphActor<DispatcherActor.Im
             return sender;
         }
 
-        private ImmutableDispatch replaceMessage(final WithDittoHeaders message) {
-            return new ImmutableDispatch(message, sender, thingsAggregatorActor);
-        }
-
         @Override
-        public <S extends WithDittoHeaders> WithSender<S> withMessage(final S newMessage) {
-            return (WithSender<S>) new ImmutableDispatch(newMessage, sender, thingsAggregatorActor);
+        public ImmutableDispatch withMessage(final DittoHeadersSettable<?> newMessage) {
+            return new ImmutableDispatch(newMessage, sender, thingsAggregatorActor);
         }
 
         @Override

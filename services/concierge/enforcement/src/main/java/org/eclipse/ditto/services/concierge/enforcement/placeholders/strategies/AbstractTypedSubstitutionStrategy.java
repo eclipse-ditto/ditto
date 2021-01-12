@@ -20,6 +20,7 @@ import java.util.List;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
@@ -35,9 +36,11 @@ import org.eclipse.ditto.services.concierge.enforcement.placeholders.HeaderBased
 /**
  * Abstract base class for instances of {@link SubstitutionStrategy} which matches on a concrete subtype of
  * {@link WithDittoHeaders}.
+ *
  * @param <T> the subtype of {@link WithDittoHeaders} handled by this strategy.
  */
-abstract class AbstractTypedSubstitutionStrategy<T extends WithDittoHeaders> implements SubstitutionStrategy<T> {
+abstract class AbstractTypedSubstitutionStrategy<T extends DittoHeadersSettable<?>> implements SubstitutionStrategy<T> {
+
     private final Class<T> type;
 
     AbstractTypedSubstitutionStrategy(final Class<T> type) {
@@ -45,8 +48,8 @@ abstract class AbstractTypedSubstitutionStrategy<T extends WithDittoHeaders> imp
     }
 
     @Override
-    public boolean matches(final WithDittoHeaders withDittoHeaders) {
-        return type.isAssignableFrom(withDittoHeaders.getClass());
+    public boolean matches(final DittoHeadersSettable<?> dittoHeadersSettable) {
+        return type.isAssignableFrom(dittoHeadersSettable.getClass());
     }
 
     static Subjects substituteSubjects(final Subjects subjects,

@@ -76,7 +76,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     @Nullable
     private final Supplier<CompletionStage<Object>> askFuture;
 
-    private Contextual(@Nullable final T message, final ActorRef self, final ActorRef sender,
+    private Contextual(@Nullable final T message, final ActorRef self, @Nullable final ActorRef sender,
             final ActorRef pubSubMediator, final ActorRef conciergeForwarder,
             final Duration askTimeout, final ThreadSafeDittoLoggingAdapter log,
             @Nullable final EntityIdWithResourceType entityId,
@@ -169,7 +169,11 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     }
 
     @Override
-    public <S extends WithDittoHeaders> Contextual<S> withMessage(@Nullable final S message) {
+    public Contextual<T> withMessage(@Nullable final T message) {
+        return withReceivedMessage(message, sender);
+    }
+
+    <S extends WithDittoHeaders> Contextual<S> setMessage(@Nullable final S message) {
         return withReceivedMessage(message, sender);
     }
 
@@ -221,10 +225,11 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     }
 
     <S extends WithDittoHeaders> Optional<Contextual<S>> tryToMapMessage(final Function<T, Optional<S>> f) {
-        return f.apply(getMessage()).map(this::withMessage);
+        return f.apply(getMessage()).map(result -> withReceivedMessage(result, sender));
     }
 
-    <S extends WithDittoHeaders> Contextual<S> withReceivedMessage(@Nullable final S message, final ActorRef sender) {
+    <S extends WithDittoHeaders> Contextual<S> withReceivedMessage(@Nullable final S message,
+            @Nullable final ActorRef sender) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
                 log, entityIdFor(message), startedTimer, receiver, receiverWrapperFunction, responseReceivers,
                 askFuture);

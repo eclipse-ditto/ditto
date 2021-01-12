@@ -107,7 +107,7 @@ public final class EnforcementSchedulerTest {
                         try {
                             TimeUnit.SECONDS.sleep(3);
 
-                            return baseContextual.withMessage(retrieveThing1).withReceiver(receiverProbe.ref());
+                            return baseContextual.setMessage(retrieveThing1).withReceiver(receiverProbe.ref());
                         } catch (final InterruptedException e) {
                             throw new IllegalStateException("Sleep should not be interrupted.");
                         }
@@ -118,7 +118,7 @@ public final class EnforcementSchedulerTest {
                         try {
                             TimeUnit.SECONDS.sleep(3);
 
-                            return baseContextual.withMessage(modifyPolicyId1).withReceiver(receiverProbe.ref());
+                            return baseContextual.setMessage(modifyPolicyId1).withReceiver(receiverProbe.ref());
                         } catch (final InterruptedException e) {
                             throw new IllegalStateException("Sleep should not be interrupted.");
                         }
@@ -126,12 +126,12 @@ public final class EnforcementSchedulerTest {
 
             final Supplier<CompletionStage<Contextual<RetrieveThing>>> immediateRetrieveThing =
                     () -> CompletableFuture.completedFuture(
-                            baseContextual.withMessage(retrieveThing2).withReceiver(receiverProbe.ref())
+                            baseContextual.setMessage(retrieveThing2).withReceiver(receiverProbe.ref())
                     );
 
             final Supplier<CompletionStage<Contextual<ModifyPolicyId>>> immediateModifyPolicyId =
                     () -> CompletableFuture.completedFuture(
-                            baseContextual.withMessage(modifyPolicyId2).withReceiver(receiverProbe.ref())
+                            baseContextual.setMessage(modifyPolicyId2).withReceiver(receiverProbe.ref())
                     );
 
             final EnforcementTask retrieveThing1Task = EnforcementTask.of(thingId, false, delayedRetrieveThing);

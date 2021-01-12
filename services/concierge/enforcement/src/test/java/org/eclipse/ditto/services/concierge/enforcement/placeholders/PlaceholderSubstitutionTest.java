@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PolicyId;
@@ -117,12 +118,13 @@ public class PlaceholderSubstitutionTest {
         assertThat(response).isEqualTo(expectedCommandWithPlaceholders);
     }
 
-    private WithDittoHeaders applyBlocking(final WithDittoHeaders input) {
+    private DittoHeadersSettable<?> applyBlocking(final DittoHeadersSettable<?> input) {
         return applyBlocking(input, underTest);
     }
 
-    private WithDittoHeaders applyBlocking(final WithDittoHeaders input, final PlaceholderSubstitution substitution) {
-        final CompletionStage<WithDittoHeaders> responseFuture = substitution.apply(input);
+    private DittoHeadersSettable<?> applyBlocking(final DittoHeadersSettable<?> input,
+            final PlaceholderSubstitution substitution) {
+        final CompletionStage<DittoHeadersSettable<?>> responseFuture = substitution.apply(input);
         try {
             return responseFuture.toCompletableFuture().get();
         } catch (final InterruptedException | ExecutionException e) {

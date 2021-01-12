@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.concierge.enforcement.placeholders.strategies;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -60,7 +61,8 @@ public class SubstitutionStrategyRegistryTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(SubstitutionStrategyRegistry.class, areImmutable(),
-                provided(SubstitutionStrategy.class).isAlsoImmutable());
+                provided(SubstitutionStrategy.class).isAlsoImmutable(),
+                assumingFields("strategies").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test

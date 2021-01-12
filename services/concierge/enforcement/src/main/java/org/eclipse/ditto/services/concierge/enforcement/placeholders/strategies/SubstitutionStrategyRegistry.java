@@ -20,6 +20,7 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 
 /**
@@ -28,10 +29,10 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 @Immutable
 public final class SubstitutionStrategyRegistry {
 
-    private final List<SubstitutionStrategy> strategies;
+    private final List<SubstitutionStrategy<?>> strategies;
 
     private SubstitutionStrategyRegistry() {
-        strategies = Collections.unmodifiableList(new ArrayList<>(createStrategies()));
+        strategies = List.copyOf(createStrategies());
     }
 
     public static SubstitutionStrategyRegistry newInstance() {
@@ -45,8 +46,9 @@ public final class SubstitutionStrategyRegistry {
      * @return an {@link Optional} containing the first strategy which matches; an empty {@link Optional} in case no
      * strategy matches.
      */
-    public final Optional<SubstitutionStrategy> getMatchingStrategy(final WithDittoHeaders withDittoHeaders) {
-        for (final SubstitutionStrategy strategy : strategies) {
+    @SuppressWarnings("rawtypes")
+    public final Optional<SubstitutionStrategy> getMatchingStrategy(final DittoHeadersSettable<?> withDittoHeaders) {
+        for (final SubstitutionStrategy<?> strategy : strategies) {
             if (strategy.matches(withDittoHeaders)) {
                 return Optional.of(strategy);
             }
@@ -55,12 +57,13 @@ public final class SubstitutionStrategyRegistry {
     }
 
     // for testing purposes
+    @SuppressWarnings({"rawtypes", "unchecked"})
     List<SubstitutionStrategy> getStrategies() {
-        return strategies;
+        return (List) strategies;
     }
 
-    private static List<SubstitutionStrategy> createStrategies() {
-        final List<SubstitutionStrategy> strategies = new LinkedList<>();
+    private static List<SubstitutionStrategy<?>> createStrategies() {
+        final List<SubstitutionStrategy<?>> strategies = new LinkedList<>();
 
         // replacement for policy-subject-id
         strategies.add(new ModifySubjectSubstitutionStrategy());

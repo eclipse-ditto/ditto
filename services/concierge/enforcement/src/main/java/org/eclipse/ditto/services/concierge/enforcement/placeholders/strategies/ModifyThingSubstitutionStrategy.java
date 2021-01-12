@@ -18,7 +18,7 @@ import java.util.Objects;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.things.Thing;
@@ -42,7 +42,7 @@ final class ModifyThingSubstitutionStrategy extends AbstractTypedSubstitutionStr
     }
 
     @Override
-    public WithDittoHeaders apply(final ModifyThing modifyThing,
+    public DittoHeadersSettable<?> apply(final ModifyThing modifyThing,
             final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm) {
         requireNonNull(modifyThing);
         requireNonNull(substitutionAlgorithm);

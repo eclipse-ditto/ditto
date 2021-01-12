@@ -20,7 +20,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.junit.Test;
@@ -36,33 +36,28 @@ public final class CommandWithOptionalEntityValidatorTest {
     public void illegalNullCharacterIsInvalidInString() {
         final JsonValue jsonValue = JsonValue.of(NULL_CHARACTER);
 
-        final WithDittoHeaders withDittoHeaders = createTestCommand(jsonValue);
-
         assertThatExceptionOfType(DittoRuntimeException.class)
-                .isThrownBy(() -> CommandWithOptionalEntityValidator.getInstance().apply(withDittoHeaders));
+                .isThrownBy(() -> CommandWithOptionalEntityValidator.getInstance().apply(createTestCommand(jsonValue)));
     }
 
     @Test
     public void illegalNullCharacterIsInvalidInArray() {
         final JsonArray jsonArray = JsonArray.newBuilder().add(JsonValue.of(NULL_CHARACTER)).build();
 
-        final WithDittoHeaders withDittoHeaders = createTestCommand(jsonArray);
-
         assertThatExceptionOfType(DittoRuntimeException.class)
-                .isThrownBy(() -> CommandWithOptionalEntityValidator.getInstance().apply(withDittoHeaders));
+                .isThrownBy(() -> CommandWithOptionalEntityValidator.getInstance().apply(createTestCommand(jsonArray)));
     }
 
     @Test
     public void illegalNullCharacterIsInvalidInObject() {
         final JsonObject jsonObject = JsonObject.newBuilder().set("prop", JsonValue.of(NULL_CHARACTER)).build();
 
-        final WithDittoHeaders withDittoHeaders = createTestCommand(jsonObject);
-
         assertThatExceptionOfType(DittoRuntimeException.class)
-                .isThrownBy(() -> CommandWithOptionalEntityValidator.getInstance().apply(withDittoHeaders));
+                .isThrownBy(
+                        () -> CommandWithOptionalEntityValidator.getInstance().apply(createTestCommand(jsonObject)));
     }
 
-    private WithDittoHeaders createTestCommand(final JsonValue jsonValue) {
+    private DittoHeadersSettable<?> createTestCommand(final JsonValue jsonValue) {
         final ThingId thingId = ThingId.of("org.eclipse.ditto.test:myThing");
         final String featureId = "myFeature";
         final JsonPointer propertyJsonPointer = JsonPointer.of("/bumlux");

@@ -64,17 +64,17 @@ public final class Filter {
      * @param predicate predicate to test instances of {@code T} with.
      * @return {@code GraphStage} that performs the filtering.
      */
-    public static <T extends WithDittoHeaders> Graph<FanOutShape2<WithSender, WithSender<T>, WithSender>, NotUsed> of(
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static <T extends WithDittoHeaders> Graph<FanOutShape2<WithSender<?>, WithSender<T>, WithSender<?>>, NotUsed> of(
             final Class<T> clazz,
             final Predicate<T> predicate) {
 
         return Filter.multiplexBy(withSender -> {
             // introduce wildcard type parameter to un-confuse type-checker
-            final WithSender<?> input = (WithSender<?>) withSender;
-            if (clazz.isInstance(input.getMessage())) {
-                final T message = clazz.cast(input.getMessage());
+            if (clazz.isInstance(withSender.getMessage())) {
+                final T message = clazz.cast(withSender.getMessage());
                 if (predicate.test(message)) {
-                    return Optional.of(input.withMessage(message));
+                    return Optional.of(((WithSender) withSender).withMessage(message));
                 }
             }
             return Optional.empty();
@@ -88,8 +88,8 @@ public final class Filter {
      * @param clazz class of {@code T}.
      * @return {@code GraphStage} that performs the filtering.
      */
-    public static <T extends WithDittoHeaders> Graph<FanOutShape2<WithSender, WithSender<T>, WithSender>, NotUsed> of(
-            final Class<T> clazz) {
+    public static <T extends WithDittoHeaders> Graph<FanOutShape2<WithSender<?>, WithSender<T>, WithSender<?>>, NotUsed>
+    of(final Class<T> clazz) {
         return of(clazz, x -> true);
     }
 
