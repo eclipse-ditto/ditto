@@ -139,7 +139,7 @@ public final class PolicyPersistenceActor
 
     @Override
     protected PolicyCommandStrategies getCreatedStrategy() {
-        return PolicyCommandStrategies.getInstance(policyConfig);
+        return PolicyCommandStrategies.getInstance(policyConfig, getContext().getSystem());
     }
 
     @Override

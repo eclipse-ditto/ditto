@@ -184,6 +184,14 @@ public final class PlaceholderFactory {
         return ImmutableConnectionIdPlaceholder.INSTANCE;
     }
 
+    /**
+     * @return new instance of the {@link PolicyEntryPlaceholder}
+     * @since 2.0.0
+     */
+    public static PolicyEntryPlaceholder newPolicyEntryPlaceholder() {
+        return ImmutablePolicyEntryPlaceholder.INSTANCE;
+    }
+
     private PlaceholderFactory() {
         throw new AssertionError();
     }

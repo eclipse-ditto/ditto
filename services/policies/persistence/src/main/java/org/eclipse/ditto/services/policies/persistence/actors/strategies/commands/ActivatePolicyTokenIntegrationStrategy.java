@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.policies.persistence.actors.strategies.comman
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.model.policies.PolicyEntry;
@@ -34,6 +36,7 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectId;
+import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
@@ -42,7 +45,9 @@ import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIn
 import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIntegrationResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
-import org.eclipse.ditto.signals.events.policies.SubjectsActivated;
+import org.eclipse.ditto.signals.events.policies.SubjectsModifiedPartially;
+
+import akka.actor.ActorSystem;
 
 /**
  * This strategy handles the {@link ActivatePolicyTokenIntegration} command.
@@ -50,8 +55,8 @@ import org.eclipse.ditto.signals.events.policies.SubjectsActivated;
 final class ActivatePolicyTokenIntegrationStrategy
         extends AbstractPolicyActionCommandStrategy<ActivatePolicyTokenIntegration> {
 
-    ActivatePolicyTokenIntegrationStrategy(final PolicyConfig policyConfig) {
-        super(ActivatePolicyTokenIntegration.class, policyConfig);
+    ActivatePolicyTokenIntegrationStrategy(final PolicyConfig policyConfig, final ActorSystem system) {
+        super(ActivatePolicyTokenIntegration.class, policyConfig, system);
     }
 
     @Override
@@ -80,11 +85,13 @@ final class ActivatePolicyTokenIntegrationStrategy
         for (final PolicyEntry entry : entries) {
             final SubjectId subjectId;
             try {
-                subjectId = resolveSubjectId(entry, command);
+                subjectId = subjectIdFromActionResolver.resolveSubjectId(entry, command);
             } catch (final DittoRuntimeException e) {
                 return ResultFactory.newErrorResult(e, command);
             }
-            final Subject subject = Subject.newInstance(subjectId, TOKEN_INTEGRATION, commandSubjectExpiry);
+            final SubjectType subjectType = PoliciesModelFactory.newSubjectType(
+                    MessageFormat.format("added via action <{0}>", command.getName()));
+            final Subject subject = Subject.newInstance(subjectId, subjectType, commandSubjectExpiry);
             final Subject adjustedSubject = potentiallyAdjustSubject(subject);
             policyBuilder.setSubjectFor(entry.getLabel(), adjustedSubject);
             activatedSubjects.put(entry.getLabel(), adjustedSubject);
@@ -95,7 +102,8 @@ final class ActivatePolicyTokenIntegrationStrategy
         final PoliciesValidator validator = PoliciesValidator.newInstance(newPolicy);
         if (validator.isValid()) {
             final PolicyEvent<?> event =
-                    SubjectsActivated.of(policyId, activatedSubjects, nextRevision, getEventTimestamp(), dittoHeaders);
+                    SubjectsModifiedPartially.of(policyId, activatedSubjects, nextRevision, getEventTimestamp(),
+                            dittoHeaders);
             final ActivatePolicyTokenIntegrationResponse rawResponse =
                     ActivatePolicyTokenIntegrationResponse.of(policyId, command.getSubjectId(), dittoHeaders);
             // do not append ETag - activated subjects do not support ETags.

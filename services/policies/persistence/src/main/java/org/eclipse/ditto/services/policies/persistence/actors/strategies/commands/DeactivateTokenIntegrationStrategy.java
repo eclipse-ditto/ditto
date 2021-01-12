@@ -36,15 +36,17 @@ import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegr
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryNotAccessibleException;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
-import org.eclipse.ditto.signals.events.policies.SubjectDeactivated;
+import org.eclipse.ditto.signals.events.policies.SubjectDeleted;
+
+import akka.actor.ActorSystem;
 
 /**
  * This strategy handles the {@link DeactivateTokenIntegration} command.
  */
 final class DeactivateTokenIntegrationStrategy extends AbstractPolicyActionCommandStrategy<DeactivateTokenIntegration> {
 
-    DeactivateTokenIntegrationStrategy(final PolicyConfig policyConfig) {
-        super(DeactivateTokenIntegration.class, policyConfig);
+    DeactivateTokenIntegrationStrategy(final PolicyConfig policyConfig, final ActorSystem system) {
+        super(DeactivateTokenIntegration.class, policyConfig, system);
     }
 
     @Override
@@ -64,7 +66,7 @@ final class DeactivateTokenIntegrationStrategy extends AbstractPolicyActionComma
             final SubjectId subjectId;
             final PolicyEntry policyEntry = optionalEntry.get();
             try {
-                subjectId = resolveSubjectId(policyEntry, command);
+                subjectId = subjectIdFromActionResolver.resolveSubjectId(policyEntry, command);
             } catch (final DittoRuntimeException e) {
                 return ResultFactory.newErrorResult(e, command);
             }
@@ -82,7 +84,7 @@ final class DeactivateTokenIntegrationStrategy extends AbstractPolicyActionComma
             } else {
                 // Expiring subjects are not considered for validation. The result is always valid.
                 final PolicyEvent<?> event =
-                        SubjectDeactivated.of(policyId, label, subjectId, nextRevision, getEventTimestamp(),
+                        SubjectDeleted.of(policyId, label, subjectId, nextRevision, getEventTimestamp(),
                                 dittoHeaders);
                 final DeactivateTokenIntegrationResponse rawResponse =
                         DeactivateTokenIntegrationResponse.of(policyId, label, subjectId, dittoHeaders);

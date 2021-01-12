@@ -13,15 +13,16 @@
 package org.eclipse.ditto.services.policies.persistence.actors.strategies.events;
 
 import org.eclipse.ditto.model.policies.PolicyBuilder;
-import org.eclipse.ditto.signals.events.policies.SubjectDeactivated;
+import org.eclipse.ditto.signals.events.policies.SubjectsDeletedPartially;
 
 /**
- * This strategy handles {@link org.eclipse.ditto.signals.events.policies.SubjectDeactivated} events.
+ * This strategy handles {@link org.eclipse.ditto.signals.events.policies.SubjectsDeletedPartially} events.
  */
-final class SubjectDeactivatedStrategy extends AbstractPolicyEventStrategy<SubjectDeactivated> {
+final class SubjectsDeletedPartiallyStrategy extends AbstractPolicyEventStrategy<SubjectsDeletedPartially> {
 
     @Override
-    protected PolicyBuilder applyEvent(final SubjectDeactivated event, final PolicyBuilder policyBuilder) {
-        return policyBuilder.removeSubjectFor(event.getLabel(), event.getSubjectId());
+    protected PolicyBuilder applyEvent(final SubjectsDeletedPartially event, final PolicyBuilder policyBuilder) {
+        event.getDeletedSubjectIds().forEach(policyBuilder::removeSubjectFor);
+        return policyBuilder;
     }
 }

@@ -15,17 +15,17 @@ package org.eclipse.ditto.services.policies.persistence.actors.strategies.events
 import java.time.Instant;
 
 import org.eclipse.ditto.model.policies.PolicyBuilder;
-import org.eclipse.ditto.signals.events.policies.SubjectsActivated;
+import org.eclipse.ditto.signals.events.policies.SubjectsModifiedPartially;
 
 /**
- * This strategy handles {@link org.eclipse.ditto.signals.events.policies.SubjectsActivated} events.
+ * This strategy handles {@link org.eclipse.ditto.signals.events.policies.SubjectsModifiedPartially} events.
  */
-final class SubjectsActivatedStrategy extends AbstractPolicyEventStrategy<SubjectsActivated> {
+final class SubjectsModifiedPartiallyStrategy extends AbstractPolicyEventStrategy<SubjectsModifiedPartially> {
 
     @Override
-    protected PolicyBuilder applyEvent(final SubjectsActivated event, final PolicyBuilder policyBuilder) {
+    protected PolicyBuilder applyEvent(final SubjectsModifiedPartially event, final PolicyBuilder policyBuilder) {
         final Instant now = Instant.now();
-        event.getActivatedSubjects().forEach((label, subject) -> {
+        event.getModifiedSubjects().forEach((label, subject) -> {
             final boolean isSubjectExpiryAfterNow = subject.getExpiry()
                     .map(expiry -> expiry.getTimestamp().isAfter(now))
                     .orElse(false);

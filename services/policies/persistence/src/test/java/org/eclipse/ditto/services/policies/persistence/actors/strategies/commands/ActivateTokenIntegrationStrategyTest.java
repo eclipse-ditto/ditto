@@ -30,11 +30,13 @@ import org.eclipse.ditto.services.policies.persistence.TestConstants;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegrationResponse;
-import org.eclipse.ditto.signals.events.policies.SubjectActivated;
+import org.eclipse.ditto.signals.events.policies.SubjectCreated;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
+
+import akka.actor.ActorSystem;
 
 /**
  * Unit test for {@link ActivateTokenIntegrationStrategy}.
@@ -45,7 +47,9 @@ public final class ActivateTokenIntegrationStrategyTest extends AbstractPolicyCo
 
     @Before
     public void setUp() {
-        underTest = new ActivateTokenIntegrationStrategy(DefaultPolicyConfig.of(ConfigFactory.load("policy-test")));
+        underTest = new ActivateTokenIntegrationStrategy(
+                DefaultPolicyConfig.of(ConfigFactory.load("policy-test")),
+                ActorSystem.create("test"));
     }
 
     @Test
@@ -64,12 +68,12 @@ public final class ActivateTokenIntegrationStrategyTest extends AbstractPolicyCo
         final ActivateTokenIntegration command =
                 ActivateTokenIntegration.of(context.getState(), LABEL, subjectId, expiry, dittoHeaders);
         assertModificationResult(underTest, TestConstants.Policy.POLICY, command,
-                SubjectActivated.class,
+                SubjectCreated.class,
                 ActivateTokenIntegrationResponse.of(context.getState(), LABEL, expectedSubjectId, dittoHeaders));
     }
 
     @Test
-    public void activateInvalidSubject() {
+    public void activateInvalidTokenIntegration() {
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final Instant expiry = Instant.now().plus(Duration.ofDays(1L));
         final SubjectId subjectId = SubjectId.newInstance("{{policy-entry:label}}");
@@ -81,7 +85,7 @@ public final class ActivateTokenIntegrationStrategyTest extends AbstractPolicyCo
     }
 
     @Test
-    public void activateUnresolvableSubject() {
+    public void activateUnresolvableTokenIntegration() {
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final Instant expiry = Instant.now().plus(Duration.ofDays(1L));
         final SubjectId subjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{fn:delete()}}");

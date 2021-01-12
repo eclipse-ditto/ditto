@@ -13,14 +13,21 @@
 package org.eclipse.ditto.signals.events.policies;
 
 import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assertThat;
+import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
@@ -28,55 +35,57 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link SubjectDeactivated}.
+ * Unit test for {@link SubjectsDeletedPartially}.
  */
-public final class SubjectDeactivatedTest {
+public final class SubjectsDeletedPartiallyTest {
+
+    private static final Map<Label, SubjectId> DELETED_SUBJECT_IDS = IntStream.of(0).boxed()
+            .collect(Collectors.toMap(i -> TestConstants.Policy.LABEL, i -> TestConstants.Policy.SUBJECT_ID));
+
+    private static final JsonObject DELETED_SUBJECT_IDS_JSON = JsonObject.newBuilder()
+            .set(TestConstants.Policy.LABEL, JsonValue.of(TestConstants.Policy.SUBJECT_ID))
+            .build();
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
-            .set(Event.JsonFields.TYPE, SubjectDeactivated.TYPE)
+            .set(Event.JsonFields.TYPE, SubjectsDeletedPartially.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
             .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
-            .set(SubjectDeactivated.JsonFields.LABEL, TestConstants.Policy.LABEL.toString())
-            .set(SubjectDeactivated.JsonFields.SUBJECT_ID, TestConstants.Policy.SUBJECT.getId().toString())
+            .set(SubjectsDeletedPartially.JSON_DELETED_SUBJECT_IDS, DELETED_SUBJECT_IDS_JSON)
             .build();
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(SubjectDeactivated.class, areImmutable(),
-                provided(SubjectId.class, Label.class).isAlsoImmutable());
+        assertInstancesOf(SubjectsDeletedPartially.class, areImmutable(),
+                provided(Subject.class, SubjectId.class, Label.class).isAlsoImmutable(),
+                assumingFields("deletedSubjectIds")
+                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(SubjectDeactivated.class)
+        EqualsVerifier.forClass(SubjectsDeletedPartially.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        SubjectDeactivated.of(null, TestConstants.Policy.LABEL, TestConstants.Policy.SUBJECT_ID,
-                TestConstants.Policy.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
+        SubjectsDeletedPartially.of(null, DELETED_SUBJECT_IDS, TestConstants.Policy.REVISION_NUMBER,
+                TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
-    public void tryToCreateInstanceWithNullLabel() {
-        SubjectDeactivated.of(TestConstants.Policy.POLICY_ID, null, TestConstants.Policy.SUBJECT_ID,
-                TestConstants.Policy.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
-    }
-
-    @Test(expected = NullPointerException.class)
-    public void tryToCreateInstanceWithNullSubject() {
-        SubjectDeactivated.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL, null,
-                TestConstants.Policy.REVISION_NUMBER, TestConstants.EMPTY_DITTO_HEADERS);
+    public void tryToCreateInstanceWithNullDeactivatedSubjects() {
+        SubjectsDeletedPartially.of(TestConstants.Policy.POLICY_ID, null, TestConstants.Policy.REVISION_NUMBER,
+                TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
     public void toJsonReturnsExpected() {
-        final SubjectDeactivated underTest =
-                SubjectDeactivated.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
-                        TestConstants.Policy.SUBJECT_ID, TestConstants.Policy.REVISION_NUMBER, TestConstants.TIMESTAMP,
+        final SubjectsDeletedPartially underTest =
+                SubjectsDeletedPartially.of(TestConstants.Policy.POLICY_ID, DELETED_SUBJECT_IDS,
+                        TestConstants.Policy.REVISION_NUMBER, TestConstants.TIMESTAMP,
                         TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
@@ -85,12 +94,12 @@ public final class SubjectDeactivatedTest {
 
     @Test
     public void createInstanceFromValidJson() {
-        final SubjectDeactivated underTest =
-                SubjectDeactivated.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
+        final SubjectsDeletedPartially underTest =
+                SubjectsDeletedPartially.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
         assertThat((CharSequence) underTest.getPolicyEntityId()).isEqualTo(TestConstants.Policy.POLICY_ID);
-        assertThat(underTest.getLabel()).isEqualTo(TestConstants.Policy.LABEL);
+        assertThat(underTest.getDeletedSubjectIds()).isEqualTo(DELETED_SUBJECT_IDS);
     }
 
 }

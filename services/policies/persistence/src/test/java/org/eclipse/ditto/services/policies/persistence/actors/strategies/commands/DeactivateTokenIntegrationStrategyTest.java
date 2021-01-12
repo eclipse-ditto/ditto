@@ -16,6 +16,8 @@ import static org.eclipse.ditto.services.policies.persistence.TestConstants.Poli
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.text.MessageFormat;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -27,14 +29,17 @@ import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.services.policies.common.config.DefaultPolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
+import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegrationResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
-import org.eclipse.ditto.signals.events.policies.SubjectDeactivated;
+import org.eclipse.ditto.signals.events.policies.SubjectDeleted;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
+
+import akka.actor.ActorSystem;
 
 /**
  * Unit test for {@link DeactivateTokenIntegrationStrategy}.
@@ -45,7 +50,9 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
 
     @Before
     public void setUp() {
-        underTest = new DeactivateTokenIntegrationStrategy(DefaultPolicyConfig.of(ConfigFactory.load("policy-test")));
+        underTest = new DeactivateTokenIntegrationStrategy(
+                DefaultPolicyConfig.of(ConfigFactory.load("policy-test")),
+                ActorSystem.create("test"));
     }
 
     @Test
@@ -63,7 +70,7 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
         final DeactivateTokenIntegration command =
                 DeactivateTokenIntegration.of(context.getState(), LABEL, subjectId, dittoHeaders);
         assertModificationResult(underTest, TestConstants.Policy.POLICY, command,
-                SubjectDeactivated.class,
+                SubjectDeleted.class,
                 DeactivateTokenIntegrationResponse.of(context.getState(), LABEL, expectedSubjectId, dittoHeaders));
     }
 
@@ -78,7 +85,9 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
                 DeactivateTokenIntegration.of(context.getState(), LABEL, subjectId, dittoHeaders);
         final Policy policy = TestConstants.Policy.POLICY.toBuilder()
                 .setSubjectFor(LABEL,
-                        PoliciesModelFactory.newSubject(expectedSubjectId, DeactivateTokenIntegrationStrategy.TOKEN_INTEGRATION))
+                        PoliciesModelFactory.newSubject(expectedSubjectId,
+                                PoliciesModelFactory.newSubjectType(MessageFormat.format("added via action <{0}>",
+                                        ActivateTokenIntegration.NAME))))
                 .build();
         assertErrorResult(underTest, policy, command,
                 PolicyActionFailedException.newBuilderForDeactivatingPermanentSubjects().build());

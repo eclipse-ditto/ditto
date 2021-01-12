@@ -17,6 +17,7 @@ import static org.eclipse.ditto.services.policies.persistence.TestConstants.Poli
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -34,14 +35,17 @@ import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.services.policies.common.config.DefaultPolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
+import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivatePolicyTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivatePolicyTokenIntegrationResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
-import org.eclipse.ditto.signals.events.policies.SubjectsDeactivated;
+import org.eclipse.ditto.signals.events.policies.SubjectsDeletedPartially;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
+
+import akka.actor.ActorSystem;
 
 /**
  * Unit test for {@link DeactivatePolicyTokenIntegrationStrategy}.
@@ -52,7 +56,9 @@ public final class DeactivatePolicyTokenIntegrationStrategyTest extends Abstract
 
     @Before
     public void setUp() {
-        underTest = new DeactivatePolicyTokenIntegrationStrategy(DefaultPolicyConfig.of(ConfigFactory.load("policy-test")));
+        underTest = new DeactivatePolicyTokenIntegrationStrategy(
+                DefaultPolicyConfig.of(ConfigFactory.load("policy-test")),
+                ActorSystem.create("test"));
     }
 
     @Test
@@ -72,14 +78,15 @@ public final class DeactivatePolicyTokenIntegrationStrategyTest extends Abstract
                 DeactivatePolicyTokenIntegration.of(context.getState(), subjectId, List.of(LABEL), dittoHeaders);
         final Policy policy = TestConstants.Policy.POLICY.toBuilder()
                 .setSubjectFor(LABEL, PoliciesModelFactory.newSubject(expectedSubjectId,
-                        DeactivatePolicyTokenIntegrationStrategy.TOKEN_INTEGRATION,
+                        PoliciesModelFactory.newSubjectType(MessageFormat.format("via action <{0}>",
+                                ActivatePolicyTokenIntegration.NAME)),
                         SubjectExpiry.newInstance(Instant.now().plus(Duration.ofDays(1L)))))
                 .build();
         assertModificationResult(underTest, policy, command,
-                SubjectsDeactivated.class,
+                SubjectsDeletedPartially.class,
                 event -> {
-                    assertThat(event.getDeactivatedSubjectIds()).containsOnlyKeys(LABEL);
-                    assertThat(event.getDeactivatedSubjectIds().get(LABEL)).isEqualTo(expectedSubjectId);
+                    assertThat(event.getDeletedSubjectIds()).containsOnlyKeys(LABEL);
+                    assertThat(event.getDeletedSubjectIds().get(LABEL)).isEqualTo(expectedSubjectId);
                 },
                 DeactivatePolicyTokenIntegrationResponse.class,
                 response -> assertThat(response)
@@ -96,8 +103,8 @@ public final class DeactivatePolicyTokenIntegrationStrategyTest extends Abstract
         final DeactivatePolicyTokenIntegration command =
                 DeactivatePolicyTokenIntegration.of(context.getState(), subjectId, List.of(LABEL), dittoHeaders);
         assertModificationResult(underTest, TestConstants.Policy.POLICY, command,
-                SubjectsDeactivated.class,
-                event -> assertThat(event.getDeactivatedSubjectIds()).isEmpty(),
+                SubjectsDeletedPartially.class,
+                event -> assertThat(event.getDeletedSubjectIds()).isEmpty(),
                 DeactivatePolicyTokenIntegrationResponse.class,
                 response -> assertThat(response)
                         .isEqualTo(
@@ -116,7 +123,8 @@ public final class DeactivatePolicyTokenIntegrationStrategyTest extends Abstract
                 DeactivatePolicyTokenIntegration.of(context.getState(), subjectId, List.of(LABEL), dittoHeaders);
         final Policy policy = TestConstants.Policy.POLICY.toBuilder()
                 .setSubjectFor(LABEL, PoliciesModelFactory.newSubject(expectedSubjectId,
-                        DeactivatePolicyTokenIntegrationStrategy.TOKEN_INTEGRATION))
+                        PoliciesModelFactory.newSubjectType(MessageFormat.format("added via action <{0}>",
+                                ActivatePolicyTokenIntegration.NAME))))
                 .build();
         assertErrorResult(underTest, policy, command,
                 PolicyActionFailedException.newBuilderForDeactivatingPermanentSubjects().build());

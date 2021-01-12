@@ -24,7 +24,6 @@ import java.util.stream.IntStream;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Subject;
@@ -35,56 +34,58 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link SubjectsDeactivated}.
+ * Unit test for {@link SubjectsModifiedPartially}.
  */
-public final class SubjectsDeactivatedTest {
+public final class SubjectsModifiedPartiallyTest {
 
-    private static final Map<Label, SubjectId> DEACTIVATED_SUBJECT_IDS = IntStream.of(0).boxed()
-            .collect(Collectors.toMap(i -> TestConstants.Policy.LABEL, i -> TestConstants.Policy.SUBJECT_ID));
+    private static final Map<Label, Subject> MODIFIED_SUBJECTS = IntStream.of(0).boxed()
+            .collect(Collectors.toMap(i -> TestConstants.Policy.LABEL, i -> TestConstants.Policy.SUBJECT));
 
-    private static final JsonObject DEACTIVATED_SUBJECT_IDS_JSON = JsonObject.newBuilder()
-            .set(TestConstants.Policy.LABEL, JsonValue.of(TestConstants.Policy.SUBJECT_ID))
+    private static final JsonObject MODIFIED_SUBJECTS_JSON = JsonObject.newBuilder()
+            .set(TestConstants.Policy.LABEL, JsonObject.newBuilder()
+                    .set(TestConstants.Policy.SUBJECT_ID, TestConstants.Policy.SUBJECT.toJson())
+                    .build())
             .build();
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(Event.JsonFields.TIMESTAMP, TestConstants.TIMESTAMP.toString())
-            .set(Event.JsonFields.TYPE, SubjectsDeactivated.TYPE)
+            .set(Event.JsonFields.TYPE, SubjectsModifiedPartially.TYPE)
             .set(Event.JsonFields.REVISION, TestConstants.Policy.REVISION_NUMBER)
             .set(PolicyEvent.JsonFields.POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
-            .set(SubjectsDeactivated.JsonFields.DEACTIVATED_SUBJECT_IDS, DEACTIVATED_SUBJECT_IDS_JSON)
+            .set(SubjectsModifiedPartially.JSON_MODIFIED_SUBJECTS, MODIFIED_SUBJECTS_JSON)
             .build();
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(SubjectsDeactivated.class, areImmutable(),
+        assertInstancesOf(SubjectsModifiedPartially.class, areImmutable(),
                 provided(Subject.class, SubjectId.class, Label.class).isAlsoImmutable(),
-                assumingFields("deactivatedSubjectIds")
+                assumingFields("modifiedSubjects")
                         .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(SubjectsDeactivated.class)
+        EqualsVerifier.forClass(SubjectsModifiedPartially.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        SubjectsDeactivated.of(null, DEACTIVATED_SUBJECT_IDS, TestConstants.Policy.REVISION_NUMBER,
+        SubjectsModifiedPartially.of(null, MODIFIED_SUBJECTS, TestConstants.Policy.REVISION_NUMBER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
-    public void tryToCreateInstanceWithNullDeactivatedSubjects() {
-        SubjectsDeactivated.of(TestConstants.Policy.POLICY_ID, null, TestConstants.Policy.REVISION_NUMBER,
+    public void tryToCreateInstanceWithNullActivatedSubjects() {
+        SubjectsModifiedPartially.of(TestConstants.Policy.POLICY_ID, null, TestConstants.Policy.REVISION_NUMBER,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
     public void toJsonReturnsExpected() {
-        final SubjectsDeactivated underTest =
-                SubjectsDeactivated.of(TestConstants.Policy.POLICY_ID, DEACTIVATED_SUBJECT_IDS,
+        final SubjectsModifiedPartially underTest =
+                SubjectsModifiedPartially.of(TestConstants.Policy.POLICY_ID, MODIFIED_SUBJECTS,
                         TestConstants.Policy.REVISION_NUMBER, TestConstants.TIMESTAMP,
                         TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
@@ -94,12 +95,12 @@ public final class SubjectsDeactivatedTest {
 
     @Test
     public void createInstanceFromValidJson() {
-        final SubjectsDeactivated underTest =
-                SubjectsDeactivated.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
+        final SubjectsModifiedPartially underTest =
+                SubjectsModifiedPartially.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(underTest).isNotNull();
         assertThat((CharSequence) underTest.getPolicyEntityId()).isEqualTo(TestConstants.Policy.POLICY_ID);
-        assertThat(underTest.getDeactivatedSubjectIds()).isEqualTo(DEACTIVATED_SUBJECT_IDS);
+        assertThat(underTest.getModifiedSubjects()).isEqualTo(MODIFIED_SUBJECTS);
     }
 
 }

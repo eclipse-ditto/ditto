@@ -12,14 +12,12 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.strategies.commands;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.concurrent.CompletionException;
-
-import org.eclipse.ditto.model.policies.PolicyEntry;
-import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
+import org.eclipse.ditto.services.policies.persistence.actors.resolvers.SubjectIdFromActionResolver;
+import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.signals.commands.policies.actions.PolicyActionCommand;
+
+import akka.actor.ActorSystem;
 
 /**
  * Abstract base class for {@link PolicyActionCommand} strategies.
@@ -29,31 +27,14 @@ import org.eclipse.ditto.signals.commands.policies.actions.PolicyActionCommand;
 abstract class AbstractPolicyActionCommandStrategy<C extends PolicyActionCommand<C>>
         extends AbstractPolicyCommandStrategy<C> {
 
-    private static final String RESOLVE_SUBJECT_ID = "resolveSubjectId";
-
-    private final Method subjectIdResolver;
+    protected final SubjectIdFromActionResolver subjectIdFromActionResolver;
 
     AbstractPolicyActionCommandStrategy(final Class<C> theMatchingClass,
-            final PolicyConfig policyConfig) {
+            final PolicyConfig policyConfig,
+            final ActorSystem system) {
         super(theMatchingClass, policyConfig);
-        try {
-            final Class<?> subjectIdResolverClass = Class.forName(policyConfig.getSubjectIdResolver());
-            subjectIdResolver =
-                    subjectIdResolverClass.getMethod(RESOLVE_SUBJECT_ID, PolicyEntry.class, PolicyActionCommand.class);
-        } catch (final ClassNotFoundException | NoSuchMethodException | SecurityException e) {
-            throw new CompletionException(e);
-        }
+        this.subjectIdFromActionResolver = AkkaClassLoader.instantiate(system, SubjectIdFromActionResolver.class,
+                policyConfig.getSubjectIdResolver());
     }
 
-    SubjectId resolveSubjectId(final PolicyEntry policyEntry, final PolicyActionCommand<?> policyActionCommand) {
-        try {
-            return (SubjectId) subjectIdResolver.invoke(null, policyEntry, policyActionCommand);
-        } catch (final InvocationTargetException | IllegalAccessException e) {
-            if (e.getCause() instanceof RuntimeException) {
-                throw (RuntimeException) e.getCause();
-            } else {
-                throw new CompletionException(e);
-            }
-        }
-    }
 }

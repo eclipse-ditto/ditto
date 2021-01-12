@@ -39,7 +39,9 @@ import org.eclipse.ditto.signals.commands.policies.actions.DeactivatePolicyToken
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivatePolicyTokenIntegrationResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
-import org.eclipse.ditto.signals.events.policies.SubjectsDeactivated;
+import org.eclipse.ditto.signals.events.policies.SubjectsDeletedPartially;
+
+import akka.actor.ActorSystem;
 
 /**
  * This strategy handles the {@link DeactivatePolicyTokenIntegration} command.
@@ -47,8 +49,8 @@ import org.eclipse.ditto.signals.events.policies.SubjectsDeactivated;
 final class DeactivatePolicyTokenIntegrationStrategy
         extends AbstractPolicyActionCommandStrategy<DeactivatePolicyTokenIntegration> {
 
-    DeactivatePolicyTokenIntegrationStrategy(final PolicyConfig policyConfig) {
-        super(DeactivatePolicyTokenIntegration.class, policyConfig);
+    DeactivatePolicyTokenIntegrationStrategy(final PolicyConfig policyConfig, final ActorSystem system) {
+        super(DeactivatePolicyTokenIntegration.class, policyConfig, system);
     }
 
     @Override
@@ -75,7 +77,7 @@ final class DeactivatePolicyTokenIntegrationStrategy
         for (final PolicyEntry entry : entries) {
             final SubjectId subjectId;
             try {
-                subjectId = resolveSubjectId(entry, command);
+                subjectId = subjectIdFromActionResolver.resolveSubjectId(entry, command);
             } catch (final DittoRuntimeException e) {
                 return ResultFactory.newErrorResult(e, command);
             }
@@ -93,7 +95,7 @@ final class DeactivatePolicyTokenIntegrationStrategy
         }
         // Validation is not necessary because temporary subjects do not affect validity
         final PolicyEvent<?> event =
-                SubjectsDeactivated.of(policyId, deactivatedSubjectsIds, nextRevision, getEventTimestamp(),
+                SubjectsDeletedPartially.of(policyId, deactivatedSubjectsIds, nextRevision, getEventTimestamp(),
                         dittoHeaders);
         final DeactivatePolicyTokenIntegrationResponse rawResponse =
                 DeactivatePolicyTokenIntegrationResponse.of(policyId, command.getSubjectId(), dittoHeaders);

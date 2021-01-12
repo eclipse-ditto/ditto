@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.policies.persistence.actors.placeholders;
+package org.eclipse.ditto.services.policies.persistence.actors.resolvers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
@@ -24,9 +24,9 @@ import org.eclipse.ditto.model.policies.SubjectIdInvalidException;
 import org.junit.Test;
 
 /**
- * Tests {@link PolicyEntryPlaceholder}.
+ * Tests {@link DefaultSubjectIdFromActionResolver}.
  */
-public final class PolicyEntryPlaceholderTest {
+public final class DefaultSubjectIdFromActionResolverTest {
 
     private static final Label LABEL = Label.of("label");
     private static final PolicyEntry ENTRY = PoliciesModelFactory.newPolicyEntry(LABEL, "{\n" +
@@ -43,16 +43,18 @@ public final class PolicyEntryPlaceholderTest {
             "  }\n" +
             "}");
 
+    private static final DefaultSubjectIdFromActionResolver sut = new DefaultSubjectIdFromActionResolver();
+
     @Test
     public void resolveSubjectWithoutPlaceholder() {
         final SubjectId subjectId = SubjectId.newInstance("integration:hello");
-        assertThat(PolicyEntryPlaceholder.resolveSubjectId(ENTRY, subjectId)).isEqualTo(subjectId);
+        assertThat(sut.resolveSubjectId(ENTRY, subjectId)).isEqualTo(subjectId);
     }
 
     @Test
     public void resolveSubjectWithPlaceholder() {
         final SubjectId subjectId = SubjectId.newInstance("integration:{{policy-entry:label}}");
-        assertThat(PolicyEntryPlaceholder.resolveSubjectId(ENTRY, subjectId))
+        assertThat(sut.resolveSubjectId(ENTRY, subjectId))
                 .isEqualTo(SubjectId.newInstance("integration:label"));
     }
 
@@ -60,20 +62,20 @@ public final class PolicyEntryPlaceholderTest {
     public void doNotResolveSubjectWithSupportedAndUnresolvedPlaceholder() {
         final SubjectId subjectId = SubjectId.newInstance("integration:{{fn:delete()}}");
         assertThatExceptionOfType(UnresolvedPlaceholderException.class)
-                .isThrownBy(() -> PolicyEntryPlaceholder.resolveSubjectId(ENTRY, subjectId));
+                .isThrownBy(() -> sut.resolveSubjectId(ENTRY, subjectId));
     }
 
     @Test
     public void throwErrorOnUnsupportedPlaceholder() {
         final SubjectId subjectId = SubjectId.newInstance("integration:{{connection:id}}");
         assertThatExceptionOfType(UnresolvedPlaceholderException.class)
-                .isThrownBy(() -> PolicyEntryPlaceholder.resolveSubjectId(ENTRY, subjectId));
+                .isThrownBy(() -> sut.resolveSubjectId(ENTRY, subjectId));
     }
 
     @Test
     public void throwSubjectIdInvalidException() {
         final SubjectId subjectId = SubjectId.newInstance("{{policy-entry:label}}");
         assertThatExceptionOfType(SubjectIdInvalidException.class)
-                .isThrownBy(() -> PolicyEntryPlaceholder.resolveSubjectId(ENTRY, subjectId));
+                .isThrownBy(() -> sut.resolveSubjectId(ENTRY, subjectId));
     }
 }

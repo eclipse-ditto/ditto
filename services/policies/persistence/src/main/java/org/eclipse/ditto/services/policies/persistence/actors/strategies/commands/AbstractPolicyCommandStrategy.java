@@ -29,7 +29,6 @@ import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
@@ -37,7 +36,6 @@ import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectExpiryInvalidException;
-import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
@@ -61,8 +59,6 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
  */
 abstract class AbstractPolicyCommandStrategy<C extends Command<C>>
         extends AbstractConditionHeaderCheckingCommandStrategy<C, Policy, PolicyId, PolicyEvent<?>> {
-
-    static SubjectType TOKEN_INTEGRATION = PoliciesModelFactory.newSubjectType("actions/activateTokenIntegration");
 
     private final PolicyExpiryGranularity policyExpiryGranularity;
 

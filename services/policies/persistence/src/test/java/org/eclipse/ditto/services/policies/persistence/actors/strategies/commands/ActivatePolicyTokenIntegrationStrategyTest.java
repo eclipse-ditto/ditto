@@ -34,11 +34,13 @@ import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrateg
 import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIntegrationResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
-import org.eclipse.ditto.signals.events.policies.SubjectsActivated;
+import org.eclipse.ditto.signals.events.policies.SubjectsModifiedPartially;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.typesafe.config.ConfigFactory;
+
+import akka.actor.ActorSystem;
 
 /**
  * Unit test for {@link ActivatePolicyTokenIntegrationStrategy}.
@@ -49,7 +51,9 @@ public final class ActivatePolicyTokenIntegrationStrategyTest extends AbstractPo
 
     @Before
     public void setUp() {
-        underTest = new ActivatePolicyTokenIntegrationStrategy(DefaultPolicyConfig.of(ConfigFactory.load("policy-test")));
+        underTest = new ActivatePolicyTokenIntegrationStrategy(
+                DefaultPolicyConfig.of(ConfigFactory.load("policy-test")),
+                ActorSystem.create("test"));
     }
 
     @Test
@@ -69,11 +73,11 @@ public final class ActivatePolicyTokenIntegrationStrategyTest extends AbstractPo
         final ActivatePolicyTokenIntegration command =
                 ActivatePolicyTokenIntegration.of(context.getState(), subjectId, expiry, List.of(LABEL), dittoHeaders);
         assertModificationResult(underTest, TestConstants.Policy.POLICY, command,
-                SubjectsActivated.class,
+                SubjectsModifiedPartially.class,
                 event -> {
-                    assertThat(event.getActivatedSubjects()).containsOnlyKeys(LABEL);
-                    assertThat(event.getActivatedSubjects().get(LABEL).getId()).isEqualTo(expectedSubjectId);
-                    assertThat(event.getActivatedSubjects().get(LABEL).getExpiry()).isNotEmpty();
+                    assertThat(event.getModifiedSubjects()).containsOnlyKeys(LABEL);
+                    assertThat(event.getModifiedSubjects().get(LABEL).getId()).isEqualTo(expectedSubjectId);
+                    assertThat(event.getModifiedSubjects().get(LABEL).getExpiry()).isNotEmpty();
                 },
                 ActivatePolicyTokenIntegrationResponse.class,
                 response -> assertThat(response)
