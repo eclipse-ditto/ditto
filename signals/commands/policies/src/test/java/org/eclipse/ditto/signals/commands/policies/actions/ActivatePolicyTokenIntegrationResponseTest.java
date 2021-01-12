@@ -37,7 +37,6 @@ public final class ActivatePolicyTokenIntegrationResponseTest {
             .set(PolicyCommandResponse.JsonFields.TYPE, ActivatePolicyTokenIntegrationResponse.TYPE)
             .set(PolicyCommandResponse.JsonFields.STATUS, ActivatePolicyTokenIntegrationResponse.STATUS.toInt())
             .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
-            .set(ActivatePolicyTokenIntegrationResponse.JSON_SUBJECT_ID, TestConstants.Policy.SUBJECT_ID.toString())
             .build();
 
     @Test
@@ -56,19 +55,13 @@ public final class ActivatePolicyTokenIntegrationResponseTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        ActivatePolicyTokenIntegrationResponse.of(null, TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS);
-    }
-
-
-    @Test(expected = NullPointerException.class)
-    public void tryToCreateInstanceWithNullSubject() {
-        ActivatePolicyTokenIntegrationResponse.of(TestConstants.Policy.POLICY_ID, null, TestConstants.EMPTY_DITTO_HEADERS);
+        ActivatePolicyTokenIntegrationResponse.of(null, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
     public void toJsonReturnsExpected() {
         final ActivatePolicyTokenIntegrationResponse underTest =
-                ActivatePolicyTokenIntegrationResponse.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID,
+                ActivatePolicyTokenIntegrationResponse.of(TestConstants.Policy.POLICY_ID,
                         TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
@@ -81,7 +74,7 @@ public final class ActivatePolicyTokenIntegrationResponseTest {
                 ActivatePolicyTokenIntegrationResponse.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
         final ActivatePolicyTokenIntegrationResponse expectedCommand =
-                ActivatePolicyTokenIntegrationResponse.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.SUBJECT_ID,
+                ActivatePolicyTokenIntegrationResponse.of(TestConstants.Policy.POLICY_ID,
                         TestConstants.EMPTY_DITTO_HEADERS);
         assertThat(underTest).isEqualTo(expectedCommand);
     }

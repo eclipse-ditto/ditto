@@ -82,7 +82,7 @@ public final class ActivatePolicyTokenIntegrationStrategyTest extends AbstractPo
                 ActivatePolicyTokenIntegrationResponse.class,
                 response -> assertThat(response)
                         .isEqualTo(
-                                ActivatePolicyTokenIntegrationResponse.of(context.getState(), subjectId, dittoHeaders)));
+                                ActivatePolicyTokenIntegrationResponse.of(context.getState(), dittoHeaders)));
     }
 
     @Test

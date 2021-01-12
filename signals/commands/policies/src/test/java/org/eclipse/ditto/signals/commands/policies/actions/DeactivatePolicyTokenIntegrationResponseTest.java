@@ -37,7 +37,6 @@ public final class DeactivatePolicyTokenIntegrationResponseTest {
             .set(PolicyCommandResponse.JsonFields.TYPE, DeactivatePolicyTokenIntegrationResponse.TYPE)
             .set(PolicyCommandResponse.JsonFields.STATUS, DeactivatePolicyTokenIntegrationResponse.STATUS.toInt())
             .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
-            .set(DeactivatePolicyTokenIntegrationResponse.JSON_SUBJECT_ID, TestConstants.Policy.SUBJECT_ID.toString())
             .build();
 
     @Test
@@ -56,20 +55,14 @@ public final class DeactivatePolicyTokenIntegrationResponseTest {
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        DeactivatePolicyTokenIntegrationResponse.of(null, TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS);
-    }
-
-
-    @Test(expected = NullPointerException.class)
-    public void tryToCreateInstanceWithNullSubject() {
-        DeactivatePolicyTokenIntegrationResponse.of(TestConstants.Policy.POLICY_ID, null, TestConstants.EMPTY_DITTO_HEADERS);
+        DeactivatePolicyTokenIntegrationResponse.of(null, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
     public void toJsonReturnsExpected() {
         final DeactivatePolicyTokenIntegrationResponse underTest =
                 DeactivatePolicyTokenIntegrationResponse.of(TestConstants.Policy.POLICY_ID,
-                        TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -82,7 +75,7 @@ public final class DeactivatePolicyTokenIntegrationResponseTest {
 
         final DeactivatePolicyTokenIntegrationResponse expectedCommand =
                 DeactivatePolicyTokenIntegrationResponse.of(TestConstants.Policy.POLICY_ID,
-                        TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.EMPTY_DITTO_HEADERS);
         assertThat(underTest).isEqualTo(expectedCommand);
     }
 

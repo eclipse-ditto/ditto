@@ -20,19 +20,15 @@ import java.util.function.Predicate;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 
@@ -57,33 +53,23 @@ public final class ActivatePolicyTokenIntegrationResponse
      */
     public static final HttpStatusCode STATUS = HttpStatusCode.OK;
 
-    static final JsonFieldDefinition<String> JSON_SUBJECT_ID =
-            JsonFactory.newStringFieldDefinition("subjectId", FieldType.REGULAR, JsonSchemaVersion.V_2);
-
     private final PolicyId policyId;
-    private final SubjectId subjectId;
 
-    private ActivatePolicyTokenIntegrationResponse(final PolicyId policyId, final SubjectId subjectId,
-            final DittoHeaders dittoHeaders) {
-
+    private ActivatePolicyTokenIntegrationResponse(final PolicyId policyId, final DittoHeaders dittoHeaders) {
         super(TYPE, STATUS, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policyId");
-        this.subjectId = checkNotNull(subjectId, "subjectId");
     }
 
     /**
      * Creates a response to an {@code ActivatePolicyTokenIntegration} command.
      *
      * @param policyId the policy ID.
-     * @param subjectId the added subject ID.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ActivatePolicyTokenIntegrationResponse of(final PolicyId policyId,
-            final SubjectId subjectId,
-            final DittoHeaders dittoHeaders) {
-        return new ActivatePolicyTokenIntegrationResponse(policyId, subjectId, dittoHeaders);
+    public static ActivatePolicyTokenIntegrationResponse of(final PolicyId policyId, final DittoHeaders dittoHeaders) {
+        return new ActivatePolicyTokenIntegrationResponse(policyId, dittoHeaders);
     }
 
     /**
@@ -101,8 +87,7 @@ public final class ActivatePolicyTokenIntegrationResponse
             final DittoHeaders dittoHeaders) {
         final PolicyId policyId =
                 PolicyId.of(jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID));
-        final SubjectId subjectId = SubjectId.newInstance(jsonObject.getValueOrThrow(JSON_SUBJECT_ID));
-        return new ActivatePolicyTokenIntegrationResponse(policyId, subjectId, dittoHeaders);
+        return new ActivatePolicyTokenIntegrationResponse(policyId, dittoHeaders);
     }
 
     @Override
@@ -121,12 +106,11 @@ public final class ActivatePolicyTokenIntegrationResponse
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, policyId.toString(), predicate);
-        jsonObjectBuilder.set(JSON_SUBJECT_ID, subjectId.toString(), predicate);
     }
 
     @Override
     public ActivatePolicyTokenIntegrationResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new ActivatePolicyTokenIntegrationResponse(policyId, subjectId, dittoHeaders);
+        return new ActivatePolicyTokenIntegrationResponse(policyId, dittoHeaders);
     }
 
     @Override
@@ -144,13 +128,12 @@ public final class ActivatePolicyTokenIntegrationResponse
         }
         final ActivatePolicyTokenIntegrationResponse that = (ActivatePolicyTokenIntegrationResponse) o;
         return Objects.equals(policyId, that.policyId) &&
-                Objects.equals(subjectId, that.subjectId) &&
                 super.equals(o);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), policyId, subjectId);
+        return Objects.hash(super.hashCode(), policyId);
     }
 
     @Override
@@ -158,7 +141,6 @@ public final class ActivatePolicyTokenIntegrationResponse
         return getClass().getSimpleName() +
                 " [" + super.toString() +
                 ", policyId=" + policyId +
-                ", subjectId=" + subjectId +
                 "]";
     }
 

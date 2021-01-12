@@ -91,7 +91,7 @@ public final class DeactivatePolicyTokenIntegrationStrategyTest extends Abstract
                 DeactivatePolicyTokenIntegrationResponse.class,
                 response -> assertThat(response)
                         .isEqualTo(
-                                DeactivatePolicyTokenIntegrationResponse.of(context.getState(), subjectId, dittoHeaders)));
+                                DeactivatePolicyTokenIntegrationResponse.of(context.getState(), dittoHeaders)));
     }
 
     @Test
@@ -108,7 +108,7 @@ public final class DeactivatePolicyTokenIntegrationStrategyTest extends Abstract
                 DeactivatePolicyTokenIntegrationResponse.class,
                 response -> assertThat(response)
                         .isEqualTo(
-                                DeactivatePolicyTokenIntegrationResponse.of(context.getState(), subjectId, dittoHeaders)));
+                                DeactivatePolicyTokenIntegrationResponse.of(context.getState(), dittoHeaders)));
     }
 
     @Test

@@ -105,7 +105,7 @@ final class ActivatePolicyTokenIntegrationStrategy
                     SubjectsModifiedPartially.of(policyId, activatedSubjects, nextRevision, getEventTimestamp(),
                             dittoHeaders);
             final ActivatePolicyTokenIntegrationResponse rawResponse =
-                    ActivatePolicyTokenIntegrationResponse.of(policyId, command.getSubjectId(), dittoHeaders);
+                    ActivatePolicyTokenIntegrationResponse.of(policyId, dittoHeaders);
             // do not append ETag - activated subjects do not support ETags.
             return ResultFactory.newMutationResult(command, event, rawResponse);
         } else {

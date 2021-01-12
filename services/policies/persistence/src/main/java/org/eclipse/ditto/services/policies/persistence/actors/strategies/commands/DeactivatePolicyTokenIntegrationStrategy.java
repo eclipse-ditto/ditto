@@ -98,7 +98,7 @@ final class DeactivatePolicyTokenIntegrationStrategy
                 SubjectsDeletedPartially.of(policyId, deactivatedSubjectsIds, nextRevision, getEventTimestamp(),
                         dittoHeaders);
         final DeactivatePolicyTokenIntegrationResponse rawResponse =
-                DeactivatePolicyTokenIntegrationResponse.of(policyId, command.getSubjectId(), dittoHeaders);
+                DeactivatePolicyTokenIntegrationResponse.of(policyId, dittoHeaders);
         return ResultFactory.newMutationResult(command, event, rawResponse);
     }
 

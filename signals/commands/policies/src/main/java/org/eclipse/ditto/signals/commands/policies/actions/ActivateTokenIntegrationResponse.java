@@ -64,7 +64,6 @@ public final class ActivateTokenIntegrationResponse
     static final JsonFieldDefinition<String> JSON_SUBJECT_ID =
             JsonFactory.newStringFieldDefinition("subjectId", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    // TODO: determine the content of the response.
     private final PolicyId policyId;
     private final Label label;
     private final SubjectId subjectId;
