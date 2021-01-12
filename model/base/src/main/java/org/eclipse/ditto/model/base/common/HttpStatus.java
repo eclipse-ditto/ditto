@@ -418,11 +418,13 @@ public final class HttpStatus implements Serializable {
     }
 
     /**
-     * Tries to get an instance of HttpStatus with the specified status code.
+     * Tries to get an instance of HttpStatus with the specified status code. If the provided status code is invalid,
+     * this method returns an empty Optional instead of throwing an exception.
      *
      * @param code the code of the HttpStatus to get an instance for.
      * @return an Optional that either contains the HttpStatus with the specified code or is empty if the code is not
      * within the range of valid HTTP status codes.
+     * @see #getInstance(int) 
      */
     public static Optional<HttpStatus> tryGetInstance(final int code) {
         HttpStatus httpStatus;
@@ -435,11 +437,13 @@ public final class HttpStatus implements Serializable {
     }
 
     /**
-     * Gets an instance of HttpStatus with the specified status code.
+     * Gets an instance of HttpStatus with the specified status code or throws an exception if the specified code is not
+     * within the range of valid HTTP status codes.
      *
      * @param code the code of the returned HttpStatus.
      * @return the HttpStatus.
      * @throws HttpStatusCodeOutOfRangeException if {@code code} is not within the range of valid HTTP status codes.
+     * @see #tryGetInstance(int)
      */
     public static HttpStatus getInstance(final int code) throws HttpStatusCodeOutOfRangeException {
         HttpStatus result = ASSIGNED.get(code);
