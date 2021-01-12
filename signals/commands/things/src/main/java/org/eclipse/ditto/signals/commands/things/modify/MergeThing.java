@@ -110,7 +110,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      */
     public static MergeThing withThing(final ThingId thingId, final Thing thing, final DittoHeaders dittoHeaders) {
         ensureAuthorizationMatchesSchemaVersion(thingId, thing, dittoHeaders);
-        final JsonObject mergePatch = thing.toJson(FieldType.notHidden().and(THING_ID_PREDICATE.negate()));
+        final JsonObject mergePatch = thing.toJson();
         return new MergeThing(thingId, JsonPointer.empty(), mergePatch, dittoHeaders);
     }
 

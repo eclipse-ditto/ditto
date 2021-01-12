@@ -42,6 +42,7 @@ import org.eclipse.ditto.services.gateway.endpoints.utils.UriEncoding;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.MessageConfig;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyIdNotDeletableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
@@ -145,24 +146,6 @@ public final class ThingsRoute extends AbstractRoute {
         return inputJson.getValue(ModifyThing.JSON_COPY_POLICY_FROM).orElse(null);
     }
 
-    private static JsonObject createThingJsonObjectForPutAndPatch(final String jsonString, final String thingId) {
-        final JsonObject inputJson = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
-        final JsonObjectBuilder outputJsonBuilder = inputJson.toBuilder();
-        final Optional<JsonValue> optThingId = inputJson.getValue(Thing.JsonFields.ID.getPointer());
-
-        // verifies that thing ID agrees with ID from route
-        if (optThingId.isPresent()) {
-            final JsonValue thingIdFromBody = optThingId.get();
-            if (!thingIdFromBody.isString() || !thingId.equals(thingIdFromBody.asString())) {
-                throw ThingIdNotExplicitlySettableException.forPutOrPatchMethod().build();
-            }
-        } else {
-            outputJsonBuilder.set(Thing.JsonFields.ID, thingId).build();
-        }
-
-        return outputJsonBuilder.build();
-    }
-
     /**
      * Builds the {@code /things} route.
      *
@@ -257,8 +240,8 @@ public final class ThingsRoute extends AbstractRoute {
                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                         thingJson -> ModifyThing.of(thingId,
                                                 ThingsModelFactory.newThingBuilder(
-                                                        createThingJsonObjectForPutAndPatch(thingJson, thingId.toString()))
-                                                        .build(),
+                                                        ThingJsonObjectCreator.newInstance(thingJson,
+                                                                thingId.toString()).forPut()).build(),
                                                 createInlinePolicyJson(thingJson),
                                                 getCopyPolicyFrom(thingJson),
                                                 dittoHeaders)))
@@ -266,8 +249,10 @@ public final class ThingsRoute extends AbstractRoute {
                         // PATCH /things/<thingId>
                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                        thingJson -> MergeThing.withThing(thingId, ThingsModelFactory.newThingBuilder(
-                                                createThingJsonObjectForPutAndPatch(thingJson, thingId.toString())).build(),
+                                        thingJson -> MergeThing.withThing(thingId,
+                                                ThingsModelFactory.newThingBuilder(
+                                                        ThingJsonObjectCreator.newInstance(thingJson,
+                                                                thingId.toString()).forPatch()).build(),
                                                 dittoHeaders)))
                         ),
                         // DELETE /things/<thingId>
@@ -298,12 +283,20 @@ public final class ThingsRoute extends AbstractRoute {
                         // PATCH /things/<thingId>/policyId
                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                        policyIdJson -> MergeThing.withPolicyId(thingId, policyIdFromJson(policyIdJson),
+                                        policyIdJson -> MergeThing.withPolicyId(thingId,
+                                                policyIdFromJsonForPatch(policyIdJson),
                                                 dittoHeaders))
                                 )
                         )
                 )
         );
+    }
+
+    private static PolicyId policyIdFromJsonForPatch(final String policyIdJson) {
+        if (JsonFactory.readFrom(policyIdJson).isNull()) {
+            throw PolicyIdNotDeletableException.newBuilder().build();
+        }
+        return policyIdFromJson(policyIdJson);
     }
 
     private static PolicyId policyIdFromJson(final String policyIdJson) {
