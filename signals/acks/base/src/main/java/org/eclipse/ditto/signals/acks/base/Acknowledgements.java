@@ -210,6 +210,7 @@ public interface Acknowledgements
      * @return the HTTP status.
      * @since 2.0.0
      */
+    @Override
     HttpStatus getHttpStatus();
 
     /**
