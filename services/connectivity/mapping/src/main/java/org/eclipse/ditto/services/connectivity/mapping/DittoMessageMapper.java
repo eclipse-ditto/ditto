@@ -16,8 +16,6 @@ import static java.util.Collections.singletonList;
 
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,9 +25,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.MappingContext;
 import org.eclipse.ditto.model.connectivity.MessageMappingFailedException;
@@ -79,21 +75,35 @@ public final class DittoMessageMapper extends AbstractMessageMapper {
 
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
-        final String jsonString = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable).toJsonString();
+        return List.of(ExternalMessageFactory.newExternalMessageBuilder(getExternalDittoHeaders(adaptable))
+                .withTopicPath(adaptable.getTopicPath())
+                .withText(getJsonString(adaptable))
+                .asResponse(isResponse(adaptable))
+                .asError(isError(adaptable))
+                .build());
+    }
 
-        final boolean isError = TopicPath.Criterion.ERRORS.equals(adaptable.getTopicPath().getCriterion());
-        final boolean isResponse = adaptable.getPayload().getStatus().isPresent();
-        final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = DittoHeaders.newBuilder()
-                .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE);
-        adaptable.getHeaders().flatMap(DittoHeaders::getCorrelationId)
-                .ifPresent(dittoHeadersBuilder::correlationId);
-        return singletonList(
-                ExternalMessageFactory.newExternalMessageBuilder(dittoHeadersBuilder.build())
-                        .withTopicPath(adaptable.getTopicPath())
-                        .withText(jsonString)
-                        .asResponse(isResponse)
-                        .asError(isError)
-                        .build());
+    private static DittoHeaders getExternalDittoHeaders(final Adaptable adaptable) {
+        return DittoHeaders.newBuilder()
+                .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
+                .correlationId(adaptable.getDittoHeaders().getCorrelationId().orElse(null))
+                .build();
+    }
+
+    private static String getJsonString(final Adaptable adaptable) {
+        final var jsonifiableAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable);
+        return jsonifiableAdaptable.toJsonString();
+    }
+
+    private static boolean isResponse(final Adaptable adaptable) {
+        final var payload = adaptable.getPayload();
+        final var httpStatus = payload.getHttpStatus();
+        return httpStatus.isPresent();
+    }
+
+    private static boolean isError(final Adaptable adaptable) {
+        final var topicPath = adaptable.getTopicPath();
+        return TopicPath.Criterion.ERRORS.equals(topicPath.getCriterion());
     }
 
     @Override

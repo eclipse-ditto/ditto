@@ -138,8 +138,8 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
      * @since 2.0.0
      */
     protected static HttpStatus getHttpStatus(final Adaptable adaptable) {
-        return adaptable.getPayload()
-                .getHttpStatus()
+        final Payload payload = adaptable.getPayload();
+        return payload.getHttpStatus()
                 .orElseThrow(() -> new NullPointerException("The message did not contain a HTTP status!"));
     }
 
