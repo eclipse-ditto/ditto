@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.gateway.security.authentication;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 

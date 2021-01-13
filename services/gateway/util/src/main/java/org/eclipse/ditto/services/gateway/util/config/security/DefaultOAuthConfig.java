@@ -115,7 +115,7 @@ public final class DefaultOAuthConfig implements OAuthConfig {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", protocol=" + protocol +
+                "protocol=" + protocol +
                 ", openIdConnectIssuers=" + openIdConnectIssuers +
                 ", openIdConnectIssuersExtension=" + openIdConnectIssuersExtension +
                 ", tokenIntegrationSubject=" + tokenIntegrationSubject +

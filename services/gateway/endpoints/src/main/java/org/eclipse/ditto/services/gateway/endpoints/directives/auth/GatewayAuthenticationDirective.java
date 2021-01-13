@@ -20,7 +20,6 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationChain;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
@@ -74,7 +73,7 @@ public final class GatewayAuthenticationDirective {
      * Depending on the request headers, one of the supported authentication mechanisms is applied.
      *
      * @param dittoHeaders the DittoHeaders containing already gathered context information.
-     * @param inner the inner route which will be wrapped with the {@link org.eclipse.ditto.model.base.headers.DittoHeaders}.
+     * @param inner the inner route which will be wrapped with the {@link DittoHeaders}.
      * @return the inner route.
      */
     public Route authenticate(final DittoHeaders dittoHeaders, final Function<AuthenticationResult, Route> inner) {

@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 
 /**
- * The result of JWT authentication.
+ * The result of a JWT authentication.
  */
 public interface JwtAuthenticationResult extends AuthenticationResult {
 
@@ -33,19 +33,6 @@ public interface JwtAuthenticationResult extends AuthenticationResult {
      * @return the JWT.
      */
     Optional<JsonWebToken> getJwt();
-
-    @Override
-    boolean isSuccess();
-
-    @Override
-    AuthorizationContext getAuthorizationContext();
-
-    @Override
-    DittoHeaders getDittoHeaders();
-
-    @Override
-    Throwable getReasonOfFailure();
-
 
     /**
      * Initializes a successful authentication result with a JWT.

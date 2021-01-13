@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.services.gateway.security.authentication.AbstractAuthenticationResult;
 
 /**
- * Implementation of JwtAuthenticationResult.
+ * Implementation of {@link JwtAuthenticationResult}.
  */
 final class DefaultJwtAuthenticationResult extends AbstractAuthenticationResult implements JwtAuthenticationResult {
 

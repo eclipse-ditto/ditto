@@ -28,6 +28,6 @@ public interface TokenIntegrationSubjectIdFactory {
      * @param jwt the JWT.
      * @return the computed subject ID.
      */
-    SubjectId getSubjectId(final DittoHeaders dittoHeaders, final JsonWebToken jwt);
+    SubjectId getSubjectId(DittoHeaders dittoHeaders, JsonWebToken jwt);
 
 }

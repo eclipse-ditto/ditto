@@ -69,6 +69,7 @@ public interface ExpressionResolver {
      * @return the resolved String, a signifier for resolution failure, or one for deletion.
      * @throws PlaceholderFunctionTooComplexException thrown if the {@code expressionTemplate} contains a placeholder
      * function chain which is too complex (e.g. too much chained function calls)
+     * @since 2.0.0
      */
     default String resolvePartially(final String expressionTemplate) {
         return ExpressionResolver.substitute(expressionTemplate, expression -> {
