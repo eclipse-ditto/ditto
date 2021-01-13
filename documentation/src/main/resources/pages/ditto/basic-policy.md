@@ -76,6 +76,9 @@ to the following HTTP routes:
 - [POST /api/2/policies/{policy-id}/entries/{label}/actions/deactivateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__entries__label__actions_deactivateTokenIntegration)<br/>
   Remove the token integration subject from 1 policy entry.
 
+The action `activateTokenIntegration` only injects the token integration subject into policy entries containing
+a granted `READ` permission for a thing resource path.
+
 To configure the token integration subject, set the path
 ```
 ditto.gateway.authentication.oauth.token-integration-subject

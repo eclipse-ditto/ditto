@@ -12,8 +12,8 @@ post:
   summary: Activate token integration subjects for this policy
   description: |-
     Only possible with JWT authentication.
-    For each entry the user is granted the EXECUTE permission, inject a subject calculated according to the JWT
-    with which the user is authenticated.
+    For each entry the user is granted the EXECUTE permission and contains a READ permission granted to
+    a things resource path, inject a subject calculated according to the JWT with which the user is authenticated.
     This subject is configurable.
     The injected subjects expire when the JWT expires.
   tags:
