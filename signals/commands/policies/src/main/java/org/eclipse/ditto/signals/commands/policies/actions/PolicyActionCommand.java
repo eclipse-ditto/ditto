@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.signals.commands.policies.actions;
 
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
@@ -23,6 +24,11 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
  * @since 2.0.0
  */
 public interface PolicyActionCommand<T extends PolicyActionCommand<T>> extends PolicyCommand<T>, WithOptionalEntity {
+
+    /**
+     * Path of Policy actions as part of the the {@link #getResourcePath()}.
+     */
+    JsonPointer RESOURCE_PATH_ACTIONS = JsonPointer.of("actions");
 
     /**
      * Get the subject ID of this command.

@@ -37,7 +37,6 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -156,7 +155,10 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
 
     @Override
     public JsonPointer getResourcePath() {
-        return toResourcePath(label, subjectId);
+        return Policy.JsonFields.ENTRIES.getPointer()
+                .addLeaf(JsonKey.of(label))
+                .append(RESOURCE_PATH_ACTIONS)
+                .addLeaf(JsonKey.of(NAME));
     }
 
     @Override
@@ -209,13 +211,6 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
                 ", subjectId=" + subjectId +
                 ", expiry=" + expiry +
                 "]";
-    }
-
-    static JsonPointer toResourcePath(final Label label, final SubjectId subjectId) {
-        return Policy.JsonFields.ENTRIES.getPointer()
-                .addLeaf(JsonKey.of(label))
-                .append(PolicyEntry.JsonFields.SUBJECTS.getPointer())
-                .addLeaf(JsonKey.of(subjectId));
     }
 
     static Instant parseExpiry(final String expiryString) {

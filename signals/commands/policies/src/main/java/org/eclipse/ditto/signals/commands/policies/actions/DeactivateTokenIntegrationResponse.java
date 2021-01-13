@@ -23,6 +23,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
@@ -32,6 +33,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
@@ -118,7 +120,10 @@ public final class DeactivateTokenIntegrationResponse
 
     @Override
     public JsonPointer getResourcePath() {
-        return ActivateTokenIntegration.toResourcePath(label, subjectId);
+        return Policy.JsonFields.ENTRIES.getPointer()
+                .addLeaf(JsonKey.of(label))
+                .append(RESOURCE_PATH_ACTIONS)
+                .addLeaf(JsonKey.of(DeactivateTokenIntegration.NAME));
     }
 
     @Override

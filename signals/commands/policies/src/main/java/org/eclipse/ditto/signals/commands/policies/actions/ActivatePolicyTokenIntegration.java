@@ -169,6 +169,7 @@ public final class ActivatePolicyTokenIntegration extends AbstractCommand<Activa
 
     @Override
     public JsonPointer getResourcePath() {
+        // TODO return /actions/activateTokenIntegration
         return JsonPointer.empty();
     }
 

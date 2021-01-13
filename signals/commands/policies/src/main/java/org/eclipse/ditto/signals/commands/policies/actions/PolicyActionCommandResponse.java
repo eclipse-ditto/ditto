@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.signals.commands.policies.actions;
 
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 
@@ -23,4 +24,9 @@ import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
  */
 public interface PolicyActionCommandResponse<T extends PolicyActionCommandResponse<T>> extends
         PolicyCommandResponse<T>, WithOptionalEntity {
+
+    /**
+     * Path of Policy actions as part of the the {@link #getResourcePath()}.
+     */
+    JsonPointer RESOURCE_PATH_ACTIONS = PolicyActionCommand.RESOURCE_PATH_ACTIONS;
 }

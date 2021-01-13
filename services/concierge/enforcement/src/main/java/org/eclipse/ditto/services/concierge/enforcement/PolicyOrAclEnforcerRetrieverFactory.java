@@ -54,7 +54,7 @@ final class PolicyOrAclEnforcerRetrieverFactory {
         mapping.put(PolicyCommand.RESOURCE_TYPE, policyEnforcerCache);
         mapping.put(ThingCommand.RESOURCE_TYPE, aclEnforcerCache);
 
-        return new EnforcerRetriever<Enforcer>(idCache, mapping);
+        return new EnforcerRetriever<>(idCache, mapping);
     }
 
 }
