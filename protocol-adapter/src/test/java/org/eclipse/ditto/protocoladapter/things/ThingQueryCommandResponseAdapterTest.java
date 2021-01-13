@@ -17,7 +17,6 @@ import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_2;
 import static org.eclipse.ditto.protocoladapter.TestConstants.FEATURE_ID;
 import static org.eclipse.ditto.protocoladapter.TestConstants.THING_ID;
 
-import java.text.MessageFormat;
 import java.util.Optional;
 import java.util.function.Predicate;
 
@@ -28,7 +27,6 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatus;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -778,18 +776,6 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
         @Override
         public HttpStatus getHttpStatus() {
             return HttpStatus.OK;
-        }
-
-        @Override
-        public HttpStatusCode getStatusCode() {
-            final HttpStatus httpStatus = getHttpStatus();
-            return HttpStatusCode.forInt(httpStatus.getCode()).orElseThrow(() -> {
-
-                // This might happen at runtime when httpStatus has a code which is
-                // not reflected as constant in HttpStatusCode.
-                final String msgPattern = "Found no HttpStatusCode for int <{0}>!";
-                return new IllegalStateException(MessageFormat.format(msgPattern, httpStatus.getCode()));
-            });
         }
 
         @Override

@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.signals.commands.base;
 
+import java.text.MessageFormat;
 import java.util.function.Predicate;
 
 import javax.annotation.concurrent.Immutable;
@@ -78,7 +79,16 @@ public interface CommandResponse<T extends CommandResponse<T>> extends Signal<T>
      * @deprecated as of 2.0.0 please use {@link #getHttpStatus()} instead.
      */
     @Deprecated
-    HttpStatusCode getStatusCode();
+    default HttpStatusCode getStatusCode() {
+        final HttpStatus httpStatus = getHttpStatus();
+        return HttpStatusCode.forInt(httpStatus.getCode()).orElseThrow(() -> {
+
+            // This might happen at runtime when httpStatus has a code which is
+            // not reflected as constant in HttpStatusCode.
+            final String msgPattern = "Found no HttpStatusCode for int <{0}>!";
+            return new IllegalStateException(MessageFormat.format(msgPattern, httpStatus.getCode()));
+        });
+    }
 
     /**
      * Returns the HTTP status of the issued command.
@@ -93,7 +103,7 @@ public interface CommandResponse<T extends CommandResponse<T>> extends Signal<T>
      * is the one of HTTP Status Codes (e.g.: {@literal 200} for "OK", {@literal 409} for "Conflict").
      *
      * @return the status code value of the issued CommandType.
-     * @see #getStatusCode()
+     * @see #getHttpStatus()
      * @deprecated as of 2.0.0 please use {@link #getHttpStatus()}{@link HttpStatus#getCode() .getCode()} instead.
      */
     @Deprecated
