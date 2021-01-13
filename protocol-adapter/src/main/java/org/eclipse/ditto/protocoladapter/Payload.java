@@ -69,7 +69,7 @@ public interface Payload extends Jsonifiable<JsonObject> {
         final PayloadBuilder result = newBuilder(payload.getPath())
                 .withValue(payload.getValue().orElse(null))
                 .withExtra(payload.getExtra().orElse(null))
-                .withStatus(payload.getStatus().orElse(null))
+                .withStatus(payload.getHttpStatus().orElse(null))
                 .withTimestamp(payload.getTimestamp().orElse(null))
                 .withFields(payload.getFields().orElse(null));
         payload.getRevision().ifPresent(result::withRevision);
