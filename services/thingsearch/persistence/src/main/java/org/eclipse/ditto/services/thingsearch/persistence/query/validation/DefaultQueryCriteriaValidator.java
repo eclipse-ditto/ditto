@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.thingsearch.persistence.query.validation;
 
 import org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand;
 
-import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 
 /**
