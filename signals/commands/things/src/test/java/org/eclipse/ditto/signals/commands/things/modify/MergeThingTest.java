@@ -38,6 +38,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.AttributesModelFactory;
@@ -46,6 +47,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -316,7 +318,7 @@ public final class MergeThingTest {
     @Test
     public void mergeWithDesiredFeatureProperties() {
         final MergeThing mergeThing =
-                MergeThing.withDesiredFeatureProperties(THING_ID, FLUX_CAPACITOR_ID,
+                MergeThing.withFeatureDesiredProperties(THING_ID, FLUX_CAPACITOR_ID,
                         TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES, DITTO_HEADERS);
 
         assertThat(mergeThing.changesAuthorization()).isFalse();
@@ -330,7 +332,7 @@ public final class MergeThingTest {
     @Test
     public void mergeWithNullDesiredFeatureProperties() {
         final MergeThing mergeThing =
-                MergeThing.withDesiredFeatureProperties(THING_ID, FLUX_CAPACITOR_ID,
+                MergeThing.withFeatureDesiredProperties(THING_ID, FLUX_CAPACITOR_ID,
                         ThingsModelFactory.nullFeatureProperties(), DITTO_HEADERS);
 
         assertThat(mergeThing.changesAuthorization()).isFalse();
@@ -343,7 +345,7 @@ public final class MergeThingTest {
 
     @Test
     public void mergeWithDesiredFeatureProperty() {
-        final MergeThing mergeThing = MergeThing.withDesiredFeatureProperty(THING_ID,
+        final MergeThing mergeThing = MergeThing.withFeatureDesiredProperty(THING_ID,
                 FLUX_CAPACITOR_ID,
                 TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_POINTER,
                 TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_VALUE, DITTO_HEADERS);
@@ -359,7 +361,7 @@ public final class MergeThingTest {
 
     @Test
     public void mergeWithNullDesiredFeatureProperty() {
-        final MergeThing mergeThing = MergeThing.withDesiredFeatureProperty(THING_ID,
+        final MergeThing mergeThing = MergeThing.withFeatureDesiredProperty(THING_ID,
                 FLUX_CAPACITOR_ID,
                 TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_POINTER,
                 JsonFactory.nullLiteral(), DITTO_HEADERS);
@@ -375,13 +377,13 @@ public final class MergeThingTest {
 
     @Test(expected = JsonKeyInvalidException.class)
     public void mergeWithInvalidDesiredFeaturePropertyPath() {
-        MergeThing.withDesiredFeatureProperty(THING_ID, FLUX_CAPACITOR_ID, INVALID_JSON_POINTER,
+        MergeThing.withFeatureDesiredProperty(THING_ID, FLUX_CAPACITOR_ID, INVALID_JSON_POINTER,
                 TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_VALUE, DITTO_HEADERS);
     }
 
     @Test(expected = JsonKeyInvalidException.class)
     public void mergeWithInvalidDesiredFeaturePropertyValue() {
-        MergeThing.withDesiredFeatureProperty(THING_ID, FLUX_CAPACITOR_ID, VALID_JSON_POINTER,
+        MergeThing.withFeatureDesiredProperty(THING_ID, FLUX_CAPACITOR_ID, VALID_JSON_POINTER,
                 TestConstants.Feature.FLUX_CAPACITOR_PROPERTY_VALUE_WITH_INVALID_POINTER, DITTO_HEADERS);
     }
 
@@ -420,7 +422,7 @@ public final class MergeThingTest {
     }
 
     @Test
-    public void modifyTooLargeThing() {
+    public void mergeTooLargeThing() {
         final StringBuilder sb = new StringBuilder();
         for (int i = 0; i < TestConstants.THING_SIZE_LIMIT_BYTES; i++) {
             sb.append('a');
@@ -434,8 +436,17 @@ public final class MergeThingTest {
                 .setAttributes(largeAttributes)
                 .build();
 
-        assertThatThrownBy(() -> ModifyThing.of(thingId, thing, null, DittoHeaders.empty()))
+        assertThatThrownBy(() -> MergeThing.withThing(thingId, thing, DittoHeaders.empty()))
                 .isInstanceOf(ThingTooLargeException.class);
     }
 
+    @Test
+    public void ensureSchemaVersion() {
+        final ThingId thingId = ThingId.of("foo", "bar");
+        final PolicyId policyId = PolicyId.of("foo", "bar");
+
+        assertThatThrownBy(() -> MergeThing.withPolicyId(thingId, policyId,
+                DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_1).build()))
+                .isInstanceOf(CommandNotSupportedException.class);
+    }
 }

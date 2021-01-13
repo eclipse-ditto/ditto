@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.signals.events.things;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -21,9 +22,13 @@ import java.lang.ref.SoftReference;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.junit.Test;
 
@@ -88,5 +93,14 @@ public final class ThingMergedTest {
         assertThat(underTest.getMetadata()).contains(TestConstants.METADATA);
         assertThat(underTest.getRevision()).isEqualTo(TestConstants.Thing.REVISION_NUMBER);
         assertThat(underTest.getTimestamp()).contains(TestConstants.TIMESTAMP);
+    }
+
+    @Test
+    public void ensureSchemaVersion() {
+        final ThingId thingId = ThingId.of("foo", "bar");
+        assertThatThrownBy(() -> ThingMerged.of(thingId, JsonPointer.empty(), JsonObject.empty(),
+                1L, null, DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_1).build(), null))
+                // TODO exception
+                .isInstanceOf(JsonParseException.class);
     }
 }

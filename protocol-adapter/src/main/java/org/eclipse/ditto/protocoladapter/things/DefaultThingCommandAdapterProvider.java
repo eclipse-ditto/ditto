@@ -83,6 +83,7 @@ public class DefaultThingCommandAdapterProvider implements ThingCommandAdapterPr
                 messageCommandAdapter,
                 messageCommandResponseAdapter,
                 thingEventAdapter,
+                thingMergedEventAdapter,
                 searchCommandAdapter,
                 subscriptionEventAdapter,
                 errorResponseAdapter

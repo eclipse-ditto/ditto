@@ -46,8 +46,10 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
 
 /**
  * /**
@@ -70,8 +72,6 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      * Type of this command.
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
-    private static final Predicate<JsonField> THING_ID_PREDICATE =
-            field -> Thing.JsonFields.ID.getPointer().equals(field.getKey().asPointer());
 
     private final ThingId thingId;
     private final JsonPointer path;
@@ -80,6 +80,10 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
     private MergeThing(final ThingId thingId, final JsonPointer path, final JsonValue value,
             final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
+        Optional.of(getImplementedSchemaVersion())
+                .filter(this::implementsSchemaVersion)
+                .orElseThrow(
+                        () -> CommandNotSupportedException.newBuilder(getImplementedSchemaVersion().toInt()).build());
         this.thingId = checkNotNull(thingId, "thingId");
         this.path = checkNotNull(path, "path");
         this.value = checkJsonSize(checkNotNull(value, "value"), dittoHeaders);
@@ -109,6 +113,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      * @return the created {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing} command.
      */
     public static MergeThing withThing(final ThingId thingId, final Thing thing, final DittoHeaders dittoHeaders) {
+        ensureThingIdMatches(thingId, thing);
         ensureAuthorizationMatchesSchemaVersion(thingId, thing, dittoHeaders);
         final JsonObject mergePatch = thing.toJson();
         return new MergeThing(thingId, JsonPointer.empty(), mergePatch, dittoHeaders);
@@ -269,7 +274,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      * @param dittoHeaders the ditto headers.
      * @return the created {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing} command.
      */
-    public static MergeThing withDesiredFeatureProperties(final ThingId thingId,
+    public static MergeThing withFeatureDesiredProperties(final ThingId thingId,
             final String featureId, final FeatureProperties desiredFeatureProperties,
             final DittoHeaders dittoHeaders) {
         final JsonPointer absolutePath = Thing.JsonFields.FEATURES.getPointer()
@@ -289,7 +294,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      * @param dittoHeaders the ditto headers.
      * @return the created {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing} command.
      */
-    public static MergeThing withDesiredFeatureProperty(final ThingId thingId,
+    public static MergeThing withFeatureDesiredProperty(final ThingId thingId,
             final String featureId, final JsonPointer propertyPath, final JsonValue propertyValue,
             final DittoHeaders dittoHeaders) {
         final JsonPointer absolutePath = Thing.JsonFields.FEATURES.getPointer()
@@ -345,6 +350,12 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
                     .newBuilder(thingId)
                     .dittoHeaders(dittoHeaders)
                     .build();
+        }
+    }
+
+    private static void ensureThingIdMatches(final ThingId thingId, final Thing thing) {
+        if (!thing.getEntityId().map(id -> id.equals(thingId)).orElse(true)) {
+            throw ThingIdNotExplicitlySettableException.forDittoProtocol().build();
         }
     }
 

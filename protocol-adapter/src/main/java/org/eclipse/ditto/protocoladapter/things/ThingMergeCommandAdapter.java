@@ -29,12 +29,11 @@ import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
  */
 final class ThingMergeCommandAdapter extends AbstractThingAdapter<MergeThing> implements MergeCommandAdapter {
 
-    private final SignalMapper<MergeThing> signalMapper =
-            SignalMapperFactory.newThingMergeSignalMapper();
+    private final SignalMapper<MergeThing> signalMapper = SignalMapperFactory.newThingMergeSignalMapper();
 
-    private ThingMergeCommandAdapter(
-            final HeaderTranslator headerTranslator) {
-        super(MappingStrategiesFactory.getThingMergeCommandMappingStrategies(), headerTranslator);
+    private ThingMergeCommandAdapter(final HeaderTranslator headerTranslator) {
+        super(MappingStrategiesFactory.getThingMergeCommandMappingStrategies(), headerTranslator,
+                ThingMergePayloadPathMatcher.getInstance());
     }
 
     /**

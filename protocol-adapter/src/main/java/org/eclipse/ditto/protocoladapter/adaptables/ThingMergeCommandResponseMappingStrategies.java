@@ -13,7 +13,6 @@
 package org.eclipse.ditto.protocoladapter.adaptables;
 
 import java.util.HashMap;
-import java.util.Map;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -31,29 +30,16 @@ final class ThingMergeCommandResponseMappingStrategies
             new ThingMergeCommandResponseMappingStrategies();
 
     private ThingMergeCommandResponseMappingStrategies() {
-        super(initMappingStrategies());
+        super(new HashMap<>());
+    }
+
+    @Override
+    public JsonifiableMapper<MergeThingResponse> find(final String type) {
+        return ThingMergeCommandResponseMappingStrategies::mergeThing;
     }
 
     static ThingMergeCommandResponseMappingStrategies getInstance() {
         return INSTANCE;
-    }
-
-    private static Map<String, JsonifiableMapper<MergeThingResponse>> initMappingStrategies() {
-        final Map<String, JsonifiableMapper<MergeThingResponse>> mappingStrategies = new HashMap<>();
-
-        mappingStrategies.put("thing", ThingMergeCommandResponseMappingStrategies::mergeThing);
-        mappingStrategies.put("policyId", ThingMergeCommandResponseMappingStrategies::mergeThing);
-        mappingStrategies.put("definition", ThingMergeCommandResponseMappingStrategies::mergeThing);
-        mappingStrategies.put("attributes", ThingMergeCommandResponseMappingStrategies::mergeThing);
-        mappingStrategies.put("attribute", ThingMergeCommandResponseMappingStrategies::mergeThing);
-        mappingStrategies.put("features", ThingMergeCommandResponseMappingStrategies::mergeThing);
-        mappingStrategies.put("feature", ThingMergeCommandResponseMappingStrategies::mergeThing);
-        mappingStrategies.put("featureDefinition", ThingMergeCommandResponseMappingStrategies::mergeThing);
-        mappingStrategies.put("featureProperties", ThingMergeCommandResponseMappingStrategies::mergeThing);
-        mappingStrategies.put("featureProperty", ThingMergeCommandResponseMappingStrategies::mergeThing);
-        mappingStrategies.put("featureDesiredProperties", ThingMergeCommandResponseMappingStrategies::mergeThing);
-        mappingStrategies.put("featureDesiredProperty", ThingMergeCommandResponseMappingStrategies::mergeThing);
-        return mappingStrategies;
     }
 
     private static MergeThingResponse mergeThing(final Adaptable adaptable) {

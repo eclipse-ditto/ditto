@@ -35,7 +35,8 @@ final class ThingMergeCommandResponseAdapter extends AbstractThingAdapter<MergeT
             signalMapper = SignalMapperFactory.newThingMergeResponseSignalMapper();
 
     private ThingMergeCommandResponseAdapter(final HeaderTranslator headerTranslator) {
-        super(MappingStrategiesFactory.getThingMergeCommandResponseMappingStrategies(), headerTranslator);
+        super(MappingStrategiesFactory.getThingMergeCommandResponseMappingStrategies(), headerTranslator,
+                ThingMergePayloadPathMatcher.getInstance());
     }
 
     /**

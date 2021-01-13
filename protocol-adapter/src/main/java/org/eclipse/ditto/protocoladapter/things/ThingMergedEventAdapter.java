@@ -33,7 +33,8 @@ import org.eclipse.ditto.signals.events.things.ThingMerged;
 final class ThingMergedEventAdapter extends AbstractThingAdapter<ThingMerged> implements MergedEventAdapter {
 
     private ThingMergedEventAdapter(final HeaderTranslator headerTranslator) {
-        super(MappingStrategiesFactory.getThingMergedEventMappingStrategies(), headerTranslator);
+        super(MappingStrategiesFactory.getThingMergedEventMappingStrategies(), headerTranslator,
+                ThingMergePayloadPathMatcher.getInstance());
     }
 
     /**

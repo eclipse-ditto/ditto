@@ -22,7 +22,7 @@ import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.TestConstants;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.protocoladapter.UnknownTopicPathException;
+import org.eclipse.ditto.protocoladapter.UnknownPathException;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.junit.Before;
@@ -44,7 +44,7 @@ public final class ThingMergeCommandResponseAdapterTest extends LiveTwinTest imp
         underTest = ThingMergeCommandResponseAdapter.of(DittoProtocolAdapter.getHeaderTranslator());
     }
 
-    @Test(expected = UnknownTopicPathException.class)
+    @Test(expected = UnknownPathException.class)
     public void unknownCommandFromAdaptable() {
         final TopicPath topicPath = topicPath(TopicPath.Action.MERGE);
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)

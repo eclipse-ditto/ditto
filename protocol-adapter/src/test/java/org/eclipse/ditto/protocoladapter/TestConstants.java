@@ -17,6 +17,7 @@ import static java.util.Collections.singletonList;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -123,6 +124,8 @@ public final class TestConstants {
     public static final JsonPointer FEATURE_DESIRED_PROPERTIES_POINTER_ABSOLUTE =
             JsonPointer.of(
                     FEATURES_POINTER + "/" + FEATURE_ID + "/desiredProperties" + FEATURE_DESIRED_PROPERTY_POINTER);
+    public static final TopicPath TOPIC_PATH_MERGE_THING =
+            TopicPath.newBuilder(TestConstants.THING_ID).things().twin().commands().merge().build();
 
     public static final JsonObject ATTRIBUTES_JSON =
             JsonObject.newBuilder().set(ATTRIBUTE_POINTER, ATTRIBUTE_VALUE).build();
@@ -190,6 +193,20 @@ public final class TestConstants {
 
     public static final long REVISION = 1337;
 
+    public static final List<JsonPointer> THING_POINTERS = Arrays.asList(
+            JsonPointer.empty(),
+            TestConstants.POLICY_ID_POINTER,
+            TestConstants.THING_ATTRIBUTES_POINTER,
+            TestConstants.THING_DEFINITION_POINTER,
+            TestConstants.FEATURES_POINTER,
+            TestConstants.FEATURE_PROPERTIES_POINTER,
+            TestConstants.FEATURE_DESIRED_PROPERTIES_POINTER,
+            TestConstants.FEATURE_DEFINITION_POINTER,
+            TestConstants.FEATURE_PROPERTY_POINTER_ABSOLUTE,
+            TestConstants.FEATURE_DESIRED_PROPERTIES_POINTER_ABSOLUTE,
+            TestConstants.THING_ATTRIBUTE_POINTER
+    );
+
     public static Adaptable adaptable(final TopicPath topicPath, final JsonPointer path) {
         return adaptable(topicPath, path, null, null);
     }
@@ -203,8 +220,7 @@ public final class TestConstants {
     }
 
     public static Adaptable adaptable(final TopicPath topicPath, final JsonPointer path,
-            @Nullable final JsonValue value,
-            final HttpStatusCode status) {
+            @Nullable final JsonValue value, final HttpStatusCode status) {
         final PayloadBuilder payloadBuilder = Payload.newBuilder(path);
 
         if (value != null) {
@@ -272,6 +288,7 @@ public final class TestConstants {
         public static final Subjects SUBJECTS = Subjects.newInstance(SUBJECT1, SUBJECT2);
 
         public static class TopicPaths {
+
             public static final TopicPath CREATE =
                     TopicPath.newBuilder(POLICY_ID).policies().commands().create().build();
             public static final TopicPath MODIFY =

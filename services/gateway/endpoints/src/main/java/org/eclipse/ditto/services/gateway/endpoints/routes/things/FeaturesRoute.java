@@ -380,7 +380,7 @@ final class FeaturesRoute extends AbstractRoute {
                                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx,
                                                 dittoHeaders,
                                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                        propertiesJson -> MergeThing.withDesiredFeatureProperties(
+                                                        propertiesJson -> MergeThing.withFeatureDesiredProperties(
                                                                 thingId,
                                                                 featureId,
                                                                 ThingsModelFactory.newFeatureProperties(propertiesJson),
@@ -436,7 +436,7 @@ final class FeaturesRoute extends AbstractRoute {
                                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx,
                                                 dittoHeaders,
                                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
-                                                        propertyJson -> MergeThing.withDesiredFeatureProperty(thingId,
+                                                        propertyJson -> MergeThing.withFeatureDesiredProperty(thingId,
                                                                 featureId, JsonFactory.newPointer(jsonPointerString),
                                                                 DittoJsonException.wrapJsonRuntimeException(
                                                                         () -> JsonFactory.readFrom(propertyJson)),

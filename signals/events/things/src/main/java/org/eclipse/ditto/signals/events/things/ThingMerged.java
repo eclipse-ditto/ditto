@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
@@ -26,6 +27,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
@@ -67,6 +69,10 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged> implement
             final DittoHeaders dittoHeaders,
             @Nullable final Metadata metadata) {
         super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
+        Optional.of(getImplementedSchemaVersion())
+                .filter(this::implementsSchemaVersion)
+                // TODO throw what?
+                .orElseThrow(() -> JsonParseException.newBuilder().build());
         this.thingId = checkNotNull(thingId, "thingId");
         this.path = checkNotNull(path, "path");
         this.value = checkNotNull(value, "value");
@@ -147,6 +153,11 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged> implement
      */
     public JsonValue getValue() {
         return value;
+    }
+
+    @Override
+    public JsonSchemaVersion[] getSupportedSchemaVersions() {
+        return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
     }
 
     @Override

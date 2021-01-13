@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
+import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
 /**
@@ -58,6 +59,10 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
     private MergeThingResponse(final ThingId thingId, final JsonPointer path, final JsonValue value,
             final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.OK, dittoHeaders);
+        Optional.of(getImplementedSchemaVersion())
+                .filter(this::implementsSchemaVersion)
+                .orElseThrow(
+                        () -> CommandNotSupportedException.newBuilder(getImplementedSchemaVersion().toInt()).build());
         this.thingId = checkNotNull(thingId, "thingId");
         this.path = checkNotNull(path, "path");
         this.value = checkNotNull(value, "value");
@@ -95,6 +100,11 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
     @Override
     public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
         return Optional.of(value);
+    }
+
+    @Override
+    public JsonSchemaVersion[] getSupportedSchemaVersions() {
+        return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
     }
 
     /**

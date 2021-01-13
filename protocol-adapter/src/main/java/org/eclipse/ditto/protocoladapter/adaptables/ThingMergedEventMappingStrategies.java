@@ -14,7 +14,6 @@ package org.eclipse.ditto.protocoladapter.adaptables;
 
 import java.time.Instant;
 import java.util.HashMap;
-import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -34,28 +33,16 @@ final class ThingMergedEventMappingStrategies extends AbstractThingMappingStrate
     private static final ThingMergedEventMappingStrategies INSTANCE = new ThingMergedEventMappingStrategies();
 
     private ThingMergedEventMappingStrategies() {
-        super(initMappingStrategies());
+        super(new HashMap<>());
     }
 
     static ThingMergedEventMappingStrategies getInstance() {
         return INSTANCE;
     }
 
-    private static Map<String, JsonifiableMapper<ThingMerged>> initMappingStrategies() {
-        final Map<String, JsonifiableMapper<ThingMerged>> mappingStrategies = new HashMap<>();
-        mappingStrategies.put("thing", ThingMergedEventMappingStrategies::thingMerged);
-        mappingStrategies.put("policyId", ThingMergedEventMappingStrategies::thingMerged);
-        mappingStrategies.put("definition", ThingMergedEventMappingStrategies::thingMerged);
-        mappingStrategies.put("attributes", ThingMergedEventMappingStrategies::thingMerged);
-        mappingStrategies.put("attribute", ThingMergedEventMappingStrategies::thingMerged);
-        mappingStrategies.put("features", ThingMergedEventMappingStrategies::thingMerged);
-        mappingStrategies.put("feature", ThingMergedEventMappingStrategies::thingMerged);
-        mappingStrategies.put("featureDefinition", ThingMergedEventMappingStrategies::thingMerged);
-        mappingStrategies.put("featureProperties", ThingMergedEventMappingStrategies::thingMerged);
-        mappingStrategies.put("featureProperty", ThingMergedEventMappingStrategies::thingMerged);
-        mappingStrategies.put("featureDesiredProperties", ThingMergedEventMappingStrategies::thingMerged);
-        mappingStrategies.put("featureDesiredProperty", ThingMergedEventMappingStrategies::thingMerged);
-        return mappingStrategies;
+    @Override
+    public JsonifiableMapper<ThingMerged> find(final String type) {
+        return ThingMergedEventMappingStrategies::thingMerged;
     }
 
     private static ThingMerged thingMerged(final Adaptable adaptable) {
