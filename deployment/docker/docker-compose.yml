@@ -142,7 +142,7 @@ services:
     command: java -Dditto.gateway.authentication.devops.password=foobar -jar starter.jar
 
   swagger-ui:
-    image: docker.io/swaggerapi/swagger-ui:v3.20.5
+    image: docker.io/swaggerapi/swagger-ui:v3.38.0
     volumes:
        - ../../documentation/src/main/resources/openapi:/usr/share/nginx/html/openapi:ro
        - ../../documentation/src/main/resources/images:/usr/share/nginx/html/images:ro

@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
+import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -174,7 +175,7 @@ public final class StreamingSessionActorHeaderInteractionTest {
     private ActorRef createStreamingSessionActor() {
         final Connect connect =
                 new Connect(sourceQueue, "connectionCorrelationId", "ws",
-                        JsonSchemaVersion.V_2, null, Set.of());
+                        JsonSchemaVersion.V_2, null, Set.of(), AuthorizationModelFactory.emptyAuthContext());
         final Props props = StreamingSessionActor.props(connect, dittoProtocolSub, commandRouterProbe.ref(),
                 DefaultAcknowledgementConfig.of(ConfigFactory.empty()), HeaderTranslator.empty(),
                 Props.create(TestProbeForwarder.class, subscriptionManagerProbe), Mockito.mock(JwtValidator.class),
@@ -241,5 +242,7 @@ public final class StreamingSessionActorHeaderInteractionTest {
         public Receive createReceive() {
             return ReceiveBuilder.create().matchAny(msg -> testProbe.ref().forward(msg, getContext())).build();
         }
+      
     }
+  
 }

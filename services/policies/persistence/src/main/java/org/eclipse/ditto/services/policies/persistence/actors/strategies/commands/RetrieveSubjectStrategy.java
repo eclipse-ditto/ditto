@@ -25,6 +25,7 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubject;
@@ -36,8 +37,8 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
  */
 final class RetrieveSubjectStrategy extends AbstractPolicyQueryCommandStrategy<RetrieveSubject> {
 
-    RetrieveSubjectStrategy() {
-        super(RetrieveSubject.class);
+    RetrieveSubjectStrategy(final PolicyConfig policyConfig) {
+        super(RetrieveSubject.class, policyConfig);
     }
 
 

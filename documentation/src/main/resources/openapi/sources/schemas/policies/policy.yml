@@ -9,15 +9,13 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 type: object
-description: |-
-  (Authorization) Resources containing one ResourceEntry for each
-  `type:path` key, `type` being one of the following `thing`, `policy`, `message`.
+description: Policy consisting of policy entries
 properties:
-  'thing:/':
-    $ref: 'resourceEntry.yml'
-  'thing:/attributes/some/path':
-    $ref: 'resourceEntryRestricted.yml'
-  'policy:/':
-    $ref: 'resourceEntry.yml'
-  'message:/':
-    $ref: 'resourceEntry.yml'
+  policyId:
+    type: string
+    description: Unique identifier representing the policy
+  entries:
+    $ref: 'policyEntries.yml'
+required:
+  - policyId
+  - entries

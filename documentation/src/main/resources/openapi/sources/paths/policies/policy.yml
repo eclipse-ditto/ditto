@@ -14,7 +14,7 @@ get:
     Returns the complete policy identified by the `policyId` path parameter. The
     response contains the policy as JSON object.
 
-    Tip: If you don't know the policy ID, request it via GET ​/things​/{thingId}.
+    Tip: If you don't know the policy ID of a thing, request it via GET `/things/{thingId}`.
   tags:
     - Policies
   parameters:
@@ -37,7 +37,7 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/policy.yml'
+            $ref: '../../schemas/policies/policy.yml'
     '304':
       $ref: '../../responses/notModified.yml'
     '400':
@@ -48,13 +48,13 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. The policy with the given ID was
@@ -62,7 +62,7 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'
 put:
@@ -154,7 +154,7 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/policy.yml'
+            $ref: '../../schemas/policies/newPolicy.yml'
     '204':
       description: The policy was successfully updated.
       headers:
@@ -173,17 +173,16 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '403':
       description: |-
         The request could not be completed. Possible reasons:
-
           * the caller has insufficient permissions.
             You need `WRITE` permission on the root `policy:/` resource,
             without any revoke in a deeper path of the policy resource.
@@ -191,7 +190,7 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. The policy with the given ID was
@@ -199,7 +198,7 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'
     '413':
@@ -208,7 +207,7 @@ put:
     content:
       application/json:
         schema:
-          $ref: '../../schemas/policy.yml'
+          $ref: '../../schemas/policies/newPolicy.yml'
         example: {
           "entries": {
             "DEFAULT": {
@@ -220,22 +219,22 @@ put:
               "resources": {
                 "policy:/": {
                   "grant": [
-                      "READ",
-                      "WRITE"
+                    "READ",
+                    "WRITE"
                   ],
                   "revoke": []
                 },
                 "thing:/": {
                   "grant": [
-                      "READ",
-                      "WRITE"
+                    "READ",
+                    "WRITE"
                   ],
                   "revoke": []
                 },
                 "message:/": {
                   "grant": [
-                      "READ",
-                      "WRITE"
+                    "READ",
+                    "WRITE"
                   ],
                   "revoke": []
                 }
@@ -278,13 +277,13 @@ delete:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '403':
       description: |-
         The request could not be completed. Possible reasons:
@@ -294,7 +293,7 @@ delete:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. The policy with the given ID was
@@ -302,6 +301,6 @@ delete:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'

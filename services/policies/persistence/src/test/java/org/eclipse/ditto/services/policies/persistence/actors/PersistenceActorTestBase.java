@@ -24,6 +24,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
@@ -54,8 +55,8 @@ import com.typesafe.config.ConfigFactory;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.stream.Attributes;
-import akka.testkit.javadsl.TestKit;
 import akka.testkit.TestProbe;
+import akka.testkit.javadsl.TestKit;
 
 /**
  * Base test class for testing persistence actors of the policies persistence.
@@ -118,6 +119,8 @@ public abstract class PersistenceActorTestBase {
                 .authorizationContext(
                         AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.UNSPECIFIED,
                                 authSubjects))
+                .putHeader(DittoHeaderDefinition.POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY.getKey(),
+                        Boolean.TRUE.toString())
                 .build();
     }
 

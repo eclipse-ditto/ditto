@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyRevision;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyRevision;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyRevisionResponse;
+import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
@@ -35,8 +36,9 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
  */
 final class SudoRetrievePolicyRevisionStrategy extends AbstractPolicyQueryCommandStrategy<SudoRetrievePolicyRevision> {
 
-    SudoRetrievePolicyRevisionStrategy() {
-        super(SudoRetrievePolicyRevision.class);
+    SudoRetrievePolicyRevisionStrategy(
+            final PolicyConfig policyConfig) {
+        super(SudoRetrievePolicyRevision.class, policyConfig);
     }
 
     @Override

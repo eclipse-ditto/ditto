@@ -43,22 +43,22 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '403':
       description: The request could not be completed due to an invalid authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '504':
       description: The request ran out of time to execute on the the back-end. Optimize your query and try again.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'

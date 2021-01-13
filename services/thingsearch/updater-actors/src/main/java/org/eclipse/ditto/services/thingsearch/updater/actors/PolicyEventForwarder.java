@@ -198,7 +198,12 @@ final class PolicyEventForwarder extends AbstractActor {
     @SuppressWarnings("unchecked")
     private Source<PolicyReferenceTag, NotUsed> mapDumpResult(final Object dumpResult) {
         if (dumpResult instanceof Map) {
-            return persistence.getPolicyReferenceTags((Map<PolicyId, Long>) dumpResult);
+            final Map<PolicyId, Long> map = (Map<PolicyId, Long>) dumpResult;
+            if (map.isEmpty()) {
+                return Source.empty();
+            } else {
+                return persistence.getPolicyReferenceTags(map);
+            }
         } else {
             if (dumpResult instanceof Throwable) {
                 log.error((Throwable) dumpResult, "dump failed");

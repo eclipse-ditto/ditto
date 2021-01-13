@@ -43,7 +43,7 @@ public final class ImmutableTargetTest {
     private static final String DITTO_MAPPING = "ditto-mapping";
     private static final AcknowledgementLabel ACKNOWLEDGEMENT_LABEL = AcknowledgementLabel.of("custom-ack");
 
-    private static final Target TARGET_WITH_AUTH_CONTEXT = ConnectivityModelFactory
+    private static final Target TARGET = ConnectivityModelFactory
             .newTargetBuilder()
             .address(ADDRESS)
             .authorizationContext(AUTHORIZATION_CONTEXT)
@@ -52,13 +52,9 @@ public final class ImmutableTargetTest {
             .payloadMapping(ConnectivityModelFactory.newPayloadMapping(DITTO_MAPPING, CUSTOM_MAPPING))
             .build();
 
-    private static final JsonObject TARGET_JSON_WITH_EMPTY_AUTH_CONTEXT = JsonObject
-            .newBuilder()
+    private static final JsonObject TARGET_JSON = JsonObject.newBuilder()
             .set(Target.JsonFields.TOPICS, JsonFactory.newArrayBuilder().add(TWIN_EVENTS.getName()).build())
             .set(Target.JsonFields.ADDRESS, ADDRESS)
-            .build();
-
-    private static final JsonObject TARGET_JSON_WITH_AUTH_CONTEXT = TARGET_JSON_WITH_EMPTY_AUTH_CONTEXT.toBuilder()
             .set(Target.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
             .set(Target.JsonFields.ISSUED_ACKNOWLEDGEMENT_LABEL, "custom-ack")
             .set(Target.JsonFields.PAYLOAD_MAPPING, JsonArray.of(DITTO_MAPPING, CUSTOM_MAPPING))
@@ -99,16 +95,16 @@ public final class ImmutableTargetTest {
 
     @Test
     public void toJsonReturnsExpected() {
-        final JsonObject actual = TARGET_WITH_AUTH_CONTEXT.toJson();
+        final JsonObject actual = TARGET.toJson();
 
-        assertThat(actual).isEqualTo(TARGET_JSON_WITH_AUTH_CONTEXT);
+        assertThat(actual).isEqualTo(TARGET_JSON);
     }
 
     @Test
     public void fromJsonReturnsExpected() {
-        final Target actual = ImmutableTarget.fromJson(TARGET_JSON_WITH_AUTH_CONTEXT);
+        final Target actual = ImmutableTarget.fromJson(TARGET_JSON);
 
-        assertThat(actual).isEqualTo(TARGET_WITH_AUTH_CONTEXT);
+        assertThat(actual).isEqualTo(TARGET);
     }
 
     @Test

@@ -8,10 +8,8 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
-properties:
-  items:
-    type: array
-    items:
-      $ref: 'thing.yml'
-  cursor:
-    type: string
+type: http
+scheme: bearer
+bearerFormat: JWT
+description: |-
+  A JSON Web Token issued by a supported OAuth 2.0 Identity Provider.

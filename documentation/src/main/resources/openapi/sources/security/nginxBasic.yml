@@ -8,13 +8,7 @@
 # http://www.eclipse.org/legal/epl-2.0
 #
 # SPDX-License-Identifier: EPL-2.0
-type: object
-description: Single policy entry containing Subjects and Resources.
-required:
-  - subjects
-  - resources
-properties:
-  subjects:
-    $ref: 'subjects.yml'
-  resources:
-    $ref: 'resources.yml'
+type: http
+description: |-
+  Eclipse Ditto sandbox demo user (demo1 ... demo9) + password (demo)
+scheme: basic

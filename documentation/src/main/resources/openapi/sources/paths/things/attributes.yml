@@ -33,7 +33,7 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/attributes.yml'
+            $ref: '../../schemas/things/attributes.yml'
     '304':
       $ref: '../../responses/notModified.yml'
     '400':
@@ -44,20 +44,20 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. The thing with the given ID was not found.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'
 put:
@@ -92,7 +92,7 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/attributes.yml'
+            $ref: '../../schemas/things/attributes.yml'
     '204':
       description: The attributes were successfully updated.
       headers:
@@ -110,13 +110,13 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '403':
       description: |-
         The request could not be completed. Possible reasons:
@@ -125,7 +125,7 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. The thing with the given ID was
@@ -133,7 +133,7 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'
     '413':
@@ -164,13 +164,13 @@ delete:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '403':
       description: |-
         The request could not be completed. Possible reasons:
@@ -179,7 +179,7 @@ delete:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. The thing with the given ID or
@@ -187,6 +187,6 @@ delete:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'

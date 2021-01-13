@@ -14,17 +14,24 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.model;
 
 import org.junit.Test;
 
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.testkit.TestProbe;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
  * Unit test for {@link ThingWriteModel}.
  */
-public final class ThingWriteModelTest {
+public final class ThingWriteModelTest extends AbstractWithActorSystemTest {
 
     @Test
     public void testHashCodeAndEquals() {
+        system = ActorSystem.create();
+        final TestProbe probe1 = TestProbe.apply(system);
+        final TestProbe probe2 = TestProbe.apply(system);
         EqualsVerifier.forClass(ThingWriteModel.class)
                 .usingGetClass()
+                .withPrefabValues(ActorRef.class, probe1.ref(), probe2.ref())
                 .verify();
     }
 
