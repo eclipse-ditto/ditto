@@ -30,3 +30,7 @@ post:
     '403':
       description: |-
         The request could not be completed because the user does not have the EXECUTE permission on this policy entry.
+    '404':
+      description: |-
+        The request could not be completed because no authorized policy entry contains a READ permission granted to
+        a thing resource path.

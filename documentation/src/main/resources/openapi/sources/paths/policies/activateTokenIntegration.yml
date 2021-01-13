@@ -29,3 +29,7 @@ post:
       description: |-
         The request could not be completed because the user does not have the EXECUTE permission on any entries of
         the policy.
+    '404':
+      description: |-
+        The request could not be completed because no authorized policy entry contains a READ permission granted to
+        a thing resource path.
