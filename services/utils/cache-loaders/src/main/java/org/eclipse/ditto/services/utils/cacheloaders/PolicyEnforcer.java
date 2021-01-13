@@ -56,6 +56,12 @@ public final class PolicyEnforcer {
         return new PolicyEnforcer(null, enforcer);
     }
 
+    /**
+     * Create a cache entry containing an Enforcer extracted from the passed {@code policyEnforcerEntry}.
+     *
+     * @param policyEnforcerEntry a {@link PolicyEnforcer} containing both policy and enforcer.
+     * @return the cache entry containing an Enforcer.
+     */
     public static Entry<Enforcer> project(final Entry<PolicyEnforcer> policyEnforcerEntry) {
         if (policyEnforcerEntry.exists()) {
             return Entry.of(policyEnforcerEntry.getRevision(), policyEnforcerEntry.getValueOrThrow().getEnforcer());
@@ -65,10 +71,10 @@ public final class PolicyEnforcer {
     }
 
     /**
-     * Create a policy enforcer without policy.
+     * Create a cache entry containing a PolicyEnforcer without policy.
      *
      * @param enforcerEntry the enforcer cache entry.
-     * @return the pair
+     * @return the cache entry containing a PolicyEnforcer without policy
      */
     public static Entry<PolicyEnforcer> embed(final Entry<Enforcer> enforcerEntry) {
         if (enforcerEntry.exists()) {

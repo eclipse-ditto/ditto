@@ -12,13 +12,23 @@
  */
 package org.eclipse.ditto.services.utils.cache;
 
-import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
+/**
+ * A cache working on an embedded passed {@code cache} with values of type {@code <V>}, representing a projected cache
+ * with values of type {@code U}.
+ * <p>
+ * Conversion between the embedded cache and projected cache are performed via functions passed to the class'
+ * constructor.
+ *
+ * @param <K> the type of the cache's key
+ * @param <U> the type of the projected cache's value
+ * @param <V> the type of the embedded cache's value
+ */
 final class ProjectedCache<K, U, V> implements Cache<K, U> {
 
     private final Cache<K, V> cache;
