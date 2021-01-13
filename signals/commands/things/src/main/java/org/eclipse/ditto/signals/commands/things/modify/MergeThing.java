@@ -396,6 +396,11 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
     }
 
     @Override
+    public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
+        return Optional.of(value);
+    }
+
+    @Override
     public JsonPointer getResourcePath() {
         return path;
     }

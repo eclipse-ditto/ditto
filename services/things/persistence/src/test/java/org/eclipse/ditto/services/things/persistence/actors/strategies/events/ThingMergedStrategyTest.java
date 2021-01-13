@@ -18,7 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.time.Instant;
 
-import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
@@ -26,7 +26,6 @@ import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.events.things.ThingMerged;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -35,6 +34,13 @@ import org.junit.Test;
 public final class ThingMergedStrategyTest extends AbstractStrategyTest {
 
     private static final Instant TIMESTAMP = Instant.now();
+    private static final String METADATA_KEY = "description";
+    private static final String METADATA_VALUE = "description of the location";
+    private static final Metadata METADATA = Metadata.newBuilder().set(METADATA_KEY, METADATA_VALUE).build();
+    private static final Metadata EXPECTED_METADATA = Metadata.newBuilder()
+            .set(TestConstants.Thing.ABSOLUTE_LOCATION_ATTRIBUTE_POINTER.append(JsonPointer.of(METADATA_KEY)),
+                    METADATA_VALUE)
+            .build();
 
     @Test
     public void assertImmutability() {
@@ -46,7 +52,7 @@ public final class ThingMergedStrategyTest extends AbstractStrategyTest {
         final ThingMergedStrategy strategy = new ThingMergedStrategy();
         final ThingMerged event = ThingMerged.of(THING.getEntityId().orElseThrow(),
                 TestConstants.Thing.ABSOLUTE_LOCATION_ATTRIBUTE_POINTER,
-                TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE, REVISION, TIMESTAMP, DittoHeaders.empty(), null);
+                TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE, REVISION, TIMESTAMP, DittoHeaders.empty(), METADATA);
 
         final Thing thingWithMergeApplied = strategy.handle(event, THING, NEXT_REVISION);
 
@@ -57,20 +63,23 @@ public final class ThingMergedStrategyTest extends AbstractStrategyTest {
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .setRevision(NEXT_REVISION)
                 .setModified(TIMESTAMP)
+                .setMetadata(EXPECTED_METADATA)
                 .build();
+
         assertThat(thingWithMergeApplied).isEqualTo(expected);
     }
 
     @Test
-    @Ignore
-    // TODO either delete this test or get it to work after it is decided who to merge metadata for merged thing event.
     public void replacesPreviousMetadata() {
         final ThingMergedStrategy strategy = new ThingMergedStrategy();
         final ThingMerged event = ThingMerged.of(THING.getEntityId().orElseThrow(),
                 TestConstants.Thing.ABSOLUTE_LOCATION_ATTRIBUTE_POINTER,
                 TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE, REVISION, TIMESTAMP, DittoHeaders.empty(), METADATA);
 
-        final Metadata previousMetadata = Metadata.newBuilder().set("additives", JsonArray.of("[\"E129\"]")).build();
+        final Metadata previousMetadata = Metadata.newBuilder()
+                .set(TestConstants.Thing.ABSOLUTE_LOCATION_ATTRIBUTE_POINTER.append(JsonPointer.of(METADATA_KEY)),
+                        "description")
+                .build();
         final Thing thingWithMergeApplied =
                 strategy.handle(event, THING.toBuilder().setMetadata(previousMetadata).build(), NEXT_REVISION);
 
@@ -81,8 +90,9 @@ public final class ThingMergedStrategyTest extends AbstractStrategyTest {
                 .setLifecycle(ThingLifecycle.ACTIVE)
                 .setRevision(NEXT_REVISION)
                 .setModified(TIMESTAMP)
-                .setMetadata(METADATA)
+                .setMetadata(EXPECTED_METADATA)
                 .build();
+
         assertThat(thingWithMergeApplied).isEqualTo(expected);
     }
 

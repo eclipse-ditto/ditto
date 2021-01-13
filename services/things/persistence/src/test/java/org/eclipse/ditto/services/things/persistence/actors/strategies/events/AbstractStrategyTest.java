@@ -158,9 +158,4 @@ abstract class AbstractStrategyTest {
      */
     static final long NEXT_REVISION = 1;
 
-    /**
-     * Metadata of a Thing.
-     */
-    static final Metadata METADATA = Metadata.newBuilder().set("hello", "world").build();
-
 }

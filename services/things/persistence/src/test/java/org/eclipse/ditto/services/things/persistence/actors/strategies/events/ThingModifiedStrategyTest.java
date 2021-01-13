@@ -32,6 +32,7 @@ import org.junit.Test;
 public final class ThingModifiedStrategyTest extends AbstractStrategyTest {
 
     private static final Instant TIMESTAMP = Instant.now();
+    private static final Metadata METADATA = Metadata.newBuilder().set("hello", "world").build();
 
     @Test
     public void assertImmutability() {
@@ -51,6 +52,7 @@ public final class ThingModifiedStrategyTest extends AbstractStrategyTest {
                 .setModified(TIMESTAMP)
                 .setMetadata(METADATA)
                 .build();
+
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }
 
