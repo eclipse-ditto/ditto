@@ -636,7 +636,8 @@ public final class PolicyCommandEnforcementTest {
             final ActivatePolicyTokenIntegration
                     forwarded = policiesShardRegionProbe.expectMsgClass(ActivatePolicyTokenIntegration.class);
             assertThat(forwarded).isEqualTo(
-                    ActivatePolicyTokenIntegration.of(POLICY_ID, subjectId, expiry, List.of(Label.of("allowed")), DITTO_HEADERS));
+                    ActivatePolicyTokenIntegration.of(POLICY_ID, subjectId, expiry, List.of(Label.of("allowed")),
+                            DITTO_HEADERS));
         }};
     }
 
@@ -655,7 +656,8 @@ public final class PolicyCommandEnforcementTest {
             final DeactivatePolicyTokenIntegration
                     forwarded = policiesShardRegionProbe.expectMsgClass(DeactivatePolicyTokenIntegration.class);
             assertThat(forwarded).isEqualTo(
-                    DeactivatePolicyTokenIntegration.of(POLICY_ID, subjectId, List.of(Label.of("allowed")), DITTO_HEADERS));
+                    DeactivatePolicyTokenIntegration.of(POLICY_ID, subjectId, List.of(Label.of("allowed")),
+                            DITTO_HEADERS));
         }};
     }
 
@@ -672,7 +674,8 @@ public final class PolicyCommandEnforcementTest {
             policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
             policiesShardRegionProbe.reply(createPolicyResponseForActions());
 
-            final ActivateTokenIntegration forwarded = policiesShardRegionProbe.expectMsgClass(ActivateTokenIntegration.class);
+            final ActivateTokenIntegration forwarded =
+                    policiesShardRegionProbe.expectMsgClass(ActivateTokenIntegration.class);
             assertThat(forwarded).isEqualTo(activateTokenIntegration);
         }};
     }
@@ -814,8 +817,13 @@ public final class PolicyCommandEnforcementTest {
                         EffectedPermissions.newInstance(Permission.DEFAULT_POLICY_PERMISSIONS, Set.of()))));
         final PolicyEntry executeEntry = PolicyEntry.newInstance("execute",
                 List.of(AUTH_SUBJECT),
-                Set.of(Resource.newInstance(PoliciesResourceType.policyResource("/entries/allowed"),
-                        EffectedPermissions.newInstance(Set.of(Permission.EXECUTE), Set.of()))));
+                Set.of(Resource.newInstance(
+                        PoliciesResourceType.policyResource("/entries/allowed/actions/activateTokenIntegration"),
+                        EffectedPermissions.newInstance(Set.of(Permission.EXECUTE), Set.of())),
+                        Resource.newInstance(PoliciesResourceType.policyResource(
+                                "/entries/allowed/actions/deactivateTokenIntegration"),
+                                EffectedPermissions.newInstance(Set.of(Permission.EXECUTE), Set.of()))
+                ));
         final PolicyEntry allowedEntry = PolicyEntry.newInstance("allowed", List.of(), Set.of());
         final PolicyEntry forbiddenEntry = PolicyEntry.newInstance("forbidden", List.of(), Set.of());
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(POLICY_ID)

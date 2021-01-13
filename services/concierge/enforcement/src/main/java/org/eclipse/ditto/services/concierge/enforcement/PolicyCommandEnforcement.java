@@ -134,11 +134,15 @@ public final class PolicyCommandEnforcement
     private static <T extends PolicyCommand<?>> Optional<T> authorizeActionCommand(final PolicyEnforcer enforcer,
             final T command, final ResourceKey resourceKey, final AuthorizationContext authorizationContext) {
 
-        if (resourceKey.getResourcePath().isEmpty()) {
+        if (isTopLevelActionCommand(command)) {
             return authorizeTopLevelAction(enforcer, command, authorizationContext);
         } else {
             return authorizeEntryLevelAction(enforcer.getEnforcer(), command, resourceKey, authorizationContext);
         }
+    }
+
+    private static boolean isTopLevelActionCommand(final PolicyCommand<?> command) {
+        return PolicyActionCommand.RESOURCE_PATH_ACTIONS.getRoot().equals(command.getResourcePath().getRoot());
     }
 
     private static <T extends PolicyCommand<?>> Optional<T> authorizeEntryLevelAction(final Enforcer enforcer,
@@ -155,8 +159,8 @@ public final class PolicyCommandEnforcement
         final List<Label> authorizedLabels = policyEnforcer.getPolicy()
                 .map(policy -> policy.getEntriesSet().stream()
                         .map(PolicyEntry::getLabel)
-                        .filter(label -> enforcer.hasUnrestrictedPermissions(asResourceKey(label), authorizationContext,
-                                Permission.EXECUTE))
+                        .filter(label -> enforcer.hasUnrestrictedPermissions(asResourceKey(label, command),
+                                authorizationContext, Permission.EXECUTE))
                         .collect(Collectors.toList()))
                 .orElse(List.of());
         if (authorizedLabels.isEmpty()) {
@@ -164,13 +168,15 @@ public final class PolicyCommandEnforcement
         } else if (command instanceof ActivatePolicyTokenIntegration) {
             final ActivatePolicyTokenIntegration c = (ActivatePolicyTokenIntegration) command;
             final T adjustedCommand =
-                    (T) ActivatePolicyTokenIntegration.of(c.getEntityId(), c.getSubjectId(), c.getExpiry(), authorizedLabels,
+                    (T) ActivatePolicyTokenIntegration.of(c.getEntityId(), c.getSubjectId(), c.getExpiry(),
+                            authorizedLabels,
                             c.getDittoHeaders());
             return Optional.of(adjustedCommand);
         } else if (command instanceof DeactivatePolicyTokenIntegration) {
             final DeactivatePolicyTokenIntegration c = (DeactivatePolicyTokenIntegration) command;
             final T adjustedCommand =
-                    (T) DeactivatePolicyTokenIntegration.of(c.getEntityId(), c.getSubjectId(), authorizedLabels, c.getDittoHeaders());
+                    (T) DeactivatePolicyTokenIntegration.of(c.getEntityId(), c.getSubjectId(), authorizedLabels,
+                            c.getDittoHeaders());
             return Optional.of(adjustedCommand);
         } else {
             return Optional.empty();
@@ -206,7 +212,6 @@ public final class PolicyCommandEnforcement
     private static JsonObject getJsonViewForPolicyQueryCommandResponse(final JsonObject responseEntity,
             final PolicyQueryCommandResponse<?> response,
             final Enforcer enforcer) {
-
 
         final ResourceKey resourceKey =
                 ResourceKey.newInstance(PolicyCommand.RESOURCE_TYPE, response.getResourcePath());
@@ -362,9 +367,16 @@ public final class PolicyCommandEnforcement
         }
     }
 
-    private static ResourceKey asResourceKey(final Label label) {
+    /**
+     * Convert a policy entry label for a top-level policy action into a resource path for authorization check.
+     *
+     * @param label the policy entry label.
+     * @param command the top-level policy action command.
+     * @return the resource key.
+     */
+    private static ResourceKey asResourceKey(final Label label, final PolicyCommand<?> command) {
         return ResourceKey.newInstance(PoliciesResourceType.POLICY,
-                Policy.JsonFields.ENTRIES.getPointer().addLeaf(JsonKey.of(label)));
+                Policy.JsonFields.ENTRIES.getPointer().addLeaf(JsonKey.of(label)).append(command.getResourcePath()));
     }
 
     /**

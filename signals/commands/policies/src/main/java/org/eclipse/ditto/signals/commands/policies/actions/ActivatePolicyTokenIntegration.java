@@ -30,6 +30,7 @@ import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
@@ -120,7 +121,8 @@ public final class ActivatePolicyTokenIntegration extends AbstractCommand<Activa
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static ActivatePolicyTokenIntegration fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static ActivatePolicyTokenIntegration fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<ActivatePolicyTokenIntegration>(TYPE, jsonObject).deserialize(() -> {
             final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
@@ -169,8 +171,8 @@ public final class ActivatePolicyTokenIntegration extends AbstractCommand<Activa
 
     @Override
     public JsonPointer getResourcePath() {
-        // TODO return /actions/activateTokenIntegration
-        return JsonPointer.empty();
+        // actions/activateTokenIntegration
+        return RESOURCE_PATH_ACTIONS.addLeaf(JsonKey.of(ActivateTokenIntegration.NAME));
     }
 
     @Override
