@@ -63,11 +63,11 @@ The content of the `put-metadata` in order to do that would look like this:
   {
     "key": "/features/lamp/properties/color/r",
     "value": {
-      "foo": "bar",
+      "foo": "bumlux",
       "issuedAt": "someTimestamp",
       "issuedBy": {
-        "name":"me",
-        "mail":"me@mail.com"
+        "name":"ditto",
+        "mail":"ditto@mail.com"
       }
     }
   }
@@ -77,7 +77,7 @@ The content of the `put-metadata` in order to do that would look like this:
 The resulting Thing JSON including its `_metadata` would look like this:
 ```json
 {
-    "thingId": "org.eclipse.ditto:meta-test-1",
+    "thingId": "org.eclipse.ditto:my-lamp-1",
     "features": {
         "lamp": {
             "properties": {
@@ -90,12 +90,18 @@ The resulting Thing JSON including its `_metadata` would look like this:
         }
     },
     "_metadata": {
+        "thingId" : {
+          "foo": "bar"
+        },
+        "policyId" : {
+          "foo": "bar"
+        },
         "features": {
             "lamp": {
                 "properties": {
                     "color": {
                         "r": {
-                            "foo": "bar",
+                            "foo": "bumlux",
                             "issuedAt": "someTimestamp",
                             "issuedBy": {
                                 "name": "me",
@@ -127,7 +133,7 @@ following example:
 ```json
 [
   {
-    "key": "*/timestamp",
+    "key": "*/issuedAt",
     "value": "someTimestamp"
   }
 ]
@@ -148,7 +154,7 @@ will yield the Metadata stored for the given Thing, in the following format:
 
 ```json
 {
-  "thingId": "org.eclipse.ditto:thing-1",
+  "thingId": "org.eclipse.ditto:my-lamp-1",
   "policyId": "...",
   "features": {
     "lamp": {
