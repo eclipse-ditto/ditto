@@ -33,6 +33,7 @@ import org.eclipse.ditto.services.base.actors.DittoRootActor;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.query.QueryParser;
+import org.eclipse.ditto.services.thingsearch.persistence.query.validation.QueryCriteriaValidator;
 import org.eclipse.ditto.services.thingsearch.persistence.read.MongoThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.read.ThingsSearchPersistence;
 import org.eclipse.ditto.services.thingsearch.persistence.read.query.MongoQueryBuilderFactory;
@@ -140,16 +141,17 @@ public final class SearchRootActor extends DittoRootActor {
     private ActorRef initializeSearchActor(final LimitsConfig limitsConfig,
             final ThingsSearchPersistence thingsSearchPersistence) {
 
-        final QueryParser queryParser = getQueryParser(limitsConfig);
+        final QueryParser queryParser = getQueryParser(limitsConfig, getContext().getSystem());
 
         return startChildActor(SearchActor.ACTOR_NAME, SearchActor.props(queryParser, thingsSearchPersistence));
     }
 
-    static QueryParser getQueryParser(final LimitsConfig limitsConfig) {
+    protected static QueryParser getQueryParser(final LimitsConfig limitsConfig, final ActorSystem actorSystem) {
         final CriteriaFactory criteriaFactory = new CriteriaFactoryImpl();
         final ThingsFieldExpressionFactory fieldExpressionFactory = getThingsFieldExpressionFactory();
         final QueryBuilderFactory queryBuilderFactory = new MongoQueryBuilderFactory(limitsConfig);
-        return QueryParser.of(criteriaFactory, fieldExpressionFactory, queryBuilderFactory);
+        final QueryCriteriaValidator queryCriteriaValidator = QueryCriteriaValidator.get(actorSystem);
+        return QueryParser.of(criteriaFactory, fieldExpressionFactory, queryBuilderFactory, queryCriteriaValidator);
     }
 
     private ActorRef initializeHealthCheckActor(final SearchConfig searchConfig,
