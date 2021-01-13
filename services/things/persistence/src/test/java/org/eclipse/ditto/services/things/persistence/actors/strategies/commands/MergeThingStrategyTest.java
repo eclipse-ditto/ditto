@@ -39,9 +39,6 @@ import org.junit.Test;
  */
 public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
 
-    private static final DittoHeaders V1_HEADER =
-            DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_1).build();
-
     private MergeThingStrategy underTest;
 
     @Before
@@ -75,17 +72,6 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
         final MergeThingResponse expectedCommandResponse =
                 mergeThingResponse(existing, path, thingJson, mergeThing.getDittoHeaders());
         assertModificationResult(underTest, existing, mergeThing, ThingMerged.class, expectedCommandResponse);
-    }
-
-    @Test
-    public void mergeV2ThingWithV1CommandExpectCommandNotSupportedException() {
-        final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final ThingId thingId = context.getState();
-        final Thing existing = THING_V2.toBuilder().setRevision(NEXT_REVISION - 1).build();
-        final JsonPointer path = JsonPointer.empty();
-        final MergeThing mergeThing = MergeThing.of(thingId, path, JsonObject.empty(), V1_HEADER);
-        assertErrorResult(underTest, existing, mergeThing,
-                CommandNotSupportedException.newBuilder(JsonSchemaVersion.V_1.toInt()).build());
     }
 
     @Test
