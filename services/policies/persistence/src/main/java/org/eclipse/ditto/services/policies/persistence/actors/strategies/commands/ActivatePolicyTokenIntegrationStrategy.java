@@ -43,7 +43,6 @@ import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIntegrationResponse;
-import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 import org.eclipse.ditto.signals.events.policies.SubjectsModifiedPartially;
 
@@ -74,11 +73,10 @@ final class ActivatePolicyTokenIntegrationStrategy
                 .stream()
                 .map(nonNullPolicy::getEntryFor)
                 .flatMap(Optional::stream)
+                .filter(this::containsThingReadPermission)
                 .collect(Collectors.toList());
-        if (entries.isEmpty() || entries.size() != command.getLabels().size()) {
-            // Command is constructed incorrectly. This is a bug.
-            return ResultFactory.newErrorResult(
-                    PolicyActionFailedException.newBuilderForActivateTokenIntegration().build(), command);
+        if (entries.isEmpty()) {
+            return ResultFactory.newErrorResult(getExceptionForNoEntryWithThingReadPermission(), command);
         }
         final PolicyBuilder policyBuilder = nonNullPolicy.toBuilder();
         final Map<Label, Subject> activatedSubjects = new HashMap<>();

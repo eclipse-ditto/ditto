@@ -21,10 +21,14 @@ import java.time.Instant;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIdInvalidException;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.policies.common.config.DefaultPolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
@@ -106,5 +110,22 @@ public final class ActivateTokenIntegrationStrategyTest extends AbstractPolicyCo
                 command = ActivateTokenIntegration.of(context.getState(), LABEL, subjectId, expiry, dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
                 UnresolvedPlaceholderException.newBuilder("{{request:subjectId}}").build());
+    }
+
+    @Test
+    public void rejectEntryWithoutThingReadPermission() {
+        final CommandStrategy.Context<PolicyId> context = getDefaultContext();
+        final Label label = Label.of("empty-entry");
+        final Instant expiry = Instant.now().plus(Duration.ofDays(1L));
+        final SubjectId subjectId = SubjectId.newInstance("integration:this-is-me");
+        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final ActivateTokenIntegration command =
+                ActivateTokenIntegration.of(context.getState(), label, subjectId, expiry, dittoHeaders);
+        final Policy policy = TestConstants.Policy.POLICY.toBuilder()
+                .forLabel(label)
+                .setSubject(TestConstants.Policy.SUPPORT_SUBJECT)
+                .setGrantedPermissions(ResourceKey.newInstance("policy:/"), Permission.READ)
+                .build();
+        assertErrorResult(underTest, policy, command, underTest.getExceptionForNoEntryWithThingReadPermission());
     }
 }

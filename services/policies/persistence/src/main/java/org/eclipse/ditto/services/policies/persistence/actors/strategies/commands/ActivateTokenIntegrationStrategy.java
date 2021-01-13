@@ -38,7 +38,6 @@ import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegrationResponse;
-import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryNotAccessibleException;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 import org.eclipse.ditto.signals.events.policies.SubjectCreated;
 import org.eclipse.ditto.signals.events.policies.SubjectModified;
@@ -67,7 +66,8 @@ final class ActivateTokenIntegrationStrategy extends AbstractPolicyActionCommand
         final SubjectExpiry commandSubjectExpiry = SubjectExpiry.newInstance(command.getExpiry());
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(label);
+        final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(label)
+                .filter(this::containsThingReadPermission);
         if (optionalEntry.isPresent()) {
             final PolicyEntry policyEntry = optionalEntry.get();
             final SubjectId subjectId;
@@ -99,7 +99,7 @@ final class ActivateTokenIntegrationStrategy extends AbstractPolicyActionCommand
                 final PolicyEvent<?> event;
                 if (policyEntry.getSubjects().getSubject(adjustedSubject.getId()).isPresent()) {
                     event = SubjectModified.of(policyId, label, adjustedSubject, nextRevision, getEventTimestamp(),
-                                    dittoHeaders);
+                            dittoHeaders);
                 } else {
                     event = SubjectCreated.of(policyId, label, adjustedSubject, nextRevision, getEventTimestamp(),
                             dittoHeaders);
@@ -114,15 +114,13 @@ final class ActivateTokenIntegrationStrategy extends AbstractPolicyActionCommand
                         command);
             }
         } else {
-            // Policy is configured incorrectly
-            return ResultFactory.newErrorResult(
-                    PolicyEntryNotAccessibleException.newBuilder(policyId, label).dittoHeaders(dittoHeaders).build(),
-                    command);
+            return ResultFactory.newErrorResult(getExceptionForNoEntryWithThingReadPermission(), command);
         }
     }
 
     @Override
-    public Optional<EntityTag> previousEntityTag(final ActivateTokenIntegration command, @Nullable final Policy previousEntity) {
+    public Optional<EntityTag> previousEntityTag(final ActivateTokenIntegration command,
+            @Nullable final Policy previousEntity) {
         // activated subjects do not support entity tag
         return Optional.empty();
     }

@@ -24,16 +24,18 @@ import java.util.List;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIdInvalidException;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
+import org.eclipse.ditto.services.models.policies.Permission;
 import org.eclipse.ditto.services.policies.common.config.DefaultPolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIntegrationResponse;
-import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.signals.events.policies.SubjectsModifiedPartially;
 import org.junit.Before;
 import org.junit.Test;
@@ -130,7 +132,7 @@ public final class ActivatePolicyTokenIntegrationStrategyTest extends AbstractPo
         final ActivatePolicyTokenIntegration command =
                 ActivatePolicyTokenIntegration.of(context.getState(), subjectId, expiry, List.of(), dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
-                PolicyActionFailedException.newBuilderForActivateTokenIntegration().build());
+                underTest.getExceptionForNoEntryWithThingReadPermission());
     }
 
     @Test
@@ -141,8 +143,26 @@ public final class ActivatePolicyTokenIntegrationStrategyTest extends AbstractPo
         final SubjectId subjectId = SubjectId.newInstance("integration:this-is-me");
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
         final ActivatePolicyTokenIntegration command =
-                ActivatePolicyTokenIntegration.of(context.getState(), subjectId, expiry, List.of(nonexistentLabel), dittoHeaders);
+                ActivatePolicyTokenIntegration.of(context.getState(), subjectId, expiry, List.of(nonexistentLabel),
+                        dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
-                PolicyActionFailedException.newBuilderForActivateTokenIntegration().build());
+                underTest.getExceptionForNoEntryWithThingReadPermission());
+    }
+
+    @Test
+    public void rejectEntryWithoutThingReadPermission() {
+        final CommandStrategy.Context<PolicyId> context = getDefaultContext();
+        final Label label = Label.of("empty-entry");
+        final Instant expiry = Instant.now().plus(Duration.ofDays(1L));
+        final SubjectId subjectId = SubjectId.newInstance("integration:this-is-me");
+        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final ActivatePolicyTokenIntegration command =
+                ActivatePolicyTokenIntegration.of(context.getState(), subjectId, expiry, List.of(label), dittoHeaders);
+        final Policy policy = TestConstants.Policy.POLICY.toBuilder()
+                .forLabel(label)
+                .setSubject(TestConstants.Policy.SUPPORT_SUBJECT)
+                .setGrantedPermissions(ResourceKey.newInstance("policy:/"), Permission.READ)
+                .build();
+        assertErrorResult(underTest, policy, command, underTest.getExceptionForNoEntryWithThingReadPermission());
     }
 }
