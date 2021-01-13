@@ -30,20 +30,20 @@ import org.eclipse.ditto.signals.base.Signal;
 abstract class AbstractSignalMapper<T extends Signal<?>> implements SignalMapper<T> {
 
     @Override
-    public Adaptable mapSignalToAdaptable(final T command, final TopicPath.Channel channel) {
+    public Adaptable mapSignalToAdaptable(final T signal, final TopicPath.Channel channel) {
 
-        // optional validation of the command
-        validate(command, channel);
+        // optional validation of the signal
+        validate(signal, channel);
 
-        final PayloadBuilder payloadBuilder = Payload.newBuilder(command.getResourcePath());
+        final PayloadBuilder payloadBuilder = Payload.newBuilder(signal.getResourcePath());
 
         // optional enhancement of the payload builder
-        enhancePayloadBuilder(command, payloadBuilder);
+        enhancePayloadBuilder(signal, payloadBuilder);
 
         // optional enhancement of signal headers
-        final DittoHeaders dittoHeaders = enhanceHeaders(command);
+        final DittoHeaders dittoHeaders = enhanceHeaders(signal);
 
-        return Adaptable.newBuilder(getTopicPath(command, channel))
+        return Adaptable.newBuilder(getTopicPath(signal, channel))
                 .withPayload(payloadBuilder.build())
                 .withHeaders(dittoHeaders)
                 .build();
@@ -55,7 +55,7 @@ abstract class AbstractSignalMapper<T extends Signal<?>> implements SignalMapper
      * @param signal the {@code signal} for which the {@link TopicPathBuilder} should be returned
      * @return the {@link TopicPathBuilder} for the given {@code signal}
      */
-    abstract TopicPath getTopicPath(T signal, final TopicPath.Channel channel);
+    abstract TopicPath getTopicPath(T signal, TopicPath.Channel channel);
 
     /**
      * Validates the given {@code signal} and throws an exception if it cannot be processed.
