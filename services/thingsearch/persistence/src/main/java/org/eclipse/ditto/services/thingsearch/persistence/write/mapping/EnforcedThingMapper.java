@@ -24,6 +24,8 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import java.util.Map;
 import java.util.stream.Stream;
 
+import javax.annotation.Nullable;
+
 import org.bson.BsonArray;
 import org.bson.BsonString;
 import org.bson.BsonValue;
@@ -77,7 +79,7 @@ public final class EnforcedThingMapper {
             final Enforcer enforcer,
             final long policyRevision) {
 
-        return toWriteModel(thing, enforcer, policyRevision, -1);
+        return toWriteModel(thing, enforcer, policyRevision, -1, null);
     }
 
     /**
@@ -87,13 +89,15 @@ public final class EnforcedThingMapper {
      * @param enforcer the policy- or ACL-enforcer of the Thing.
      * @param policyRevision revision of the policy for an policy enforcer, or any number for an ACL enforcer.
      * @param maxArraySize only arrays smaller than this are indexed.
+     * @param oldMetadata the meatadata that triggered the search update, possibly containing sender information.
      * @return BSON document to write into the search index.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if Thing ID or revision is missing.
      */
     public static ThingWriteModel toWriteModel(final JsonObject thing,
             final Enforcer enforcer,
             final long policyRevision,
-            final int maxArraySize) {
+            final int maxArraySize,
+            @Nullable final Metadata oldMetadata) {
 
         final String extractedThing = thing.getValueOrThrow(Thing.JsonFields.ID);
         final ThingId thingId = ThingId.of(extractedThing);
@@ -117,7 +121,8 @@ public final class EnforcedThingMapper {
                         .append(FIELD_SORTING, thingCopyForSorting)
                         .append(FIELD_INTERNAL, flattenedValues);
 
-        return ThingWriteModel.of(metadata, thingDocument);
+        final Metadata metadataToRetain = oldMetadata == null ? metadata : oldMetadata.prependSenders(metadata);
+        return ThingWriteModel.of(metadataToRetain, thingDocument);
     }
 
     private static BsonArray getGlobalRead(final Enforcer enforcer) {

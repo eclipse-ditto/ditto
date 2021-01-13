@@ -44,13 +44,6 @@
 <script src="./swagger-ui-bundle.js"> </script>
 <script src="./swagger-ui-standalone-preset.js"> </script>
 <script>
-    // HACK in order to send id_token instead of access_token when authenticating via OAuth2.0
-    window.open = function (open) {
-        return function (url) {
-            return open.call(window, url.replace('response_type=token', 'response_type=id_token'));
-        };
-    }(window.open);
-
     window.onload = function() {
 
         const ui = SwaggerUIBundle({
@@ -71,20 +64,24 @@
                                            SwaggerUIBundle.plugins.DownloadUrl
                                        ],
                                        layout: "StandaloneLayout",
-                                       oauth2RedirectUrl: window.location.origin + "/apidoc/oauth2-redirect.html"
+                                       oauth2RedirectUrl: window.location.origin + "/apidoc/oauth2-redirect.html",
+                                       onComplete: function() {
+                                           ui.preauthorizeBasic("NginxBasic", "ditto", "ditto");
+                                       }
                                    });
 
         ui.initOAuth({
                          clientId: "853201765597-7nmcpg90krhogd9375dl44sse4tup0gj.apps.googleusercontent.com",
                          clientSecret: "<leave that empty>",
                          realm: "eclipse-ditto",
-                         appName: "Eclipse Ditto Sandbox",
+                         appName: "Eclipse Ditto :: Sandbox",
                          scopeSeparator: " ",
+                         scopes: "openid",
                          additionalQueryStringParams: {
                          }
                      });
 
-        window.ui = ui
+        window.ui = ui;
     }
 </script>
 </body>

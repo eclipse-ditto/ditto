@@ -17,12 +17,15 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.junit.Test;
 
+import akka.actor.ActorRef;
+import akka.actor.ActorSystem;
+import akka.testkit.TestProbe;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
  * Unit test for {@link ThingDeleteModel}.
  */
-public final class ThingDeleteModelTest {
+public final class ThingDeleteModelTest extends AbstractWithActorSystemTest {
 
     @Test
     public void assertImmutability() {
@@ -31,8 +34,12 @@ public final class ThingDeleteModelTest {
 
     @Test
     public void testHashCodeAndEquals() {
+        system = ActorSystem.create();
+        final TestProbe probe1 = TestProbe.apply(system);
+        final TestProbe probe2 = TestProbe.apply(system);
         EqualsVerifier.forClass(ThingDeleteModel.class)
                 .usingGetClass()
+                .withPrefabValues(ActorRef.class, probe1.ref(), probe2.ref())
                 .verify();
     }
 

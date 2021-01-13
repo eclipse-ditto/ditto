@@ -355,7 +355,8 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     private void acknowledge(final JmsMessage message, final boolean isSuccess, final boolean redeliver,
             final Map<String, String> externalMessageHeaders) {
 
-        final String correlationId = externalMessageHeaders.get(DittoHeaderDefinition.CORRELATION_ID.getKey());
+        final Optional<String> correlationId = Optional.ofNullable(
+                externalMessageHeaders.get(DittoHeaderDefinition.CORRELATION_ID.getKey()));
         try {
             final String messageId = message.getJMSMessageID();
             recordAckForRateLimit(messageId, isSuccess, redeliver);
@@ -369,7 +370,8 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 ackType = redeliver ? MODIFIED_FAILED : REJECTED;
                 ackTypeName = redeliver ? "modified[delivery-failed]" : "rejected";
             }
-            log.withCorrelationId(correlationId)
+            final String jmsCorrelationID = message.getJMSCorrelationID();
+            log.withCorrelationId(correlationId.orElse(jmsCorrelationID))
                     .info("Acking <{}> with original external message headers=<{}>, isSuccess=<{}>, ackType=<{} {}>",
                             messageId,
                             externalMessageHeaders,
@@ -384,7 +386,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 inboundAcknowledgedMonitor.exception("Sending negative acknowledgement: <{0}>", ackTypeName);
             }
         } catch (final Exception e) {
-            log.withCorrelationId(correlationId).error(e, "Failed to ack an AMQP message");
+            log.withCorrelationId(correlationId.orElse(null)).error(e, "Failed to ack an AMQP message");
         }
     }
 

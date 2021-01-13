@@ -117,7 +117,6 @@ public class WrappingMessageMapperTest {
 
         underTest.configure(mapperLimitsConfig, mockConfiguration);
         underTest.map(mockMessage);
-        verify(mockMapper).map(any(ExternalMessage.class));
     }
 
     @Test
@@ -130,8 +129,6 @@ public class WrappingMessageMapperTest {
 
         underTest.configure(mapperLimitsConfig, mockConfiguration);
         underTest.map(mockAdaptable);
-        verify(mockAdaptable, VerificationModeFactory.atLeastOnce()).getDittoHeaders();
-        verify(mockMapper).map(mockAdaptable);
     }
 
     @Test

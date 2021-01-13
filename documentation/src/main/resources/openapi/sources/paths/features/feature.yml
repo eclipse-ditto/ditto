@@ -35,7 +35,7 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/feature.yml'
+            $ref: '../../schemas/features/feature.yml'
     '304':
       $ref: '../../responses/notModified.yml'
     '400':
@@ -46,13 +46,13 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. The thing with the given ID or
@@ -60,7 +60,7 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'
 put:
@@ -113,7 +113,7 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/feature.yml'
+            $ref: '../../schemas/features/feature.yml'
     '204':
       description: The feature was successfully modified.
       headers:
@@ -131,23 +131,22 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '403':
       description: |-
         The request could not be completed. Possible reasons:
-
           * the caller has insufficient permissions.
             For modifying a single feature of an existing thing, `WRITE` permission is required.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. The thing with the given ID was
@@ -155,7 +154,7 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'
     '413':
@@ -164,7 +163,7 @@ put:
     content:
       application/json:
         schema:
-          $ref: '../../schemas/feature.yml'
+          $ref: '../../schemas/features/feature.yml'
         example:   {
           "definition": [ "com.acme:coffeemaker:0.1.0", "com.acme:coffeemaker:1.1.0" ],
           "properties": {
@@ -205,23 +204,22 @@ delete:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '403':
       description: |-
         The request could not be completed. Possible reasons:
-
           * the caller has insufficient permissions.
             For deleting a single feature of an existing thing, `WRITE` permission is required.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. The thing with the given ID or
@@ -229,6 +227,6 @@ delete:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'

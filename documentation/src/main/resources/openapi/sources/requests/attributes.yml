@@ -11,7 +11,7 @@
 content:
   application/json:
     schema:
-      $ref: '../schemas/attributes.yml'
+      $ref: '../schemas/things/attributes.yml'
     example: {
       "manufacturer": {
         "name": "ACME demo corp.",

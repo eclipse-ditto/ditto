@@ -41,10 +41,10 @@ tags:
     description: Process CloudEvents in Ditto
 
 security:
-  #  - Google:
-  #    - openid
-  - basicAuth: [ ]
-  - bearerAuth: [ ]
+  - Google:
+      - openid
+  - NginxBasic: [ ]
+  - Bearer: [ ]
 
 paths:
 
@@ -58,7 +58,7 @@ paths:
   '/things/{thingId}/definition':
     $ref: "./paths/things/definition.yml"
   '/things/{thingId}/policyId':
-    $ref: "./paths/things/policyid.yml"
+    $ref: "./paths/things/policyId.yml"
   '/things/{thingId}/attributes':
     $ref: "./paths/things/attributes.yml"
   '/things/{thingId}/attributes/{attributePath}':
@@ -136,6 +136,16 @@ paths:
 
 components:
 
+  requestBodies:
+    Attributes:
+      $ref: "./requests/attributes.yml"
+    Definition:
+      $ref: "./requests/definition.yml"
+    Payload:
+      $ref: "./requests/payload.yml"
+    Value:
+      $ref: "./requests/value.yml"
+
   responses:
     EntityTooLarge:
       $ref: "./responses/entityTooLarge.yml"
@@ -208,64 +218,58 @@ components:
 
   schemas:
     Error:
-      $ref: "./schemas/error.yml"
+      $ref: "./schemas/errors/error.yml"
     AdvancedError:
-      $ref: "./schemas/advancedError.yml"
+      $ref: "./schemas/errors/advancedError.yml"
     Attributes:
-      $ref: "./schemas/attributes.yml"
+      $ref: "./schemas/things/attributes.yml"
     Definition:
-      $ref: "./schemas/definition.yml"
+      $ref: "./schemas/things/definition.yml"
     FeatureDefinition:
-      $ref: "./schemas/featureDefinition.yml"
+      $ref: "./schemas/features/featureDefinition.yml"
     FeatureProperties:
-      $ref: "./schemas/featureProperties.yml"
+      $ref: "./schemas/features/featureProperties.yml"
     FeatureDesiredProperties:
-      $ref: "./schemas/featureDesiredProperties.yml"
+      $ref: "./schemas/features/featureDesiredProperties.yml"
     Feature:
-      $ref: "./schemas/feature.yml"
+      $ref: "./schemas/features/feature.yml"
     SearchResultThings:
-      $ref: "./schemas/searchResultThings.yml"
+      $ref: "./schemas/search/searchResultThings.yml"
     SearchResultThingsCount:
       type: integer
     NewThing:
-      $ref: "./schemas/newThing.yml"
+      $ref: "./schemas/things/newThing.yml"
     Thing:
-      $ref: "./schemas/thing.yml"
+      $ref: "./schemas/things/thing.yml"
+    NewPolicy:
+      $ref: "./schemas/policies/newPolicy.yml"
     Policy:
-      $ref: "./schemas/policy.yml"
+      $ref: "./schemas/policies/policy.yml"
     PolicyEntries:
-      $ref: "./schemas/policyEntries.yml"
+      $ref: "./schemas/policies/policyEntries.yml"
     PolicyEntry:
-      $ref: "./schemas/policyEntry.yml"
+      $ref: "./schemas/policies/policyEntry.yml"
     Subjects:
-      $ref: "./schemas/subjects.yml"
+      $ref: "./schemas/policies/subjects.yml"
     SubjectEntry:
-      $ref: "./schemas/subjectEntry.yml"
+      $ref: "./schemas/policies/subjectEntry.yml"
     Resources:
-      $ref: "./schemas/resources.yml"
+      $ref: "./schemas/policies/resources.yml"
     ResourceEntry:
-      $ref: "./schemas/resourceEntry.yml"
-    ResourceEntryRestricted:
-      $ref: "./schemas/resourceEntryRestricted.yml"
+      $ref: "./schemas/policies/resourceEntry.yml"
     Permission:
-      $ref: "./schemas/permission.yml"
+      $ref: "./schemas/policies/permission.yml"
     Features:
-      $ref: "./schemas/features.yml"
+      $ref: "./schemas/features/features.yml"
     WhoAmI:
-      $ref: "./schemas/whoami.yml"
+      $ref: "./schemas/whoami/whoami.yml"
     WhoAmISubject:
-      $ref: "./schemas/whoamiSubject.yml"
+      $ref: "./schemas/whoami/whoamiSubject.yml"
 
   securitySchemes:
-    basicAuth:
-      type: http
-      description: |-
-        Eclipse Ditto sandbox demo user (demo1 ... demo9) + password (demo)
-      scheme: basic
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: |-
-        A JSON Web Token issued by a supported OAuth 2.0 Identity Provider, e.g. a Google "id_token"
-
+    NginxBasic:
+      $ref: './security/nginxBasic.yml'
+    Bearer:
+      $ref: './security/bearerAuth.yml'
+    Google:
+      $ref: './security/google.yml'

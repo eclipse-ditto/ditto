@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -107,6 +108,29 @@ public final class TestConstants {
                                     Collections.singleton(PERMISSION_WRITE))))
             );
         }
+
+        /**
+         * The known Policy ID.
+         */
+        public static final PolicyId POLICY_ID = PolicyId.of("com.example", "testPolicy");
+
+        public static final Label LABEL = Label.of("custom");
+
+        public static final String RESOURCE_TYPE_POLICY = "policy";
+
+        private static final String RESOURCE_TYPE_THING = "thing";
+
+        private static final JsonPointer RESOURCE_PATH = JsonPointer.of("/foo/bar");
+
+        /**
+         * A Policy to be used in persistence tests.
+         */
+        public static final org.eclipse.ditto.model.policies.Policy POLICY = PoliciesModelFactory.newPolicyBuilder(POLICY_ID)
+                .setSubjectFor(LABEL, SUPPORT_SUBJECT_ID, SUBJECT_TYPE)
+                .setGrantedPermissionsFor(LABEL, RESOURCE_TYPE_POLICY, "/", PERMISSION_READ, PERMISSION_WRITE)
+                .setGrantedPermissionsFor(LABEL, RESOURCE_TYPE_THING, "/", PERMISSION_READ, PERMISSION_WRITE)
+                .setRevokedPermissionsFor(LABEL, RESOURCE_TYPE_THING, RESOURCE_PATH, PERMISSION_WRITE)
+                .build();
 
         private Policy() {
             throw new AssertionError();

@@ -35,6 +35,6 @@ final class ErrorOutcome<T> implements MappingOutcome<T> {
 
     @Override
     public <R> R accept(final Visitor<T, R> visitor) {
-        return visitor.onError(mapperId.toString(), error, topicPath, externalMessage);
+        return visitor.onError(String.valueOf(mapperId), error, topicPath, externalMessage);
     }
 }

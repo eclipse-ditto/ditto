@@ -155,6 +155,7 @@ The following table shows which WebSocket protocol message are supported:
 
 | Description | Request message | Response message |
 |-------------|-----------------|------------------|
+| Refresh JWT based authentication |  `JWT-TOKEN` | `-` |
 | Subscribe for [events/change notifications](basic-changenotifications.html) | `START-SEND-EVENTS` | `START-SEND-EVENTS:ACK` |
 | Stop receiving change notifications | `STOP-SEND-EVENTS` | `STOP-SEND-EVENTS:ACK` |
 | Subscribe for [messages](basic-messages.html) | `START-SEND-MESSAGES` | `START-SEND-MESSAGES:ACK` |
@@ -163,6 +164,17 @@ The following table shows which WebSocket protocol message are supported:
 | Stop receiving live commands | `STOP-SEND-LIVE-COMMANDS` | `STOP-SEND-LIVE-COMMANDS:ACK` |
 | Subscribe for [live events](protocol-twinlive.html) | `START-SEND-LIVE-EVENTS` | `START-SEND-LIVE-EVENTS:ACK` |
 | Stop receiving live commands | `STOP-SEND-LIVE-EVENTS` | `STOP-SEND-LIVE-EVENTS:ACK` |
+
+### Authentication
+
+Ditto closes Websocket connections when the JWT provided with the initial connect expires. To keep the connection 
+open,  one can send a valid JWT via `JWT-TOKEN` protocol message. The `sub` of the new token must match the one from 
+the initial connect, otherwise Ditto will close the connection.
+
+Ditto expects the message with the JWT as a base64 encoded string provided with the paramter `?jwtToken=<token>`, e.g.:
+```
+JWT-TOKEN?jwtToken=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+```
 
 ### Enrichment
 

@@ -16,10 +16,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.bson.Document;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThingResponse;
@@ -28,6 +31,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.ThingDeleteModel;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.ThingWriteModel;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.WriteResultAndErrors;
+import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.junit.After;
 import org.junit.Test;
@@ -92,11 +96,9 @@ public final class BulkWriteResultAckFlowTest {
 
         // THEN: the non-duplicate-key error triggers a failure acknowledgement
         actorSystem.log().info(message);
-        for (int i = 3; i < 5; ++i) {
-            assertThat(expectUpdateThingResponse(writeModels.get(i).getMetadata().getThingId()))
-                    .describedAs("response is failure")
-                    .returns(false, UpdateThingResponse::isSuccess);
-        }
+        assertThat(expectUpdateThingResponse(writeModels.get(4).getMetadata().getThingId()))
+                .describedAs("response is failure")
+                .returns(false, UpdateThingResponse::isSuccess);
         assertThat(message).contains("Acknowledged: PartialSuccess");
     }
 
@@ -145,6 +147,35 @@ public final class BulkWriteResultAckFlowTest {
         assertThat(message).contains("ConsistencyError[indexOutOfBound]");
     }
 
+    @Test
+    public void acknowledgements() {
+        final List<TestProbe> probes =
+                IntStream.range(0, 5).mapToObj(i -> TestProbe.apply(actorSystem)).collect(Collectors.toList());
+        final List<AbstractWriteModel> writeModels = generateWriteModels(probes);
+        final BulkWriteResult result = BulkWriteResult.acknowledged(1, 2, 1, 2, List.of());
+        final List<BulkWriteError> updateFailure = List.of(
+                new BulkWriteError(11000, "E11000 duplicate key error", new BsonDocument(), 3),
+                new BulkWriteError(50, "E50 operation timed out", new BsonDocument(), 4)
+        );
+
+        // WHEN: BulkWriteResultAckFlow receives partial update success with errors, one of which is not duplicate key
+        final WriteResultAndErrors resultAndErrors = WriteResultAndErrors.failure(writeModels,
+                new MongoBulkWriteException(result, updateFailure, null, new ServerAddress()));
+        runBulkWriteResultAckFlowAndGetFirstLogEntry(resultAndErrors);
+
+        // THEN: only the non-duplicate-key sender receives negative acknowledgement
+        assertThat(probes.get(0).expectMsgClass(Acknowledgement.class).getStatusCode())
+                .isEqualTo(HttpStatusCode.NO_CONTENT);
+        assertThat(probes.get(1).expectMsgClass(Acknowledgement.class).getStatusCode())
+                .isEqualTo(HttpStatusCode.NO_CONTENT);
+        assertThat(probes.get(2).expectMsgClass(Acknowledgement.class).getStatusCode())
+                .isEqualTo(HttpStatusCode.NO_CONTENT);
+        assertThat(probes.get(3).expectMsgClass(Acknowledgement.class).getStatusCode())
+                .isEqualTo(HttpStatusCode.NO_CONTENT);
+        assertThat(probes.get(4).expectMsgClass(Acknowledgement.class).getStatusCode())
+                .isEqualTo(HttpStatusCode.INTERNAL_SERVER_ERROR);
+    }
+
     private String runBulkWriteResultAckFlowAndGetFirstLogEntry(final WriteResultAndErrors writeResultAndErrors) {
         return Source.single(writeResultAndErrors)
                 .via(underTest.start())
@@ -153,15 +184,21 @@ public final class BulkWriteResultAckFlowTest {
                 .join();
     }
 
-    private static List<AbstractWriteModel> generate5WriteModels() {
-        final int howMany = 5;
+    private List<AbstractWriteModel> generate5WriteModels() {
+        return generateWriteModels(
+                IntStream.range(0, 5).mapToObj(i -> TestProbe.apply(actorSystem)).collect(Collectors.toList()));
+    }
+
+    private List<AbstractWriteModel> generateWriteModels(final List<TestProbe> probes) {
+        final int howMany = probes.size();
         final List<AbstractWriteModel> writeModels = new ArrayList<>(howMany);
         for (int i = 0; i < howMany; ++i) {
             final ThingId thingId = ThingId.of("thing", String.valueOf(i));
             final long thingRevision = i * 10;
             final PolicyId policyId = i % 4 < 2 ? null : PolicyId.of("policy", String.valueOf(i));
             final long policyRevision = i * 100;
-            final Metadata metadata = Metadata.of(thingId, thingRevision, policyId, policyRevision);
+            final Metadata metadata =
+                    Metadata.of(thingId, thingRevision, policyId, policyRevision, probes.get(i).ref());
             if (i % 2 == 0) {
                 writeModels.add(ThingDeleteModel.of(metadata));
             } else {

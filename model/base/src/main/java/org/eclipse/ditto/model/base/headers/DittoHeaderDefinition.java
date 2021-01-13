@@ -295,7 +295,17 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      *
      * @since 1.5.0
      */
-    WEAK_ACK("ditto-weak-ack", boolean.class, false, true, HeaderValueValidators.getBooleanValidator());
+    WEAK_ACK("ditto-weak-ack", boolean.class, false, true, HeaderValueValidators.getBooleanValidator()),
+
+    /**
+     * Header definition to identify when a Policy changing command did pre-emptively invalidate the caches related to
+     * the Policy enforcement in concierge.
+     * When this is {@code true}, no further policy enforcer invalidation has to be done.
+     *
+     * @since 2.0.0
+     */
+    POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY("ditto-policy-enforcer-invalidated-preemptively", boolean.class,
+            false, false, HeaderValueValidators.getBooleanValidator());
 
     /**
      * Map to speed up lookup of header definition by key.

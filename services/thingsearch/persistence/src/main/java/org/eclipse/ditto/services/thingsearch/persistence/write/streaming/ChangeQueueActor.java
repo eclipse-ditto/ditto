@@ -25,7 +25,7 @@ import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.japi.function.Function;
 import akka.japi.pf.ReceiveBuilder;
-import akka.pattern.PatternsCS;
+import akka.pattern.Patterns;
 import akka.stream.Attributes;
 import akka.stream.DelayOverflowStrategy;
 import akka.stream.javadsl.Source;
@@ -74,7 +74,7 @@ public final class ChangeQueueActor extends AbstractActor {
      * @param metadata a description of the change.
      */
     private void enqueue(final Metadata metadata) {
-        cache.put(metadata.getThingId(), metadata);
+        cache.merge(metadata.getThingId(), metadata, Metadata::prependSenders);
     }
 
     /**
@@ -100,17 +100,16 @@ public final class ChangeQueueActor extends AbstractActor {
     }
 
     private static Function<Control, Source<Map<ThingId, Metadata>, NotUsed>> askSelf(final ActorRef self) {
-        return message ->
-                Source.fromSourceCompletionStage(
-                        PatternsCS.ask(self, message, ASK_SELF_TIMEOUT)
-                                .handle((result, error) -> {
-                                    if (result instanceof Map) {
-                                        return Source.single((Map<ThingId, Metadata>) result);
-                                    } else {
-                                        return Source.empty();
-                                    }
-                                }))
-                        .mapMaterializedValue(whatever -> NotUsed.getInstance());
+        return message -> Source.completionStageSource(
+                Patterns.ask(self, message, ASK_SELF_TIMEOUT)
+                        .handle((result, error) -> {
+                            if (result instanceof Map) {
+                                return Source.single((Map<ThingId, Metadata>) result);
+                            } else {
+                                return Source.empty();
+                            }
+                        }))
+                .mapMaterializedValue(whatever -> NotUsed.getInstance());
     }
 
     private enum Control {

@@ -9,15 +9,9 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 type: object
-description: |-
-  Single (Authorization) Resource entry defining permissions per effect.
-  Allowed effects are `grant` and `revoke`.
+description: Policy consisting of policy entries
 properties:
-  grant:
-    type: array
-    items:
-      $ref: 'permission.yml'
-  revoke:
-    type: array
-    items:
-      $ref: 'permission.yml'
+  entries:
+    $ref: 'policyEntries.yml'
+required:
+  - entries

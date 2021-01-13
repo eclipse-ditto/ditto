@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.things.starter;
 import static org.eclipse.ditto.services.models.things.ThingsMessagingConstants.CLUSTER_ROLE;
 
 import org.eclipse.ditto.services.base.actors.DittoRootActor;
-import org.eclipse.ditto.services.utils.pubsub.ThingEventPubSubFactory;
 import org.eclipse.ditto.services.models.things.ThingsMessagingConstants;
 import org.eclipse.ditto.services.things.common.config.ThingsConfig;
 import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActorPropsFactory;
@@ -36,6 +35,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
 import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.services.utils.pubsub.ThingEventPubSubFactory;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
@@ -72,7 +72,7 @@ public final class ThingsRootActor extends DittoRootActor {
         final ClusterConfig clusterConfig = thingsConfig.getClusterConfig();
         final ShardRegionExtractor shardRegionExtractor =
                 ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem);
-        final DistributedAcks distributedAcks = DistributedAcks.create(getContext());
+        final DistributedAcks distributedAcks = DistributedAcks.lookup(actorSystem);
         final ThingEventPubSubFactory pubSubFactory =
                 ThingEventPubSubFactory.of(getContext(), shardRegionExtractor, distributedAcks);
         final DistributedPub<ThingEvent<?>> distributedPub = pubSubFactory.startDistributedPub();

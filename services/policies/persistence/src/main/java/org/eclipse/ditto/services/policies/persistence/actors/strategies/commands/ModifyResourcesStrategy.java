@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
+import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
@@ -47,8 +48,8 @@ import org.eclipse.ditto.signals.events.policies.ResourcesModified;
  */
 final class ModifyResourcesStrategy extends AbstractPolicyCommandStrategy<ModifyResources> {
 
-    ModifyResourcesStrategy() {
-        super(ModifyResources.class);
+    ModifyResourcesStrategy(final PolicyConfig policyConfig) {
+        super(ModifyResources.class, policyConfig);
     }
 
     @Override

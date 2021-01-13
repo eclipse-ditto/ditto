@@ -14,7 +14,7 @@ package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.services.utils.pubsub.ThingEventPubSubFactory;
+import org.eclipse.ditto.services.base.actors.StartChildActor;
 import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.UpdaterConfig;
 import org.eclipse.ditto.services.thingsearch.common.util.RootSupervisorStrategyFactory;
@@ -36,6 +36,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonComman
 import org.eclipse.ditto.services.utils.persistence.mongo.monitoring.KamonConnectionPoolListener;
 import org.eclipse.ditto.services.utils.pubsub.DistributedAcks;
 import org.eclipse.ditto.services.utils.pubsub.DistributedSub;
+import org.eclipse.ditto.services.utils.pubsub.ThingEventPubSubFactory;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
 import com.mongodb.event.CommandListener;
@@ -202,6 +203,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 .match(RetrieveStatisticsDetails.class, cmd -> thingsUpdaterActor.forward(cmd, getContext()))
                 .match(RetrieveHealth.class, cmd -> backgroundSyncActorProxy.forward(cmd, getContext()))
                 .match(Status.Failure.class, f -> log.error(f.cause(), "Got failure: {}", f))
+                .match(StartChildActor.class, this::startChildActor)
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
@@ -212,6 +214,10 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     @Override
     public SupervisorStrategy supervisorStrategy() {
         return supervisorStrategy;
+    }
+
+    private void startChildActor(final StartChildActor message) {
+        startChildActor(message.getActorName(), message.getProps());
     }
 
     private ActorRef startChildActor(final String actorName, final Props props) {
