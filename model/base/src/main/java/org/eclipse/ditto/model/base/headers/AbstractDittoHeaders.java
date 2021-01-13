@@ -21,7 +21,6 @@ import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -29,6 +28,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -62,7 +62,7 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
 
     private static final String ISSUER_DIVIDER = ":";
 
-    private final Map<String, Header> headers;
+    final Map<String, Header> headers;
 
     /**
      * Constructs a new {@code AbstractDittoHeaders} object.
@@ -71,25 +71,37 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
      * @throws NullPointerException if {@code headers} is {@code null}.
      */
     protected AbstractDittoHeaders(final Map<String, String> headers) {
-        checkNotNull(headers, "headers map");
+        checkNotNull(headers, "headers");
         if (headers instanceof AbstractDittoHeaders) {
             // Share the map from the other AbstractDittoHeaders--it is not modifiable. Otherwise case is not preserved.
             this.headers = ((AbstractDittoHeaders) headers).headers;
         } else {
-            final Map<String, String> headersWithOnlyPrefixedSubjects = keepAuthContextSubjectsWithIssuer(headers);
+            final Map<String, String> headersWithOnlyPrefixedSubjects =
+                    keepAuthContextSubjectsWithIssuer(headers, (key, value) -> value);
             this.headers = indexByLowerCase(headersWithOnlyPrefixedSubjects);
         }
     }
 
+    /**
+     * Construct a new {@code AbstractDittoHeaders} from a known case insensitive map.
+     *
+     * @param headers headers indexed by lower-case keys.
+     * @param flag unused disambiguation parameter.
+     */
+    @SuppressWarnings("unused")
+    protected AbstractDittoHeaders(final Map<String, Header> headers, final boolean flag) {
+        checkNotNull(headers, "headers");
+        final Map<String, Header> candidate = keepAuthContextSubjectsWithIssuer(headers, Header::of);
+        this.headers = candidate != headers ? candidate : new LinkedHashMap<>(candidate);
+    }
+
     @Override
     public Map<String, String> asCaseSensitiveMap() {
-        return headers.values()
-                .stream()
-                .collect(Collectors.toMap(
-                        Header::getKey,
-                        Header::getValue,
-                        (header1, header2) -> header2
-                ));
+        final LinkedHashMap<String, String> caseSensitiveMap = new LinkedHashMap<>();
+        for (final Header header : headers.values()) {
+            caseSensitiveMap.put(header.getKey(), header.getValue());
+        }
+        return caseSensitiveMap;
     }
 
     @Override
@@ -127,16 +139,22 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
         }
     }
 
-    private static Map<String, String> keepAuthContextSubjectsWithIssuer(final Map<String, String> headers) {
+    private static <T extends CharSequence> Map<String, T> keepAuthContextSubjectsWithIssuer(
+            final Map<String, T> headers,
+            final BiFunction<String, String, T> fromString) {
+
         if (headers.containsKey(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey())) {
-            final Map<String, String> newHeaders = new HashMap<>(headers);
+            final Map<String, T> newHeaders = new LinkedHashMap<>(headers);
             final AuthorizationContext authContext =
                     AuthorizationModelFactory.newAuthContext(getAuthorizationContextAsJson(headers));
             final AuthorizationContext authContextWithoutDups = keepAuthContextSubjectsWithIssuer(authContext);
-            newHeaders.put(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(), authContextWithoutDups.toJsonString());
+            newHeaders.put(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(),
+                    fromString.apply(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(),
+                            authContextWithoutDups.toJsonString()));
             return newHeaders;
+        } else {
+            return headers;
         }
-        return headers;
     }
 
     private static JsonObject getAuthorizationContextAsJson(final Map<String, ? extends CharSequence> headers) {
