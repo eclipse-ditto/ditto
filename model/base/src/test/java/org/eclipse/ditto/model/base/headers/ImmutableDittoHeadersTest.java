@@ -578,6 +578,32 @@ public final class ImmutableDittoHeadersTest {
         assertThat(deserialized.toJson()).isEqualTo(serialized);
     }
 
+    @Test
+    public void respectInsertionOrder() {
+        final Map<String, String> initialHeaders = new HashMap<>();
+        initialHeaders.put("Response-Required", "true");
+        final Map<String, String> expectedHeaders = new HashMap<>();
+        expectedHeaders.put("response-required", "false");
+        assertThat(DittoHeaders.of(initialHeaders)
+                .toBuilder()
+                .responseRequired(false)
+                .build()
+                .asCaseSensitiveMap()).isEqualTo(expectedHeaders);
+    }
+
+    @Test
+    public void preserveCapitalizationOfCorrelationId() {
+        final Map<String, String> initialHeaders = new HashMap<>();
+        initialHeaders.put("Correlation-Id", "true");
+        final Map<String, String> expectedHeaders = new HashMap<>();
+        expectedHeaders.put("Correlation-Id", "false");
+        assertThat(DittoHeaders.of(initialHeaders)
+                .toBuilder()
+                .correlationId("false")
+                .build()
+                .asCaseSensitiveMap()).isEqualTo(expectedHeaders);
+    }
+
     private static Map<String, String> createMapContainingAllKnownHeaders() {
         final Map<String, String> result = new HashMap<>();
         result.put(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(),

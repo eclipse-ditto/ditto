@@ -22,6 +22,7 @@ import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -61,7 +62,8 @@ public final class ImmutableMessageHeadersTest {
                     AUTH_SUBJECTS_WITHOUT_DUPLICATES.stream()
                             .map(AuthorizationSubject::newInstance)
                             .collect(Collectors.toList()));
-    private static final Collection<String> AUTH_SUBJECTS = Arrays.asList("test:JohnOldman", "test:FrankGrimes", "JohnOldman", "FrankGrimes");
+    private static final Collection<String> AUTH_SUBJECTS =
+            Arrays.asList("test:JohnOldman", "test:FrankGrimes", "JohnOldman", "FrankGrimes");
     private static final AuthorizationContext AUTH_CONTEXT =
             AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
                     AUTH_SUBJECTS.stream()
@@ -262,9 +264,48 @@ public final class ImmutableMessageHeadersTest {
                 .withNoCause();
     }
 
+    @Test
+    public void respectInsertionOrder() {
+        final Map<String, String> initialHeaders = new LinkedHashMap<>();
+        initialHeaders.put("ditto-message-direction", "TO");
+        initialHeaders.put("ditto-message-thing-id", "thing:id");
+        initialHeaders.put("ditto-message-subject", "subject");
+        initialHeaders.put("Response-Required", "true");
+        final Map<String, String> expectedHeaders = new LinkedHashMap<>();
+        expectedHeaders.put("ditto-message-direction", "TO");
+        expectedHeaders.put("ditto-message-thing-id", "thing:id");
+        expectedHeaders.put("ditto-message-subject", "subject");
+        expectedHeaders.put("response-required", "false");
+        assertThat(MessageHeaders.of(initialHeaders)
+                .toBuilder()
+                .responseRequired(false)
+                .build()
+                .asCaseSensitiveMap()).isEqualTo(expectedHeaders);
+    }
+
+    @Test
+    public void preserveCapitalizationOfCorrelationId() {
+        final Map<String, String> initialHeaders = new HashMap<>();
+        initialHeaders.put("ditto-message-direction", "TO");
+        initialHeaders.put("ditto-message-thing-id", "thing:id");
+        initialHeaders.put("ditto-message-subject", "subject");
+        initialHeaders.put("Correlation-Id", "true");
+        final Map<String, String> expectedHeaders = new HashMap<>();
+        expectedHeaders.put("ditto-message-direction", "TO");
+        expectedHeaders.put("ditto-message-thing-id", "thing:id");
+        expectedHeaders.put("ditto-message-subject", "subject");
+        expectedHeaders.put("Correlation-Id", "false");
+        assertThat(MessageHeaders.of(initialHeaders)
+                .toBuilder()
+                .correlationId("false")
+                .build()
+                .asCaseSensitiveMap()).isEqualTo(expectedHeaders);
+    }
+
     private static Map<String, String> createMapContainingAllKnownHeaders() {
         final Map<String, String> result = new HashMap<>();
-        result.put(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(), AUTH_CONTEXT_WITHOUT_DUPLICATES.toJsonString());
+        result.put(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey(),
+                AUTH_CONTEXT_WITHOUT_DUPLICATES.toJsonString());
         result.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), "knownCorrelationId");
         result.put(DittoHeaderDefinition.SCHEMA_VERSION.getKey(), KNOWN_SCHEMA_VERSION.toString());
         result.put(DittoHeaderDefinition.CHANNEL.getKey(), KNOWN_CHANNEL);
