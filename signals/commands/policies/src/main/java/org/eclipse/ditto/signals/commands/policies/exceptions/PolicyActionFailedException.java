@@ -101,19 +101,6 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
     }
 
     /**
-     * A mutable builder for when a deactivation failed due to matching permanent subjects.
-     *
-     * @return the builder.
-     */
-    public static DittoRuntimeExceptionBuilder<PolicyActionFailedException>
-    newBuilderForDeactivatingPermanentSubjects() {
-        return new Builder()
-                .action(DeactivateTokenIntegration.NAME)
-                .status(HttpStatusCode.BAD_REQUEST)
-                .description("Some matched subjects are permanent.");
-    }
-
-    /**
      * Constructs a new {@code PolicyActionFailedException} object with the exception content extracted from the
      * given JSON object.
      *

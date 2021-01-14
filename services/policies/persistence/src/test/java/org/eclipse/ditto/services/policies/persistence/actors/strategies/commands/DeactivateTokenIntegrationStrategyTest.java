@@ -16,12 +16,8 @@ import static org.eclipse.ditto.services.policies.persistence.TestConstants.Poli
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.text.MessageFormat;
-
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
-import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIdInvalidException;
@@ -29,10 +25,8 @@ import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.services.policies.common.config.DefaultPolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
-import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegrationResponse;
-import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.signals.events.policies.SubjectDeleted;
 import org.junit.Before;
 import org.junit.Test;
@@ -65,13 +59,12 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final SubjectId subjectId =
                 SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{policy-entry:label}}:this-is-me");
-        final SubjectId expectedSubjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, LABEL + ":this-is-me");
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final DeactivateTokenIntegration command =
                 DeactivateTokenIntegration.of(context.getState(), LABEL, subjectId, dittoHeaders);
         assertModificationResult(underTest, TestConstants.Policy.POLICY, command,
                 SubjectDeleted.class,
-                DeactivateTokenIntegrationResponse.of(context.getState(), LABEL, expectedSubjectId, dittoHeaders));
+                DeactivateTokenIntegrationResponse.of(context.getState(), LABEL, dittoHeaders));
     }
 
     @Test
@@ -79,25 +72,19 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final SubjectId subjectId =
                 SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{policy-entry:label}}:this-is-me");
-        final SubjectId expectedSubjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, LABEL + ":this-is-me");
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final DeactivateTokenIntegration command =
                 DeactivateTokenIntegration.of(context.getState(), LABEL, subjectId, dittoHeaders);
-        final Policy policy = TestConstants.Policy.POLICY.toBuilder()
-                .setSubjectFor(LABEL,
-                        PoliciesModelFactory.newSubject(expectedSubjectId,
-                                PoliciesModelFactory.newSubjectType(MessageFormat.format("added via action <{0}>",
-                                        ActivateTokenIntegration.NAME))))
-                .build();
-        assertErrorResult(underTest, policy, command,
-                PolicyActionFailedException.newBuilderForDeactivatingPermanentSubjects().build());
+        assertModificationResult(underTest, TestConstants.Policy.POLICY, command,
+                SubjectDeleted.class,
+                DeactivateTokenIntegrationResponse.of(context.getState(), LABEL, dittoHeaders));
     }
 
     @Test
     public void deactivateInvalidSubject() {
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final SubjectId subjectId = SubjectId.newInstance("{{policy-entry:label}}");
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final DeactivateTokenIntegration
                 command = DeactivateTokenIntegration.of(context.getState(), LABEL, subjectId, dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
@@ -108,7 +95,7 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
     public void deactivateUnresolvableSubject() {
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final SubjectId subjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{fn:delete()}}");
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final DeactivateTokenIntegration
                 command = DeactivateTokenIntegration.of(context.getState(), LABEL, subjectId, dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
@@ -119,10 +106,23 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
     public void deactivateTokenIntegrationWithUnsupportedPlaceholder() {
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final SubjectId subjectId = SubjectId.newInstance("{{request:subjectId}}");
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final DeactivateTokenIntegration
                 command = DeactivateTokenIntegration.of(context.getState(), LABEL, subjectId, dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
                 UnresolvedPlaceholderException.newBuilder("{{request:subjectId}}").build());
     }
+
+    @Test
+    public void deactivateTokenIntegrationWithoutAuthContextContainingPolicyEntrySubject() {
+        final CommandStrategy.Context<PolicyId> context = getDefaultContext();
+        final SubjectId subjectId =
+                SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{policy-entry:label}}:this-is-me");
+        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DeactivateTokenIntegration command =
+                DeactivateTokenIntegration.of(context.getState(), LABEL, subjectId, dittoHeaders);
+        assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
+                underTest.getNotApplicableException(dittoHeaders));
+    }
+
 }

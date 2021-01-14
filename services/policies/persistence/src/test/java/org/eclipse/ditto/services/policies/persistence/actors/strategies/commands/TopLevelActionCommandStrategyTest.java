@@ -44,7 +44,6 @@ import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegrat
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.TopLevelActionCommand;
 import org.eclipse.ditto.signals.commands.policies.actions.TopLevelActionCommandResponse;
-import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.signals.events.policies.SubjectsDeletedPartially;
 import org.eclipse.ditto.signals.events.policies.SubjectsModifiedPartially;
 import org.junit.Before;
@@ -85,7 +84,7 @@ public final class TopLevelActionCommandStrategyTest extends AbstractPolicyComma
                 SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{policy-entry:label}}:this-is-me");
         final SubjectId expectedSubjectId =
                 SubjectId.newInstance(SubjectIssuer.INTEGRATION, LABEL + ":this-is-me");
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final TopLevelActionCommand command = TopLevelActionCommand.of(
                 ActivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, expiry, dittoHeaders),
                 List.of(LABEL)
@@ -107,7 +106,7 @@ public final class TopLevelActionCommandStrategyTest extends AbstractPolicyComma
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final Instant expiry = Instant.now().plus(Duration.ofDays(1L));
         final SubjectId subjectId = SubjectId.newInstance("{{policy-entry:label}}");
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final TopLevelActionCommand command = TopLevelActionCommand.of(
                 ActivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, expiry, dittoHeaders),
                 List.of(LABEL)
@@ -121,7 +120,7 @@ public final class TopLevelActionCommandStrategyTest extends AbstractPolicyComma
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final Instant expiry = Instant.now().plus(Duration.ofDays(1L));
         final SubjectId subjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{fn:delete()}}");
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final TopLevelActionCommand command = TopLevelActionCommand.of(
                 ActivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, expiry, dittoHeaders),
                 List.of(LABEL)
@@ -135,7 +134,7 @@ public final class TopLevelActionCommandStrategyTest extends AbstractPolicyComma
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final Instant expiry = Instant.now().plus(Duration.ofDays(1L));
         final SubjectId subjectId = SubjectId.newInstance("{{request:subjectId}}");
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final TopLevelActionCommand command = TopLevelActionCommand.of(
                 ActivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, expiry, dittoHeaders),
                 List.of(LABEL)
@@ -155,7 +154,7 @@ public final class TopLevelActionCommandStrategyTest extends AbstractPolicyComma
                 List.of()
         );
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
-                activateTokenIntegrationStrategy.getNotApplicableException());
+                activateTokenIntegrationStrategy.getNotApplicableException(dittoHeaders));
     }
 
     @Test
@@ -170,7 +169,7 @@ public final class TopLevelActionCommandStrategyTest extends AbstractPolicyComma
                 List.of(nonexistentLabel)
         );
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
-                activateTokenIntegrationStrategy.getNotApplicableException());
+                activateTokenIntegrationStrategy.getNotApplicableException(dittoHeaders));
     }
 
     @Test
@@ -189,7 +188,8 @@ public final class TopLevelActionCommandStrategyTest extends AbstractPolicyComma
                 .setSubject(TestConstants.Policy.SUPPORT_SUBJECT)
                 .setGrantedPermissions(ResourceKey.newInstance("policy:/"), Permission.READ)
                 .build();
-        assertErrorResult(underTest, policy, command, activateTokenIntegrationStrategy.getNotApplicableException());
+        assertErrorResult(underTest, policy, command,
+                activateTokenIntegrationStrategy.getNotApplicableException(dittoHeaders));
     }
 
     @Test
@@ -199,7 +199,7 @@ public final class TopLevelActionCommandStrategyTest extends AbstractPolicyComma
                 SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{policy-entry:label}}:this-is-me");
         final SubjectId expectedSubjectId =
                 SubjectId.newInstance(SubjectIssuer.INTEGRATION, LABEL + ":this-is-me");
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final TopLevelActionCommand command = TopLevelActionCommand.of(
                 DeactivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, dittoHeaders),
                 List.of(LABEL)
@@ -226,7 +226,7 @@ public final class TopLevelActionCommandStrategyTest extends AbstractPolicyComma
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final SubjectId subjectId =
                 SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{policy-entry:label}}:this-is-me");
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final TopLevelActionCommand command = TopLevelActionCommand.of(
                 DeactivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, dittoHeaders),
                 List.of(LABEL)
@@ -242,31 +242,10 @@ public final class TopLevelActionCommandStrategyTest extends AbstractPolicyComma
     }
 
     @Test
-    public void deactivatePermanentSubject() {
-        final CommandStrategy.Context<PolicyId> context = getDefaultContext();
-        final SubjectId subjectId =
-                SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{policy-entry:label}}:this-is-me");
-        final SubjectId expectedSubjectId =
-                SubjectId.newInstance(SubjectIssuer.INTEGRATION, LABEL + ":this-is-me");
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
-        final TopLevelActionCommand command = TopLevelActionCommand.of(
-                DeactivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, dittoHeaders),
-                List.of(LABEL)
-        );
-        final Policy policy = TestConstants.Policy.POLICY.toBuilder()
-                .setSubjectFor(LABEL, PoliciesModelFactory.newSubject(expectedSubjectId,
-                        PoliciesModelFactory.newSubjectType(MessageFormat.format("added via action <{0}>",
-                                ActivatePolicyTokenIntegration.NAME))))
-                .build();
-        assertErrorResult(underTest, policy, command,
-                PolicyActionFailedException.newBuilderForDeactivatingPermanentSubjects().build());
-    }
-
-    @Test
     public void deactivateInvalidSubject() {
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final SubjectId subjectId = SubjectId.newInstance("{{policy-entry:label}}");
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final TopLevelActionCommand command = TopLevelActionCommand.of(
                 DeactivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, dittoHeaders),
                 List.of(LABEL)
@@ -279,7 +258,7 @@ public final class TopLevelActionCommandStrategyTest extends AbstractPolicyComma
     public void deactivateUnresolvableSubject() {
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final SubjectId subjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{fn:delete()}}");
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final TopLevelActionCommand command = TopLevelActionCommand.of(
                 DeactivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, dittoHeaders),
                 List.of(LABEL)
@@ -292,7 +271,7 @@ public final class TopLevelActionCommandStrategyTest extends AbstractPolicyComma
     public void deactivateTokenIntegrationWithUnsupportedPlaceholder() {
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final SubjectId subjectId = SubjectId.newInstance("{{request:subjectId}}");
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
+        final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final TopLevelActionCommand command = TopLevelActionCommand.of(
                 DeactivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, dittoHeaders),
                 List.of(LABEL)

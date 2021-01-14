@@ -25,6 +25,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Policy;
@@ -68,6 +69,7 @@ final class TopLevelActionCommandStrategy
 
         final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyActionCommand<?> actionCommand = command.getPolicyActionCommand();
+        final DittoHeaders dittoHeaders = command.getDittoHeaders();
         final List<PolicyEntry> entries = command.getAuthorizedLabels()
                 .stream()
                 .map(nonNullPolicy::getEntryFor)
@@ -98,12 +100,12 @@ final class TopLevelActionCommandStrategy
                 final Optional<PolicyEvent<?>> event = visitor.aggregateEvents();
                 if (event.isPresent()) {
                     final TopLevelActionCommandResponse response =
-                            TopLevelActionCommandResponse.of(context.getState(), command.getDittoHeaders());
+                            TopLevelActionCommandResponse.of(context.getState(), dittoHeaders);
                     return ResultFactory.newMutationResult(command, event.get(), response);
                 }
             }
         }
-        return ResultFactory.newErrorResult(strategy.getNotApplicableException(), command);
+        return ResultFactory.newErrorResult(strategy.getNotApplicableException(dittoHeaders), command);
     }
 
     @Override

@@ -63,16 +63,24 @@ final class DeactivatePolicyTokenIntegrationStrategy
         final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyId policyId = context.getState();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
-        final List<PolicyEntry> entries = command.getLabels()
+        final List<PolicyEntry> preFilteredEntries = command.getLabels()
                 .stream()
                 .map(nonNullPolicy::getEntryFor)
                 .flatMap(Optional::stream)
                 .collect(Collectors.toList());
-        if (entries.isEmpty() || entries.size() != command.getLabels().size()) {
+        if (preFilteredEntries.isEmpty() || preFilteredEntries.size() != command.getLabels().size()) {
             // Command is constructed incorrectly. This is a bug.
             return ResultFactory.newErrorResult(
                     PolicyActionFailedException.newBuilderForDeactivateTokenIntegration().build(), command);
         }
+
+        final List<PolicyEntry> entries = preFilteredEntries.stream()
+                .filter(entry -> containsAuthenticatedSubject(entry, dittoHeaders.getAuthorizationContext()))
+                .collect(Collectors.toList());
+        if (entries.isEmpty()) {
+            return ResultFactory.newErrorResult(getNotApplicableException(dittoHeaders), command);
+        }
+
         final Map<Label, SubjectId> deactivatedSubjectsIds = new HashMap<>();
         for (final PolicyEntry entry : entries) {
             final SubjectId subjectId;
@@ -83,13 +91,6 @@ final class DeactivatePolicyTokenIntegrationStrategy
             }
             final Optional<Subject> optionalSubject = entry.getSubjects().getSubject(subjectId);
             if (optionalSubject.isPresent()) {
-                if (optionalSubject.get().getExpiry().isEmpty()) {
-                    return ResultFactory.newErrorResult(
-                            PolicyActionFailedException.newBuilderForDeactivatingPermanentSubjects()
-                                    .dittoHeaders(dittoHeaders)
-                                    .build(),
-                            command);
-                }
                 deactivatedSubjectsIds.put(entry.getLabel(), subjectId);
             }
         }

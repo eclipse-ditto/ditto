@@ -73,10 +73,11 @@ final class ActivatePolicyTokenIntegrationStrategy
                 .stream()
                 .map(nonNullPolicy::getEntryFor)
                 .flatMap(Optional::stream)
+                .filter(entry -> containsAuthenticatedSubject(entry, dittoHeaders.getAuthorizationContext()))
                 .filter(this::containsThingReadPermission)
                 .collect(Collectors.toList());
         if (entries.isEmpty()) {
-            return ResultFactory.newErrorResult(getNotApplicableException(), command);
+            return ResultFactory.newErrorResult(getNotApplicableException(dittoHeaders), command);
         }
         final PolicyBuilder policyBuilder = nonNullPolicy.toBuilder();
         final Map<Label, Subject> activatedSubjects = new HashMap<>();

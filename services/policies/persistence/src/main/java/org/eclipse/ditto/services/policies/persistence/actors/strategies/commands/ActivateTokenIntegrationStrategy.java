@@ -68,6 +68,7 @@ final class ActivateTokenIntegrationStrategy
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(label)
+                .filter(entry -> containsAuthenticatedSubject(entry, dittoHeaders.getAuthorizationContext()))
                 .filter(this::containsThingReadPermission);
         if (optionalEntry.isPresent()) {
             final PolicyEntry policyEntry = optionalEntry.get();
@@ -115,7 +116,7 @@ final class ActivateTokenIntegrationStrategy
                         command);
             }
         } else {
-            return ResultFactory.newErrorResult(getNotApplicableException(), command);
+            return ResultFactory.newErrorResult(getNotApplicableException(dittoHeaders), command);
         }
     }
 
