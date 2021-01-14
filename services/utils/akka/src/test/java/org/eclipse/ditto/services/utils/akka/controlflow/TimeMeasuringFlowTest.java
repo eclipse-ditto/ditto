@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.utils.akka.controlflow;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -25,17 +24,11 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
 import org.assertj.core.data.Offset;
-import org.assertj.core.data.Percentage;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.services.utils.metrics.instruments.timer.OnStopHandler;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
-import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
-import org.eclipse.ditto.services.utils.metrics.instruments.timer.StoppedTimer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import akka.Done;
 import akka.NotUsed;

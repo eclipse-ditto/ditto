@@ -29,7 +29,6 @@ import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Zip;
 
-
 public final class TimeMeasuringFlow {
 
     private TimeMeasuringFlow() {
@@ -51,6 +50,20 @@ public final class TimeMeasuringFlow {
 
     /**
      * Builds a flow that measures the time it took the given flow to process the input to the output using the given timer.
+     *
+     * <pre>
+     *   +------------------------------------------------------------------------------------+
+     *   |                                                                                    |
+     *   |                         +--------------+                                           |
+     *   |                     +-->+ startTimer   +-------------+   +-----+   +-----------+   |
+     * IN|  +---------------+  |   +--------------+             +-->+ zip +-->+ stopTimer |   |
+     * +--->+ beforeTimerBC +--+                                |   +-----+   +-----------+   |
+     *   |  +---------------+  |   +------+   +--------------+  |                             |
+     *   |                     +-->+ flow +-->+ afterTimerBC +--+                             |OUT
+     *   |                         +------+   +--------------+  +-------------------------------->
+     *   |                                                                                    |
+     *   +------------------------------------------------------------------------------------+
+     *</pre>
      *
      * @param flow the flow that should be measured.
      * @param timer the timer that should be used to measure the time.
@@ -78,6 +91,7 @@ public final class TimeMeasuringFlow {
 
             final Flow<I, StartedTimer, NotUsed> startTimerFlow = Flow.fromFunction(request -> timer.start());
 
+            // its important that outlet 0 is connected to the timers, to guarantee that the timer is started first
             builder.from(beforeTimerBroadcast.out(0))
                     .via(builder.add(startTimerFlow))
                     .toInlet(zip.in0());

@@ -93,7 +93,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private static final AcknowledgementLabel NO_ACK_LABEL = AcknowledgementLabel.of("ditto-amqp-diagnostic");
     private static final String TOO_MANY_IN_FLIGHT_MESSAGE_DESCRIPTION = "This can have the following reasons:\n" +
             "a) The AMQP consumer does not consume the messages fast enough.\n" +
-            "b) The client count and of this connection is not configured high enough.";
+            "b) The client count of this connection is not configured high enough.";
 
     private final Session session;
     private final LinkedHashMap<Destination, MessageProducer> dynamicTargets;
