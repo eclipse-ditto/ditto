@@ -34,6 +34,7 @@ import org.assertj.core.util.Maps;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
@@ -115,6 +116,7 @@ public final class ImmutableDittoHeadersTest {
     private static final MetadataHeaders KNOWN_METADATA_HEADERS;
     private static final boolean KNOWN_ALLOW_POLICY_LOCKOUT = true;
     private static final boolean KNOWN_IS_WEAK_ACK = false;
+    private static final boolean KNOWN_POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY = true;
 
     static {
         KNOWN_METADATA_HEADERS = MetadataHeaders.newInstance();
@@ -167,6 +169,8 @@ public final class ImmutableDittoHeadersTest {
                 .expectedResponseTypes(KNOWN_EXPECTED_RESPONSE_TYPES)
                 .allowPolicyLockout(KNOWN_ALLOW_POLICY_LOCKOUT)
                 .putHeader(DittoHeaderDefinition.WEAK_ACK.getKey(), String.valueOf(KNOWN_IS_WEAK_ACK))
+                .putHeader(DittoHeaderDefinition.POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY.getKey(),
+                        String.valueOf(KNOWN_POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY))
                 .build();
 
         assertThat(underTest).isEqualTo(expectedHeaderMap);
@@ -387,6 +391,8 @@ public final class ImmutableDittoHeadersTest {
                 .set(DittoHeaderDefinition.PUT_METADATA.getKey(), KNOWN_METADATA_HEADERS.toJson())
                 .set(DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT.getKey(), KNOWN_ALLOW_POLICY_LOCKOUT)
                 .set(DittoHeaderDefinition.WEAK_ACK.getKey(), KNOWN_IS_WEAK_ACK)
+                .set(DittoHeaderDefinition.POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY.getKey(),
+                        KNOWN_POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY)
                 .build();
         final Map<String, String> allKnownHeaders = createMapContainingAllKnownHeaders();
 
@@ -547,16 +553,55 @@ public final class ImmutableDittoHeadersTest {
         oversizeMap.put("m", "1"); // header size=2, total size=3
         oversizeMap.put("f", "12"); // header size=3, total size=6
         oversizeMap.put("d", "123"); // header size=4, total size=10
-        oversizeMap.put("M", "1234"); // header size=5, total size=15
+        oversizeMap.put("x", "1234"); // header size=5, total size=15
         final DittoHeaders oversizeHeaders = ImmutableDittoHeaders.of(oversizeMap);
 
         final DittoHeaders truncatedHeaders = oversizeHeaders.truncate(8L);
 
         final Map<String, String> expected = new HashMap<>(oversizeMap);
         expected.remove("d");
-        expected.remove("M");
+        expected.remove("x");
 
         assertThat(truncatedHeaders).isEqualTo(expected);
+    }
+
+    @Test
+    public void areCaseInsensitiveAndCasePreserving() {
+        final Map<String, String> headers = new HashMap<>();
+        headers.put("hElLo", "world");
+        final DittoHeaders underTest = ImmutableDittoHeaders.of(headers);
+        assertThat(underTest.get("hello")).isEqualTo("world");
+        final JsonObject serialized = underTest.toJson();
+        assertThat(serialized).containsExactly(JsonField.newInstance("hElLo", JsonValue.of("world")));
+        final DittoHeaders deserialized = DittoHeaders.newBuilder(serialized).build();
+        assertThat(deserialized).isEqualTo(underTest);
+        assertThat(deserialized.toJson()).isEqualTo(serialized);
+    }
+
+    @Test
+    public void respectInsertionOrder() {
+        final Map<String, String> initialHeaders = new HashMap<>();
+        initialHeaders.put("Response-Required", "true");
+        final Map<String, String> expectedHeaders = new HashMap<>();
+        expectedHeaders.put("response-required", "false");
+        assertThat(DittoHeaders.of(initialHeaders)
+                .toBuilder()
+                .responseRequired(false)
+                .build()
+                .asCaseSensitiveMap()).isEqualTo(expectedHeaders);
+    }
+
+    @Test
+    public void preserveCapitalizationOfCorrelationId() {
+        final Map<String, String> initialHeaders = new HashMap<>();
+        initialHeaders.put("Correlation-Id", "true");
+        final Map<String, String> expectedHeaders = new HashMap<>();
+        expectedHeaders.put("Correlation-Id", "false");
+        assertThat(DittoHeaders.of(initialHeaders)
+                .toBuilder()
+                .correlationId("false")
+                .build()
+                .asCaseSensitiveMap()).isEqualTo(expectedHeaders);
     }
 
     private static Map<String, String> createMapContainingAllKnownHeaders() {
@@ -595,6 +640,8 @@ public final class ImmutableDittoHeadersTest {
         result.put(DittoHeaderDefinition.PUT_METADATA.getKey(), KNOWN_METADATA_HEADERS.toJsonString());
         result.put(DittoHeaderDefinition.ALLOW_POLICY_LOCKOUT.getKey(), String.valueOf(KNOWN_ALLOW_POLICY_LOCKOUT));
         result.put(DittoHeaderDefinition.WEAK_ACK.getKey(), String.valueOf(KNOWN_IS_WEAK_ACK));
+        result.put(DittoHeaderDefinition.POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY.getKey(),
+                String.valueOf(KNOWN_POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY));
 
         return result;
     }

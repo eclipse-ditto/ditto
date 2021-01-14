@@ -87,7 +87,7 @@ public final class RawMessageMapperTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getBytePayload()).isEmpty();
         assertThat(result.get(0).getTextPayload()).contains("hello world");
-        assertThat(result.get(0).getHeaders()).containsExactlyEntriesOf(message.getHeaders());
+        assertThat(result.get(0).getHeaders()).isEqualTo(message.getHeaders());
     }
 
     @Test

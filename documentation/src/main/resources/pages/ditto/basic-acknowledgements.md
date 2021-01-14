@@ -47,6 +47,9 @@ It is ignored for commands in the live channel.
 * **live-response**: For acknowledgement requests of live commands and live messages.
 It is fulfilled when a subscriber of the live command or message sends a corresponding response.
 It is ignored for commands in the twin channel.
+* **search-persisted**: For acknowledgement requests of twin modifying commands.
+It is fulfilled when a modifying command has successfully updated the search index of the digital twin.
+It is ignored for commands in the live channel.
 
 ### Custom acknowledgement labels
 In addition to the [built-in](#built-in-acknowledgement-labels) acknowledgement requests, 

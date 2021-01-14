@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.streaming.actors;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.EnumMap;
@@ -20,7 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
@@ -29,7 +29,6 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredExceptio
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.acks.FatalPubSubException;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
@@ -61,10 +60,10 @@ import org.eclipse.ditto.services.gateway.streaming.StopStreaming;
 import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActorStarter;
 import org.eclipse.ditto.services.models.acks.AcknowledgementForwarderActor;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
-import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
-import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
@@ -85,19 +84,23 @@ import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 import akka.Done;
 import akka.actor.AbstractActorWithTimers;
 import akka.actor.ActorRef;
-import akka.actor.Cancellable;
 import akka.actor.Props;
 import akka.actor.Terminated;
 import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.javadsl.SourceQueueWithComplete;
 import scala.PartialFunction;
-import scala.concurrent.duration.FiniteDuration;
 
 /**
  * Actor handling a single streaming connection / session.
  */
 final class StreamingSessionActor extends AbstractActorWithTimers {
+
+    /**
+     * Maximum lifetime of an expiring session.
+     * If a session is established with JWT lasting more than this duration, the session will persist forever.
+     */
+    private static final Duration MAX_SESSION_TIMEOUT = Duration.ofDays(100L);
 
     private final JsonSchemaVersion jsonSchemaVersion;
     private final String connectionCorrelationId;
@@ -115,7 +118,6 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     private final Set<AcknowledgementLabel> declaredAcks;
     private final ThreadSafeDittoLoggingAdapter logger;
 
-    @Nullable private Cancellable sessionTerminationCancellable;
     private AuthorizationContext authorizationContext;
 
     @SuppressWarnings("unused")
@@ -138,7 +140,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         this.jwtValidator = jwtValidator;
         this.jwtAuthenticationResultProvider = jwtAuthenticationResultProvider;
         outstandingSubscriptionAcks = EnumSet.noneOf(StreamingType.class);
-        authorizationContext = AuthorizationModelFactory.emptyAuthContext();
+        authorizationContext = connect.getConnectionAuthContext();
         streamingSessions = new EnumMap<>(StreamingType.class);
         ackregatorStarter = AcknowledgementAggregatorActorStarter.of(getContext(),
                 acknowledgementConfig,
@@ -148,9 +150,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 MessageCommandAckRequestSetter.getInstance());
         logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withCorrelationId(connectionCorrelationId);
-        connect.getSessionExpirationTime().ifPresent(expiration ->
-                sessionTerminationCancellable = startSessionTimeout(expiration)
-        );
+        connect.getSessionExpirationTime().ifPresent(this::startSessionTimeout);
         this.subscriptionManager = getContext().actorOf(subscriptionManagerProps, SubscriptionManager.ACTOR_NAME);
         declaredAcks = connect.getDeclaredAcknowledgementLabels();
     }
@@ -357,6 +357,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .match(FatalPubSubException.class, this::pubsubFailed)
                 .match(Terminated.class, this::handleTerminated)
                 .matchEquals(Control.TERMINATED, this::handleTerminated)
+                .matchEquals(Control.SESSION_TERMINATION, this::handleSessionTermination)
                 .build();
     }
 
@@ -506,16 +507,21 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
         return isAuthorizedToRead && matchesNamespace;
     }
 
-    private Cancellable startSessionTimeout(final Instant sessionExpirationTime) {
-        final long timeout = sessionExpirationTime.minusMillis(Instant.now().toEpochMilli()).toEpochMilli();
-
-        logger.debug("Starting session timeout - session will expire in {} ms", timeout);
-        final FiniteDuration sessionExpirationTimeMillis = FiniteDuration.apply(timeout, TimeUnit.MILLISECONDS);
-        return getContext().getSystem().getScheduler().scheduleOnce(sessionExpirationTimeMillis,
-                this::handleSessionTimeout, getContext().getDispatcher());
+    private void startSessionTimeout(final Instant sessionExpirationTime) {
+        final Duration sessionTimeout = Duration.between(Instant.now(), sessionExpirationTime);
+        if (sessionTimeout.isNegative() || sessionTimeout.isZero()) {
+            logger.debug("Session expired already. Closing WS.");
+            getSelf().tell(Control.SESSION_TERMINATION, ActorRef.noSender());
+        } else if (sessionTimeout.minus(MAX_SESSION_TIMEOUT).isNegative()) {
+            logger.debug("Starting session timeout - session will expire in {}", sessionTimeout);
+            getTimers().startSingleTimer(Control.SESSION_TERMINATION, Control.SESSION_TERMINATION, sessionTimeout);
+        } else {
+            logger.warning("Session lifetime <{}> is more than the maximum <{}>. Keeping session open indefinitely.",
+                    sessionTimeout, MAX_SESSION_TIMEOUT);
+        }
     }
 
-    private void handleSessionTimeout() {
+    private void handleSessionTermination(final Control sessionTermination) {
         logger.info("Stopping WebSocket session for connection with ID <{}>.", connectionCorrelationId);
         final GatewayWebsocketSessionExpiredException gatewayWebsocketSessionExpiredException =
                 GatewayWebsocketSessionExpiredException.newBuilder()
@@ -527,9 +533,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     }
 
     private void cancelSessionTimeout() {
-        if (null != sessionTerminationCancellable) {
-            sessionTerminationCancellable.cancel();
-        }
+        getTimers().cancel(Control.SESSION_TERMINATION);
     }
 
     private void checkAuthorizationContextAndStartSessionTimer(final RefreshSession refreshSession) {
@@ -545,7 +549,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                             .build();
             eventAndResponsePublisher.fail(gatewayWebsocketSessionClosedException);
         } else {
-            sessionTerminationCancellable = startSessionTimeout(refreshSession.getSessionTimeout());
+            startSessionTimeout(refreshSession.getSessionTimeout());
         }
     }
 
@@ -566,6 +570,9 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 try {
                     final AuthenticationResult authorizationResult =
                             jwtAuthenticationResultProvider.getAuthenticationResult(jsonWebToken, DittoHeaders.empty());
+
+                    // Duplicating authorization subjects for equality check.
+                    // TODO Ditto 2.0: use authorizationResult.getAuthorizationContext() directly.
                     final AuthorizationContext jwtAuthorizationContext =
                             authorizationResult.getDittoHeaders().getAuthorizationContext();
 
@@ -580,7 +587,7 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 logger.debug("Received invalid JWT for WebSocket session <{}>. Terminating the session.",
                         connectionCorrelationId);
                 final GatewayWebsocketSessionClosedException gatewayWebsocketSessionClosedException =
-                        GatewayWebsocketSessionClosedException.newBuilder()
+                        GatewayWebsocketSessionClosedException.newBuilderForInvalidToken()
                                 .dittoHeaders(DittoHeaders.newBuilder()
                                         .correlationId(connectionCorrelationId)
                                         .build())
@@ -712,7 +719,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     }
 
     private enum Control {
-        TERMINATED
+        TERMINATED,
+        SESSION_TERMINATION
     }
 
 }

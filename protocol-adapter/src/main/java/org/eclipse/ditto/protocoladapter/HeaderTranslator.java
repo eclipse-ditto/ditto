@@ -17,7 +17,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -87,7 +87,7 @@ public final class HeaderTranslator {
     public Map<String, String> fromExternalHeaders(final Map<String, String> externalHeaders) {
         checkNotNull(externalHeaders, "externalHeaders");
         final HeaderEntryFilter headerEntryFilter = HeaderEntryFilters.fromExternalHeadersFilter(headerDefinitions);
-        return filterHeaders(externalHeaders, headerEntryFilter, true);
+        return filterHeaders(externalHeaders, headerEntryFilter);
     }
 
     /**
@@ -100,7 +100,7 @@ public final class HeaderTranslator {
     public Map<String, String> toExternalHeaders(final DittoHeaders dittoHeaders) {
         checkNotNull(dittoHeaders, "dittoHeaders");
         final HeaderEntryFilter headerEntryFilter = HeaderEntryFilters.toExternalHeadersFilter(headerDefinitions);
-        return filterHeadersMap(dittoHeaders, headerEntryFilter, false);
+        return filterHeadersMap(dittoHeaders.asCaseSensitiveMap(), headerEntryFilter);
     }
 
     /**
@@ -115,7 +115,7 @@ public final class HeaderTranslator {
     public Map<String, String> retainKnownHeaders(final Map<String, String> externalHeaders) {
         checkNotNull(externalHeaders, "externalHeaders");
         final HeaderEntryFilter headerEntryFilter = HeaderEntryFilters.existsAsHeaderDefinition(headerDefinitions);
-        return filterHeaders(externalHeaders, headerEntryFilter, true);
+        return filterHeaders(externalHeaders, headerEntryFilter);
     }
 
     /**
@@ -134,7 +134,7 @@ public final class HeaderTranslator {
         }
         final HeaderEntryFilter headerEntryFilter = HeaderEntryFilters
                 .existsAsHeaderDefinitionAndExternal(headerDefinitions);
-        return filterHeaders(dittoHeaders, headerEntryFilter, true);
+        return filterHeaders(dittoHeaders, headerEntryFilter);
     }
 
     /**
@@ -148,13 +148,13 @@ public final class HeaderTranslator {
     @Deprecated
     public HeaderTranslator forgetHeaderKeys(final Collection<String> headerKeys) {
         checkNotNull(headerKeys, "headerKeys");
-        final Map<String, HeaderDefinition> newHeaderDefinitions = new HashMap<>(headerDefinitions);
+        final Map<String, HeaderDefinition> newHeaderDefinitions = new LinkedHashMap<>(headerDefinitions);
         headerKeys.forEach(newHeaderDefinitions::remove);
         return new HeaderTranslator(newHeaderDefinitions);
     }
 
     private static Map<String, String> filterHeaders(final Map<String, String> headersToFilter,
-            final HeaderEntryFilter headerEntryFilter, final boolean lowercaseHeaderKeys) {
+            final HeaderEntryFilter headerEntryFilter) {
 
         if (headersToFilter instanceof DittoHeaders) {
 
@@ -162,42 +162,41 @@ public final class HeaderTranslator {
             // and remove values which were filtered out from the DittoHeadersBuilder
             // return DittoHeaders again so that based on this return value other ".toBuilder()" calls may
             // profit from the performance optimization in DittoHeaders.toBuilder() as no validation has to be done
-            return filterDittoHeaders((DittoHeaders) headersToFilter, headerEntryFilter, lowercaseHeaderKeys);
+            return filterDittoHeaders((DittoHeaders) headersToFilter, headerEntryFilter);
         } else {
-            return filterHeadersMap(headersToFilter, headerEntryFilter, lowercaseHeaderKeys);
+            return filterHeadersMap(headersToFilter, headerEntryFilter);
         }
     }
 
     private static DittoHeaders filterDittoHeaders(final DittoHeaders headersToFilter,
-            final HeaderEntryFilter headerEntryFilter, final boolean lowerCaseHeaderKeys) {
+            final HeaderEntryFilter headerEntryFilter) {
 
         final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = headersToFilter.toBuilder();
-        for (final Map.Entry<String, String> entry : headersToFilter.entrySet()) {
+        for (final Map.Entry<String, String> entry : headersToFilter.asCaseSensitiveMap().entrySet()) {
             final String originalKey = entry.getKey();
             final String originalValue = entry.getValue();
-            final String key = lowerCaseHeaderKeys ? originalKey.toLowerCase() : originalKey;
+            final String key = originalKey.toLowerCase();
             final String filteredValue = headerEntryFilter.apply(key, originalValue);
             if (null == filteredValue) {
-                dittoHeadersBuilder.removeHeader(key);
+                dittoHeadersBuilder.removeHeader(originalKey);
             } else if (!filteredValue.equals(originalValue)) {
-                dittoHeadersBuilder.putHeader(key, filteredValue);
+                dittoHeadersBuilder.putHeader(originalKey, filteredValue);
             }
         }
         return dittoHeadersBuilder.build();
     }
 
     private static Map<String, String> filterHeadersMap(final Map<String, String> headersToFilter,
-            final HeaderEntryFilter headerEntryFilter, final boolean lowerCaseHeaderKeys) {
+            final HeaderEntryFilter headerEntryFilter) {
 
-        final Map<String, String> result = new HashMap<>(headersToFilter.size());
-        for (final Map.Entry<String, String> entry : headersToFilter.entrySet()) {
-            final String originalKey = entry.getKey();
-            final String key = lowerCaseHeaderKeys ? originalKey.toLowerCase() : originalKey;
-            final String filteredValue = headerEntryFilter.apply(key, entry.getValue());
+        final Map<String, String> result = new LinkedHashMap<>(headersToFilter.size());
+        headersToFilter.forEach((originalKey, value) -> {
+            final String lowercaseKey = originalKey.toLowerCase();
+            final String filteredValue = headerEntryFilter.apply(lowercaseKey, value);
             if (null != filteredValue) {
-                result.put(key, filteredValue);
+                result.put(originalKey, filteredValue);
             }
-        }
+        });
         return result;
     }
 

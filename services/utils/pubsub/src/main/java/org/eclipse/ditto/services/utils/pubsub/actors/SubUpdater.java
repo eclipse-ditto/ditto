@@ -217,6 +217,7 @@ public final class SubUpdater extends akka.actor.AbstractActorWithTimers {
         } else if (subscriptions.isEmpty()) {
             snapshot = subscriptions.snapshot();
             ddataOp = topicsWriter.removeSubscriber(subscriber, writeConsistency);
+            previousUpdate = LiteralUpdate.empty();
             topicSizeMetric.set(0L);
         } else {
             // export before taking snapshot so that implementations may output incremental update.

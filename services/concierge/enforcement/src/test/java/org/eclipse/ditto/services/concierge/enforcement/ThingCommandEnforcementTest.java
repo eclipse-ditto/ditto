@@ -27,6 +27,7 @@ import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.THING_S
 import static org.eclipse.ditto.services.concierge.enforcement.TestSetup.fishForMsgClass;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,6 +42,8 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatcher;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -618,6 +621,17 @@ public final class ThingCommandEnforcementTest {
         testCreateByCopyFromPolicy(headers(V_2), ThingNotModifiableException.class);
     }
 
+    @Test
+    public void testCreateByCopyFromPolicyWithIfNoneMatch() {
+        // the "if-none-match" headers must be removed when retrieving the policy to copy
+        // if they are not removed, a PolicyPreconditionNotModifiedException would be returned
+        testCreateByCopyFromPolicy(headers(V_2).toBuilder()
+                .allowPolicyLockout(true)
+                .ifNoneMatch(EntityTagMatchers.fromList(Collections.singletonList(EntityTagMatcher.asterisk())))
+                .build(),
+                CreateThingResponse.class);
+    }
+
     private void testCreateByCopyFromPolicy(final DittoHeaders dittoHeaders, final Class<?> expectedResponseClass) {
         final PolicyId policyId = PolicyId.of("policy:id");
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId)
@@ -647,6 +661,8 @@ public final class ThingCommandEnforcementTest {
             underTest.tell(createThing, getRef());
 
             final RetrievePolicy retrievePolicy = conciergeProbe.expectMsgClass(RetrievePolicy.class);
+            assertThat(retrievePolicy.getDittoHeaders().getIfMatch()).isEmpty();
+            assertThat(retrievePolicy.getDittoHeaders().getIfNoneMatch()).isEmpty();
             conciergeProbe.lastSender().tell(RetrievePolicyResponse.of(policyId, policy,
                     retrievePolicy.getDittoHeaders()), ActorRef.noSender());
 

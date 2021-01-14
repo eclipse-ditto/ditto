@@ -14,6 +14,8 @@ package org.eclipse.ditto.signals.commands.things.acks;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Collections;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.acks.AbstractCommandAckRequestSetter;
@@ -37,7 +39,8 @@ public final class ThingModifyCommandAckRequestSetter extends AbstractCommandAck
     private static final ThingModifyCommandAckRequestSetter INSTANCE = new ThingModifyCommandAckRequestSetter();
 
     private ThingModifyCommandAckRequestSetter() {
-        super(DittoAcknowledgementLabel.TWIN_PERSISTED);
+        // The Ditto acknowledgement label "search-persisted" is tolerated but not set by default.
+        super(DittoAcknowledgementLabel.TWIN_PERSISTED, Collections.singleton(DittoAcknowledgementLabel.LIVE_RESPONSE));
     }
 
     /**

@@ -44,6 +44,8 @@ public final class GatewayWebsocketSessionClosedException extends DittoRuntimeEx
     private static final String DEFAULT_DESCRIPTION =
             "Changing the authorization context for an established websocket session isn't supported.";
 
+    private static final String INVALID_TOKEN_MESSAGE = "The websocket session was closed because the JWT is invalid.";
+
     private static final long serialVersionUID = -1391574777788522077L;
 
     private GatewayWebsocketSessionClosedException(final DittoHeaders dittoHeaders,
@@ -61,6 +63,15 @@ public final class GatewayWebsocketSessionClosedException extends DittoRuntimeEx
      */
     public static Builder newBuilder() {
         return new Builder();
+    }
+
+    /**
+     * A mutable builder for a {@code GatewayWebsocketSessionClosedException} thrown due to an invalid token.
+     *
+     * @return the builder.
+     */
+    public static Builder newBuilderForInvalidToken() {
+        return new Builder(INVALID_TOKEN_MESSAGE, null);
     }
 
     /**
@@ -111,8 +122,12 @@ public final class GatewayWebsocketSessionClosedException extends DittoRuntimeEx
     public static final class Builder extends DittoRuntimeExceptionBuilder<GatewayWebsocketSessionClosedException> {
 
         private Builder() {
-            message(DEFAULT_MESSAGE);
-            description(DEFAULT_DESCRIPTION);
+            this(DEFAULT_MESSAGE, DEFAULT_DESCRIPTION);
+        }
+
+        private Builder(final String message, @Nullable final String description) {
+            message(message);
+            description(description);
         }
 
         @Override

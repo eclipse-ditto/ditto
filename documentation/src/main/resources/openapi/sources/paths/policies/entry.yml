@@ -37,9 +37,9 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/policyEntry.yml'
+            $ref: '../../schemas/policies/policyEntry.yml'
     '304':
-        $ref: '../../responses/notModified.yml'
+      $ref: '../../responses/notModified.yml'
     '400':
       description: |-
         The request could not be completed. Possible reasons:
@@ -48,13 +48,13 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. The policy with the given ID or
@@ -63,7 +63,7 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'
 put:
@@ -100,7 +100,7 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/policyEntry.yml'
+            $ref: '../../schemas/policies/policyEntry.yml'
     '204':
       description: The policy entry was successfully updated.
       headers:
@@ -119,24 +119,23 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '403':
       description: |-
         The request could not be completed. Possible reasons:
-
           * the caller has insufficient permissions.
             You need `WRITE` permission on the `policy:/entries/{label}` resource,
             without any revoke in a deeper path of the policy resource.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. The policy with the given ID was
@@ -144,7 +143,7 @@ put:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'
     '413':
@@ -153,7 +152,7 @@ put:
     content:
       application/json:
         schema:
-          $ref: '../../schemas/policyEntry.yml'
+          $ref: '../../schemas/policies/policyEntry.yml'
         example: {
           "subjects": {
             "{{ request:subjectId }}": {
@@ -163,22 +162,22 @@ put:
           "resources": {
             "policy:/": {
               "grant": [
-                  "READ",
-                  "WRITE"
+                "READ",
+                "WRITE"
               ],
               "revoke": []
             },
             "thing:/": {
               "grant": [
-                  "READ",
-                  "WRITE"
+                "READ",
+                "WRITE"
               ],
               "revoke": []
             },
             "message:/": {
               "grant": [
-                  "READ",
-                  "WRITE"
+                "READ",
+                "WRITE"
               ],
               "revoke": []
             }
@@ -197,26 +196,26 @@ put:
       Set the label value to **Consumer** and the following request body:
       ```
       {
-         "subjects": {
-           "nginx:USER-01": {
-             "type": "pre authenticated user from nginx"
-           },
-         },
-         "resources": {
-           "thing:/": {
-             "grant": [
-               "READ"
-             ],
-             "revoke": []
-           },
-           "message:/": {
-             "grant": [
-               "WRITE"
-             ],
-             "revoke": []
-           }
-         }
-       }
+        "subjects": {
+          "nginx:USER-01": {
+            "type": "pre authenticated user from nginx"
+          }
+        },
+        "resources": {
+          "thing:/": {
+            "grant": [
+              "READ"
+            ],
+            "revoke": []
+          },
+          "message:/": {
+            "grant": [
+              "WRITE"
+            ],
+            "revoke": []
+          }
+        }
+      }
       ```
     required: true
 delete:
@@ -244,24 +243,23 @@ delete:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '403':
       description: |-
         The request could not be completed. Possible reasons:
-
          * the caller has insufficient permissions.
            You need `WRITE` permission on the `policy:/entries/{label}` resource,
            without any revoke in a deeper path of the policy resource.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. The policy with the given ID was
@@ -269,6 +267,6 @@ delete:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'

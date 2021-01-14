@@ -64,6 +64,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.actor.Status;
 import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
 import akka.japi.pf.ReceiveBuilder;
@@ -87,6 +88,12 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
      * The name prefix of this Actor in the ActorSystem.
      */
     static final String ACTOR_NAME_PREFIX = "amqpPublisherActor";
+
+    /**
+     * Message to initialize the actor. The sender will receive the result of initialization.
+     * If initialization fails, this actor stops itself.
+     */
+    static final Object INITIALIZE = new Object();
 
     private static final Object START_PRODUCER = new Object();
 
@@ -121,8 +128,8 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
                         OverflowStrategy.dropNew())
                         .mapAsync(config.getPublisherParallelism(), msg -> triggerPublishAsync(msg, jmsDispatcher))
                         .recover(new PFBuilder<Throwable, Object>()
-                                .matchAny(
-                                        x -> Done.getInstance()) // the "Done" instance is not used, this just means to not fail the stream for any Throwables
+                                // the "Done" instance is not used, this just means to not fail the stream for any Throwables
+                                .matchAny(x -> Done.getInstance())
                                 .build()
                         )
                         .viaMat(KillSwitches.single(), Keep.both())
@@ -179,19 +186,20 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     @Override
-    public void preStart() throws Exception {
-        super.preStart();
-        // has to be done synchronously since there might already be messages in the actor's queue.
-        // we open producers for static addresses (no placeholders) on startup and try to reopen them when closed.
-        // producers for other addresses (with placeholders, reply-to) are opened on demand and may be closed to
-        // respect the cache size limit
-        handleStartProducer(START_PRODUCER);
-    }
-
-    @Override
     protected void preEnhancement(final ReceiveBuilder receiveBuilder) {
         receiveBuilder.match(ProducerClosedStatusReport.class, this::handleProducerClosedStatusReport)
-                .matchEquals(START_PRODUCER, this::handleStartProducer);
+                .matchEquals(START_PRODUCER, this::handleStartProducer)
+                .matchEquals(INITIALIZE, this::initialize);
+    }
+
+    private void initialize(final Object initialize) {
+        try {
+            createStaticTargetProducers();
+            getSender().tell(new Status.Success("publisher initialized"), getSelf());
+        } catch (final Exception e) {
+            getSender().tell(e, getSelf());
+            getContext().stop(getSelf());
+        }
     }
 
     private void handleProducerClosedStatusReport(final ProducerClosedStatusReport report) {
@@ -215,6 +223,14 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         try {
             isInBackOffMode = false;
             createStaticTargetProducers();
+        } catch (final JMSException jmsException) {
+            // target producer not creatable; stop self and request restart by parent
+            final String errorMessage = "Failed to create target";
+            logger.error(jmsException, errorMessage);
+            final ConnectionFailure failure = new ImmutableConnectionFailure(getSelf(), jmsException, errorMessage);
+            final ActorContext context = getContext();
+            context.getParent().tell(failure, getSelf());
+            context.stop(getSelf());
         } catch (final Exception e) {
             logger.warning("Failed to create static target producers: {}", e.getMessage());
             getContext().getParent().tell(new ImmutableConnectionFailure(null, e,
@@ -223,7 +239,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         }
     }
 
-    private void createStaticTargetProducers() {
+    private void createStaticTargetProducers() throws JMSException {
         final List<Target> targets = connection.getTargets();
 
         // using loop so that already created targets are closed on exception
@@ -241,19 +257,9 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     }
 
     // create a target producer. the previous incarnation, if any, must be closed.
-    private void createTargetProducer(final Destination destination) {
-        try {
-            staticTargets.put(destination, session.createProducer(destination));
-            logger.info("Target producer <{}> created", destination);
-        } catch (final JMSException jmsException) {
-            // target producer not creatable; stop self and request restart by parent
-            final String errorMessage = String.format("Failed to create target '%s'", destination);
-            logger.error(jmsException, errorMessage);
-            final ConnectionFailure failure = new ImmutableConnectionFailure(getSelf(), jmsException, errorMessage);
-            final ActorContext context = getContext();
-            context.getParent().tell(failure, getSelf());
-            context.stop(getSelf());
-        }
+    private void createTargetProducer(final Destination destination) throws JMSException {
+        staticTargets.put(destination, session.createProducer(destination));
+        logger.info("Target producer <{}> created", destination);
     }
 
     private static Stream<Map.Entry<Destination, MessageProducer>> findByValue(

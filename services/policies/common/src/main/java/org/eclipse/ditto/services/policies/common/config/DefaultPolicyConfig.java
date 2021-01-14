@@ -12,13 +12,14 @@
  */
 package org.eclipse.ditto.services.policies.common.config;
 
+import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.supervision.DefaultSupervisorConfig;
 import org.eclipse.ditto.services.base.config.supervision.SupervisorConfig;
-import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultActivityCheckConfig;
@@ -38,11 +39,14 @@ public final class DefaultPolicyConfig implements PolicyConfig {
     private final SupervisorConfig supervisorConfig;
     private final ActivityCheckConfig activityCheckConfig;
     private final SnapshotConfig snapshotConfig;
+    private final Duration policySubjectExpiryGranularity;
 
     private DefaultPolicyConfig(final ScopedConfig scopedConfig) {
         supervisorConfig = DefaultSupervisorConfig.of(scopedConfig);
         activityCheckConfig = DefaultActivityCheckConfig.of(scopedConfig);
         snapshotConfig = DefaultSnapshotConfig.of(scopedConfig);
+        policySubjectExpiryGranularity = scopedConfig.getDuration(
+                PolicyConfigValue.SUBJECT_EXPIRY_GRANULARITY.getConfigPath());
     }
 
     /**
@@ -53,7 +57,9 @@ public final class DefaultPolicyConfig implements PolicyConfig {
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultPolicyConfig of(final Config config) {
-        return new DefaultPolicyConfig(DefaultScopedConfig.newInstance(config, CONFIG_PATH));
+        final ConfigWithFallback mappingScopedConfig =
+                ConfigWithFallback.newInstance(config, CONFIG_PATH, PolicyConfigValue.values());
+        return new DefaultPolicyConfig(mappingScopedConfig);
     }
 
     @Override
@@ -72,6 +78,11 @@ public final class DefaultPolicyConfig implements PolicyConfig {
     }
 
     @Override
+    public Duration getSubjectExpiryGranularity() {
+        return policySubjectExpiryGranularity;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -82,12 +93,13 @@ public final class DefaultPolicyConfig implements PolicyConfig {
         final DefaultPolicyConfig that = (DefaultPolicyConfig) o;
         return Objects.equals(supervisorConfig, that.supervisorConfig) &&
                 Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
-                Objects.equals(snapshotConfig, that.snapshotConfig);
+                Objects.equals(snapshotConfig, that.snapshotConfig) &&
+                Objects.equals(policySubjectExpiryGranularity, that.policySubjectExpiryGranularity);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig);
+        return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig, policySubjectExpiryGranularity);
     }
 
     @Override
@@ -96,6 +108,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
                 " supervisorConfig=" + supervisorConfig +
                 ", activityCheckConfig=" + activityCheckConfig +
                 ", snapshotConfig=" + snapshotConfig +
+                ", policySubjectExpiryGranularity=" + policySubjectExpiryGranularity +
                 "]";
     }
 

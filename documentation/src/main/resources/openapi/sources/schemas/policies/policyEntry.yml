@@ -9,10 +9,12 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 type: object
-description: Single (Authorization) Subject entry holding its type.
-required:
-  - type
+description: Single policy entry containing Subjects and Resources.
 properties:
-  type:
-    type: string
-    description: The type is offered only for documentation purposes. You are not restricted to any specific types, but we recommend to use it to specify the kind of the subject as shown in our examples.
+  subjects:
+    $ref: 'subjects.yml'
+  resources:
+    $ref: 'resources.yml'
+required:
+  - subjects
+  - resources

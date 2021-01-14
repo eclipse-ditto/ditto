@@ -19,9 +19,9 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
+import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.services.utils.persistentactors.commands.AbstractCommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingConflictException;
@@ -32,7 +32,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * This strategy handles the {@link CreateThing} command for an already existing Thing.
  */
 @Immutable
-final class ThingConflictStrategy extends AbstractCommandStrategy<CreateThing, Thing, ThingId, Result<ThingEvent>> {
+final class ThingConflictStrategy extends AbstractThingCommandStrategy<CreateThing> {
 
     /**
      * Constructs a new {@code ThingConflictStrategy} object.
@@ -69,4 +69,13 @@ final class ThingConflictStrategy extends AbstractCommandStrategy<CreateThing, T
                 .build(), command);
     }
 
+    @Override
+    public Optional<EntityTag> previousEntityTag(final CreateThing command, @Nullable final Thing previousEntity) {
+        return Optional.ofNullable(previousEntity).flatMap(EntityTag::fromEntity);
+    }
+
+    @Override
+    public Optional<EntityTag> nextEntityTag(final CreateThing command, @Nullable final Thing newEntity) {
+        return Optional.ofNullable(newEntity).flatMap(EntityTag::fromEntity);
+    }
 }

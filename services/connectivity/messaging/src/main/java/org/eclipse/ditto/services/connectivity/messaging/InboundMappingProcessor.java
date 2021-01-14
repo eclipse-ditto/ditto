@@ -23,8 +23,6 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -35,7 +33,6 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.PayloadMappingDefinition;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapter;
 import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
@@ -113,8 +110,14 @@ public final class InboundMappingProcessor
         final DittoHeadersSizeChecker dittoHeadersSizeChecker =
                 DittoHeadersSizeChecker.of(limitsConfig.getHeadersMaxSize(), limitsConfig.getAuthSubjectsMaxCount());
 
-        return new InboundMappingProcessor(connectionId, connectionType, registry, loggerWithConnectionId,
-                protocolAdapter, dittoHeadersSizeChecker);
+        return of(connectionId, connectionType, registry, loggerWithConnectionId, protocolAdapter,
+                dittoHeadersSizeChecker);
+    }
+
+    static InboundMappingProcessor of(final ConnectionId connectionId, final ConnectionType connectionType,
+            final MessageMapperRegistry registry, final ThreadSafeDittoLoggingAdapter logger,
+            final ProtocolAdapter adapter, final DittoHeadersSizeChecker sizeChecker) {
+        return new InboundMappingProcessor(connectionId, connectionType, registry, logger, adapter, sizeChecker);
     }
 
     /**
@@ -203,23 +206,6 @@ public final class InboundMappingProcessor
                         e.getClass().getSimpleName(), e.getMessage());
             }
         });
-        message.getTextPayload()
-                .map(JsonFactory::readFrom)
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .flatMap(obj -> obj.getValue(JsonifiableAdaptable.JsonFields.HEADERS))
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .ifPresent(obj -> obj.forEach(field -> {
-                    try {
-                        final JsonValue value = field.getValue();
-                        headersBuilder.putHeader(field.getKey(), value.formatAsString());
-                    } catch (final Exception e) {
-                        // ignore this single invalid header
-                        logger.info("Putting a (payload) header resulted in an exception: {} - {}",
-                                e.getClass().getSimpleName(), e.getMessage());
-                    }
-                }));
         return headersBuilder.build();
     }
 

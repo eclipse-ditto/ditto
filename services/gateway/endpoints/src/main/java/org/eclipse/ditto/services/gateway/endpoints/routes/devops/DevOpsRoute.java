@@ -57,6 +57,12 @@ public final class DevOpsRoute extends AbstractRoute {
      */
     private static final String PATH_DEVOPS = "devops";
 
+    /**
+     * Actor path of DevOpsCommandsActor for ALL services. Not starting DevOpsCommandsActor at this path results
+     * in the service not getting any RetrieveConfig commands.
+     */
+    public static final String DEVOPS_COMMANDS_ACTOR_SELECTION = "/user/devOpsCommandsActor";
+
     private static final String PATH_LOGGING = "logging";
     private static final String PATH_PIGGYBACK = "piggyback";
     private static final String PATH_CONFIG = "config";
@@ -65,12 +71,6 @@ public final class DevOpsRoute extends AbstractRoute {
      * Path parameter for retrieving config.
      */
     private static final String PATH_PARAMETER = "path";
-
-    /**
-     * Actor path of DevOpsCommandsActor for ALL services. Not starting DevOpsCommandsActor at this path results
-     * in the service not getting any RetrieveConfig commands.
-     */
-    private static final String DEVOPS_COMMANDS_ACTOR_SELECTION = "/user/devOpsCommandsActor";
 
     private final HttpConfig httpConfig;
     private final DevopsAuthenticationDirective devOpsAuthenticationDirective;

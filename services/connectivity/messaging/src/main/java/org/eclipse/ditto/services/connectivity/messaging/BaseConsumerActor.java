@@ -135,6 +135,8 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                             reject.reject(shouldRedeliver);
                         }
                     } else {
+                        // don't count this as "failure" in the "source consumed" metric as the consumption
+                        // itself was successful
                         final DittoRuntimeException dittoRuntimeException =
                                 DittoRuntimeException.asDittoRuntimeException(error, rootCause -> {
                                     // Redeliver and pray this unexpected error goes away
@@ -143,20 +145,22 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                                             .tag(TracingTags.ACK_REDELIVER, true)
                                             .stop();
                                     reject.reject(true);
-                                    // don't count this as "failure" in the "source consumed" metric as the consumption
-                                    // itself was successful
                                     return null;
                                 });
                         if (dittoRuntimeException != null) {
-                            final boolean shouldRedeliver = requiresRedelivery(dittoRuntimeException.getStatusCode());
-                            log().debug("Rejecting [redeliver={}] due to error <{}>",
-                                    shouldRedeliver, dittoRuntimeException);
-                            timer.tag(TracingTags.ACK_SUCCESS, false)
-                                    .tag(TracingTags.ACK_REDELIVER, shouldRedeliver)
-                                    .stop();
-                            reject.reject(shouldRedeliver);
-                            // don't count this as "failure" in the "source consumed" metric as the consumption itself
-                            // was successful
+                            if (isConsideredSuccess(dittoRuntimeException)) {
+                                timer.tag(TracingTags.ACK_SUCCESS, true).stop();
+                                settle.run();
+                            } else {
+                                final boolean shouldRedeliver =
+                                        requiresRedelivery(dittoRuntimeException.getStatusCode());
+                                log().debug("Rejecting [redeliver={}] due to error <{}>",
+                                        shouldRedeliver, dittoRuntimeException);
+                                timer.tag(TracingTags.ACK_SUCCESS, false)
+                                        .tag(TracingTags.ACK_REDELIVER, shouldRedeliver)
+                                        .stop();
+                                reject.reject(shouldRedeliver);
+                            }
                         }
                     }
                     return null;
@@ -275,6 +279,18 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
             default:
                 return status.isInternalError();
         }
+    }
+
+    /**
+     * Decide whether a DittoRuntimeException is considered successful processing.
+     * This happens with ThingPreconditionFailedException and PolicyPreconditionFailedException.
+     * All DittoRuntimeException with status 412 Precondition Failed are considered success.
+     *
+     * @param dittoRuntimeException the DittoRuntimeException.
+     * @return whether it is considered scucessful processing.
+     */
+    private static boolean isConsideredSuccess(final DittoRuntimeException dittoRuntimeException) {
+        return dittoRuntimeException.getStatusCode() == HttpStatusCode.PRECONDITION_FAILED;
     }
 
     /**

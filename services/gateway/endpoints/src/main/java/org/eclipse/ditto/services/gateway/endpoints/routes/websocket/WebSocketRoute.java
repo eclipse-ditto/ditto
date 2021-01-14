@@ -80,7 +80,6 @@ import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
 import org.eclipse.ditto.services.gateway.streaming.actors.SupervisedStream;
 import org.eclipse.ditto.services.gateway.util.config.streaming.StreamingConfig;
 import org.eclipse.ditto.services.gateway.util.config.streaming.WebsocketConfig;
-import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.services.utils.akka.controlflow.Filter;
 import org.eclipse.ditto.services.utils.akka.controlflow.LimitRateByRejection;
@@ -88,6 +87,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
+import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
@@ -293,7 +293,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 .thenApply(overwriteWebSocketConfig(dittoHeaders))
                 .thenApply(websocketConfig -> {
                     final Pair<Connect, Flow<DittoRuntimeException, Message, NotUsed>> outgoing =
-                            createOutgoing(version, connectionCorrelationId, dittoHeaders, adapter, request,
+                            createOutgoing(version, connectionCorrelationId, authContext, dittoHeaders, adapter, request,
                                     websocketConfig, signalEnrichmentFacade, logger);
 
                     final Flow<Message, DittoRuntimeException, NotUsed> incoming =
@@ -471,6 +471,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private Pair<Connect, Flow<DittoRuntimeException, Message, NotUsed>> createOutgoing(
             final JsonSchemaVersion version,
             final CharSequence connectionCorrelationId,
+            final AuthorizationContext connectionAuthContext,
             final DittoHeaders additionalHeaders,
             final ProtocolAdapter adapter,
             final HttpRequest request,
@@ -489,7 +490,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                             additionalHeaders);
                     return new Connect(withQueue.getSourceQueue(), connectionCorrelationId, STREAMING_TYPE_WS, version,
                             optJsonWebToken.map(JsonWebToken::getExpirationTime).orElse(null),
-                            readDeclaredAcknowledgementLabels(additionalHeaders));
+                            readDeclaredAcknowledgementLabels(additionalHeaders), connectionAuthContext);
                 })
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<SessionedJsonifiable, NotUsed>>()
                         .match(GatewayWebsocketSessionExpiredException.class,
@@ -792,11 +793,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     }
 
     private static ThingErrorResponse buildThingErrorResponse(final DittoRuntimeException dittoRuntimeException) {
-        final DittoHeaders dittoHeaders = dittoRuntimeException.getDittoHeaders();
-        final String nullableEntityId = dittoHeaders.get(DittoHeaderDefinition.ENTITY_ID.getKey());
-        return nullableEntityId != null
-                ? ThingErrorResponse.of(ThingId.of(nullableEntityId), dittoRuntimeException, dittoHeaders)
-                : ThingErrorResponse.of(dittoRuntimeException, dittoHeaders);
+        return ThingErrorResponse.of(dittoRuntimeException);
     }
 
     private static PolicyErrorResponse buildPolicyErrorResponse(final DittoRuntimeException dittoRuntimeException) {
