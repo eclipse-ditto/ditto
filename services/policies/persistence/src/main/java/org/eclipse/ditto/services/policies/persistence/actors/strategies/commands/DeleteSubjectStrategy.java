@@ -39,7 +39,7 @@ import org.eclipse.ditto.signals.events.policies.SubjectDeleted;
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.modify.DeleteSubject} command.
  */
-final class DeleteSubjectStrategy extends AbstractPolicyCommandStrategy<DeleteSubject> {
+final class DeleteSubjectStrategy extends AbstractPolicyCommandStrategy<DeleteSubject, PolicyEvent<?>> {
 
     DeleteSubjectStrategy(final PolicyConfig policyConfig) {
         super(DeleteSubject.class, policyConfig);

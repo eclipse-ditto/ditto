@@ -61,6 +61,15 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
     }
 
     /**
+     * A mutable builder for a {@code PolicyActionFailedException}.
+     *
+     * @return the builder.
+     */
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+
+    /**
      * A mutable builder for a {@code PolicyActionFailedException} for the action {@code activateTokenIntegration}.
      *
      * @return the builder.

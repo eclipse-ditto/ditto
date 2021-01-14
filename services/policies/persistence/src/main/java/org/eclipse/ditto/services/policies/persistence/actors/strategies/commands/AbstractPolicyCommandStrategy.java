@@ -57,8 +57,8 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
  * @param <C> the type of the handled command - of type {@code Command} as also
  * {@link org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand} are handled which are no PolicyCommands.
  */
-abstract class AbstractPolicyCommandStrategy<C extends Command<C>>
-        extends AbstractConditionHeaderCheckingCommandStrategy<C, Policy, PolicyId, PolicyEvent<?>> {
+abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends PolicyEvent<?>>
+        extends AbstractConditionHeaderCheckingCommandStrategy<C, Policy, PolicyId, E> {
 
     private final PolicyExpiryGranularity policyExpiryGranularity;
 
@@ -235,7 +235,8 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>>
      * @param command the command which caused the change of the policy entries.
      * @return an Optional with ErrorResponse if a subject was invalid, an empty Optional if everything was valid.
      */
-    protected static Optional<Result<PolicyEvent<?>>> checkForAlreadyExpiredSubject(final Iterable<PolicyEntry> entries,
+    protected static <T extends PolicyEvent<?>> Optional<Result<T>> checkForAlreadyExpiredSubject(
+            final Iterable<PolicyEntry> entries,
             final DittoHeaders dittoHeaders, final Command<?> command) {
 
         return StreamSupport.stream(entries.spliterator(), false)

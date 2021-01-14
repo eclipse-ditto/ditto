@@ -22,6 +22,7 @@ import org.eclipse.ditto.services.policies.persistence.actors.resolvers.SubjectI
 import org.eclipse.ditto.services.utils.akka.AkkaClassLoader;
 import org.eclipse.ditto.signals.commands.policies.actions.PolicyActionCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
+import org.eclipse.ditto.signals.events.policies.PolicyActionEvent;
 
 import akka.actor.ActorSystem;
 
@@ -31,7 +32,7 @@ import akka.actor.ActorSystem;
  * @param <C> the type of the handled command
  */
 abstract class AbstractPolicyActionCommandStrategy<C extends PolicyActionCommand<C>>
-        extends AbstractPolicyCommandStrategy<C> {
+        extends AbstractPolicyCommandStrategy<C, PolicyActionEvent<?>> {
 
     protected final SubjectIdFromActionResolver subjectIdFromActionResolver;
 
@@ -61,7 +62,14 @@ abstract class AbstractPolicyActionCommandStrategy<C extends PolicyActionCommand
                 });
     }
 
-    PolicyActionFailedException getExceptionForNoEntryWithThingReadPermission() {
+    /**
+     * Get the exception for when a policy action command is not applicable to the designated policy entry.
+     * For now there is 1 not-applicable exception defined here.
+     * New policy action command strategies may override this method to provide their own exceptions.
+     *
+     * @return the exception for when a policy action command is not applicable.
+     */
+    PolicyActionFailedException getNotApplicableException() {
         return PolicyActionFailedException.newBuilderForActivateTokenIntegration()
                 .status(HttpStatusCode.NOT_FOUND)
                 .description("No policy entry found with READ permission for things.")

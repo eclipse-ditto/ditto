@@ -15,6 +15,7 @@ package org.eclipse.ditto.signals.events.policies;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -51,8 +52,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  */
 @Immutable
 @JsonParsableEvent(name = SubjectsDeletedPartially.NAME, typePrefix = SubjectsDeletedPartially.TYPE_PREFIX)
-public final class SubjectsDeletedPartially extends AbstractPolicyEvent<SubjectsDeletedPartially>
-        implements PolicyEvent<SubjectsDeletedPartially> {
+public final class SubjectsDeletedPartially extends AbstractPolicyActionEvent<SubjectsDeletedPartially> {
 
     /**
      * Name of this event.
@@ -183,7 +183,8 @@ public final class SubjectsDeletedPartially extends AbstractPolicyEvent<Subjects
 
     @Override
     public SubjectsDeletedPartially setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new SubjectsDeletedPartially(getEntityId(), deletedSubjectIds, getRevision(), getTimestamp().orElse(null),
+        return new SubjectsDeletedPartially(getEntityId(), deletedSubjectIds, getRevision(),
+                getTimestamp().orElse(null),
                 dittoHeaders);
     }
 
@@ -238,4 +239,8 @@ public final class SubjectsDeletedPartially extends AbstractPolicyEvent<Subjects
         return Collections.unmodifiableMap(map);
     }
 
+    @Override
+    public SubjectsDeletedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
+        return aggregateWithSubjectDeleted(deletedSubjectIds, otherPolicyActionEvents);
+    }
 }

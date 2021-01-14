@@ -35,7 +35,7 @@ import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegr
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegrationResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryNotAccessibleException;
-import org.eclipse.ditto.signals.events.policies.PolicyEvent;
+import org.eclipse.ditto.signals.events.policies.PolicyActionEvent;
 import org.eclipse.ditto.signals.events.policies.SubjectDeleted;
 
 import akka.actor.ActorSystem;
@@ -43,14 +43,15 @@ import akka.actor.ActorSystem;
 /**
  * This strategy handles the {@link DeactivateTokenIntegration} command.
  */
-final class DeactivateTokenIntegrationStrategy extends AbstractPolicyActionCommandStrategy<DeactivateTokenIntegration> {
+final class DeactivateTokenIntegrationStrategy
+        extends AbstractPolicyActionCommandStrategy<DeactivateTokenIntegration> {
 
     DeactivateTokenIntegrationStrategy(final PolicyConfig policyConfig, final ActorSystem system) {
         super(DeactivateTokenIntegration.class, policyConfig, system);
     }
 
     @Override
-    protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
+    protected Result<PolicyActionEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy policy,
             final long nextRevision,
             final DeactivateTokenIntegration command,
@@ -83,7 +84,7 @@ final class DeactivateTokenIntegrationStrategy extends AbstractPolicyActionComma
                 return ResultFactory.newErrorResult(error, command);
             } else {
                 // Expiring subjects are not considered for validation. The result is always valid.
-                final PolicyEvent<?> event =
+                final SubjectDeleted event =
                         SubjectDeleted.of(policyId, label, subjectId, nextRevision, getEventTimestamp(),
                                 dittoHeaders);
                 final DeactivateTokenIntegrationResponse rawResponse =

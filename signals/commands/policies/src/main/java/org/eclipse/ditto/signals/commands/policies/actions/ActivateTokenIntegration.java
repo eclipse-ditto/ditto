@@ -34,9 +34,12 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -137,6 +140,26 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
     @Override
     public SubjectId getSubjectId() {
         return subjectId;
+    }
+
+    @Override
+    public ActivateTokenIntegration setLabel(final Label label) {
+        return new ActivateTokenIntegration(policyId, label, subjectId, expiry, getDittoHeaders());
+    }
+
+    @Override
+    public boolean isApplicable(final PolicyEntry policyEntry) {
+        // This action is applicable to policy entries containing a READ permission grated to a thing resource.
+        final String readPermission = "READ";
+        return policyEntry.getResources()
+                .stream()
+                .anyMatch(resource -> {
+                    final String resourceType = resource.getResourceKey().getResourceType();
+                    final EffectedPermissions permissions = resource.getEffectedPermissions();
+                    return PoliciesResourceType.THING.equals(resourceType) &&
+                            permissions.getGrantedPermissions().contains(readPermission) &&
+                            !permissions.getRevokedPermissions().contains(readPermission);
+                });
     }
 
     /**

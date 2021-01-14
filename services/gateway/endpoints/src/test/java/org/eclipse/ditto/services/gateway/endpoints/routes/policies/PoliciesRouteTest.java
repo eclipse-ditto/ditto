@@ -28,10 +28,9 @@ import org.eclipse.ditto.services.gateway.security.authentication.Authentication
 import org.eclipse.ditto.services.gateway.security.authentication.DefaultAuthenticationResult;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResult;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
-import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
-import org.eclipse.ditto.signals.commands.policies.actions.DeactivatePolicyTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.actions.TopLevelActionCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.junit.Before;
 import org.junit.Rule;
@@ -150,11 +149,13 @@ public final class PoliciesRouteTest extends EndpointTestBase {
     public void activateTokenIntegration() {
         getRoute(getTokenAuthResult()).run(HttpRequest.POST("/policies/ns%3An/actions/activateTokenIntegration/"))
                 .assertStatusCode(StatusCodes.OK)
-                .assertEntity(ActivatePolicyTokenIntegration.of(PolicyId.of("ns:n"),
-                        SubjectId.newInstance("dummy-issuer:{{policy-entry:label}}:dummy-subject"),
-                        DummyJwt.EXPIRY,
-                        List.of(),
-                        DittoHeaders.empty()
+                .assertEntity(TopLevelActionCommand.of(
+                        ActivateTokenIntegration.of(PolicyId.of("ns:n"),
+                                Label.of("-"),
+                                SubjectId.newInstance("dummy-issuer:{{policy-entry:label}}:dummy-subject"),
+                                DummyJwt.EXPIRY,
+                                DittoHeaders.empty()),
+                        List.of()
                 ).toJsonString());
     }
 
@@ -162,10 +163,12 @@ public final class PoliciesRouteTest extends EndpointTestBase {
     public void deactivateTokenIntegration() {
         getRoute(getTokenAuthResult()).run(HttpRequest.POST("/policies/ns%3An/actions/deactivateTokenIntegration"))
                 .assertStatusCode(StatusCodes.OK)
-                .assertEntity(DeactivatePolicyTokenIntegration.of(PolicyId.of("ns:n"),
-                        SubjectId.newInstance("dummy-issuer:{{policy-entry:label}}:dummy-subject"),
-                        List.of(),
-                        DittoHeaders.empty()
+                .assertEntity(TopLevelActionCommand.of(
+                        DeactivateTokenIntegration.of(PolicyId.of("ns:n"),
+                                Label.of("-"),
+                                SubjectId.newInstance("dummy-issuer:{{policy-entry:label}}:dummy-subject"),
+                                DittoHeaders.empty()),
+                        List.of()
                 ).toJsonString());
     }
 

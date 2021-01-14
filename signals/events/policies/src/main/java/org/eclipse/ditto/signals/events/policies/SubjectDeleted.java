@@ -15,8 +15,12 @@ package org.eclipse.ditto.signals.events.policies;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
+import java.util.Collection;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -40,8 +44,8 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link org.eclipse.ditto.model.policies.Subject} was deleted.
  */
 @Immutable
-@JsonParsableEvent(name = SubjectDeleted.NAME, typePrefix= SubjectDeleted.TYPE_PREFIX)
-public final class SubjectDeleted extends AbstractPolicyEvent<SubjectDeleted> implements PolicyEvent<SubjectDeleted> {
+@JsonParsableEvent(name = SubjectDeleted.NAME, typePrefix = SubjectDeleted.TYPE_PREFIX)
+public final class SubjectDeleted extends AbstractPolicyActionEvent<SubjectDeleted> {
 
     /**
      * Name of this event.
@@ -191,14 +195,14 @@ public final class SubjectDeleted extends AbstractPolicyEvent<SubjectDeleted> im
     public static SubjectDeleted fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<SubjectDeleted>(TYPE, jsonObject).deserialize(
                 (revision, timestamp, metadata) -> {
-            final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
-            final PolicyId policyId = PolicyId.of(extractedPolicyId);
-            final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
-            final SubjectId extractedDeletedSubjectId =
-                    SubjectId.newInstance(jsonObject.getValueOrThrow(JSON_SUBJECT_ID));
+                    final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+                    final PolicyId policyId = PolicyId.of(extractedPolicyId);
+                    final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
+                    final SubjectId extractedDeletedSubjectId =
+                            SubjectId.newInstance(jsonObject.getValueOrThrow(JSON_SUBJECT_ID));
 
-            return of(policyId, label, extractedDeletedSubjectId, revision, timestamp, dittoHeaders);
-        });
+                    return of(policyId, label, extractedDeletedSubjectId, revision, timestamp, dittoHeaders);
+                });
     }
 
     /**
@@ -278,4 +282,10 @@ public final class SubjectDeleted extends AbstractPolicyEvent<SubjectDeleted> im
                 + "]";
     }
 
+    @Override
+    public SubjectsDeletedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
+        final Map<Label, SubjectId> initialDeletedSubjectId =
+                Stream.of(0).collect(Collectors.toMap(i -> label, i -> subjectId));
+        return aggregateWithSubjectDeleted(initialDeletedSubjectId, otherPolicyActionEvents);
+    }
 }

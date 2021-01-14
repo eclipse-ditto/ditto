@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.persistentactors.commands;
 
+import java.util.Optional;
+
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
@@ -64,6 +66,27 @@ public interface CommandStrategy<C extends Command<?>, S, K, R extends Result<?>
      */
     default boolean isDefined(final Context<K> context, @Nullable final S entity, final C command) {
         return isDefined(command);
+    }
+
+    /**
+     * Applies the strategy to the given command of unknown type using the given context.
+     *
+     * @param context the context.
+     * @param entity the current entity of the persistence actor.
+     * @param nextRevision the next revision number of the entity.
+     * @param command the command of unknown type.
+     * @return the result of the strategy if the strategy is defined for the command, or an empty optional otherwise.
+     */
+    default Optional<R> typeCheckAndApply(final Context<K> context, @Nullable final S entity, final long nextRevision,
+            final Object command) {
+
+        if (getMatchingClass().isInstance(command)) {
+            final C theCommand = getMatchingClass().cast(command);
+            if (isDefined(context, entity, theCommand)) {
+                return Optional.of(apply(context, entity, nextRevision, theCommand));
+            }
+        }
+        return Optional.empty();
     }
 
     /**

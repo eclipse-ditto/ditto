@@ -132,7 +132,7 @@ public final class ActivatePolicyTokenIntegrationStrategyTest extends AbstractPo
         final ActivatePolicyTokenIntegration command =
                 ActivatePolicyTokenIntegration.of(context.getState(), subjectId, expiry, List.of(), dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
-                underTest.getExceptionForNoEntryWithThingReadPermission());
+                underTest.getNotApplicableException());
     }
 
     @Test
@@ -146,7 +146,7 @@ public final class ActivatePolicyTokenIntegrationStrategyTest extends AbstractPo
                 ActivatePolicyTokenIntegration.of(context.getState(), subjectId, expiry, List.of(nonexistentLabel),
                         dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
-                underTest.getExceptionForNoEntryWithThingReadPermission());
+                underTest.getNotApplicableException());
     }
 
     @Test
@@ -163,6 +163,6 @@ public final class ActivatePolicyTokenIntegrationStrategyTest extends AbstractPo
                 .setSubject(TestConstants.Policy.SUPPORT_SUBJECT)
                 .setGrantedPermissions(ResourceKey.newInstance("policy:/"), Permission.READ)
                 .build();
-        assertErrorResult(underTest, policy, command, underTest.getExceptionForNoEntryWithThingReadPermission());
+        assertErrorResult(underTest, policy, command, underTest.getNotApplicableException());
     }
 }

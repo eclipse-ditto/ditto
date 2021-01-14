@@ -43,7 +43,7 @@ import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIntegrationResponse;
-import org.eclipse.ditto.signals.events.policies.PolicyEvent;
+import org.eclipse.ditto.signals.events.policies.PolicyActionEvent;
 import org.eclipse.ditto.signals.events.policies.SubjectsModifiedPartially;
 
 import akka.actor.ActorSystem;
@@ -59,7 +59,7 @@ final class ActivatePolicyTokenIntegrationStrategy
     }
 
     @Override
-    protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
+    protected Result<PolicyActionEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy policy,
             final long nextRevision,
             final ActivatePolicyTokenIntegration command,
@@ -76,7 +76,7 @@ final class ActivatePolicyTokenIntegrationStrategy
                 .filter(this::containsThingReadPermission)
                 .collect(Collectors.toList());
         if (entries.isEmpty()) {
-            return ResultFactory.newErrorResult(getExceptionForNoEntryWithThingReadPermission(), command);
+            return ResultFactory.newErrorResult(getNotApplicableException(), command);
         }
         final PolicyBuilder policyBuilder = nonNullPolicy.toBuilder();
         final Map<Label, Subject> activatedSubjects = new HashMap<>();
@@ -99,7 +99,7 @@ final class ActivatePolicyTokenIntegrationStrategy
         final Policy newPolicy = policyBuilder.build();
         final PoliciesValidator validator = PoliciesValidator.newInstance(newPolicy);
         if (validator.isValid()) {
-            final PolicyEvent<?> event =
+            final SubjectsModifiedPartially event =
                     SubjectsModifiedPartially.of(policyId, activatedSubjects, nextRevision, getEventTimestamp(),
                             dittoHeaders);
             final ActivatePolicyTokenIntegrationResponse rawResponse =

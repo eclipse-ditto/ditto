@@ -41,6 +41,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
+import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -144,6 +145,16 @@ public final class ActivatePolicyTokenIntegration extends AbstractCommand<Activa
     @Override
     public SubjectId getSubjectId() {
         return subjectId;
+    }
+
+    @Override
+    public ActivatePolicyTokenIntegration setLabel(final Label label) {
+        return this;
+    }
+
+    @Override
+    public boolean isApplicable(final PolicyEntry policyEntry) {
+        return false;
     }
 
     /**

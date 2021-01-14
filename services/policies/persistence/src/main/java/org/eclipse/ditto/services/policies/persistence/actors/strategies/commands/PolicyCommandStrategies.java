@@ -44,8 +44,9 @@ public final class PolicyCommandStrategies
         addStrategy(new ModifyPolicyStrategy(policyConfig));
         addStrategy(new RetrievePolicyStrategy(policyConfig));
         addStrategy(new DeletePolicyStrategy(policyConfig));
-        addStrategy(new ActivatePolicyTokenIntegrationStrategy(policyConfig, system));
-        addStrategy(new DeactivatePolicyTokenIntegrationStrategy(policyConfig, system));
+        addStrategy(new TopLevelActionCommandStrategy(policyConfig, system));
+        addStrategy(this, new ActivatePolicyTokenIntegrationStrategy(policyConfig, system));
+        addStrategy(this, new DeactivatePolicyTokenIntegrationStrategy(policyConfig, system));
 
         // Policy Entries
         addStrategy(new ModifyPolicyEntriesStrategy(policyConfig));
@@ -55,8 +56,8 @@ public final class PolicyCommandStrategies
         addStrategy(new ModifyPolicyEntryStrategy(policyConfig));
         addStrategy(new RetrievePolicyEntryStrategy(policyConfig));
         addStrategy(new DeletePolicyEntryStrategy(policyConfig));
-        addStrategy(new ActivateTokenIntegrationStrategy(policyConfig, system));
-        addStrategy(new DeactivateTokenIntegrationStrategy(policyConfig, system));
+        addStrategy(this, new ActivateTokenIntegrationStrategy(policyConfig, system));
+        addStrategy(this, new DeactivateTokenIntegrationStrategy(policyConfig, system));
 
         // Subjects
         addStrategy(new ModifySubjectsStrategy(policyConfig));

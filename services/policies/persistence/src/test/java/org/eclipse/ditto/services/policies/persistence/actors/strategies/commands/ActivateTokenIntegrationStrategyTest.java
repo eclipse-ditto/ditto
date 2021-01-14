@@ -126,6 +126,6 @@ public final class ActivateTokenIntegrationStrategyTest extends AbstractPolicyCo
                 .setSubject(TestConstants.Policy.SUPPORT_SUBJECT)
                 .setGrantedPermissions(ResourceKey.newInstance("policy:/"), Permission.READ)
                 .build();
-        assertErrorResult(underTest, policy, command, underTest.getExceptionForNoEntryWithThingReadPermission());
+        assertErrorResult(underTest, policy, command, underTest.getNotApplicableException());
     }
 }

@@ -50,9 +50,8 @@ import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
-import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIntegration;
-import org.eclipse.ditto.signals.commands.policies.actions.DeactivatePolicyTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.PolicyActionCommand;
+import org.eclipse.ditto.signals.commands.policies.actions.TopLevelActionCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToAccessExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToActionsExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToModifyExceptionRegistry;
@@ -131,11 +130,13 @@ public final class PolicyCommandEnforcement
         return authorizedCommand;
     }
 
+    @SuppressWarnings("unchecked")
     private static <T extends PolicyCommand<?>> Optional<T> authorizeActionCommand(final PolicyEnforcer enforcer,
             final T command, final ResourceKey resourceKey, final AuthorizationContext authorizationContext) {
 
-        if (isTopLevelActionCommand(command)) {
-            return authorizeTopLevelAction(enforcer, command, authorizationContext);
+        if (command instanceof TopLevelActionCommand) {
+            final TopLevelActionCommand topLevelActionCommand = (TopLevelActionCommand) command;
+            return (Optional<T>) authorizeTopLevelAction(enforcer, topLevelActionCommand, authorizationContext);
         } else {
             return authorizeEntryLevelAction(enforcer.getEnforcer(), command, resourceKey, authorizationContext);
         }
@@ -152,9 +153,8 @@ public final class PolicyCommandEnforcement
                 : Optional.empty();
     }
 
-    @SuppressWarnings("unchecked")
-    private static <T extends PolicyCommand<?>> Optional<T> authorizeTopLevelAction(final PolicyEnforcer policyEnforcer,
-            final T command, final AuthorizationContext authorizationContext) {
+    private static Optional<TopLevelActionCommand> authorizeTopLevelAction(final PolicyEnforcer policyEnforcer,
+            final TopLevelActionCommand command, final AuthorizationContext authorizationContext) {
         final Enforcer enforcer = policyEnforcer.getEnforcer();
         final List<Label> authorizedLabels = policyEnforcer.getPolicy()
                 .map(policy -> policy.getEntriesSet().stream()
@@ -165,21 +165,10 @@ public final class PolicyCommandEnforcement
                 .orElse(List.of());
         if (authorizedLabels.isEmpty()) {
             return Optional.empty();
-        } else if (command instanceof ActivatePolicyTokenIntegration) {
-            final ActivatePolicyTokenIntegration c = (ActivatePolicyTokenIntegration) command;
-            final T adjustedCommand =
-                    (T) ActivatePolicyTokenIntegration.of(c.getEntityId(), c.getSubjectId(), c.getExpiry(),
-                            authorizedLabels,
-                            c.getDittoHeaders());
-            return Optional.of(adjustedCommand);
-        } else if (command instanceof DeactivatePolicyTokenIntegration) {
-            final DeactivatePolicyTokenIntegration c = (DeactivatePolicyTokenIntegration) command;
-            final T adjustedCommand =
-                    (T) DeactivatePolicyTokenIntegration.of(c.getEntityId(), c.getSubjectId(), authorizedLabels,
-                            c.getDittoHeaders());
-            return Optional.of(adjustedCommand);
         } else {
-            return Optional.empty();
+            final TopLevelActionCommand adjustedCommand =
+                    TopLevelActionCommand.of(command.getPolicyActionCommand(), authorizedLabels);
+            return Optional.of(adjustedCommand);
         }
     }
 

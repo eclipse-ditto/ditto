@@ -41,7 +41,7 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy} command for a
  * new Policy.
  */
-final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePolicy> {
+final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePolicy, PolicyEvent<?>> {
 
     CreatePolicyStrategy(final PolicyConfig policyConfig) {
         super(CreatePolicy.class, policyConfig);

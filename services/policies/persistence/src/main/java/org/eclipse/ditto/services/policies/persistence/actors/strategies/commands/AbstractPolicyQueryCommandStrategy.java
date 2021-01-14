@@ -20,6 +20,7 @@ import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 
 /**
  * Abstract base class for
@@ -27,7 +28,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  * {@link org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand} are handled which are no
  * PolicyQueryCommands.
  */
-abstract class AbstractPolicyQueryCommandStrategy<C extends Command<C>> extends AbstractPolicyCommandStrategy<C> {
+abstract class AbstractPolicyQueryCommandStrategy<C extends Command<C>> extends AbstractPolicyCommandStrategy<C, PolicyEvent<?>> {
 
     AbstractPolicyQueryCommandStrategy(final Class<C> theMatchingClass, final PolicyConfig policyConfig) {
         super(theMatchingClass, policyConfig);

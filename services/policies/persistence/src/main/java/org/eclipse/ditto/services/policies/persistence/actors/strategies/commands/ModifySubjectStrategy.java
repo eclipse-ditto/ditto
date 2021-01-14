@@ -39,7 +39,7 @@ import org.eclipse.ditto.signals.events.policies.SubjectModified;
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.modify.ModifySubject} command.
  */
-final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySubject> {
+final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySubject, PolicyEvent<?>> {
 
     ModifySubjectStrategy(final PolicyConfig policyConfig) {
         super(ModifySubject.class, policyConfig);

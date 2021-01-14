@@ -22,6 +22,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.events.base.Event;
 
 /**
  * This <em>Singleton</em> delegates a {@code Command} to a dedicated strategy - if one is available - to be handled.
@@ -35,7 +36,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
 public abstract class AbstractCommandStrategies<C extends Command<?>, S, K, R extends Result<?>>
         extends AbstractCommandStrategy<C, S, K, R> {
 
-    protected final Map<Class<? extends C>, CommandStrategy<? extends C, S, K, R>> strategies;
+    protected final Map<Class<? extends C>, CommandStrategy<? extends C, S, K, ? extends R>> strategies;
 
     /**
      * Constructs a new {@code AbstractCommandStrategy} object.
@@ -59,7 +60,7 @@ public abstract class AbstractCommandStrategies<C extends Command<?>, S, K, R ex
      *
      * @param strategy the strategy.
      */
-    protected void addStrategy(final CommandStrategy<? extends C, S, K, R> strategy) {
+    protected void addStrategy(final CommandStrategy<? extends C, S, K, ? extends R> strategy) {
         final Class<? extends C> matchingClass = strategy.getMatchingClass();
         strategies.put(matchingClass, strategy);
     }
@@ -106,6 +107,25 @@ public abstract class AbstractCommandStrategies<C extends Command<?>, S, K, R ex
     @SuppressWarnings("unchecked")
     private CommandStrategy<C, S, K, R> getAppropriateStrategy(final Class<?> commandClass) {
         return (CommandStrategy<C, S, K, R>) strategies.get(commandClass);
+    }
+
+    /**
+     * Add command strategy in a covariant way.
+     * TODO: Replace Result by event type; hard code the result type, then delete this method.
+     *
+     * @param strategies the command strategies.
+     * @param strategy the strategy to add.
+     * @param <E> type of events.
+     * @param <C> type of commands.
+     * @param <S> type of entities.
+     * @param <K> type of contexts.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    protected static <E extends Event<?>, F extends E, C extends Command<?>, S, K> void addStrategy(
+            final AbstractCommandStrategies<C, S, K, Result<E>> strategies,
+            CommandStrategy<? extends C, S, K, Result<F>> strategy) {
+
+        strategies.strategies.put(strategy.getMatchingClass(), (CommandStrategy) strategy);
     }
 
 }

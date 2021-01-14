@@ -38,7 +38,7 @@ import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegrationResponse;
-import org.eclipse.ditto.signals.events.policies.PolicyEvent;
+import org.eclipse.ditto.signals.events.policies.PolicyActionEvent;
 import org.eclipse.ditto.signals.events.policies.SubjectCreated;
 import org.eclipse.ditto.signals.events.policies.SubjectModified;
 
@@ -47,14 +47,15 @@ import akka.actor.ActorSystem;
 /**
  * This strategy handles the {@link ActivateTokenIntegration} command.
  */
-final class ActivateTokenIntegrationStrategy extends AbstractPolicyActionCommandStrategy<ActivateTokenIntegration> {
+final class ActivateTokenIntegrationStrategy
+        extends AbstractPolicyActionCommandStrategy<ActivateTokenIntegration> {
 
     ActivateTokenIntegrationStrategy(final PolicyConfig policyConfig, final ActorSystem system) {
         super(ActivateTokenIntegration.class, policyConfig, system);
     }
 
     @Override
-    protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
+    protected Result<PolicyActionEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy policy,
             final long nextRevision,
             final ActivateTokenIntegration command,
@@ -87,7 +88,7 @@ final class ActivateTokenIntegrationStrategy extends AbstractPolicyActionCommand
             // Validation is necessary because activation may add expiry to the policy admin subject.
             final Policy newPolicy = nonNullPolicy.setSubjectFor(label, adjustedSubject);
 
-            final Optional<Result<PolicyEvent<?>>> alreadyExpiredSubject =
+            final Optional<Result<PolicyActionEvent<?>>> alreadyExpiredSubject =
                     checkForAlreadyExpiredSubject(newPolicy, dittoHeaders, command);
             if (alreadyExpiredSubject.isPresent()) {
                 return alreadyExpiredSubject.get();
@@ -96,7 +97,7 @@ final class ActivateTokenIntegrationStrategy extends AbstractPolicyActionCommand
             final PoliciesValidator validator = PoliciesValidator.newInstance(newPolicy);
             if (validator.isValid()) {
 
-                final PolicyEvent<?> event;
+                final PolicyActionEvent<?> event;
                 if (policyEntry.getSubjects().getSubject(adjustedSubject.getId()).isPresent()) {
                     event = SubjectModified.of(policyId, label, adjustedSubject, nextRevision, getEventTimestamp(),
                             dittoHeaders);
@@ -114,7 +115,7 @@ final class ActivateTokenIntegrationStrategy extends AbstractPolicyActionCommand
                         command);
             }
         } else {
-            return ResultFactory.newErrorResult(getExceptionForNoEntryWithThingReadPermission(), command);
+            return ResultFactory.newErrorResult(getNotApplicableException(), command);
         }
     }
 

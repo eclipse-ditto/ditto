@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -127,6 +128,16 @@ public final class DeactivateTokenIntegration extends AbstractCommand<Deactivate
     @Override
     public SubjectId getSubjectId() {
         return subjectId;
+    }
+
+    @Override
+    public DeactivateTokenIntegration setLabel(final Label label) {
+        return new DeactivateTokenIntegration(policyId, label, subjectId, getDittoHeaders());
+    }
+
+    @Override
+    public boolean isApplicable(final PolicyEntry policyEntry) {
+        return true;
     }
 
     @Override

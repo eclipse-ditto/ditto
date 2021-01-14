@@ -15,6 +15,7 @@ package org.eclipse.ditto.signals.events.policies;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -53,8 +54,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  */
 @Immutable
 @JsonParsableEvent(name = SubjectsModifiedPartially.NAME, typePrefix = SubjectsModifiedPartially.TYPE_PREFIX)
-public final class SubjectsModifiedPartially extends AbstractPolicyEvent<SubjectsModifiedPartially>
-        implements PolicyEvent<SubjectsModifiedPartially> {
+public final class SubjectsModifiedPartially extends AbstractPolicyActionEvent<SubjectsModifiedPartially> {
 
     /**
      * Name of this event
@@ -255,4 +255,8 @@ public final class SubjectsModifiedPartially extends AbstractPolicyEvent<Subject
         return Collections.unmodifiableMap(map);
     }
 
+    @Override
+    public SubjectsModifiedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
+        return aggregateWithSubjectCreatedOrModified(modifiedSubjects, otherPolicyActionEvents);
+    }
 }

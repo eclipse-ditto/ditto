@@ -38,7 +38,7 @@ import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivatePolicyTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivatePolicyTokenIntegrationResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
-import org.eclipse.ditto.signals.events.policies.PolicyEvent;
+import org.eclipse.ditto.signals.events.policies.PolicyActionEvent;
 import org.eclipse.ditto.signals.events.policies.SubjectsDeletedPartially;
 
 import akka.actor.ActorSystem;
@@ -54,7 +54,7 @@ final class DeactivatePolicyTokenIntegrationStrategy
     }
 
     @Override
-    protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
+    protected Result<PolicyActionEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy policy,
             final long nextRevision,
             final DeactivatePolicyTokenIntegration command,
@@ -94,7 +94,7 @@ final class DeactivatePolicyTokenIntegrationStrategy
             }
         }
         // Validation is not necessary because temporary subjects do not affect validity
-        final PolicyEvent<?> event =
+        final SubjectsDeletedPartially event =
                 SubjectsDeletedPartially.of(policyId, deactivatedSubjectsIds, nextRevision, getEventTimestamp(),
                         dittoHeaders);
         final DeactivatePolicyTokenIntegrationResponse rawResponse =

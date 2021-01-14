@@ -62,6 +62,7 @@ import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIn
 import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivatePolicyTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.actions.TopLevelActionCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotModifiableException;
@@ -625,19 +626,22 @@ public final class PolicyCommandEnforcementTest {
         new TestKit(system) {{
             final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
             final Instant expiry = Instant.now();
-            final ActivatePolicyTokenIntegration activatePolicyTokenIntegration =
-                    ActivatePolicyTokenIntegration.of(POLICY_ID, subjectId, expiry, List.of(), DITTO_HEADERS);
+            final TopLevelActionCommand command = TopLevelActionCommand.of(
+                    ActivateTokenIntegration.of(POLICY_ID, Label.of("-"), subjectId, expiry, DITTO_HEADERS),
+                    List.of()
+            );
 
-            enforcer.tell(activatePolicyTokenIntegration, getRef());
+            enforcer.tell(command, getRef());
 
             policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
             policiesShardRegionProbe.reply(createPolicyResponseForActions());
 
-            final ActivatePolicyTokenIntegration
-                    forwarded = policiesShardRegionProbe.expectMsgClass(ActivatePolicyTokenIntegration.class);
-            assertThat(forwarded).isEqualTo(
-                    ActivatePolicyTokenIntegration.of(POLICY_ID, subjectId, expiry, List.of(Label.of("allowed")),
-                            DITTO_HEADERS));
+            final TopLevelActionCommand
+                    forwarded = policiesShardRegionProbe.expectMsgClass(TopLevelActionCommand.class);
+            assertThat(forwarded).isEqualTo(TopLevelActionCommand.of(
+                    ActivateTokenIntegration.of(POLICY_ID, Label.of("-"), subjectId, expiry, DITTO_HEADERS),
+                    List.of(Label.of("allowed"))
+            ));
         }};
     }
 
@@ -645,19 +649,22 @@ public final class PolicyCommandEnforcementTest {
     public void deactivatePolicyTokenIntegration() {
         new TestKit(system) {{
             final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
-            final DeactivatePolicyTokenIntegration deactivatePolicyTokenIntegration =
-                    DeactivatePolicyTokenIntegration.of(POLICY_ID, subjectId, List.of(), DITTO_HEADERS);
+            final TopLevelActionCommand command = TopLevelActionCommand.of(
+                    DeactivateTokenIntegration.of(POLICY_ID, Label.of("-"), subjectId, DITTO_HEADERS),
+                    List.of()
+            );
 
-            enforcer.tell(deactivatePolicyTokenIntegration, getRef());
+            enforcer.tell(command, getRef());
 
             policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
             policiesShardRegionProbe.reply(createPolicyResponseForActions());
 
-            final DeactivatePolicyTokenIntegration
-                    forwarded = policiesShardRegionProbe.expectMsgClass(DeactivatePolicyTokenIntegration.class);
-            assertThat(forwarded).isEqualTo(
-                    DeactivatePolicyTokenIntegration.of(POLICY_ID, subjectId, List.of(Label.of("allowed")),
-                            DITTO_HEADERS));
+            final TopLevelActionCommand
+                    forwarded = policiesShardRegionProbe.expectMsgClass(TopLevelActionCommand.class);
+            assertThat(forwarded).isEqualTo(TopLevelActionCommand.of(
+                    DeactivateTokenIntegration.of(POLICY_ID, Label.of("-"), subjectId, DITTO_HEADERS),
+                    List.of(Label.of("allowed"))
+            ));
         }};
     }
 

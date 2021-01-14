@@ -28,15 +28,10 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyTooLargeException;
-import org.eclipse.ditto.model.policies.Subject;
-import org.eclipse.ditto.model.policies.SubjectExpiry;
-import org.eclipse.ditto.model.policies.SubjectExpiryInvalidException;
-import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.services.models.policies.PoliciesValidator;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
-import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntries;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntriesResponse;
@@ -46,7 +41,7 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntries} command.
  */
-final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<ModifyPolicyEntries> {
+final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<ModifyPolicyEntries, PolicyEvent<?>> {
 
     ModifyPolicyEntriesStrategy(final PolicyConfig policyConfig) {
         super(ModifyPolicyEntries.class, policyConfig);

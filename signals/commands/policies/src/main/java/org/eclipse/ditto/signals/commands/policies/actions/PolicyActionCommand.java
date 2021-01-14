@@ -13,6 +13,8 @@
 package org.eclipse.ditto.signals.commands.policies.actions;
 
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
@@ -36,6 +38,22 @@ public interface PolicyActionCommand<T extends PolicyActionCommand<T>> extends P
      * @return the subject ID.
      */
     SubjectId getSubjectId();
+
+    /**
+     * Set the label of the policy entry where this action is executed, if applicable.
+     *
+     * @param label the policy entry label to execute the action.
+     * @return a new command to execute the action at the new policy entry if applicable, or this object if not.
+     */
+    T setLabel(Label label);
+
+    /**
+     * Check if this command is applicable to a policy entry.
+     *
+     * @param policyEntry the policy entry.
+     * @return whether this command is applicable.
+     */
+    boolean isApplicable(PolicyEntry policyEntry);
 
     @Override
     default Category getCategory() {
