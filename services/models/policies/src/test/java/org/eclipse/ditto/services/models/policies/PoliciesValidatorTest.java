@@ -16,12 +16,14 @@ import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
 import static org.eclipse.ditto.services.models.policies.TestConstants.Policy.PERMISSION_READ;
 import static org.eclipse.ditto.services.models.policies.TestConstants.Policy.PERMISSION_WRITE;
 import static org.eclipse.ditto.services.models.policies.TestConstants.Policy.SUBJECT_ISSUER;
-import static org.junit.Assert.assertEquals;
 
 import java.text.MessageFormat;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.policies.Permissions;
@@ -30,6 +32,7 @@ import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.junit.Test;
 
@@ -45,8 +48,8 @@ public class PoliciesValidatorTest {
         final PoliciesValidator validator =
                 PoliciesValidator.newInstance(Collections.singletonList(entry));
 
-        assertEquals(validator.isValid(), true);
-        assertEquals(validator.getReason().isPresent(), false);
+        assertThat(validator.isValid()).isTrue();
+        assertThat(validator.getReason()).isEmpty();
     }
 
     @Test
@@ -57,9 +60,27 @@ public class PoliciesValidatorTest {
 
         assertThat(validator.isValid()).isFalse();
         assertThat(validator.getReason()).isPresent();
-        assertThat(validator.getReason().get()).isEqualTo(
-                MessageFormat.format("It must contain at least one Subject with permission(s) <{0}> on resource <{1}>!",
+        assertThat(validator.getReason().get())
+                .isEqualTo(MessageFormat.format(
+                        "It must contain at least one permanent Subject with permission(s) <{0}> on resource <{1}>!",
                         Permissions.newInstance(PERMISSION_WRITE), PoliciesResourceType.policyResource("/")));
+    }
+
+    @Test
+    public void policyWithOnlyExpiringSubjectsIsNotValid() {
+        final SubjectExpiry expiry = PoliciesModelFactory.newSubjectExpiry(Instant.now().plus(Duration.ofDays(1L)));
+        final PolicyEntry baseEntry = createPolicyEntry(PERMISSION_READ, PERMISSION_WRITE);
+        final PolicyEntry expiringEntry = PoliciesModelFactory.newPolicyEntry(baseEntry.getLabel(),
+                baseEntry.getSubjects()
+                        .stream()
+                        .map(subject -> Subject.newInstance(subject.getId(), subject.getType(), expiry))
+                        .collect(Collectors.toList()),
+                baseEntry.getResources());
+        final PoliciesValidator validator =
+                PoliciesValidator.newInstance(Collections.singletonList(expiringEntry));
+
+        assertThat(validator.isValid()).isFalse();
+        assertThat(validator.getReason().orElseThrow()).contains("It must contain at least one permanent Subject");
     }
 
     private PolicyEntry createPolicyEntry(final String... permissions) {

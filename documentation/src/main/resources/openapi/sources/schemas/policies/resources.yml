@@ -1,0 +1,36 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: object
+description: |-
+  (Authorization) Resources containing one ResourceEntry for each
+  `type:path` key, `type` being one of the following `thing`, `policy`, `message`.
+additionalProperties:
+  $ref: 'resourceEntry.yml'
+example:
+  'thing:/':
+    grant:
+      - READ
+      - WRITE
+    revoke:
+  'thing:/attributes/some/path':
+    grant:
+    revoke:
+      - READ
+  'policy:/':
+    grant:
+      - READ
+      - WRITE
+    revoke:
+  'message:/':
+    grant:
+      - READ
+      - WRITE
+    revoke:

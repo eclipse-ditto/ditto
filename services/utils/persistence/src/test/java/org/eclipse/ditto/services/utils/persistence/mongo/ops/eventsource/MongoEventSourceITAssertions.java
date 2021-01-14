@@ -20,6 +20,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
 
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
@@ -293,10 +295,12 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
             underTest.tell(purgeEntities, getRef());
             expectMsg(Duration.ofSeconds(8), PurgeEntitiesResponse.successful(entityType, dittoHeaders));
 
+            sleep(Duration.ofSeconds(5L));
+
             // restart the actors for the purged entities - they should work as if its entity never existed
             final ActorRef purgedActor1 = watch(startEntityActor(actorSystem, pubSubMediator, purgedId1));
             purgedActor1.tell(getRetrieveEntityCommand(purgedId1), getRef());
-            expectMsgClass(getEntityNotAccessibleClass());
+            expectMsgClass(Duration.ofSeconds(10L), getEntityNotAccessibleClass());
 
             final ActorRef purgedActor2 = watch(startEntityActor(actorSystem, pubSubMediator, purgedId2));
             purgedActor2.tell(getRetrieveEntityCommand(purgedId2), getRef());
@@ -324,6 +328,14 @@ public abstract class MongoEventSourceITAssertions<I extends EntityId> {
             return ns + ':' + id;
         } else {
             return id;
+        }
+    }
+
+    private static void sleep(final Duration duration) {
+        try {
+            TimeUnit.MILLISECONDS.sleep(duration.toMillis());
+        } catch (final Exception e) {
+            throw new CompletionException(e);
         }
     }
 

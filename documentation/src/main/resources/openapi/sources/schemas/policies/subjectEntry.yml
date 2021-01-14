@@ -1,0 +1,25 @@
+# Copyright (c) 2020 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+type: object
+description: Single (Authorization) Subject entry holding its type.
+required:
+  - type
+properties:
+  type:
+    type: string
+    description: The type is offered only for documentation purposes. You are not restricted to any specific types, but we recommend to use it to specify the kind of the subject as shown in our examples.
+  expiry:
+    type: string
+    description: The optional expiry timestamp (formatted in ISO-8601) indicates how long this subject should be considered active before it is automatically deleted from the Policy.
+    format: date-time
+example:
+  type: "This is some description for this subject, adjust as needed."
+  expiry: "2020-12-07T11:36:40Z"

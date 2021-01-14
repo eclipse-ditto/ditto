@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
+import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
@@ -144,6 +145,11 @@ public class ConnectionMigrationUtilTest {
                     .map(JsonFactory::newValue)
                     .collect(JsonCollectors.valuesToArray()))
             .build();
+    private static final HeaderMapping LEGACY_TARGET_HEADER_MAPPING = ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
+            .set("content-type", "{{header:content-type}}")
+            .set("correlation-id", "{{header:correlation-id}}")
+            .set("reply-to", "{{header:reply-to}}")
+            .build());
 
     @Test
     public void migrateConnectionWithGlobalAuthorizationContext() {
@@ -241,4 +247,20 @@ public class ConnectionMigrationUtilTest {
         assertThat(migratedConnection.getTargets().get(2).getAddress())
                 .isEqualTo("amqp/target3/{{topic:action-subject}}");
     }
+
+    @Test
+    public void migrateMissingHeaderMappingForTargets() {
+        final JsonObject connectionJsonWithoutHeaderMapping = KNOWN_CONNECTION_JSON.toBuilder()
+                .set(Connection.JsonFields.TARGETS, JsonArray.of(
+                        TARGET1_JSON.remove(Target.JsonFields.HEADER_MAPPING.getPointer())
+                ))
+                .build();
+        final Connection migratedConnection =
+                ConnectionMigrationUtil.connectionFromJsonWithMigration(connectionJsonWithoutHeaderMapping);
+
+        migratedConnection.getTargets()
+                .forEach(target -> assertThat(target.getHeaderMapping()).contains(LEGACY_TARGET_HEADER_MAPPING));
+
+    }
+
 }

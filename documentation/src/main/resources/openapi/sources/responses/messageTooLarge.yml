@@ -13,4 +13,4 @@ description: |-
 content:
   application/json:
     schema:
-      $ref: '../schemas/advancedError.yml'
+      $ref: '../schemas/errors/advancedError.yml'

@@ -212,7 +212,7 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
                 dittoRuntimeException.toJson());
     }
 
-    static boolean isNotBuiltIn(final AcknowledgementRequest request) {
+    static boolean isNotTwinPersistedOrLiveResponse(final AcknowledgementRequest request) {
         return isNotLiveResponse(request) && isNotTwinPersisted(request);
     }
 
@@ -231,7 +231,8 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
     static boolean hasEffectiveAckRequests(final Signal<?> signal, final Set<AcknowledgementRequest> ackRequests) {
         final boolean isLiveSignal = isLiveSignal(signal);
         if (signal instanceof ThingEvent && !isLiveSignal) {
-            return ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotBuiltIn);
+            return ackRequests.stream()
+                    .anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersistedOrLiveResponse);
         } else if (signal instanceof MessageCommand || (isLiveSignal && signal instanceof ThingCommand)) {
             return ackRequests.stream().anyMatch(AcknowledgementForwarderActorStarter::isNotTwinPersisted);
         } else {

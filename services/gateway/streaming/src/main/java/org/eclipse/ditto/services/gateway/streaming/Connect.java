@@ -22,6 +22,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.gateway.streaming.actors.SessionedJsonifiable;
 import org.eclipse.ditto.services.gateway.streaming.actors.StreamingActor;
@@ -39,6 +40,7 @@ public final class Connect {
     private final JsonSchemaVersion jsonSchemaVersion;
     @Nullable private final Instant sessionExpirationTime;
     private final Set<AcknowledgementLabel> declaredAcknowledgementLabels;
+    private final AuthorizationContext connectionAuthContext;
 
     /**
      * Constructs a new {@link Connect} instance.
@@ -55,7 +57,8 @@ public final class Connect {
             final String type,
             final JsonSchemaVersion jsonSchemaVersion,
             @Nullable final Instant sessionExpirationTime,
-            final Set<AcknowledgementLabel> declaredAcknowledgementLabels) {
+            final Set<AcknowledgementLabel> declaredAcknowledgementLabels,
+            final AuthorizationContext connectionAuthContext) {
         this.eventAndResponsePublisher = eventAndResponsePublisher;
         this.connectionCorrelationId = checkNotNull(connectionCorrelationId, "connectionCorrelationId")
                 .toString();
@@ -63,6 +66,7 @@ public final class Connect {
         this.jsonSchemaVersion = jsonSchemaVersion;
         this.sessionExpirationTime = sessionExpirationTime;
         this.declaredAcknowledgementLabels = declaredAcknowledgementLabels;
+        this.connectionAuthContext = connectionAuthContext;
     }
 
     public SourceQueueWithComplete<SessionedJsonifiable> getEventAndResponsePublisher() {
@@ -89,6 +93,10 @@ public final class Connect {
         return declaredAcknowledgementLabels;
     }
 
+    public AuthorizationContext getConnectionAuthContext() {
+        return connectionAuthContext;
+    }
+
     @Override
     public boolean equals(final Object o) {
         if (this == o) {
@@ -102,13 +110,14 @@ public final class Connect {
                 Objects.equals(connectionCorrelationId, connect.connectionCorrelationId) &&
                 Objects.equals(type, connect.type) &&
                 Objects.equals(sessionExpirationTime, connect.sessionExpirationTime) &&
-                Objects.equals(declaredAcknowledgementLabels, connect.declaredAcknowledgementLabels);
+                Objects.equals(declaredAcknowledgementLabels, connect.declaredAcknowledgementLabels) &&
+                Objects.equals(connectionAuthContext, connect.connectionAuthContext);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(eventAndResponsePublisher, connectionCorrelationId, type, sessionExpirationTime,
-                declaredAcknowledgementLabels);
+                declaredAcknowledgementLabels, connectionAuthContext);
     }
 
     @Override
@@ -119,6 +128,7 @@ public final class Connect {
                 ", type=" + type +
                 ", sessionExpirationTime=" + sessionExpirationTime +
                 ", declaredAcknowledgementLabels" + declaredAcknowledgementLabels +
+                ", connectionAuthContext" + connectionAuthContext +
                 "]";
     }
 }

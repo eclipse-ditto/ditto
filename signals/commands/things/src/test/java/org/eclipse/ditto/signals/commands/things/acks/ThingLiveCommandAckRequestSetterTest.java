@@ -87,7 +87,8 @@ public final class ThingLiveCommandAckRequestSetterTest {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .channel("live")
                 .acknowledgementRequest(AcknowledgementRequest.of(DittoAcknowledgementLabel.TWIN_PERSISTED),
-                        AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE))
+                        AcknowledgementRequest.of(DittoAcknowledgementLabel.LIVE_RESPONSE),
+                        AcknowledgementRequest.of(DittoAcknowledgementLabel.SEARCH_PERSISTED))
                 .randomCorrelationId()
                 .build();
         final CreateThing command = CreateThing.of(Thing.newBuilder().build(), null, dittoHeaders);

@@ -26,7 +26,6 @@ import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
-import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
@@ -253,10 +252,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
 
     private static Subject createSubjectForPut(final String jsonString, final CharSequence subjectId) {
         final JsonObject jsonObject = wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
-        final String subjectTypeString = jsonObject.getValueOrThrow(Subject.JsonFields.TYPE);
-        final SubjectType subjectType = PoliciesModelFactory.newSubjectType(subjectTypeString);
-
-        return PoliciesModelFactory.newSubject(SubjectId.newInstance(subjectId), subjectType);
+        return PoliciesModelFactory.newSubject(SubjectId.newInstance(subjectId), jsonObject);
     }
 
     /*

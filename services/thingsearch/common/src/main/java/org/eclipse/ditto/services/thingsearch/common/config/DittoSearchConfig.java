@@ -24,6 +24,7 @@ import org.eclipse.ditto.services.base.config.limits.LimitsConfig;
 import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
+import org.eclipse.ditto.services.utils.config.WithConfigPath;
 import org.eclipse.ditto.services.utils.health.config.DefaultHealthCheckConfig;
 import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.services.utils.metrics.config.MetricsConfig;
@@ -38,12 +39,13 @@ import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperat
  * This class is the default implementation of {@link SearchConfig}.
  */
 @Immutable
-public final class DittoSearchConfig implements SearchConfig {
+public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
 
     private static final String CONFIG_PATH = "things-search";
 
     private final DittoServiceConfig dittoServiceConfig;
     @Nullable private final String mongoHintsByNamespace;
+    private final String queryCriteriaValidator;
     private final DeleteConfig deleteConfig;
     private final DeletionConfig deletionConfig;
     private final UpdaterConfig updaterConfig;
@@ -62,6 +64,7 @@ public final class DittoSearchConfig implements SearchConfig {
         final ConfigWithFallback configWithFallback =
                 ConfigWithFallback.newInstance(dittoScopedConfig, CONFIG_PATH, SearchConfigValue.values());
         mongoHintsByNamespace = configWithFallback.getStringOrNull(SearchConfigValue.MONGO_HINTS_BY_NAMESPACE);
+        queryCriteriaValidator = configWithFallback.getStringOrNull(SearchConfigValue.QUERY_CRITERIA_VALIDATOR);
         deleteConfig = DefaultDeleteConfig.of(configWithFallback);
         deletionConfig = DefaultDeletionConfig.of(configWithFallback);
         updaterConfig = DefaultUpdaterConfig.of(configWithFallback);
@@ -84,6 +87,11 @@ public final class DittoSearchConfig implements SearchConfig {
     @Override
     public Optional<String> getMongoHintsByNamespace() {
         return Optional.ofNullable(mongoHintsByNamespace);
+    }
+
+    @Override
+    public String getQueryValidatorImplementation() {
+        return queryCriteriaValidator;
     }
 
     @Override
@@ -157,6 +165,7 @@ public final class DittoSearchConfig implements SearchConfig {
         }
         final DittoSearchConfig that = (DittoSearchConfig) o;
         return Objects.equals(mongoHintsByNamespace, that.mongoHintsByNamespace) &&
+                Objects.equals(queryCriteriaValidator, that.queryCriteriaValidator) &&
                 Objects.equals(deleteConfig, that.deleteConfig) &&
                 Objects.equals(deletionConfig, that.deletionConfig) &&
                 Objects.equals(updaterConfig, that.updaterConfig) &&
@@ -170,14 +179,16 @@ public final class DittoSearchConfig implements SearchConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(mongoHintsByNamespace, deleteConfig, deletionConfig, updaterConfig, dittoServiceConfig,
-                healthCheckConfig, indexInitializationConfig, persistenceOperationsConfig, mongoDbConfig, streamConfig);
+        return Objects.hash(mongoHintsByNamespace, queryCriteriaValidator, deleteConfig, deletionConfig, updaterConfig,
+                dittoServiceConfig, healthCheckConfig, indexInitializationConfig, persistenceOperationsConfig,
+                mongoDbConfig, streamConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "mongoHintsByNamespace=" + mongoHintsByNamespace +
+                ", queryCriteriaValidator=" + queryCriteriaValidator +
                 ", deleteConfig=" + deleteConfig +
                 ", deletionConfig=" + deletionConfig +
                 ", updaterConfig=" + updaterConfig +
@@ -188,6 +199,11 @@ public final class DittoSearchConfig implements SearchConfig {
                 ", mongoDbConfig=" + mongoDbConfig +
                 ", streamConfig=" + streamConfig +
                 "]";
+    }
+
+    @Override
+    public String getConfigPath() {
+        return CONFIG_PATH;
     }
 
 }

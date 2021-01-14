@@ -28,8 +28,10 @@ tags:
   - name: CloudEvents
     description: Process CloudEvents in Ditto
 security:
-  - basicAuth: []
-  - bearerAuth: []
+  - Google:
+      - openid
+  - NginxBasic: []
+  - Bearer: []
 paths:
   /things:
     get:
@@ -191,7 +193,7 @@ paths:
                     status:
                       waterAmount: 731
                       temperature: 44
-        description: 'JSON representation of the thing to be created. Use { } to create an empty thing with a default policy.'
+        description: 'JSON representation of the thing to be created. Use `{ }` to create an empty thing with a default policy.'
   '/things/{thingId}':
     get:
       summary: Retrieve a specific thing
@@ -272,38 +274,38 @@ paths:
         and the body part, like in the following snippet.
 
         ```
-         {
-           "definition": "com.acme:coffeebrewer:0.1.0",
-           "attributes": {
-             "manufacturer": "ACME demo corp.",
-             "location": "Berlin, main floor",
-             "serialno": "42",
-             "model": "Speaking coffee machine"
-           },
-           "features": {
-             "coffee-brewer": {
-               "definition": [ "com.acme:coffeebrewer:0.1.0" ],
-               "properties": {
-                 "brewed-coffees": 0
-               }
-             },
-             "water-tank": {
-               "properties": {
-                 "configuration": {
-                   "smartMode": true,
-                   "brewingTemp": 87,
-                   "tempToHold": 44,
-                   "timeoutSeconds": 6000
-                 },
-                 "status": {
-                   "waterAmount": 731,
-                   "temperature": 44
-                 }
-               }
-             }
-           }
+        {
+          "definition": "com.acme:coffeebrewer:0.1.0",
+          "attributes": {
+            "manufacturer": "ACME demo corp.",
+            "location": "Berlin, main floor",
+            "serialno": "42",
+            "model": "Speaking coffee machine"
+          },
+          "features": {
+            "coffee-brewer": {
+              "definition": ["com.acme:coffeebrewer:0.1.0"],
+              "properties": {
+                "brewed-coffees": 0
+              }
+            },
+            "water-tank": {
+              "properties": {
+                "configuration": {
+                  "smartMode": true,
+                  "brewingTemp": 87,
+                  "tempToHold": 44,
+                  "timeoutSeconds": 6000
+                },
+                "status": {
+                  "waterAmount": 731,
+                  "temperature": 44
+                }
+              }
+            }
           }
-         ```
+        }
+        ```
         As the example does not set a policy in the request body, but the thing concept requires one,
         the service will create a default policy. The default policy, has the exactly same id
         as the thing, and grants ALL permissions to the authorized subject.
@@ -582,7 +584,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
               * the caller has insufficient permissions.
                 For modifying the definition of an existing thing, `WRITE` permission is required.
           content:
@@ -661,7 +662,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
               * the caller has insufficient permissions.
                 For modifying a definition of an existing thing, `WRITE` permission is required.
           content:
@@ -681,17 +681,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
       requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Definition'
-            example: '"example:test:definition"'
-        description: |-
-          JSON string of the definition to be modified. Consider that the
-          value has to be a JSON string or `null`, examples:
-
-            * an string: `{ ""value"}` -}. Currently the definition should follow the pattern: [_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]
-            * an empty string: `""`
+        $ref: '#/components/requestBodies/Definition'
     delete:
       summary: Delete the definition of a specific thing
       description: Deletes the definition of the thing identified by the `thingId`.
@@ -724,7 +714,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
               * the caller has insufficient permissions.
                 For modifying a definition of an existing thing, `WRITE` permission is required.
           content:
@@ -1007,26 +996,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
       requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Attributes'
-            example:
-              manufacturer:
-                name: ACME demo corp.
-                location: 'Berlin, main floor'
-              coffeemaker:
-                serialno: '42'
-                model: Speaking coffee machine
-        description: |-
-          JSON object of all attributes to be modified at once. Consider that the
-          value has to be a JSON object or `null`.
-
-          Examples:
-           * an empty object: `{}` - would just delete all old attributes
-           * a simple object: `{ "key": "value"}` - We strongly recommend to use a restricted set of characters for the key (identifier), as the key might be needed for the (URL) path later.<br> Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
-           * a nested object as shown in the example value
-        required: true
+        $ref: '#/components/requestBodies/Attributes'
     delete:
       summary: Delete all attributes of a specific thing at once
       description: |-
@@ -1217,27 +1187,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
       requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              example: {}
-        description: |-
-          JSON representation of the value to be created/updated. This may be as
-          well `null` or an empty object.
-
-          Consider that the value has to be a JSON value, examples:
-
-            * for a number, the JSON value is the number: `42`
-
-            * for a string, the JSON value must be quoted: `"aString"`
-
-            * for a boolean, the JSON value is the boolean: `true`
-
-            * for an object, the JSON value is the object: `{ "key": "value"}` -} We strongly recommend to use a restricted set of characters for the key (identifier). Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
-
-            * for an list, the JSON value is the list: `[ 1,2,3 ]`
-        required: true
+        $ref: '#/components/requestBodies/Value'
     delete:
       summary: Delete a specific attribute of a specific thing
       description: |-
@@ -1381,26 +1331,26 @@ paths:
 
         ```
         {
-             "coffee-brewer": {
-               "definition": ["com.acme:coffeebrewer:0.1.0"],
-               "properties": {
-                 "brewed-coffees": 0
-               }
-             },
-             "water-tank": {
-               "properties": {
-                 "configuration": {
-                   "smartMode": true,
-                   "brewingTemp": 87,
-                   "tempToHold": 44,
-                   "timeoutSeconds": 6000
-                 },
-                 "status": {
-                   "waterAmount": 731,
-                   "temperature": 44
-                 }
-               }
-             }
+          "coffee-brewer": {
+            "definition": ["com.acme:coffeebrewer:0.1.0"],
+            "properties": {
+              "brewed-coffees": 0
+            }
+          },
+          "water-tank": {
+            "properties": {
+              "configuration": {
+                "smartMode": true,
+                "brewingTemp": 87,
+                "tempToHold": 44,
+                "timeoutSeconds": 6000
+              },
+              "status": {
+                "waterAmount": 731,
+                "temperature": 44
+              }
+            }
+          }
         }
         ```
       tags:
@@ -1458,7 +1408,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
               * the caller has insufficient permissions.
                 For modifying all features of an existing thing, `WRITE` permission is required.
           content:
@@ -1694,7 +1643,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
               * the caller has insufficient permissions.
                 For modifying a single feature of an existing thing, `WRITE` permission is required.
           content:
@@ -1768,7 +1716,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
               * the caller has insufficient permissions.
                 For deleting a single feature of an existing thing, `WRITE` permission is required.
           content:
@@ -1972,7 +1919,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
               * the caller has insufficient permissions.
                 For deleting the definition of an existing feature, `WRITE` permission is required.
           content:
@@ -2105,7 +2051,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
               * the caller has insufficient permissions.
                 For modifying the properties of an existing feature, `WRITE` permission is required.
           content:
@@ -2181,7 +2126,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
               * the caller has insufficient permissions.
                 For deleting the properties of an existing feature, `WRITE` permission is required.
           content:
@@ -2323,7 +2267,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
               * the caller has insufficient permissions.
                 For creating/updating a property of an existing feature, `WRITE` permission is required.
           content:
@@ -2343,7 +2286,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
       requestBody:
-        $ref: '#/paths/~1things~1%7BthingId%7D~1attributes~1%7BattributePath%7D/put/requestBody'
+        $ref: '#/components/requestBodies/Value'
     delete:
       summary: Delete a specific property of a feature
       description: |-
@@ -2511,7 +2454,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
               * the caller has insufficient permissions.
                 For modifying the desired properties of an existing feature, `WRITE` permission is required.
           content:
@@ -2587,7 +2529,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
               * the caller has insufficient permissions.
                 For deleting the desired properties of an existing feature, `WRITE` permission is required.
           content:
@@ -2729,7 +2670,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
               * the caller has insufficient permissions.
                 For creating/updating a desired property of an existing feature, `WRITE` permission is required.
           content:
@@ -2749,7 +2689,7 @@ paths:
         '413':
           $ref: '#/components/responses/EntityTooLarge'
       requestBody:
-        $ref: '#/paths/~1things~1%7BthingId%7D~1attributes~1%7BattributePath%7D/put/requestBody'
+        $ref: '#/components/requestBodies/Value'
     delete:
       summary: Delete a specific desired property of a feature
       description: |-
@@ -2898,22 +2838,7 @@ paths:
         '503':
           $ref: '#/components/responses/MessageTimeout'
       requestBody:
-        content:
-          application/json:
-            schema:
-              type: string
-              example: ''
-          application/octet-stream:
-            schema:
-              type: string
-              example: ''
-          text/plain:
-            schema:
-              type: string
-              example: ''
-        description: |-
-          Payload of the message with max size of 250 kB. It can be any HTTP
-          supported content, including binary content.
+        $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/inbox/messages/{messageSubject}':
     post:
       summary: Send a message TO a specific thing
@@ -2979,7 +2904,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
               * the caller has insufficient permissions.
                 You need `WRITE` permission on the resource `message:/inbox/messages/{messageSubject}`.
           content:
@@ -3006,7 +2930,7 @@ paths:
         '503':
           $ref: '#/components/responses/MessageTimeout'
       requestBody:
-        $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/requestBody'
+        $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/outbox/messages/{messageSubject}':
     post:
       summary: Send a message FROM a specific thing
@@ -3059,7 +2983,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
               * the caller has insufficient permissions.
                 You need `WRITE` permission on the resource `message:/outbox/messages/{messageSubject}`.
           content:
@@ -3086,7 +3009,7 @@ paths:
         '503':
           $ref: '#/components/responses/MessageTimeout'
       requestBody:
-        $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/requestBody'
+        $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/features/{featureId}/inbox/messages/{messageSubject}':
     post:
       summary: Send a message TO a specific feature of a specific thing
@@ -3143,7 +3066,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
              * the caller has insufficient permissions.
                You need `WRITE` permission on the resource `message:/features/{featureId}/inbox/messages/{messageSubject}`.
           content:
@@ -3170,7 +3092,7 @@ paths:
         '503':
           $ref: '#/components/responses/MessageTimeout'
       requestBody:
-        $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/requestBody'
+        $ref: '#/components/requestBodies/Payload'
   '/things/{thingId}/features/{featureId}/outbox/messages/{messageSubject}':
     post:
       summary: Send a message FROM a specific feature of a specific thing
@@ -3225,7 +3147,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
               * the caller has insufficient permissions.
                 You need `WRITE` permission on the resource `message:/features/{featureId}/outbox/messages/{messageSubject}`.
           content:
@@ -3252,7 +3173,7 @@ paths:
         '503':
           $ref: '#/components/responses/MessageTimeout'
       requestBody:
-        $ref: '#/paths/~1things~1%7BthingId%7D~1inbox~1claim/post/requestBody'
+        $ref: '#/components/requestBodies/Payload'
   '/policies/{policyId}':
     get:
       summary: Retrieve a specific policy
@@ -3260,7 +3181,7 @@ paths:
         Returns the complete policy identified by the `policyId` path parameter. The
         response contains the policy as JSON object.
 
-        Tip: If you don't know the policy ID, request it via GET ​/things​/{thingId}.
+        Tip: If you don't know the policy ID of a thing, request it via GET `/things/{thingId}`.
       tags:
         - Policies
       parameters:
@@ -3400,7 +3321,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Policy'
+                $ref: '#/components/schemas/NewPolicy'
         '204':
           description: The policy was successfully updated.
           headers:
@@ -3429,7 +3350,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
               * the caller has insufficient permissions.
                 You need `WRITE` permission on the root `policy:/` resource,
                 without any revoke in a deeper path of the policy resource.
@@ -3454,7 +3374,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Policy'
+              $ref: '#/components/schemas/NewPolicy'
             example:
               entries:
                 DEFAULT:
@@ -3640,7 +3560,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
             * the caller has insufficient permissions.
               You need `WRITE` permission on the `policy:/entries` resource,
               without any revoke in a deeper path of the policy resource.
@@ -3813,7 +3732,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
               * the caller has insufficient permissions.
                 You need `WRITE` permission on the `policy:/entries/{label}` resource,
                 without any revoke in a deeper path of the policy resource.
@@ -3871,26 +3789,26 @@ paths:
           Set the label value to **Consumer** and the following request body:
           ```
           {
-             "subjects": {
-               "nginx:USER-01": {
-                 "type": "pre authenticated user from nginx"
-               },
-             },
-             "resources": {
-               "thing:/": {
-                 "grant": [
-                   "READ"
-                 ],
-                 "revoke": []
-               },
-               "message:/": {
-                 "grant": [
-                   "WRITE"
-                 ],
-                 "revoke": []
-               }
-             }
-           }
+            "subjects": {
+              "nginx:USER-01": {
+                "type": "pre authenticated user from nginx"
+              }
+            },
+            "resources": {
+              "thing:/": {
+                "grant": [
+                  "READ"
+                ],
+                "revoke": []
+              },
+              "message:/": {
+                "grant": [
+                  "WRITE"
+                ],
+                "revoke": []
+              }
+            }
+          }
           ```
         required: true
     delete:
@@ -3928,7 +3846,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
              * the caller has insufficient permissions.
                You need `WRITE` permission on the `policy:/entries/{label}` resource,
                without any revoke in a deeper path of the policy resource.
@@ -4060,7 +3977,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
             * the caller has insufficient permissions.
               You need `WRITE` permission on the `policy:/entries/{label}/subjects` resource,
               without any revoke in a deeper path of the policy resource.
@@ -4085,7 +4001,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Subjects'
-            example: {}
         description: |-
           JSON representation of the Subjects.
 
@@ -4156,8 +4071,7 @@ paths:
       summary: Create or modify one specific Subject for a specific Label of a specific policy
       description: |-
         Create or modify the subject with ID `subjectId` of the policy identified
-        by the `policyId` path parameter, and
-        by the `label` path parameter.
+        by the `policyId` path parameter, and by the `label` path parameter.
       tags:
         - Policies
       parameters:
@@ -4214,7 +4128,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
             * the caller has insufficient permissions.
               You need `WRITE` permission on the root `policy:/entries/{label}/subjects/{subjectId}` resource,
               without any revoke in a deeper path of the policy resource.
@@ -4240,7 +4153,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/SubjectEntry'
-            example: {}
         description: JSON representation of the Subject
         required: true
     delete:
@@ -4284,7 +4196,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
             * the caller has insufficient permissions.
               You need `WRITE` permission on the root `policy:/entries/{label}/subjects/{subjectId}` resource,
               without any revoke in a deeper path of the policy resource.
@@ -4374,43 +4285,46 @@ paths:
         ### Set max permissions on all ressources
         ```
         {
-                  "policy:/": {
-                          "grant": [
-                            "READ",
-                            "WRITE"
-                          ],
-                          "revoke": []
-                        },
-                 "thing:/": {
-                          "grant": [
-                            "READ",
-                            "WRITE"
-                          ],
-                          "revoke": []
-                        },
-                 "message:/": {
-                          "grant": [
-                            "READ",
-                            "WRITE"
-                          ],
-                          "revoke": []
-                        }
-                      }
+          "policy:/": {
+            "grant": [
+              "READ",
+              "WRITE"
+            ],
+            "revoke": []
+          },
+          "thing:/": {
+            "grant": [
+              "READ",
+              "WRITE"
+            ],
+            "revoke": []
+          },
+          "message:/": {
+            "grant": [
+              "READ",
+              "WRITE"
+            ],
+            "revoke": []
           }
-          ```
-          ### Allow to read all parts of a thing except the "confidential" feature
-          ```
-          {
-                  "thing:/": {
-                            "grant": [ "READ" ],
-                            "revoke": []
-                  },
-                  "things:/{thingId}/features/confidential:/": {
-                            "grant": [],
-                            "revoke": [ "READ"]
-                  },
+        }
+        ```
+        ### Allow to read all parts of a thing except the "confidential" feature
+        ```
+        {
+          "thing:/": {
+            "grant": [
+              "READ"
+            ],
+            "revoke": []
+          },
+          "things:/features/confidential": {
+            "grant": [],
+            "revoke": [
+              "READ"
+            ]
           }
-          ```
+        }
+        ```
       tags:
         - Policies
       parameters:
@@ -4449,7 +4363,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
             * the caller has insufficient permissions.
               You need `WRITE` permission on the root `policy:/entries/{label}/resources` resource,
               without any revoke in a deeper path of the policy resource.
@@ -4475,7 +4388,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Resources'
-            example: {}
         description: JSON representation of the Resources
         required: true
   '/policies/{policyId}/entries/{label}/resources/{resourcePath}':
@@ -4602,7 +4514,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
               * the caller has insufficient permissions.
                 You need `WRITE` permission on the `policy:/entries/{label}/resources/{resourcePath}` resource,
                 without any revoke in a deeper path of the policy resource.
@@ -4628,7 +4539,6 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ResourceEntry'
-            example: {}
         description: JSON representation of the Resource
         required: true
     delete:
@@ -4668,7 +4578,6 @@ paths:
         '403':
           description: |-
             The request could not be completed. Possible reasons:
-
               * the caller has insufficient permissions.
                 You need `WRITE` permission on the `policy:/entries/{label}/resources/{resourcePath}` resource,
                 without any revoke in a deeper path of the policy resource.
@@ -5012,6 +4921,79 @@ paths:
           The [Ditto Protocol JSON](https://www.eclipse.org/ditto/protocol-specification.html) payload defining which
           command to process.
 components:
+  requestBodies:
+    Attributes:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Attributes'
+          example:
+            manufacturer:
+              name: ACME demo corp.
+              location: 'Berlin, main floor'
+            coffeemaker:
+              serialno: '42'
+              model: Speaking coffee machine
+      description: |-
+        JSON object of all attributes to be modified at once. Consider that the
+        value has to be a JSON object or `null`.
+
+        Examples:
+         * an empty object: `{}` - would just delete all old attributes
+         * a simple object: `{ "key": "value"}` - We strongly recommend to use a restricted set of characters for the key (identifier), as the key might be needed for the (URL) path later.<br> Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
+         * a nested object as shown in the example value
+      required: true
+    Definition:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Definition'
+          example: '"example:test:definition"'
+      description: |-
+        JSON string of the definition to be modified. Consider that the
+        value has to be a JSON string or `null`, examples:
+
+          * an string: `{ ""value"}` -}. Currently the definition should follow the pattern: [_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]
+          * an empty string: `""`
+    Payload:
+      content:
+        application/json:
+          schema:
+            type: string
+            example: ''
+        application/octet-stream:
+          schema:
+            type: string
+            example: ''
+        text/plain:
+          schema:
+            type: string
+            example: ''
+      description: |-
+        Payload of the message with max size of 250 kB. It can be any HTTP
+        supported content, including binary content.
+    Value:
+      content:
+        application/json:
+          schema:
+            type: object
+            example: {}
+      description: |-
+        JSON representation of the value to be created/updated. This may be as
+        well `null` or an empty object.
+
+        Consider that the value has to be a JSON value, examples:
+
+          * for a number, the JSON value is the number: `42`
+
+          * for a string, the JSON value must be quoted: `"aString"`
+
+          * for a boolean, the JSON value is the boolean: `true`
+
+          * for an object, the JSON value is the object: `{ "key": "value"}` -} We strongly recommend to use a restricted set of characters for the key (identifier). Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
+
+          * for an list, the JSON value is the list: `[ 1,2,3 ]`
+      required: true
   responses:
     EntityTooLarge:
       description: The created or modified entity is larger than the accepted limit of 100 kB.
@@ -5694,14 +5676,10 @@ components:
           $ref: '#/components/schemas/Attributes'
         features:
           $ref: '#/components/schemas/Features'
+      required:
+        - policyId
     Thing:
       type: object
-      required:
-        - thingId
-        - policyId
-        - attributes
-        - definition
-        - features
       properties:
         thingId:
           type: string
@@ -5733,12 +5711,29 @@ components:
         _metadata:
           type: object
           description: _(read-only)_ The Metadata of the Thing. This field is not returned by default but must be selected explicitly.
-    Policy:
+      required:
+        - thingId
+        - policyId
+    NewPolicy:
       type: object
-      description: policy consisting of policy entries
+      description: Policy consisting of policy entries
       properties:
         entries:
           $ref: '#/components/schemas/PolicyEntries'
+      required:
+        - entries
+    Policy:
+      type: object
+      description: Policy consisting of policy entries
+      properties:
+        policyId:
+          type: string
+          description: Unique identifier representing the policy
+        entries:
+          $ref: '#/components/schemas/PolicyEntries'
+      required:
+        - policyId
+        - entries
     PolicyEntries:
       type: object
       description: Policy entries containing one policy entry for each arbitrary `label` key
@@ -5750,14 +5745,14 @@ components:
     PolicyEntry:
       type: object
       description: Single policy entry containing Subjects and Resources.
-      required:
-        - subjects
-        - resources
       properties:
         subjects:
           $ref: '#/components/schemas/Subjects'
         resources:
           $ref: '#/components/schemas/Resources'
+      required:
+        - subjects
+        - resources
     Subjects:
       type: object
       description: A SubjectEntry defines who is addressed.
@@ -5775,35 +5770,41 @@ components:
         type:
           type: string
           description: 'The type is offered only for documentation purposes. You are not restricted to any specific types, but we recommend to use it to specify the kind of the subject as shown in our examples.'
+        expiry:
+          type: string
+          description: The optional expiry timestamp (formatted in ISO-8601) indicates how long this subject should be considered active before it is automatically deleted from the Policy.
+          format: date-time
+      example:
+        type: 'This is some description for this subject, adjust as needed.'
+        expiry: '2020-12-07T11:36:40Z'
     Resources:
       type: object
       description: |-
         (Authorization) Resources containing one ResourceEntry for each
         `type:path` key, `type` being one of the following `thing`, `policy`, `message`.
-      properties:
+      additionalProperties:
+        $ref: '#/components/schemas/ResourceEntry'
+      example:
         'thing:/':
-          $ref: '#/components/schemas/ResourceEntry'
+          grant:
+            - READ
+            - WRITE
+          revoke: null
         'thing:/attributes/some/path':
-          $ref: '#/components/schemas/ResourceEntryRestricted'
+          grant: null
+          revoke:
+            - READ
         'policy:/':
-          $ref: '#/components/schemas/ResourceEntry'
+          grant:
+            - READ
+            - WRITE
+          revoke: null
         'message:/':
-          $ref: '#/components/schemas/ResourceEntry'
+          grant:
+            - READ
+            - WRITE
+          revoke: null
     ResourceEntry:
-      type: object
-      description: |-
-        Single (Authorization) Resource entry defining permissions per effect.
-        Allowed effects are `grant` and `revoke`.
-      properties:
-        grant:
-          type: array
-          items:
-            $ref: '#/components/schemas/Permission'
-        revoke:
-          type: array
-          items:
-            $ref: '#/components/schemas/Permission'
-    ResourceEntryRestricted:
       type: object
       description: |-
         Single (Authorization) Resource entry defining permissions per effect.
@@ -5844,12 +5845,22 @@ components:
       type: string
       description: An auth subject that can be used to provide access for a caller (e.g. in subject entries of policies).
   securitySchemes:
-    basicAuth:
+    NginxBasic:
       type: http
       description: Eclipse Ditto sandbox demo user (demo1 ... demo9) + password (demo)
       scheme: basic
-    bearerAuth:
+    Bearer:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: 'A JSON Web Token issued by a supported OAuth 2.0 Identity Provider, e.g. a Google "id_token"'
+      description: A JSON Web Token issued by a supported OAuth 2.0 Identity Provider.
+    Google:
+      type: oauth2
+      description: Allow Eclipse Ditto to perform OAuth2.0 based authentication accessing your Google-ID.
+      x-tokenName: id_token
+      flows:
+        authorizationCode:
+          authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth'
+          tokenUrl: /oauth2/google/token
+          scopes:
+            openid: Access your Google-ID

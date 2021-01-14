@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicy;
 import org.eclipse.ditto.services.models.policies.commands.sudo.SudoRetrievePolicyResponse;
+import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
@@ -31,8 +32,8 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
  */
 final class SudoRetrievePolicyStrategy extends AbstractPolicyQueryCommandStrategy<SudoRetrievePolicy> {
 
-    SudoRetrievePolicyStrategy() {
-        super(SudoRetrievePolicy.class);
+    SudoRetrievePolicyStrategy(final PolicyConfig policyConfig) {
+        super(SudoRetrievePolicy.class, policyConfig);
     }
 
     @Override

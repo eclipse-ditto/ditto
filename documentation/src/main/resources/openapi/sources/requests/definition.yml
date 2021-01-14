@@ -11,7 +11,7 @@
 content:
   application/json:
     schema:
-      $ref: '../schemas/definition.yml'
+      $ref: '../schemas/things/definition.yml'
     example: '"example:test:definition"'
 description: |-
   JSON string of the definition to be modified. Consider that the

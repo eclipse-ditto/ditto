@@ -9,12 +9,6 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 type: object
-required:
-  - thingId
-  - policyId
-  - attributes
-  - definition
-  - features
 properties:
   thingId:
     type: string
@@ -27,7 +21,7 @@ properties:
   attributes:
     $ref: 'attributes.yml'
   features:
-    $ref: 'features.yml'
+    $ref: '../features/features.yml'
   _revision:
     type: string
     description: |-
@@ -47,3 +41,6 @@ properties:
     type: object
     description: |-
       _(read-only)_ The Metadata of the Thing. This field is not returned by default but must be selected explicitly.
+required:
+  - thingId
+  - policyId

@@ -98,7 +98,7 @@ public class ETagTestUtils {
         return RetrieveSubjectResponse.of(policyId, label, subject, dittoHeadersWithETagHeader);
     }
 
-    private static DittoHeaders appendETagHeader(final Object object, final DittoHeaders dittoHeaders) {
+    public static DittoHeaders appendETagHeader(final Object object, final DittoHeaders dittoHeaders) {
         return dittoHeaders.toBuilder().eTag(EntityTag.fromEntity(object).get()).build();
     }
 }

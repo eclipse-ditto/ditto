@@ -39,7 +39,7 @@ get:
           schema:
             type: array
             items:
-              $ref: '../../schemas/thing.yml'
+              $ref: '../../schemas/things/thing.yml'
     '400':
       description: |-
         The request could not be completed. At least one of the defined
@@ -47,13 +47,13 @@ get:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '414':
       description: |-
         The request could not be completed due to an URI length exceeding 8k
@@ -97,7 +97,7 @@ post:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/thing.yml'
+            $ref: '../../schemas/things/thing.yml'
     '400':
       description: |-
         The request could not be completed. Possible reasons:
@@ -107,13 +107,13 @@ post:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '401':
       description: The request could not be completed due to missing authentication.
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '403':
       description: |-
         The request could not be completed.
@@ -123,7 +123,7 @@ post:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '404':
       description: |-
         The request could not be completed. Possible reasons:
@@ -134,7 +134,7 @@ post:
       content:
         application/json:
           schema:
-            $ref: '../../schemas/advancedError.yml'
+            $ref: '../../schemas/errors/advancedError.yml'
     '412':
       $ref: '../../responses/preconditionFailed.yml'
     '413':
@@ -143,36 +143,36 @@ post:
     content:
       application/json:
         schema:
-          $ref: '../../schemas/newThing.yml'
+          $ref: '../../schemas/things/newThing.yml'
         example: {
-              "definition": "com.acme:coffeebrewer:0.1.0",
-              "attributes": {
-                "manufacturer": "ACME demo corp.",
-                "location": "Berlin, main floor",
-                "serialno": "42",
-                "model": "Speaking coffee machine"
-              },
-              "features": {
-                "coffee-brewer": {
-                  "definition": [ "com.acme:coffeebrewer:0.1.0" ],
-                  "properties": {
-                    "brewed-coffees": 0
-                  }
+          "definition": "com.acme:coffeebrewer:0.1.0",
+          "attributes": {
+            "manufacturer": "ACME demo corp.",
+            "location": "Berlin, main floor",
+            "serialno": "42",
+            "model": "Speaking coffee machine"
+          },
+          "features": {
+            "coffee-brewer": {
+              "definition": [ "com.acme:coffeebrewer:0.1.0" ],
+              "properties": {
+                "brewed-coffees": 0
+              }
+            },
+            "water-tank": {
+              "properties": {
+                "configuration": {
+                  "smartMode": true,
+                  "brewingTemp": 87,
+                  "tempToHold": 44,
+                  "timeoutSeconds": 6000
                 },
-                "water-tank": {
-                  "properties": {
-                    "configuration": {
-                      "smartMode": true,
-                      "brewingTemp": 87,
-                      "tempToHold": 44,
-                      "timeoutSeconds": 6000
-                    },
-                    "status": {
-                      "waterAmount": 731,
-                      "temperature": 44
-                    }
-                  }
+                "status": {
+                  "waterAmount": 731,
+                  "temperature": 44
                 }
               }
             }
-    description: JSON representation of the thing to be created. Use { } to create an empty thing with a default policy.
+          }
+        }
+    description: JSON representation of the thing to be created. Use `{ }` to create an empty thing with a default policy.

@@ -23,11 +23,12 @@ import org.eclipse.ditto.services.utils.pubsub.api.AcksDeclared;
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
+import akka.actor.Extension;
 
 /**
  * Interface to access the local and distributed data of declared acknowledgement labels.
  */
-public interface DistributedAcks {
+public interface DistributedAcks extends Extension {
 
     /**
      * Receive a snapshot of local acknowledgement declarations on each update.
@@ -121,4 +122,15 @@ public interface DistributedAcks {
     static DistributedAcks empty() {
         return new DistributedAcksEmptyImpl();
     }
+
+    /**
+     * Lookup the extension on the publisher side.
+     *
+     * @param system the actor system.
+     * @return a unique instance of DistributedAcks.
+     */
+    static DistributedAcks lookup(final ActorSystem system) {
+        return DistributedAcksImpl.ExtensionId.INSTANCE.get(system);
+    }
+
 }

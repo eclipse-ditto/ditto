@@ -7,7 +7,7 @@ permalink: basic-policy.html
 
 A Policy enables developers to configure fine-grained access control for Things and other entities in an easy way.
 
-  {% include note.html content="The policy concept is only supported for Ditto **HTTP API version 2**. <br/>
+{% include note.html content="The policy concept is only supported for Ditto **HTTP API version 2**. <br/>
   Find the HTTP API reference at [Policies resources](http-api-doc.html?urls.primaryName=api2#/Policies)." %}
 
 
@@ -15,12 +15,17 @@ A Policy enables developers to configure fine-grained access control for Things 
 
 A specific policy provides someone (called subject), permission to read and/or write a given resource.
  
-  {% include tip.html content="The write permission at the policy root resource (i.e. `policy:/`) allows to manage the
-  policy itself.<br/>Find an [example](basic-policy.html#example) at the end of the page." %}
+{% include tip.html content="The write permission at the policy root resource (i.e. `policy:/`) allows to manage the
+  policy itself.<br/>Find an [example](#example) at the end of the page." %}
 
 Please note, that in most cases it makes sense to grant read permission in addition to a write permission, because
 *write does not imply read.*
 
+## Model specification
+
+### API version 2
+
+{% include docson.html schema="jsonschema/policy.json" %}
 
 ## Who can be addressed?
 
@@ -33,6 +38,27 @@ A Subject ID must conform to one of the following rules:
 | Prefix    | Type  | Description   |
 |-----------|-------|---------------|
 | google | jwt | A <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> issued by Google |
+
+### Expiring Policy subjects
+
+When a Policy subject contains an `"expiry"` timestamp (formatted as ISO-8601 string), this subject will get 
+automatically deleted once this timestamp was reached.
+
+When providing an `"expiry"` for a Policy subject, this timestamp is rounded up:
+* by default to the next full hour
+* this is configurable via the environment variable `POLICY_SUBJECT_EXPIRY_GRANULARITY` of the 
+  [policies](architecture-services-policies.html) service which takes a 
+  [HOCON duration](https://github.com/lightbend/config/blob/master/HOCON.md#duration-format), e.g.:
+   * configured to "1s": a received "expiry" is rounded up to the next full second
+   * configured to "30s": a received "expiry" is rounded up to the next half minute
+   * configured to "1h": a received "expiry" is rounded up to the next full hour (**default**)
+   * configured to "12h": a received "expiry" is rounded up to the next half day
+   * configured to "1d": a received "expiry" is rounded up to the next full day
+   * configured to "15d": a received "expiry" is rounded up to the next half month  
+
+Once an expired subject is deleted, it will immediately no longer have access to the resources protected by the policy
+it was deleted from.
+
 
 ## Which Resources can be controlled?
 
@@ -49,7 +75,7 @@ A Policy can contain access control definitions for several resources:
       part only (and the Thing ID).
 
 
-## Policy
+### Policy
 
 The Policy resource (addressable as `policy:/`) defines the access control for the Policy itself.
 
@@ -71,7 +97,7 @@ The [Things example at the end of the page](basic-policy.html#example) also defi
 resource.
 
 
-## Thing
+### Thing
 
 The Thing resource (addressable as `thing:/`) defines the access control for Things.
 
@@ -92,7 +118,7 @@ Policy.
 Find a [Things example at the end of the page.](basic-policy.html#example)
 
 
-## Feature
+### Feature
 
 | Resource    | Addressed data, description  |
 |-------------|------------------------------|
@@ -106,7 +132,7 @@ Find a [Things example at the end of the page.](basic-policy.html#example)
 Find a [Things example at the end of the page.](basic-policy.html#example)
 
 
-## Message
+### Message
 
 The Message resource (addressable as `message:/`) defines the access control for Messages.
 
