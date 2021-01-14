@@ -23,6 +23,9 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -62,6 +65,14 @@ public abstract class AbstractPolicyCommandStrategyTest {
 
     protected static CommandStrategy.Context<PolicyId> getDefaultContext() {
         return DefaultContext.getInstance(TestConstants.Policy.POLICY_ID, logger);
+    }
+
+    protected static DittoHeaders buildActivateTokenIntegrationHeaders() {
+        return DittoHeaders.newBuilder()
+                .authorizationContext(AuthorizationContext.newInstance(
+                        DittoAuthorizationContextType.JWT,
+                        AuthorizationSubject.newInstance(TestConstants.Policy.SUPPORT_SUBJECT_ID))
+                ).build();
     }
 
     protected static <C extends Command<?>, T extends PolicyEvent<?>> T assertModificationResult(

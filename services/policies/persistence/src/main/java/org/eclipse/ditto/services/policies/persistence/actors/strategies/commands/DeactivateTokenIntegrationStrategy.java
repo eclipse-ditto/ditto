@@ -26,15 +26,12 @@ import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegrationResponse;
-import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
-import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryNotAccessibleException;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 import org.eclipse.ditto.signals.events.policies.SubjectDeleted;
 
@@ -61,7 +58,8 @@ final class DeactivateTokenIntegrationStrategy extends AbstractPolicyActionComma
         final Label label = command.getLabel();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
-        final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(label);
+        final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(label)
+                .filter(entry -> containsAuthenticatedSubject(entry, dittoHeaders.getAuthorizationContext()));
         if (optionalEntry.isPresent()) {
             final SubjectId subjectId;
             final PolicyEntry policyEntry = optionalEntry.get();
@@ -73,28 +71,14 @@ final class DeactivateTokenIntegrationStrategy extends AbstractPolicyActionComma
             final DeactivateTokenIntegration adjustedCommand =
                     DeactivateTokenIntegration.of(command.getEntityId(), command.getLabel(), subjectId, dittoHeaders);
 
-            final Optional<Subject> subject = policyEntry.getSubjects().getSubject(subjectId);
-            if (subject.filter(s -> s.getExpiry().isEmpty()).isPresent()) {
-                // It is forbidden to deactivate a permanent subject.
-                final DittoRuntimeException error =
-                        PolicyActionFailedException.newBuilderForDeactivatingPermanentSubjects()
-                                .dittoHeaders(dittoHeaders)
-                                .build();
-                return ResultFactory.newErrorResult(error, command);
-            } else {
-                // Expiring subjects are not considered for validation. The result is always valid.
-                final PolicyEvent<?> event =
-                        SubjectDeleted.of(policyId, label, subjectId, nextRevision, getEventTimestamp(),
-                                dittoHeaders);
-                final DeactivateTokenIntegrationResponse rawResponse =
-                        DeactivateTokenIntegrationResponse.of(policyId, label, dittoHeaders);
-                return ResultFactory.newMutationResult(adjustedCommand, event, rawResponse);
-            }
+            final PolicyEvent<?> event =
+                    SubjectDeleted.of(policyId, label, subjectId, nextRevision, getEventTimestamp(),
+                            dittoHeaders);
+            final DeactivateTokenIntegrationResponse rawResponse =
+                    DeactivateTokenIntegrationResponse.of(policyId, label, dittoHeaders);
+            return ResultFactory.newMutationResult(adjustedCommand, event, rawResponse);
         } else {
-            // Policy is configured incorrectly
-            return ResultFactory.newErrorResult(
-                    PolicyEntryNotAccessibleException.newBuilder(policyId, label).dittoHeaders(dittoHeaders).build(),
-                    command);
+            return ResultFactory.newErrorResult(getExceptionForNoEntryWithThingReadPermission(dittoHeaders), command);
         }
     }
 
