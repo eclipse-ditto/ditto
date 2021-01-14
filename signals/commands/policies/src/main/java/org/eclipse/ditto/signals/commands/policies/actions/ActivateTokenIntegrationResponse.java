@@ -58,7 +58,7 @@ public final class ActivateTokenIntegrationResponse
     /**
      * Status code of this response.
      */
-    public static final HttpStatusCode STATUS = HttpStatusCode.OK;
+    public static final HttpStatusCode STATUS = HttpStatusCode.NO_CONTENT;
 
     static final JsonFieldDefinition<String> JSON_LABEL =
             JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);

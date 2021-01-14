@@ -39,7 +39,6 @@ public final class DeactivateTokenIntegrationResponseTest {
             .set(PolicyCommandResponse.JsonFields.STATUS, DeactivateTokenIntegrationResponse.STATUS.toInt())
             .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(DeactivateTokenIntegrationResponse.JSON_LABEL, TestConstants.Policy.LABEL.toString())
-            .set(DeactivateTokenIntegrationResponse.JSON_SUBJECT_ID, TestConstants.Policy.SUBJECT_ID.toString())
             .build();
 
     @Test
@@ -59,27 +58,21 @@ public final class DeactivateTokenIntegrationResponseTest {
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
         DeactivateTokenIntegrationResponse.of(null, TestConstants.Policy.LABEL,
-                TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullLabel() {
         DeactivateTokenIntegrationResponse.of(TestConstants.Policy.POLICY_ID, null,
-                TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.EMPTY_DITTO_HEADERS);
     }
 
-
-    @Test(expected = NullPointerException.class)
-    public void tryToCreateInstanceWithNullSubject() {
-        DeactivateTokenIntegrationResponse.of(TestConstants.Policy.POLICY_ID,
-                TestConstants.Policy.LABEL, null, TestConstants.EMPTY_DITTO_HEADERS);
-    }
 
     @Test
     public void toJsonReturnsExpected() {
         final DeactivateTokenIntegrationResponse underTest =
                 DeactivateTokenIntegrationResponse.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
-                        TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -92,7 +85,7 @@ public final class DeactivateTokenIntegrationResponseTest {
 
         final DeactivateTokenIntegrationResponse expectedCommand =
                 DeactivateTokenIntegrationResponse.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
-                        TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS);
+                        TestConstants.EMPTY_DITTO_HEADERS);
         assertThat(underTest).isEqualTo(expectedCommand);
     }
 

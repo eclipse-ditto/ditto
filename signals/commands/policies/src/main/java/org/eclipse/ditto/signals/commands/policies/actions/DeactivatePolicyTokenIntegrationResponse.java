@@ -51,7 +51,7 @@ public final class DeactivatePolicyTokenIntegrationResponse
     /**
      * Status code of this response.
      */
-    public static final HttpStatusCode STATUS = HttpStatusCode.OK;
+    public static final HttpStatusCode STATUS = HttpStatusCode.NO_CONTENT;
 
     private final PolicyId policyId;
 

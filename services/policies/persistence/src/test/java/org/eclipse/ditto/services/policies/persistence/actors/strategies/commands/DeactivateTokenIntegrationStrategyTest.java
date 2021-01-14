@@ -65,13 +65,12 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
         final SubjectId subjectId =
                 SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{policy-entry:label}}:this-is-me");
-        final SubjectId expectedSubjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, LABEL + ":this-is-me");
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
         final DeactivateTokenIntegration command =
                 DeactivateTokenIntegration.of(context.getState(), LABEL, subjectId, dittoHeaders);
         assertModificationResult(underTest, TestConstants.Policy.POLICY, command,
                 SubjectDeleted.class,
-                DeactivateTokenIntegrationResponse.of(context.getState(), LABEL, expectedSubjectId, dittoHeaders));
+                DeactivateTokenIntegrationResponse.of(context.getState(), LABEL, dittoHeaders));
     }
 
     @Test

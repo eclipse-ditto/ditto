@@ -87,7 +87,7 @@ final class DeactivateTokenIntegrationStrategy extends AbstractPolicyActionComma
                         SubjectDeleted.of(policyId, label, subjectId, nextRevision, getEventTimestamp(),
                                 dittoHeaders);
                 final DeactivateTokenIntegrationResponse rawResponse =
-                        DeactivateTokenIntegrationResponse.of(policyId, label, subjectId, dittoHeaders);
+                        DeactivateTokenIntegrationResponse.of(policyId, label, dittoHeaders);
                 return ResultFactory.newMutationResult(adjustedCommand, event, rawResponse);
             }
         } else {
