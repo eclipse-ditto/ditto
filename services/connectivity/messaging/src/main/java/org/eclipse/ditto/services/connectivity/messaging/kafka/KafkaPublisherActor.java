@@ -144,7 +144,9 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             escalate(error, "Requested to send Kafka message without producer; this is a bug.");
             return CompletableFuture.failedFuture(error);
         } else {
-            final ProducerRecord<String, String> record = producerRecord(publishTarget, message);
+            final ExternalMessage messageWithConnectionIdHeader = message
+                    .withHeader("ditto-connection-id", connection.getId().toString());
+            final ProducerRecord<String, String> record = producerRecord(publishTarget, messageWithConnectionIdHeader);
             final CompletableFuture<CommandResponse<?>> resultFuture = new CompletableFuture<>();
             final AcknowledgementLabel autoAckLabel = getAcknowledgementLabel(autoAckTarget).orElse(NO_ACK_LABEL);
             final Callback callBack = new ProducerCallBack(signal, autoAckLabel, ackSizeQuota, resultFuture,
