@@ -42,7 +42,7 @@ public class ThingMergePayloadPathMatcher implements PayloadPathMatcher {
     /**
      * @return the {@link org.eclipse.ditto.protocoladapter.things.ThingMergePayloadPathMatcher} instance
      */
-    static ThingMergePayloadPathMatcher getInstance() {
+    public static ThingMergePayloadPathMatcher getInstance() {
         return INSTANCE;
     }
 

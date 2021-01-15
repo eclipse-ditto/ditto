@@ -111,7 +111,7 @@ public final class UnknownPathException extends DittoRuntimeException {
             description(DEFAULT_DESCRIPTION);
         }
 
-        private Builder(final JsonPointer path) {
+        public Builder(final JsonPointer path) {
             this();
             message(MessageFormat.format(MESSAGE_TEMPLATE, path.toString()));
         }

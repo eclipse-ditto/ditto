@@ -136,15 +136,11 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged> implement
                 getMetadata().orElse(null));
     }
 
-    @Override
-    public JsonPointer getResourcePath() {
-        return path;
-    }
-
     /**
      * @return the path where the changes were applied.
      */
-    public JsonPointer getPath() {
+    @Override
+    public JsonPointer getResourcePath() {
         return path;
     }
 
