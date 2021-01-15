@@ -132,6 +132,12 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         shouldContainHeader(headers, "eclipse", "ditto");
         shouldContainHeader(headers, "device_id", TestConstants.Things.THING_ID.toString());
         shouldContainHeader(headers, "ditto-connection-id");
+        final Optional<Header> expectedHeader = headers.stream()
+                .filter(header -> header.key().equals("ditto-connection-id"))
+                .findAny();
+        assertThat(expectedHeader).isPresent();
+        assertThat(new String(expectedHeader.get().value()))
+                .isNotEqualTo("hallo");//verify that header mapping has no effect
     }
 
     @Override
