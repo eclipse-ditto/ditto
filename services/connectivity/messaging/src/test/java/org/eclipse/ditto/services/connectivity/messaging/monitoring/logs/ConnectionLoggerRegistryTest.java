@@ -196,12 +196,13 @@ public final class ConnectionLoggerRegistryTest {
     @Test
     public void aggregatesLogs() throws InterruptedException {
         final ConnectionId connectionId = connectionId();
+        final Connection connection = connection(connectionId);
         final String source = "a:b";
         underTest.initForConnection(connection(connectionId));
         underTest.unmuteForConnection(connectionId);
 
         final ConnectionLogger connectionLogger = underTest.forConnection(connectionId);
-        final ConnectionLogger inboundConsumed = underTest.forInboundConsumed(connectionId, source);
+        final ConnectionLogger inboundConsumed = underTest.forInboundConsumed(connection, source);
 
         connectionLogger.success(randomInfoProvider());
         TimeUnit.MILLISECONDS.sleep(1); // ensure different timestamps to make ordering assertion stable
@@ -227,12 +228,13 @@ public final class ConnectionLoggerRegistryTest {
     @Test
     public void aggregatesLogsRespectsMaximumLogSizeLimit() throws InterruptedException {
         final ConnectionId connectionId = connectionId();
+        final Connection connection = connection(connectionId);
         final String source = "a:b";
         underTest.initForConnection(connection(connectionId));
         underTest.unmuteForConnection(connectionId);
 
         final ConnectionLogger connectionLogger = underTest.forConnection(connectionId);
-        final ConnectionLogger inboundConsumed = underTest.forInboundConsumed(connectionId, source);
+        final ConnectionLogger inboundConsumed = underTest.forInboundConsumed(connection, source);
 
         connectionLogger.success(randomInfoProvider());
         final Collection<LogEntry> listWithOnlyFirstSuccessLog = connectionLogger.getLogs();
@@ -279,12 +281,13 @@ public final class ConnectionLoggerRegistryTest {
     @Test
     public void aggregatesNoLogsForMutedLoggers() {
         final ConnectionId connectionId = connectionId();
+        final Connection connection = connection(connectionId);
         final String source = "a:b";
         // inits the loggers muted
         underTest.initForConnection(connection(connectionId));
 
         final ConnectionLogger connectionLogger = underTest.forConnection(connectionId);
-        final ConnectionLogger inboundConsumed = underTest.forInboundConsumed(connectionId, source);
+        final ConnectionLogger inboundConsumed = underTest.forInboundConsumed(connection, source);
 
         connectionLogger.success(randomInfoProvider());
         connectionLogger.failure(randomInfoProvider());

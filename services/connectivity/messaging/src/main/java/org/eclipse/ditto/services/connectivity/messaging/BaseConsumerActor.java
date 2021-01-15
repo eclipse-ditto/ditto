@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -73,13 +74,13 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
     @Nullable private ResourceStatus resourceStatus;
 
-    protected BaseConsumerActor(final ConnectionId connectionId, final String sourceAddress,
-            final ActorRef inboundMappingProcessor, final Source source, final ConnectionType connectionType) {
-        this.connectionId = checkNotNull(connectionId, "connectionId");
+    protected BaseConsumerActor(final Connection connection, final String sourceAddress,
+            final ActorRef inboundMappingProcessor, final Source source) {
+        this.connectionId = checkNotNull(connection, "connection").getId();
         this.sourceAddress = checkNotNull(sourceAddress, "sourceAddress");
         this.inboundMappingProcessor = checkNotNull(inboundMappingProcessor, "inboundMappingProcessor");
         this.source = checkNotNull(source, "source");
-        this.connectionType = checkNotNull(connectionType, "connectionType");
+        this.connectionType = connection.getConnectionType();
         resetResourceStatus();
 
         final ConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
@@ -88,11 +89,11 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         acknowledgementConfig = connectivityConfig.getAcknowledgementConfig();
 
         inboundMonitor = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig.getMonitoringConfig())
-                .forInboundConsumed(connectionId, sourceAddress);
+                .forInboundConsumed(connection, sourceAddress);
 
         inboundAcknowledgedMonitor =
                 DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig.getMonitoringConfig())
-                        .forInboundAcknowledged(connectionId, sourceAddress);
+                        .forInboundAcknowledged(connection, sourceAddress);
     }
 
     /**

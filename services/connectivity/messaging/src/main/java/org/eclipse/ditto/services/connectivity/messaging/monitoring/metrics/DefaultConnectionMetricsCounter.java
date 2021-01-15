@@ -40,7 +40,7 @@ public final class DefaultConnectionMetricsCounter implements ConnectionMetricsC
             final MetricDirection metricDirection,
             final String address,
             final MetricType metricType,
-            SlidingWindowCounter counter) {
+            final SlidingWindowCounter counter) {
         this.metricDirection = metricDirection;
         this.address = address;
         this.metricType = metricType;

@@ -13,21 +13,39 @@
 package org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Map;
 
+import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 /**
  * Tests {@link SlidingWindowCounter}.
  */
+@RunWith(MockitoJUnitRunner.class)
 public class SlidingWindowCounterTest {
+
+    @Mock
+    public Counter metricsCounter;
+
+    @Before
+    public void setup() {
+        when(metricsCounter.tag(eq("success"), any(Boolean.class))).thenReturn(metricsCounter);
+    }
 
     @Test
     public void testLastMeasurementAt() {
-        final SlidingWindowCounter counter = new SlidingWindowCounter(Clock.systemUTC(), MeasurementWindow.ONE_HOUR);
+        final SlidingWindowCounter counter =
+                new SlidingWindowCounter(metricsCounter, Clock.systemUTC(), MeasurementWindow.ONE_HOUR);
         final long ts = System.currentTimeMillis();
         counter.increment(true, ts);
         assertThat(counter.getLastSuccessMeasurementAt()).isEqualTo(ts);
@@ -35,7 +53,7 @@ public class SlidingWindowCounterTest {
 
     @Test
     public void testOneMeasurementEveryMs() {
-        final SlidingWindowCounter counter = new SlidingWindowCounter(Clock.systemUTC(),
+        final SlidingWindowCounter counter = new SlidingWindowCounter(metricsCounter, Clock.systemUTC(),
                 MeasurementWindow.ONE_MINUTE,
                 MeasurementWindow.ONE_HOUR);
 
