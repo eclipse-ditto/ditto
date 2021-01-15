@@ -41,7 +41,7 @@ import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
@@ -98,7 +98,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     /**
      * @return the logging adapter of this actor.
      */
-    protected abstract DittoDiagnosticLoggingAdapter log();
+    protected abstract ThreadSafeDittoLoggingAdapter log();
 
     /**
      * Send an external message to the mapping processor actor.

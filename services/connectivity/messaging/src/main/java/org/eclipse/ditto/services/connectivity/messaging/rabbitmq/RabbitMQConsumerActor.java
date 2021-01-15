@@ -34,12 +34,13 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
+import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 
 import com.rabbitmq.client.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -59,7 +60,7 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
     private static final String MESSAGE_ID_HEADER = "messageId";
     private static final String CONTENT_TYPE_APPLICATION_OCTET_STREAM = "application/octet-stream";
 
-    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+    private final ThreadSafeDittoLoggingAdapter log;
 
     @Nullable
     private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
@@ -70,6 +71,10 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
     private RabbitMQConsumerActor(final ConnectionId connectionId, final String sourceAddress,
             final ActorRef inboundMessageProcessor, final Source source, final Channel channel) {
         super(connectionId, sourceAddress, inboundMessageProcessor, source, ConnectionType.AMQP_091);
+
+        log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
+                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connectionId);
+
         headerEnforcementFilterFactory =
                 source.getEnforcement()
                         .map(value ->
@@ -81,7 +86,7 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
     }
 
     @Override
-    protected DittoDiagnosticLoggingAdapter log() {
+    protected ThreadSafeDittoLoggingAdapter log() {
         return log;
     }
 
