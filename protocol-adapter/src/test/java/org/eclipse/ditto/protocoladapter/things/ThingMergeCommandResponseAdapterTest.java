@@ -49,8 +49,7 @@ public final class ThingMergeCommandResponseAdapterTest extends LiveTwinTest imp
         final TopicPath topicPath = topicPath(TopicPath.Action.MERGE);
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(JsonPointer.of("/_policy"))
-                        .withStatus(HttpStatusCode.OK)
-                        .withValue(TestConstants.ATTRIBUTE_VALUE)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -62,15 +61,13 @@ public final class ThingMergeCommandResponseAdapterTest extends LiveTwinTest imp
     public void mergeThingResponseFromAdaptable() {
         final TopicPath topicPath = topicPath(TopicPath.Action.MERGE);
         final JsonPointer path = TestConstants.THING_POINTER;
-        final JsonValue value = TestConstants.THING.toJson();
 
         final MergeThingResponse mergeThingResponse = MergeThingResponse.of(TestConstants.THING_ID,
                 path, TestConstants.DITTO_HEADERS_V_2);
 
         final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
-                        .withValue(value)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -84,12 +81,10 @@ public final class ThingMergeCommandResponseAdapterTest extends LiveTwinTest imp
     public void mergeThingResponseToAdaptable() {
         final TopicPath topicPath = topicPath(TopicPath.Action.MERGE);
         final JsonPointer path = TestConstants.THING_POINTER;
-        final JsonValue value = TestConstants.THING.toJson();
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
-                        .withValue(value)
+                        .withStatus(HttpStatusCode.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();

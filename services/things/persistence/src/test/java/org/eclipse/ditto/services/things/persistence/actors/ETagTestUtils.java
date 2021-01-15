@@ -99,7 +99,7 @@ public final class ETagTestUtils {
     }
 
     public static MergeThingResponse mergeThingResponse(final Thing currentThing, final JsonPointer path,
-            final JsonValue value, final DittoHeaders dittoHeaders) {
+            final DittoHeaders dittoHeaders) {
         final Thing modifiedThingWithUpdatedRevision = currentThing.toBuilder()
                 .setRevision(currentThing.getRevision()
                         .map(Revision::increment)
