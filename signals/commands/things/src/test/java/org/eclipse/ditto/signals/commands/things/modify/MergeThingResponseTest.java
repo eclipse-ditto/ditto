@@ -49,13 +49,12 @@ public class MergeThingResponseTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, MergeThingResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.JSON_THING_ID, THING_ID.toString())
-            .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
+            .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.NO_CONTENT.toInt())
             .set(MergeThing.JsonFields.JSON_PATH, ABSOLUTE_LOCATION_ATTRIBUTE_POINTER.toString())
-            .set(MergeThing.JsonFields.JSON_VALUE, JsonValue.of(LOCATION_ATTRIBUTE_VALUE))
             .build();
 
     private static final MergeThingResponse KNOWN_MERGE_THING_RESPONSE = MergeThingResponse.of(THING_ID,
-            ABSOLUTE_LOCATION_ATTRIBUTE_POINTER, LOCATION_ATTRIBUTE_VALUE, DITTO_HEADERS);
+            ABSOLUTE_LOCATION_ATTRIBUTE_POINTER, DITTO_HEADERS);
 
     @Test
     public void assertImmutability() {

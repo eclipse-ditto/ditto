@@ -49,6 +49,5 @@ final class ThingMergeResponseSignalMapper
     void enhancePayloadBuilder(final MergeThingResponse commandResponse,
             final PayloadBuilder payloadBuilder) {
         payloadBuilder.withStatus(commandResponse.getStatusCode());
-        payloadBuilder.withValue(commandResponse.getValue());
     }
 }

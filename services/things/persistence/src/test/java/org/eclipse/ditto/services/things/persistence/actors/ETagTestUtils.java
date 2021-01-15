@@ -108,7 +108,7 @@ public final class ETagTestUtils {
         final DittoHeaders dittoHeadersWithETag =
                 appendETagToDittoHeaders(modifiedThingWithUpdatedRevision, dittoHeaders);
         final ThingId thingId = currentThing.getEntityId().orElseThrow();
-        return MergeThingResponse.of(thingId, path, value, dittoHeadersWithETag);
+        return MergeThingResponse.of(thingId, path, dittoHeadersWithETag);
     }
 
     public static SudoRetrieveThingResponse sudoRetrieveThingResponse(final Thing expectedThing,

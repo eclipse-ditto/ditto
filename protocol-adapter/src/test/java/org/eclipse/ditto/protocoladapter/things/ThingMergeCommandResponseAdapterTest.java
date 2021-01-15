@@ -65,7 +65,7 @@ public final class ThingMergeCommandResponseAdapterTest extends LiveTwinTest imp
         final JsonValue value = TestConstants.THING.toJson();
 
         final MergeThingResponse mergeThingResponse = MergeThingResponse.of(TestConstants.THING_ID,
-                path, value, TestConstants.DITTO_HEADERS_V_2);
+                path, TestConstants.DITTO_HEADERS_V_2);
 
         final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
@@ -95,7 +95,7 @@ public final class ThingMergeCommandResponseAdapterTest extends LiveTwinTest imp
                 .build();
 
         final MergeThingResponse mergeThingResponse = MergeThingResponse.of(TestConstants.THING_ID,
-                path, value, TestConstants.DITTO_HEADERS_V_2);
+                path, TestConstants.DITTO_HEADERS_V_2);
 
         final Adaptable actualMerged = underTest.toAdaptable(mergeThingResponse, channel);
 

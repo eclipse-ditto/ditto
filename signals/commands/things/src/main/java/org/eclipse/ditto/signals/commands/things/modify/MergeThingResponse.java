@@ -26,7 +26,6 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -54,18 +53,15 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
 
     private final ThingId thingId;
     private final JsonPointer path;
-    private final JsonValue value;
 
-    private MergeThingResponse(final ThingId thingId, final JsonPointer path, final JsonValue value,
-            final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+    private MergeThingResponse(final ThingId thingId, final JsonPointer path, final DittoHeaders dittoHeaders) {
+        super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
         Optional.of(getImplementedSchemaVersion())
                 .filter(this::implementsSchemaVersion)
                 .orElseThrow(
                         () -> CommandNotSupportedException.newBuilder(getImplementedSchemaVersion().toInt()).build());
         this.thingId = checkNotNull(thingId, "thingId");
         this.path = checkNotNull(path, "path");
-        this.value = checkNotNull(value, "value");
     }
 
     /**
@@ -73,13 +69,11 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
      *
      * @param thingId the thing id.
      * @param path the path where the changes were applied.
-     * @param value the value describing the changes that were merged into the existing thing.
      * @param dittoHeaders the ditto headers.
      * @return the created {@code MergeThingResponse}.
      */
-    public static MergeThingResponse of(final ThingId thingId, final JsonPointer path, final JsonValue value,
-            final DittoHeaders dittoHeaders) {
-        return new MergeThingResponse(thingId, path, value, dittoHeaders);
+    public static MergeThingResponse of(final ThingId thingId, final JsonPointer path, final DittoHeaders dittoHeaders) {
+        return new MergeThingResponse(thingId, path, dittoHeaders);
     }
 
     @Override
@@ -94,24 +88,12 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
 
     @Override
     public MergeThingResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(thingId, path, value, dittoHeaders);
-    }
-
-    @Override
-    public Optional<JsonValue> getEntity(final JsonSchemaVersion schemaVersion) {
-        return Optional.of(value);
+        return of(thingId, path, dittoHeaders);
     }
 
     @Override
     public JsonSchemaVersion[] getSupportedSchemaVersions() {
         return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
-    }
-
-    /**
-     * @return the value describing the changes that are applied to the existing thing.
-     */
-    public JsonValue getValue() {
-        return value;
     }
 
     @Override
@@ -120,7 +102,6 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
         final Predicate<JsonField> predicate = schemaVersion.and(predicateParam);
         jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(MergeThingResponse.JsonFields.JSON_PATH, path.toString(), predicate);
-        jsonObjectBuilder.set(MergeThingResponse.JsonFields.JSON_VALUE, value, predicate);
     }
 
     /**
@@ -133,8 +114,7 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain a field for
-     * {@link ThingModifyCommand.JsonFields#JSON_THING_ID}, {@link JsonFields#JSON_PATH} or
-     * {@link JsonFields#JSON_VALUE}.
+     * {@link ThingModifyCommand.JsonFields#JSON_THING_ID} or {@link JsonFields#JSON_PATH}.
      */
     public static MergeThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<MergeThingResponse>(TYPE, jsonObject)
@@ -142,10 +122,8 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
                     final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
                     final String path = jsonObject.getValueOrThrow(JsonFields.JSON_PATH);
-                    final JsonValue value = jsonObject.getValueOrThrow(JsonFields.JSON_VALUE);
 
-                    return new MergeThingResponse(ThingId.of(extractedThingId), JsonPointer.of(path), value,
-                            dittoHeaders);
+                    return new MergeThingResponse(ThingId.of(extractedThingId), JsonPointer.of(path), dittoHeaders);
                 });
     }
 
@@ -155,9 +133,6 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
     private static class JsonFields {
         static final JsonFieldDefinition<String> JSON_PATH =
                 JsonFactory.newStringFieldDefinition("path", FieldType.REGULAR, JsonSchemaVersion.V_2);
-
-        static final JsonFieldDefinition<JsonValue> JSON_VALUE =
-                JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_2);
     }
 
     @Override
@@ -167,13 +142,12 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
         if (!super.equals(o)) return false;
         final MergeThingResponse that = (MergeThingResponse) o;
         return that.canEqual(this) && thingId.equals(that.thingId) &&
-                path.equals(that.path) &&
-                value.equals(that.value);
+                path.equals(that.path);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), thingId, path, value);
+        return Objects.hash(super.hashCode(), thingId, path);
     }
 
     @Override
@@ -182,7 +156,6 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
                 super.toString() +
                 ", thingId=" + thingId +
                 ", path=" + path +
-                ", value=" + value +
                 "]";
     }
 }

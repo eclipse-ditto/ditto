@@ -45,7 +45,7 @@ final class ThingMergeCommandResponseMappingStrategies
     private static MergeThingResponse mergeThing(final Adaptable adaptable) {
         return MergeThingResponse.of(thingIdFrom(adaptable),
                 JsonPointer.of(adaptable.getPayload().getPath().toString()),
-                adaptable.getPayload().getValue().orElse(JsonValue.nullLiteral()), dittoHeadersFrom(adaptable));
+                dittoHeadersFrom(adaptable));
     }
 
 }
