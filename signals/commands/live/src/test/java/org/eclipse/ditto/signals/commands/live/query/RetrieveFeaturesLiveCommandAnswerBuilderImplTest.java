@@ -18,7 +18,7 @@ import static org.eclipse.ditto.signals.commands.live.assertions.LiveCommandAsse
 import java.text.MessageFormat;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.signals.commands.live.base.LiveCommandAnswer;
@@ -103,7 +103,7 @@ public final class RetrieveFeaturesLiveCommandAnswerBuilderImplTest {
                 .hasThingErrorResponse()
                 .withType(ThingErrorResponse.TYPE)
                 .withDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
-                .withStatus(HttpStatusCode.NOT_FOUND)
+                .withStatus(HttpStatus.NOT_FOUND)
                 .withDittoRuntimeExceptionOfType(FeaturesNotAccessibleException.class);
     }
 

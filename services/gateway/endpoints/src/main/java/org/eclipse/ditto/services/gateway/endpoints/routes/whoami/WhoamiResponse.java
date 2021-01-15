@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -56,7 +56,7 @@ public final class WhoamiResponse extends CommonCommandResponse<WhoamiResponse> 
     private final JsonObject userInformation;
 
     private WhoamiResponse(final JsonObject userInformation, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+        super(TYPE, HttpStatus.OK, dittoHeaders);
         this.userInformation = checkNotNull(userInformation, "userInformation");
     }
 
@@ -74,7 +74,7 @@ public final class WhoamiResponse extends CommonCommandResponse<WhoamiResponse> 
     }
 
     /**
-     * Creates a response to a {@link WhoamiResponse} from a JSON object.
+     * Creates a response to a WhoamiResponse from a JSON object.
      *
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
@@ -87,8 +87,8 @@ public final class WhoamiResponse extends CommonCommandResponse<WhoamiResponse> 
      */
     public static WhoamiResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<WhoamiResponse>(TYPE, jsonObject)
-                .deserialize(statusCode -> {
-                    final JsonObject userInformationJson = jsonObject.getValueOrThrow(JSON_USER_INFO);
+                .deserialize(httpStatus -> {
+                    final var userInformationJson = jsonObject.getValueOrThrow(JSON_USER_INFO);
                     return new WhoamiResponse(userInformationJson, dittoHeaders);
                 });
     }

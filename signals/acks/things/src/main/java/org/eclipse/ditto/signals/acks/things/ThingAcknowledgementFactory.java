@@ -19,6 +19,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
@@ -48,14 +49,39 @@ public final class ThingAcknowledgementFactory {
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code thingId} is empty.
+     * @deprecated as of 2.0.0 please use
+     * {@link #newAcknowledgement(AcknowledgementLabel, ThingId, HttpStatus, DittoHeaders, JsonValue)} instead.
      */
+    @Deprecated
     public static Acknowledgement newAcknowledgement(final AcknowledgementLabel label,
             final ThingId thingId,
             final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders,
             @Nullable final JsonValue payload) {
 
-        return Acknowledgement.of(label, thingId, statusCode, dittoHeaders, payload);
+        return newAcknowledgement(label, thingId, statusCode.getAsHttpStatus(), dittoHeaders, payload);
+    }
+
+    /**
+     * Returns a new {@link Acknowledgement} instance.
+     *
+     * @param label the label of the new Acknowledgement.
+     * @param thingId the ID of the affected Thing being acknowledged.
+     * @param httpStatus the HTTP status of the Acknowledgement.
+     * @param dittoHeaders the DittoHeaders.
+     * @param payload the optional payload of the Acknowledgement.
+     * @return the instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code thingId} is empty.
+     * @since 2.0.0
+     */
+    public static Acknowledgement newAcknowledgement(final AcknowledgementLabel label,
+            final ThingId thingId,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders,
+            @Nullable final JsonValue payload) {
+
+        return Acknowledgement.of(label, thingId, httpStatus, dittoHeaders, payload);
     }
 
     /**
@@ -68,13 +94,36 @@ public final class ThingAcknowledgementFactory {
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code thingId} is empty.
+     * @deprecated as of 2.0.0 please us
+     * {@link #newAcknowledgement(AcknowledgementLabel, ThingId, HttpStatus, DittoHeaders)} instead.
      */
+    @Deprecated
     public static Acknowledgement newAcknowledgement(final AcknowledgementLabel label,
             final ThingId thingId,
             final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
 
-        return newAcknowledgement(label, thingId, statusCode, dittoHeaders, null);
+        return newAcknowledgement(label, thingId, statusCode.getAsHttpStatus(), dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@link Acknowledgement} instance.
+     *
+     * @param label the label of the new Acknowledgement.
+     * @param thingId the ID of the affected Thing being acknowledged.
+     * @param httpStatus the HTTP status of the Acknowledgement.
+     * @param dittoHeaders the DittoHeaders.
+     * @return the instance.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code thingId} is empty.
+     * @since 2.0.0
+     */
+    public static Acknowledgement newAcknowledgement(final AcknowledgementLabel label,
+            final ThingId thingId,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return newAcknowledgement(label, thingId, httpStatus, dittoHeaders, null);
     }
 
     /**

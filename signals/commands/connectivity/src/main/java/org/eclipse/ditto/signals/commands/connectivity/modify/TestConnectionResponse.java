@@ -25,7 +25,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -55,8 +55,11 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
     private final ConnectionId connectionId;
     private final String testResult;
 
-    private TestConnectionResponse(final HttpStatusCode httpStatusCode, final ConnectionId connectionId,
-            final String testResult, final DittoHeaders dittoHeaders) {
+    private TestConnectionResponse(final HttpStatus httpStatusCode,
+            final ConnectionId connectionId,
+            final String testResult,
+            final DittoHeaders dittoHeaders) {
+
         super(TYPE, httpStatusCode, dittoHeaders);
         this.connectionId = connectionId;
         this.testResult = testResult;
@@ -73,9 +76,10 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
      */
     public static TestConnectionResponse success(final ConnectionId connectionId, final String restResult,
             final DittoHeaders dittoHeaders) {
+
         checkNotNull(connectionId, "ConnectionId");
         checkNotNull(restResult, "TestResult");
-        return new TestConnectionResponse(HttpStatusCode.OK, connectionId, restResult, dittoHeaders);
+        return new TestConnectionResponse(HttpStatus.OK, connectionId, restResult, dittoHeaders);
     }
 
     /**
@@ -88,7 +92,7 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
      */
     public static TestConnectionResponse alreadyCreated(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
         checkNotNull(connectionId, "ConnectionId");
-        return new TestConnectionResponse(HttpStatusCode.CONFLICT, connectionId,
+        return new TestConnectionResponse(HttpStatus.CONFLICT, connectionId,
                 "Connection was already created - no test possible", dittoHeaders);
     }
 
@@ -119,13 +123,13 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
      */
     public static TestConnectionResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<TestConnectionResponse>(TYPE, jsonObject).deserialize(
-                statusCode -> {
+                httpStatus -> {
                     final String readConnectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
                     final ConnectionId connectionId = ConnectionId.of(readConnectionId);
-
                     final String readConnectionResult = jsonObject.getValueOrThrow(JSON_TEST_RESULT);
-                    return new TestConnectionResponse(statusCode, connectionId, readConnectionResult, dittoHeaders);
+
+                    return new TestConnectionResponse(httpStatus, connectionId, readConnectionResult, dittoHeaders);
                 });
     }
 
@@ -141,6 +145,7 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId),
                 predicate);
@@ -159,7 +164,7 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof TestConnectionResponse);
+        return other instanceof TestConnectionResponse;
     }
 
     @Override
@@ -174,8 +179,7 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
             return false;
         }
         final TestConnectionResponse that = (TestConnectionResponse) o;
-        return Objects.equals(connectionId, that.connectionId) &&
-                Objects.equals(testResult, that.testResult);
+        return Objects.equals(connectionId, that.connectionId) && Objects.equals(testResult, that.testResult);
     }
 
     @Override
@@ -191,4 +195,5 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
                 ", testResult=" + testResult +
                 "]";
     }
+
 }

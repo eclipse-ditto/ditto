@@ -22,7 +22,8 @@ import java.util.Map;
 
 import org.assertj.core.api.SoftAssertions;
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.things.ThingId;
@@ -39,7 +40,6 @@ public final class MessageHeadersBuilderTest {
     private static final String SUBJECT = KnownMessageSubjects.CLAIM_SUBJECT;
     private static final String FEATURE_ID = "flux-condensator-0815";
     private static final String CONTENT_TYPE = "application/json";
-    private static final long TIMEOUT = 5000;
     private static final String CORRELATION_ID = "myCorrelationId";
 
     private MessageHeadersBuilder underTest;
@@ -147,24 +147,32 @@ public final class MessageHeadersBuilderTest {
 
         assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> underTest.statusCode(unknownCode))
-                .withMessage("HTTP status code <%s> is unknown!", unknownCode)
-                .withNoCause();
+                .withCauseInstanceOf(HttpStatusCodeOutOfRangeException.class);
     }
 
     @Test
     public void setStatusCodeAsIntWorksAsExpected() {
-        final int knownCode = 404;
+        final HttpStatus knownStatus = HttpStatus.NOT_FOUND;
 
-        final MessageHeaders messageHeaders = underTest.statusCode(knownCode).build();
+        final MessageHeaders messageHeaders = underTest.statusCode(knownStatus.getCode()).build();
 
-        assertThat(messageHeaders.getStatusCode()).contains(HttpStatusCode.NOT_FOUND);
+        assertThat(messageHeaders.getHttpStatus()).contains(knownStatus);
+    }
+
+    @Test
+    public void setHttpStatusWorksAsExpected() {
+        final HttpStatus knownStatus = HttpStatus.NOT_FOUND;
+
+        final MessageHeaders messageHeaders = underTest.httpStatus(knownStatus).build();
+
+        assertThat(messageHeaders.getHttpStatus()).contains(knownStatus);
     }
 
     @Test
     public void putValidHeadersWorksAsExpected() {
         final Map<String, String> validHeaders = new HashMap<>();
         validHeaders.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE);
-        validHeaders.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(HttpStatusCode.CREATED.toInt()));
+        validHeaders.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(HttpStatus.CREATED.getCode()));
         validHeaders.put(DittoHeaderDefinition.CORRELATION_ID.getKey(), CORRELATION_ID);
 
         final MessageHeaders messageHeaders = underTest.putHeaders(validHeaders).build();
@@ -179,7 +187,7 @@ public final class MessageHeadersBuilderTest {
 
         final Map<String, String> invalidHeaders = new HashMap<>();
         invalidHeaders.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), CONTENT_TYPE);
-        invalidHeaders.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(HttpStatusCode.CREATED.toInt()));
+        invalidHeaders.put(MessageHeaderDefinition.STATUS_CODE.getKey(), String.valueOf(HttpStatus.CREATED.getCode()));
         invalidHeaders.put(key, invalidValue);
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
@@ -191,7 +199,7 @@ public final class MessageHeadersBuilderTest {
     @Test
     public void tryToRemoveMandatoryHeader() {
         final SoftAssertions softly = new SoftAssertions();
-        for(MessageHeaderDefinition mandatoryHeaderDefinition : MessageHeadersBuilder.MANDATORY_HEADERS) {
+        for(final MessageHeaderDefinition mandatoryHeaderDefinition : MessageHeadersBuilder.MANDATORY_HEADERS) {
             final String key = mandatoryHeaderDefinition.getKey();
             softly.assertThatThrownBy(() -> underTest.removeHeader(key))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -204,7 +212,7 @@ public final class MessageHeadersBuilderTest {
     @Test
     public void tryToRemoveMandatoryHeaderBySettingToNull() {
         final SoftAssertions softly = new SoftAssertions();
-        for(MessageHeaderDefinition mandatoryHeaderDefinition : MessageHeadersBuilder.MANDATORY_HEADERS) {
+        for(final MessageHeaderDefinition mandatoryHeaderDefinition : MessageHeadersBuilder.MANDATORY_HEADERS) {
             final String key = mandatoryHeaderDefinition.getKey();
             softly.assertThatThrownBy(() -> underTest.putHeader(key, null))
                     .isInstanceOf(NullPointerException.class)

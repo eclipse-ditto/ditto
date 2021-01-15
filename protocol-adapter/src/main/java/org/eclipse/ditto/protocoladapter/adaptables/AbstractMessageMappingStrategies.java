@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
@@ -32,6 +33,8 @@ import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessagesModelFactory;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
+import org.eclipse.ditto.protocoladapter.MessagePath;
+import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.signals.commands.messages.MessageDeserializer;
 
@@ -99,15 +102,17 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
 
         // these headers are used to store message attributes of Message that are not fields.
         // their content comes from elsewhere; overwrite message headers of the same names.
-        dittoHeadersBuilder.putHeader(THING_ID.getKey(),
-                topicPath.getNamespace() + ":" + topicPath.getId());
+        dittoHeadersBuilder.putHeader(THING_ID.getKey(), topicPath.getNamespace() + ":" + topicPath.getId());
         dittoHeadersBuilder.putHeader(SUBJECT.getKey(), topicPath.getSubject().orElse(""));
-        adaptable.getPayload().getPath().getDirection().ifPresent(direction ->
-                dittoHeadersBuilder.putHeader(DIRECTION.getKey(), direction.name()));
-        adaptable.getPayload().getPath().getFeatureId().ifPresent(featureId ->
-                dittoHeadersBuilder.putHeader(FEATURE_ID.getKey(), featureId));
-        adaptable.getPayload().getStatus().ifPresent(statusCode ->
-                dittoHeadersBuilder.putHeader(STATUS_CODE.getKey(), String.valueOf(statusCode.toInt())));
+        final Payload payload = adaptable.getPayload();
+        final MessagePath payloadPath = payload.getPath();
+        payloadPath.getDirection()
+                .ifPresent(direction -> dittoHeadersBuilder.putHeader(DIRECTION.getKey(), direction.name()));
+        payloadPath.getFeatureId()
+                .ifPresent(featureId -> dittoHeadersBuilder.putHeader(FEATURE_ID.getKey(), featureId));
+        payload.getHttpStatus()
+                .ifPresent(httpStatus -> dittoHeadersBuilder.putHeader(STATUS_CODE.getKey(),
+                        String.valueOf(httpStatus.getCode())));
         final DittoHeaders newDittoHeaders = dittoHeadersBuilder.build();
 
         return MessagesModelFactory.newHeadersBuilder(newDittoHeaders).build();
@@ -117,11 +122,25 @@ abstract class AbstractMessageMappingStrategies<T extends Jsonifiable.WithPredic
      * Get the status code from the adaptable payload.
      *
      * @throws NullPointerException if the Adaptable payload does not contain a status.
+     * @deprecated as of 2.0.0 please use {@link #getHttpStatus(Adaptable)} instead.
      */
+    @Deprecated
     protected static HttpStatusCode statusCodeFrom(final Adaptable adaptable) {
         return adaptable.getPayload()
                 .getStatus()
                 .orElseThrow(() -> new NullPointerException("The message did not contain a status code."));
+    }
+
+    /**
+     * Get the HTTP status from the adaptable payload.
+     *
+     * @throws NullPointerException if the Adaptable payload does not contain a status.
+     * @since 2.0.0
+     */
+    protected static HttpStatus getHttpStatus(final Adaptable adaptable) {
+        final Payload payload = adaptable.getPayload();
+        return payload.getHttpStatus()
+                .orElseThrow(() -> new NullPointerException("The message did not contain a HTTP status!"));
     }
 
 }

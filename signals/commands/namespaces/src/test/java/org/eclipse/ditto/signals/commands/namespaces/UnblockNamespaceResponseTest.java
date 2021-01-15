@@ -21,7 +21,7 @@ import java.util.UUID;
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -43,7 +43,7 @@ public final class UnblockNamespaceResponseTest {
     public static void initTestConstants() {
         knownJsonRepresentation = JsonFactory.newObjectBuilder()
                 .set(NamespaceCommandResponse.JsonFields.TYPE, UnblockNamespaceResponse.TYPE)
-                .set(NamespaceCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
+                .set(NamespaceCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
                 .set(NamespaceCommandResponse.JsonFields.NAMESPACE, NAMESPACE)
                 .set(NamespaceCommandResponse.JsonFields.RESOURCE_TYPE, RESOURCE_TYPE)
                 .build();

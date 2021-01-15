@@ -23,7 +23,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -55,7 +55,7 @@ public class EnforcerRetrieverTest {
     @Test
     public void verifyLookupRevealsInnerException() throws ExecutionException, InterruptedException {
         final DittoRuntimeException expectedException =
-                DittoRuntimeException.newBuilder("this should be happening", HttpStatusCode.HTTPVERSION_NOT_SUPPORTED)
+                DittoRuntimeException.newBuilder("this should be happening", HttpStatus.HTTPVERSION_NOT_SUPPORTED)
                         .build();
         final EntityIdWithResourceType entityId = EntityIdWithResourceType.of("any", DefaultEntityId.of("id"));
         when(idCache.get(any(EntityIdWithResourceType.class))).thenReturn(
@@ -73,7 +73,7 @@ public class EnforcerRetrieverTest {
     @Test
     public void verifyLookupRevealsInnermostException() throws ExecutionException, InterruptedException {
         final DittoRuntimeException expectedException =
-                DittoRuntimeException.newBuilder("this should be happening", HttpStatusCode.HTTPVERSION_NOT_SUPPORTED)
+                DittoRuntimeException.newBuilder("this should be happening", HttpStatus.HTTPVERSION_NOT_SUPPORTED)
                         .build();
         final EntityIdWithResourceType entityId = EntityIdWithResourceType.of("any", DefaultEntityId.of("id"));
         final EntityIdWithResourceType innerEntityId =
@@ -94,7 +94,7 @@ public class EnforcerRetrieverTest {
     @Test
     public void verifyLookupEnforcerRevealsException() throws ExecutionException, InterruptedException {
         final DittoRuntimeException expectedException =
-                DittoRuntimeException.newBuilder("this should be happening", HttpStatusCode.HTTPVERSION_NOT_SUPPORTED)
+                DittoRuntimeException.newBuilder("this should be happening", HttpStatus.HTTPVERSION_NOT_SUPPORTED)
                         .build();
         final EntityIdWithResourceType entityId = EntityIdWithResourceType.of("any", DefaultEntityId.of("id"));
         when(enforcerCache.get(any(EntityIdWithResourceType.class))).thenReturn(
@@ -108,9 +108,9 @@ public class EnforcerRetrieverTest {
         verifyException(result, expectedException);
     }
 
-    private void verifyException(final CompletionStage<Contextual<WithDittoHeaders>> completionStage,
-            final Throwable expectedException)
-            throws ExecutionException, InterruptedException {
+    private static void verifyException(final CompletionStage<Contextual<WithDittoHeaders>> completionStage,
+            final Throwable expectedException) throws ExecutionException, InterruptedException {
+
         assertThat(completionStage.thenApply(_void -> new RuntimeException("this should not be happening"))
                 .exceptionally(executionException -> (RuntimeException) executionException.getCause())
                 .toCompletableFuture()

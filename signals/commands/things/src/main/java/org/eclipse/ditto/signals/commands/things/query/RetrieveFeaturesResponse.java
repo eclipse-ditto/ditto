@@ -27,7 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -37,6 +37,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link RetrieveFeatures} command.
@@ -59,7 +60,7 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
     private final Features features;
 
     private RetrieveFeaturesResponse(final ThingId thingId, final Features features, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+        super(TYPE, HttpStatus.OK, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thing ID");
         this.features = features;
     }
@@ -129,7 +130,7 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
     public static RetrieveFeaturesResponse of(final ThingId thingId, @Nullable final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
-        final Features features = (null != jsonObject)
+        final Features features = null != jsonObject
                 ? ThingsModelFactory.newFeatures(jsonObject)
                 : ThingsModelFactory.nullFeatures();
 
@@ -162,16 +163,12 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
      * format.
      */
     public static RetrieveFeaturesResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveFeaturesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+        return new CommandResponseJsonDeserializer<RetrieveFeaturesResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
                     final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
-                    final JsonObject featuresJsonObject = jsonObject.getValueOrThrow(JSON_FEATURES);
-
-                    final Features features = (null != featuresJsonObject)
-                            ? ThingsModelFactory.newFeatures(featuresJsonObject)
-                            : ThingsModelFactory.nullFeatures();
+                    final Features features = ThingsModelFactory.newFeatures(jsonObject.getValueOrThrow(JSON_FEATURES));
 
                     return of(thingId, features, dittoHeaders);
                 });
@@ -217,13 +214,13 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURES, getEntity(schemaVersion), predicate);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof RetrieveFeaturesResponse);
+        return other instanceof RetrieveFeaturesResponse;
     }
 
     @Override
@@ -235,8 +232,10 @@ public final class RetrieveFeaturesResponse extends AbstractCommandResponse<Retr
             return false;
         }
         final RetrieveFeaturesResponse that = (RetrieveFeaturesResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(features, that.features) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(features, that.features) &&
+                super.equals(o);
     }
 
     @Override

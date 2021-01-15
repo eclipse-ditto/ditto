@@ -25,7 +25,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -40,8 +40,7 @@ import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 @Immutable
 @JsonParsableCommandResponse(type = DeleteThingDefinitionResponse.TYPE)
 public final class DeleteThingDefinitionResponse extends AbstractCommandResponse<DeleteThingDefinitionResponse>
-        implements
-        ThingModifyCommandResponse<DeleteThingDefinitionResponse> {
+        implements ThingModifyCommandResponse<DeleteThingDefinitionResponse> {
 
     /**
      * Type of this response.
@@ -51,7 +50,7 @@ public final class DeleteThingDefinitionResponse extends AbstractCommandResponse
     private final ThingId thingId;
 
     private DeleteThingDefinitionResponse(final ThingId thingId, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
+        super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
         this.thingId = requireNonNull(thingId, "thing ID");
     }
 
@@ -94,8 +93,8 @@ public final class DeleteThingDefinitionResponse extends AbstractCommandResponse
      * format.
      */
     public static DeleteThingDefinitionResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<DeleteThingDefinitionResponse>(TYPE, jsonObject)
-                .deserialize(statusCode -> {
+        return new CommandResponseJsonDeserializer<DeleteThingDefinitionResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
                     final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
@@ -116,6 +115,7 @@ public final class DeleteThingDefinitionResponse extends AbstractCommandResponse
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
     }
@@ -139,7 +139,7 @@ public final class DeleteThingDefinitionResponse extends AbstractCommandResponse
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof DeleteThingDefinitionResponse);
+        return other instanceof DeleteThingDefinitionResponse;
     }
 
     @Override

@@ -17,6 +17,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.text.MessageFormat;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
@@ -36,6 +37,7 @@ import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -55,7 +57,7 @@ public class DittoRuntimeException extends RuntimeException
     private static final long serialVersionUID = -7010323324132561106L;
 
     private final String errorCode;
-    private final HttpStatusCode statusCode;
+    private final HttpStatus httpStatus;
     private final String description;
     private final URI href;
     private final transient DittoHeaders dittoHeaders; // not serializable!
@@ -71,7 +73,11 @@ public class DittoRuntimeException extends RuntimeException
      * @param cause the cause of the exception for later retrieval with {@link #getCause()}.
      * @param href a link to a resource which provides further information about the exception.
      * @throws NullPointerException if {@code errorCode}, {@code statusCode} or {@code dittoHeaders} is {@code null}.
+     * @deprecated as of 2.0.0 please use
+     * {@link DittoRuntimeException#DittoRuntimeException(String, HttpStatus, DittoHeaders, String, String, Throwable, URI)}
+     * instead.
      */
+    @Deprecated
     protected DittoRuntimeException(final String errorCode,
             final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders,
@@ -80,9 +86,34 @@ public class DittoRuntimeException extends RuntimeException
             @Nullable final Throwable cause,
             @Nullable final URI href) {
 
+        this(errorCode, checkNotNull(statusCode, "HTTP status").getAsHttpStatus(), dittoHeaders, message, description,
+                cause, href);
+    }
+
+    /**
+     * Constructs a new {@code DittoRuntimeException} object.
+     *
+     * @param errorCode a code which uniquely identifies the exception.
+     * @param httpStatus the HTTP status.
+     * @param dittoHeaders the headers with which this Exception should be reported back to the user.
+     * @param message the detail message for later retrieval with {@link #getMessage()}.
+     * @param description a description with further information about the exception.
+     * @param cause the cause of the exception for later retrieval with {@link #getCause()}.
+     * @param href a link to a resource which provides further information about the exception.
+     * @throws NullPointerException if {@code errorCode}, {@code httpStatus} or {@code dittoHeaders} is {@code null}.
+     * @since 2.0.0
+     */
+    protected DittoRuntimeException(final String errorCode,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders,
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
+
         super(message, cause);
         this.errorCode = checkNotNull(errorCode, "error code");
-        this.statusCode = checkNotNull(statusCode, "HTTP status");
+        this.httpStatus = checkNotNull(httpStatus, "httpStatus");
         this.dittoHeaders = checkNotNull(dittoHeaders, "Ditto headers");
         this.description = description;
         this.href = href;
@@ -97,7 +128,7 @@ public class DittoRuntimeException extends RuntimeException
      * @return A builder to construct a DittoRuntimeException.
      */
     protected DittoRuntimeExceptionBuilder<? extends DittoRuntimeException> getEmptyBuilder() {
-        return new Builder(errorCode, statusCode);
+        return new Builder(errorCode, httpStatus);
     }
 
     /**
@@ -158,10 +189,27 @@ public class DittoRuntimeException extends RuntimeException
      * @return the new builder.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code errorCode} is empty.
+     * @deprecated as of 2.0.0 please use {@link #newBuilder(String, HttpStatus)} instead.
      */
+    @Deprecated
     public static Builder newBuilder(final String errorCode, final HttpStatusCode statusCode) {
-        return new Builder(errorCode, statusCode);
+        return new Builder(errorCode, statusCode.getAsHttpStatus());
     }
+
+    /**
+     * Returns a new mutable builder for fluently creating instances of {@code DittoRuntimeException}s..
+     *
+     * @param errorCode a code which uniquely identifies the exception.
+     * @param httpStatus the HTTP status.
+     * @return the new builder.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws IllegalArgumentException if {@code errorCode} is empty.
+     * @since 2.0.0
+     */
+    public static Builder newBuilder(final String errorCode, final HttpStatus httpStatus) {
+        return new Builder(errorCode, httpStatus);
+    }
+
     /**
      * Returns a new mutable builder with a fluent API for a {@code dittoRuntimeException}. The builder is already
      * initialized with the properties of the given exception.
@@ -241,9 +289,27 @@ public class DittoRuntimeException extends RuntimeException
      * Retrieves the required HttpStatusCode with which this Exception should be reported back to the user.
      *
      * @return the HttpStatusCode.
+     * @deprecated as of 2.0.0 please use {@link #getHttpStatus()} instead.
      */
+    @Deprecated
     public HttpStatusCode getStatusCode() {
-        return statusCode;
+        return HttpStatusCode.forInt(httpStatus.getCode()).orElseThrow(() -> {
+
+            // This might happen at runtime when httpStatus has a code which is
+            // not reflected as constant in HttpStatusCode.
+            final String msgPattern = "Found no HttpStatusCode for int <{0}>!";
+            return new IllegalStateException(MessageFormat.format(msgPattern, httpStatus.getCode()));
+        });
+    }
+
+    /**
+     * Retrieves the required HttpStatus with which this Exception should be reported back to the user.
+     *
+     * @return the HttpStatus.
+     * @since 2.0.0
+     */
+    public HttpStatus getHttpStatus() {
+        return httpStatus;
     }
 
     @Override
@@ -286,14 +352,16 @@ public class DittoRuntimeException extends RuntimeException
      *
      * @return a link to provide the user with further information about this exception.
      */
-    public Optional<URI> getHref() { return Optional.ofNullable(href); }
+    public Optional<URI> getHref() {
+        return Optional.ofNullable(href);
+    }
 
     @Override
     public String getManifest() {
         return getErrorCode();
     }
 
-    @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "OverlyComplexMethod"})
+    @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})
     @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
@@ -303,15 +371,15 @@ public class DittoRuntimeException extends RuntimeException
             return false;
         }
         final DittoRuntimeException that = (DittoRuntimeException) o;
-        return Objects.equals(errorCode, that.errorCode)
-                && statusCode == that.statusCode
-                && Objects.equals(description, that.description)
-                && Objects.equals(href, that.href);
+        return Objects.equals(errorCode, that.errorCode) &&
+                Objects.equals(httpStatus, that.httpStatus) &&
+                Objects.equals(description, that.description) &&
+                Objects.equals(href, that.href);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(errorCode, statusCode, description, href);
+        return Objects.hash(errorCode, httpStatus, description, href);
     }
 
     /**
@@ -330,7 +398,7 @@ public class DittoRuntimeException extends RuntimeException
         final Predicate<JsonField> nonNullAndCustomDefined = predicate.and(JsonField.isValueNonNull());
 
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
-                .set(JsonFields.STATUS, statusCode.toInt(), nonNullAndCustomDefined)
+                .set(JsonFields.STATUS, httpStatus.getCode(), nonNullAndCustomDefined)
                 .set(JsonFields.ERROR_CODE, errorCode, nonNullAndCustomDefined)
                 .set(JsonFields.MESSAGE, getMessage(), nonNullAndCustomDefined)
                 .set(JsonFields.DESCRIPTION, description, nonNullAndCustomDefined)
@@ -418,33 +486,49 @@ public class DittoRuntimeException extends RuntimeException
      */
     public static Optional<DittoRuntimeException> fromUnknownErrorJson(final JsonObject jsonObject,
             final DittoHeaders headers) {
-        return jsonObject.getValue(JsonFields.ERROR_CODE).flatMap(errorCode ->
-                jsonObject.getValue(JsonFields.STATUS).flatMap(HttpStatusCode::forInt).map(status -> {
-                    final Builder builder = new Builder(errorCode, status);
-                    builder.dittoHeaders(headers);
-                    jsonObject.getValue(JsonFields.MESSAGE).ifPresent(builder::message);
-                    jsonObject.getValue(JsonFields.DESCRIPTION).ifPresent(builder::description);
-                    jsonObject.getValue(JsonFields.HREF)
-                            .flatMap(uriString -> {
-                                try {
-                                    return Optional.of(new URI(uriString));
-                                } catch (URISyntaxException e) {
-                                    return Optional.empty();
-                                }
-                            })
-                            .ifPresent(builder::href);
-                    return builder.build();
-                })
-        );
+
+        final DittoRuntimeException result;
+        final Optional<String> errorCodeOptional = jsonObject.getValue(JsonFields.ERROR_CODE);
+        if (errorCodeOptional.isPresent()) {
+            final Optional<HttpStatus> httpStatusOptional = getHttpStatus(jsonObject);
+            if (httpStatusOptional.isPresent()) {
+                final Builder builder = new Builder(errorCodeOptional.get(), httpStatusOptional.get());
+                builder.dittoHeaders(headers);
+                jsonObject.getValue(JsonFields.MESSAGE).ifPresent(builder::message);
+                jsonObject.getValue(JsonFields.DESCRIPTION).ifPresent(builder::description);
+                getHref(jsonObject).ifPresent(builder::href);
+                result = builder.build();
+            } else {
+                result = null;
+            }
+        } else {
+            result = null;
+        }
+        return Optional.ofNullable(result);
     }
 
+    private static Optional<HttpStatus> getHttpStatus(final JsonObject jsonObject) {
+        return jsonObject.getValue(JsonFields.STATUS).flatMap(HttpStatus::tryGetInstance);
+    }
+
+    private static Optional<URI> getHref(final JsonObject jsonObject) {
+        final Function<String, URI> uriForStringOrNull = uriString -> {
+            try {
+                return new URI(uriString);
+            } catch (final URISyntaxException e) {
+                return null;
+            }
+        };
+
+        return jsonObject.getValue(JsonFields.HREF).map(uriForStringOrNull);
+    }
 
     @Override
     public String toString() {
-        return this.getClass().getName() + " [" +
+        return getClass().getName() + " [" +
                 "message='" + getMessage() + '\'' +
                 ", errorCode=" + errorCode +
-                ", statusCode=" + statusCode +
+                ", httpStatus=" + httpStatus +
                 ", description='" + description + '\'' +
                 ", href=" + href +
                 ", dittoHeaders=" + dittoHeaders +
@@ -458,12 +542,12 @@ public class DittoRuntimeException extends RuntimeException
     public static final class Builder extends DittoRuntimeExceptionBuilder<DittoRuntimeException> {
 
         private final String errorCode;
-        private final HttpStatusCode statusCode;
+        private final HttpStatus httpStatus;
 
-        private Builder(final String theErrorCode, final HttpStatusCode theStatusCode) {
+        private Builder(final String theErrorCode, final HttpStatus httpStatus) {
             checkNotNull(theErrorCode, "exception error code");
             errorCode = checkNotEmpty(theErrorCode, "exception error code");
-            statusCode = checkNotNull(theStatusCode, "exception HTTP status code");
+            this.httpStatus = checkNotNull(httpStatus, "httpStatus");
         }
 
         @Override
@@ -473,7 +557,7 @@ public class DittoRuntimeException extends RuntimeException
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
 
-            return new DittoRuntimeException(errorCode, statusCode, dittoHeaders, message, description, cause, href);
+            return new DittoRuntimeException(errorCode, httpStatus, dittoHeaders, message, description, cause, href);
         }
     }
 

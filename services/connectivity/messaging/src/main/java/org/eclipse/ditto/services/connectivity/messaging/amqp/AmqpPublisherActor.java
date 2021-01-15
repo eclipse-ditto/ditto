@@ -40,7 +40,7 @@ import javax.jms.Session;
 
 import org.apache.qpid.jms.message.JmsMessage;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.Placeholders;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -399,7 +399,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         final AcknowledgementLabel label = getAcknowledgementLabel(autoAckTarget).orElse(NO_ACK_LABEL);
 
-        return Acknowledgement.of(label, entityIdWithType, HttpStatusCode.OK, dittoHeaders);
+        return Acknowledgement.of(label, entityIdWithType, HttpStatus.OK, dittoHeaders);
     }
 
     private static MessageSendingFailedException getMessageSendingException(final ExternalMessage message,

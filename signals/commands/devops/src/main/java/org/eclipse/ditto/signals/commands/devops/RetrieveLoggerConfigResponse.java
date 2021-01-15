@@ -30,7 +30,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -59,9 +59,12 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
 
     private final List<LoggerConfig> loggerConfigs;
 
-    private RetrieveLoggerConfigResponse(@Nullable final String serviceName, @Nullable final String instance,
-            final List<LoggerConfig> loggerConfigs, final DittoHeaders dittoHeaders) {
-        super(TYPE, serviceName, instance, HttpStatusCode.OK, dittoHeaders);
+    private RetrieveLoggerConfigResponse(@Nullable final String serviceName,
+            @Nullable final String instance,
+            final List<LoggerConfig> loggerConfigs,
+            final DittoHeaders dittoHeaders) {
+
+        super(TYPE, serviceName, instance, HttpStatus.OK, dittoHeaders);
         this.loggerConfigs = Collections.unmodifiableList(new ArrayList<>(loggerConfigs));
     }
 
@@ -74,9 +77,11 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
      * @param dittoHeaders the headers of the request.
      * @return the new RetrieveLoggerConfigResponse response.
      */
-    public static RetrieveLoggerConfigResponse of(@Nullable final String serviceName, @Nullable final String instance,
+    public static RetrieveLoggerConfigResponse of(@Nullable final String serviceName,
+            @Nullable final String instance,
             final List<LoggerConfig> loggerConfigs,
             final DittoHeaders dittoHeaders) {
+
         return new RetrieveLoggerConfigResponse(serviceName, instance, loggerConfigs, dittoHeaders);
     }
 
@@ -105,10 +110,9 @@ public final class RetrieveLoggerConfigResponse extends AbstractDevOpsCommandRes
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static RetrieveLoggerConfigResponse fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveLoggerConfigResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+    public static RetrieveLoggerConfigResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        return new CommandResponseJsonDeserializer<RetrieveLoggerConfigResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
                     final String serviceName = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_SERVICE_NAME)
                             .orElse(null);
                     final String instance = jsonObject.getValue(DevOpsCommandResponse.JsonFields.JSON_INSTANCE)

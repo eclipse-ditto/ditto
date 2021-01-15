@@ -22,7 +22,7 @@ import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.assertj.core.util.Lists;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
@@ -52,9 +52,9 @@ public final class ThingAcknowledgementsFactoryTest {
                 .build();
         final ThingId thingId = ThingId.generateRandom();
         knownAcknowledgement =
-                Acknowledgement.of(AcknowledgementLabel.of("foo"), thingId, HttpStatusCode.OK, dittoHeaders);
+                Acknowledgement.of(AcknowledgementLabel.of("foo"), thingId, HttpStatus.OK, dittoHeaders);
         final Acknowledgement knownAcknowledgement2 =
-                Acknowledgement.of(AcknowledgementLabel.of("bar"), thingId, HttpStatusCode.NOT_FOUND, dittoHeaders,
+                Acknowledgement.of(AcknowledgementLabel.of("bar"), thingId, HttpStatus.NOT_FOUND, dittoHeaders,
                         JsonValue.of("bar does not exist!"));
         acknowledgementList = Lists.list(knownAcknowledgement, knownAcknowledgement2);
     }
@@ -79,9 +79,9 @@ public final class ThingAcknowledgementsFactoryTest {
             softly.assertThat(acknowledgements.getType())
                     .as("same type")
                     .isEqualTo(Acknowledgements.getType(knownAcknowledgement.getEntityType()));
-            softly.assertThat(acknowledgements.getStatusCode())
+            softly.assertThat(acknowledgements.getHttpStatus())
                     .as("same status code")
-                    .isEqualTo(HttpStatusCode.FAILED_DEPENDENCY);
+                    .isEqualTo(HttpStatus.FAILED_DEPENDENCY);
             softly.assertThat(acknowledgements.getDittoHeaders())
                     .as("same DittoHeaders")
                     .isEqualTo(dittoHeaders);

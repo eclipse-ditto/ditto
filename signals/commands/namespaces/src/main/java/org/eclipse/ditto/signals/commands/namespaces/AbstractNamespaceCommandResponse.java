@@ -24,7 +24,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -52,7 +52,7 @@ abstract class AbstractNamespaceCommandResponse<T extends AbstractNamespaceComma
      * @param namespace the namespace this response relates to.
      * @param resourceType type of the {@code Resource} represented by this response.
      * @param responseType the type of this response.
-     * @param statusCode the HTTP statusCode of this response.
+     * @param httpStatus the HTTP status of this response.
      * @param dittoHeaders the headers of the command which caused this response.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code namespace} or {@code resourceType} is empty.
@@ -60,10 +60,10 @@ abstract class AbstractNamespaceCommandResponse<T extends AbstractNamespaceComma
     protected AbstractNamespaceCommandResponse(final CharSequence namespace,
             final CharSequence resourceType,
             final String responseType,
-            final HttpStatusCode statusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(responseType, statusCode, dittoHeaders);
+        super(responseType, httpStatus, dittoHeaders);
         this.namespace = argumentNotEmpty(namespace, "namespace").toString();
         this.resourceType = argumentNotEmpty(resourceType, "resourceType").toString();
     }

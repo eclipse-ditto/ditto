@@ -30,7 +30,7 @@ import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.Before;
@@ -246,7 +246,7 @@ public final class AuthenticationChainTest {
         final List<AuthenticationResult> failedAuthenticationResult =
                 Arrays.asList(failedAuthenticationResultA, failedAuthenticationResultB);
         when(authenticationFailureAggregator.aggregateAuthenticationFailures(failedAuthenticationResult))
-                .thenReturn(DittoRuntimeException.newBuilder("test:exception", HttpStatusCode.UNAUTHORIZED).build());
+                .thenReturn(DittoRuntimeException.newBuilder("test:exception", HttpStatus.UNAUTHORIZED).build());
 
         final AuthenticationResult authenticationResult =
                 underTest.authenticate(requestContextMock, dittoHeaders).get();

@@ -21,7 +21,7 @@ import java.util.UUID;
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -43,7 +43,7 @@ public final class PurgeNamespaceResponseTest {
     public static void initTestConstants() {
         knownJsonRepresentation = JsonFactory.newObjectBuilder()
                 .set(PurgeNamespaceResponse.JsonFields.TYPE, PurgeNamespaceResponse.TYPE)
-                .set(PurgeNamespaceResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
+                .set(PurgeNamespaceResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
                 .set(PurgeNamespaceResponse.JsonFields.NAMESPACE, NAMESPACE)
                 .set(PurgeNamespaceResponse.JsonFields.RESOURCE_TYPE, RESOURCE_TYPE)
                 .set(PurgeNamespaceResponse.JsonFields.SUCCESSFUL, true)

@@ -25,7 +25,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -52,7 +52,7 @@ public final class PurgeEntitiesResponse extends CommonCommandResponse<PurgeEnti
     private PurgeEntitiesResponse(final EntityType entityType, final boolean successful,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+        super(TYPE, HttpStatus.OK, dittoHeaders);
         this.entityType = checkNotNull(entityType);
         this.successful = successful;
     }
@@ -87,7 +87,7 @@ public final class PurgeEntitiesResponse extends CommonCommandResponse<PurgeEnti
      * @return the deserialized response.
      */
     public static PurgeEntitiesResponse fromJson(final JsonObject jsonObject, final DittoHeaders headers) {
-        return new CommandResponseJsonDeserializer<PurgeEntitiesResponse>(TYPE, jsonObject).deserialize(statusCode -> {
+        return new CommandResponseJsonDeserializer<PurgeEntitiesResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
             final EntityType parsedEntityType = EntityType.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_TYPE));
             final boolean parsedSuccessful = jsonObject.getValueOrThrow(JsonFields.SUCCESSFUL);
 

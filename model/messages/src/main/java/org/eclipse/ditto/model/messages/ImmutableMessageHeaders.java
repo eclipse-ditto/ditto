@@ -21,7 +21,7 @@ import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.AbstractDittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -88,10 +88,10 @@ final class ImmutableMessageHeaders extends AbstractDittoHeaders implements Mess
     }
 
     @Override
-    public Optional<HttpStatusCode> getStatusCode() {
+    public Optional<HttpStatus> getHttpStatus() {
         return getStringForDefinition(MessageHeaderDefinition.STATUS_CODE)
                 .map(Integer::parseInt)
-                .flatMap(HttpStatusCode::forInt);
+                .flatMap(HttpStatus::tryGetInstance);
     }
 
     @Override

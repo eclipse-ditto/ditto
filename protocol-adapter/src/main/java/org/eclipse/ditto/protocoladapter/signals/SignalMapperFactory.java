@@ -77,11 +77,11 @@ public final class SignalMapperFactory {
     }
 
     public static SignalMapper<MessageCommand<?, ?>> newMessageCommandSignalMapper() {
-        return new MessageCommandSignalMapper();
+        return MessageSignalMapper.getInstance();
     }
 
     public static SignalMapper<MessageCommandResponse<?, ?>> newMessageCommandResponseSignalMapper() {
-        return new MessageCommandResponseSignalMapper();
+        return MessageSignalMapper.getInstance();
     }
 
 }

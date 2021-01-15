@@ -19,6 +19,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.things.ThingId;
 
@@ -164,7 +165,19 @@ public interface Message<T> {
      * Returns the status code of the message.
      *
      * @return the status code.
+     * @deprecated as of 2.0.0 please use {@link #getHttpStatus()} instead.
      */
-    Optional<HttpStatusCode> getStatusCode();
+    @Deprecated
+    default Optional<HttpStatusCode> getStatusCode() {
+        return getHttpStatus().map(HttpStatus::getCode).flatMap(HttpStatusCode::forInt);
+    }
+
+    /**
+     * Returns the HTTP status of this message.
+     *
+     * @return the status.
+     * @since 2.0.0
+     */
+    Optional<HttpStatus> getHttpStatus();
 
 }

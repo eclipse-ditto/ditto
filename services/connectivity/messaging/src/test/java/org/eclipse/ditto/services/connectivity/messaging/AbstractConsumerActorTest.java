@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -161,7 +161,7 @@ public abstract class AbstractConsumerActorTest<M> {
     public void testNegativeSourceAcknowledgementSettlementDueToNAck() throws Exception {
         testSourceAcknowledgementSettlement(false, false, modifyThing ->
                         Acknowledgement.of(AcknowledgementLabel.of("twin-persisted"), modifyThing.getThingEntityId(),
-                                HttpStatusCode.BAD_REQUEST, modifyThing.getDittoHeaders()),
+                                HttpStatus.BAD_REQUEST, modifyThing.getDittoHeaders()),
                 MODIFY_THING_WITH_ACK,
                 publishMappedMessage -> {}
         );

@@ -26,7 +26,7 @@ import org.eclipse.ditto.json.JsonFieldMarker;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -59,9 +59,14 @@ public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThi
     @Nullable private final Long policyRevision;
     private final boolean success;
 
-    private UpdateThingResponse(final ThingId thingId, final long thingRevision, final boolean success,
-            @Nullable final PolicyId policyId, @Nullable final Long policyRevision, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+    private UpdateThingResponse(final ThingId thingId,
+            final long thingRevision,
+            final boolean success,
+            @Nullable final PolicyId policyId,
+            @Nullable final Long policyRevision,
+            final DittoHeaders dittoHeaders) {
+
+        super(TYPE, HttpStatus.OK, dittoHeaders);
         this.thingId = thingId;
         this.thingRevision = thingRevision;
         this.success = success;
@@ -86,6 +91,7 @@ public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThi
             @Nullable final Long policyRevision,
             final boolean success,
             final DittoHeaders dittoHeaders) {
+
         return new UpdateThingResponse(thingId, thingRevision, success, policyId, policyRevision, dittoHeaders);
     }
 
@@ -111,6 +117,7 @@ public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThi
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicate) {
+
         jsonObjectBuilder.set(JsonFields.THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JsonFields.THING_REVISION, thingRevision, predicate);
         if (policyId != null) {
@@ -230,5 +237,7 @@ public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThi
                 JsonFactory.newLongFieldDefinition("policyRevision", JSON_FIELD_MARKERS);
         private static final JsonFieldDefinition<Boolean> SUCCESS =
                 JsonFactory.newBooleanFieldDefinition("success", JSON_FIELD_MARKERS);
+
     }
+
 }

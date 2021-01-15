@@ -30,10 +30,10 @@ import org.eclipse.ditto.signals.commands.base.Command;
 /**
  * Base interface for all commands to send messages to things and features.
  *
- * @param <T> the type of the message's payload.
+ * @param <P> the type of the message's payload.
  * @param <C> the type of the MessageCommand.
  */
-public interface MessageCommand<T, C extends MessageCommand<T, C>> extends Command<C>, WithThingId {
+public interface MessageCommand<P, C extends MessageCommand<P, C>> extends Command<C>, WithThingId, WithMessage<P> {
 
     /**
      * Type Prefix of Message commands.
@@ -64,13 +64,6 @@ public interface MessageCommand<T, C extends MessageCommand<T, C>> extends Comma
      * Message resource type.
      */
     String RESOURCE_TYPE = "message";
-
-    /**
-     * Retrieves the Message to be delivered.
-     *
-     * @return the Message to be delivered.
-     */
-    Message<T> getMessage();
 
     @Override
     default String getTypePrefix() {

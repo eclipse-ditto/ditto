@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
@@ -26,7 +27,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link DeleteFeatureDesiredProperties} command.
@@ -60,10 +62,9 @@ public final class DeleteFeatureDesiredPropertiesResponse
     private DeleteFeatureDesiredPropertiesResponse(final ThingId thingId, final CharSequence featureId,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
+        super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
-        this.featureId = checkNotNull(featureId == null || featureId.toString().isEmpty() ? null : featureId.toString(),
-                "featureId");
+        this.featureId = argumentNotEmpty(featureId, "featureId").toString();
     }
 
     /**
@@ -77,6 +78,7 @@ public final class DeleteFeatureDesiredPropertiesResponse
      */
     public static DeleteFeatureDesiredPropertiesResponse of(final ThingId thingId, final CharSequence featureId,
             final DittoHeaders dittoHeaders) {
+
         return new DeleteFeatureDesiredPropertiesResponse(thingId, featureId, dittoHeaders);
     }
 
@@ -111,9 +113,10 @@ public final class DeleteFeatureDesiredPropertiesResponse
             final DittoHeaders dittoHeaders) {
 
         return new CommandResponseJsonDeserializer<DeleteFeatureDesiredPropertiesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+                .deserialize(httpStatus -> {
+
                     final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
 
@@ -155,7 +158,7 @@ public final class DeleteFeatureDesiredPropertiesResponse
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
     }
 
@@ -173,13 +176,13 @@ public final class DeleteFeatureDesiredPropertiesResponse
             return false;
         }
         final DeleteFeatureDesiredPropertiesResponse that = (DeleteFeatureDesiredPropertiesResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(featureId, that.featureId) && super.equals(o);
+        return that.canEqual(this) && Objects.equals(thingId, that.thingId) &&
+                Objects.equals(featureId, that.featureId) && super.equals(o);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof DeleteFeatureDesiredPropertiesResponse);
+        return other instanceof DeleteFeatureDesiredPropertiesResponse;
     }
 
     @Override

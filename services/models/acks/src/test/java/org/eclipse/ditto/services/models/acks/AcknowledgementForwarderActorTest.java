@@ -26,7 +26,7 @@ import java.util.concurrent.ExecutionException;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
@@ -126,7 +126,7 @@ public final class AcknowledgementForwarderActorTest {
         final ThingId entityId = ThingId.generateRandom();
         final Signal<?> signal = ThingDeleted.of(entityId, 1L, dittoHeaders);
         final Acknowledgement acknowledgement =
-                Acknowledgement.of(acknowledgementLabel, entityId, HttpStatusCode.ACCEPTED, dittoHeaders);
+                Acknowledgement.of(acknowledgementLabel, entityId, HttpStatus.ACCEPTED, dittoHeaders);
 
         new TestKit(actorSystem) {{
             when(actorContext.sender()).thenReturn(getRef());

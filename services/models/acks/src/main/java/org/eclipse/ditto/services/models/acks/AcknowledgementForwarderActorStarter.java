@@ -208,7 +208,7 @@ final class AcknowledgementForwarderActorStarter implements Supplier<Optional<Ac
     private Acknowledgement getNack(final AcknowledgementLabel label,
             final DittoRuntimeException dittoRuntimeException) {
 
-        return Acknowledgement.of(label, entityId, dittoRuntimeException.getStatusCode(), dittoHeaders,
+        return Acknowledgement.of(label, entityId, dittoRuntimeException.getHttpStatus(), dittoHeaders,
                 dittoRuntimeException.toJson());
     }
 

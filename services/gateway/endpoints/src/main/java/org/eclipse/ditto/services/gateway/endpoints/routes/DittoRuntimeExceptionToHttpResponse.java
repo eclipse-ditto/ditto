@@ -57,7 +57,7 @@ final class DittoRuntimeExceptionToHttpResponse implements Function<DittoRuntime
     public HttpResponse apply(final DittoRuntimeException exception) {
         checkNotNull(exception, "exception");
         return HttpResponse.create()
-                .withStatus(exception.getStatusCode().toInt())
+                .withStatus(exception.getHttpStatus().getCode())
                 .withHeaders(getExternalHeadersFor(exception.getDittoHeaders()))
                 .withEntity(ContentTypes.APPLICATION_JSON, ByteString.fromString(exception.toJsonString()));
     }

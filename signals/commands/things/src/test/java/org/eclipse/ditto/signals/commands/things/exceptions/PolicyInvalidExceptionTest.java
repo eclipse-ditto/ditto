@@ -34,7 +34,7 @@ import org.junit.Test;
 public class PolicyInvalidExceptionTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(DittoRuntimeException.JsonFields.STATUS, PolicyInvalidException.STATUS_CODE.toInt())
+            .set(DittoRuntimeException.JsonFields.STATUS, PolicyInvalidException.STATUS.getCode())
             .set(DittoRuntimeException.JsonFields.ERROR_CODE, PolicyInvalidException.ERROR_CODE)
             .set(DittoRuntimeException.JsonFields.MESSAGE,
                     TestConstants.Thing.POLICY_INVALID_EXCEPTION.getMessage())
@@ -90,7 +90,7 @@ public class PolicyInvalidExceptionTest {
                 .hasMessage(expectedMessage)
                 .hasDescription(expectedDescription)
                 .hasErrorCode(PolicyInvalidException.ERROR_CODE)
-                .hasStatusCode(PolicyInvalidException.STATUS_CODE);
+                .hasStatus(PolicyInvalidException.STATUS);
     }
 
     @Test

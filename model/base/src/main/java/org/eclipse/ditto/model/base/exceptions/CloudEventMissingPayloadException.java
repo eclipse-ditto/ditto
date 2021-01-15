@@ -19,7 +19,7 @@
  import javax.annotation.concurrent.NotThreadSafe;
 
  import org.eclipse.ditto.json.JsonObject;
- import org.eclipse.ditto.model.base.common.HttpStatusCode;
+ import org.eclipse.ditto.model.base.common.HttpStatus;
  import org.eclipse.ditto.model.base.headers.DittoHeaders;
  import org.eclipse.ditto.model.base.json.JsonParsableException;
 
@@ -40,7 +40,7 @@
      private static final String DEFAULT_MESSAGE = "The Cloud Event's payload is missing.";
      private static final String DEFAULT_DESCRIPTION = "Ensure to provide payload in the Cloud Event.";
 
-     private static final HttpStatusCode STATUS_CODE = HttpStatusCode.BAD_REQUEST;
+     private static final HttpStatus HTTP_STATUS = HttpStatus.BAD_REQUEST;
 
      /**
       * Constructs a new {@code CloudEventMissingPayloadException} object.
@@ -57,7 +57,8 @@
              @Nullable final String description,
              @Nullable final Throwable cause,
              @Nullable final URI href) {
-         super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
+
+         super(ERROR_CODE, HTTP_STATUS, dittoHeaders, message, description, cause, href);
      }
 
      /**
@@ -85,6 +86,7 @@
       */
      public static CloudEventMissingPayloadException fromJson(final JsonObject jsonObject,
              final DittoHeaders dittoHeaders) {
+
          return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
      }
 
@@ -118,6 +120,7 @@
 
              return new CloudEventMissingPayloadException(dittoHeaders, message, description, cause, href);
          }
+
      }
 
  }

@@ -14,7 +14,6 @@ package org.eclipse.ditto.signals.commands.base.assertions;
 
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.base.assertions.WithDittoHeadersChecker;
@@ -52,10 +51,6 @@ public class ErrorResponseAssert extends AbstractAssert<ErrorResponseAssert, Err
 
     public ErrorResponseAssert hasType(final String expectedType) {
         return assertThatEquals(actual.getType(), expectedType, "type");
-    }
-
-    public ErrorResponseAssert hasStatusCode(final HttpStatusCode expectedStatusCode) {
-        return assertThatEquals(actual.getStatusCode(), expectedStatusCode, "HTTP status code");
     }
 
     public ErrorResponseAssert contains(final DittoRuntimeException expectedDittoRuntimeException) {

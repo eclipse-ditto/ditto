@@ -14,6 +14,7 @@ package org.eclipse.ditto.signals.acks.base;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.Optional;
 
 import javax.annotation.Nullable;
@@ -24,6 +25,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
@@ -69,14 +71,38 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      * @param payload the optional payload of the Acknowledgement.
      * @return the ImmutableAcknowledgement.
      * @throws NullPointerException if one of the required parameters was {@code null}.
+     * @deprecated as of 2.0.0 please use
+     * {@link #of(AcknowledgementLabel, EntityIdWithType, HttpStatus, DittoHeaders, JsonValue)} instead.
      */
+    @Deprecated
     static Acknowledgement of(final AcknowledgementLabel label,
             final EntityIdWithType entityId,
             final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders,
             @Nullable final JsonValue payload) {
 
-        return AcknowledgementFactory.newAcknowledgement(label, entityId, statusCode, dittoHeaders, payload);
+        return of(label, entityId, statusCode.getAsHttpStatus(), dittoHeaders, payload);
+    }
+
+    /**
+     * Returns a new {@code Acknowledgement} for the specified parameters.
+     *
+     * @param label the label of the new Acknowledgement.
+     * @param entityId the ID of the affected entity being acknowledged.
+     * @param httpStatus the HTTP status of the Acknowledgement.
+     * @param dittoHeaders the DittoHeaders.
+     * @param payload the optional payload of the Acknowledgement.
+     * @return the ImmutableAcknowledgement.
+     * @throws NullPointerException if one of the required parameters was {@code null}.
+     * @since 2.0.0
+     */
+    static Acknowledgement of(final AcknowledgementLabel label,
+            final EntityIdWithType entityId,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders,
+            @Nullable final JsonValue payload) {
+
+        return AcknowledgementFactory.newAcknowledgement(label, entityId, httpStatus, dittoHeaders, payload);
     }
 
     /**
@@ -98,7 +124,7 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
         final DittoHeaders weakAckHeaders = dittoHeaders.toBuilder()
                 .putHeader(DittoHeaderDefinition.WEAK_ACK.getKey(), Boolean.TRUE.toString())
                 .build();
-        return AcknowledgementFactory.newAcknowledgement(label, entityId, HttpStatusCode.OK, weakAckHeaders, payload);
+        return AcknowledgementFactory.newAcknowledgement(label, entityId, HttpStatus.OK, weakAckHeaders, payload);
     }
 
     /**
@@ -110,13 +136,35 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      * @param dittoHeaders the DittoHeaders.
      * @return the ImmutableAcknowledgement.
      * @throws NullPointerException if one of the required parameters was {@code null}.
+     * @deprecated as of 2.0.0 please use {@link #of(AcknowledgementLabel, EntityIdWithType, HttpStatus, DittoHeaders)}
+     * instead.
      */
+    @Deprecated
     static Acknowledgement of(final AcknowledgementLabel label,
             final EntityIdWithType entityId,
             final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
 
-        return of(label, entityId, statusCode, dittoHeaders, null);
+        return of(label, entityId, statusCode.getAsHttpStatus(), dittoHeaders);
+    }
+
+    /**
+     * Returns a new {@code Acknowledgement} for the specified parameters.
+     *
+     * @param label the label of the new Acknowledgement.
+     * @param entityId the ID of the affected entity being acknowledged.
+     * @param httpStatus the HTTP status of the Acknowledgement.
+     * @param dittoHeaders the DittoHeaders.
+     * @return the ImmutableAcknowledgement.
+     * @throws NullPointerException if one of the required parameters was {@code null}.
+     * @since 2.0.0
+     */
+    static Acknowledgement of(final AcknowledgementLabel label,
+            final EntityIdWithType entityId,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        return of(label, entityId, httpStatus, dittoHeaders, null);
     }
 
     /**
@@ -165,8 +213,30 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
      * {@code NACK} where the status code is something else than {@code 2xx}.
      *
      * @return the status code of the Acknowledgement.
+     * @deprecated as of 2.0.0 please use {@link #getHttpStatus()} instead.
      */
-    HttpStatusCode getStatusCode();
+    @Override
+    @Deprecated
+    default HttpStatusCode getStatusCode() {
+        final HttpStatus httpStatus = getHttpStatus();
+        return HttpStatusCode.forInt(httpStatus.getCode()).orElseThrow(() -> {
+
+            // This might happen at runtime when httpStatus has a code which is
+            // not reflected as constant in HttpStatusCode.
+            final String msgPattern = "Found no HttpStatusCode for int <{0}>!";
+            return new IllegalStateException(MessageFormat.format(msgPattern, httpStatus.getCode()));
+        });
+    }
+
+    /**
+     * Returns the HTTP status of the Acknowledgement specifying whether it was a successful {@code ACK} or a
+     * {@code NACK} where the status code is something else than {@code 2xx}.
+     *
+     * @return the HTTP status of the Acknowledgement.
+     * @since 2.0.0
+     */
+    @Override
+    HttpStatus getHttpStatus();
 
     /**
      * Returns the optional payload of the Acknowledgement.

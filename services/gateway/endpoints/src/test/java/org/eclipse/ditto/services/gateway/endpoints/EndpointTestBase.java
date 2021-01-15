@@ -26,7 +26,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -209,10 +209,12 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
 
         private JsonValue dummyEntity = DEFAULT_DUMMY_ENTITY_JSON;
 
-        private DummyThingModifyCommandResponse(final String responseType, final HttpStatusCode statusCode,
-                final DittoHeaders dittoHeaders, @Nullable final JsonValue dummyEntity) {
+        private DummyThingModifyCommandResponse(final String responseType,
+                final HttpStatus httpStatus,
+                final DittoHeaders dittoHeaders,
+                @Nullable final JsonValue dummyEntity) {
 
-            super(responseType, statusCode, dittoHeaders);
+            super(responseType, httpStatus, dittoHeaders);
             if (null != dummyEntity) {
                 this.dummyEntity = dummyEntity;
             }
@@ -227,8 +229,8 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
             }
             final DummyThingModifyCommandResponse response =
                     new DummyThingModifyCommandResponse("testonly.response.type",
-                            HttpStatusCode.forInt(EndpointTestConstants.DUMMY_COMMAND_SUCCESS.intValue())
-                                    .orElse(HttpStatusCode.INTERNAL_SERVER_ERROR),
+                            HttpStatus.tryGetInstance(EndpointTestConstants.DUMMY_COMMAND_SUCCESS.intValue())
+                                    .orElse(HttpStatus.INTERNAL_SERVER_ERROR),
                             dittoHeaders, m instanceof Jsonifiable ? ((Jsonifiable<?>) m).toJson() : null);
             return Optional.of(response);
         }
@@ -241,7 +243,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
 
         @Override
         public DummyThingModifyCommandResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-            return new DummyThingModifyCommandResponse(getType(), getStatusCode(), dittoHeaders, dummyEntity);
+            return new DummyThingModifyCommandResponse(getType(), getHttpStatus(), dittoHeaders, dummyEntity);
         }
 
         @Override
@@ -268,6 +270,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         public ThingId getThingEntityId() {
             return EndpointTestConstants.KNOWN_THING_ID;
         }
+
     }
 
 }

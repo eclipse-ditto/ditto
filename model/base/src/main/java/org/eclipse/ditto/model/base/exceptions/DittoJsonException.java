@@ -18,13 +18,12 @@ import java.util.function.Supplier;
 
 import org.eclipse.ditto.json.JsonException;
 import org.eclipse.ditto.json.JsonRuntimeException;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-
 
 /**
  * Exception to adapt {@link JsonRuntimeException}s to {@code DittoRuntimeException} by adding {@link DittoHeaders} and
- * the HTTP status code {@link HttpStatusCode#BAD_REQUEST 400}.
+ * the HTTP status code {@link HttpStatus#BAD_REQUEST 400}.
  */
 public final class DittoJsonException extends DittoRuntimeException {
 
@@ -46,7 +45,7 @@ public final class DittoJsonException extends DittoRuntimeException {
                 (toWrap instanceof JsonRuntimeException)
                         ? ((JsonException) toWrap).getErrorCode()
                         : FALLBACK_ERROR_CODE,
-                HttpStatusCode.BAD_REQUEST,
+                HttpStatus.BAD_REQUEST,
                 DittoHeaders.empty(),
                 toWrap.getMessage(),
                 (toWrap instanceof JsonRuntimeException)
@@ -71,7 +70,7 @@ public final class DittoJsonException extends DittoRuntimeException {
         super(
                 toWrap instanceof JsonRuntimeException ? ((JsonRuntimeException) toWrap).getErrorCode() :
                         FALLBACK_ERROR_CODE,
-                HttpStatusCode.BAD_REQUEST,
+                HttpStatus.BAD_REQUEST,
                 dittoHeaders,
                 toWrap.getMessage(),
                 toWrap instanceof JsonRuntimeException ? ((JsonRuntimeException) toWrap).getDescription().orElse(null) :

@@ -654,7 +654,7 @@ public final class InboundDispatchingActor extends AbstractActor
      * @param <T> the type of the CommandResponse
      * @return the CommandResponse with appended ConnectionId.
      */
-    <T extends CommandResponse<T>> T appendConnectionIdToAcknowledgementOrResponse(final T commandResponse) {
+    private <T extends CommandResponse<T>> T appendConnectionIdToAcknowledgementOrResponse(final T commandResponse) {
         final DittoHeaders newHeaders = commandResponse.getDittoHeaders()
                 .toBuilder()
                 .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connection.getId().toString())
@@ -662,12 +662,12 @@ public final class InboundDispatchingActor extends AbstractActor
         return commandResponse.setDittoHeaders(newHeaders);
     }
 
-    Acknowledgements appendConnectionIdToAcknowledgements(final Acknowledgements acknowledgements) {
+   private Acknowledgements appendConnectionIdToAcknowledgements(final Acknowledgements acknowledgements) {
         final List<Acknowledgement> acksList = acknowledgements.stream()
                 .map(this::appendConnectionIdToAcknowledgementOrResponse)
                 .collect(Collectors.toList());
         // Uses EntityId and StatusCode from input acknowledges expecting these were set when Acknowledgements was created
-        return Acknowledgements.of(acknowledgements.getEntityId(), acksList, acknowledgements.getStatusCode(),
+        return Acknowledgements.of(acknowledgements.getEntityId(), acksList, acknowledgements.getHttpStatus(),
                 acknowledgements.getDittoHeaders());
     }
 

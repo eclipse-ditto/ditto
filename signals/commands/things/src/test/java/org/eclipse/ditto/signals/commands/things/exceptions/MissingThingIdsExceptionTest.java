@@ -30,10 +30,10 @@ import org.junit.Test;
 /**
  * Unit test for {@link MissingThingIdsException}.
  */
-public class MissingThingIdsExceptionTest {
+public final class MissingThingIdsExceptionTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(DittoRuntimeException.JsonFields.STATUS, MissingThingIdsException.STATUS_CODE.toInt())
+            .set(DittoRuntimeException.JsonFields.STATUS, MissingThingIdsException.HTTP_STATUS.getCode())
             .set(DittoRuntimeException.JsonFields.ERROR_CODE, MissingThingIdsException.ERROR_CODE)
             .set(DittoRuntimeException.JsonFields.MESSAGE, MISSING_THING_IDS_EXCEPTION.getMessage())
             .set(DittoRuntimeException.JsonFields.DESCRIPTION,

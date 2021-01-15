@@ -18,7 +18,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -28,7 +28,6 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.services.connectivity.config.mapping.MapperLimitsConfig;
 import org.eclipse.ditto.services.connectivity.config.mapping.MappingConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 
 /**
@@ -103,29 +102,38 @@ final class WrappingMessageMapper implements MessageMapper {
 
     @Override
     public List<ExternalMessage> map(final Adaptable adaptable) {
-        final List<ExternalMessage> mappedMessages = checkMaxMappedMessagesLimit(delegate.map(adaptable),
-                outboundMessageLimit, adaptable.getDittoHeaders());
-        return mappedMessages.stream().map(mapped -> {
-            final ExternalMessageBuilder messageBuilder = ExternalMessageFactory.newExternalMessageBuilder(mapped);
-            messageBuilder.asResponse(adaptable.getPayload().getStatus().isPresent());
-            return messageBuilder.build();
-        }).collect(Collectors.toList());
+        final var externalMessages = delegate.map(adaptable);
+        checkMaxMappedMessagesLimit(externalMessages, outboundMessageLimit, adaptable.getDittoHeaders());
+
+        final var isResponse = isResponse(adaptable);
+        final UnaryOperator<ExternalMessage> markAsResponse =
+                externalMessage -> ExternalMessageFactory.newExternalMessageBuilder(externalMessage)
+                        .asResponse(isResponse)
+                        .build();
+
+        return externalMessages.stream()
+                .map(markAsResponse)
+                .collect(Collectors.toList());
     }
 
     private <T> List<T> checkMaxMappedMessagesLimit(final List<T> mappingResult, final int maxMappedMessages,
             final DittoHeaders dittoHeaders) {
+
         if (mappingResult.size() > maxMappedMessages) {
-            final String descriptionTemplate =
-                    "The payload mapping '%s' produced %d messages, which exceeds the limit of %d.";
-            final Supplier<String> description =
-                    () -> String.format(descriptionTemplate, getId(), mappingResult.size(), maxMappedMessages);
+            final var descFormat = "The payload mapping '%s' produced %d messages, which exceeds the limit of %d.";
             throw MessageMappingFailedException.newBuilder((String) null)
                     .message("The number of messages produced by the payload mapping exceeded the limits.")
                     .dittoHeaders(dittoHeaders)
-                    .description(description)
+                    .description(String.format(descFormat, getId(), mappingResult.size(), maxMappedMessages))
                     .build();
         }
         return mappingResult;
+    }
+
+    private static boolean isResponse(final Adaptable adaptable) {
+        final var payload = adaptable.getPayload();
+        final var httpStatus = payload.getHttpStatus();
+        return httpStatus.isPresent();
     }
 
     @Override

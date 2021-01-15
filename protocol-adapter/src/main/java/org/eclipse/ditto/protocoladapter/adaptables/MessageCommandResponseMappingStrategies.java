@@ -44,21 +44,17 @@ final class MessageCommandResponseMappingStrategies
     private static Map<String, JsonifiableMapper<MessageCommandResponse<?, ?>>> initMappingStrategies() {
         final Map<String, JsonifiableMapper<MessageCommandResponse<?, ?>>> mappingStrategies = new HashMap<>();
         mappingStrategies.put(SendClaimMessageResponse.TYPE,
-                adaptable -> SendClaimMessageResponse.of(thingIdFrom(adaptable),
-                        messageFrom(adaptable),
-                        statusCodeFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> SendClaimMessageResponse.of(thingIdFrom(adaptable), messageFrom(adaptable),
+                        getHttpStatus(adaptable), dittoHeadersFrom(adaptable)));
         mappingStrategies.put(SendThingMessageResponse.TYPE,
-                adaptable -> SendThingMessageResponse.of(thingIdFrom(adaptable),
-                        messageFrom(adaptable),
-                        statusCodeFrom(adaptable), dittoHeadersFrom(adaptable)));
+                adaptable -> SendThingMessageResponse.of(thingIdFrom(adaptable), messageFrom(adaptable),
+                        getHttpStatus(adaptable), dittoHeadersFrom(adaptable)));
         mappingStrategies.put(SendFeatureMessageResponse.TYPE,
                 adaptable -> SendFeatureMessageResponse.of(thingIdFrom(adaptable), featureIdForMessageFrom(adaptable),
-                        messageFrom(adaptable), statusCodeFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                        messageFrom(adaptable), getHttpStatus(adaptable), dittoHeadersFrom(adaptable)));
         mappingStrategies.put(SendMessageAcceptedResponse.TYPE,
                 adaptable -> SendMessageAcceptedResponse.newInstance(thingIdFrom(adaptable),
-                        messageHeadersFrom(adaptable), statusCodeFrom(adaptable),
-                        dittoHeadersFrom(adaptable)));
+                        messageHeadersFrom(adaptable), getHttpStatus(adaptable), dittoHeadersFrom(adaptable)));
         return mappingStrategies;
     }
 
@@ -67,4 +63,5 @@ final class MessageCommandResponseMappingStrategies
                 .getFeatureId()
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
+
 }
