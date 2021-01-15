@@ -85,7 +85,7 @@ public class MergeThingResponseTest {
     @Test
     public void ensureSchemaVersion() {
         final ThingId thingId = ThingId.of("foo", "bar");
-        assertThatThrownBy(() -> MergeThingResponse.of(thingId, JsonPointer.empty(), JsonObject.empty(),
+        assertThatThrownBy(() -> MergeThingResponse.of(thingId, JsonPointer.empty(),
                 DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_1).build()))
                 .isInstanceOf(CommandNotSupportedException.class);
     }
