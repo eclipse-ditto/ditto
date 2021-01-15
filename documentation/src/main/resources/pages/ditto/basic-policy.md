@@ -59,25 +59,51 @@ When providing an `"expiry"` for a Policy subject, this timestamp is rounded up:
 Once an expired subject is deleted, it will immediately no longer have access to the resources protected by the policy
 it was deleted from.
 
-### Token integration subjects
+## Actions
+
+Policy actions are available via Ditto's [HTTP API](httpapi-overview.html) and can be invoked for certain 
+[policy entries](#model-specification) or for complete policies.
+
+They require neither `READ` nor `WRITE` permission, but instead a granted `EXECUTE` permission on the specific action
+name, e.g. for a single policy entry:
+* `policy:/entries/{label}/actions/{actionName}`
+
+### Action activateTokenIntegration
 
 When authenticated using OpenID Connect, it is possible to inject a subject into policies that expires when
-the JSON web token expires. The form of the injected subject (i. e., token integration subject) is configurable.
-A user is authorized to inject the token integration subject when granted the `EXECUTE` permission on a policy entry.
-The `WRITE` permission is not necessary. To activate or deactivate a token integration subject, send a POST request
-to the following HTTP routes:
+the Json Web Token (JWT) expires. The form of the injected subject (i.e., token integration subject) is configurable in
+the Ditto installation.
 
-- [POST /api/2/policies/{policy-id}/actions/activateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__actions_activateTokenIntegration)<br/>
-  Inject token integration subjects into all policy entries for which the user has the `EXECUTE` permission.
-- [POST /api/2/policies/{policy-id}/actions/deactivateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__actions_deactivateTokenIntegration)<br/>
-  Remove token integration subjects from all policy entries for which the user has the `EXECUTE` permission.
-- [POST /api/2/policies/{policy-id}/entries/{label}/actions/activateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__entries__label__actions_activateTokenIntegration)<br/>
-  Inject the token integration subject into 1 policy entry.
-- [POST /api/2/policies/{policy-id}/entries/{label}/actions/deactivateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__entries__label__actions_deactivateTokenIntegration)<br/>
-  Remove the token integration subject from 1 policy entry.
+A user is authorized to inject the token integration subject when granted the `EXECUTE` permission on a policy entry.  
+The `WRITE` permission is not necessary. To activate or deactivate a token integration subject, send a `POST` 
+request to the following HTTP routes:
 
-The action `activateTokenIntegration` only injects the token integration subject into policy entries containing
-a granted `READ` permission for a thing resource path.
+- [POST /api/2/policies/{policyId}/actions/activateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__actions_activateTokenIntegration)<br/>
+  Inject a new subject **into the matched policy entry** calculated with information extracted from the authenticated 
+  JWT. 
+   - the authenticated token must be granted the `EXECUTE` permission to perform the `activateTokenIntegration` action
+   - one of the subject IDs must be contained in the authenticated token
+   - at least one `READ` permission to a `thing:/` resource path must be granted
+- [POST /api/2/policies/{policyId}/actions/deactivateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__actions_deactivateTokenIntegration)<br/>
+  Remove the calculated subject with information extracted from the authenticated JWT **from the matched policy entry**. 
+   - the authenticated token must be granted the `EXECUTE` permission to perform the `deactivateTokenIntegration` action
+   - one of the subject IDs must be contained in the authenticated token 
+- [POST /api/2/policies/{policyId}/entries/{label}/actions/activateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__entries__label__actions_activateTokenIntegration)<br/>
+  Inject the calculated subject **into the policy entry** calculated with information extracted from the authenticated JWT.
+   - the authenticated token must be granted the `EXECUTE` permission to perform the `activateTokenIntegration` action
+   - one of the subject IDs must be contained in the authenticated token
+   - at least one `READ` permission to a `thing:/` resource path must be granted
+- [POST /api/2/policies/{policyId}/entries/{label}/actions/deactivateTokenIntegration](/http-api-doc.html#/Policies/post_policies__policyId__entries__label__actions_deactivateTokenIntegration)<br/>
+  Remove the calculated subject with information extracted from the authenticated JWT **from the policy entry**.
+   - the authenticated token must be granted the `EXECUTE` permission to perform the `deactivateTokenIntegration` action
+   - one of the subject IDs must be contained in the authenticated token
+
+The injected subject pattern is configurable in Ditto and is by default:
+```
+{%raw%}
+{{jwt:iss}}:{{policy-entry:label}}:{{jwt:sub}}
+{%endraw%}
+```
 
 To configure the token integration subject, set the path
 ```
@@ -94,12 +120,13 @@ ditto.gateway.authentication.oauth.token-integration-subject =
 {%endraw%}
 ```
 
-The [placeholders](basic-placeholders.html) below are usable as a part of the `token-integration-subject` configuration:
+The [placeholders](basic-placeholders.html) below are usable as a part of the `activateTokenIntegration` configuration:
 
 | Placeholder    |  Description   |
 |----------------|----------------|
+| `{%raw%}{{ header:<header-name> }}{%endraw%}` | HTTP header values passed along the HTTP action request |
+| `{%raw%}{{ jwt:<jwt-body-claim> }}{%endraw%}` | any standard or custom claims in the body of the JWT - e.g., `jwt:sub` for the JWT "subject" |
 | `{%raw%}{{ policy-entry:label }}{%endraw%}` | label of the policy entry in which the token integration subject is injected |
-| `{%raw%}{{ jwt:<jwt-body-claim> }}{%endraw%}` | any standard or custom claims in the body of the JSON web token, e.g., `jwt:sub` |
 
 
 ## Which Resources can be controlled?
@@ -211,8 +238,10 @@ The [Things example at the end of the page](basic-policy.html#example) also defi
 |--------|------------|-------------|
 | grant  | READ       | All subjects named in the section are granted _read_ permission on the resources specified in the path, and all nested paths, except they are revoked at a deeper level, or another policy entry (label). |
 | grant  | WRITE      | All subjects named in the section are granted _write_ permission on the resources specified in the path, and all nested paths, except they are revoked at a deeper level, or another policy entry (label). |
+| grant  | EXECUTE    | All subjects named in the section are granted _execute_ permission on the resources specified in the path, and all nested paths, except they are revoked at a deeper level, or another policy entry (label). |
 | revoke | READ       | All subjects named in the section are _prohibited to read_ on the resources specified in the path, and all nested paths, except they are granted again such permission at a deeper level, or another policy entry (label). |
 | revoke | WRITE      | All subjects named in the section are _prohibited to write_ on the resources specified in the path, and all nested paths, except they are granted again such permission at a deeper level, or another policy entry (label). |
+| revoke | EXECUTE    | All subjects named in the section are _prohibited to execute_ on the resources specified in the path, and all nested paths, except they are granted again such permission at a deeper level, or another policy entry (label). |
 
 
 ## Tools for editing a Policy

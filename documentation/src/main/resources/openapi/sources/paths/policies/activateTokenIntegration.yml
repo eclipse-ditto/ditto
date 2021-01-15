@@ -9,27 +9,34 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 post:
-  summary: Activate token integration subjects for this policy
+  summary: Activate subjects for this policy derived from the token
   description: |-
-    Only possible with JWT authentication.
-    For each entry the user is granted the EXECUTE permission and contains a READ permission granted to
-    a things resource path, inject a subject calculated according to the JWT with which the user is authenticated.
-    This subject is configurable.
+    **This action only works when authenticated with a Json Web Token (JWT).**
+
+    Based on the authenticated token (JWT), **for each policy entry** matching those conditions:
+    * the authenticated token is granted the `EXECUTE` permission to perform the `activateTokenIntegration` action
+    * one of the subject IDs is contained in the authenticated token
+    * at least one `READ` permission to a `thing:/` resource path is granted
+
+    a new subject is **injected into the matched policy entry** calculated with information extracted from the
+    authenticated JWT.
+
     The injected subjects expire when the JWT expires.
   tags:
     - Policies
   parameters:
     - $ref: '../../parameters/policyIdPathParam.yml'
   responses:
-    '200':
+    '204':
       description: The request was successful. Subjects were injected into authorized policy entries.
     '400':
-      description: The request could not be completed because the user did not authenticate itself with a JWT.
+      description: The request could not be completed because the authentication was not performed with a JWT.
     '403':
       description: |-
-        The request could not be completed because the user does not have the EXECUTE permission on any entries of
-        the policy.
+        The request could not be completed because the authenticated JWT did not have the `EXECUTE` permission on any
+        entries of the policy.
     '404':
       description: |-
-        The request could not be completed because no authorized policy entry contains a READ permission granted to
-        a thing resource path.
+        The request could not be completed because no policy entry matched the following conditions:
+        * containing a a subject ID matching the JWT's authenticated subject
+        * containing a `READ` permission granted to a `thing:/` resource path

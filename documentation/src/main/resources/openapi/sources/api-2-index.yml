@@ -111,7 +111,7 @@ paths:
     $ref: "./paths/policies/entry.yml"
   '/policies/{policyId}/entries/{label}/actions/activateTokenIntegration':
     $ref: "./paths/policies/activateTokenIntegrationForEntry.yml"
-  '/policies/{policyId}/entries/{label}/actions/deactivageTokenIntegration':
+  '/policies/{policyId}/entries/{label}/actions/deactivateTokenIntegration':
     $ref: "./paths/policies/deactivateTokenIntegrationForEntry.yml"
   '/policies/{policyId}/entries/{label}/subjects':
     $ref: "./paths/policies/subjects.yml"
