@@ -3927,7 +3927,7 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
   '/policies/{policyId}/entries/{label}/actions/activateTokenIntegration':
     post:
-      summary: Activate the subject for this policy entry derived from the token
+      summary: Activate a subject for this policy entry derived from the token
       description: |-
         **This action only works when authenticated with a Json Web Token (JWT).**
 
@@ -3961,7 +3961,7 @@ paths:
             * containing a `READ` permission granted to a `thing:/` resource path
   '/policies/{policyId}/entries/{label}/actions/deactivateTokenIntegration':
     post:
-      summary: Deactivate the subject for this policy entry derived from the token
+      summary: Deactivate a subject for this policy entry derived from the token
       description: |-
         **This action only works when authenticated with a Json Web Token (JWT).**
 

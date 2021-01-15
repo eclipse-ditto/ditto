@@ -9,7 +9,7 @@
 #
 # SPDX-License-Identifier: EPL-2.0
 post:
-  summary: Deactivate the subject for this policy entry derived from the token
+  summary: Deactivate a subject for this policy entry derived from the token
   description: |-
     **This action only works when authenticated with a Json Web Token (JWT).**
 
