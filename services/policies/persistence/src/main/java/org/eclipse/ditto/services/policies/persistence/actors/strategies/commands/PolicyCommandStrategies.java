@@ -45,8 +45,6 @@ public final class PolicyCommandStrategies
         addStrategy(new RetrievePolicyStrategy(policyConfig));
         addStrategy(new DeletePolicyStrategy(policyConfig));
         addStrategy(new TopLevelActionCommandStrategy(policyConfig, system));
-        addStrategy(this, new ActivatePolicyTokenIntegrationStrategy(policyConfig, system));
-        addStrategy(this, new DeactivatePolicyTokenIntegrationStrategy(policyConfig, system));
 
         // Policy Entries
         addStrategy(new ModifyPolicyEntriesStrategy(policyConfig));

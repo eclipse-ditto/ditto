@@ -39,7 +39,6 @@ import org.eclipse.ditto.services.policies.common.config.DefaultPolicyConfig;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
-import org.eclipse.ditto.signals.commands.policies.actions.ActivatePolicyTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.TopLevelActionCommand;
@@ -48,6 +47,7 @@ import org.eclipse.ditto.signals.events.policies.SubjectsDeletedPartially;
 import org.eclipse.ditto.signals.events.policies.SubjectsModifiedPartially;
 import org.junit.Before;
 import org.junit.Test;
+import org.mutabilitydetector.unittesting.AllowedReason;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -73,7 +73,9 @@ public final class TopLevelActionCommandStrategyTest extends AbstractPolicyComma
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(ActivatePolicyTokenIntegrationStrategy.class, areImmutable());
+        assertInstancesOf(TopLevelActionCommandStrategy.class, areImmutable(),
+                AllowedReason.assumingFields("policyActionCommandStrategyMap")
+                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test
@@ -207,7 +209,7 @@ public final class TopLevelActionCommandStrategyTest extends AbstractPolicyComma
         final Policy policy = TestConstants.Policy.POLICY.toBuilder()
                 .setSubjectFor(LABEL, PoliciesModelFactory.newSubject(expectedSubjectId,
                         PoliciesModelFactory.newSubjectType(MessageFormat.format("via action <{0}>",
-                                ActivatePolicyTokenIntegration.NAME)),
+                                ActivateTokenIntegration.NAME)),
                         SubjectExpiry.newInstance(Instant.now().plus(Duration.ofDays(1L)))))
                 .build();
         assertModificationResult(underTest, policy, command,
