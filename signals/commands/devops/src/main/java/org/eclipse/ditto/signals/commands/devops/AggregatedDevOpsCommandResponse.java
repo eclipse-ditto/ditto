@@ -134,6 +134,7 @@ public final class AggregatedDevOpsCommandResponse
      * @param httpStatus the HTTP status to send back as response status.
      * @param dittoHeaders the headers of the request.
      * @return the new RetrieveLoggerConfigResponse response.
+     * @since 2.0.0
      */
     public static AggregatedDevOpsCommandResponse of(final JsonObject aggregatedResponses,
             final String responsesType,

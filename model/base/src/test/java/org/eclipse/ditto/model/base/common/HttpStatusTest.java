@@ -71,6 +71,11 @@ public final class HttpStatusTest {
     }
 
     @Test
+    public void tryToGetInstanceWithCustomCode() throws HttpStatusCodeOutOfRangeException {
+        HttpStatus.getInstance(219);
+    }
+
+    @Test
     public void informationalHttpStatusIsOnlyInformational() {
         try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
             final HttpStatus underTest = HttpStatus.PROCESSING;

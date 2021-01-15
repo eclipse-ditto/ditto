@@ -24,7 +24,7 @@ import javax.annotation.concurrent.Immutable;
 /**
  * Represents a HTTP status. This class provides constants of itself for
  * <a href="https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml">all assigned HTTP status codes.</a>
- * Additionally it allows to create instances for unassigned HTTP status codes as long as they are withing the valid
+ * Additionally it allows to create instances for unassigned HTTP status codes as long as they are within the valid
  * bounds.
  *
  * @since 2.0.0
