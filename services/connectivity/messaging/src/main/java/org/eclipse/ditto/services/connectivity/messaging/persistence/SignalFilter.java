@@ -94,12 +94,12 @@ public final class SignalFilter {
                 .filter(t -> isTargetAuthorized(t, signal)) // this is cheaper, so check this first
                 .filter(t -> isTargetSubscribedForTopicGenerally(t, signal))
                 // count authorized targets which generally are interested in the topic (e.g. "live messages")
-                .peek(authorizedTarget -> connectionMonitorRegistry.forOutboundDispatched(connection.getId(),
+                .peek(authorizedTarget -> connectionMonitorRegistry.forOutboundDispatched(connection,
                         authorizedTarget.getAddress())
                         .success(signal))
                 .filter(t -> isTargetSubscribedForTopicWithFiltering(t, signal))
                 // count authorized + filtered targets
-                .peek(filteredTarget -> connectionMonitorRegistry.forOutboundFiltered(connection.getId(),
+                .peek(filteredTarget -> connectionMonitorRegistry.forOutboundFiltered(connection,
                         filteredTarget.getAddress())
                         .success(signal))
                 .collect(Collectors.toList());

@@ -16,6 +16,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -53,7 +54,10 @@ import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.utils.akka.controlflow.TimeMeasuringFlow;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -85,6 +89,7 @@ import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
 import akka.stream.QueueOfferResult;
 import akka.stream.UniqueKillSwitch;
+import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -108,6 +113,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final String LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE =
             "Live response of type <%s> is not of expected type <%s>.";
+    private static final String TOO_MANY_IN_FLIGHT_MESSAGE_DESCRIPTION = "This can have the following reasons:\n" +
+            "a) The HTTP endpoint does not consume the messages fast enough.\n" +
+            "b) The client count and/or the parallelism of this connection is not configured high enough.";
 
     private final HttpPushFactory factory;
 
@@ -121,12 +129,23 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         this.factory = factory;
 
         final HttpPushConfig config = connectionConfig.getHttpPushConfig();
+        final PreparedTimer timer = DittoMetrics.timer("http_publish_request_time")
+                .tag("id", connection.getId().toString());
 
         materializer = Materializer.createMaterializer(this::getContext);
+
+
+        final Sink<Duration, CompletionStage<Done>> logRequestTimes = Sink.<Duration>foreach(duration -> {
+            connectionLogger.success("HTTP request took <{0}> ms.", duration.toMillis());
+        });
+        final Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?>
+                performHttpRequestFlow = factory.createFlow(getContext().getSystem(), logger);
+        final Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?>
+                timedHttpRequestFlow = TimeMeasuringFlow.measureTimeOf(performHttpRequestFlow, timer, logRequestTimes);
         final Pair<Pair<SourceQueueWithComplete<Pair<HttpRequest, HttpPushContext>>, UniqueKillSwitch>,
                 CompletionStage<Done>> materialized =
                 Source.<Pair<HttpRequest, HttpPushContext>>queue(config.getMaxQueueSize(), OverflowStrategy.dropNew())
-                        .viaMat(factory.createFlow(getContext().getSystem(), logger), Keep.left())
+                        .viaMat(timedHttpRequestFlow, Keep.left())
                         .viaMat(KillSwitches.single(), Keep.both())
                         .toMat(Sink.foreach(HttpPublisherActor::processResponse), Keep.both())
                         .run(materializer);
@@ -228,8 +247,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             } else if (Objects.equals(queueOfferResult, QueueOfferResult.dropped())) {
                 resultFuture.completeExceptionally(MessageSendingFailedException.newBuilder()
                         .message("Outgoing HTTP request aborted: There are too many in-flight requests.")
-                        .description("Please improve the performance of the HTTP server " +
-                                "or reduce the rate of outgoing signals.")
+                        .description(TOO_MANY_IN_FLIGHT_MESSAGE_DESCRIPTION)
                         .dittoHeaders(message.getInternalHeaders())
                         .build());
             }

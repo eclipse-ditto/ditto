@@ -27,6 +27,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.ResponseType;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.HeaderMapping;
@@ -65,13 +66,13 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
     final CountDownLatch confirmLatch = new CountDownLatch(1);
 
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
-    private static final MqttSpecificConfig SPECIFIC_CONFIG =
-            MqttSpecificConfig.fromConnection(TestConstants.createConnection(CONNECTION_ID));
+    private static final Connection CONNECTION = TestConstants.createConnection(CONNECTION_ID);
+    private static final MqttSpecificConfig SPECIFIC_CONFIG = MqttSpecificConfig.fromConnection(CONNECTION);
 
     @Override
     protected Props getConsumerActorProps(final ActorRef mappingActor,
             final Set<AcknowledgementRequest> acknowledgementRequests) {
-        return HiveMqtt5ConsumerActor.props(CONNECTION_ID, mappingActor, ConnectivityModelFactory.newSourceBuilder()
+        return HiveMqtt5ConsumerActor.props(CONNECTION, mappingActor, ConnectivityModelFactory.newSourceBuilder()
                 .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                 .enforcement(ENFORCEMENT)
                 .headerMapping(MQTT5_HEADER_MAPPING)
@@ -102,7 +103,7 @@ public final class HiveMqtt5ConsumerActorTest extends AbstractConsumerActorTest<
 
     @Override
     protected Props getConsumerActorProps(final ActorRef mappingActor, final PayloadMapping payloadMapping) {
-        return HiveMqtt5ConsumerActor.props(CONNECTION_ID, mappingActor, ConnectivityModelFactory.newSourceBuilder()
+        return HiveMqtt5ConsumerActor.props(CONNECTION, mappingActor, ConnectivityModelFactory.newSourceBuilder()
                 .authorizationContext(TestConstants.Authorization.AUTHORIZATION_CONTEXT)
                 .enforcement(ENFORCEMENT)
                 .headerMapping(MQTT5_HEADER_MAPPING)
