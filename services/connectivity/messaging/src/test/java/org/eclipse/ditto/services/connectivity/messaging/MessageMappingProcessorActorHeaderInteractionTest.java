@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -84,8 +84,8 @@ public final class MessageMappingProcessorActorHeaderInteractionTest extends Abs
             final ActorRef inboundMappingProcessorActor =
                     createInboundMappingProcessorActor(this, outboundMappingProcessorActor);
             final ModifyThing modifyThing = getModifyThing();
-            final Optional<HttpStatusCode> expectedStatusCode = getExpectedOutcome();
-            final boolean isBadRequest = expectedStatusCode.filter(HttpStatusCode.BAD_REQUEST::equals).isPresent();
+            final Optional<HttpStatus> expectedStatusCode = getExpectedOutcome();
+            final boolean isBadRequest = expectedStatusCode.filter(HttpStatus.BAD_REQUEST::equals).isPresent();
             final boolean settleImmediately = modifyThing.getDittoHeaders().getAcknowledgementRequests().isEmpty();
 
             inboundMappingProcessorActor.tell(toExternalMessage(modifyThing), collectorProbe.ref());
@@ -120,8 +120,8 @@ public final class MessageMappingProcessorActorHeaderInteractionTest extends Abs
                 // check published response for expected status
                 final BaseClientActor.PublishMappedMessage publish =
                         expectMsgClass(BaseClientActor.PublishMappedMessage.class);
-                final HttpStatusCode publishedStatusCode =
-                        ((CommandResponse<?>) publish.getOutboundSignal().getSource()).getStatusCode();
+                final HttpStatus publishedStatusCode =
+                        ((CommandResponse<?>) publish.getOutboundSignal().getSource()).getHttpStatus();
                 assertThat(publishedStatusCode).isEqualTo(expectedStatusCode.get());
             } else {
                 // check that no response is published
@@ -146,11 +146,11 @@ public final class MessageMappingProcessorActorHeaderInteractionTest extends Abs
                 .setDittoHeaders(modifyThing.getDittoHeaders()); // use setDittoHeaders to lose concrete exception type
     }
 
-    private Optional<HttpStatusCode> getExpectedOutcome() {
-        final Optional<HttpStatusCode> status;
-        final HttpStatusCode successCode = HttpStatusCode.NO_CONTENT;
-        final HttpStatusCode errorCode = HttpStatusCode.NOT_FOUND;
-        final HttpStatusCode badRequest = HttpStatusCode.BAD_REQUEST;
+    private Optional<HttpStatus> getExpectedOutcome() {
+        final Optional<HttpStatus> status;
+        final HttpStatus successCode = HttpStatus.NO_CONTENT;
+        final HttpStatus errorCode = HttpStatus.NOT_FOUND;
+        final HttpStatus badRequest = HttpStatus.BAD_REQUEST;
         if (timeout.isZero()) {
             status = (responseRequired || !requestedAcks.isEmpty()) ? Optional.of(badRequest) : Optional.empty();
         } else {

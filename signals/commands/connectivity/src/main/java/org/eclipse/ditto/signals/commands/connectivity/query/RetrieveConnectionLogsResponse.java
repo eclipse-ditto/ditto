@@ -39,7 +39,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -71,10 +71,13 @@ public final class RetrieveConnectionLogsResponse
     @Nullable private final Instant enabledSince;
     @Nullable private final Instant enabledUntil;
 
-    private RetrieveConnectionLogsResponse(final ConnectionId connectionId, final Collection<LogEntry> connectionLogs,
-            @Nullable final Instant enabledSince, @Nullable final Instant enabledUntil,
+    private RetrieveConnectionLogsResponse(final ConnectionId connectionId,
+            final Collection<LogEntry> connectionLogs,
+            @Nullable final Instant enabledSince,
+            @Nullable final Instant enabledUntil,
             final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+
+        super(TYPE, HttpStatus.OK, dittoHeaders);
 
         this.connectionId = connectionId;
         this.connectionLogs = Collections.unmodifiableList(new ArrayList<>(connectionLogs));
@@ -105,7 +108,7 @@ public final class RetrieveConnectionLogsResponse
     }
 
     /**
-     * Merges the passed in {@link RetrieveConnectionLogsResponse}s into each other returning a new {@link
+     * Merges the passed in {@code RetrieveConnectionLogsResponse}s into each other returning a new {@link
      * RetrieveConnectionLogsResponse} containing the merged information. The result will contain all logs of each
      * response, the connection id and the ditto headers of the first response, as well as the timestamps of the first
      * response (or {@code null} if they don't exist).
@@ -118,7 +121,7 @@ public final class RetrieveConnectionLogsResponse
             final RetrieveConnectionLogsResponse first,
             final RetrieveConnectionLogsResponse second) {
 
-        final List<LogEntry> mergedEntries = new ArrayList<>();
+        final Collection<LogEntry> mergedEntries = new ArrayList<>();
         mergedEntries.addAll(first.getConnectionLogs());
         mergedEntries.addAll(second.getConnectionLogs());
 
@@ -157,12 +160,14 @@ public final class RetrieveConnectionLogsResponse
      */
     public static RetrieveConnectionLogsResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return new CommandResponseJsonDeserializer<RetrieveConnectionLogsResponse>(TYPE, jsonObject).deserialize(
-                statusCode -> getRetrieveConnectionLogsResponse(jsonObject, dittoHeaders));
+                httpStatus -> getRetrieveConnectionLogsResponse(jsonObject, dittoHeaders));
     }
 
     private static RetrieveConnectionLogsResponse getRetrieveConnectionLogsResponse(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         final String readConnectionId =
                 jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
         final ConnectionId connectionId = ConnectionId.of(readConnectionId);

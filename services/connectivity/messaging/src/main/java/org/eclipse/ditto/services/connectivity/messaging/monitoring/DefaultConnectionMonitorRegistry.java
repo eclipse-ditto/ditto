@@ -71,128 +71,128 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
     }
 
     @Override
-    public ConnectionMonitor forOutboundDispatched(final ConnectionId connectionId, final String target) {
+    public ConnectionMonitor forOutboundDispatched(final Connection connection, final String target) {
         return DefaultConnectionMonitor.builder(
-                connectionCounterRegistry.forOutboundDispatched(connectionId, target),
-                connectionLoggerRegistry.forOutboundDispatched(connectionId, target))
+                connectionCounterRegistry.forOutboundDispatched(connection, target),
+                connectionLoggerRegistry.forOutboundDispatched(connection, target))
                 .build();
     }
 
     @Override
-    public ConnectionMonitor forOutboundAcknowledged(final ConnectionId connectionId, final String target) {
+    public ConnectionMonitor forOutboundAcknowledged(final Connection connection, final String target) {
         return DefaultConnectionMonitor.builder(
-                connectionCounterRegistry.forOutboundAcknowledged(connectionId, target),
-                connectionLoggerRegistry.forOutboundAcknowledged(connectionId, target))
+                connectionCounterRegistry.forOutboundAcknowledged(connection, target),
+                connectionLoggerRegistry.forOutboundAcknowledged(connection, target))
                 .build();
     }
 
     @Override
-    public ConnectionMonitor forOutboundFiltered(final ConnectionId connectionId, final String target) {
+    public ConnectionMonitor forOutboundFiltered(final Connection connection, final String target) {
         return DefaultConnectionMonitor.builder(
-                connectionCounterRegistry.forOutboundFiltered(connectionId, target),
-                connectionLoggerRegistry.forOutboundFiltered(connectionId, target))
+                connectionCounterRegistry.forOutboundFiltered(connection, target),
+                connectionLoggerRegistry.forOutboundFiltered(connection, target))
                 .build();
     }
 
     @Override
-    public ConnectionMonitor forOutboundPublished(final ConnectionId connectionId, final String target) {
+    public ConnectionMonitor forOutboundPublished(final Connection connection, final String target) {
         return DefaultConnectionMonitor.builder(
-                connectionCounterRegistry.forOutboundPublished(connectionId, target),
-                connectionLoggerRegistry.forOutboundPublished(connectionId, target))
+                connectionCounterRegistry.forOutboundPublished(connection, target),
+                connectionLoggerRegistry.forOutboundPublished(connection, target))
                 .build();
     }
 
     @Override
-    public ConnectionMonitor forOutboundDropped(final ConnectionId connectionId, final String target) {
+    public ConnectionMonitor forOutboundDropped(final Connection connection, final String target) {
         return DefaultConnectionMonitor.builder(
-                connectionCounterRegistry.forOutboundDropped(connectionId, target),
-                connectionLoggerRegistry.forOutboundDropped(connectionId, target))
+                connectionCounterRegistry.forOutboundDropped(connection, target),
+                connectionLoggerRegistry.forOutboundDropped(connection, target))
                 .build();
     }
 
     @Override
-    public ConnectionMonitor forInboundConsumed(final ConnectionId connectionId, final String source) {
+    public ConnectionMonitor forInboundConsumed(final Connection connection, final String source) {
         return DefaultConnectionMonitor.builder(
-                connectionCounterRegistry.forInboundConsumed(connectionId, source),
-                connectionLoggerRegistry.forInboundConsumed(connectionId, source))
+                connectionCounterRegistry.forInboundConsumed(connection, source),
+                connectionLoggerRegistry.forInboundConsumed(connection, source))
                 .build();
     }
 
     @Override
-    public ConnectionMonitor forInboundAcknowledged(final ConnectionId connectionId, final String source) {
+    public ConnectionMonitor forInboundAcknowledged(final Connection connection, final String source) {
         return DefaultConnectionMonitor.builder(
-                connectionCounterRegistry.forInboundAcknowledged(connectionId, source),
-                connectionLoggerRegistry.forInboundAcknowledged(connectionId, source))
+                connectionCounterRegistry.forInboundAcknowledged(connection, source),
+                connectionLoggerRegistry.forInboundAcknowledged(connection, source))
                 .build();
     }
 
     @Override
-    public ConnectionMonitor forInboundMapped(final ConnectionId connectionId, final String source) {
+    public ConnectionMonitor forInboundMapped(final Connection connection, final String source) {
         return DefaultConnectionMonitor.builder(
-                connectionCounterRegistry.forInboundMapped(connectionId, source),
-                connectionLoggerRegistry.forInboundMapped(connectionId, source))
+                connectionCounterRegistry.forInboundMapped(connection, source),
+                connectionLoggerRegistry.forInboundMapped(connection, source))
                 .build();
     }
 
     @Override
-    public ConnectionMonitor forInboundEnforced(final ConnectionId connectionId, final String source) {
+    public ConnectionMonitor forInboundEnforced(final Connection connection, final String source) {
         return DefaultConnectionMonitor.builder(
-                connectionCounterRegistry.forInboundEnforced(connectionId, source),
-                connectionLoggerRegistry.forInboundEnforced(connectionId, source))
+                connectionCounterRegistry.forInboundEnforced(connection, source),
+                connectionLoggerRegistry.forInboundEnforced(connection, source))
                 .build();
     }
 
     @Override
-    public ConnectionMonitor forInboundDropped(final ConnectionId connectionId, final String source) {
+    public ConnectionMonitor forInboundDropped(final Connection connection, final String source) {
         return DefaultConnectionMonitor.builder(
-                connectionCounterRegistry.forInboundDropped(connectionId, source),
-                connectionLoggerRegistry.forInboundDropped(connectionId, source))
+                connectionCounterRegistry.forInboundDropped(connection, source),
+                connectionLoggerRegistry.forInboundDropped(connection, source))
                 .build();
     }
 
     @Override
-    public ConnectionMonitor forResponseDispatched(final ConnectionId connectionId) {
+    public ConnectionMonitor forResponseDispatched(final Connection connection) {
         return DefaultConnectionMonitor.builder(
-                connectionCounterRegistry.forResponseDispatched(connectionId),
-                connectionLoggerRegistry.forResponseDispatched(connectionId))
+                connectionCounterRegistry.forResponseDispatched(connection),
+                connectionLoggerRegistry.forResponseDispatched(connection))
                 .build();
     }
 
     @Override
-    public ConnectionMonitor forResponseDropped(final ConnectionId connectionId) {
+    public ConnectionMonitor forResponseDropped(final Connection connection) {
         return DefaultConnectionMonitor.builder(
-                connectionCounterRegistry.forResponseDropped(connectionId),
-                connectionLoggerRegistry.forResponseDropped(connectionId))
+                connectionCounterRegistry.forResponseDropped(connection),
+                connectionLoggerRegistry.forResponseDropped(connection))
                 .build();
     }
 
     @Override
-    public ConnectionMonitor forResponseMapped(final ConnectionId connectionId) {
+    public ConnectionMonitor forResponseMapped(final Connection connection) {
         return DefaultConnectionMonitor.builder(
-                connectionCounterRegistry.forResponseMapped(connectionId),
-                connectionLoggerRegistry.forResponseMapped(connectionId))
+                connectionCounterRegistry.forResponseMapped(connection),
+                connectionLoggerRegistry.forResponseMapped(connection))
                 .build();
     }
 
     @Override
-    public ConnectionMonitor forResponsePublished(final ConnectionId connectionId) {
+    public ConnectionMonitor forResponsePublished(final Connection connection) {
         return DefaultConnectionMonitor.builder(
-                connectionCounterRegistry.forResponsePublished(connectionId),
-                connectionLoggerRegistry.forResponsePublished(connectionId))
+                connectionCounterRegistry.forResponsePublished(connection),
+                connectionLoggerRegistry.forResponsePublished(connection))
                 .build();
     }
 
     @Override
-    public ConnectionMonitor forResponseAcknowledged(final ConnectionId connectionId) {
+    public ConnectionMonitor forResponseAcknowledged(final Connection connection) {
         return DefaultConnectionMonitor.builder(
-                connectionCounterRegistry.forResponseAcknowledged(connectionId),
-                connectionLoggerRegistry.forResponseAcknowledged(connectionId))
+                connectionCounterRegistry.forResponseAcknowledged(connection),
+                connectionLoggerRegistry.forResponseAcknowledged(connection))
                 .build();
     }
 
     /**
      * Retrieve a specific monitor.
-     * @param connectionId the connection.
+     * @param connection the connection.
      * @param metricType type of the metrics counter.
      * @param metricDirection direction of the metrics counter.
      * @param logType type of the logger.
@@ -200,12 +200,12 @@ public final class DefaultConnectionMonitorRegistry implements ConnectionMonitor
      * @param address address.
      * @return the specific monitor.
      */
-    public ConnectionMonitor getMonitor(final ConnectionId connectionId, final MetricType metricType,
+    public ConnectionMonitor getMonitor(final Connection connection, final MetricType metricType,
             final MetricDirection metricDirection, final LogType logType, final LogCategory logCategory,
             final String address) {
         return DefaultConnectionMonitor.builder(
-                connectionCounterRegistry.getCounter(connectionId, metricType, metricDirection, address),
-                connectionLoggerRegistry.getLogger(connectionId, logCategory, logType, address))
+                connectionCounterRegistry.getCounter(connection, metricType, metricDirection, address),
+                connectionLoggerRegistry.getLogger(connection.getId(), logCategory, logType, address))
                 .build();
     }
 

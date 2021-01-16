@@ -40,7 +40,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -646,7 +646,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             // Acknowledgement
             final AcknowledgementLabel label = AcknowledgementLabel.of("label");
             final Acknowledgement acknowledgement =
-                    Acknowledgement.of(label, KNOWN_THING_ID, HttpStatusCode.BAD_REQUEST,
+                    Acknowledgement.of(label, KNOWN_THING_ID, HttpStatus.BAD_REQUEST,
                             DittoHeaders.empty(), JsonValue.of("payload"));
             inboundMappingProcessorActor.tell(toExternalMessage(acknowledgement), sender.ref());
             final Acknowledgement receivedAck = (Acknowledgement) expectMsgClass(InboundSignal.class).getSignal();
@@ -690,7 +690,7 @@ public final class MessageMappingProcessorActorTest extends AbstractMessageMappi
             // from a source with reply-target and without declared-acks
             final AcknowledgementLabel label = AcknowledgementLabel.of("label");
             final Acknowledgement acknowledgement =
-                    Acknowledgement.of(label, KNOWN_THING_ID, HttpStatusCode.BAD_REQUEST,
+                    Acknowledgement.of(label, KNOWN_THING_ID, HttpStatus.BAD_REQUEST,
                             DittoHeaders.newBuilder()
                                     .replyTarget(0)
                                     .expectedResponseTypes(ResponseType.ERROR)

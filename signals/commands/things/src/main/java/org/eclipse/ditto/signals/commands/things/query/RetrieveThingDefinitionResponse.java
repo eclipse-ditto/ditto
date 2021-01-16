@@ -27,7 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -46,8 +46,7 @@ import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 @Immutable
 @JsonParsableCommandResponse(type = RetrieveThingDefinitionResponse.TYPE)
 public final class RetrieveThingDefinitionResponse extends AbstractCommandResponse<RetrieveThingDefinitionResponse>
-        implements
-        ThingQueryCommandResponse<RetrieveThingDefinitionResponse> {
+        implements ThingQueryCommandResponse<RetrieveThingDefinitionResponse> {
 
     /**
      * Type of this response.
@@ -60,9 +59,12 @@ public final class RetrieveThingDefinitionResponse extends AbstractCommandRespon
     private final ThingId thingId;
     private final ThingDefinition definition;
 
-    private RetrieveThingDefinitionResponse(final ThingId thingId, final HttpStatusCode statusCode,
-            final ThingDefinition definition, final DittoHeaders dittoHeaders) {
-        super(TYPE, statusCode, dittoHeaders);
+    private RetrieveThingDefinitionResponse(final ThingId thingId,
+            final HttpStatus httpStatus,
+            final ThingDefinition definition,
+            final DittoHeaders dittoHeaders) {
+
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thing ID");
         this.definition = checkNotNull(definition, "definition is null");
     }
@@ -79,7 +81,8 @@ public final class RetrieveThingDefinitionResponse extends AbstractCommandRespon
      */
     public static RetrieveThingDefinitionResponse of(final ThingId thingId, final ThingDefinition definition,
             final DittoHeaders dittoHeaders) {
-        return new RetrieveThingDefinitionResponse(thingId, HttpStatusCode.OK, definition, dittoHeaders);
+
+        return new RetrieveThingDefinitionResponse(thingId, HttpStatus.OK, definition, dittoHeaders);
     }
 
     /**
@@ -89,7 +92,7 @@ public final class RetrieveThingDefinitionResponse extends AbstractCommandRespon
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -99,19 +102,21 @@ public final class RetrieveThingDefinitionResponse extends AbstractCommandRespon
     }
 
     /**
-     * Creates a response to a {@link org.eclipse.ditto.signals.commands.things.query.RetrieveThingDefinition} command from a JSON object.
+     * Creates a response to a {@link org.eclipse.ditto.signals.commands.things.query.RetrieveThingDefinition} command
+     * from a JSON object.
      *
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
     public static RetrieveThingDefinitionResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveThingDefinitionResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+
+        return new CommandResponseJsonDeserializer<RetrieveThingDefinitionResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
                     final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
@@ -159,8 +164,8 @@ public final class RetrieveThingDefinitionResponse extends AbstractCommandRespon
 
     @Override
     public RetrieveThingDefinitionResponse setEntity(final JsonValue entity) {
-        if (entity.asString().isEmpty()){
-            return  of(thingId, ThingsModelFactory.nullDefinition(), getDittoHeaders());
+        if (entity.asString().isEmpty()) {
+            return of(thingId, ThingsModelFactory.nullDefinition(), getDittoHeaders());
         }
         return of(thingId, ThingsModelFactory.newDefinition(entity.asString()), getDittoHeaders());
     }
@@ -178,6 +183,7 @@ public final class RetrieveThingDefinitionResponse extends AbstractCommandRespon
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, String.valueOf(thingId), predicate);
         if (definition.equals(ThingsModelFactory.nullDefinition())) {
@@ -189,7 +195,7 @@ public final class RetrieveThingDefinitionResponse extends AbstractCommandRespon
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof RetrieveThingDefinitionResponse);
+        return other instanceof RetrieveThingDefinitionResponse;
     }
 
     @Override
@@ -201,8 +207,8 @@ public final class RetrieveThingDefinitionResponse extends AbstractCommandRespon
             return false;
         }
         final RetrieveThingDefinitionResponse that = (RetrieveThingDefinitionResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(definition, that.definition) && super.equals(o);
+        return that.canEqual(this) && Objects.equals(thingId, that.thingId) &&
+                Objects.equals(definition, that.definition) && super.equals(o);
     }
 
     @Override

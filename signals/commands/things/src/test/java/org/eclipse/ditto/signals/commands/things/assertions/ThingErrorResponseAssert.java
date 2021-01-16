@@ -14,7 +14,7 @@ package org.eclipse.ditto.signals.commands.things.assertions;
 
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.base.assertions.WithDittoHeadersChecker;
@@ -54,8 +54,8 @@ public class ThingErrorResponseAssert extends AbstractAssert<ThingErrorResponseA
         return assertThatEquals(actual.getType(), expectedType, "type");
     }
 
-    public ThingErrorResponseAssert hasStatusCode(final HttpStatusCode expectedStatusCode) {
-        return assertThatEquals(actual.getStatusCode(), expectedStatusCode, "HTTP status code");
+    public ThingErrorResponseAssert hasStatus(final HttpStatus expectedStatus) {
+        return assertThatEquals(actual.getHttpStatus(), expectedStatus, "HTTP status code");
     }
 
     public ThingErrorResponseAssert contains(final DittoRuntimeException expectedDittoRuntimeException) {

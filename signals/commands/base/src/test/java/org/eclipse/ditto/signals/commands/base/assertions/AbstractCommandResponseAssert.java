@@ -15,7 +15,7 @@ package org.eclipse.ditto.signals.commands.base.assertions;
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.assertions.AbstractJsonifiableAssert;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.base.assertions.WithDittoHeadersChecker;
@@ -92,12 +92,16 @@ public abstract class AbstractCommandResponseAssert<S extends AbstractCommandRes
         return myself;
     }
 
-    public S hasStatus(final HttpStatusCode expectedStatusCode) {
-        return assertThatEquals(actual.getStatusCode(), expectedStatusCode, "HTTP status");
+    /**
+     * @since 2.0.0
+     */
+    public S hasStatus(final HttpStatus expectedHttpStatus) {
+        return assertThatEquals(actual.getHttpStatus(), expectedHttpStatus, "HTTP status");
     }
 
     public S hasStatusCode(final int expectedStatusCodeValue) {
-        return assertThatEquals(actual.getStatusCodeValue(), expectedStatusCodeValue, "HTTP status code");
+        final HttpStatus actualHttpStatus = actual.getHttpStatus();
+        return assertThatEquals(actualHttpStatus.getCode(), expectedStatusCodeValue, "HTTP status code");
     }
 
     private <T> S assertThatEquals(final T actual, final T expected, final String propertyName) {

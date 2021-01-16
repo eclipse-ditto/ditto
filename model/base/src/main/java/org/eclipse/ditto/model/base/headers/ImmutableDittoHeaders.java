@@ -27,6 +27,10 @@ final class ImmutableDittoHeaders extends AbstractDittoHeaders implements DittoH
         super(headers);
     }
 
+    private ImmutableDittoHeaders(final Map<String, Header> headers, final boolean flag) {
+        super(headers, flag);
+    }
+
     /**
      * Returns an instance of {@code ImmutableDittoHeaders} which is based on the specified map.
      *
@@ -34,8 +38,12 @@ final class ImmutableDittoHeaders extends AbstractDittoHeaders implements DittoH
      * @return the instance.
      * @throws NullPointerException if {@code headers} is {@code null}.
      */
-    public static ImmutableDittoHeaders of(final Map<String, String> headers) {
+    static ImmutableDittoHeaders of(final Map<String, String> headers) {
         return new ImmutableDittoHeaders(headers);
+    }
+
+    static ImmutableDittoHeaders fromBuilder(final Map<String, Header> builderHeaders) {
+        return new ImmutableDittoHeaders(builderHeaders, true);
     }
 
     @Override

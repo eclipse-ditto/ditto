@@ -19,7 +19,7 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -44,7 +44,8 @@ public final class PublicKeyProviderUnavailableException extends DittoRuntimeExc
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.SERVICE_UNAVAILABLE, dittoHeaders, message, description, cause, href);
+
+        super(ERROR_CODE, HttpStatus.SERVICE_UNAVAILABLE, dittoHeaders, message, description, cause, href);
     }
 
     /**
@@ -89,8 +90,7 @@ public final class PublicKeyProviderUnavailableException extends DittoRuntimeExc
      * A mutable builder with a fluent API for a {@link PublicKeyProviderUnavailableException}.
      */
     @NotThreadSafe
-    public static final class Builder extends
-            DittoRuntimeExceptionBuilder<PublicKeyProviderUnavailableException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<PublicKeyProviderUnavailableException> {
 
         private Builder() {
             message(DEFAULT_MESSAGE);
@@ -103,9 +103,10 @@ public final class PublicKeyProviderUnavailableException extends DittoRuntimeExc
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new PublicKeyProviderUnavailableException(dittoHeaders, message, description, cause,
-                    href);
+
+            return new PublicKeyProviderUnavailableException(dittoHeaders, message, description, cause, href);
         }
+
     }
 
 }

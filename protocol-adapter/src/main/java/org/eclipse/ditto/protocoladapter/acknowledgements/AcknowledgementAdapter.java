@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabelExternalUseForbiddenException;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -64,6 +64,7 @@ final class AcknowledgementAdapter implements Adapter<Acknowledgement> {
 
     static AcknowledgementTopicPathBuilder getTopicPathBuilder(final TopicPath.Channel channel,
             final EntityIdWithType entityId) {
+
         final TopicPathBuilder topicPathBuilder = TopicPath.newBuilder(ThingId.of(entityId));
         if (TopicPath.Channel.TWIN == channel) {
             topicPathBuilder.twin();
@@ -80,7 +81,7 @@ final class AcknowledgementAdapter implements Adapter<Acknowledgement> {
         checkNotNull(adaptable, "adaptable");
         return ThingAcknowledgementFactory.newAcknowledgement(getAcknowledgementLabel(adaptable),
                 getThingId(adaptable),
-                getStatusCodeOrThrow(adaptable),
+                getHttpStatusOrThrow(adaptable),
                 adaptable.getDittoHeaders(),
                 getPayloadValueOrNull(adaptable));
     }
@@ -90,9 +91,9 @@ final class AcknowledgementAdapter implements Adapter<Acknowledgement> {
         return ThingId.of(topicPath.getNamespace(), topicPath.getId());
     }
 
-    private static HttpStatusCode getStatusCodeOrThrow(final Adaptable adaptable) {
+    private static HttpStatus getHttpStatusOrThrow(final Adaptable adaptable) {
         final Payload payload = adaptable.getPayload();
-        return payload.getStatus()
+        return payload.getHttpStatus()
                 .orElseThrow(() -> new JsonMissingFieldException(Payload.JsonFields.STATUS));
     }
 
@@ -166,7 +167,7 @@ final class AcknowledgementAdapter implements Adapter<Acknowledgement> {
 
     private static Payload getPayload(final Acknowledgement acknowledgement) {
         return Payload.newBuilder(JsonPointer.empty())
-                .withStatus(acknowledgement.getStatusCode())
+                .withStatus(acknowledgement.getHttpStatus())
                 .withValue(acknowledgement.getEntity(acknowledgement.getImplementedSchemaVersion())
                         .orElse(null))
                 .build();

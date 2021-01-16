@@ -20,7 +20,7 @@ import java.util.Objects;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.assertions.DittoBaseAssertions;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
@@ -32,7 +32,7 @@ import org.junit.Test;
 public class PolicyPreconditionFailedExceptionTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(DittoRuntimeException.JsonFields.STATUS, HttpStatusCode.PRECONDITION_FAILED.toInt())
+            .set(DittoRuntimeException.JsonFields.STATUS, HttpStatus.PRECONDITION_FAILED.getCode())
             .set(DittoRuntimeException.JsonFields.ERROR_CODE, PolicyPreconditionFailedException.ERROR_CODE)
             .set(DittoRuntimeException.JsonFields.MESSAGE,
                     TestConstants.Policy.POLICY_PRECONDITION_FAILED_EXCEPTION.getMessage())

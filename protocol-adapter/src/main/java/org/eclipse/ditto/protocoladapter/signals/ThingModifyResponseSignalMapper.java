@@ -24,8 +24,7 @@ final class ThingModifyResponseSignalMapper
         implements ResponseSignalMapper {
 
     @Override
-    void validate(final ThingModifyCommandResponse<?> commandResponse,
-            final TopicPath.Channel channel) {
+    void validate(final ThingModifyCommandResponse<?> commandResponse, final TopicPath.Channel channel) {
         final String responseName = commandResponse.getClass().getSimpleName().toLowerCase();
         if (!responseName.endsWith("response")) {
             throw UnknownCommandResponseException.newBuilder(responseName).build();
@@ -40,7 +39,9 @@ final class ThingModifyResponseSignalMapper
     @Override
     void enhancePayloadBuilder(final ThingModifyCommandResponse<?> commandResponse,
             final PayloadBuilder payloadBuilder) {
-        payloadBuilder.withStatus(commandResponse.getStatusCode());
+
+        payloadBuilder.withStatus(commandResponse.getHttpStatus());
         commandResponse.getEntity(commandResponse.getImplementedSchemaVersion()).ifPresent(payloadBuilder::withValue);
     }
+
 }

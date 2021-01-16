@@ -24,9 +24,10 @@ import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
@@ -73,13 +74,13 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
 
     @Nullable private ResourceStatus resourceStatus;
 
-    protected BaseConsumerActor(final ConnectionId connectionId, final String sourceAddress,
-            final ActorRef inboundMappingProcessor, final Source source, final ConnectionType connectionType) {
-        this.connectionId = checkNotNull(connectionId, "connectionId");
+    protected BaseConsumerActor(final Connection connection, final String sourceAddress,
+            final ActorRef inboundMappingProcessor, final Source source) {
+        this.connectionId = checkNotNull(connection, "connection").getId();
         this.sourceAddress = checkNotNull(sourceAddress, "sourceAddress");
         this.inboundMappingProcessor = checkNotNull(inboundMappingProcessor, "inboundMappingProcessor");
         this.source = checkNotNull(source, "source");
-        this.connectionType = checkNotNull(connectionType, "connectionType");
+        this.connectionType = connection.getConnectionType();
         resetResourceStatus();
 
         final ConnectivityConfig connectivityConfig = DittoConnectivityConfig.of(
@@ -88,11 +89,11 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
         acknowledgementConfig = connectivityConfig.getAcknowledgementConfig();
 
         inboundMonitor = DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig.getMonitoringConfig())
-                .forInboundConsumed(connectionId, sourceAddress);
+                .forInboundConsumed(connection, sourceAddress);
 
         inboundAcknowledgedMonitor =
                 DefaultConnectionMonitorRegistry.fromConfig(connectivityConfig.getMonitoringConfig())
-                        .forInboundAcknowledged(connectionId, sourceAddress);
+                        .forInboundAcknowledged(connection, sourceAddress);
     }
 
     /**
@@ -151,8 +152,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
                                 timer.tag(TracingTags.ACK_SUCCESS, true).stop();
                                 settle.run();
                             } else {
-                                final boolean shouldRedeliver =
-                                        requiresRedelivery(dittoRuntimeException.getStatusCode());
+                                final var shouldRedeliver = requiresRedelivery(dittoRuntimeException.getHttpStatus());
                                 log().debug("Rejecting [redeliver={}] due to error <{}>",
                                         shouldRedeliver, dittoRuntimeException);
                                 timer.tag(TracingTags.ACK_SUCCESS, false)
@@ -250,7 +250,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     private static boolean someFailedResponseRequiresRedelivery(final Collection<CommandResponse<?>> failedResponses) {
         return failedResponses.isEmpty() || failedResponses.stream()
                 .flatMap(BaseConsumerActor::extractAggregatedResponses)
-                .map(CommandResponse::getStatusCode)
+                .map(CommandResponse::getHttpStatus)
                 .anyMatch(BaseConsumerActor::requiresRedelivery);
     }
 
@@ -263,21 +263,18 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     }
 
     /**
-     * Decide whether an Acknowledgement or DittoRuntimeException requires redelivery based on the status code.
-     * Client errors excluding 408 request-timeout and 424 failed-dependency are considered unrecoverable
-     * and no redelivery will be attempted.
+     * Decide whether an Acknowledgement or DittoRuntimeException requires redelivery based on the status.
+     * Client errors excluding 408 request-timeout and 424 failed-dependency are considered unrecoverable and no
+     * redelivery will be attempted.
      *
-     * @param status Status code of the Acknowledgement or DittoRuntimeException.
+     * @param status HTTP status of the Acknowledgement or DittoRuntimeException.
      * @return whether it requires redelivery.
      */
-    private static boolean requiresRedelivery(final HttpStatusCode status) {
-        switch (status) {
-            case REQUEST_TIMEOUT:
-            case FAILED_DEPENDENCY:
-                return true;
-            default:
-                return status.isInternalError();
+    private static boolean requiresRedelivery(final HttpStatus status) {
+        if (HttpStatus.REQUEST_TIMEOUT.equals(status) || HttpStatus.FAILED_DEPENDENCY.equals(status)) {
+            return true;
         }
+        return status.isServerError();
     }
 
     /**
@@ -286,10 +283,10 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
      * All DittoRuntimeException with status 412 Precondition Failed are considered success.
      *
      * @param dittoRuntimeException the DittoRuntimeException.
-     * @return whether it is considered scucessful processing.
+     * @return whether it is considered successful processing.
      */
     private static boolean isConsideredSuccess(final DittoRuntimeException dittoRuntimeException) {
-        return dittoRuntimeException.getStatusCode() == HttpStatusCode.PRECONDITION_FAILED;
+        return HttpStatus.PRECONDITION_FAILED.equals(dittoRuntimeException.getHttpStatus());
     }
 
     /**
@@ -304,5 +301,7 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
          * @param shouldRedeliver whether the broker should redeliver.
          */
         void reject(boolean shouldRedeliver);
+
     }
+
 }

@@ -16,7 +16,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
@@ -60,7 +60,7 @@ public final class AcknowledgementAdapterTest implements ProtocolAdapterTest {
     public void acknowledgementFromAdaptable() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
         final JsonValue customAckPayload = JsonValue.of("Custom Ack payload");
-        final HttpStatusCode status = HttpStatusCode.CREATED;
+        final HttpStatus status = HttpStatus.CREATED;
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPathMyCustomAck)
                 .withHeaders(dittoHeaders)
@@ -85,7 +85,7 @@ public final class AcknowledgementAdapterTest implements ProtocolAdapterTest {
     public void acknowledgementToAdaptable() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
         final JsonValue customAckPayload = JsonObject.newBuilder().set("foo", "bar").build();
-        final HttpStatusCode status = HttpStatusCode.BAD_REQUEST;
+        final HttpStatus status = HttpStatus.BAD_REQUEST;
 
         final Acknowledgement acknowledgement = ThingAcknowledgementFactory.newAcknowledgement(KNOWN_CUSTOM_LABEL,
                 TestConstants.THING_ID,

@@ -120,13 +120,15 @@ public abstract class AbstractMessageMappingProcessorActorTest {
     ActorSystem actorSystem;
     ProtocolAdapterProvider protocolAdapterProvider;
     TestProbe connectionActorProbe;
+    ActorRef proxyActor;
 
     @Before
     public void setUp() {
         actorSystem = ActorSystem.create("AkkaTestSystem", TestConstants.CONFIG);
         protocolAdapterProvider = ProtocolAdapterProvider.load(TestConstants.PROTOCOL_CONFIG, actorSystem);
         connectionActorProbe = TestProbe.apply("connectionActor", actorSystem);
-        MockProxyActor.create(actorSystem);
+        MockProxyActor.create(actorSystem, connectionActorProbe.ref());
+        proxyActor = connectionActorProbe.expectMsgClass(ActorRef.class);
     }
 
     @After
@@ -165,7 +167,9 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                                         ConnectivityCachingSignalEnrichmentProvider.class.getCanonicalName())
                         )
         );
-        MockProxyActor.create(actorSystem);
+        final TestProbe probe = TestProbe.apply(actorSystem);
+        MockProxyActor.create(actorSystem, probe.ref());
+        proxyActor = probe.expectMsgClass(ActorRef.class);
     }
 
     void testExternalMessageInDittoProtocolIsProcessed(
@@ -366,11 +370,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
     }
 
     void setUpProxyActor(final ActorRef recipient) {
-        final ActorSelection actorSelection = actorSystem.actorSelection("/user/connectivityRoot" +
-                "/connectivityProxyActor");
-        Patterns.ask(actorSelection, recipient, Duration.ofSeconds(10L))
-                .toCompletableFuture()
-                .join();
+        Patterns.ask(proxyActor, recipient, Duration.ofSeconds(30L)).toCompletableFuture().join();
     }
 
     ExternalMessage toExternalMessage(final Signal<?> signal, Consumer<SourceBuilder<?>> sourceModifier) {

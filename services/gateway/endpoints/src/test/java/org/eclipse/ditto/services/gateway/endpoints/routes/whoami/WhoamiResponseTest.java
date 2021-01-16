@@ -10,7 +10,6 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.eclipse.ditto.services.gateway.endpoints.routes.whoami;
 
 import static org.eclipse.ditto.json.assertions.DittoJsonAssertions.assertThat;
@@ -25,7 +24,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.commands.common.CommonCommandResponse;
@@ -53,7 +52,7 @@ public final class WhoamiResponseTest {
             .build();
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(CommonCommandResponse.JsonFields.TYPE, WhoamiResponse.TYPE)
-            .set(CommonCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
+            .set(CommonCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
             .set("userInformation", USER_INFORMATION.toJson())
             .build();
 
@@ -103,8 +102,7 @@ public final class WhoamiResponseTest {
 
     @Test
     public void testImmutability() {
-        assertInstancesOf(WhoamiResponse.class,
-                areImmutable(), provided(JsonObject.class).isAlsoImmutable());
+        assertInstancesOf(WhoamiResponse.class, areImmutable(), provided(JsonObject.class).isAlsoImmutable());
     }
 
 }

@@ -128,9 +128,9 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
         final MonitoringLoggerConfig loggerConfig = monitoringConfig.logger();
         this.connectionLogger = ConnectionLogger.getInstance(connection.getId(), loggerConfig);
         connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
-        responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(connection.getId());
-        responsePublishedMonitor = connectionMonitorRegistry.forResponsePublished(connection.getId());
-        responseAcknowledgedMonitor = connectionMonitorRegistry.forResponseAcknowledged(connection.getId());
+        responseDroppedMonitor = connectionMonitorRegistry.forResponseDropped(connection);
+        responsePublishedMonitor = connectionMonitorRegistry.forResponsePublished(connection);
+        responseAcknowledgedMonitor = connectionMonitorRegistry.forResponseAcknowledged(connection);
         replyTargets = connection.getSources().stream().map(Source::getReplyTarget).collect(Collectors.toList());
         acknowledgementSizeBudget = connectionConfig.getAcknowledgementConfig().getIssuedMaxBytes();
         this.logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
@@ -361,15 +361,15 @@ public abstract class BasePublisherActor<T extends PublishTarget> extends Abstra
     private SendingContext getSendingContextForTarget(final OutboundSignal.Mapped outboundSignal, final Target target) {
         final String originalAddress = target.getOriginalAddress();
         final ConnectionMonitor publishedMonitor =
-                connectionMonitorRegistry.forOutboundPublished(connection.getId(), originalAddress);
+                connectionMonitorRegistry.forOutboundPublished(connection, originalAddress);
 
         final ConnectionMonitor droppedMonitor =
-                connectionMonitorRegistry.forOutboundDropped(connection.getId(), originalAddress);
+                connectionMonitorRegistry.forOutboundDropped(connection, originalAddress);
 
         final boolean targetAckRequested = isTargetAckRequested(outboundSignal, target);
 
         @Nullable final ConnectionMonitor acknowledgedMonitor = targetAckRequested
-                ? connectionMonitorRegistry.forOutboundAcknowledged(connection.getId(), originalAddress)
+                ? connectionMonitorRegistry.forOutboundAcknowledged(connection, originalAddress)
                 : null;
         @Nullable final Target autoAckTarget = targetAckRequested ? target : null;
 

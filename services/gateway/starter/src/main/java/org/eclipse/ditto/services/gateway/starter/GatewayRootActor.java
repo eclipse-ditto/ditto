@@ -76,6 +76,7 @@ import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
 import akka.cluster.Cluster;
@@ -114,11 +115,8 @@ final class GatewayRootActor extends DittoRootActor {
         final ClusterConfig clusterConfig = gatewayConfig.getClusterConfig();
         final int numberOfShards = clusterConfig.getNumberOfShards();
 
-        log.info("Starting /user/{}", DevOpsCommandsActor.ACTOR_NAME);
-        final ActorRef devOpsCommandsActor = actorSystem.actorOf(
-                DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), GatewayService.SERVICE_NAME,
-                        InstanceIdentifierSupplier.getInstance().get()),
-                DevOpsCommandsActor.ACTOR_NAME);
+        final ActorSelection devOpsCommandsActor =
+                actorSystem.actorSelection(DevOpsRoute.DEVOPS_COMMANDS_ACTOR_SELECTION);
 
         final ActorRef conciergeEnforcerRouter =
                 ConciergeEnforcerClusterRouterFactory.createConciergeEnforcerClusterRouter(getContext(),

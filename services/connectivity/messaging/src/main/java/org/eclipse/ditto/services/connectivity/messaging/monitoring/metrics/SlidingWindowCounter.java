@@ -22,6 +22,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
+import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
+
 /**
  * Simple implementation of a sliding window using a map. Depending on the given parameters
  * {@code window} and {@code duration} this implementation holds counter for time slots of size {@code duration} to
@@ -38,12 +40,17 @@ public final class SlidingWindowCounter {
     private final AtomicLong lastFailureTimestamp = new AtomicLong(Instant.EPOCH.toEpochMilli());
     private final Duration minResolution;
 
+    private final Counter metricsCounter;
+
     /**
      * Instantiates a new {@link SlidingWindowCounter} that records the measurements for the given time windows.
      *
+     * @param metricsCounter counter used for internal monitoring
      * @param windows the time windows to record
      */
-    SlidingWindowCounter(final Clock clock, final MeasurementWindow... windows) {
+    SlidingWindowCounter(final Counter metricsCounter,
+            final Clock clock, final MeasurementWindow... windows) {
+        this.metricsCounter = metricsCounter;
         this.clock = clock;
         this.windows = windows;
 
@@ -94,9 +101,11 @@ public final class SlidingWindowCounter {
     void increment(final boolean success, final long ts) {
         final long previousTimestamp;
         if (success) {
+            metricsCounter.tag("success", true).increment();
             previousTimestamp = updateTimestampAndReturnPrevious(lastSuccessTimestamp, ts);
             incrementMeasurements(ts, successMeasurements);
         } else {
+            metricsCounter.tag("success", false).increment();
             previousTimestamp = updateTimestampAndReturnPrevious(lastFailureTimestamp, ts);
             incrementMeasurements(ts, failureMeasurements);
         }

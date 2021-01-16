@@ -27,7 +27,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -58,7 +58,7 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
     private final Connection connection;
 
     private CreateConnectionResponse(final Connection connection, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.CREATED, dittoHeaders);
+        super(TYPE, HttpStatus.CREATED, dittoHeaders);
         this.connection = connection;
     }
 
@@ -102,7 +102,7 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
      */
     public static CreateConnectionResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<CreateConnectionResponse>(TYPE, jsonObject).deserialize(
-                statusCode -> {
+                httpStatus -> {
                     final JsonObject jsonConnection = jsonObject.getValueOrThrow(JSON_CONNECTION);
                     final Connection readConnection = ConnectivityModelFactory.connectionFromJson(jsonConnection);
 
@@ -143,7 +143,7 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof CreateConnectionResponse);
+        return other instanceof CreateConnectionResponse;
     }
 
     @Override
@@ -173,4 +173,5 @@ public final class CreateConnectionResponse extends AbstractCommandResponse<Crea
                 ", connection=" + connection +
                 "]";
     }
+
 }

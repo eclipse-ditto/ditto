@@ -20,21 +20,20 @@ import java.net.URI;
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.junit.Test;
 
-public class PolicyIdMissingExceptionTest {
+public final class PolicyIdMissingExceptionTest {
 
     private static final String KNOWN_MESSAGE = "any Message";
     private static final ThingId KNOWN_THING_ID = ThingId.of("org.eclipse.ditto", "a.thing");
     private static final String KNOWN_DESCRIPTION = "any description";
     private static final URI KNOWN_HREF = URI.create("any://href");
     private static final String KNOWN_ERROR_CODE = PolicyIdMissingException.ERROR_CODE;
-    private static final HttpStatusCode KNOWN_STATUS = HttpStatusCode.NOT_FOUND;
-
+    private static final HttpStatus KNOWN_STATUS = HttpStatus.NOT_FOUND;
 
     private static final DittoHeaders KNOWN_HEADERS = DittoHeaders.newBuilder()
             .schemaVersion(JsonSchemaVersion.V_1)
@@ -42,13 +41,12 @@ public class PolicyIdMissingExceptionTest {
             .build();
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(DittoRuntimeException.JsonFields.STATUS, KNOWN_STATUS.toInt())
+            .set(DittoRuntimeException.JsonFields.STATUS, KNOWN_STATUS.getCode())
             .set(DittoRuntimeException.JsonFields.ERROR_CODE, KNOWN_ERROR_CODE)
             .set(DittoRuntimeException.JsonFields.MESSAGE, KNOWN_MESSAGE)
             .set(DittoRuntimeException.JsonFields.DESCRIPTION, KNOWN_DESCRIPTION)
             .set(DittoRuntimeException.JsonFields.HREF, KNOWN_HREF.toString())
             .build();
-
 
     @Test
     public void assertImmutability() {
@@ -74,4 +72,5 @@ public class PolicyIdMissingExceptionTest {
                 KNOWN_HEADERS);
         Assertions.assertThat(exception.getMessage()).contains(KNOWN_THING_ID.toString());
     }
+
 }

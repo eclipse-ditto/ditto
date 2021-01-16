@@ -23,7 +23,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -52,7 +52,7 @@ public final class RetrieveHealthResponse extends AbstractCommandResponse<Retrie
     private final StatusInfo statusInfo;
 
     private RetrieveHealthResponse(final StatusInfo statusInfo, final DittoHeaders headers) {
-        super(TYPE, toHttpStatusCode(statusInfo.getStatus()), headers);
+        super(TYPE, toHttpStatus(statusInfo.getStatus()), headers);
         this.statusInfo = statusInfo;
     }
 
@@ -129,14 +129,15 @@ public final class RetrieveHealthResponse extends AbstractCommandResponse<Retrie
         return getClass().getSimpleName() + " [" + super.toString() + ", statusInfo=" + statusInfo + "]";
     }
 
-    private static HttpStatusCode toHttpStatusCode(final StatusInfo.Status status) {
+    private static HttpStatus toHttpStatus(final StatusInfo.Status status) {
         switch (status) {
             case UP:
             case UNKNOWN:
-                return HttpStatusCode.OK;
+                return HttpStatus.OK;
             case DOWN:
             default:
-                return HttpStatusCode.INTERNAL_SERVER_ERROR;
+                return HttpStatus.INTERNAL_SERVER_ERROR;
         }
     }
+
 }

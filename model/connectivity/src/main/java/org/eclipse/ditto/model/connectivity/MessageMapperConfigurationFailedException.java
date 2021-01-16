@@ -20,7 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -31,8 +31,8 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
  */
 @Immutable
 @JsonParsableException(errorCode = MessageMapperConfigurationFailedException.ERROR_CODE)
-public final class MessageMapperConfigurationFailedException extends DittoRuntimeException implements
-        ConnectivityException {
+public final class MessageMapperConfigurationFailedException extends DittoRuntimeException
+        implements ConnectivityException {
 
     /**
      * Error code of this exception.
@@ -50,7 +50,8 @@ public final class MessageMapperConfigurationFailedException extends DittoRuntim
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
+
+        super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
     /**
@@ -73,6 +74,7 @@ public final class MessageMapperConfigurationFailedException extends DittoRuntim
      */
     public static MessageMapperConfigurationFailedException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
+
         return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
@@ -90,6 +92,7 @@ public final class MessageMapperConfigurationFailedException extends DittoRuntim
      */
     public static MessageMapperConfigurationFailedException fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
@@ -125,8 +128,10 @@ public final class MessageMapperConfigurationFailedException extends DittoRuntim
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
+
             return new MessageMapperConfigurationFailedException(dittoHeaders, message, description, cause, href);
         }
+
     }
 
 }

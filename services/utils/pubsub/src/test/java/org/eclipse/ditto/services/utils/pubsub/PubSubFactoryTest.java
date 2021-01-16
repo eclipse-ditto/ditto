@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotUniqueException;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.PubSubTerminatedException;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
@@ -707,6 +707,7 @@ public final class PubSubFactoryTest {
         public Receive createReceive() {
             return ReceiveBuilder.create().build();
         }
+
     }
 
     private static void waitForHeartBeats(final ActorSystem system, final TestPubSubFactory factory) {
@@ -720,12 +721,13 @@ public final class PubSubFactoryTest {
     }
 
     private static Acknowledgement signal(final String string) {
-        return Acknowledgement.of(AcknowledgementLabel.of(string), ThingId.dummy(), HttpStatusCode.OK,
+        return Acknowledgement.of(AcknowledgementLabel.of(string), ThingId.dummy(), HttpStatus.OK,
                 DittoHeaders.empty());
     }
 
     private static Acknowledgement signal(final String string, final int seq) {
-        return Acknowledgement.of(AcknowledgementLabel.of(string), ThingId.of("ns:" + seq), HttpStatusCode.OK,
+        return Acknowledgement.of(AcknowledgementLabel.of(string), ThingId.of("ns:" + seq), HttpStatus.OK,
                 DittoHeaders.empty());
     }
+
 }

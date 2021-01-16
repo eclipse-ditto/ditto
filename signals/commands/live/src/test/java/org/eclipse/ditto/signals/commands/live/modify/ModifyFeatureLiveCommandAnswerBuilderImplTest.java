@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.text.MessageFormat;
 
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.live.assertions.LiveCommandAssertions;
 import org.eclipse.ditto.signals.commands.live.base.LiveCommandAnswer;
@@ -102,7 +102,7 @@ public final class ModifyFeatureLiveCommandAnswerBuilderImplTest {
                 .hasThingErrorResponse()
                 .withType(ThingErrorResponse.TYPE)
                 .withDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
-                .withStatus(HttpStatusCode.NOT_FOUND)
+                .withStatus(HttpStatus.NOT_FOUND)
                 .withDittoRuntimeExceptionOfType(FeatureNotAccessibleException.class);
     }
 
@@ -119,7 +119,7 @@ public final class ModifyFeatureLiveCommandAnswerBuilderImplTest {
                 .hasThingErrorResponse()
                 .withType(ThingErrorResponse.TYPE)
                 .withDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
-                .withStatus(HttpStatusCode.FORBIDDEN)
+                .withStatus(HttpStatus.FORBIDDEN)
                 .withDittoRuntimeExceptionOfType(FeatureNotModifiableException.class);
     }
 

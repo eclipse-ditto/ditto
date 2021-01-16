@@ -21,7 +21,7 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
@@ -37,9 +37,7 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
-import com.hivemq.client.mqtt.mqtt3.Mqtt3Client;
 
-import akka.actor.Props;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -108,7 +106,7 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         final AcknowledgementLabel label = getAcknowledgementLabel(target).orElse(NO_ACK_LABEL);
 
-        return Acknowledgement.of(label, entityIdWithType, HttpStatusCode.OK, dittoHeaders);
+        return Acknowledgement.of(label, entityIdWithType, HttpStatus.OK, dittoHeaders);
     }
 
     @Override

@@ -28,7 +28,9 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.headers.AbstractDittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
@@ -198,7 +200,7 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
     }
 
     @Override
-    public MessageHeadersBuilder timeout(final Duration timeout) {
+    public MessageHeadersBuilder timeout(@Nullable final Duration timeout) {
         return super.timeout(timeout);
     }
 
@@ -259,11 +261,23 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
      *
      * @param statusCode the status code.
      * @return this builder to allow method chaining.
+     * @deprecated as of 2.0.0 please use {@link #httpStatus(HttpStatus)} instead.
      */
+    @Deprecated
     public MessageHeadersBuilder statusCode(@Nullable final HttpStatusCode statusCode) {
+        return httpStatus(null != statusCode ? statusCode.getAsHttpStatus() : null);
+    }
+    /**
+     * Sets the Http status of the Message to build.
+     *
+     * @param httpStatus the HTTP status.
+     * @return this builder to allow method chaining.
+     * @since 2.0.0
+     */
+    public MessageHeadersBuilder httpStatus(@Nullable final HttpStatus httpStatus) {
         final MessageHeaderDefinition definition = MessageHeaderDefinition.STATUS_CODE;
-        if (null != statusCode) {
-            putCharSequence(definition, String.valueOf(statusCode.toInt()));
+        if (null != httpStatus) {
+            putCharSequence(definition, String.valueOf(httpStatus.getCode()));
         } else {
             removeHeader(definition.getKey());
         }
@@ -276,12 +290,19 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
      * @param statusCode the status code.
      * @return this builder to allow method chaining.
      * @throws IllegalArgumentException if {@code statusCode} is unknown.
+     * @deprecated as of 2.0.0 please use {@link #httpStatus(HttpStatus)} instead.
      */
+    @Deprecated
     public MessageHeadersBuilder statusCode(final int statusCode) {
-        return statusCode(HttpStatusCode.forInt(statusCode).orElseThrow(() -> {
-            final String msg = MessageFormat.format("HTTP status code <{0}> is unknown!", statusCode);
-            return new IllegalArgumentException(msg);
-        }));
+        return httpStatus(getHttpStatus(statusCode));
+    }
+
+    private static HttpStatus getHttpStatus(final int statusCode) {
+        try {
+            return HttpStatus.getInstance(statusCode);
+        } catch (final HttpStatusCodeOutOfRangeException e) {
+            throw new IllegalArgumentException(e.getMessage(), e);
+        }
     }
 
     @Override

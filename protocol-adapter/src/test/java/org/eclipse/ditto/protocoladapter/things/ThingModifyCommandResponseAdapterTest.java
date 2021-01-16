@@ -19,7 +19,7 @@ import javax.annotation.Nonnull;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -92,8 +92,8 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
             }
 
             @Override
-            public HttpStatusCode getStatusCode() {
-                return HttpStatusCode.BAD_REQUEST;
+            public HttpStatus getHttpStatus() {
+                return HttpStatus.BAD_REQUEST;
             }
 
             @Override
@@ -138,7 +138,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -155,7 +155,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -178,7 +178,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -192,7 +192,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -208,7 +208,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -222,7 +222,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -244,7 +244,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -260,7 +260,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -280,7 +280,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonValue.of(TestConstants.Policies.POLICY_ID))
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -301,7 +301,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(JsonValue.of(TestConstants.Policies.POLICY_ID))
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -321,7 +321,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -340,7 +340,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -362,7 +362,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .withValue(TestConstants.ACL.toJson())
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -379,7 +379,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
@@ -403,7 +403,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson())
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -418,7 +418,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson())
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -435,7 +435,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson())
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -450,7 +450,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
@@ -474,7 +474,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
@@ -490,7 +490,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
                 .build();
@@ -514,7 +514,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.ATTRIBUTES_JSON)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -528,7 +528,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -544,7 +544,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.ATTRIBUTES)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -559,7 +559,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .withValue(ThingsModelFactory.nullAttributes())
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -582,7 +582,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -598,7 +598,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -621,7 +621,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.ATTRIBUTE_VALUE)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -636,7 +636,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -652,7 +652,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.ATTRIBUTE_VALUE)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -667,7 +667,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -691,7 +691,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -707,7 +707,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -731,7 +731,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.JSON_THING_DEFINITION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -745,7 +745,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -761,7 +761,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.JSON_THING_DEFINITION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -776,7 +776,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .withValue(null)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -800,7 +800,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -816,7 +816,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -840,7 +840,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.FEATURES.toJson(FieldType.notHidden()))
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -854,7 +854,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -870,7 +870,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.FEATURES.toJson(FieldType.notHidden()))
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -885,7 +885,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .withValue(ThingsModelFactory.nullFeatures().toJson())
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -908,7 +908,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -924,7 +924,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -947,7 +947,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.FEATURE.toJson(FieldType.notHidden()))
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -962,7 +962,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -978,7 +978,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.FEATURE.toJson(FieldType.notHidden()))
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -993,7 +993,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .withValue(ThingsModelFactory.nullFeature(TestConstants.FEATURE_ID).toJson())
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -1018,7 +1018,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1034,7 +1034,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1058,7 +1058,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.FEATURE_DEFINITION_JSON)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -1073,7 +1073,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1089,7 +1089,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.FEATURE_DEFINITION_JSON)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -1104,7 +1104,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1128,7 +1128,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1144,7 +1144,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1168,7 +1168,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.FEATURE_PROPERTIES_JSON)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -1183,7 +1183,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1199,7 +1199,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.FEATURE_PROPERTIES)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -1214,7 +1214,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1238,7 +1238,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1254,7 +1254,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1278,7 +1278,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.FEATURE_DESIRED_PROPERTIES_JSON)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -1293,7 +1293,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1309,7 +1309,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.FEATURE_DESIRED_PROPERTIES)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -1326,7 +1326,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1350,7 +1350,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1366,7 +1366,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1392,7 +1392,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.FEATURE_PROPERTY_VALUE)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -1407,7 +1407,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1424,7 +1424,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.FEATURE_PROPERTY_VALUE)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -1440,7 +1440,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1466,7 +1466,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1483,7 +1483,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1510,7 +1510,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.FEATURE_DESIRED_PROPERTY_VALUE)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -1526,7 +1526,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptableModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1544,7 +1544,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.CREATED)
+                        .withStatus(HttpStatus.CREATED)
                         .withValue(TestConstants.FEATURE_DESIRED_PROPERTY_VALUE)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -1560,7 +1560,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expectedModified = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1587,7 +1587,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -1605,7 +1605,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();

@@ -32,7 +32,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -48,17 +48,17 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class ImmutableAcknowledgementsTest {
 
     private static final ThingId KNOWN_ENTITY_ID = ThingId.generateRandom();
-    private static final HttpStatusCode KNOWN_STATUS_CODE = HttpStatusCode.OK;
+    private static final HttpStatus KNOWN_HTTP_STATUS = HttpStatus.OK;
     private static final JsonValue KNOWN_PAYLOAD = JsonObject.newBuilder().set("known", "payload").build();
     private static final DittoHeaders KNOWN_DITTO_HEADERS = DittoHeaders.newBuilder()
             .randomCorrelationId()
             .responseRequired(false)
             .build();
     private static final Acknowledgement KNOWN_ACK_1 =
-            ImmutableAcknowledgement.of(AcknowledgementLabel.of("welcome-ack"), KNOWN_ENTITY_ID, KNOWN_STATUS_CODE,
+            ImmutableAcknowledgement.of(AcknowledgementLabel.of("welcome-ack"), KNOWN_ENTITY_ID, KNOWN_HTTP_STATUS,
                     KNOWN_DITTO_HEADERS, KNOWN_PAYLOAD);
     private static final Acknowledgement KNOWN_ACK_2 =
-            ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, KNOWN_ENTITY_ID, KNOWN_STATUS_CODE,
+            ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, KNOWN_ENTITY_ID, KNOWN_HTTP_STATUS,
                     KNOWN_DITTO_HEADERS, KNOWN_PAYLOAD);
 
     private static List<Acknowledgement> knownAcknowledgements;
@@ -77,7 +77,7 @@ public final class ImmutableAcknowledgementsTest {
         knownAcknowledgementsGetEntityJsonRepresentation = knownAcknowledgements.stream()
                 .map(ack -> JsonField.newInstance(ack.getLabel(),
                         JsonObject.newBuilder()
-                                .set(Acknowledgement.JsonFields.STATUS_CODE, ack.getStatusCode().toInt())
+                                .set(Acknowledgement.JsonFields.STATUS_CODE, ack.getHttpStatus().getCode())
                                 .set(Acknowledgement.JsonFields.PAYLOAD, ack.getEntity().get())
                                 .set(Acknowledgement.JsonFields.DITTO_HEADERS, ack.getDittoHeaders().toJson())
                                 .build())
@@ -87,7 +87,7 @@ public final class ImmutableAcknowledgementsTest {
         knownJsonRepresentation = JsonObject.newBuilder()
                 .set(Acknowledgements.JsonFields.ENTITY_ID, KNOWN_ENTITY_ID.toString())
                 .set(Acknowledgements.JsonFields.ENTITY_TYPE, KNOWN_ENTITY_ID.getEntityType().toString())
-                .set(Acknowledgements.JsonFields.STATUS_CODE, KNOWN_STATUS_CODE.toInt())
+                .set(Acknowledgements.JsonFields.STATUS_CODE, KNOWN_HTTP_STATUS.getCode())
                 .set(Acknowledgements.JsonFields.ACKNOWLEDGEMENTS, knownAcknowledgementsJsonRepresentation)
                 .set(Acknowledgements.JsonFields.DITTO_HEADERS, KNOWN_DITTO_HEADERS.toJson())
                 .build();
@@ -115,7 +115,7 @@ public final class ImmutableAcknowledgementsTest {
                         AcknowledgementLabel.class,
                         DittoHeaders.class,
                         EntityIdWithType.class,
-                        HttpStatusCode.class).isAlsoImmutable());
+                        HttpStatus.class).isAlsoImmutable());
     }
 
     @Test
@@ -138,7 +138,7 @@ public final class ImmutableAcknowledgementsTest {
     public void tryToGetInstanceWithAcknowledgementsWithDifferentEntityIds() {
         final ThingId otherEntityId = ThingId.of("com.example:flux-condensator");
         final Acknowledgement otherAcknowledgement =
-                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, otherEntityId, KNOWN_STATUS_CODE,
+                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, otherEntityId, KNOWN_HTTP_STATUS,
                         KNOWN_DITTO_HEADERS, null);
         final List<Acknowledgement> acknowledgements = Lists.list(KNOWN_ACK_1, otherAcknowledgement);
 
@@ -171,40 +171,40 @@ public final class ImmutableAcknowledgementsTest {
     }
 
     @Test
-    public void getStatusCodeWithOneItem() {
+    public void getHttpStatusWithOneItem() {
         final Acknowledgement acknowledgement =
                 ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, KNOWN_ENTITY_ID,
-                        HttpStatusCode.CONFLICT, KNOWN_DITTO_HEADERS, null);
+                        HttpStatus.CONFLICT, KNOWN_DITTO_HEADERS, null);
         final ImmutableAcknowledgements underTest =
                 ImmutableAcknowledgements.of(Lists.list(acknowledgement), KNOWN_DITTO_HEADERS);
 
-        assertThat(underTest.getStatusCode()).isEqualTo(acknowledgement.getStatusCode());
+        assertThat(underTest.getHttpStatus()).isEqualTo(acknowledgement.getHttpStatus());
     }
 
     @Test
-    public void getStatusCodeWithMultipleItemsWithSameStatusCode() {
+    public void getHttpStatusWithMultipleItemsWithSameStatusCode() {
         final ImmutableAcknowledgements underTest =
                 ImmutableAcknowledgements.of(knownAcknowledgements, KNOWN_DITTO_HEADERS);
 
-        assertThat(underTest.getStatusCode()).isEqualTo(KNOWN_STATUS_CODE);
+        assertThat(underTest.getHttpStatus()).isEqualTo(KNOWN_HTTP_STATUS);
     }
 
     @Test
-    public void getStatusCodeWithMultipleItemsWithDivergentStatusCodes() {
+    public void getHttpStatusWithMultipleItemsWithDivergentStatusCodes() {
         final Acknowledgement otherAcknowledgement =
                 ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, KNOWN_ENTITY_ID,
-                        HttpStatusCode.CONFLICT, KNOWN_DITTO_HEADERS, null);
+                        HttpStatus.CONFLICT, KNOWN_DITTO_HEADERS, null);
         final List<Acknowledgement> acknowledgements = Lists.list(KNOWN_ACK_1, otherAcknowledgement);
         final ImmutableAcknowledgements underTest = ImmutableAcknowledgements.of(acknowledgements, KNOWN_DITTO_HEADERS);
 
-        assertThat(underTest.getStatusCode()).isEqualTo(HttpStatusCode.FAILED_DEPENDENCY);
+        assertThat(underTest.getHttpStatus()).isEqualTo(HttpStatus.FAILED_DEPENDENCY);
     }
 
     @Test
     public void getMissingAcknowledgementLabelsReturnsExpected() {
         final Acknowledgement timeoutAcknowledgement =
                 ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, KNOWN_ENTITY_ID,
-                        HttpStatusCode.REQUEST_TIMEOUT, KNOWN_DITTO_HEADERS, null);
+                        HttpStatus.REQUEST_TIMEOUT, KNOWN_DITTO_HEADERS, null);
         final List<Acknowledgement> acknowledgements = Lists.list(KNOWN_ACK_1, timeoutAcknowledgement);
         final ImmutableAcknowledgements underTest = ImmutableAcknowledgements.of(acknowledgements, KNOWN_DITTO_HEADERS);
 
@@ -215,7 +215,7 @@ public final class ImmutableAcknowledgementsTest {
     public void getSuccessfulAcknowledgementsReturnsExpected() {
         final Acknowledgement timeoutAcknowledgement =
                 ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, KNOWN_ENTITY_ID,
-                        HttpStatusCode.REQUEST_TIMEOUT, KNOWN_DITTO_HEADERS, null);
+                        HttpStatus.REQUEST_TIMEOUT, KNOWN_DITTO_HEADERS, null);
         final Acknowledgement successfulAcknowledgement = KNOWN_ACK_1;
         final List<Acknowledgement> acknowledgements = Lists.list(successfulAcknowledgement, timeoutAcknowledgement);
         final ImmutableAcknowledgements underTest = ImmutableAcknowledgements.of(acknowledgements, KNOWN_DITTO_HEADERS);
@@ -227,10 +227,10 @@ public final class ImmutableAcknowledgementsTest {
     public void getFailedAcknowledgementsReturnsExpected() {
         final Acknowledgement timeoutAcknowledgement =
                 ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, KNOWN_ENTITY_ID,
-                        HttpStatusCode.REQUEST_TIMEOUT, KNOWN_DITTO_HEADERS, null);
+                        HttpStatus.REQUEST_TIMEOUT, KNOWN_DITTO_HEADERS, null);
         final Acknowledgement failedAcknowledgement =
                 ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, KNOWN_ENTITY_ID,
-                        HttpStatusCode.NOT_FOUND, KNOWN_DITTO_HEADERS, null);
+                        HttpStatus.NOT_FOUND, KNOWN_DITTO_HEADERS, null);
         final List<Acknowledgement> acknowledgements =
                 Lists.list(KNOWN_ACK_1, timeoutAcknowledgement, failedAcknowledgement);
         final ImmutableAcknowledgements underTest = ImmutableAcknowledgements.of(acknowledgements, KNOWN_DITTO_HEADERS);
@@ -271,10 +271,10 @@ public final class ImmutableAcknowledgementsTest {
     public void getAcknowledgementReturnsExpected() {
         final Acknowledgement timeoutAcknowledgement =
                 ImmutableAcknowledgement.of(DittoAcknowledgementLabel.TWIN_PERSISTED, KNOWN_ENTITY_ID,
-                        HttpStatusCode.REQUEST_TIMEOUT, KNOWN_DITTO_HEADERS, null);
+                        HttpStatus.REQUEST_TIMEOUT, KNOWN_DITTO_HEADERS, null);
         final AcknowledgementLabel customAckLabel = AcknowledgementLabel.of("foo");
         final Acknowledgement customAcknowledgement = ImmutableAcknowledgement.of(customAckLabel, KNOWN_ENTITY_ID,
-                HttpStatusCode.OK, KNOWN_DITTO_HEADERS, null);
+                HttpStatus.OK, KNOWN_DITTO_HEADERS, null);
         final List<Acknowledgement> acknowledgements =
                 Lists.list(KNOWN_ACK_1, timeoutAcknowledgement, customAcknowledgement);
         final ImmutableAcknowledgements underTest = ImmutableAcknowledgements.of(acknowledgements, KNOWN_DITTO_HEADERS);
@@ -318,9 +318,9 @@ public final class ImmutableAcknowledgementsTest {
             softly.assertThat((CharSequence) newAcknowledgements.getEntityId())
                     .as("same entity ID")
                     .isEqualTo(underTest.getEntityId());
-            softly.assertThat(newAcknowledgements.getStatusCode())
-                    .as("same status code")
-                    .isEqualTo(underTest.getStatusCode());
+            softly.assertThat(newAcknowledgements.getHttpStatus())
+                    .as("same HTTP status")
+                    .isEqualTo(underTest.getHttpStatus());
             softly.assertThat(newAcknowledgements)
                     .as("same elements")
                     .containsExactlyElementsOf(underTest);

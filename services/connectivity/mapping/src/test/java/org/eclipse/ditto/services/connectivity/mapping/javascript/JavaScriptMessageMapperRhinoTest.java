@@ -31,7 +31,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.common.DittoConstants;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Attributes;
@@ -685,7 +685,7 @@ public final class JavaScriptMessageMapperRhinoTest {
         assertThat(adaptable.getTopicPath().getId()).isEqualTo(MAPPING_INCOMING_ID);
         assertThat(adaptable.getPayload().getPath().toString()).isEqualTo(MAPPING_INCOMING_PATH);
         assertThat(adaptable.getPayload().getValue()).map(JsonValue::asString).contains(modifyThingResponse.toJsonString());
-        assertThat(adaptable.getPayload().getStatus()).contains(HttpStatusCode.NO_CONTENT);
+        assertThat(adaptable.getPayload().getHttpStatus()).contains(HttpStatus.NO_CONTENT);
     }
 
     @Test
@@ -722,7 +722,7 @@ public final class JavaScriptMessageMapperRhinoTest {
                 softly.assertThat(payload.getPath().toString()).isEqualTo(MAPPING_INCOMING_PATH);
                 softly.assertThat(payload.getValue()).map(JsonValue::asString)
                         .contains(modifyThingResponse.toJsonString());
-                softly.assertThat(payload.getStatus()).contains(HttpStatusCode.NO_CONTENT);
+                softly.assertThat(payload.getHttpStatus()).contains(HttpStatus.NO_CONTENT);
                 softly.assertThat(payload.getExtra()).contains(JsonObject.newBuilder()
                         .set("attributes", JsonObject.newBuilder().set("enriched", "field").build())
                         .build());

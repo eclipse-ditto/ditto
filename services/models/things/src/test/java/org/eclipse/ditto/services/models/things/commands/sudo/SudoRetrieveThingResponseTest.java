@@ -20,7 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Thing;
@@ -42,7 +42,7 @@ public final class SudoRetrieveThingResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(SudoCommandResponse.JsonFields.TYPE, SudoRetrieveThingResponse.TYPE)
-            .set(SudoCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
+            .set(SudoCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
             .set(SudoRetrieveThingResponse.JSON_THING, THING.toJson())
             .build();
 

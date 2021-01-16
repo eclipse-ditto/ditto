@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -81,7 +81,7 @@ public final class HttpRequestActorHeaderInteractionTest extends AbstractHttpReq
             final DittoHeaders dittoHeaders = setHeadersByParameter(createAuthorizedHeaders());
             final Object probeResponse = getProbeResponse(thingId, attributePointer, dittoHeaders);
 
-            final StatusCode expectedHttpStatusCode = StatusCodes.get(getExpectedStatusCode().toInt());
+            final StatusCode expectedHttpStatusCode = StatusCodes.get(getExpectedHttpStatus().getCode());
 
             testThingModifyCommand(thingId, attributeName, attributePointer, dittoHeaders, dittoHeaders,
                     probeResponse, expectedHttpStatusCode, null);
@@ -103,18 +103,18 @@ public final class HttpRequestActorHeaderInteractionTest extends AbstractHttpReq
                 : ThingNotAccessibleException.newBuilder(thingId).dittoHeaders(dittoHeaders).build();
     }
 
-    private HttpStatusCode getExpectedStatusCode() {
-        final HttpStatusCode status;
+    private HttpStatus getExpectedHttpStatus() {
+        final HttpStatus status;
         final boolean isAwaiting = responseRequired || !requestedAcks.isEmpty();
-        final HttpStatusCode successCode = HttpStatusCode.NO_CONTENT;
-        final HttpStatusCode errorCode = HttpStatusCode.NOT_FOUND;
+        final HttpStatus successCode = HttpStatus.NO_CONTENT;
+        final HttpStatus errorCode = HttpStatus.NOT_FOUND;
         if (timeout.isZero()) {
-            status = isAwaiting ? HttpStatusCode.BAD_REQUEST : HttpStatusCode.ACCEPTED;
+            status = isAwaiting ? HttpStatus.BAD_REQUEST : HttpStatus.ACCEPTED;
         } else {
             if (isSuccess) {
-                status = responseRequired ? successCode : HttpStatusCode.ACCEPTED;
+                status = responseRequired ? successCode : HttpStatus.ACCEPTED;
             } else {
-                status = isAwaiting ? errorCode : HttpStatusCode.ACCEPTED;
+                status = isAwaiting ? errorCode : HttpStatus.ACCEPTED;
             }
         }
         return status;

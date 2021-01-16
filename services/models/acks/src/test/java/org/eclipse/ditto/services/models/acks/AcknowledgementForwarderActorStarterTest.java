@@ -22,7 +22,7 @@ import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
@@ -132,7 +132,7 @@ public final class AcknowledgementForwarderActorStarterTest {
                         .dittoHeaders(dittoHeaders)
                         .build();
         final Acknowledgement expectedNack = Acknowledgement.of(customAckLabel, KNOWN_ENTITY_ID,
-                HttpStatusCode.CONFLICT, dittoHeaders, expectedException.toJson());
+                HttpStatus.CONFLICT, dittoHeaders, expectedException.toJson());
 
         final AcknowledgementForwarderActorStarter underTest = getActorStarter(dittoHeaders);
 

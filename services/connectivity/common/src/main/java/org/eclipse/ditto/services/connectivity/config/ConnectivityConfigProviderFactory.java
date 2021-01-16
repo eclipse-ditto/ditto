@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.atteo.classindex.ClassIndex;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 
 import com.typesafe.config.Config;
@@ -94,7 +94,7 @@ public final class ConnectivityConfigProviderFactory implements Extension {
             final DynamicAccess dynamicAccess = ((ExtendedActorSystem) actorSystem).dynamicAccess();
             final Try<ConnectivityConfigProvider> providerBox = dynamicAccess.createInstanceFor(providerClass,
                     CollectionConverters.asScala(Collections.singleton(args)).toList(), tag);
-            this.connectivityConfigProvider = providerBox.get();
+            connectivityConfigProvider = providerBox.get();
         } catch (final Exception e) {
             throw configProviderInstantiationFailed(providerClass, e);
         }
@@ -102,6 +102,7 @@ public final class ConnectivityConfigProviderFactory implements Extension {
 
     private static Class<? extends ConnectivityConfigProvider> findProviderClass(
             final Predicate<Class<? extends ConnectivityConfigProvider>> classPredicate) {
+
         final Iterable<Class<? extends ConnectivityConfigProvider>> subclasses =
                 ClassIndex.getSubclasses(ConnectivityConfigProvider.class);
 
@@ -119,6 +120,7 @@ public final class ConnectivityConfigProviderFactory implements Extension {
 
     private static boolean filterDefaultProvider(final Class<? extends ConnectivityConfigProvider> c,
             final boolean loadDefaultProvider) {
+
         if (loadDefaultProvider) {
             return true;
         } else {
@@ -128,19 +130,19 @@ public final class ConnectivityConfigProviderFactory implements Extension {
 
     private static DittoRuntimeException configProviderNotFound(
             final List<Class<? extends ConnectivityConfigProvider>> candidates) {
+
         final String message =
                 String.format("Failed to find a suitable ConnectivityConfigProvider implementation in candidates: %s.",
                         candidates);
-        return DittoRuntimeException.newBuilder(CONNECTIVITY_CONFIG_PROVIDER_MISSING,
-                HttpStatusCode.INTERNAL_SERVER_ERROR)
+        return DittoRuntimeException.newBuilder(CONNECTIVITY_CONFIG_PROVIDER_MISSING, HttpStatus.INTERNAL_SERVER_ERROR)
                 .message(message)
                 .build();
     }
 
     private static DittoRuntimeException configProviderInstantiationFailed(final Class<?
             extends ConnectivityConfigProvider> c, final Exception cause) {
-        return DittoRuntimeException.newBuilder(CONNECTIVITY_CONFIG_PROVIDER_FAILED,
-                HttpStatusCode.INTERNAL_SERVER_ERROR)
+
+        return DittoRuntimeException.newBuilder(CONNECTIVITY_CONFIG_PROVIDER_FAILED, HttpStatus.INTERNAL_SERVER_ERROR)
                 .message(String.format("Failed to instantiate %s.", c.getName()))
                 .cause(cause)
                 .build();
@@ -150,7 +152,7 @@ public final class ConnectivityConfigProviderFactory implements Extension {
      * Load the {@code ConnectivityConfigProviderFactory} extension.
      *
      * @param actorSystem The actor system in which to load the provider.
-     * @return the {@link ConnectivityConfigProviderFactory}.
+     * @return the {@code ConnectivityConfigProviderFactory}.
      */
     public static ConnectivityConfigProviderFactory get(final ActorSystem actorSystem) {
         return ConnectivityConfigProviderFactory.ExtensionId.INSTANCE.get(actorSystem);
@@ -168,6 +170,7 @@ public final class ConnectivityConfigProviderFactory implements Extension {
         public ConnectivityConfigProviderFactory createExtension(final ExtendedActorSystem system) {
             return new ConnectivityConfigProviderFactory(system);
         }
+
     }
 
 }

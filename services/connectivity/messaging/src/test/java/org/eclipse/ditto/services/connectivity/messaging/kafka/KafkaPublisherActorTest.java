@@ -40,7 +40,8 @@ import org.awaitility.Awaitility;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -149,7 +150,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         final Acknowledgements acks = ackSupplier.get();
         assertThat(acks.getSize()).isEqualTo(1);
         final Acknowledgement ack = acks.stream().findAny().orElseThrow();
-        assertThat(ack.getStatusCode()).isEqualTo(HttpStatusCode.NO_CONTENT);
+        assertThat(ack.getHttpStatus()).isEqualTo(HttpStatus.NO_CONTENT);
         assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
         assertThat(ack.getEntity()).isEmpty();
     }
@@ -198,7 +199,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
                         .hasSize(1)
                         .first()
                         .satisfies(ack -> {
-                            assertThat(ack.getStatusCode()).isEqualTo(HttpStatusCode.OK);
+                            assertThat(ack.getHttpStatus()).isEqualTo(HttpStatus.OK);
                             assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
                             assertThat(ack.getEntity()).contains(JsonObject.newBuilder()
                                     .set("timestamp", 0)
@@ -216,16 +217,16 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     @Test
     public void retriableExceptionBecomesInternalErrorAcknowledgement() {
         testSendFailure(new DisconnectException(), (sender, parent) ->
-                assertThat(sender.expectMsgClass(Acknowledgements.class).getStatusCode())
-                        .isEqualTo(HttpStatusCode.INTERNAL_SERVER_ERROR)
+                assertThat(sender.expectMsgClass(Acknowledgements.class).getHttpStatus())
+                        .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
         );
     }
 
     @Test
     public void nonRetriableExceptionBecomesClientErrorAcknowledgement() {
         testSendFailure(new InvalidTopicException(), (sender, parent) -> {
-            assertThat(sender.expectMsgClass(Acknowledgements.class).getStatusCode())
-                    .isEqualTo(HttpStatusCode.BAD_REQUEST);
+            assertThat(sender.expectMsgClass(Acknowledgements.class).getHttpStatus())
+                    .isEqualTo(HttpStatus.BAD_REQUEST);
 
             // expect failure escalation
             parent.expectMsgClass(ConnectionFailure.class);

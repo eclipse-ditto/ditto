@@ -19,7 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -37,7 +37,7 @@ public class CleanupPersistenceResponseTest {
     private static final JsonObject KNOWN_JSON = JsonObject.newBuilder()
             .set(CommandResponse.JsonFields.TYPE, CleanupPersistenceResponse.TYPE)
             .set(CleanupCommandResponse.JsonFields.ENTITY_ID, ID.toString())
-            .set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
+            .set(CommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
             .build();
     private static final DittoHeaders HEADERS = DittoHeaders.newBuilder().correlationId("123").build();
 

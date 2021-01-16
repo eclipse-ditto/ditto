@@ -19,7 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.ThingId;
@@ -36,13 +36,13 @@ public final class ModifyAclResponseTest {
 
     private static final JsonObject KNOWN_JSON_CREATED = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, ModifyAclResponse.TYPE)
-            .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.CREATED.toInt())
+            .set(ThingCommandResponse.JsonFields.STATUS, HttpStatus.CREATED.getCode())
             .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(ModifyAclResponse.JSON_ACL, TestConstants.Thing.ACL.toJson(FieldType.regularOrSpecial()))
             .build();
 
     private static final JsonObject KNOWN_JSON_UPDATED = KNOWN_JSON_CREATED.toBuilder()
-            .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.NO_CONTENT.toInt())
+            .set(ThingCommandResponse.JsonFields.STATUS, HttpStatus.NO_CONTENT.getCode())
             .build();
 
 

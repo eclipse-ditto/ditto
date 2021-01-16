@@ -20,7 +20,7 @@ import java.text.MessageFormat;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.assertions.DittoBaseAssertions;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.junit.Test;
@@ -28,13 +28,13 @@ import org.junit.Test;
 /**
  * Test for {@link CommandHeaderInvalidException}.
  */
-public class CommandHeaderInvalidExceptionTest {
+public final class CommandHeaderInvalidExceptionTest {
 
     private static final String KNOWN_INVALID_HEADER_KEY = "invalid-key";
     private static final String KNOWN_DESCRIPTION = "This is a useful description on how to mitigate the error";
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(DittoRuntimeException.JsonFields.STATUS, HttpStatusCode.BAD_REQUEST.toInt())
+            .set(DittoRuntimeException.JsonFields.STATUS, HttpStatus.BAD_REQUEST.getCode())
             .set(DittoRuntimeException.JsonFields.ERROR_CODE, CommandHeaderInvalidException.ERROR_CODE)
             .set(DittoRuntimeException.JsonFields.MESSAGE,
                     MessageFormat.format(CommandHeaderInvalidException.MESSAGE_TEMPLATE, KNOWN_INVALID_HEADER_KEY))
@@ -52,7 +52,6 @@ public class CommandHeaderInvalidExceptionTest {
         assertInstancesOf(CommandHeaderInvalidException.class, areImmutable());
     }
 
-
     @Test
     public void checkAttributeErrorCodeWorks() {
         final DittoRuntimeException actual =
@@ -60,4 +59,5 @@ public class CommandHeaderInvalidExceptionTest {
 
         DittoBaseAssertions.assertThat(actual).isEqualTo(COMMAND_HEADER_INVALID_EXCEPTION);
     }
+
 }

@@ -28,7 +28,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -327,7 +327,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
 
     private static DevOpsErrorResponse getErrorResponse(final DevOpsCommand<?> command) {
         final JsonObject error = JsonFactory.newObjectBuilder()
-                .set(DittoRuntimeException.JsonFields.STATUS, HttpStatusCode.BAD_REQUEST.toInt())
+                .set(DittoRuntimeException.JsonFields.STATUS, HttpStatus.BAD_REQUEST.getCode())
                 .set(DittoRuntimeException.JsonFields.MESSAGE,
                         "No topic found for publishing. Did you set the <topic> header?")
                 .build();
@@ -475,7 +475,7 @@ public final class DevOpsCommandsActor extends AbstractActor implements Retrieve
         private void sendCommandResponsesAndStop() {
             devOpsCommandSender.tell(AggregatedDevOpsCommandResponse.of(commandResponses,
                     DevOpsCommandResponse.TYPE_PREFIX + devOpsCommand.getName(),
-                    commandResponses.isEmpty() ? HttpStatusCode.REQUEST_TIMEOUT : HttpStatusCode.OK,
+                    commandResponses.isEmpty() ? HttpStatus.REQUEST_TIMEOUT : HttpStatus.OK,
                     devOpsCommand.getDittoHeaders()),
                     getSelf());
             getContext().stop(getSelf());

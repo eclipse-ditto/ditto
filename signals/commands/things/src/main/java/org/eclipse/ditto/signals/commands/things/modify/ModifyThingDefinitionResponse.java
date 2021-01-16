@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -47,8 +47,7 @@ import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 @Immutable
 @JsonParsableCommandResponse(type = ModifyThingDefinitionResponse.TYPE)
 public final class ModifyThingDefinitionResponse extends AbstractCommandResponse<ModifyThingDefinitionResponse>
-        implements
-        ThingModifyCommandResponse<ModifyThingDefinitionResponse> {
+        implements ThingModifyCommandResponse<ModifyThingDefinitionResponse> {
 
     /**
      * Type of this response.
@@ -62,9 +61,12 @@ public final class ModifyThingDefinitionResponse extends AbstractCommandResponse
     private final ThingId thingId;
     @Nullable private final ThingDefinition definition;
 
-    private ModifyThingDefinitionResponse(final ThingId thingId, final HttpStatusCode statusCode,
-            @Nullable final ThingDefinition definition, final DittoHeaders dittoHeaders) {
-        super(TYPE, statusCode, dittoHeaders);
+    private ModifyThingDefinitionResponse(final ThingId thingId,
+            final HttpStatus httpStatus,
+            @Nullable final ThingDefinition definition,
+            final DittoHeaders dittoHeaders) {
+
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.definition = definition;
     }
@@ -72,35 +74,32 @@ public final class ModifyThingDefinitionResponse extends AbstractCommandResponse
 
     /**
      * Returns a new {@code ModifyThingDefinitionResponse} for a created definition. This corresponds to the HTTP
-     * status
-     * code
-     * {@link HttpStatusCode#CREATED}.
+     * status {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created definition.
      * @param definition the created definition.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a created definition.
-     * @throws NullPointerException if any argument is {@code null}.
+     * @throws NullPointerException if {@code thingId} or {@code dittoHeaders} is {@code null}.
      */
     public static ModifyThingDefinitionResponse created(final ThingId thingId,
-            @Nullable final ThingDefinition definition,
-            final DittoHeaders dittoHeaders) {
-        return new ModifyThingDefinitionResponse(thingId, HttpStatusCode.CREATED, definition, dittoHeaders);
+            @Nullable final ThingDefinition definition, final DittoHeaders dittoHeaders) {
+
+        return new ModifyThingDefinitionResponse(thingId, HttpStatus.CREATED, definition, dittoHeaders);
     }
 
 
     /**
      * Returns a new {@code ModifyThingDefinitionResponse} for a modified definition. This corresponds to the HTTP
-     * status code
-     * {@link HttpStatusCode#NO_CONTENT}.
+     * status {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified definition.
      * @param dittoHeaders the headers of the ThingCommand which caused the new response.
      * @return a command response for a modified definition.
-     * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      */
     public static ModifyThingDefinitionResponse modified(final ThingId thingId, final DittoHeaders dittoHeaders) {
-        return new ModifyThingDefinitionResponse(thingId, HttpStatusCode.NO_CONTENT, null, dittoHeaders);
+        return new ModifyThingDefinitionResponse(thingId, HttpStatus.NO_CONTENT, null, dittoHeaders);
     }
 
     /**
@@ -109,7 +108,7 @@ public final class ModifyThingDefinitionResponse extends AbstractCommandResponse
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -124,22 +123,22 @@ public final class ModifyThingDefinitionResponse extends AbstractCommandResponse
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
     public static ModifyThingDefinitionResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ModifyThingDefinitionResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+        return new CommandResponseJsonDeserializer<ModifyThingDefinitionResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
                     final String extractedThingId =
                             jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
-                    final String extractedDefinition = jsonObject.getValue(JSON_DEFINITION).orElse(null);
-                    final ThingDefinition definition = extractedDefinition == null ?
-                            null :
-                            ThingsModelFactory.newDefinition(extractedDefinition);
 
-                    return new ModifyThingDefinitionResponse(thingId, statusCode, definition, dittoHeaders);
+                    final ThingDefinition definition = jsonObject.getValue(JSON_DEFINITION)
+                            .map(ThingsModelFactory::newDefinition)
+                            .orElse(null);
+
+                    return new ModifyThingDefinitionResponse(thingId, httpStatus, definition, dittoHeaders);
                 });
     }
 
@@ -182,6 +181,7 @@ public final class ModifyThingDefinitionResponse extends AbstractCommandResponse
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         if (definition != null) {
@@ -208,8 +208,10 @@ public final class ModifyThingDefinitionResponse extends AbstractCommandResponse
             return false;
         }
         final ModifyThingDefinitionResponse that = (ModifyThingDefinitionResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(definition, that.definition) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(definition, that.definition) &&
+                super.equals(o);
     }
 
     @Override

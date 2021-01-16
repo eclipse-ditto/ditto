@@ -23,7 +23,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -49,7 +49,7 @@ public final class PurgeNamespaceResponse extends AbstractNamespaceCommandRespon
             final boolean successful,
             final DittoHeaders dittoHeaders) {
 
-        super(namespace, resourceType, TYPE, HttpStatusCode.OK, dittoHeaders);
+        super(namespace, resourceType, TYPE, HttpStatus.OK, dittoHeaders);
         this.successful = successful;
     }
 
@@ -101,7 +101,7 @@ public final class PurgeNamespaceResponse extends AbstractNamespaceCommandRespon
      * </ul>
      */
     public static PurgeNamespaceResponse fromJson(final JsonObject jsonObject, final DittoHeaders headers) {
-        return new CommandResponseJsonDeserializer<PurgeNamespaceResponse>(TYPE, jsonObject).deserialize(statusCode -> {
+        return new CommandResponseJsonDeserializer<PurgeNamespaceResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
             final String namespace = jsonObject.getValueOrThrow(NamespaceCommandResponse.JsonFields.NAMESPACE);
             final String resourceType = jsonObject.getValueOrThrow(NamespaceCommandResponse.JsonFields.RESOURCE_TYPE);
             final Boolean isSuccessful = jsonObject.getValueOrThrow(JsonFields.SUCCESSFUL);

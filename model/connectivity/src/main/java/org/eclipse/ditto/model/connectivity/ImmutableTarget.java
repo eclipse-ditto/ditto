@@ -52,7 +52,11 @@ final class ImmutableTarget implements Target {
     /**
      * Default header mapping for legacy targets with no header mapping configured.
      */
-    static final HeaderMapping DEFAULT_HEADER_MAPPING = ImmutableSource.DEFAULT_SOURCE_HEADER_MAPPING;
+    static final HeaderMapping DEFAULT_HEADER_MAPPING =
+            ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
+                    .set("correlation-id", ImmutableSource.PLACEHOLDER_HEADER_CORRELATION_ID)
+                    .set("reply-to", ImmutableSource.DEFAULT_REPLY_TARGET_ADDRESS)
+                    .build());
 
     private final String address;
     private final Set<FilteredTopic> topics;

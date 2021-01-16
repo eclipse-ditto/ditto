@@ -19,7 +19,7 @@ import java.util.function.Consumer;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -172,9 +172,9 @@ public final class AcknowledgementAggregatorActorTest {
             final ActorRef underTest = childActorOf(getAcknowledgementAggregatorProps(command, this));
 
             // WHEN
-            final Acknowledgement ack1 = Acknowledgement.of(label1, thingId, HttpStatusCode.UNAUTHORIZED,
+            final Acknowledgement ack1 = Acknowledgement.of(label1, thingId, HttpStatus.UNAUTHORIZED,
                     DittoHeaders.newBuilder().correlationId(correlationId).putHeader(tag, label1.toString()).build());
-            final Acknowledgement ack2 = Acknowledgement.of(label2, thingId, HttpStatusCode.PAYMENT_REQUIRED,
+            final Acknowledgement ack2 = Acknowledgement.of(label2, thingId, HttpStatus.PAYMENT_REQUIRED,
                     DittoHeaders.newBuilder().correlationId(correlationId).putHeader(tag, label2.toString()).build());
             underTest.tell(ack1, ActorRef.noSender());
             underTest.tell(ack2, ActorRef.noSender());
@@ -209,13 +209,13 @@ public final class AcknowledgementAggregatorActorTest {
             final ActorRef underTest = childActorOf(getAcknowledgementAggregatorProps(command, this));
 
             // WHEN
-            final Acknowledgement ack1 = Acknowledgement.of(label1, thingId, HttpStatusCode.UNAUTHORIZED,
+            final Acknowledgement ack1 = Acknowledgement.of(label1, thingId, HttpStatus.UNAUTHORIZED,
                     DittoHeaders.newBuilder().correlationId(correlationId).putHeader(tag, label1.toString()).build());
-            final Acknowledgement ack2 = Acknowledgement.of(label2, thingId, HttpStatusCode.PAYMENT_REQUIRED,
+            final Acknowledgement ack2 = Acknowledgement.of(label2, thingId, HttpStatus.PAYMENT_REQUIRED,
                     DittoHeaders.newBuilder().correlationId(correlationId).putHeader(tag, label2.toString()).build());
-            final Acknowledgement ack3 = Acknowledgement.of(label3, thingId, HttpStatusCode.OK,
+            final Acknowledgement ack3 = Acknowledgement.of(label3, thingId, HttpStatus.OK,
                     DittoHeaders.newBuilder().correlationId(correlationId).putHeader(tag, "unsolicited").build());
-            final Acknowledgement ack4 = Acknowledgement.of(label1, thingId, HttpStatusCode.UNAUTHORIZED,
+            final Acknowledgement ack4 = Acknowledgement.of(label1, thingId, HttpStatus.UNAUTHORIZED,
                     DittoHeaders.newBuilder().correlationId(correlationId).putHeader(tag, "duplicate").build());
             underTest.tell(ack1, ActorRef.noSender());
             underTest.tell(ack3, ActorRef.noSender());

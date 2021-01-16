@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -50,20 +50,20 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
 
     private final AcknowledgementLabel label;
     private final T entityId;
-    private final HttpStatusCode statusCode;
+    private final HttpStatus httpStatus;
     @Nullable private final JsonValue payload;
     private final DittoHeaders dittoHeaders;
     private final boolean isWeak;
 
     private ImmutableAcknowledgement(final AcknowledgementLabel label,
             final T entityId,
-            final HttpStatusCode statusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders,
             @Nullable final JsonValue payload) {
 
         this.label = checkNotNull(label, "label");
         this.entityId = checkNotNull(entityId, "entityId");
-        this.statusCode = checkNotNull(statusCode, "statusCode");
+        this.httpStatus = checkNotNull(httpStatus, "httpStatus");
         final DittoHeadersBuilder<?, ?> dittoHeadersBuilder =
                 checkNotNull(dittoHeaders, "dittoHeaders").isResponseRequired() ? dittoHeaders
                         .toBuilder()
@@ -72,7 +72,7 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
                 .removeHeader(DittoHeaderDefinition.REQUESTED_ACKS.getKey())
                 .build();
         this.payload = payload;
-        this.isWeak = TRUE_STRING.equalsIgnoreCase(this.dittoHeaders.get(DittoHeaderDefinition.WEAK_ACK.getKey()));
+        isWeak = TRUE_STRING.equalsIgnoreCase(this.dittoHeaders.get(DittoHeaderDefinition.WEAK_ACK.getKey()));
     }
 
     /**
@@ -80,18 +80,18 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
      *
      * @param label the label of the new Acknowledgement.
      * @param entityId the ID of the affected entity being acknowledged.
-     * @param statusCode the status code (HTTP semantics).
+     * @param httpStatus the HTTP status.
      * @param dittoHeaders the DittoHeaders.
      * @param payload the optional payload.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static <T extends EntityIdWithType> ImmutableAcknowledgement<T> of(final AcknowledgementLabel label,
             final T entityId,
-            final HttpStatusCode statusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders,
             @Nullable final JsonValue payload) {
 
-        return new ImmutableAcknowledgement<>(label, entityId, statusCode, dittoHeaders, payload);
+        return new ImmutableAcknowledgement<>(label, entityId, httpStatus, dittoHeaders, payload);
     }
 
     @Override
@@ -113,7 +113,7 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
              */
             return !isTimeout();
         }
-        return statusCode.isSuccess();
+        return httpStatus.isSuccess();
     }
 
     @Override
@@ -123,12 +123,12 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
 
     @Override
     public boolean isTimeout() {
-        return HttpStatusCode.REQUEST_TIMEOUT == statusCode;
+        return HttpStatus.REQUEST_TIMEOUT.equals(httpStatus);
     }
 
     @Override
-    public HttpStatusCode getStatusCode() {
-        return statusCode;
+    public HttpStatus getHttpStatus() {
+        return httpStatus;
     }
 
     @Override
@@ -139,9 +139,9 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
     @Override
     public Acknowledgement setEntity(final @Nullable JsonValue payload) {
         if (payload != null) {
-            return of(label, entityId, statusCode, dittoHeaders, payload);
+            return of(label, entityId, httpStatus, dittoHeaders, payload);
         }
-        return of(label, entityId, statusCode, dittoHeaders, null);
+        return of(label, entityId, httpStatus, dittoHeaders, null);
     }
 
     @Override
@@ -151,7 +151,7 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
 
     @Override
     public ImmutableAcknowledgement<T> setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return of(label, entityId, statusCode, dittoHeaders, payload);
+        return of(label, entityId, httpStatus, dittoHeaders, payload);
     }
 
     @Override
@@ -172,7 +172,7 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
         jsonObjectBuilder.set(JsonFields.LABEL, label.toString(), predicate);
         jsonObjectBuilder.set(JsonFields.ENTITY_ID, entityId.toString(), predicate);
         jsonObjectBuilder.set(JsonFields.ENTITY_TYPE, getEntityType().toString(), predicate);
-        jsonObjectBuilder.set(JsonFields.STATUS_CODE, statusCode.toInt(), predicate);
+        jsonObjectBuilder.set(JsonFields.STATUS_CODE, httpStatus.getCode(), predicate);
         if (null != payload) {
             jsonObjectBuilder.set(JsonFields.PAYLOAD, payload, predicate);
         }
@@ -190,7 +190,7 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
             return false;
         }
         final ImmutableAcknowledgement<?> that = (ImmutableAcknowledgement<?>) o;
-        return statusCode == that.statusCode &&
+        return httpStatus.equals(that.httpStatus) &&
                 label.equals(that.label) &&
                 entityId.equals(that.entityId) &&
                 Objects.equals(payload, that.payload) &&
@@ -200,7 +200,7 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
 
     @Override
     public int hashCode() {
-        return Objects.hash(label, entityId, statusCode, payload, dittoHeaders, isWeak);
+        return Objects.hash(label, entityId, httpStatus, payload, dittoHeaders, isWeak);
     }
 
     @Override
@@ -208,7 +208,7 @@ final class ImmutableAcknowledgement<T extends EntityIdWithType> implements Ackn
         return getClass().getSimpleName() + " [" +
                 "label=" + label +
                 ", entityId=" + entityId +
-                ", statusCode=" + statusCode +
+                ", httpStatus=" + httpStatus +
                 ", payload=" + payload +
                 ", dittoHeaders=" + dittoHeaders +
                 ", isWeak=" + isWeak +

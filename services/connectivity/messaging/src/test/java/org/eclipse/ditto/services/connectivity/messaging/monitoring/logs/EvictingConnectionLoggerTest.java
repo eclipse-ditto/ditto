@@ -28,7 +28,7 @@ import javax.annotation.Nullable;
 
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.LogCategory;
@@ -265,7 +265,7 @@ public final class EvictingConnectionLoggerTest {
     public void failureUsesMessageOfDittoRuntimeException() {
         final EvictingConnectionLogger logger = builder().build();
         final String errorMessage = "This is a special message of ditto runtime exception";
-        final DittoRuntimeException exception = DittoRuntimeException.newBuilder("any.error", HttpStatusCode.BAD_REQUEST)
+        final DittoRuntimeException exception = DittoRuntimeException.newBuilder("any.error", HttpStatus.BAD_REQUEST)
                 .message(errorMessage)
                 .build();
 

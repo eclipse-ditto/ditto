@@ -13,7 +13,7 @@
 package org.eclipse.ditto.protocoladapter.policies;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.protocoladapter.Adaptable;
@@ -41,7 +41,7 @@ public final class PolicyErrorResponseAdapterTest implements ProtocolAdapterTest
         final ErrorRegistry<DittoRuntimeException> errorRegistry = GlobalErrorRegistry.getInstance();
         underTest = PolicyErrorResponseAdapter.of(DittoProtocolAdapter.getHeaderTranslator(), errorRegistry);
         dittoRuntimeException = DittoRuntimeException
-                .newBuilder("error.code", HttpStatusCode.UNAUTHORIZED)
+                .newBuilder("error.code", HttpStatus.UNAUTHORIZED)
                 .message("the message")
                 .description("the description")
                 .build();
@@ -79,7 +79,7 @@ public final class PolicyErrorResponseAdapterTest implements ProtocolAdapterTest
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
                         .withValue(dittoRuntimeException.toJson(FieldType.regularOrSpecial()))
-                        .withStatus(HttpStatusCode.UNAUTHORIZED)
+                        .withStatus(HttpStatus.UNAUTHORIZED)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();

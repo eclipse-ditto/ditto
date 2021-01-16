@@ -18,7 +18,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 
@@ -35,7 +35,7 @@ public final class InvalidRqlExpressionException extends DittoRuntimeException {
 
     static final String DEFAULT_DESCRIPTION = "Ensure that all opening parentheses have also closing ones and that " +
             "the RQL expression is valid.";
-    static final HttpStatusCode STATUS_CODE = HttpStatusCode.BAD_REQUEST;
+    static final HttpStatus HTTP_STATUS = HttpStatus.BAD_REQUEST;
 
     private static final long serialVersionUID = 8900314242209005665L;
 
@@ -45,7 +45,7 @@ public final class InvalidRqlExpressionException extends DittoRuntimeException {
             final Throwable cause,
             final URI href) {
 
-        super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HTTP_STATUS, dittoHeaders, message, description, cause, href);
     }
 
     @Override

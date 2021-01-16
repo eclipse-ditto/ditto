@@ -34,6 +34,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Measurement;
 import org.eclipse.ditto.model.connectivity.MetricType;
@@ -51,6 +52,7 @@ public class ConnectivityCounterRegistryTest {
 
     private static final ConnectivityCounterRegistry COUNTER_REGISTRY = ConnectivityCounterRegistry.newInstance();
     private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
+    private static final ConnectionType CONNECTION_TYPE = ConnectionType.AMQP_10;
     private static final String SOURCE = "source1";
     private static final String TARGET = "target1";
     private static final Instant FIXED_INSTANT = Instant.now().truncatedTo(ChronoUnit.MILLIS);
@@ -65,12 +67,12 @@ public class ConnectivityCounterRegistryTest {
     @BeforeClass
     public static void setUp() {
         Stream.of(
-                COUNTER_REGISTRY.getCounter(FIXED_CLOCK, CONNECTION_ID, CONSUMED, INBOUND, SOURCE),
-                COUNTER_REGISTRY.getCounter(FIXED_CLOCK, CONNECTION_ID, MAPPED, INBOUND, SOURCE),
-                COUNTER_REGISTRY.getCounter(FIXED_CLOCK, CONNECTION_ID, DISPATCHED, OUTBOUND, TARGET),
-                COUNTER_REGISTRY.getCounter(FIXED_CLOCK, CONNECTION_ID, FILTERED, OUTBOUND, TARGET),
-                COUNTER_REGISTRY.getCounter(FIXED_CLOCK, CONNECTION_ID, MAPPED, OUTBOUND, TARGET),
-                COUNTER_REGISTRY.getCounter(FIXED_CLOCK, CONNECTION_ID, PUBLISHED, OUTBOUND, TARGET)
+                COUNTER_REGISTRY.getCounter(FIXED_CLOCK, CONNECTION_ID, CONNECTION_TYPE, CONSUMED, INBOUND, SOURCE),
+                COUNTER_REGISTRY.getCounter(FIXED_CLOCK, CONNECTION_ID, CONNECTION_TYPE, MAPPED, INBOUND, SOURCE),
+                COUNTER_REGISTRY.getCounter(FIXED_CLOCK, CONNECTION_ID, CONNECTION_TYPE, DISPATCHED, OUTBOUND, TARGET),
+                COUNTER_REGISTRY.getCounter(FIXED_CLOCK, CONNECTION_ID, CONNECTION_TYPE, FILTERED, OUTBOUND, TARGET),
+                COUNTER_REGISTRY.getCounter(FIXED_CLOCK, CONNECTION_ID, CONNECTION_TYPE, MAPPED, OUTBOUND, TARGET),
+                COUNTER_REGISTRY.getCounter(FIXED_CLOCK, CONNECTION_ID, CONNECTION_TYPE, PUBLISHED, OUTBOUND, TARGET)
         ).forEach(counter ->
                 // just to have some different values...
                 IntStream.rangeClosed(0, counter.getMetricType().ordinal()).forEach(i -> {

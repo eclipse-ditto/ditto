@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.signals.commands.things.query;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
@@ -27,7 +28,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -36,6 +37,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link RetrieveFeatureDesiredProperty} command.
@@ -71,18 +73,17 @@ public final class RetrieveFeatureDesiredPropertyResponse
             final CharSequence featureId,
             final JsonPointer desiredPropertyPointer,
             final JsonValue desiredPropertyValue,
-            final HttpStatusCode statusCode,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
-        this.featureId = checkNotNull(featureId == null || featureId.toString().isEmpty() ? null : featureId.toString(),
-                "featureId");
+        this.featureId = argumentNotEmpty(featureId, "featureId").toString();
         this.desiredPropertyPointer = checkDesiredPropertyPointer(desiredPropertyPointer);
         this.desiredPropertyValue = checkNotNull(desiredPropertyValue, "desiredPropertyValue");
     }
 
-    private JsonPointer checkDesiredPropertyPointer(final JsonPointer desiredPropertyPointer) {
+    private static JsonPointer checkDesiredPropertyPointer(final JsonPointer desiredPropertyPointer) {
         checkNotNull(desiredPropertyPointer, "desiredPropertyPointer");
         return ThingsModelFactory.validateFeaturePropertyPointer(desiredPropertyPointer);
     }
@@ -106,9 +107,12 @@ public final class RetrieveFeatureDesiredPropertyResponse
             final JsonValue desiredPropertyValue,
             final DittoHeaders dittoHeaders) {
 
-        return new RetrieveFeatureDesiredPropertyResponse(thingId, featureId, desiredPropertyPointer,
+        return new RetrieveFeatureDesiredPropertyResponse(thingId,
+                featureId,
+                desiredPropertyPointer,
                 desiredPropertyValue,
-                HttpStatusCode.OK, dittoHeaders);
+                HttpStatus.OK,
+                dittoHeaders);
     }
 
     /**
@@ -117,7 +121,7 @@ public final class RetrieveFeatureDesiredPropertyResponse
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -136,7 +140,7 @@ public final class RetrieveFeatureDesiredPropertyResponse
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      * @throws org.eclipse.ditto.json.JsonKeyInvalidException if keys of the desired property pointer are not valid
@@ -146,17 +150,12 @@ public final class RetrieveFeatureDesiredPropertyResponse
             final DittoHeaders dittoHeaders) {
 
         return new CommandResponseJsonDeserializer<RetrieveFeatureDesiredPropertyResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
-                    final ThingId thingId = ThingId.of(extractedThingId);
-                    final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
-                    final String extractedPointerString = jsonObject.getValueOrThrow(JSON_DESIRED_PROPERTY);
-                    final JsonPointer extractedPointer = JsonFactory.newPointer(extractedPointerString);
-                    final JsonValue extractedDesiredProperty = jsonObject.getValueOrThrow(JSON_DESIRED_VALUE);
-
-                    return of(thingId, extractedFeatureId, extractedPointer, extractedDesiredProperty, dittoHeaders);
-                });
+                .deserialize(httpStatus -> of(ThingId.of(
+                        jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                        jsonObject.getValueOrThrow(JSON_FEATURE_ID),
+                        JsonFactory.newPointer(jsonObject.getValueOrThrow(JSON_DESIRED_PROPERTY)),
+                        jsonObject.getValueOrThrow(JSON_DESIRED_VALUE),
+                        dittoHeaders));
     }
 
     @Override
@@ -228,7 +227,7 @@ public final class RetrieveFeatureDesiredPropertyResponse
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_DESIRED_PROPERTY, desiredPropertyPointer.toString(), predicate);
         jsonObjectBuilder.set(JSON_DESIRED_VALUE, desiredPropertyValue, predicate);
@@ -248,10 +247,12 @@ public final class RetrieveFeatureDesiredPropertyResponse
             return false;
         }
         final RetrieveFeatureDesiredPropertyResponse that = (RetrieveFeatureDesiredPropertyResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(featureId, that.featureId) && Objects.equals(
-                desiredPropertyPointer, that.desiredPropertyPointer)
-                && Objects.equals(desiredPropertyValue, that.desiredPropertyValue) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(featureId, that.featureId) &&
+                Objects.equals(desiredPropertyPointer, that.desiredPropertyPointer) &&
+                Objects.equals(desiredPropertyValue, that.desiredPropertyValue) &&
+                super.equals(o);
     }
 
     @Override
@@ -266,4 +267,5 @@ public final class RetrieveFeatureDesiredPropertyResponse
                 + ", desiredPropertyPointer=" + desiredPropertyPointer
                 + ", desiredPropertyValue=" + desiredPropertyValue + "]";
     }
+
 }
