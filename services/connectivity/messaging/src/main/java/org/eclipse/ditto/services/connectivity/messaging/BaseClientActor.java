@@ -964,21 +964,23 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     /**
      * Start publisher and consumer actors.
+     * <p>
+     * NOT thread-safe! Only invoke as a part of message handling.
      *
      * @return Future that completes with the result of starting publisher and consumer actors.
      */
     protected CompletionStage<InitializationResult> startPublisherAndConsumerActors(
             @Nullable final ClientConnected clientConnected) {
 
-        final CompletionStage<Void> startPublisherAndConsumerActors =
-                startPublisherActor()
-                        .thenRun(() -> logger.info("Publisher started. Now starting consumers."))
-                        .thenCompose(unused -> startConsumerActors(clientConnected)) // then start consumers
-                        .thenRun(
-                                () -> logger.info("Consumers started. Client actor is now ready to process messages."));
-        final CompletionStage<Void> setupPubsub = subscribeAndDeclareAcknowledgementLabels();
+        logger.info("Starting publisher and consumers.");
 
-        return startPublisherAndConsumerActors.thenCompose(_void -> setupPubsub)
+        // All these method calls are NOT thread-safe. Do NOT inline.
+        final CompletionStage<Status.Status> publisherReady = startPublisherActor();
+        final CompletionStage<Status.Status> consumersReady = startConsumerActors(clientConnected);
+        final CompletionStage<Void> pubsubReady = subscribeAndDeclareAcknowledgementLabels();
+
+        return publisherReady.thenCompose(_void -> consumersReady)
+                .thenCompose(_void -> pubsubReady)
                 .thenApply(unused -> InitializationResult.success())
                 .exceptionally(InitializationResult::failed);
     }
@@ -1002,6 +1004,8 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
      * Subclasses should start their publisher actor in the implementation of this method and report success or
      * failure in the returned {@link CompletionStage}. {@code BaseClientActor} calls this method when the client is
      * connected.
+     * <p>
+     * NOT thread-safe! Only invoke as a part of message handling.
      *
      * @return a completion stage that completes either successfully when the publisher actor was started
      * successfully or exceptionally when the publisher actor could not be started successfully
@@ -1010,9 +1014,9 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
 
     /**
      * Subclasses should start their consumer actors in the implementation of this method and report success or
-     * failure in the returned {@link CompletionStage}. {@code BaseClientActor} calls this method when the client is
-     * connected and the publisher actor was started (this is important otherwise we are not able to publish
-     * potential error responses for consumed messages).
+     * failure in the returned {@link CompletionStage}.
+     * <p>
+     * NOT thread-safe if it starts any actors! Only invoke as a part of message handling.
      *
      * @param clientConnected message indicating that the client has successfully been connected to the external system,
      * or null if consumer actors are to be started before the client becomes connected.
@@ -1595,6 +1599,11 @@ public abstract class BaseClientActor extends AbstractFSMWithStash<BaseClientSta
         );
     }
 
+    /**
+     * Subscribe for signals. NOT thread-safe due to querying actor state.
+     *
+     * @return a future that completes when subscription and ack label declaration succeed and fails when either fails.
+     */
     private CompletionStage<Void> subscribeAndDeclareAcknowledgementLabels() {
         if (isDryRun()) {
             // no point writing to the distributed data in a dry run - this actor will stop right away
