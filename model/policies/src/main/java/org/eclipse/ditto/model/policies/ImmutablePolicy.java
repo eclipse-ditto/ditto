@@ -22,7 +22,6 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -497,7 +496,7 @@ final class ImmutablePolicy implements Policy {
     }
 
     private Map<Label, PolicyEntry> copyEntries() {
-        return new HashMap<>(entries);
+        return new LinkedHashMap<>(entries);
     }
 
     @Override

@@ -1231,7 +1231,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 // THEN: the response should contain the adjusted (rounded up) expiry time
                 final CreatePolicyResponse createPolicy1Response = expectMsgClass(CreatePolicyResponse.class);
                 final ActorRef firstPersistenceActor = getLastSender();
-                DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().get())
+                DittoPolicyAssertions.assertThat(createPolicy1Response.getPolicyCreated().orElseThrow())
                         .isEqualEqualToButModified(adjustedPolicyWithExpiringSubject);
 
                 // THEN: the created event should be emitted
