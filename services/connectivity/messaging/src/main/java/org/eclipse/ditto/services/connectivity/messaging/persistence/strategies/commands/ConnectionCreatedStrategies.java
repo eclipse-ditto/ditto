@@ -28,7 +28,7 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
  */
 public class ConnectionCreatedStrategies
         extends
-        AbstractCommandStrategies<ConnectivityCommand<?>, Connection, ConnectionState, Result<ConnectivityEvent<?>>> {
+        AbstractCommandStrategies<ConnectivityCommand<?>, Connection, ConnectionState, ConnectivityEvent<?>> {
 
     private static final ConnectionCreatedStrategies CREATED_STRATEGIES = newCreatedStrategies();
 

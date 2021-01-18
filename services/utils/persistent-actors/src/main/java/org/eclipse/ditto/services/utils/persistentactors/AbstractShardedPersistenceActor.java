@@ -136,12 +136,12 @@ public abstract class AbstractShardedPersistenceActor<
     /**
      * @return strategies to handle commands when the entity exists.
      */
-    protected abstract CommandStrategy<C, S, K, Result<E>> getCreatedStrategy();
+    protected abstract CommandStrategy<C, S, K, E> getCreatedStrategy();
 
     /**
      * @return strategies to handle commands when the entity does not exist.
      */
-    protected abstract CommandStrategy<? extends C, S, K, Result<E>> getDeletedStrategy();
+    protected abstract CommandStrategy<? extends C, S, K, E> getDeletedStrategy();
 
     /**
      * @return strategies to modify the entity by events.
@@ -253,7 +253,7 @@ public abstract class AbstractShardedPersistenceActor<
      * Start handling messages for an existing entity and schedule maintenance messages to self.
      */
     protected void becomeCreatedHandler() {
-        final CommandStrategy<C, S, K, Result<E>> commandStrategy = getCreatedStrategy();
+        final CommandStrategy<C, S, K, E> commandStrategy = getCreatedStrategy();
 
         final Receive receive = handleCleanups.orElse(ReceiveBuilder.create()
                 .match(commandStrategy.getMatchingClass(), commandStrategy::isDefined, this::handleByCommandStrategy)
@@ -346,7 +346,7 @@ public abstract class AbstractShardedPersistenceActor<
     }
 
     private Receive createDeletedBehavior() {
-        final CommandStrategy<? extends C, S, K, Result<E>> deleteStrategy = getDeletedStrategy();
+        final CommandStrategy<? extends C, S, K, E> deleteStrategy = getDeletedStrategy();
         return handleCleanups.orElse(handleByStrategyReceiveBuilder(deleteStrategy)
                 .match(CheckForActivity.class, this::checkForActivity)
                 .matchEquals(Control.TAKE_SNAPSHOT, this::takeSnapshotByInterval)
@@ -384,13 +384,13 @@ public abstract class AbstractShardedPersistenceActor<
     }
 
     private <T extends Command<?>> ReceiveBuilder handleByStrategyReceiveBuilder(
-            final CommandStrategy<T, S, K, Result<E>> strategy) {
+            final CommandStrategy<T, S, K, E> strategy) {
         return ReceiveBuilder.create()
                 .match(strategy.getMatchingClass(), command -> handleByStrategy(command, strategy));
     }
 
     private <T extends Command<?>> void handleByStrategy(final T command,
-            final CommandStrategy<T, S, K, Result<E>> strategy) {
+            final CommandStrategy<T, S, K, E> strategy) {
         log.debug("Handling by strategy: <{}>", command);
         accessCounter++;
         Result<E> result;

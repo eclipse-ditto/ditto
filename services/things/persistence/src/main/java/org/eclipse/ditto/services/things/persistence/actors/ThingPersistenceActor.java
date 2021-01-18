@@ -32,7 +32,6 @@ import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersiste
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
-import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -138,7 +137,7 @@ public final class ThingPersistenceActor
     }
 
     @Override
-    protected CommandStrategy<CreateThing, Thing, ThingId, Result<ThingEvent<?>>> getDeletedStrategy() {
+    protected CommandStrategy<CreateThing, Thing, ThingId, ThingEvent<?>> getDeletedStrategy() {
         return ThingCommandStrategies.getCreateThingStrategy();
     }
 

@@ -31,7 +31,7 @@ import akka.actor.ActorSystem;
  * Command strategies of {@code PolicyPersistenceActor}.
  */
 public final class PolicyCommandStrategies
-        extends AbstractCommandStrategies<Command<?>, Policy, PolicyId, Result<PolicyEvent<?>>> {
+        extends AbstractCommandStrategies<Command<?>, Policy, PolicyId, PolicyEvent<?>> {
 
     @Nullable private static volatile PolicyCommandStrategies instance;
     @Nullable private static volatile CreatePolicyStrategy createPolicyStrategy;
@@ -54,8 +54,8 @@ public final class PolicyCommandStrategies
         addStrategy(new ModifyPolicyEntryStrategy(policyConfig));
         addStrategy(new RetrievePolicyEntryStrategy(policyConfig));
         addStrategy(new DeletePolicyEntryStrategy(policyConfig));
-        addStrategy(this, new ActivateTokenIntegrationStrategy(policyConfig, system));
-        addStrategy(this, new DeactivateTokenIntegrationStrategy(policyConfig, system));
+        addStrategy(new ActivateTokenIntegrationStrategy(policyConfig, system));
+        addStrategy(new DeactivateTokenIntegrationStrategy(policyConfig, system));
 
         // Subjects
         addStrategy(new ModifySubjectsStrategy(policyConfig));
@@ -99,7 +99,7 @@ public final class PolicyCommandStrategies
      * @param policyConfig the PolicyConfig of the Policy service to apply.
      * @return command strategy to create a policy.
      */
-    public static CommandStrategy<CreatePolicy, Policy, PolicyId, Result<PolicyEvent<?>>> getCreatePolicyStrategy(
+    public static CommandStrategy<CreatePolicy, Policy, PolicyId, PolicyEvent<?>> getCreatePolicyStrategy(
             final PolicyConfig policyConfig) {
         CreatePolicyStrategy localCreatePolicyStrategy = createPolicyStrategy;
         if (null == localCreatePolicyStrategy) {

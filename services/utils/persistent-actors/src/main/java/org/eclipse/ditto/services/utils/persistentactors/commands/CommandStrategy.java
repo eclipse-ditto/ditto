@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.events.base.Event;
 
 /**
  * The CommandStrategy interface.
@@ -26,9 +27,9 @@ import org.eclipse.ditto.signals.commands.base.Command;
  * @param <C> the type of the handled command
  * @param <S> the type of the managed entity
  * @param <K> the type of the context
- * @param <R> the type of the results
+ * @param <E> the type of the events
  */
-public interface CommandStrategy<C extends Command<?>, S, K, R extends Result<?>> {
+public interface CommandStrategy<C extends Command<?>, S, K, E extends Event<?>> {
 
     /**
      * @return the message class to react to.
@@ -44,7 +45,7 @@ public interface CommandStrategy<C extends Command<?>, S, K, R extends Result<?>
      * @param command the command.
      * @return the result of the strategy that will be handled in the context of the calling actor.
      */
-    R apply(Context<K> context, @Nullable S entity, long nextRevision, C command);
+    Result<E> apply(Context<K> context, @Nullable S entity, long nextRevision, C command);
 
     /**
      * Indicates whether this strategy is defined for the specified command and can be applied.
@@ -77,7 +78,7 @@ public interface CommandStrategy<C extends Command<?>, S, K, R extends Result<?>
      * @param command the command of unknown type.
      * @return the result of the strategy if the strategy is defined for the command, or an empty optional otherwise.
      */
-    default Optional<R> typeCheckAndApply(final Context<K> context, @Nullable final S entity, final long nextRevision,
+    default Optional<Result<E>> typeCheckAndApply(final Context<K> context, @Nullable final S entity, final long nextRevision,
             final Object command) {
 
         if (getMatchingClass().isInstance(command)) {

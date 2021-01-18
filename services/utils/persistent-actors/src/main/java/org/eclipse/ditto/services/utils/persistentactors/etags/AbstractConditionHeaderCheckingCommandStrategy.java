@@ -43,7 +43,7 @@ public abstract class AbstractConditionHeaderCheckingCommandStrategy<
         C extends Command<?>,
         S extends Entity<?>,
         K,
-        E extends Event<?>> extends AbstractCommandStrategy<C, S, K, Result<E>> implements ETagEntityProvider<C, S> {
+        E extends Event<?>> extends AbstractCommandStrategy<C, S, K, E> implements ETagEntityProvider<C, S> {
 
     /**
      * Construct a command-strategy with condition header checking..
