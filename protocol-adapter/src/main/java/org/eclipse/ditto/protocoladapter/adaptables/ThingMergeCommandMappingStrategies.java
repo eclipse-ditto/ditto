@@ -24,7 +24,7 @@ import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
-import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyIdNotDeletableException;
+import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotDeletableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotDeletableException;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
 

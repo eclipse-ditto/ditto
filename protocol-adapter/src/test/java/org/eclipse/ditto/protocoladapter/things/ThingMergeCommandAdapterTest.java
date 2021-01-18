@@ -27,7 +27,7 @@ import org.eclipse.ditto.protocoladapter.TestConstants;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.UnknownPathException;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
-import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyIdNotDeletableException;
+import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotDeletableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotDeletableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThing;

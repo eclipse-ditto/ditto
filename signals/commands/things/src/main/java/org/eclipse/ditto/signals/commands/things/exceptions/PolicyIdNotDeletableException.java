@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.policies.exceptions;
+package org.eclipse.ditto.signals.commands.things.exceptions;
 
 import java.net.URI;
 
@@ -24,19 +24,19 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
-import org.eclipse.ditto.model.policies.PolicyException;
+import org.eclipse.ditto.model.things.ThingException;
 
 /**
  * Thrown if a REST PATCH tried to delete the {@code policyId}.
  */
 @Immutable
 @JsonParsableException(errorCode = PolicyIdNotDeletableException.ERROR_CODE)
-public final class PolicyIdNotDeletableException extends DittoRuntimeException implements PolicyException {
+public final class PolicyIdNotDeletableException extends DittoRuntimeException implements ThingException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "id.notdeletable";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "policyId.notdeletable";
 
     private static final String MESSAGE_TEMPLATE =
             "The Policy ID of a Thing cannot be deleted.";
@@ -106,7 +106,7 @@ public final class PolicyIdNotDeletableException extends DittoRuntimeException i
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link org.eclipse.ditto.signals.commands.policies.exceptions.PolicyIdNotDeletableException}.
+     * A mutable builder with a fluent API for a {@link PolicyIdNotDeletableException}.
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<PolicyIdNotDeletableException> {
