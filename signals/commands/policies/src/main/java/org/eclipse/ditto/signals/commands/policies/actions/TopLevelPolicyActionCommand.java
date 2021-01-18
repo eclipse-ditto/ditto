@@ -50,14 +50,14 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 /**
- * This command executes a policy action on every authorized entries.
+ * This command executes a policy action on all authorized policy entries.
  *
  * @since 2.0.0
  */
 @Immutable
-@JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = TopLevelActionCommand.NAME)
-public final class TopLevelActionCommand extends AbstractCommand<TopLevelActionCommand>
-        implements PolicyActionCommand<TopLevelActionCommand> {
+@JsonParsableCommand(typePrefix = PolicyCommand.TYPE_PREFIX, name = TopLevelPolicyActionCommand.NAME)
+public final class TopLevelPolicyActionCommand extends AbstractCommand<TopLevelPolicyActionCommand>
+        implements PolicyActionCommand<TopLevelPolicyActionCommand> {
 
     /**
      * NAME of this command.
@@ -78,7 +78,7 @@ public final class TopLevelActionCommand extends AbstractCommand<TopLevelActionC
     private final PolicyActionCommand<?> policyActionCommand;
     private final List<Label> authorizedLabels;
 
-    private TopLevelActionCommand(final PolicyActionCommand<?> policyActionCommand,
+    private TopLevelPolicyActionCommand(final PolicyActionCommand<?> policyActionCommand,
             final List<Label> authorizedLabels) {
         super(TYPE, policyActionCommand.getDittoHeaders());
         // Null check and copying in the factory method in order to share known unmodifiable fields between instances.
@@ -94,10 +94,10 @@ public final class TopLevelActionCommand extends AbstractCommand<TopLevelActionC
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static TopLevelActionCommand of(final PolicyActionCommand<?> policyActionCommand,
+    public static TopLevelPolicyActionCommand of(final PolicyActionCommand<?> policyActionCommand,
             final List<Label> authorizedLabels) {
 
-        return new TopLevelActionCommand(
+        return new TopLevelPolicyActionCommand(
                 policyActionCommand,
                 Collections.unmodifiableList(new ArrayList<>(checkNotNull(authorizedLabels, "labels")))
         );
@@ -114,11 +114,12 @@ public final class TopLevelActionCommand extends AbstractCommand<TopLevelActionC
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static TopLevelActionCommand fromJson(final JsonObject jsonObject,
+    @SuppressWarnings("unused") // called by reflection in AnnotationBasedJsonParsable.parse
+    public static TopLevelPolicyActionCommand fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders,
             final JsonParsable.ParseInnerJson parseInnerJson) {
 
-        return new CommandJsonDeserializer<TopLevelActionCommand>(TYPE, jsonObject).deserialize(() -> {
+        return new CommandJsonDeserializer<TopLevelPolicyActionCommand>(TYPE, jsonObject).deserialize(() -> {
             try {
                 final JsonObject commandJson = jsonObject.getValueOrThrow(JSON_ACTION);
                 final PolicyActionCommand<?> policyActionCommand =
@@ -130,7 +131,7 @@ public final class TopLevelActionCommand extends AbstractCommand<TopLevelActionC
                                 .map(Label::of)
                                 .collect(Collectors.toList())
                 );
-                return new TopLevelActionCommand(policyActionCommand.setDittoHeaders(dittoHeaders), labels);
+                return new TopLevelPolicyActionCommand(policyActionCommand.setDittoHeaders(dittoHeaders), labels);
             } catch (final NotSerializableException e) {
                 throw new JsonParseException(e.getMessage());
             }
@@ -143,7 +144,7 @@ public final class TopLevelActionCommand extends AbstractCommand<TopLevelActionC
     }
 
     @Override
-    public TopLevelActionCommand setLabel(final Label label) {
+    public TopLevelPolicyActionCommand setLabel(final Label label) {
         return this;
     }
 
@@ -194,13 +195,13 @@ public final class TopLevelActionCommand extends AbstractCommand<TopLevelActionC
     }
 
     @Override
-    public TopLevelActionCommand setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new TopLevelActionCommand(policyActionCommand.setDittoHeaders(dittoHeaders), authorizedLabels);
+    public TopLevelPolicyActionCommand setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new TopLevelPolicyActionCommand(policyActionCommand.setDittoHeaders(dittoHeaders), authorizedLabels);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof TopLevelActionCommand;
+        return other instanceof TopLevelPolicyActionCommand;
     }
 
     @Override
@@ -211,8 +212,9 @@ public final class TopLevelActionCommand extends AbstractCommand<TopLevelActionC
         if (null == obj || getClass() != obj.getClass()) {
             return false;
         }
-        final TopLevelActionCommand that = (TopLevelActionCommand) obj;
-        return Objects.equals(policyActionCommand, that.policyActionCommand) &&
+        final TopLevelPolicyActionCommand that = (TopLevelPolicyActionCommand) obj;
+        return that.canEqual(this) &&
+                Objects.equals(policyActionCommand, that.policyActionCommand) &&
                 Objects.equals(authorizedLabels, that.authorizedLabels) &&
                 super.equals(obj);
     }

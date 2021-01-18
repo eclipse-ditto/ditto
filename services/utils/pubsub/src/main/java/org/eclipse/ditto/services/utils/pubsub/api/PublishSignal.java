@@ -82,7 +82,7 @@ public final class PublishSignal extends AbstractCommand<PublishSignal> {
      * @param parseInnerJson function to parse the inner JSON.
      * @return the deserialized command.
      */
-    @SuppressWarnings("unused") // called by reflection
+    @SuppressWarnings("unused") // called by reflection in AnnotationBasedJsonParsable.parse
     public static PublishSignal fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders,
             final JsonParsable.ParseInnerJson parseInnerJson) {

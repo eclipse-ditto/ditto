@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
 
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute.extractJwt;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -66,8 +67,6 @@ final class PolicyEntriesRoute extends AbstractRoute {
     private static final String PATH_SUFFIX_RESOURCES = "resources";
 
     private static final String PATH_ACTIONS = "actions";
-    private static final String ACTIVATE_TOKEN_INTEGRATION = ActivateTokenIntegration.NAME;
-    private static final String DEACTIVATE_TOKEN_INTEGRATION = DeactivateTokenIntegration.NAME;
 
     private final TokenIntegrationSubjectIdFactory tokenIntegrationSubjectIdFactory;
 
@@ -101,12 +100,12 @@ final class PolicyEntriesRoute extends AbstractRoute {
     Route buildPolicyEntriesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId,
             final AuthenticationResult authResult) {
         return concat(
-                thingsEntryPolicyEntries(ctx, dittoHeaders, policyId),
-                thingsEntryPolicyEntry(ctx, dittoHeaders, policyId),
-                thingsEntryPolicyEntrySubjects(ctx, dittoHeaders, policyId),
-                thingsEntryPolicyEntrySubjectsEntry(ctx, dittoHeaders, policyId),
-                thingsEntryPolicyEntryResources(ctx, dittoHeaders, policyId),
-                thingsEntryPolicyEntryResourcesEntry(ctx, dittoHeaders, policyId),
+                policyEntries(ctx, dittoHeaders, policyId),
+                policyEntry(ctx, dittoHeaders, policyId),
+                policyEntrySubjects(ctx, dittoHeaders, policyId),
+                policyEntrySubjectsEntry(ctx, dittoHeaders, policyId),
+                policyEntryResources(ctx, dittoHeaders, policyId),
+                policyEntryResourcesEntry(ctx, dittoHeaders, policyId),
                 policyEntryActions(ctx, dittoHeaders, policyId, authResult)
         );
     }
@@ -116,7 +115,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
      *
      * @return {@code /entries} route.
      */
-    private Route thingsEntryPolicyEntries(final RequestContext ctx, final DittoHeaders dittoHeaders,
+    private Route policyEntries(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final PolicyId policyId) {
 
         return pathEndOrSingleSlash(() ->
@@ -145,7 +144,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
      *
      * @return {@code /entries/<label>} route.
      */
-    private Route thingsEntryPolicyEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
+    private Route policyEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final PolicyId policyId) {
 
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
@@ -191,7 +190,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
      *
      * @return {@code /entries/<label>/subjects} route.
      */
-    private Route thingsEntryPolicyEntrySubjects(final RequestContext ctx, final DittoHeaders dittoHeaders,
+    private Route policyEntrySubjects(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final PolicyId policyId) {
 
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
@@ -226,7 +225,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
      *
      * @return {@code /entries/<label>/subjects/<subjectId>} route.
      */
-    private Route thingsEntryPolicyEntrySubjectsEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
+    private Route policyEntrySubjectsEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final PolicyId policyId) {
 
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
@@ -275,7 +274,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
      *
      * @return {@code /entries/<label>/resources} route.
      */
-    private Route thingsEntryPolicyEntryResources(final RequestContext ctx, final DittoHeaders dittoHeaders,
+    private Route policyEntryResources(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final PolicyId policyId) {
 
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
@@ -312,7 +311,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
      *
      * @return {@code /entries/<label>/resources/<resource>} route.
      */
-    private Route thingsEntryPolicyEntryResourcesEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
+    private Route policyEntryResourcesEntry(final RequestContext ctx, final DittoHeaders dittoHeaders,
             final PolicyId policyId) {
 
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
@@ -361,16 +360,24 @@ final class PolicyEntriesRoute extends AbstractRoute {
 
         return rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), label ->
                 rawPathPrefix(PathMatchers.slash().concat(PATH_ACTIONS), () -> concat(
-                        rawPathPrefix(PathMatchers.slash().concat(ACTIVATE_TOKEN_INTEGRATION), () ->
-                                pathEndOrSingleSlash(() -> PoliciesRoute.extractJwt(
-                                        dittoHeaders, authResult, ACTIVATE_TOKEN_INTEGRATION,
-                                        jwt -> post(() -> handlePerRequest(ctx,
-                                                activateTokenIntegration(dittoHeaders, policyId, label, jwt)))))),
-                        rawPathPrefix(PathMatchers.slash().concat(DEACTIVATE_TOKEN_INTEGRATION), () ->
-                                pathEndOrSingleSlash(() -> PoliciesRoute.extractJwt(
-                                        dittoHeaders, authResult, DEACTIVATE_TOKEN_INTEGRATION,
-                                        jwt -> post(() -> handlePerRequest(ctx,
-                                                deactivateTokenIntegration(dittoHeaders, policyId, label, jwt))))))
+                        // POST /entries/<label>/actions/activateTokenIntegration
+                        rawPathPrefix(PathMatchers.slash().concat(ActivateTokenIntegration.NAME), () ->
+                                pathEndOrSingleSlash(() ->
+                                        extractJwt(dittoHeaders, authResult, ActivateTokenIntegration.NAME, jwt ->
+                                                post(() -> handlePerRequest(ctx, activateTokenIntegration(
+                                                        dittoHeaders, policyId, label, jwt)))
+                                        )
+                                )
+                        ),
+                        // POST /entries/<label>/actions/deactivateTokenIntegration
+                        rawPathPrefix(PathMatchers.slash().concat(DeactivateTokenIntegration.NAME), () ->
+                                pathEndOrSingleSlash(() ->
+                                        extractJwt(dittoHeaders, authResult, DeactivateTokenIntegration.NAME, jwt ->
+                                                post(() -> handlePerRequest(ctx, deactivateTokenIntegration(
+                                                        dittoHeaders, policyId, label, jwt)))
+                                        )
+                                )
+                        )
                 ))
         );
     }

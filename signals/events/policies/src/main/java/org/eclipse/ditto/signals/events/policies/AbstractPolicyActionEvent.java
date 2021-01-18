@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.policies.SubjectId;
  * Abstract base class of a {@link PolicyActionEvent}.
  *
  * @param <T> the type of the implementing class.
+ * @since 2.0.0
  */
 abstract class AbstractPolicyActionEvent<T extends AbstractPolicyActionEvent<T>>
         extends AbstractPolicyEvent<T> implements PolicyActionEvent<T> {

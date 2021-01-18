@@ -202,6 +202,11 @@ public final class SubjectsDeletedPartially extends AbstractPolicyActionEvent<Su
     }
 
     @Override
+    public SubjectsDeletedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
+        return aggregateWithSubjectDeleted(deletedSubjectIds, otherPolicyActionEvents);
+    }
+
+    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
@@ -237,10 +242,5 @@ public final class SubjectsDeletedPartially extends AbstractPolicyActionEvent<Su
                 .collect(Collectors.toMap(field -> Label.of(field.getKeyName()),
                         field -> SubjectId.newInstance(field.getValue().asString())));
         return Collections.unmodifiableMap(map);
-    }
-
-    @Override
-    public SubjectsDeletedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
-        return aggregateWithSubjectDeleted(deletedSubjectIds, otherPolicyActionEvents);
     }
 }

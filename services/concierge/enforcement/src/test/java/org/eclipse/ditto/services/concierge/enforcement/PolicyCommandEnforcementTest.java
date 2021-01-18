@@ -60,7 +60,7 @@ import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
-import org.eclipse.ditto.signals.commands.policies.actions.TopLevelActionCommand;
+import org.eclipse.ditto.signals.commands.policies.actions.TopLevelPolicyActionCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotModifiableException;
@@ -558,11 +558,11 @@ public final class PolicyCommandEnforcementTest {
     }
 
     @Test
-    public void activatePolicyTokenIntegrationWithoutPermission() {
+    public void activateTopLevelTokenIntegrationWithoutPermission() {
         new TestKit(system) {{
             final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
             final Instant expiry = Instant.now();
-            final TopLevelActionCommand command = TopLevelActionCommand.of(
+            final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
                     ActivateTokenIntegration.of(POLICY_ID, Label.of("-"), subjectId, expiry, DITTO_HEADERS),
                     List.of());
 
@@ -575,10 +575,10 @@ public final class PolicyCommandEnforcementTest {
     }
 
     @Test
-    public void deactivatePolicyTokenIntegrationWithoutPermission() {
+    public void deactivateTopLevelTokenIntegrationWithoutPermission() {
         new TestKit(system) {{
             final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
-            final TopLevelActionCommand command = TopLevelActionCommand.of(
+            final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
                     DeactivateTokenIntegration.of(POLICY_ID, Label.of("-"), subjectId, DITTO_HEADERS),
                     List.of());
 
@@ -622,11 +622,11 @@ public final class PolicyCommandEnforcementTest {
     }
 
     @Test
-    public void activatePolicyTokenIntegration() {
+    public void activateTopLevelTokenIntegration() {
         new TestKit(system) {{
             final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
             final Instant expiry = Instant.now();
-            final TopLevelActionCommand command = TopLevelActionCommand.of(
+            final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
                     ActivateTokenIntegration.of(POLICY_ID, Label.of("-"), subjectId, expiry, DITTO_HEADERS),
                     List.of()
             );
@@ -636,9 +636,9 @@ public final class PolicyCommandEnforcementTest {
             policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
             policiesShardRegionProbe.reply(createPolicyResponseForActions());
 
-            final TopLevelActionCommand
-                    forwarded = policiesShardRegionProbe.expectMsgClass(TopLevelActionCommand.class);
-            assertThat(forwarded).isEqualTo(TopLevelActionCommand.of(
+            final TopLevelPolicyActionCommand
+                    forwarded = policiesShardRegionProbe.expectMsgClass(TopLevelPolicyActionCommand.class);
+            assertThat(forwarded).isEqualTo(TopLevelPolicyActionCommand.of(
                     ActivateTokenIntegration.of(POLICY_ID, Label.of("-"), subjectId, expiry, DITTO_HEADERS),
                     List.of(Label.of("allowed"))
             ));
@@ -646,10 +646,10 @@ public final class PolicyCommandEnforcementTest {
     }
 
     @Test
-    public void deactivatePolicyTokenIntegration() {
+    public void deactivateTopLevelTokenIntegration() {
         new TestKit(system) {{
             final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
-            final TopLevelActionCommand command = TopLevelActionCommand.of(
+            final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
                     DeactivateTokenIntegration.of(POLICY_ID, Label.of("-"), subjectId, DITTO_HEADERS),
                     List.of()
             );
@@ -659,9 +659,9 @@ public final class PolicyCommandEnforcementTest {
             policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
             policiesShardRegionProbe.reply(createPolicyResponseForActions());
 
-            final TopLevelActionCommand
-                    forwarded = policiesShardRegionProbe.expectMsgClass(TopLevelActionCommand.class);
-            assertThat(forwarded).isEqualTo(TopLevelActionCommand.of(
+            final TopLevelPolicyActionCommand
+                    forwarded = policiesShardRegionProbe.expectMsgClass(TopLevelPolicyActionCommand.class);
+            assertThat(forwarded).isEqualTo(TopLevelPolicyActionCommand.of(
                     DeactivateTokenIntegration.of(POLICY_ID, Label.of("-"), subjectId, DITTO_HEADERS),
                     List.of(Label.of("allowed"))
             ));

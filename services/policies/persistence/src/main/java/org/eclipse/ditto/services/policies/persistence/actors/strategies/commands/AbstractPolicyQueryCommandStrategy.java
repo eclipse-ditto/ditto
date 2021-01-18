@@ -23,12 +23,14 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 
 /**
- * Abstract base class for
+ * Abstract base class for all policy query commands.
+ *
  * @param <C> the type of the handled command - of type {@code Command} as also
  * {@link org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand} are handled which are no
  * PolicyQueryCommands.
  */
-abstract class AbstractPolicyQueryCommandStrategy<C extends Command<C>> extends AbstractPolicyCommandStrategy<C, PolicyEvent<?>> {
+abstract class AbstractPolicyQueryCommandStrategy<C extends Command<C>>
+        extends AbstractPolicyCommandStrategy<C, PolicyEvent<?>> {
 
     AbstractPolicyQueryCommandStrategy(final Class<C> theMatchingClass, final PolicyConfig policyConfig) {
         super(theMatchingClass, policyConfig);

@@ -13,7 +13,7 @@
 package org.eclipse.ditto.services.policies.persistence.actors.strategies.commands;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
@@ -87,7 +87,7 @@ abstract class AbstractPolicyActionCommandStrategy<C extends PolicyActionCommand
      */
     PolicyActionFailedException getNotApplicableException(final DittoHeaders dittoHeaders) {
         return PolicyActionFailedException.newBuilderForActivateTokenIntegration()
-                .status(HttpStatusCode.NOT_FOUND)
+                .status(HttpStatus.NOT_FOUND)
                 .description("No policy entry found containing one of the authorized subjects and with any READ " +
                         "permission for things.")
                 .dittoHeaders(dittoHeaders)

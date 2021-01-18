@@ -24,7 +24,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -33,29 +33,29 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommandResponse;
 
 /**
- * Response to an {@link TopLevelActionCommand} command.
+ * Response to a {@link TopLevelPolicyActionCommand} command.
  *
  * @since 2.0.0
  */
 @Immutable
-@JsonParsableCommandResponse(type = TopLevelActionCommandResponse.TYPE)
-public final class TopLevelActionCommandResponse
-        extends AbstractCommandResponse<TopLevelActionCommandResponse>
-        implements PolicyActionCommandResponse<TopLevelActionCommandResponse> {
+@JsonParsableCommandResponse(type = TopLevelPolicyActionCommandResponse.TYPE)
+public final class TopLevelPolicyActionCommandResponse
+        extends AbstractCommandResponse<TopLevelPolicyActionCommandResponse>
+        implements PolicyActionCommandResponse<TopLevelPolicyActionCommandResponse> {
 
     /**
      * Type of this response.
      */
-    public static final String TYPE = TYPE_PREFIX + TopLevelActionCommand.NAME;
+    public static final String TYPE = TYPE_PREFIX + TopLevelPolicyActionCommand.NAME;
 
     /**
      * Status code of this response.
      */
-    public static final HttpStatusCode STATUS = HttpStatusCode.NO_CONTENT;
+    public static final HttpStatus STATUS = HttpStatus.NO_CONTENT;
 
     private final PolicyId policyId;
 
-    private TopLevelActionCommandResponse(final PolicyId policyId, final DittoHeaders dittoHeaders) {
+    private TopLevelPolicyActionCommandResponse(final PolicyId policyId, final DittoHeaders dittoHeaders) {
         super(TYPE, STATUS, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policyId");
     }
@@ -68,8 +68,8 @@ public final class TopLevelActionCommandResponse
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static TopLevelActionCommandResponse of(final PolicyId policyId, final DittoHeaders dittoHeaders) {
-        return new TopLevelActionCommandResponse(policyId, dittoHeaders);
+    public static TopLevelPolicyActionCommandResponse of(final PolicyId policyId, final DittoHeaders dittoHeaders) {
+        return new TopLevelPolicyActionCommandResponse(policyId, dittoHeaders);
     }
 
     /**
@@ -83,11 +83,11 @@ public final class TopLevelActionCommandResponse
      * format.
      */
     @SuppressWarnings("unused") // called by reflection
-    public static TopLevelActionCommandResponse fromJson(final JsonObject jsonObject,
+    public static TopLevelPolicyActionCommandResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         final PolicyId policyId =
                 PolicyId.of(jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID));
-        return new TopLevelActionCommandResponse(policyId, dittoHeaders);
+        return new TopLevelPolicyActionCommandResponse(policyId, dittoHeaders);
     }
 
     @Override
@@ -109,13 +109,13 @@ public final class TopLevelActionCommandResponse
     }
 
     @Override
-    public TopLevelActionCommandResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new TopLevelActionCommandResponse(policyId, dittoHeaders);
+    public TopLevelPolicyActionCommandResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new TopLevelPolicyActionCommandResponse(policyId, dittoHeaders);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return other instanceof TopLevelActionCommandResponse;
+        return other instanceof TopLevelPolicyActionCommandResponse;
     }
 
     @Override
@@ -126,7 +126,7 @@ public final class TopLevelActionCommandResponse
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final TopLevelActionCommandResponse that = (TopLevelActionCommandResponse) o;
+        final TopLevelPolicyActionCommandResponse that = (TopLevelPolicyActionCommandResponse) o;
         return Objects.equals(policyId, that.policyId) &&
                 super.equals(o);
     }

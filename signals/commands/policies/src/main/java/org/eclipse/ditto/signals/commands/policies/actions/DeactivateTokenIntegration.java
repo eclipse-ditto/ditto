@@ -182,7 +182,8 @@ public final class DeactivateTokenIntegration extends AbstractCommand<Deactivate
             return false;
         }
         final DeactivateTokenIntegration that = (DeactivateTokenIntegration) obj;
-        return Objects.equals(policyId, that.policyId) &&
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
                 Objects.equals(label, that.label) &&
                 Objects.equals(subjectId, that.subjectId) &&
                 super.equals(obj);

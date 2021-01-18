@@ -56,6 +56,7 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
  *
  * @param <C> the type of the handled command - of type {@code Command} as also
  * {@link org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand} are handled which are no PolicyCommands.
+ * @param <E> the type of the emitted events
  */
 abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends PolicyEvent<?>>
         extends AbstractConditionHeaderCheckingCommandStrategy<C, Policy, PolicyId, E> {
@@ -233,6 +234,7 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
      * @param entries the policy entries to check for an expiry date in the past.
      * @param dittoHeaders the DittoHeaders to use for building the exception.
      * @param command the command which caused the change of the policy entries.
+     * @param <T> the type of the emitted event
      * @return an Optional with ErrorResponse if a subject was invalid, an empty Optional if everything was valid.
      */
     protected static <T extends PolicyEvent<?>> Optional<Result<T>> checkForAlreadyExpiredSubject(

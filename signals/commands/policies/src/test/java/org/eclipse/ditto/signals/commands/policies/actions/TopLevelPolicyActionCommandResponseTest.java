@@ -28,39 +28,39 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link TopLevelActionCommandResponse}.
+ * Unit test for {@link TopLevelPolicyActionCommandResponse}.
  */
-public final class TopLevelActionCommandResponseTest {
+public final class TopLevelPolicyActionCommandResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(PolicyCommandResponse.JsonFields.TYPE, TopLevelActionCommandResponse.TYPE)
-            .set(PolicyCommandResponse.JsonFields.STATUS, TopLevelActionCommandResponse.STATUS.toInt())
+            .set(PolicyCommandResponse.JsonFields.TYPE, TopLevelPolicyActionCommandResponse.TYPE)
+            .set(PolicyCommandResponse.JsonFields.STATUS, TopLevelPolicyActionCommandResponse.STATUS.getCode())
             .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .build();
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(TopLevelActionCommandResponse.class,
+        assertInstancesOf(TopLevelPolicyActionCommandResponse.class,
                 areImmutable(),
                 provided(PolicyId.class).isAlsoImmutable());
     }
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(TopLevelActionCommandResponse.class)
+        EqualsVerifier.forClass(TopLevelPolicyActionCommandResponse.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
-        TopLevelActionCommandResponse.of(null, TestConstants.EMPTY_DITTO_HEADERS);
+        TopLevelPolicyActionCommandResponse.of(null, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
     public void toJsonReturnsExpected() {
-        final TopLevelActionCommandResponse underTest =
-                TopLevelActionCommandResponse.of(TestConstants.Policy.POLICY_ID,
+        final TopLevelPolicyActionCommandResponse underTest =
+                TopLevelPolicyActionCommandResponse.of(TestConstants.Policy.POLICY_ID,
                         TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
@@ -69,11 +69,11 @@ public final class TopLevelActionCommandResponseTest {
 
     @Test
     public void createInstanceFromValidJson() {
-        final TopLevelActionCommandResponse underTest =
-                TopLevelActionCommandResponse.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
+        final TopLevelPolicyActionCommandResponse underTest =
+                TopLevelPolicyActionCommandResponse.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
-        final TopLevelActionCommandResponse expectedCommand =
-                TopLevelActionCommandResponse.of(TestConstants.Policy.POLICY_ID,
+        final TopLevelPolicyActionCommandResponse expectedCommand =
+                TopLevelPolicyActionCommandResponse.of(TestConstants.Policy.POLICY_ID,
                         TestConstants.EMPTY_DITTO_HEADERS);
         assertThat(underTest).isEqualTo(expectedCommand);
     }

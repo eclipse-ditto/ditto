@@ -75,6 +75,8 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
     static final JsonFieldDefinition<String> JSON_EXPIRY =
             JsonFactory.newStringFieldDefinition("expiry", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
+    private static final String READ_PERMISSION = "READ";
+
     private final PolicyId policyId;
     private final Label label;
     private final SubjectId subjectId;
@@ -150,15 +152,14 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
     @Override
     public boolean isApplicable(final PolicyEntry policyEntry) {
         // This action is applicable to policy entries containing a READ permission grated to a thing resource.
-        final String readPermission = "READ";
         return policyEntry.getResources()
                 .stream()
                 .anyMatch(resource -> {
                     final String resourceType = resource.getResourceKey().getResourceType();
                     final EffectedPermissions permissions = resource.getEffectedPermissions();
                     return PoliciesResourceType.THING.equals(resourceType) &&
-                            permissions.getGrantedPermissions().contains(readPermission) &&
-                            !permissions.getRevokedPermissions().contains(readPermission);
+                            permissions.getGrantedPermissions().contains(READ_PERMISSION) &&
+                            !permissions.getRevokedPermissions().contains(READ_PERMISSION);
                 });
     }
 
@@ -214,7 +215,8 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
             return false;
         }
         final ActivateTokenIntegration that = (ActivateTokenIntegration) obj;
-        return Objects.equals(policyId, that.policyId) &&
+        return that.canEqual(this) &&
+                Objects.equals(policyId, that.policyId) &&
                 Objects.equals(label, that.label) &&
                 Objects.equals(subjectId, that.subjectId) &&
                 Objects.equals(expiry, that.expiry) &&

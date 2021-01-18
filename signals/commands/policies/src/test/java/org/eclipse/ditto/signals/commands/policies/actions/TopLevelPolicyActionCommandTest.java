@@ -35,9 +35,9 @@ import org.junit.Test;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
- * Unit test for {@link TopLevelActionCommand}.
+ * Unit test for {@link TopLevelPolicyActionCommand}.
  */
-public final class TopLevelActionCommandTest {
+public final class TopLevelPolicyActionCommandTest {
 
     private static final List<Label> LABELS = Collections.singletonList(TestConstants.Policy.LABEL);
 
@@ -46,14 +46,14 @@ public final class TopLevelActionCommandTest {
                     TestConstants.Policy.SUBJECT_ID, Instant.EPOCH, TestConstants.EMPTY_DITTO_HEADERS);
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(PolicyCommand.JsonFields.TYPE, TopLevelActionCommand.TYPE)
-            .set(TopLevelActionCommand.JSON_ACTION, POLICY_ACTION_COMMAND.toJson())
-            .set(TopLevelActionCommand.JSON_LABELS, JsonArray.of(TestConstants.Policy.LABEL))
+            .set(PolicyCommand.JsonFields.TYPE, TopLevelPolicyActionCommand.TYPE)
+            .set(TopLevelPolicyActionCommand.JSON_ACTION, POLICY_ACTION_COMMAND.toJson())
+            .set(TopLevelPolicyActionCommand.JSON_LABELS, JsonArray.of(TestConstants.Policy.LABEL))
             .build();
 
     @Test
     public void assertImmutability() {
-        assertInstancesOf(TopLevelActionCommand.class,
+        assertInstancesOf(TopLevelPolicyActionCommand.class,
                 areImmutable(),
                 provided(PolicyActionCommand.class).areAlsoImmutable(),
                 assumingFields("authorizedLabels").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
@@ -61,25 +61,25 @@ public final class TopLevelActionCommandTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(TopLevelActionCommand.class)
+        EqualsVerifier.forClass(TopLevelPolicyActionCommand.class)
                 .withRedefinedSuperclass()
                 .verify();
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullCommand() {
-        TopLevelActionCommand.of(null, LABELS);
+        TopLevelPolicyActionCommand.of(null, LABELS);
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullLabels() {
-        TopLevelActionCommand.of(POLICY_ACTION_COMMAND, null);
+        TopLevelPolicyActionCommand.of(POLICY_ACTION_COMMAND, null);
     }
 
     @Test
     public void toJsonReturnsExpected() {
-        final TopLevelActionCommand underTest =
-                TopLevelActionCommand.of(POLICY_ACTION_COMMAND, LABELS);
+        final TopLevelPolicyActionCommand underTest =
+                TopLevelPolicyActionCommand.of(POLICY_ACTION_COMMAND, LABELS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -87,12 +87,12 @@ public final class TopLevelActionCommandTest {
 
     @Test
     public void createInstanceFromValidJson() {
-        final TopLevelActionCommand underTest =
-                TopLevelActionCommand.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS,
+        final TopLevelPolicyActionCommand underTest =
+                TopLevelPolicyActionCommand.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS,
                         jsonObject -> ActivateTokenIntegration.fromJson(jsonObject, DittoHeaders.empty()));
 
-        final TopLevelActionCommand expectedCommand =
-                TopLevelActionCommand.of(POLICY_ACTION_COMMAND, LABELS);
+        final TopLevelPolicyActionCommand expectedCommand =
+                TopLevelPolicyActionCommand.of(POLICY_ACTION_COMMAND, LABELS);
         assertThat(underTest).isEqualTo(expectedCommand);
     }
 }

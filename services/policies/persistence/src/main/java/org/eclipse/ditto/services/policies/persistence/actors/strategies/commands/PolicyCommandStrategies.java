@@ -33,7 +33,9 @@ import akka.actor.ActorSystem;
 public final class PolicyCommandStrategies
         extends AbstractCommandStrategies<Command<?>, Policy, PolicyId, PolicyEvent<?>> {
 
+    @SuppressWarnings("java:S3077") // volatile because of double checked locking pattern
     @Nullable private static volatile PolicyCommandStrategies instance;
+    @SuppressWarnings("java:S3077") // volatile because of double checked locking pattern
     @Nullable private static volatile CreatePolicyStrategy createPolicyStrategy;
 
     private PolicyCommandStrategies(final PolicyConfig policyConfig, final ActorSystem system) {
@@ -44,7 +46,7 @@ public final class PolicyCommandStrategies
         addStrategy(new ModifyPolicyStrategy(policyConfig));
         addStrategy(new RetrievePolicyStrategy(policyConfig));
         addStrategy(new DeletePolicyStrategy(policyConfig));
-        addStrategy(new TopLevelActionCommandStrategy(policyConfig, system));
+        addStrategy(new TopLevelPolicyActionCommandStrategy(policyConfig, system));
 
         // Policy Entries
         addStrategy(new ModifyPolicyEntriesStrategy(policyConfig));

@@ -30,7 +30,7 @@ import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthent
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
-import org.eclipse.ditto.signals.commands.policies.actions.TopLevelActionCommand;
+import org.eclipse.ditto.signals.commands.policies.actions.TopLevelPolicyActionCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.junit.Before;
 import org.junit.Rule;
@@ -146,10 +146,10 @@ public final class PoliciesRouteTest extends EndpointTestBase {
     }
 
     @Test
-    public void activateTokenIntegration() {
+    public void activateTopLevelTokenIntegration() {
         getRoute(getTokenAuthResult()).run(HttpRequest.POST("/policies/ns%3An/actions/activateTokenIntegration/"))
                 .assertStatusCode(StatusCodes.OK)
-                .assertEntity(TopLevelActionCommand.of(
+                .assertEntity(TopLevelPolicyActionCommand.of(
                         ActivateTokenIntegration.of(PolicyId.of("ns:n"),
                                 Label.of("-"),
                                 SubjectId.newInstance("dummy-issuer:{{policy-entry:label}}:dummy-subject"),
@@ -160,10 +160,10 @@ public final class PoliciesRouteTest extends EndpointTestBase {
     }
 
     @Test
-    public void deactivateTokenIntegration() {
+    public void deactivateTopLevelTokenIntegration() {
         getRoute(getTokenAuthResult()).run(HttpRequest.POST("/policies/ns%3An/actions/deactivateTokenIntegration"))
                 .assertStatusCode(StatusCodes.OK)
-                .assertEntity(TopLevelActionCommand.of(
+                .assertEntity(TopLevelPolicyActionCommand.of(
                         DeactivateTokenIntegration.of(PolicyId.of("ns:n"),
                                 Label.of("-"),
                                 SubjectId.newInstance("dummy-issuer:{{policy-entry:label}}:dummy-subject"),

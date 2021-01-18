@@ -39,8 +39,8 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.PolicyActionCommand;
-import org.eclipse.ditto.signals.commands.policies.actions.TopLevelActionCommand;
-import org.eclipse.ditto.signals.commands.policies.actions.TopLevelActionCommandResponse;
+import org.eclipse.ditto.signals.commands.policies.actions.TopLevelPolicyActionCommand;
+import org.eclipse.ditto.signals.commands.policies.actions.TopLevelPolicyActionCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.signals.events.policies.PolicyActionEvent;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
@@ -48,15 +48,15 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 import akka.actor.ActorSystem;
 
 /**
- * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.actions.TopLevelActionCommand} command.
+ * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.actions.TopLevelPolicyActionCommand} command.
  */
-final class TopLevelActionCommandStrategy
-        extends AbstractPolicyCommandStrategy<TopLevelActionCommand, PolicyEvent<?>> {
+final class TopLevelPolicyActionCommandStrategy
+        extends AbstractPolicyCommandStrategy<TopLevelPolicyActionCommand, PolicyEvent<?>> {
 
     private final Map<String, AbstractPolicyActionCommandStrategy<?>> policyActionCommandStrategyMap;
 
-    TopLevelActionCommandStrategy(final PolicyConfig policyConfig, final ActorSystem system) {
-        super(TopLevelActionCommand.class, policyConfig);
+    TopLevelPolicyActionCommandStrategy(final PolicyConfig policyConfig, final ActorSystem system) {
+        super(TopLevelPolicyActionCommand.class, policyConfig);
         policyActionCommandStrategyMap = instantiatePolicyActionCommandStrategies(policyConfig, system);
     }
 
@@ -64,7 +64,7 @@ final class TopLevelActionCommandStrategy
     protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy policy,
             final long nextRevision,
-            final TopLevelActionCommand command,
+            final TopLevelPolicyActionCommand command,
             @Nullable final Metadata metadata) {
 
         final Policy nonNullPolicy = checkNotNull(policy, "policy");
@@ -81,7 +81,8 @@ final class TopLevelActionCommandStrategy
 
         if (strategy == null) {
             final PolicyActionFailedException exception = PolicyActionFailedException.newBuilder()
-                    .action(command.getPolicyActionCommand().getName())
+                    .action(actionCommand.getName())
+                    .dittoHeaders(dittoHeaders)
                     .build();
             context.getLog()
                     .withCorrelationId(command)
@@ -99,8 +100,8 @@ final class TopLevelActionCommandStrategy
             } else {
                 final Optional<PolicyEvent<?>> event = visitor.aggregateEvents();
                 if (event.isPresent()) {
-                    final TopLevelActionCommandResponse response =
-                            TopLevelActionCommandResponse.of(context.getState(), dittoHeaders);
+                    final TopLevelPolicyActionCommandResponse response =
+                            TopLevelPolicyActionCommandResponse.of(context.getState(), dittoHeaders);
                     return ResultFactory.newMutationResult(command, event.get(), response);
                 }
             }
@@ -109,16 +110,16 @@ final class TopLevelActionCommandStrategy
     }
 
     @Override
-    public Optional<EntityTag> previousEntityTag(final TopLevelActionCommand command,
+    public Optional<EntityTag> previousEntityTag(final TopLevelPolicyActionCommand command,
             @Nullable final Policy previousEntity) {
-        // activated subjects do not support entity tag
+        // top level policy action commands do not support entity tag
         return Optional.empty();
     }
 
     @Override
-    public Optional<EntityTag> nextEntityTag(final TopLevelActionCommand command,
+    public Optional<EntityTag> nextEntityTag(final TopLevelPolicyActionCommand command,
             @Nullable final Policy newEntity) {
-        // activated subjects do not support entity tag
+        // top level policy action commands do not support entity tag
         return Optional.empty();
     }
 

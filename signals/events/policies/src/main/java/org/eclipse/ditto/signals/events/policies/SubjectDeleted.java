@@ -247,6 +247,13 @@ public final class SubjectDeleted extends AbstractPolicyActionEvent<SubjectDelet
         jsonObjectBuilder.set(JSON_SUBJECT_ID, subjectId.toString(), predicate);
     }
 
+    @Override
+    public SubjectsDeletedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
+        final Map<Label, SubjectId> initialDeletedSubjectId =
+                Stream.of(0).collect(Collectors.toMap(i -> label, i -> subjectId));
+        return aggregateWithSubjectDeleted(initialDeletedSubjectId, otherPolicyActionEvents);
+    }
+
     @SuppressWarnings("squid:S109")
     @Override
     public int hashCode() {
@@ -280,12 +287,5 @@ public final class SubjectDeleted extends AbstractPolicyActionEvent<SubjectDelet
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", label=" + label + ", subjectId=" + subjectId
                 + "]";
-    }
-
-    @Override
-    public SubjectsDeletedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
-        final Map<Label, SubjectId> initialDeletedSubjectId =
-                Stream.of(0).collect(Collectors.toMap(i -> label, i -> subjectId));
-        return aggregateWithSubjectDeleted(initialDeletedSubjectId, otherPolicyActionEvents);
     }
 }

@@ -197,6 +197,11 @@ public final class SubjectsModifiedPartially extends AbstractPolicyActionEvent<S
     }
 
     @Override
+    public SubjectsModifiedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
+        return aggregateWithSubjectCreatedOrModified(modifiedSubjects, otherPolicyActionEvents);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), modifiedSubjects);
     }
@@ -253,10 +258,5 @@ public final class SubjectsModifiedPartially extends AbstractPolicyActionEvent<S
                 .collect(Collectors.toMap(field -> Label.of(field.getKeyName()),
                         field -> subjectFromJsonWithId(field.getValue().asObject())));
         return Collections.unmodifiableMap(map);
-    }
-
-    @Override
-    public SubjectsModifiedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
-        return aggregateWithSubjectCreatedOrModified(modifiedSubjects, otherPolicyActionEvents);
     }
 }

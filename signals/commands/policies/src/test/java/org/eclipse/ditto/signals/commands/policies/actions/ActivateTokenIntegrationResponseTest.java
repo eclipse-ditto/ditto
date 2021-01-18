@@ -36,7 +36,7 @@ public final class ActivateTokenIntegrationResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommandResponse.JsonFields.TYPE, ActivateTokenIntegrationResponse.TYPE)
-            .set(PolicyCommandResponse.JsonFields.STATUS, ActivateTokenIntegrationResponse.STATUS.toInt())
+            .set(PolicyCommandResponse.JsonFields.STATUS, ActivateTokenIntegrationResponse.STATUS.getCode())
             .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(ActivateTokenIntegrationResponse.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .set(ActivateTokenIntegrationResponse.JSON_SUBJECT_ID, TestConstants.Policy.SUBJECT_ID.toString())

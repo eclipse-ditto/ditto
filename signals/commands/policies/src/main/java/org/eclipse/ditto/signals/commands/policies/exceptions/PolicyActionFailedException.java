@@ -21,7 +21,8 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -43,7 +44,7 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "action.failed";
 
-    private static final HttpStatusCode DEFAULT_STATUS = HttpStatusCode.INTERNAL_SERVER_ERROR;
+    private static final HttpStatus DEFAULT_STATUS = HttpStatus.INTERNAL_SERVER_ERROR;
 
     private static final String MESSAGE_TEMPLATE = "Failed to execute action ''{0}''.";
 
@@ -52,7 +53,7 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
     private static final long serialVersionUID = 989346771203701232L;
 
     private PolicyActionFailedException(final DittoHeaders dittoHeaders,
-            final HttpStatusCode status,
+            final HttpStatus status,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
@@ -96,7 +97,7 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
     public static DittoRuntimeExceptionBuilder<PolicyActionFailedException>
     newBuilderForInappropriateAuthenticationMethod(final String action) {
         return new Builder().action(action)
-                .status(HttpStatusCode.BAD_REQUEST)
+                .status(HttpStatus.BAD_REQUEST)
                 .description("Policy action is only possible with JWT authentication.");
     }
 
@@ -109,12 +110,18 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
      * @return the new PolicyActionFailedException.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
-     * format.
+     * @throws JsonParseException if the passed in {@code jsonObject} was not in the expected format.
      */
     public static PolicyActionFailedException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final HttpStatusCode status = HttpStatusCode.forInt(jsonObject.getValueOrThrow(JsonFields.STATUS))
-                .orElseThrow(() -> new JsonParseException("Unsupported status"));
+        final HttpStatus status;
+        try {
+            status = HttpStatus.getInstance(jsonObject.getValueOrThrow(JsonFields.STATUS));
+        } catch (final HttpStatusCodeOutOfRangeException e) {
+            throw JsonParseException.newBuilder()
+                    .message(e.getMessage())
+                    .cause(e)
+                    .build();
+        }
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder().status(status));
     }
 
@@ -140,7 +147,7 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<PolicyActionFailedException> {
 
-        private HttpStatusCode status = DEFAULT_STATUS;
+        private HttpStatus status = DEFAULT_STATUS;
 
         private Builder() {
             description(DEFAULT_DESCRIPTION);
@@ -163,7 +170,7 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
          * @param status the status code.
          * @return this builder.
          */
-        public Builder status(final HttpStatusCode status) {
+        public Builder status(final HttpStatus status) {
             this.status = status;
             return this;
         }

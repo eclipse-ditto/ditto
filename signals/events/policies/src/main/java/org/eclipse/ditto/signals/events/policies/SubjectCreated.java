@@ -261,6 +261,13 @@ public final class SubjectCreated extends AbstractPolicyActionEvent<SubjectCreat
         jsonObjectBuilder.set(JSON_SUBJECT, subject.toJson(schemaVersion, thePredicate), predicate);
     }
 
+    @Override
+    public SubjectsModifiedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
+        final Map<Label, Subject> initialCreatedSubjects =
+                Stream.of(0).collect(Collectors.toMap(i -> label, i -> subject));
+        return aggregateWithSubjectCreatedOrModified(initialCreatedSubjects, otherPolicyActionEvents);
+    }
+
     @SuppressWarnings("squid:S109")
     @Override
     public int hashCode() {
@@ -293,12 +300,5 @@ public final class SubjectCreated extends AbstractPolicyActionEvent<SubjectCreat
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", label=" + label + ", subject=" + subject + "]";
-    }
-
-    @Override
-    public SubjectsModifiedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
-        final Map<Label, Subject> initialCreatedSubjects =
-                Stream.of(0).collect(Collectors.toMap(i -> label, i -> subject));
-        return aggregateWithSubjectCreatedOrModified(initialCreatedSubjects, otherPolicyActionEvents);
     }
 }

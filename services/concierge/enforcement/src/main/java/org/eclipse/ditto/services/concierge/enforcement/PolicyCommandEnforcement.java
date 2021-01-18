@@ -51,7 +51,7 @@ import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.actions.PolicyActionCommand;
-import org.eclipse.ditto.signals.commands.policies.actions.TopLevelActionCommand;
+import org.eclipse.ditto.signals.commands.policies.actions.TopLevelPolicyActionCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToAccessExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToActionsExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToModifyExceptionRegistry;
@@ -134,9 +134,9 @@ public final class PolicyCommandEnforcement
     private static <T extends PolicyCommand<?>> Optional<T> authorizeActionCommand(final PolicyEnforcer enforcer,
             final T command, final ResourceKey resourceKey, final AuthorizationContext authorizationContext) {
 
-        if (command instanceof TopLevelActionCommand) {
-            final TopLevelActionCommand topLevelActionCommand = (TopLevelActionCommand) command;
-            return (Optional<T>) authorizeTopLevelAction(enforcer, topLevelActionCommand, authorizationContext);
+        if (command instanceof TopLevelPolicyActionCommand) {
+            final TopLevelPolicyActionCommand topLevelPolicyActionCommand = (TopLevelPolicyActionCommand) command;
+            return (Optional<T>) authorizeTopLevelAction(enforcer, topLevelPolicyActionCommand, authorizationContext);
         } else {
             return authorizeEntryLevelAction(enforcer.getEnforcer(), command, resourceKey, authorizationContext);
         }
@@ -153,8 +153,8 @@ public final class PolicyCommandEnforcement
                 : Optional.empty();
     }
 
-    private static Optional<TopLevelActionCommand> authorizeTopLevelAction(final PolicyEnforcer policyEnforcer,
-            final TopLevelActionCommand command, final AuthorizationContext authorizationContext) {
+    private static Optional<TopLevelPolicyActionCommand> authorizeTopLevelAction(final PolicyEnforcer policyEnforcer,
+            final TopLevelPolicyActionCommand command, final AuthorizationContext authorizationContext) {
         final Enforcer enforcer = policyEnforcer.getEnforcer();
         final List<Label> authorizedLabels = policyEnforcer.getPolicy()
                 .map(policy -> policy.getEntriesSet().stream()
@@ -166,8 +166,8 @@ public final class PolicyCommandEnforcement
         if (authorizedLabels.isEmpty()) {
             return Optional.empty();
         } else {
-            final TopLevelActionCommand adjustedCommand =
-                    TopLevelActionCommand.of(command.getPolicyActionCommand(), authorizedLabels);
+            final TopLevelPolicyActionCommand adjustedCommand =
+                    TopLevelPolicyActionCommand.of(command.getPolicyActionCommand(), authorizedLabels);
             return Optional.of(adjustedCommand);
         }
     }

@@ -16,13 +16,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
-import org.eclipse.ditto.signals.commands.policies.actions.TopLevelActionCommand;
+import org.eclipse.ditto.signals.commands.policies.actions.TopLevelPolicyActionCommand;
 
 /**
  * Registry to map policy commands to their according policy actions exception.
@@ -50,22 +50,22 @@ public final class PolicyCommandToActionsExceptionRegistry
         final Map<String, Function<PolicyCommand<?>, DittoRuntimeException>> mappingStrategies = new HashMap<>();
 
         final String insufficientPermissions = "The requester has insufficient permissions. 'EXECUTE' is required.";
-        mappingStrategies.put(TopLevelActionCommand.TYPE,
+        mappingStrategies.put(TopLevelPolicyActionCommand.TYPE,
                 command -> PolicyActionFailedException.newBuilder()
-                        .action(((TopLevelActionCommand) command).getPolicyActionCommand().getName())
-                        .status(HttpStatusCode.FORBIDDEN)
+                        .action(((TopLevelPolicyActionCommand) command).getPolicyActionCommand().getName())
+                        .status(HttpStatus.FORBIDDEN)
                         .description(insufficientPermissions)
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
         mappingStrategies.put(ActivateTokenIntegration.TYPE,
                 command -> PolicyActionFailedException.newBuilderForActivateTokenIntegration()
-                        .status(HttpStatusCode.FORBIDDEN)
+                        .status(HttpStatus.FORBIDDEN)
                         .description(insufficientPermissions)
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
         mappingStrategies.put(DeactivateTokenIntegration.TYPE,
                 command -> PolicyActionFailedException.newBuilderForDeactivateTokenIntegration()
-                        .status(HttpStatusCode.FORBIDDEN)
+                        .status(HttpStatus.FORBIDDEN)
                         .description(insufficientPermissions)
                         .dittoHeaders(command.getDittoHeaders())
                         .build());
