@@ -1,6 +1,8 @@
 ---
-title: Merge the definition of a thing keywords: examples, merge definition search: exclude permalink:
-protocol-examples-mergethingdefinition.html
+title: Merge the definition of a thing 
+keywords: examples, merge definition 
+search: exclude 
+permalink: protocol-examples-mergethingdefinition.html
 ---
 
 {% capture command %}{% include_relative generated/commands/merge/mergethingdefinition.md %}{% endcapture %} {{ command

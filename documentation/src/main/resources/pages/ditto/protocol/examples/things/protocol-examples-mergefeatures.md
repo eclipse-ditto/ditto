@@ -1,6 +1,8 @@
 ---
-title: Merge all features of a thing keywords: examples, merge features search: exclude permalink:
-protocol-examples-mergefeatures.html
+title: Merge all features of a thing 
+keywords: examples, merge features 
+search: exclude
+permalink: protocol-examples-mergefeatures.html
 ---
 
 {% capture command %}{% include_relative generated/commands/merge/mergefeatures.md %}{% endcapture %} {{ command |

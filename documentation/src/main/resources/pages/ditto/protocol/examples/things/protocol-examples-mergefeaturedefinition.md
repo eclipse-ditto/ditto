@@ -1,6 +1,8 @@
 ---
-title: Merge the definition of a feature keywords: examples, merge feature definition search: exclude permalink:
-protocol-examples-mergefeaturedefinition.html
+title: Merge the definition of a feature 
+keywords: examples, merge feature definition 
+search: exclude 
+permalink: protocol-examples-mergefeaturedefinition.html
 ---
 
 {% capture command %}{% include_relative generated/commands/merge/mergefeaturedefinition.md %}{% endcapture %} {{

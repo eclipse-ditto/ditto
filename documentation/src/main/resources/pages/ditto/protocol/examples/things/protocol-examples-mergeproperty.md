@@ -1,6 +1,8 @@
 ---
-title: Merge a single property of a feature keywords: examples, merge feature property search: exclude permalink:
-protocol-examples-mergeproperty.html
+title: Merge a single property of a feature 
+keywords: examples, merge feature property 
+search: exclude 
+permalink: protocol-examples-mergeproperty.html
 ---
 
 {% capture command %}{% include_relative generated/commands/merge/mergefeatureproperty.md %}{% endcapture %} {{ command

@@ -1,6 +1,7 @@
 ---
-title: HTTP API concepts keywords: http, api, concepts, partial, conditional, optimistic locking, ETag, If-Match,
-If-None-Match tags: [http]
+title: HTTP API concepts 
+keywords: http, api, concepts, partial, conditional, optimistic locking, ETag, If-Match, If-None-Match 
+tags: [http]
 permalink: httpapi-concepts.html
 ---
 
@@ -458,9 +459,9 @@ complete thing at root level or patching a single property value at property lev
 
 ### Permissions required for merge update
 
-To successfully execute merge update the authorized subject needs to have *WRITE* permission on *all* resources affected
-by the provided JSON merge patch. If the permission is missing for one of the affected resources the whole merge patch
-is *rejected*, i.e. the merge update is executed as a whole or not at all.
+To successfully execute merge update the authorized subject needs to have *WRITE* permission on *all* resources 
+affected by the provided JSON merge patch. If the permission is missing for one of the affected resources the whole 
+merge patch is *rejected*, i.e. the merge update is executed as a whole or not at all.
 
 ### Merge update example
 

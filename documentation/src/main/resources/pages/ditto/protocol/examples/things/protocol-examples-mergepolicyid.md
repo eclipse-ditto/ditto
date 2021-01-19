@@ -1,6 +1,8 @@
 ---
-title: Merge a policy id of a thing keywords: examples, merge policy id search: exclude permalink:
-protocol-examples-mergepolicyid.html
+title: Merge a policy id of a thing 
+keywords: examples, merge policy id 
+search: exclude 
+permalink: protocol-examples-mergepolicyid.html
 ---
 
 {% capture command %}{% include_relative generated/commands/merge/mergepolicyid.md %}{% endcapture %} {{ command |

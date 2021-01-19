@@ -1,5 +1,8 @@
 ---
-title: Merge a Thing keywords: examples, merge thing search: exclude permalink: protocol-examples-mergething.html
+title: Merge a Thing 
+keywords: examples, merge thing 
+search: exclude 
+permalink: protocol-examples-mergething.html
 ---
 
 {% capture command %}{% include_relative generated/commands/merge/mergething.md %}{% endcapture %} {{ command |

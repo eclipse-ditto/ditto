@@ -1,5 +1,7 @@
 ---
-title: Things - Merge protocol specification keywords: protocol, specification, merge, thing tags: [protocol]
+title: Things - Merge protocol specification 
+keywords: protocol, specification, merge, thing 
+tags: [protocol]
 permalink: protocol-specification-things-merge.html
 ---
 

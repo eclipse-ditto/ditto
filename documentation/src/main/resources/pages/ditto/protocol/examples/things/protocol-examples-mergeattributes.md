@@ -1,6 +1,8 @@
 ---
-title: Merge all attributes of a thing keywords: examples, merge attributes search: exclude permalink:
-protocol-examples-mergeattributes.html
+title: Merge all attributes of a thing 
+keywords: examples, merge attributes 
+search: exclude 
+permalink: protocol-examples-mergeattributes.html
 ---
 
 {% capture command %}{% include_relative generated/commands/merge/mergeattributes.md %}{% endcapture %} {{ command |

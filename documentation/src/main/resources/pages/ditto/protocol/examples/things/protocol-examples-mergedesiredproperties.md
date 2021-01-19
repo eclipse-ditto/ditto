@@ -1,5 +1,7 @@
 ---
-title: Merge all desired properties of a feature keywords: examples, merge feature desired properties search: exclude
+title: Merge all desired properties of a feature 
+keywords: examples, merge feature desired properties 
+search: exclude
 permalink: protocol-examples-mergedesiredproperties.html
 ---
 
