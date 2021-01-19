@@ -456,12 +456,20 @@ interpreted as delete in contrast to `PUT` requests where `null` values have no 
 Like `PUT` requests, `PATCH` requests can be applied at any level of the JSON structure of a thing, e.g. patching a
 complete thing at root level or patching a single property value at property level.
 
-### Merge example
+### Permissions required for merge update
+
+To successfully execute merge update the authorized subject needs to have *WRITE* permission on *all* resources affected
+by the provided JSON merge patch. If the permission is missing for one of the affected resources the whole merge patch
+is *rejected*, i.e. the merge update is executed as a whole or not at all.
+
+### Merge update example
 
 Given an existing thing with the JSON structure:
 
 ```json
 {
+  "thingId": "{thingId}",
+  "policyId": "{policyId}",
   "attributes": {
     "location": {
       "longitude": 47.682170,
@@ -525,10 +533,12 @@ This can be achieved using a `PATCH .../things/{thingId}` with the request paylo
 }
 ```
 
-The resulting JSON represenation of the updated thing after applying the `PATCH` is:
+The resulting JSON representation of the updated thing after applying the `PATCH` is:
 
 ```json
 {
+  "thingId": "{thingId}",
+  "policyId": "{policyId}",
   "attributes": {
     "manufacturer": "Bosch",
     "serialNo": "23091861"

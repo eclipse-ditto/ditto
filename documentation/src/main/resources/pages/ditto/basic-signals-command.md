@@ -17,8 +17,9 @@ In <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.c
 referred to as *commands*.
 
 An overview of all Thing related modify commands can be found in the appropriate chapter of the Ditto Protocol:
-* [Create/Modify protocol specification](protocol-specification-things-create-or-modify.html), 
-* [Delete protocol specification.](protocol-specification-things-delete.html) 
+* [Create/Modify protocol specification](protocol-specification-things-create-or-modify.html),
+* [Merge protocol specification](protocol-specification-things-merge.html),
+* [Delete protocol specification.](protocol-specification-things-delete.html)
 
 ## Query Commands
 
