@@ -492,19 +492,19 @@ paths:
         Patch an existing thing specified by the `thingId` path parameter.
 
         Patching a thing will merge the provided request body with the exisiting thing.
-        This makes it possible to change only some parts of a thing without providing the full thing structure
-        in the request body.
+        This makes it possible to change only some parts of a thing in single request without providing the full thing
+        structure in the request body.
 
 
         ### Patch a thing
 
-        With this resource it is possible to add, update or delete special parts of an existing thing.
-        The request body will be merged with the existing thing.
+        With this resource it is possible to add, update or delete parts of an existing thing.
+        The request body provided in *JSON merge patch* (RFC-7396) format will be merged with the existing thing.
         Notice that the `null` value in the JSON body will delete the specified JSON key from the thing.
-        For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
+        For further documentation of JSON merge patch see [RFC 7396](https://tools.ietf.org/html/rfc7396).
 
 
-        For example: A Thing already exists with this content:
+        For example, a Thing already exists with this content:
 
         ```
         {
@@ -540,8 +540,8 @@ paths:
         }
         ```
 
-        Now we want to make some changes, e.g. adding some attributes and deleting a special feature property.
-        The content of the requet's body could look like this.
+        To make changes that only affect parts of the existing thing, e.g. add some attribute and delete a
+        specific feature property, the content of the request body could look like this:
 
         ```
         {
@@ -561,7 +561,8 @@ paths:
         }
         ```
 
-        The request body will be merged with the existing thing and the result will be the following thing.
+        The request body will be merged with the existing thing and the result will be the following thing:
+
         ```
         {
           "definition": "com.acme:coffeebrewer:0.1.0",
@@ -596,8 +597,18 @@ paths:
         }
         ```
 
-        ### Permissions for pathing an existing Thing
-        For updating an existing thing, the authorized subject needs **WRITE** permission on the thing's root resource.
+        ### Permissions for patching an existing Thing
+
+        For updating an existing thing, the authorized subject needs **WRITE** permission on those parts of the thing
+        that are affected by the merge update.
+
+        For example, to successfully execute the above example the authorized subject needs to have unrestricted
+        *WRITE* permissions on all affected paths of the JSON merge patch: `attributes/manufacturingYear`,
+        `features/water-tank/properties/configuration/smartMode`,
+        `features/water-tank/properties/configuration/tempToHold`. The *WRITE* permission must not be revoked on any
+        level further down the hierarchy. Consequently it is also sufficient for the authorized subject to have
+        unrestricted *WRITE* permission at root level or unrestricted *WRITE* permission at `/attributes` and
+        `/features` etc.
       tags:
         - Things
       parameters:
@@ -871,7 +882,7 @@ paths:
       summary: Patch the definition of a specific thing
       description: |-
         * If the thing does not have a definition yet, this request will create it.
-        * If the thing already has a definition you can assign it to a new one by setting the new definition in the request body.
+        * If the thing already has a definition you can replace it by providing the new definition in the request body.
         * If the request body is set to `null` then the defintion will be deleted.
 
         Notice that the `null` value in the JSON body has a special meaning and will delete the definition from the thing.
@@ -940,7 +951,8 @@ paths:
               $ref: '#/components/schemas/Definition'
             example: '"example:test:definition"'
         description: |-
-          JSON string of the definition to be patched. Consider that the value has to be a JSON string, examples:
+          JSON string representation of the definition to be patched. Consider that the value has to be a JSON string,
+          examples:
 
             * an string: `"value"` - Currently the definition should follow the pattern: [_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]
             * an empty string: `""`
@@ -1133,7 +1145,8 @@ paths:
         Patch the policy ID of the thing identified by the `thingId` path parameter.
 
         The `policyId` of the thing will be updated.
-        Notice that for this special case it is not possible to remove the `policyId` from the thing.
+        Notice that for this resource it is not possible to remove the `policyId` from the thing by setting the
+        payload to `null`.
       tags:
         - Things
       parameters:
@@ -1330,7 +1343,7 @@ paths:
         For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
 
         **Note**: In contrast to the "PUT things/{thingId}/attributes" request,
-        a partial update is supported here, and request body is merged with the existing attributes.
+        a partial update is supported here and request body is merged with the existing attributes.
       tags:
         - Things
       parameters:
@@ -1398,12 +1411,12 @@ paths:
                 serialno: '42'
                 model: Speaking coffee machine
         description: |-
-            JSON object of all attributes to be patched. Consider that the value has to be a JSON object.
+          JSON object of all attributes to be patched. Consider that the value has to be a [JSON merge patch] (https://tools .ietf.org/html/rfc7396).
 
             Examples:
               * a simple object: `{ "key": "value"}` - We strongly recommend to use a restricted set of characters for the key (identifier), as the key might be needed for the (URL) path later.<br> Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
               * a nested object as shown in the example value
-              * `null`: would just delete all attributes
+              * `null`: deletes all attributes
         required: true
     delete:
       summary: Delete all attributes of a specific thing at once
@@ -1935,7 +1948,7 @@ paths:
         Notice that the `null` value has a special meaning and can be used to delete specific features from the thing.
         For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
 
-        **Note**: In contrast to the "PUT thing/{thingId}/features" request, a partial update is supported here,
+        **Note**: In contrast to the "PUT thing/{thingId}/features" request, a partial update is supported here
         and request body is merged with the existing features.
 
         ### Example
@@ -2035,7 +2048,7 @@ paths:
                   status:
                     failState: true
         description: |-
-          JSON object of all features to be patched. Consider that the value has to be a JSON object.
+          JSON object of all features to be patched. Consider that the value has to be a [JSON merge patch] (https://tools .ietf.org/html/rfc7396).
 
           Examples:
           * a nested object with multiple features as shown in the example value field
@@ -2269,7 +2282,7 @@ paths:
         For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
 
         **Note**: In contrast to the "PUT things/{thingId}/features/{featureId}" request,
-        a partial update is supported here, and request body is merged with the existing feature.
+        a partial update is supported here and request body is merged with the existing feature.
 
         ### Example
 
@@ -2350,7 +2363,7 @@ paths:
                 connected: true
                 brewed-coffees: 0
         description: |-
-          JSON representation of the feature to be patched. Consider that the value has to be a JSON object.
+          JSON representation of the feature to be patched. Consider that the value has to be a [JSON merge patch] (https://tools .ietf.org/html/rfc7396).
 
           Examples:
           * a nested object with multiple model definitions and multiple properties as shown in the example value field
@@ -2842,7 +2855,7 @@ paths:
         For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
 
         **Note**: In contrast to the "PUT things/{thingId}/features/{featureId}/properties" request,
-        a partial update is supported here, and request body is merged with the existing properties.
+        a partial update is supported here and request body is merged with the existing properties.
       tags:
         - Features
       parameters:
@@ -2915,8 +2928,7 @@ paths:
         description: |-
           JSON object of all properties to be patched.
 
-          Consider that the value has to be a JSON object. We strongly recommend to use
-          a restricted set of characters for the key (identifier).
+          Consider that the value has to be a [JSON merge patch] (https://tools .ietf.org/html/rfc7396). We strongly recommend to use a restricted set of characters for the key (identifier).
 
           Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
         required: true
@@ -3391,7 +3403,7 @@ paths:
         For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
 
         **Note**: In contrast to the "PUT things/{thingId}/features/{featureId}/desiredProperties" request,
-        a partial update is supported here, and request body is merged with the existing desired properties.
+        a partial update is supported here and request body is merged with the existing desired properties.
       tags:
         - Features
       parameters:
@@ -3464,7 +3476,7 @@ paths:
         description: |-
           JSON object of all desried properties to be patched.
 
-          Consider that the value has to be a JSON object. We strongly recommend to use
+          Consider that the value has to be a [JSON merge patch] (https://tools .ietf.org/html/rfc7396). We strongly recommend to use
           a restricted set of characters for the key (identifier).
 
           Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
@@ -3844,7 +3856,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
-        '404':desiredProperties
+        '404':
           description: |-
             The request could not be completed. Possible reasons:
               * the referenced thing does not exist.
