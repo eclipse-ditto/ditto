@@ -84,8 +84,8 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final ThingId thingId = context.getState();
         final Thing existing = THING_V1.toBuilder().setRevision(NEXT_REVISION - 1).build();
-        final JsonPointer path = JsonPointer.empty();
-        final MergeThing mergeThing = MergeThing.withAttribute(thingId, path, JsonObject.empty(), DittoHeaders.empty());
+        final MergeThing mergeThing = MergeThing.withAttribute(thingId, JsonPointer.of("path"), JsonObject.empty(),
+                DittoHeaders.empty());
         assertErrorResult(underTest, existing, mergeThing,
                 CommandNotSupportedException.newBuilder(JsonSchemaVersion.V_1.toInt()).build());
     }
