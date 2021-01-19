@@ -12,11 +12,15 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V1;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.mergeThingResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
+
+import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -25,6 +29,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
@@ -80,9 +85,23 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
         final ThingId thingId = context.getState();
         final Thing existing = THING_V1.toBuilder().setRevision(NEXT_REVISION - 1).build();
         final JsonPointer path = JsonPointer.empty();
-        final MergeThing mergeThing = MergeThing.of(thingId, path, JsonObject.empty(), DittoHeaders.empty());
+        final MergeThing mergeThing = MergeThing.withAttribute(thingId, path, JsonObject.empty(), DittoHeaders.empty());
         assertErrorResult(underTest, existing, mergeThing,
                 CommandNotSupportedException.newBuilder(JsonSchemaVersion.V_1.toInt()).build());
     }
 
+    @Test
+    public void mergeThingWithLargeAttributeExpectThingTooLargeException() {
+        final CommandStrategy.Context<ThingId> context = getDefaultContext();
+        final ThingId thingId = context.getState();
+        final Thing existing = THING_V2.toBuilder().setRevision(NEXT_REVISION - 1).build();
+        final JsonPointer path = Thing.JsonFields.ATTRIBUTES.getPointer().append(JsonPointer.of("large"));
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
+        final MergeThing mergeThing = MergeThing.withAttribute(thingId, path,
+                JsonValue.of("~".repeat((int) THING_SIZE_LIMIT_BYTES - 150)),
+                dittoHeaders);
+        assertThatExceptionOfType(ThingTooLargeException.class)
+                .isThrownBy(() -> underTest.apply(context, existing, NEXT_REVISION, mergeThing))
+                .satisfies(e -> assertThat(e.getDittoHeaders()).containsAllEntriesOf(dittoHeaders));
+    }
 }

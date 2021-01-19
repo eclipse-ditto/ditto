@@ -66,15 +66,7 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
             @Nullable final Metadata metadata) {
 
         final Thing nonNullThing = getEntityOrThrow(thing);
-
-        final JsonObject thingJsonObject = nonNullThing.toJson();
-        ThingCommandSizeValidator.getInstance().ensureValidSize(
-                thingJsonObject::getUpperBoundForStringSize,
-                () -> thingJsonObject.toString().length(),
-                command::getDittoHeaders);
-
         final Instant eventTs = getEventTimestamp();
-
         return handleMergeExisting(context, nonNullThing, eventTs, nextRevision, command, metadata);
     }
 
@@ -123,6 +115,12 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
         final JsonObject existingThingJson = thing.toJson(FieldType.all());
         final JsonObject mergePatch = JsonFactory.newObject(command.getPath(), command.getValue());
         final JsonObject mergedJson = JsonFactory.mergeJsonValues(mergePatch, existingThingJson).asObject();
+
+        ThingCommandSizeValidator.getInstance().ensureValidSize(
+                mergedJson::getUpperBoundForStringSize,
+                () -> mergedJson.toString().length(),
+                command::getDittoHeaders);
+
         context.getLog().debug("Result of JSON merge: {}", mergedJson);
         final Thing mergedThing = ThingsModelFactory.newThingBuilder(mergedJson)
                 .setRevision(nextRevision)
