@@ -18,7 +18,9 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
+import java.util.Collections;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
@@ -41,7 +43,9 @@ public final class ActivateTokenIntegrationTest {
             .set(PolicyCommand.JsonFields.TYPE, ActivateTokenIntegration.TYPE)
             .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(ActivateTokenIntegration.JSON_LABEL, TestConstants.Policy.LABEL.toString())
-            .set(ActivateTokenIntegration.JSON_SUBJECT_ID, TestConstants.Policy.SUBJECT_ID.toString())
+            .set(ActivateTokenIntegration.JSON_SUBJECT_IDS, JsonArray.newBuilder()
+                    .add(TestConstants.Policy.SUBJECT_ID.toString())
+                    .build())
             .set(ActivateTokenIntegration.JSON_EXPIRY, Instant.EPOCH.toString())
             .build();
 
@@ -62,13 +66,13 @@ public final class ActivateTokenIntegrationTest {
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
         ActivateTokenIntegration.of(null, TestConstants.Policy.LABEL,
-                TestConstants.Policy.SUBJECT_ID, Instant.EPOCH, TestConstants.EMPTY_DITTO_HEADERS);
+                Collections.singleton(TestConstants.Policy.SUBJECT_ID), Instant.EPOCH, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullLabel() {
         ActivateTokenIntegration.of(TestConstants.Policy.POLICY_ID, null,
-                TestConstants.Policy.SUBJECT_ID, Instant.EPOCH, TestConstants.EMPTY_DITTO_HEADERS);
+                Collections.singleton(TestConstants.Policy.SUBJECT_ID), Instant.EPOCH, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
@@ -81,14 +85,14 @@ public final class ActivateTokenIntegrationTest {
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullExpiry() {
         ActivateTokenIntegration.of(TestConstants.Policy.POLICY_ID,
-                TestConstants.Policy.LABEL, TestConstants.Policy.SUBJECT_ID, null, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Policy.LABEL, Collections.singleton(TestConstants.Policy.SUBJECT_ID), null, TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
     public void toJsonReturnsExpected() {
         final ActivateTokenIntegration underTest =
                 ActivateTokenIntegration.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
-                        TestConstants.Policy.SUBJECT_ID, Instant.EPOCH, TestConstants.EMPTY_DITTO_HEADERS);
+                        Collections.singleton(TestConstants.Policy.SUBJECT_ID), Instant.EPOCH, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -101,7 +105,7 @@ public final class ActivateTokenIntegrationTest {
 
         final ActivateTokenIntegration expectedCommand =
                 ActivateTokenIntegration.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
-                        TestConstants.Policy.SUBJECT_ID, Instant.EPOCH, TestConstants.EMPTY_DITTO_HEADERS);
+                        Collections.singleton(TestConstants.Policy.SUBJECT_ID), Instant.EPOCH, TestConstants.EMPTY_DITTO_HEADERS);
         assertThat(underTest).isEqualTo(expectedCommand);
     }
 

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
 
+import java.util.Set;
+
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.SubjectId;
@@ -33,7 +35,9 @@ public class OAuthTokenIntegrationSubjectIdFactoryTest {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .putHeader("owner", "Ditto")
                 .build();
-        final SubjectId subjectId = sut.getSubjectId(dittoHeaders, new DummyJwt());
+        final Set<SubjectId> subjectIds = sut.getSubjectIds(dittoHeaders, new DummyJwt());
+        Assertions.assertThat(subjectIds).hasSize(1);
+        final SubjectId subjectId = subjectIds.stream().findFirst().orElseThrow();
         Assertions.assertThat(subjectId.getIssuer()).hasToString("dummy-issuer");
         Assertions.assertThat(subjectId).hasToString("dummy-issuer:static-part:dummy-subject:Ditto");
     }
@@ -45,8 +49,38 @@ public class OAuthTokenIntegrationSubjectIdFactoryTest {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .putHeader("my-custom-header", "foo")
                 .build();
-        final SubjectId subjectId = sut.getSubjectId(dittoHeaders, new DummyJwt());
+        final Set<SubjectId> subjectIds = sut.getSubjectIds(dittoHeaders, new DummyJwt());
+        Assertions.assertThat(subjectIds).hasSize(1);
+        final SubjectId subjectId = subjectIds.stream().findFirst().orElseThrow();
         Assertions.assertThat(subjectId).hasToString("dummy-issuer:{{policy-entry:label}}:dummy-subject:foo");
+    }
+
+    @Test
+    public void resolveSubjectIdWithJsonArrayJwtClaim() {
+        final String subjectPattern = "integration:{{jwt:aud}}:static";
+        final OAuthTokenIntegrationSubjectIdFactory sut = createSut(subjectPattern);
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().build();
+        final Set<SubjectId> subjectIds = sut.getSubjectIds(dittoHeaders, new DummyJwt());
+        Assertions.assertThat(subjectIds).hasSize(2).containsExactly(
+                SubjectId.newInstance("integration:aud-1:static"),
+                SubjectId.newInstance("integration:aud-2:static")
+        );
+    }
+
+    @Test
+    public void resolveSubjectIdWithMultipleJsonArrayJwtClaims() {
+        final String subjectPattern = "{{jwt:iss}}:{{jwt:aud}}:static:{{jwt:foo}}";
+        final OAuthTokenIntegrationSubjectIdFactory sut = createSut(subjectPattern);
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().build();
+        final Set<SubjectId> subjectIds = sut.getSubjectIds(dittoHeaders, new DummyJwt());
+        Assertions.assertThat(subjectIds).hasSize(6).containsExactly(
+                SubjectId.newInstance("dummy-issuer:aud-1:static:bar1"),
+                SubjectId.newInstance("dummy-issuer:aud-2:static:bar1"),
+                SubjectId.newInstance("dummy-issuer:aud-1:static:bar2"),
+                SubjectId.newInstance("dummy-issuer:aud-2:static:bar2"),
+                SubjectId.newInstance("dummy-issuer:aud-1:static:bar3"),
+                SubjectId.newInstance("dummy-issuer:aud-2:static:bar3")
+        );
     }
 
     private static OAuthTokenIntegrationSubjectIdFactory createSut(final String subjectPattern) {

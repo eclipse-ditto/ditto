@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.jwt.Audience;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
@@ -42,6 +43,8 @@ final class DummyJwt implements JsonWebToken {
         return JsonObject.newBuilder()
                 .set("sub", "dummy-subject")
                 .set("iss", "dummy-issuer")
+                .set("aud", JsonArray.of("aud-1", "aud-2"))
+                .set("foo", JsonArray.of("bar1", "bar2", "bar3"))
                 .build();
     }
 

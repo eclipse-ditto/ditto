@@ -15,7 +15,12 @@ package org.eclipse.ditto.services.policies.persistence.actors.strategies.comman
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
+import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -26,6 +31,7 @@ import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
@@ -41,6 +47,7 @@ import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegrat
 import org.eclipse.ditto.signals.events.policies.PolicyActionEvent;
 import org.eclipse.ditto.signals.events.policies.SubjectCreated;
 import org.eclipse.ditto.signals.events.policies.SubjectModified;
+import org.eclipse.ditto.signals.events.policies.SubjectsModifiedPartially;
 
 import akka.actor.ActorSystem;
 
@@ -49,6 +56,8 @@ import akka.actor.ActorSystem;
  */
 final class ActivateTokenIntegrationStrategy
         extends AbstractPolicyActionCommandStrategy<ActivateTokenIntegration> {
+
+    private static final String MESSAGE_PATTERN_SUBJECT_TYPE = "added via action <{0}> at <{1}>";
 
     ActivateTokenIntegrationStrategy(final PolicyConfig policyConfig, final ActorSystem system) {
         super(ActivateTokenIntegration.class, policyConfig, system);
@@ -72,22 +81,27 @@ final class ActivateTokenIntegrationStrategy
                 .filter(this::containsThingReadPermission);
         if (optionalEntry.isPresent()) {
             final PolicyEntry policyEntry = optionalEntry.get();
-            final SubjectId subjectId;
+            final Set<SubjectId> subjectIds;
             try {
-                subjectId = subjectIdFromActionResolver.resolveSubjectId(policyEntry, command);
+                subjectIds = subjectIdFromActionResolver.resolveSubjectIds(policyEntry, command);
             } catch (final DittoRuntimeException e) {
                 return ResultFactory.newErrorResult(e, command);
             }
             final SubjectType subjectType = PoliciesModelFactory.newSubjectType(
-                    MessageFormat.format("added via action <{0}>", command.getName()));
-            final Subject subject = Subject.newInstance(subjectId, subjectType, commandSubjectExpiry);
-            final Subject adjustedSubject = potentiallyAdjustSubject(subject);
+                    MessageFormat.format(MESSAGE_PATTERN_SUBJECT_TYPE, command.getName(), Instant.now().toString()));
+            final SubjectExpiry adjustedSubjectExpiry = roundPolicySubjectExpiry(commandSubjectExpiry);
             final ActivateTokenIntegration adjustedCommand = ActivateTokenIntegration.of(
-                    command.getEntityId(), command.getLabel(), adjustedSubject.getId(),
-                    adjustedSubject.getExpiry().orElseThrow().getTimestamp(), dittoHeaders);
+                    command.getEntityId(), command.getLabel(), subjectIds, adjustedSubjectExpiry.getTimestamp(),
+                    dittoHeaders);
 
+            final Set<Subject> adjustedSubjects = subjectIds.stream()
+                    .map(subjectId -> Subject.newInstance(subjectId, subjectType, adjustedSubjectExpiry))
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
+
+            final PolicyBuilder policyBuilder = nonNullPolicy.toBuilder();
+            adjustedSubjects.forEach(subject -> policyBuilder.setSubjectFor(label, subject));
             // Validation is necessary because activation may add expiry to the policy admin subject.
-            final Policy newPolicy = nonNullPolicy.setSubjectFor(label, adjustedSubject);
+            final Policy newPolicy = policyBuilder.build();
 
             final Optional<Result<PolicyActionEvent<?>>> alreadyExpiredSubject =
                     checkForAlreadyExpiredSubject(newPolicy, dittoHeaders, command);
@@ -99,15 +113,24 @@ final class ActivateTokenIntegrationStrategy
             if (validator.isValid()) {
 
                 final PolicyActionEvent<?> event;
-                if (policyEntry.getSubjects().getSubject(adjustedSubject.getId()).isPresent()) {
-                    event = SubjectModified.of(policyId, label, adjustedSubject, nextRevision, getEventTimestamp(),
-                            dittoHeaders);
+                final Instant eventTimestamp = getEventTimestamp();
+                if (adjustedSubjects.size() == 1) {
+                    final Subject adjustedSubject = adjustedSubjects.stream().findFirst().orElseThrow();
+                    final SubjectId subjectId = adjustedSubject.getId();
+
+                    if (policyEntry.getSubjects().getSubject(subjectId).isPresent()) {
+                        event = SubjectModified.of(policyId, label, adjustedSubject, nextRevision, eventTimestamp,
+                                dittoHeaders);
+                    } else {
+                        event = SubjectCreated.of(policyId, label, adjustedSubject, nextRevision, eventTimestamp,
+                                dittoHeaders);
+                    }
                 } else {
-                    event = SubjectCreated.of(policyId, label, adjustedSubject, nextRevision, getEventTimestamp(),
-                            dittoHeaders);
+                    event = SubjectsModifiedPartially.of(policyId, Map.of(label, adjustedSubjects), nextRevision,
+                            eventTimestamp, dittoHeaders);
                 }
                 final ActivateTokenIntegrationResponse rawResponse =
-                        ActivateTokenIntegrationResponse.of(policyId, label, adjustedSubject.getId(), dittoHeaders);
+                        ActivateTokenIntegrationResponse.of(policyId, label, subjectIds, dittoHeaders);
                 // do not append ETag - activated subjects do not support ETags.
                 return ResultFactory.newMutationResult(adjustedCommand, event, rawResponse);
             } else {

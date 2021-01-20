@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.resolvers;
 
+import java.util.Set;
+
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.policies.actions.PolicyActionCommand;
@@ -22,13 +24,14 @@ import org.eclipse.ditto.signals.commands.policies.actions.PolicyActionCommand;
 public interface SubjectIdFromActionResolver {
 
     /**
-     * Resolves a subject ID.
+     * Resolves subject IDs.
      *
      * @param entry the policy entry.
      * @param command the policy action command.
-     * @return the subject ID after resolution.
-     * @throws org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException if the subject ID contains unsupported placeholders.
-     * @throws org.eclipse.ditto.model.policies.SubjectIdInvalidException if the resolved subject ID is invalid.
+     * @return the subject IDs after resolution.
+     * @throws org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException if one of the subject IDs contains
+     * unsupported placeholders.
+     * @throws org.eclipse.ditto.model.policies.SubjectIdInvalidException if one of the resolved subject IDs is invalid.
      */
-    SubjectId resolveSubjectId(PolicyEntry entry, PolicyActionCommand<?> command);
+    Set<SubjectId> resolveSubjectIds(PolicyEntry entry, PolicyActionCommand<?> command);
 }

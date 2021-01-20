@@ -15,7 +15,9 @@ package org.eclipse.ditto.signals.events.policies;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -57,17 +59,33 @@ abstract class AbstractPolicyActionEvent<T extends AbstractPolicyActionEvent<T>>
      * @return the aggregated event.
      */
     protected SubjectsModifiedPartially aggregateWithSubjectCreatedOrModified(
-            final Map<Label, Subject> initialModifiedSubjects,
+            final Map<Label, Collection<Subject>> initialModifiedSubjects,
             final Collection<PolicyActionEvent<?>> otherEvents) {
 
-        final Map<Label, Subject> modifiedSubjects = new HashMap<>(initialModifiedSubjects);
+        final Map<Label, Collection<Subject>> modifiedSubjects = new HashMap<>(initialModifiedSubjects);
         for (final PolicyActionEvent<?> event : otherEvents) {
             if (event instanceof SubjectCreated) {
                 final SubjectCreated subjectCreated = (SubjectCreated) event;
-                modifiedSubjects.put(subjectCreated.getLabel(), subjectCreated.getSubject());
+                final Collection<Subject> existingSubjects = modifiedSubjects.get(subjectCreated.getLabel());
+                final Set<Subject> mergedSubjects;
+                if (null == existingSubjects) {
+                    mergedSubjects = new LinkedHashSet<>();
+                } else {
+                    mergedSubjects = new LinkedHashSet<>(existingSubjects);
+                }
+                mergedSubjects.add(subjectCreated.getSubject());
+                modifiedSubjects.put(subjectCreated.getLabel(), mergedSubjects);
             } else if (event instanceof SubjectModified) {
                 final SubjectModified subjectModified = (SubjectModified) event;
-                modifiedSubjects.put(subjectModified.getLabel(), subjectModified.getSubject());
+                final Collection<Subject> existingSubjects = modifiedSubjects.get(subjectModified.getLabel());
+                final Set<Subject> mergedSubjects;
+                if (null == existingSubjects) {
+                    mergedSubjects = new LinkedHashSet<>();
+                } else {
+                    mergedSubjects = new LinkedHashSet<>(existingSubjects);
+                }
+                mergedSubjects.add(subjectModified.getSubject());
+                modifiedSubjects.put(subjectModified.getLabel(), mergedSubjects);
             }
         }
         return SubjectsModifiedPartially.of(getPolicyEntityId(), modifiedSubjects, getRevision(),
@@ -81,14 +99,23 @@ abstract class AbstractPolicyActionEvent<T extends AbstractPolicyActionEvent<T>>
      * @param otherEvents other subject deletion events.
      * @return the aggregated event.
      */
-    protected SubjectsDeletedPartially aggregateWithSubjectDeleted(final Map<Label, SubjectId> initialDeletedSubjectIds,
+    protected SubjectsDeletedPartially aggregateWithSubjectDeleted(
+            final Map<Label, Collection<SubjectId>> initialDeletedSubjectIds,
             final Collection<PolicyActionEvent<?>> otherEvents) {
 
-        final Map<Label, SubjectId> deletedSubjectIds = new HashMap<>(initialDeletedSubjectIds);
+        final Map<Label, Collection<SubjectId>> deletedSubjectIds = new HashMap<>(initialDeletedSubjectIds);
         for (final PolicyActionEvent<?> event : otherEvents) {
             if (event instanceof SubjectDeleted) {
                 final SubjectDeleted subjectDeleted = (SubjectDeleted) event;
-                deletedSubjectIds.put(subjectDeleted.getLabel(), subjectDeleted.getSubjectId());
+                final Collection<SubjectId> existingSubjectIds = deletedSubjectIds.get(subjectDeleted.getLabel());
+                final Set<SubjectId> mergedSubjectIds;
+                if (null == existingSubjectIds) {
+                    mergedSubjectIds = new LinkedHashSet<>();
+                } else {
+                    mergedSubjectIds = new LinkedHashSet<>(existingSubjectIds);
+                }
+                mergedSubjectIds.add(subjectDeleted.getSubjectId());
+                deletedSubjectIds.put(subjectDeleted.getLabel(), mergedSubjectIds);
             }
         }
         return SubjectsDeletedPartially.of(getPolicyEntityId(), deletedSubjectIds, getRevision(),

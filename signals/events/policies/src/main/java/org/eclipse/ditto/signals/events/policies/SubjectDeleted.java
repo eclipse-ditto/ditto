@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -249,8 +250,8 @@ public final class SubjectDeleted extends AbstractPolicyActionEvent<SubjectDelet
 
     @Override
     public SubjectsDeletedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
-        final Map<Label, SubjectId> initialDeletedSubjectId =
-                Stream.of(0).collect(Collectors.toMap(i -> label, i -> subjectId));
+        final Map<Label, Collection<SubjectId>> initialDeletedSubjectId =
+                Stream.of(0).collect(Collectors.toMap(i -> label, i -> Collections.singleton(subjectId)));
         return aggregateWithSubjectDeleted(initialDeletedSubjectId, otherPolicyActionEvents);
     }
 

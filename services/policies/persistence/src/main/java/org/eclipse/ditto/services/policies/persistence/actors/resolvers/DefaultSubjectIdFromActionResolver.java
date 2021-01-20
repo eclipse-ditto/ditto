@@ -12,6 +12,12 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.resolvers;
 
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.PolicyEntry;
@@ -29,20 +35,21 @@ public final class DefaultSubjectIdFromActionResolver implements SubjectIdFromAc
     }
 
     @Override
-    public SubjectId resolveSubjectId(final PolicyEntry entry, final PolicyActionCommand<?> command) {
-        return resolveSubjectId(entry, command.getSubjectId());
+    public Set<SubjectId> resolveSubjectIds(final PolicyEntry entry, final PolicyActionCommand<?> command) {
+        return resolveSubjectId(entry, command.getSubjectIds());
     }
 
-    SubjectId resolveSubjectId(final PolicyEntry entry, final SubjectId subjectIdWithPlaceholder) {
-        return PlaceholderFactory.newExpressionResolver(PlaceholderFactory.newPlaceholderResolver(
-                PlaceholderFactory.newPolicyEntryPlaceholder(),
-                entry)
-        )
-                .resolve(subjectIdWithPlaceholder.toString())
-                .toOptional()
-                .map(SubjectId::newInstance)
-                .orElseThrow(() ->
-                        UnresolvedPlaceholderException.newBuilder(subjectIdWithPlaceholder.toString()).build());
+    Set<SubjectId> resolveSubjectId(final PolicyEntry entry, final Collection<SubjectId> subjectIdsWithPlaceholder) {
+        final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
+                PlaceholderFactory.newPlaceholderResolver(PlaceholderFactory.newPolicyEntryPlaceholder(), entry)
+        );
+        return subjectIdsWithPlaceholder.stream()
+                .map(subjectId -> expressionResolver
+                        .resolve(subjectId.toString())
+                        .toOptional()
+                        .map(SubjectId::newInstance)
+                        .orElseThrow(() -> UnresolvedPlaceholderException.newBuilder(subjectId.toString()).build()))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
 }

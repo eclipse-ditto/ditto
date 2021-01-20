@@ -15,6 +15,8 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute.extractJwt;
 
+import java.util.Set;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -384,14 +386,14 @@ final class PolicyEntriesRoute extends AbstractRoute {
 
     private ActivateTokenIntegration activateTokenIntegration(final DittoHeaders dittoHeaders, final PolicyId policyId,
             final String label, final JsonWebToken jwt) {
-        final SubjectId subjectId = tokenIntegrationSubjectIdFactory.getSubjectId(dittoHeaders, jwt);
-        return ActivateTokenIntegration.of(policyId, Label.of(label), subjectId, jwt.getExpirationTime(), dittoHeaders);
+        final Set<SubjectId> subjectIds = tokenIntegrationSubjectIdFactory.getSubjectIds(dittoHeaders, jwt);
+        return ActivateTokenIntegration.of(policyId, Label.of(label), subjectIds, jwt.getExpirationTime(), dittoHeaders);
     }
 
     private DeactivateTokenIntegration deactivateTokenIntegration(final DittoHeaders dittoHeaders,
             final PolicyId policyId, final String label, final JsonWebToken jwt) {
-        final SubjectId subjectId = tokenIntegrationSubjectIdFactory.getSubjectId(dittoHeaders, jwt);
-        return DeactivateTokenIntegration.of(policyId, Label.of(label), subjectId, dittoHeaders);
+        final Set<SubjectId> subjectIds = tokenIntegrationSubjectIdFactory.getSubjectIds(dittoHeaders, jwt);
+        return DeactivateTokenIntegration.of(policyId, Label.of(label), subjectIds, dittoHeaders);
     }
 
     private static ResourceKey resourceKeyFromUnmatchedPath(final String resource) {

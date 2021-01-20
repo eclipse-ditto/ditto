@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.signals.commands.policies.actions;
 
+import java.util.Set;
+
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PolicyEntry;
@@ -33,11 +35,11 @@ public interface PolicyActionCommand<T extends PolicyActionCommand<T>> extends P
     JsonPointer RESOURCE_PATH_ACTIONS = JsonPointer.of("actions");
 
     /**
-     * Get the subject ID of this command.
+     * Get the subject IDs of this command.
      *
-     * @return the subject ID.
+     * @return the subject IDs.
      */
-    SubjectId getSubjectId();
+    Set<SubjectId> getSubjectIds();
 
     /**
      * Set the label of the policy entry where this action is executed, if applicable.

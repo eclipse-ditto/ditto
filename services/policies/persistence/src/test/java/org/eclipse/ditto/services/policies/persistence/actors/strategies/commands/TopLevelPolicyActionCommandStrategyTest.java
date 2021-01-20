@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -88,15 +89,17 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
                 SubjectId.newInstance(SubjectIssuer.INTEGRATION, LABEL + ":this-is-me");
         final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
-                ActivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, expiry, dittoHeaders),
+                ActivateTokenIntegration.of(context.getState(), DUMMY_LABEL, Collections.singleton(subjectId), expiry, dittoHeaders),
                 List.of(LABEL)
         );
         assertModificationResult(underTest, TestConstants.Policy.POLICY, command,
                 SubjectsModifiedPartially.class,
                 event -> {
                     assertThat(event.getModifiedSubjects()).containsOnlyKeys(LABEL);
-                    assertThat(event.getModifiedSubjects().get(LABEL).getId()).isEqualTo(expectedSubjectId);
-                    assertThat(event.getModifiedSubjects().get(LABEL).getExpiry()).isNotEmpty();
+                    assertThat(event.getModifiedSubjects().get(LABEL).stream().findFirst().orElseThrow().getId())
+                            .isEqualTo(expectedSubjectId);
+                    assertThat(event.getModifiedSubjects().get(LABEL).stream().findFirst().orElseThrow().getExpiry())
+                            .isNotEmpty();
                 },
                 TopLevelPolicyActionCommandResponse.class,
                 response -> assertThat(response)
@@ -110,7 +113,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
         final SubjectId subjectId = SubjectId.newInstance("{{policy-entry:label}}");
         final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
-                ActivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, expiry, dittoHeaders),
+                ActivateTokenIntegration.of(context.getState(), DUMMY_LABEL, Collections.singleton(subjectId), expiry, dittoHeaders),
                 List.of(LABEL)
         );
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
@@ -124,7 +127,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
         final SubjectId subjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{fn:delete()}}");
         final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
-                ActivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, expiry, dittoHeaders),
+                ActivateTokenIntegration.of(context.getState(), DUMMY_LABEL, Collections.singleton(subjectId), expiry, dittoHeaders),
                 List.of(LABEL)
         );
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
@@ -138,7 +141,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
         final SubjectId subjectId = SubjectId.newInstance("{{request:subjectId}}");
         final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
-                ActivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, expiry, dittoHeaders),
+                ActivateTokenIntegration.of(context.getState(), DUMMY_LABEL, Collections.singleton(subjectId), expiry, dittoHeaders),
                 List.of(LABEL)
         );
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
@@ -152,7 +155,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
         final SubjectId subjectId = SubjectId.newInstance("integration:this-is-me");
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
         final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
-                ActivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, expiry, dittoHeaders),
+                ActivateTokenIntegration.of(context.getState(), DUMMY_LABEL, Collections.singleton(subjectId), expiry, dittoHeaders),
                 List.of()
         );
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
@@ -167,7 +170,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
         final SubjectId subjectId = SubjectId.newInstance("integration:this-is-me");
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
         final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
-                ActivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, expiry, dittoHeaders),
+                ActivateTokenIntegration.of(context.getState(), DUMMY_LABEL, Collections.singleton(subjectId), expiry, dittoHeaders),
                 List.of(nonexistentLabel)
         );
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
@@ -182,7 +185,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
         final SubjectId subjectId = SubjectId.newInstance("integration:this-is-me");
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
         final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
-                ActivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, expiry, dittoHeaders),
+                ActivateTokenIntegration.of(context.getState(), DUMMY_LABEL, Collections.singleton(subjectId), expiry, dittoHeaders),
                 List.of(label)
         );
         final Policy policy = TestConstants.Policy.POLICY.toBuilder()
@@ -203,7 +206,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
                 SubjectId.newInstance(SubjectIssuer.INTEGRATION, LABEL + ":this-is-me");
         final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
-                DeactivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, dittoHeaders),
+                DeactivateTokenIntegration.of(context.getState(), DUMMY_LABEL, Collections.singleton(subjectId), dittoHeaders),
                 List.of(LABEL)
         );
         final Policy policy = TestConstants.Policy.POLICY.toBuilder()
@@ -216,7 +219,8 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
                 SubjectsDeletedPartially.class,
                 event -> {
                     assertThat(event.getDeletedSubjectIds()).containsOnlyKeys(LABEL);
-                    assertThat(event.getDeletedSubjectIds().get(LABEL)).isEqualTo(expectedSubjectId);
+                    assertThat(event.getDeletedSubjectIds().get(LABEL))
+                            .isEqualTo(Collections.singleton(expectedSubjectId));
                 },
                 TopLevelPolicyActionCommandResponse.class,
                 response -> assertThat(response)
@@ -230,14 +234,14 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
                 SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{policy-entry:label}}:this-is-me");
         final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
-                DeactivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, dittoHeaders),
+                DeactivateTokenIntegration.of(context.getState(), DUMMY_LABEL, Collections.singleton(subjectId), dittoHeaders),
                 List.of(LABEL)
         );
         assertModificationResult(underTest, TestConstants.Policy.POLICY, command,
                 SubjectsDeletedPartially.class,
                 // nonexistent subjects are present in the event.
                 event -> assertThat(event.getDeletedSubjectIds()).containsExactly(
-                        Map.entry(LABEL, SubjectId.newInstance("integration:" + LABEL + ":this-is-me"))),
+                        Map.entry(LABEL, Collections.singleton(SubjectId.newInstance("integration:" + LABEL + ":this-is-me")))),
                 TopLevelPolicyActionCommandResponse.class,
                 response -> assertThat(response)
                         .isEqualTo(TopLevelPolicyActionCommandResponse.of(context.getState(), dittoHeaders)));
@@ -249,7 +253,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
         final SubjectId subjectId = SubjectId.newInstance("{{policy-entry:label}}");
         final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
-                DeactivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, dittoHeaders),
+                DeactivateTokenIntegration.of(context.getState(), DUMMY_LABEL, Collections.singleton(subjectId), dittoHeaders),
                 List.of(LABEL)
         );
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
@@ -262,7 +266,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
         final SubjectId subjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{fn:delete()}}");
         final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
-                DeactivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, dittoHeaders),
+                DeactivateTokenIntegration.of(context.getState(), DUMMY_LABEL, Collections.singleton(subjectId), dittoHeaders),
                 List.of(LABEL)
         );
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
@@ -275,7 +279,7 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
         final SubjectId subjectId = SubjectId.newInstance("{{request:subjectId}}");
         final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
-                DeactivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectId, dittoHeaders),
+                DeactivateTokenIntegration.of(context.getState(), DUMMY_LABEL, Collections.singleton(subjectId), dittoHeaders),
                 List.of(LABEL)
         );
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,

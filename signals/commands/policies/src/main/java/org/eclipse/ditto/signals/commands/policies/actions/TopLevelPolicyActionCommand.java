@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -139,8 +140,8 @@ public final class TopLevelPolicyActionCommand extends AbstractCommand<TopLevelP
     }
 
     @Override
-    public SubjectId getSubjectId() {
-        return policyActionCommand.getSubjectId();
+    public Set<SubjectId> getSubjectIds() {
+        return policyActionCommand.getSubjectIds();
     }
 
     @Override

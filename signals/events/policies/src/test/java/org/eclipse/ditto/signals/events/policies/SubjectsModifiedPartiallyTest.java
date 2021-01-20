@@ -18,6 +18,8 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -38,8 +40,10 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class SubjectsModifiedPartiallyTest {
 
-    private static final Map<Label, Subject> MODIFIED_SUBJECTS = IntStream.of(0).boxed()
-            .collect(Collectors.toMap(i -> TestConstants.Policy.LABEL, i -> TestConstants.Policy.SUBJECT));
+    private static final Map<Label, Collection<Subject>> MODIFIED_SUBJECTS = IntStream.of(0).boxed()
+            .collect(Collectors.toMap(
+                    i -> TestConstants.Policy.LABEL,
+                    i -> Collections.singleton(TestConstants.Policy.SUBJECT)));
 
     private static final JsonObject MODIFIED_SUBJECTS_JSON = JsonObject.newBuilder()
             .set(TestConstants.Policy.LABEL, JsonObject.newBuilder()

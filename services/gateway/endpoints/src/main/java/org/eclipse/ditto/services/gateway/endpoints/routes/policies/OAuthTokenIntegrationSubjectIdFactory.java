@@ -12,6 +12,10 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.model.placeholders.ExpressionResolver;
@@ -42,11 +46,15 @@ public final class OAuthTokenIntegrationSubjectIdFactory implements TokenIntegra
     }
 
     @Override
-    public SubjectId getSubjectId(final DittoHeaders dittoHeaders, final JsonWebToken jwt) {
+    public Set<SubjectId> getSubjectIds(final DittoHeaders dittoHeaders, final JsonWebToken jwt) {
         final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
                 PlaceholderFactory.newPlaceholderResolver(PlaceholderFactory.newHeadersPlaceholder(), dittoHeaders),
                 PlaceholderFactory.newPlaceholderResolver(JwtPlaceholder.getInstance(), jwt)
         );
-        return SubjectId.newInstance(expressionResolver.resolvePartially(subjectTemplate));
+        final String issuerWithSubject = expressionResolver.resolvePartially(subjectTemplate);
+        return TokenIntegrationSubjectIdFactory.expandJsonArraysInResolvedSubject(issuerWithSubject)
+                .map(SubjectId::newInstance)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
+
 }

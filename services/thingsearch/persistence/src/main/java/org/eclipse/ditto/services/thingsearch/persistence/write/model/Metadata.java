@@ -23,7 +23,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
@@ -200,14 +200,14 @@ public final class Metadata {
      */
     public void sendNAck() {
         send(Acknowledgement.of(DittoAcknowledgementLabel.SEARCH_PERSISTED, thingId,
-                HttpStatusCode.INTERNAL_SERVER_ERROR, DittoHeaders.empty()));
+                HttpStatus.INTERNAL_SERVER_ERROR, DittoHeaders.empty()));
     }
 
     /**
      * Send positive acknowledgements to senders.
      */
     public void sendAck() {
-        send(Acknowledgement.of(DittoAcknowledgementLabel.SEARCH_PERSISTED, thingId, HttpStatusCode.NO_CONTENT,
+        send(Acknowledgement.of(DittoAcknowledgementLabel.SEARCH_PERSISTED, thingId, HttpStatus.NO_CONTENT,
                 DittoHeaders.empty()));
     }
 

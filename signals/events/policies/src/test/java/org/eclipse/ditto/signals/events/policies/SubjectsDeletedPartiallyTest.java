@@ -18,13 +18,15 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Subject;
@@ -39,11 +41,15 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class SubjectsDeletedPartiallyTest {
 
-    private static final Map<Label, SubjectId> DELETED_SUBJECT_IDS = IntStream.of(0).boxed()
-            .collect(Collectors.toMap(i -> TestConstants.Policy.LABEL, i -> TestConstants.Policy.SUBJECT_ID));
+    private static final Map<Label, Collection<SubjectId>> DELETED_SUBJECT_IDS = IntStream.of(0).boxed()
+            .collect(Collectors.toMap(
+                    i -> TestConstants.Policy.LABEL,
+                    i -> Collections.singleton(TestConstants.Policy.SUBJECT_ID)));
 
     private static final JsonObject DELETED_SUBJECT_IDS_JSON = JsonObject.newBuilder()
-            .set(TestConstants.Policy.LABEL, JsonValue.of(TestConstants.Policy.SUBJECT_ID))
+            .set(TestConstants.Policy.LABEL, JsonArray.newBuilder()
+                    .add(TestConstants.Policy.SUBJECT_ID.toString())
+                    .build())
             .build();
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()

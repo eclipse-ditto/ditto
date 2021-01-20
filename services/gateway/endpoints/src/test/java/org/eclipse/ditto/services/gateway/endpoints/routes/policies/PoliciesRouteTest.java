@@ -152,7 +152,8 @@ public final class PoliciesRouteTest extends EndpointTestBase {
                 .assertEntity(TopLevelPolicyActionCommand.of(
                         ActivateTokenIntegration.of(PolicyId.of("ns:n"),
                                 Label.of("-"),
-                                SubjectId.newInstance("dummy-issuer:{{policy-entry:label}}:dummy-subject"),
+                                List.of(SubjectId.newInstance("integration:{{policy-entry:label}}:aud-1"),
+                                        SubjectId.newInstance("integration:{{policy-entry:label}}:aud-2")),
                                 DummyJwt.EXPIRY,
                                 DittoHeaders.empty()),
                         List.of()
@@ -166,7 +167,8 @@ public final class PoliciesRouteTest extends EndpointTestBase {
                 .assertEntity(TopLevelPolicyActionCommand.of(
                         DeactivateTokenIntegration.of(PolicyId.of("ns:n"),
                                 Label.of("-"),
-                                SubjectId.newInstance("dummy-issuer:{{policy-entry:label}}:dummy-subject"),
+                                List.of(SubjectId.newInstance("integration:{{policy-entry:label}}:aud-1"),
+                                        SubjectId.newInstance("integration:{{policy-entry:label}}:aud-2")),
                                 DittoHeaders.empty()),
                         List.of()
                 ).toJsonString());
@@ -186,7 +188,8 @@ public final class PoliciesRouteTest extends EndpointTestBase {
                 .assertStatusCode(StatusCodes.OK)
                 .assertEntity(ActivateTokenIntegration.of(PolicyId.of("ns:n"),
                         Label.of("label"),
-                        SubjectId.newInstance("dummy-issuer:{{policy-entry:label}}:dummy-subject"),
+                        List.of(SubjectId.newInstance("integration:{{policy-entry:label}}:aud-1"),
+                                SubjectId.newInstance("integration:{{policy-entry:label}}:aud-2")),
                         DummyJwt.EXPIRY,
                         DittoHeaders.empty()
                 ).toJsonString());
@@ -199,7 +202,8 @@ public final class PoliciesRouteTest extends EndpointTestBase {
                 .assertStatusCode(StatusCodes.OK)
                 .assertEntity(DeactivateTokenIntegration.of(PolicyId.of("ns:n"),
                         Label.of("label"),
-                        SubjectId.newInstance("dummy-issuer:{{policy-entry:label}}:dummy-subject"),
+                        List.of(SubjectId.newInstance("integration:{{policy-entry:label}}:aud-1"),
+                                SubjectId.newInstance("integration:{{policy-entry:label}}:aud-2")),
                         DittoHeaders.empty()
                 ).toJsonString());
     }

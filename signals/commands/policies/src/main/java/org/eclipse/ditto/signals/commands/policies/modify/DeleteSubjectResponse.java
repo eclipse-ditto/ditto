@@ -69,9 +69,9 @@ public final class DeleteSubjectResponse extends AbstractCommandResponse<DeleteS
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, httpStatus, dittoHeaders);
-        this.policyId = checkNotNull(policyId, "Policy ID");
-        this.label = checkNotNull(label, "Label");
-        this.subjectId = checkNotNull(subjectId, "SubjectId");
+        this.policyId = checkNotNull(policyId, "policyId");
+        this.label = checkNotNull(label, "label");
+        this.subjectId = checkNotNull(subjectId, "subjectId");
     }
 
     /**

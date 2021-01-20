@@ -14,7 +14,10 @@ package org.eclipse.ditto.services.policies.persistence.actors.strategies.comman
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -34,6 +37,7 @@ import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegr
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegrationResponse;
 import org.eclipse.ditto.signals.events.policies.PolicyActionEvent;
 import org.eclipse.ditto.signals.events.policies.SubjectDeleted;
+import org.eclipse.ditto.signals.events.policies.SubjectsDeletedPartially;
 
 import akka.actor.ActorSystem;
 
@@ -62,19 +66,25 @@ final class DeactivateTokenIntegrationStrategy
         final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(label)
                 .filter(entry -> containsAuthenticatedSubject(entry, dittoHeaders.getAuthorizationContext()));
         if (optionalEntry.isPresent()) {
-            final SubjectId subjectId;
+            final Set<SubjectId> subjectIds;
             final PolicyEntry policyEntry = optionalEntry.get();
             try {
-                subjectId = subjectIdFromActionResolver.resolveSubjectId(policyEntry, command);
+                subjectIds = subjectIdFromActionResolver.resolveSubjectIds(policyEntry, command);
             } catch (final DittoRuntimeException e) {
                 return ResultFactory.newErrorResult(e, command);
             }
             final DeactivateTokenIntegration adjustedCommand =
-                    DeactivateTokenIntegration.of(command.getEntityId(), command.getLabel(), subjectId, dittoHeaders);
+                    DeactivateTokenIntegration.of(command.getEntityId(), command.getLabel(), subjectIds, dittoHeaders);
 
-            final SubjectDeleted event =
-                    SubjectDeleted.of(policyId, label, subjectId, nextRevision, getEventTimestamp(),
-                            dittoHeaders);
+            final PolicyActionEvent<?> event;
+            final Instant eventTimestamp = getEventTimestamp();
+            if (subjectIds.size() == 1) {
+                final SubjectId subjectId = subjectIds.stream().findFirst().orElseThrow();
+                event = SubjectDeleted.of(policyId, label, subjectId, nextRevision, eventTimestamp, dittoHeaders);
+            } else {
+                event = SubjectsDeletedPartially.of(policyId, Map.of(label, subjectIds), nextRevision, eventTimestamp,
+                        dittoHeaders);
+            }
             final DeactivateTokenIntegrationResponse rawResponse =
                     DeactivateTokenIntegrationResponse.of(policyId, label, dittoHeaders);
             return ResultFactory.newMutationResult(adjustedCommand, event, rawResponse);

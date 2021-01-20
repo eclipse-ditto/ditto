@@ -1214,7 +1214,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         .build();
 
                 final long secondsToAdd = 10 - (expiryInstant.getEpochSecond() % 10);
-                final Instant expectedRoundedExpiryInstant =
+                final Instant expectedRoundedExpiryInstant = (secondsToAdd == 10) ? expiryInstant :
                         expiryInstant.plusSeconds(secondsToAdd); // to next 10s rounded up
                 final SubjectExpiry expectedSubjectExpiry = SubjectExpiry.newInstance(expectedRoundedExpiryInstant);
                 final Subject expectedAdjustedSubjectToAdd = Subject.newInstance(expiringSubject.getId(),

@@ -563,7 +563,7 @@ public final class PolicyCommandEnforcementTest {
             final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
             final Instant expiry = Instant.now();
             final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
-                    ActivateTokenIntegration.of(POLICY_ID, Label.of("-"), subjectId, expiry, DITTO_HEADERS),
+                    ActivateTokenIntegration.of(POLICY_ID, Label.of("-"), Collections.singleton(subjectId), expiry, DITTO_HEADERS),
                     List.of());
 
             enforcer.tell(command, getRef());
@@ -579,7 +579,7 @@ public final class PolicyCommandEnforcementTest {
         new TestKit(system) {{
             final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
             final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
-                    DeactivateTokenIntegration.of(POLICY_ID, Label.of("-"), subjectId, DITTO_HEADERS),
+                    DeactivateTokenIntegration.of(POLICY_ID, Label.of("-"), Collections.singleton(subjectId), DITTO_HEADERS),
                     List.of());
 
             enforcer.tell(command, getRef());
@@ -596,7 +596,7 @@ public final class PolicyCommandEnforcementTest {
             final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
             final Instant expiry = Instant.now();
             final ActivateTokenIntegration activateTokenIntegration =
-                    ActivateTokenIntegration.of(POLICY_ID, Label.of("forbidden"), subjectId, expiry, DITTO_HEADERS);
+                    ActivateTokenIntegration.of(POLICY_ID, Label.of("forbidden"), Collections.singleton(subjectId), expiry, DITTO_HEADERS);
 
             enforcer.tell(activateTokenIntegration, getRef());
 
@@ -611,7 +611,7 @@ public final class PolicyCommandEnforcementTest {
         new TestKit(system) {{
             final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
             final DeactivateTokenIntegration deactivateTokenIntegration =
-                    DeactivateTokenIntegration.of(POLICY_ID, Label.of("forbidden"), subjectId, DITTO_HEADERS);
+                    DeactivateTokenIntegration.of(POLICY_ID, Label.of("forbidden"), Collections.singleton(subjectId), DITTO_HEADERS);
 
             enforcer.tell(deactivateTokenIntegration, getRef());
 
@@ -627,7 +627,7 @@ public final class PolicyCommandEnforcementTest {
             final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
             final Instant expiry = Instant.now();
             final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
-                    ActivateTokenIntegration.of(POLICY_ID, Label.of("-"), subjectId, expiry, DITTO_HEADERS),
+                    ActivateTokenIntegration.of(POLICY_ID, Label.of("-"), Collections.singleton(subjectId), expiry, DITTO_HEADERS),
                     List.of()
             );
 
@@ -639,7 +639,7 @@ public final class PolicyCommandEnforcementTest {
             final TopLevelPolicyActionCommand
                     forwarded = policiesShardRegionProbe.expectMsgClass(TopLevelPolicyActionCommand.class);
             assertThat(forwarded).isEqualTo(TopLevelPolicyActionCommand.of(
-                    ActivateTokenIntegration.of(POLICY_ID, Label.of("-"), subjectId, expiry, DITTO_HEADERS),
+                    ActivateTokenIntegration.of(POLICY_ID, Label.of("-"), Collections.singleton(subjectId), expiry, DITTO_HEADERS),
                     List.of(Label.of("allowed"))
             ));
         }};
@@ -650,7 +650,7 @@ public final class PolicyCommandEnforcementTest {
         new TestKit(system) {{
             final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
             final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
-                    DeactivateTokenIntegration.of(POLICY_ID, Label.of("-"), subjectId, DITTO_HEADERS),
+                    DeactivateTokenIntegration.of(POLICY_ID, Label.of("-"), Collections.singleton(subjectId), DITTO_HEADERS),
                     List.of()
             );
 
@@ -662,7 +662,7 @@ public final class PolicyCommandEnforcementTest {
             final TopLevelPolicyActionCommand
                     forwarded = policiesShardRegionProbe.expectMsgClass(TopLevelPolicyActionCommand.class);
             assertThat(forwarded).isEqualTo(TopLevelPolicyActionCommand.of(
-                    DeactivateTokenIntegration.of(POLICY_ID, Label.of("-"), subjectId, DITTO_HEADERS),
+                    DeactivateTokenIntegration.of(POLICY_ID, Label.of("-"), Collections.singleton(subjectId), DITTO_HEADERS),
                     List.of(Label.of("allowed"))
             ));
         }};
@@ -674,7 +674,7 @@ public final class PolicyCommandEnforcementTest {
             final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
             final Instant expiry = Instant.now();
             final ActivateTokenIntegration activateTokenIntegration =
-                    ActivateTokenIntegration.of(POLICY_ID, Label.of("allowed"), subjectId, expiry, DITTO_HEADERS);
+                    ActivateTokenIntegration.of(POLICY_ID, Label.of("allowed"), Collections.singleton(subjectId), expiry, DITTO_HEADERS);
 
             enforcer.tell(activateTokenIntegration, getRef());
 
@@ -692,7 +692,7 @@ public final class PolicyCommandEnforcementTest {
         new TestKit(system) {{
             final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
             final DeactivateTokenIntegration deactivateTokenIntegration =
-                    DeactivateTokenIntegration.of(POLICY_ID, Label.of("allowed"), subjectId, DITTO_HEADERS);
+                    DeactivateTokenIntegration.of(POLICY_ID, Label.of("allowed"), Collections.singleton(subjectId), DITTO_HEADERS);
 
             enforcer.tell(deactivateTokenIntegration, getRef());
 

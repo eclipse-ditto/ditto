@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -47,8 +48,7 @@ import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
- * This event is emitted after several {@link org.eclipse.ditto.model.policies.Subject}s of a Policy
- * in multiple policy entries were modified/created.
+ * This event is emitted after several {@link Subject}s of a Policy in multiple policy entries were modified/created.
  *
  * @since 2.0.0
  */
@@ -69,11 +69,11 @@ public final class SubjectsModifiedPartially extends AbstractPolicyActionEvent<S
     static final JsonFieldDefinition<JsonObject> JSON_MODIFIED_SUBJECTS =
             JsonFactory.newJsonObjectFieldDefinition("modifiedSubjects", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    private final Map<Label, Subject> modifiedSubjects;
+    private final Map<Label, Collection<Subject>> modifiedSubjects;
 
     private SubjectsModifiedPartially(
             final PolicyId policyId,
-            final Map<Label, Subject> modifiedSubjects,
+            final Map<Label, Collection<Subject>> modifiedSubjects,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
@@ -107,7 +107,7 @@ public final class SubjectsModifiedPartially extends AbstractPolicyActionEvent<S
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static SubjectsModifiedPartially of(final PolicyId policyId,
-            final Map<Label, Subject> activatedSubjects,
+            final Map<Label, Collection<Subject>> activatedSubjects,
             final long revision,
             final DittoHeaders dittoHeaders) {
 
@@ -126,7 +126,7 @@ public final class SubjectsModifiedPartially extends AbstractPolicyActionEvent<S
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
     public static SubjectsModifiedPartially of(final PolicyId policyId,
-            final Map<Label, Subject> activatedSubjects,
+            final Map<Label, Collection<Subject>> activatedSubjects,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
@@ -162,7 +162,7 @@ public final class SubjectsModifiedPartially extends AbstractPolicyActionEvent<S
      *
      * @return the modified subjects.
      */
-    public Map<Label, Subject> getModifiedSubjects() {
+    public Map<Label, Collection<Subject>> getModifiedSubjects() {
         return modifiedSubjects;
     }
 
@@ -230,33 +230,35 @@ public final class SubjectsModifiedPartially extends AbstractPolicyActionEvent<S
                 "]";
     }
 
-    private static JsonObject subjectToJsonWithId(final Subject subject) {
-        return JsonObject.newBuilder()
-                .set(subject.getId(), subject.toJson())
-                .build();
+    private static JsonObject subjectsToJsonWithId(final Collection<Subject> subjects) {
+        return subjects.stream()
+                .map(subject -> JsonField.newInstance(subject.getId(), subject.toJson()))
+                .collect(JsonCollectors.fieldsToObject());
     }
 
-    private static Subject subjectFromJsonWithId(final JsonObject jsonObject) {
+    private static Collection<Subject> subjectsFromJsonWithId(final JsonObject jsonObject) {
         if (jsonObject.getSize() != 1) {
             throw JsonParseException.newBuilder()
                     .message("Unexpected subject with ID format")
                     .build();
         }
-        final JsonField jsonField = jsonObject.iterator().next();
-        return PoliciesModelFactory.newSubject(jsonField.getKeyName(), jsonField.getValue().asObject());
+        return jsonObject.stream()
+                .map(jsonField -> PoliciesModelFactory.newSubject(
+                        jsonField.getKeyName(), jsonField.getValue().asObject()))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
-    private static JsonObject modifiedSubjectsToJson(final Map<Label, Subject> modifiedSubjects) {
+    private static JsonObject modifiedSubjectsToJson(final Map<Label, Collection<Subject>> modifiedSubjects) {
         return modifiedSubjects.entrySet()
                 .stream()
-                .map(entry -> JsonField.newInstance(entry.getKey(), subjectToJsonWithId(entry.getValue())))
+                .map(entry -> JsonField.newInstance(entry.getKey(), subjectsToJsonWithId(entry.getValue())))
                 .collect(JsonCollectors.fieldsToObject());
     }
 
-    private static Map<Label, Subject> modifiedSubjectsFromJson(final JsonObject jsonObject) {
-        final Map<Label, Subject> map = jsonObject.stream()
+    private static Map<Label, Collection<Subject>> modifiedSubjectsFromJson(final JsonObject jsonObject) {
+        final Map<Label, Collection<Subject>> map = jsonObject.stream()
                 .collect(Collectors.toMap(field -> Label.of(field.getKeyName()),
-                        field -> subjectFromJsonWithId(field.getValue().asObject())));
+                        field -> subjectsFromJsonWithId(field.getValue().asObject())));
         return Collections.unmodifiableMap(map);
     }
 }

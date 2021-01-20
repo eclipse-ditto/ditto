@@ -16,6 +16,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -263,8 +264,8 @@ public final class SubjectCreated extends AbstractPolicyActionEvent<SubjectCreat
 
     @Override
     public SubjectsModifiedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
-        final Map<Label, Subject> initialCreatedSubjects =
-                Stream.of(0).collect(Collectors.toMap(i -> label, i -> subject));
+        final Map<Label, Collection<Subject>> initialCreatedSubjects =
+                Stream.of(0).collect(Collectors.toMap(i -> label, i -> Collections.singleton(subject)));
         return aggregateWithSubjectCreatedOrModified(initialCreatedSubjects, otherPolicyActionEvents);
     }
 

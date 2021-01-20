@@ -16,12 +16,19 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -30,13 +37,13 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
@@ -47,7 +54,8 @@ import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 
 /**
- * This command activates a token subject in a policy entry.
+ * This command injects one or several subjects derived from a provided token including an "expiry" extracted from the
+ * token into an existing policy entry.
  *
  * @since 2.0.0
  */
@@ -69,8 +77,8 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
     static final JsonFieldDefinition<String> JSON_LABEL =
             JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition<String> JSON_SUBJECT_ID =
-            JsonFactory.newStringFieldDefinition("subjectId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonArray> JSON_SUBJECT_IDS =
+            JsonFactory.newJsonArrayFieldDefinition("subjectIds", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<String> JSON_EXPIRY =
             JsonFactory.newStringFieldDefinition("expiry", FieldType.REGULAR, JsonSchemaVersion.V_2);
@@ -79,15 +87,15 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
 
     private final PolicyId policyId;
     private final Label label;
-    private final SubjectId subjectId;
+    private final Set<SubjectId> subjectIds;
     private final Instant expiry;
 
-    private ActivateTokenIntegration(final PolicyId policyId, final Label label, final SubjectId subjectId,
+    private ActivateTokenIntegration(final PolicyId policyId, final Label label, final Collection<SubjectId> subjectIds,
             final Instant expiry, final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policyId");
         this.label = checkNotNull(label, "label");
-        this.subjectId = checkNotNull(subjectId, "subjectId");
+        this.subjectIds = Collections.unmodifiableSet(new LinkedHashSet<>(checkNotNull(subjectIds, "subjectIds")));
         this.expiry = checkNotNull(expiry, "expiry");
     }
 
@@ -96,16 +104,16 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
      *
      * @param policyId the identifier of the Policy.
      * @param label label of the policy entry where the subject should be activated.
-     * @param subjectId subject ID to activate.
+     * @param subjectIds subject IDs to activate.
      * @param expiry when the subject expires.
      * @param dittoHeaders the headers of the command.
      * @return the command.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ActivateTokenIntegration of(final PolicyId policyId, final Label label, final SubjectId subjectId,
-            final Instant expiry, final DittoHeaders dittoHeaders) {
+    public static ActivateTokenIntegration of(final PolicyId policyId, final Label label,
+            final Collection<SubjectId> subjectIds, final Instant expiry, final DittoHeaders dittoHeaders) {
 
-        return new ActivateTokenIntegration(policyId, label, subjectId, expiry, dittoHeaders);
+        return new ActivateTokenIntegration(policyId, label, subjectIds, expiry, dittoHeaders);
     }
 
     /**
@@ -123,10 +131,13 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
             final String extractedPolicyId = jsonObject.getValueOrThrow(PolicyCommand.JsonFields.JSON_POLICY_ID);
             final PolicyId policyId = PolicyId.of(extractedPolicyId);
             final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
-            final SubjectId subjectId =
-                    PoliciesModelFactory.newSubjectId(jsonObject.getValueOrThrow(JSON_SUBJECT_ID));
+            final Set<SubjectId> subjectIds = jsonObject.getValueOrThrow(JSON_SUBJECT_IDS).stream()
+                    .filter(JsonValue::isString)
+                    .map(JsonValue::asString)
+                    .map(SubjectId::newInstance)
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
             final Instant expiry = parseExpiry(jsonObject.getValueOrThrow(JSON_EXPIRY));
-            return new ActivateTokenIntegration(policyId, label, subjectId, expiry, dittoHeaders);
+            return new ActivateTokenIntegration(policyId, label, subjectIds, expiry, dittoHeaders);
         });
     }
 
@@ -140,13 +151,13 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
     }
 
     @Override
-    public SubjectId getSubjectId() {
-        return subjectId;
+    public Set<SubjectId> getSubjectIds() {
+        return subjectIds;
     }
 
     @Override
     public ActivateTokenIntegration setLabel(final Label label) {
-        return new ActivateTokenIntegration(policyId, label, subjectId, expiry, getDittoHeaders());
+        return new ActivateTokenIntegration(policyId, label, subjectIds, expiry, getDittoHeaders());
     }
 
     @Override
@@ -192,13 +203,16 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyCommand.JsonFields.JSON_POLICY_ID, String.valueOf(policyId), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
-        jsonObjectBuilder.set(JSON_SUBJECT_ID, subjectId.toString(), predicate);
+        jsonObjectBuilder.set(JSON_SUBJECT_IDS, subjectIds.stream()
+                .map(SubjectId::toString)
+                .map(JsonValue::of)
+                .collect(JsonCollectors.valuesToArray()), predicate);
         jsonObjectBuilder.set(JSON_EXPIRY, expiry.toString(), predicate);
     }
 
     @Override
     public ActivateTokenIntegration setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new ActivateTokenIntegration(policyId, label, subjectId, expiry, dittoHeaders);
+        return new ActivateTokenIntegration(policyId, label, subjectIds, expiry, dittoHeaders);
     }
 
     @Override
@@ -218,14 +232,14 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
         return that.canEqual(this) &&
                 Objects.equals(policyId, that.policyId) &&
                 Objects.equals(label, that.label) &&
-                Objects.equals(subjectId, that.subjectId) &&
+                Objects.equals(subjectIds, that.subjectIds) &&
                 Objects.equals(expiry, that.expiry) &&
                 super.equals(obj);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), policyId, label, subjectId, expiry);
+        return Objects.hash(super.hashCode(), policyId, label, subjectIds, expiry);
     }
 
     @Override
@@ -233,7 +247,7 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
         return getClass().getSimpleName() + " [" + super.toString() +
                 ", policyId=" + policyId +
                 ", label=" + label +
-                ", subjectId=" + subjectId +
+                ", subjectIds=" + subjectIds +
                 ", expiry=" + expiry +
                 "]";
     }

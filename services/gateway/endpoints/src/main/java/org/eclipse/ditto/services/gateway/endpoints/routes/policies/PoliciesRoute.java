@@ -17,6 +17,7 @@ import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJso
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 
 import org.eclipse.ditto.json.JsonFactory;
@@ -198,19 +199,19 @@ public final class PoliciesRoute extends AbstractRoute {
     private TopLevelPolicyActionCommand topLevelActivateTokenIntegration(final DittoHeaders dittoHeaders,
             final PolicyId policyId, final JsonWebToken jwt) {
 
-        final SubjectId subjectId = tokenIntegrationSubjectIdFactory.getSubjectId(dittoHeaders, jwt);
+        final Set<SubjectId> subjectIds = tokenIntegrationSubjectIdFactory.getSubjectIds(dittoHeaders, jwt);
         final Instant expiry = jwt.getExpirationTime();
         final ActivateTokenIntegration activateTokenIntegration =
-                ActivateTokenIntegration.of(policyId, DUMMY_LABEL, subjectId, expiry, dittoHeaders);
+                ActivateTokenIntegration.of(policyId, DUMMY_LABEL, subjectIds, expiry, dittoHeaders);
         return TopLevelPolicyActionCommand.of(activateTokenIntegration, List.of());
     }
 
     private TopLevelPolicyActionCommand topLevelDeactivateTokenIntegration(final DittoHeaders dittoHeaders,
             final PolicyId policyId, final JsonWebToken jwt) {
 
-        final SubjectId subjectId = tokenIntegrationSubjectIdFactory.getSubjectId(dittoHeaders, jwt);
+        final Set<SubjectId> subjectIds = tokenIntegrationSubjectIdFactory.getSubjectIds(dittoHeaders, jwt);
         final DeactivateTokenIntegration deactivateTokenIntegration =
-                DeactivateTokenIntegration.of(policyId, DUMMY_LABEL, subjectId, dittoHeaders);
+                DeactivateTokenIntegration.of(policyId, DUMMY_LABEL, subjectIds, dittoHeaders);
         return TopLevelPolicyActionCommand.of(deactivateTokenIntegration, List.of());
     }
 

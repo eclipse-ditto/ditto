@@ -14,12 +14,19 @@ package org.eclipse.ditto.signals.commands.policies.actions;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
@@ -27,6 +34,7 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -63,20 +71,20 @@ public final class ActivateTokenIntegrationResponse
     static final JsonFieldDefinition<String> JSON_LABEL =
             JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition<String> JSON_SUBJECT_ID =
-            JsonFactory.newStringFieldDefinition("subjectId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<JsonArray> JSON_SUBJECT_IDS =
+            JsonFactory.newJsonArrayFieldDefinition("subjectIds", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final PolicyId policyId;
     private final Label label;
-    private final SubjectId subjectId;
+    private final Collection<SubjectId> subjectIds;
 
-    private ActivateTokenIntegrationResponse(final PolicyId policyId, final Label label, final SubjectId subjectId,
-            final DittoHeaders dittoHeaders) {
+    private ActivateTokenIntegrationResponse(final PolicyId policyId, final Label label,
+            final Collection<SubjectId> subjectIds, final DittoHeaders dittoHeaders) {
 
         super(TYPE, STATUS, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policyId");
         this.label = checkNotNull(label, "label");
-        this.subjectId = checkNotNull(subjectId, "subjectId");
+        this.subjectIds = Collections.unmodifiableSet(new LinkedHashSet<>(checkNotNull(subjectIds, "subjectIds")));
     }
 
     /**
@@ -84,14 +92,14 @@ public final class ActivateTokenIntegrationResponse
      *
      * @param policyId the policy ID.
      * @param label the policy entry label.
-     * @param subjectId the added subject ID.
+     * @param subjectIds the added subject IDs.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static ActivateTokenIntegrationResponse of(final PolicyId policyId, final Label label, final SubjectId subjectId,
-            final DittoHeaders dittoHeaders) {
-        return new ActivateTokenIntegrationResponse(policyId, label, subjectId, dittoHeaders);
+    public static ActivateTokenIntegrationResponse of(final PolicyId policyId, final Label label,
+            final Collection<SubjectId> subjectIds, final DittoHeaders dittoHeaders) {
+        return new ActivateTokenIntegrationResponse(policyId, label, subjectIds, dittoHeaders);
     }
 
     /**
@@ -105,12 +113,17 @@ public final class ActivateTokenIntegrationResponse
      * format.
      */
     @SuppressWarnings("unused") // called by reflection
-    public static ActivateTokenIntegrationResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static ActivateTokenIntegrationResponse fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
         final PolicyId policyId =
                 PolicyId.of(jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID));
         final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
-        final SubjectId subjectId = SubjectId.newInstance(jsonObject.getValueOrThrow(JSON_SUBJECT_ID));
-        return new ActivateTokenIntegrationResponse(policyId, label, subjectId, dittoHeaders);
+        final Set<SubjectId> subjectIds = jsonObject.getValueOrThrow(JSON_SUBJECT_IDS).stream()
+                .filter(JsonValue::isString)
+                .map(JsonValue::asString)
+                .map(SubjectId::newInstance)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        return new ActivateTokenIntegrationResponse(policyId, label, subjectIds, dittoHeaders);
     }
 
     @Override
@@ -133,12 +146,15 @@ public final class ActivateTokenIntegrationResponse
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, policyId.toString(), predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
-        jsonObjectBuilder.set(JSON_SUBJECT_ID, subjectId.toString(), predicate);
+        jsonObjectBuilder.set(JSON_SUBJECT_IDS, subjectIds.stream()
+                .map(SubjectId::toString)
+                .map(JsonValue::of)
+                .collect(JsonCollectors.valuesToArray()), predicate);
     }
 
     @Override
     public ActivateTokenIntegrationResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new ActivateTokenIntegrationResponse(policyId, label, subjectId, dittoHeaders);
+        return new ActivateTokenIntegrationResponse(policyId, label, subjectIds, dittoHeaders);
     }
 
     @Override
@@ -157,13 +173,13 @@ public final class ActivateTokenIntegrationResponse
         final ActivateTokenIntegrationResponse that = (ActivateTokenIntegrationResponse) o;
         return Objects.equals(policyId, that.policyId) &&
                 Objects.equals(label, that.label) &&
-                Objects.equals(subjectId, that.subjectId) &&
+                Objects.equals(subjectIds, that.subjectIds) &&
                 super.equals(o);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), policyId, label, subjectId);
+        return Objects.hash(super.hashCode(), policyId, label, subjectIds);
     }
 
     @Override
@@ -172,7 +188,7 @@ public final class ActivateTokenIntegrationResponse
                 " [" + super.toString() +
                 ", policyId=" + policyId +
                 ", label=" + label +
-                ", subjectId=" + subjectId +
+                ", subjectIds=" + subjectIds +
                 "]";
     }
 

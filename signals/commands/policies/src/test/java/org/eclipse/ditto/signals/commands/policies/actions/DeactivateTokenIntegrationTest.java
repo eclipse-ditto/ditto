@@ -17,6 +17,9 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import java.util.Collections;
+
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -38,7 +41,9 @@ public final class DeactivateTokenIntegrationTest {
             .set(PolicyCommand.JsonFields.TYPE, DeactivateTokenIntegration.TYPE)
             .set(PolicyCommand.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(DeactivateTokenIntegration.JSON_LABEL, TestConstants.Policy.LABEL.toString())
-            .set(DeactivateTokenIntegration.JSON_SUBJECT_ID, TestConstants.Policy.SUBJECT_ID.toString())
+            .set(DeactivateTokenIntegration.JSON_SUBJECT_IDS, JsonArray.newBuilder()
+                    .add(TestConstants.Policy.SUBJECT_ID.toString())
+                    .build())
             .build();
 
     @Test
@@ -58,13 +63,13 @@ public final class DeactivateTokenIntegrationTest {
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
         DeactivateTokenIntegration.of(null, TestConstants.Policy.LABEL,
-                TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS);
+                Collections.singleton(TestConstants.Policy.SUBJECT_ID), TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullLabel() {
         DeactivateTokenIntegration.of(TestConstants.Policy.POLICY_ID, null,
-                TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS);
+                Collections.singleton(TestConstants.Policy.SUBJECT_ID), TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
@@ -78,7 +83,7 @@ public final class DeactivateTokenIntegrationTest {
     public void toJsonReturnsExpected() {
         final DeactivateTokenIntegration underTest =
                 DeactivateTokenIntegration.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
-                        TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS);
+                        Collections.singleton(TestConstants.Policy.SUBJECT_ID), TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -91,7 +96,7 @@ public final class DeactivateTokenIntegrationTest {
 
         final DeactivateTokenIntegration expectedCommand =
                 DeactivateTokenIntegration.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
-                        TestConstants.Policy.SUBJECT_ID, TestConstants.EMPTY_DITTO_HEADERS);
+                        Collections.singleton(TestConstants.Policy.SUBJECT_ID), TestConstants.EMPTY_DITTO_HEADERS);
         assertThat(underTest).isEqualTo(expectedCommand);
     }
 

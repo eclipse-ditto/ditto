@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -68,11 +69,11 @@ public final class SubjectsDeletedPartially extends AbstractPolicyActionEvent<Su
             JsonFactory.newJsonObjectFieldDefinition("deletedSubjectIds", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
-    private final Map<Label, SubjectId> deletedSubjectIds;
+    private final Map<Label, Collection<SubjectId>> deletedSubjectIds;
 
     private SubjectsDeletedPartially(
             final PolicyId policyId,
-            final Map<Label, SubjectId> deletedSubjectIds,
+            final Map<Label, Collection<SubjectId>> deletedSubjectIds,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
@@ -106,7 +107,7 @@ public final class SubjectsDeletedPartially extends AbstractPolicyActionEvent<Su
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static SubjectsDeletedPartially of(final PolicyId policyId,
-            final Map<Label, SubjectId> deletedSubjectIds,
+            final Map<Label, Collection<SubjectId>> deletedSubjectIds,
             final long revision,
             final DittoHeaders dittoHeaders) {
 
@@ -125,7 +126,7 @@ public final class SubjectsDeletedPartially extends AbstractPolicyActionEvent<Su
      * @throws NullPointerException if any argument but {@code timestamp} is {@code null}.
      */
     public static SubjectsDeletedPartially of(final PolicyId policyId,
-            final Map<Label, SubjectId> deletedSubjectIds,
+            final Map<Label, Collection<SubjectId>> deletedSubjectIds,
             final long revision,
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders) {
@@ -161,7 +162,7 @@ public final class SubjectsDeletedPartially extends AbstractPolicyActionEvent<Su
      *
      * @return the deleted subject IDs.
      */
-    public Map<Label, SubjectId> getDeletedSubjectIds() {
+    public Map<Label, Collection<SubjectId>> getDeletedSubjectIds() {
         return deletedSubjectIds;
     }
 
@@ -230,17 +231,25 @@ public final class SubjectsDeletedPartially extends AbstractPolicyActionEvent<Su
                 "]";
     }
 
-    private static JsonObject deletedSubjectsToJson(final Map<Label, SubjectId> deletedSubjects) {
+    private static JsonObject deletedSubjectsToJson(final Map<Label, Collection<SubjectId>> deletedSubjects) {
         return deletedSubjects.entrySet()
                 .stream()
-                .map(entry -> JsonField.newInstance(entry.getKey(), JsonValue.of(entry.getValue())))
+                .map(entry -> JsonField.newInstance(entry.getKey(), entry.getValue().stream()
+                        .map(SubjectId::toString)
+                        .map(JsonValue::of)
+                        .collect(JsonCollectors.valuesToArray())))
                 .collect(JsonCollectors.fieldsToObject());
     }
 
-    private static Map<Label, SubjectId> deletedSubjectsFromJson(final JsonObject jsonObject) {
-        final Map<Label, SubjectId> map = jsonObject.stream()
+    private static Map<Label, Collection<SubjectId>> deletedSubjectsFromJson(final JsonObject jsonObject) {
+        final Map<Label, Collection<SubjectId>> map = jsonObject.stream()
                 .collect(Collectors.toMap(field -> Label.of(field.getKeyName()),
-                        field -> SubjectId.newInstance(field.getValue().asString())));
+                        field -> field.getValue().asArray().stream()
+                                .map(JsonValue::asString)
+                                .map(SubjectId::newInstance)
+                                .collect(Collectors.toCollection(LinkedHashSet::new))
+                ));
         return Collections.unmodifiableMap(map);
     }
+
 }

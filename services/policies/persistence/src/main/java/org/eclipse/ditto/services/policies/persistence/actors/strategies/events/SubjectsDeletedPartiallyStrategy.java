@@ -22,7 +22,11 @@ final class SubjectsDeletedPartiallyStrategy extends AbstractPolicyEventStrategy
 
     @Override
     protected PolicyBuilder applyEvent(final SubjectsDeletedPartially event, final PolicyBuilder policyBuilder) {
-        event.getDeletedSubjectIds().forEach(policyBuilder::removeSubjectFor);
+        event.getDeletedSubjectIds().forEach((label, subjects) ->
+                subjects.forEach(subject ->
+                        policyBuilder.removeSubjectFor(label, subject)
+                )
+        );
         return policyBuilder;
     }
 }

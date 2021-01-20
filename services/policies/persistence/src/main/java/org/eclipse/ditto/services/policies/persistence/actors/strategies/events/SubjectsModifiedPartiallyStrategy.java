@@ -25,14 +25,16 @@ final class SubjectsModifiedPartiallyStrategy extends AbstractPolicyEventStrateg
     @Override
     protected PolicyBuilder applyEvent(final SubjectsModifiedPartially event, final PolicyBuilder policyBuilder) {
         final Instant now = Instant.now();
-        event.getModifiedSubjects().forEach((label, subject) -> {
-            final boolean isSubjectExpiryAfterNow = subject.getExpiry()
-                    .map(expiry -> expiry.getTimestamp().isAfter(now))
-                    .orElse(false);
-            if (isSubjectExpiryAfterNow) {
-                policyBuilder.setSubjectFor(label, subject);
-            }
-        });
+        event.getModifiedSubjects().forEach((label, subjects) ->
+                subjects.forEach(subject -> {
+                    final boolean isSubjectExpiryAfterNow = subject.getExpiry()
+                            .map(expiry -> expiry.getTimestamp().isAfter(now))
+                            .orElse(false);
+                    if (isSubjectExpiryAfterNow) {
+                        policyBuilder.setSubjectFor(label, subject);
+                    }
+                })
+        );
         return policyBuilder;
     }
 }
