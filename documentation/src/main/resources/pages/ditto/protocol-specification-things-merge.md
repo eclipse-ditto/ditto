@@ -22,8 +22,7 @@ the [JSON merge patch](https://tools.ietf.org/html/rfc7396) defined by the JSON 
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/merge`     |
 | **path**  | `/`     |
-| **
-value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the [thing](basic-thing.html#thing) referenced in the `topic`. |
+| **value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the [thing](basic-thing.html#thing) referenced in the `topic`. |
 
 ### Response
 
@@ -33,7 +32,7 @@ value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc73
 | **path**   |        | `/`                      |
 | **status** | *code* |                          | 
 |            | `204`  | Success - the thing was merged successfully.       |
-|            | `403`  | Not Modifiable - The attributes could not be merged as the requester had insufficient permissions ('WRITE' is required).  |
+|            | `403`  | Not Modifiable - Could not be merged as the requester had insufficient permissions ('WRITE' is required).  |
 |            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
@@ -44,8 +43,7 @@ The event emitted by Ditto after a thing was merged.
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/events/merged`     |
 | **path**  | `/`     |
-| **
-value** |  The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the thing referenced in the `topic`. |
+| **value** |  The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the thing referenced in the `topic`. |
 
 **Example:** [Merge a thing.](protocol-examples-mergething.html)
 
@@ -60,8 +58,7 @@ merged with the JSON merge patch provided in the `value` field.
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/merge`     |
 | **path**  | `/attributes`     |
-| **
-value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the [attributes](basic-thing.html#attributes) of the thing referenced in the `topic`. |
+| **value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the [attributes](basic-thing.html#attributes) of the thing referenced in the `topic`. |
 
 ### Response
 
@@ -83,8 +80,7 @@ The event emitted by Ditto after the attributes of a thing were merged.
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/events/merged`     |
 | **path**  | `/attributes`     |
-| **
-value** | The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the attributes of the thing referenced in the `topic`. |
+| **value** | The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the attributes of the thing referenced in the `topic`. |
 
 **Example:** [Merge attributes](protocol-examples-mergeattributes.html)
 
@@ -99,8 +95,7 @@ hierarchically by applying [JSON Pointer notation (RFC-6901)](https://tools.ietf
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/merge`     |
 | **path**  | `/attributes/<attributePath>`     |
-| **
-value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the [attribute](basic-thing.html#attributes) identified by `path`  of the thing referenced in the `topic`. |
+| **value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the [attribute](basic-thing.html#attributes) identified by `path`  of the thing referenced in the `topic`. |
 
 ### Response
 
@@ -122,8 +117,7 @@ The event emitted by Ditto after a single attribute was merged.
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/events/merged`     |
 | **path**  | `/attributes/<attributePath>`     |
-| **
-value** | The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the attribute identified by `path` of the thing referenced in the `topic`. |
+| **value** | The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the attribute identified by `path` of the thing referenced in the `topic`. |
 
 **Example:** [Merge a single attribute](protocol-examples-mergeattribute.html)
 
@@ -137,8 +131,7 @@ Merge the definition of a thing.
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/merge`     |
 | **path**  | `/definition`     |
-| **
-value** | A valid [thing definition](basic-thing.html#definition) that replaces the definition of the thing referenced in the `topic`. |
+| **value** | A valid [thing definition](basic-thing.html#definition) that replaces the definition of the thing referenced in the `topic`. |
 
 ### Response
 
@@ -162,8 +155,7 @@ Merge the policy ID of a thing.
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/merge`     |
 | **path**  | `/policyId`     |
-| **
-value** | A valid [policy ID](basic-thing.html#access-control) that replaces the policyId of the thing referenced in the `topic`. |
+| **value** | A valid [policy ID](basic-thing.html#access-control) that replaces the policyId of the thing referenced in the `topic`. |
 
 ### Response
 
@@ -187,8 +179,7 @@ The event emitted by Ditto after the definition was merged.
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/events/merged`     |
 | **path**  | `/definition`     |
-| **
-value** |  The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the definition of the thing referenced in the `topic`. |
+| **value** |  The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the definition of the thing referenced in the `topic`. |
 
 **Example:** [Merge a definition](protocol-examples-mergethingdefinition.html)
 
@@ -203,8 +194,7 @@ The list of features will be merged with the JSON merge patch provided in the `v
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/merge`     |
 | **path**  | `/features`     |
-| **
-value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the [features](basic-thing.html#features) of the thing referenced in the `topic`. |
+| **value**| The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the [features](basic-thing.html#features) of the thing referenced in the `topic`. |
 
 ### Response
 
@@ -224,8 +214,7 @@ value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc73
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/events/merged`     |
 | **path**  | `/features`     |
-| **
-value** | The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the features of the thing referenced in the `topic`. |
+| **value** | The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the features of the thing referenced in the `topic`. |
 
 **Example:** [Merge features](protocol-examples-mergefeatures.html)
 
@@ -240,8 +229,7 @@ the `<thingName>` in the topic).
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/merge`     |
 | **path**  | `/features/<featureId>`     |
-| **
-value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the specific [feature](basic-thing.html#features) identified by the feature ID in the `path` of the thing referenced in the `topic`. |
+| **value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the specific [feature](basic-thing.html#features) identified by the feature ID in the `path` of the thing referenced in the `topic`. |
 
 ### Response
 
@@ -261,8 +249,7 @@ value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc73
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/events/merged`     |
 | **path**  | `/features/<featureId>`     |
-| **
-value** | The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the specific feature identified by the feature ID in the `path` of the thing referenced in the `topic`. |
+| **value** | The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the specific feature identified by the feature ID in the `path` of the thing referenced in the `topic`. |
 
 **Example:** [Merge a single feature](protocol-examples-mergefeature.html)
 
@@ -277,8 +264,7 @@ Merge the definition of a feature (identified by the feature ID in the `path`) o
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/merge`     |
 | **path**  | `/features/<featureId>/definition`     |
-| **
-value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the [definition of the feature](basic-feature.html#feature-definition) identified by the feature ID in the `path` of the thing referenced in the `topic`. |
+| **value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the [definition of the feature](basic-feature.html#feature-definition) identified by the feature ID in the `path` of the thing referenced in the `topic`. |
 
 ### Response
 
@@ -298,8 +284,7 @@ value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc73
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/events/merged`     |
 | **path**  | `/features/<featureId>/definition`     |
-| **
-value** | The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the definition of the feature identified by the feature ID in the `path` of the thing referenced in the `topic`. |
+| **value** | The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the definition of the feature identified by the feature ID in the `path` of the thing referenced in the `topic`. |
 
 **Example:** [Merge feature definition](protocol-examples-mergefeaturedefinition.html)
 
@@ -314,8 +299,7 @@ Merge the properties of a feature (identified by the feature ID in the `path`) o
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/merge`     |
 | **path**  | `/features/<featureId>/properties`     |
-| **
-value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the [properties of the feature](basic-feature.html#feature-properties) identified by the feature ID in the `path` of the thing referenced in the `topic`. |
+| **value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the [properties of the feature](basic-feature.html#feature-properties) identified by the feature ID in the `path` of the thing referenced in the `topic`. |
 
 ### Response
 
@@ -335,8 +319,7 @@ value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc73
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/events/merged`     |
 | **path**  | `/features/<featureId>/properties`     |
-| **
-value** | The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the properties of the feature identified by the feature ID in the `path` of the thing referenced in the `topic`. |
+| **value** | The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the properties of the feature identified by the feature ID in the `path` of the thing referenced in the `topic`. |
 
 **Example:** [Merge feature properties](protocol-examples-mergeproperties.html)
 
@@ -351,8 +334,7 @@ Merge the desired properties of a feature (identified by the feature ID in the `
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/merge`     |
 | **path**  | `/features/<featureId>/desiredProperties`     |
-| **
-value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the [desired properties of the feature](basic-feature.html#feature-desired-properties) identified by the feature ID in the `path` of the thing referenced in the `topic`. |
+| **value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the [desired properties of the feature](basic-feature.html#feature-desired-properties) identified by the feature ID in the `path` of the thing referenced in the `topic`. |
 
 ### Response
 
@@ -372,8 +354,7 @@ value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc73
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/events/merged`     |
 | **path**  | `/features/<featureId>/desiredProperties`     |
-| **
-value** | The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the desired properties of the feature identified by the feature ID in the `path` of the thing referenced in the `topic`. |
+| **value** | The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the desired properties of the feature identified by the feature ID in the `path` of the thing referenced in the `topic`. |
 
 **Example:** [Merge feature desired properties](protocol-examples-mergedesiredproperties.html)
 
@@ -389,8 +370,7 @@ applying [JSON Pointer notation (RFC-6901)](https://tools.ietf.org/html/rfc6901)
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/merge`     |
 | **path**  | `/features/<featureId>/properties/<propertyPath>`     |
-| **
-value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the [property](basic-feature.html#feature-properties) identified by the property path and the feature ID in `path` of the thing referenced in the `topic`.|
+| **value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the [property](basic-feature.html#feature-properties) identified by the property path and the feature ID in `path` of the thing referenced in the `topic`.|
 
 ### Response
 
@@ -410,8 +390,7 @@ value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc73
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/events/merged`     |
 | **path**  | `/features/<featureId>/properties/<propertyPath>`     |
-| **
-value** | The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the property identified by the property path and the feature ID in `path` of the thing referenced in the `topic`.|
+| **value** | The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the property identified by the property path and the feature ID in `path` of the thing referenced in the `topic`.|
 
 **Example:** [Merge a single feature property](protocol-examples-mergeproperty.html)
 
@@ -427,8 +406,7 @@ applying [JSON Pointer notation (RFC-6901)](https://tools.ietf.org/html/rfc6901)
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/commands/merge`     |
 | **path**  | `/features/<featureId>/desiredProperties/<desiredPropertyPath>`     |
-| **
-value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the [desired property](basic-feature.html#feature-desired-properties) identified by the desired property path and the feature ID in `path` of the thing referenced in the `topic`.|
+| **value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc7396) format that is applied to the [desired property](basic-feature.html#feature-desired-properties) identified by the desired property path and the feature ID in `path` of the thing referenced in the `topic`.|
 
 ### Response
 
@@ -448,7 +426,6 @@ value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc73
 |-----------|-------------------------|
 | **topic** | `<namespace>/<thingName>/things/<channel>/events/merged`     |
 | **path**  | `/features/<featureId>/desiredProperties/<desiredPropertyPath>`     |
-| **
-value** | The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the property identified by the desired property path and the feature ID in `path` of the thing referenced in the `topic`.|
+| **value** | The [JSON merge patch](https://tools.ietf.org/html/rfc7396) that was applied to the property identified by the desired property path and the feature ID in `path` of the thing referenced in the `topic`.|
 
 **Example:** [Merge a single feature desired property](protocol-examples-mergedesiredproperty.html)
