@@ -136,6 +136,16 @@ public final class TestConstants {
     public static final JsonFieldSelector JSON_FIELD_SELECTOR_FEATURE_PROPERTIES =
             JsonFactory.newFieldSelector("properties/target_year_1", JSON_PARSE_OPTIONS);
 
+    /**
+     * A known JsonPointer.
+     */
+    public static final JsonPointer PATH = JsonPointer.of("attributes");
+
+    /**
+     * A known JsonValue.
+     */
+    public static final JsonValue VALUE = JsonObject.empty();
+
     private TestConstants() {
         throw new AssertionError();
     }
