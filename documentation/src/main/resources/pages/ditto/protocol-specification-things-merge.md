@@ -33,6 +33,7 @@ value** | The JSON value in [JSON merge patch](https://tools.ietf.org/html/rfc73
 | **path**   |        | `/`                      |
 | **status** | *code* |                          | 
 |            | `204`  | Success - the thing was merged successfully.       |
+|            | `403`  | Not Modifiable - The attributes could not be merged as the requester had insufficient permissions ('WRITE' is required).  |
 |            |        | See [Thing Error Responses](protocol-examples-errorresponses.html) for examples of other error responses. |
 
 ### Event
