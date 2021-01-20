@@ -202,8 +202,10 @@ public final class InboundMappingProcessorActor
      * @param <T> the type of the CommandResponse
      * @return the CommandResponse with appended ConnectionId.
      */
-    static <T extends CommandResponse<T>> T appendConnectionIdToAcknowledgementOrResponse(final T commandResponse,
+    private static <T extends CommandResponse<T>> T appendConnectionIdToAcknowledgementOrResponse(
+            final T commandResponse,
             final ConnectionId connectionId) {
+
         final DittoHeaders newHeaders = commandResponse.getDittoHeaders()
                 .toBuilder()
                 .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connectionId.toString())
@@ -217,7 +219,7 @@ public final class InboundMappingProcessorActor
                 .map(ack -> appendConnectionIdToAcknowledgementOrResponse(ack, connectionId))
                 .collect(Collectors.toList());
         // Uses EntityId and StatusCode from input acknowledges expecting these were set when Acknowledgements was created
-        return Acknowledgements.of(acknowledgements.getEntityId(), acksList, acknowledgements.getStatusCode(),
+        return Acknowledgements.of(acknowledgements.getEntityId(), acksList, acknowledgements.getHttpStatus(),
                 acknowledgements.getDittoHeaders());
     }
 
@@ -226,11 +228,11 @@ public final class InboundMappingProcessorActor
         private final ExternalMessage externalMessage;
         private final ActorRef sender;
 
-        private ExternalMessageWithSender(
-                final ExternalMessage externalMessage, final ActorRef sender) {
+        private ExternalMessageWithSender(final ExternalMessage externalMessage, final ActorRef sender) {
             this.externalMessage = externalMessage;
             this.sender = sender;
         }
+
     }
 
 }

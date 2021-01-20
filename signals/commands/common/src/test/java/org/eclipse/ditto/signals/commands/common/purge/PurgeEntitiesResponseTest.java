@@ -22,7 +22,7 @@ import java.util.UUID;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.common.CommonCommandResponse;
@@ -39,7 +39,7 @@ public final class PurgeEntitiesResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(CommonCommandResponse.JsonFields.TYPE, PurgeEntitiesResponse.TYPE)
-            .set(CommonCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
+            .set(CommonCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
             .set(PurgeEntitiesResponse.JsonFields.ENTITY_TYPE, ENTITY_TYPE.toString())
             .set(PurgeEntitiesResponse.JsonFields.SUCCESSFUL, true)
             .build();

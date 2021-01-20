@@ -20,7 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -52,7 +52,8 @@ public final class ConnectionIdInvalidException extends DittoRuntimeException im
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
+
+        super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
     /**
@@ -113,8 +114,10 @@ public final class ConnectionIdInvalidException extends DittoRuntimeException im
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
+
             return new ConnectionIdInvalidException(dittoHeaders, message, description, cause, href);
         }
+
     }
 
 }

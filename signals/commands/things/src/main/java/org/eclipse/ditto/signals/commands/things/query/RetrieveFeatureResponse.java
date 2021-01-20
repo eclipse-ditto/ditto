@@ -27,7 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -37,6 +37,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link RetrieveFeature} command.
@@ -63,7 +64,7 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
     private final Feature feature;
 
     private RetrieveFeatureResponse(final ThingId thingId, final Feature feature, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+        super(TYPE, HttpStatus.OK, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thing ID");
         this.feature = feature;
     }
@@ -82,8 +83,10 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
      * instead.
      */
     @Deprecated
-    public static RetrieveFeatureResponse of(final String thingId, final String featureId,
-            @Nullable final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static RetrieveFeatureResponse of(final String thingId,
+            final String featureId,
+            @Nullable final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
 
         return of(ThingId.of(thingId), featureId, jsonObject, dittoHeaders);
     }
@@ -98,12 +101,14 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
      * @return the response.
      * @throws NullPointerException if any argument but {@code jsonObject} is {@code null}.
      */
-    public static RetrieveFeatureResponse of(final ThingId thingId, final String featureId,
-            @Nullable final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static RetrieveFeatureResponse of(final ThingId thingId,
+            final String featureId,
+            @Nullable final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
 
         checkNotNull(featureId, "Feature ID");
 
-        final Feature feature = (null != jsonObject)
+        final Feature feature = null != jsonObject
                 ? ThingsModelFactory.newFeatureBuilder(jsonObject).useId(featureId).build()
                 : ThingsModelFactory.nullFeature(featureId);
 
@@ -140,6 +145,7 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
      */
     public static RetrieveFeatureResponse of(final ThingId thingId, final Feature feature,
             final DittoHeaders dittoHeaders) {
+
         return new RetrieveFeatureResponse(thingId, checkNotNull(feature, "retrieved Feature"), dittoHeaders);
     }
 
@@ -169,19 +175,15 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
      * format.
      */
     public static RetrieveFeatureResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveFeatureResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
+        return new CommandResponseJsonDeserializer<RetrieveFeatureResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
                     final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
+                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
-                    final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
                     final JsonObject extractedFeatureJsonObject = jsonObject.getValueOrThrow(JSON_FEATURE);
-
-                    final Feature extractedFeature = (null != extractedFeatureJsonObject)
-                            ? ThingsModelFactory.newFeatureBuilder(extractedFeatureJsonObject)
-                                .useId(extractedFeatureId)
-                                .build()
-                            : ThingsModelFactory.nullFeature(extractedFeatureId);
+                    final Feature extractedFeature = ThingsModelFactory.newFeatureBuilder(extractedFeatureJsonObject)
+                            .useId(jsonObject.getValueOrThrow(JSON_FEATURE_ID))
+                            .build();
 
                     return of(thingId, extractedFeature, dittoHeaders);
                 });
@@ -237,7 +239,7 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, getFeatureId(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE, getEntity(schemaVersion), predicate);
     }
@@ -256,7 +258,9 @@ public final class RetrieveFeatureResponse extends AbstractCommandResponse<Retri
             return false;
         }
         final RetrieveFeatureResponse that = (RetrieveFeatureResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId) && Objects.equals(feature, that.feature) &&
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(feature, that.feature) &&
                 super.equals(o);
     }
 

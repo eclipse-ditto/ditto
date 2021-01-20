@@ -19,7 +19,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.base.assertions.AbstractCommandResponseAssert;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
@@ -84,7 +84,7 @@ public class ThingQueryCommandResponseAssert
         return myself;
     }
 
-    public ThingQueryCommandResponseAssert withStatus(final HttpStatusCode expectedStatus) {
+    public ThingQueryCommandResponseAssert withStatus(final HttpStatus expectedStatus) {
         return hasStatus(expectedStatus);
     }
 

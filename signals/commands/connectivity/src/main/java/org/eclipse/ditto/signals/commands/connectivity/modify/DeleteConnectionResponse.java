@@ -25,7 +25,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -50,7 +50,7 @@ public final class DeleteConnectionResponse extends AbstractCommandResponse<Dele
     private final ConnectionId connectionId;
 
     private DeleteConnectionResponse(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
+        super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
         this.connectionId = connectionId;
     }
 
@@ -94,12 +94,11 @@ public final class DeleteConnectionResponse extends AbstractCommandResponse<Dele
      */
     public static DeleteConnectionResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<DeleteConnectionResponse>(TYPE, jsonObject).deserialize(
-                statusCode -> {
+                httpStatus -> {
                     final String readConnectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
-                    final ConnectionId connectionId = ConnectionId.of(readConnectionId);
 
-                    return of(connectionId, dittoHeaders);
+                    return of(ConnectionId.of(readConnectionId), dittoHeaders);
                 });
     }
 
@@ -128,14 +127,20 @@ public final class DeleteConnectionResponse extends AbstractCommandResponse<Dele
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof DeleteConnectionResponse);
+        return other instanceof DeleteConnectionResponse;
     }
 
     @Override
     public boolean equals(@Nullable final Object o) {
-        if (this == o) {return true;}
-        if (o == null || getClass() != o.getClass()) {return false;}
-        if (!super.equals(o)) {return false;}
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         final DeleteConnectionResponse that = (DeleteConnectionResponse) o;
         return Objects.equals(connectionId, that.connectionId);
     }

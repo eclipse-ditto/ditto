@@ -79,7 +79,8 @@ public final class OutboundMappingProcessorActorTest {
         protocolAdapterProvider = ProtocolAdapterProvider.load(TestConstants.PROTOCOL_CONFIG, actorSystem);
         clientActorProbe = TestProbe.apply("clientActor", actorSystem);
         proxyActorProbe = TestProbe.apply("proxyActor", actorSystem);
-        MockProxyActor.create(actorSystem).tell(proxyActorProbe.ref(), proxyActorProbe.ref());
+        MockProxyActor.create(actorSystem, proxyActorProbe.ref());
+        proxyActorProbe.expectMsgClass(ActorRef.class).tell(proxyActorProbe.ref(), proxyActorProbe.ref());
         proxyActorProbe.expectMsgClass(ActorRef.class);
     }
 

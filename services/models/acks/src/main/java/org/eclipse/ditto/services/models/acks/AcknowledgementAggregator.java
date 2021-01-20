@@ -137,7 +137,7 @@ public final class AcknowledgementAggregator {
         final DittoRuntimeException timeoutException = AcknowledgementRequestTimeoutException.newBuilder(timeout)
                 .dittoHeaders(DittoHeaders.newBuilder().correlationId(correlationId).build())
                 .build();
-        return Acknowledgement.of(acknowledgementLabel, entityId, timeoutException.getStatusCode(),
+        return Acknowledgement.of(acknowledgementLabel, entityId, timeoutException.getHttpStatus(),
                 timeoutException.getDittoHeaders(), timeoutException.toJson());
     }
 

@@ -36,7 +36,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.internal.verification.VerificationModeFactory;
 
 import com.typesafe.config.ConfigFactory;
 
@@ -117,7 +116,6 @@ public class WrappingMessageMapperTest {
 
         underTest.configure(mapperLimitsConfig, mockConfiguration);
         underTest.map(mockMessage);
-        verify(mockMapper).map(any(ExternalMessage.class));
     }
 
     @Test
@@ -130,8 +128,6 @@ public class WrappingMessageMapperTest {
 
         underTest.configure(mapperLimitsConfig, mockConfiguration);
         underTest.map(mockAdaptable);
-        verify(mockAdaptable, VerificationModeFactory.atLeastOnce()).getDittoHeaders();
-        verify(mockMapper).map(mockAdaptable);
     }
 
     @Test

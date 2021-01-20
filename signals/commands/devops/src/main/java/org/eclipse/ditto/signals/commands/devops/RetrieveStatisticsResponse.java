@@ -24,7 +24,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -52,7 +52,7 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
     private final JsonObject statistics;
 
     private RetrieveStatisticsResponse(final JsonObject statistics, final DittoHeaders dittoHeaders) {
-        super(TYPE, null, null, HttpStatusCode.OK, dittoHeaders);
+        super(TYPE, null, null, HttpStatus.OK, dittoHeaders);
         this.statistics = Objects.requireNonNull(statistics, "The statistics JSON must not be null!");
     }
 
@@ -94,8 +94,8 @@ public final class RetrieveStatisticsResponse extends AbstractDevOpsCommandRespo
      * format.
      */
     public static RetrieveStatisticsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<RetrieveStatisticsResponse>(TYPE, jsonObject)
-                .deserialize(statusCode -> {
+        return new CommandResponseJsonDeserializer<RetrieveStatisticsResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
                     final JsonObject statistics = jsonObject.getValueOrThrow(JSON_STATISTICS);
                     return RetrieveStatisticsResponse.of(statistics, dittoHeaders);
                 });

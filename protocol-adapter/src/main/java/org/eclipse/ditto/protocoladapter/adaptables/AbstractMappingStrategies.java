@@ -21,7 +21,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.ThingId;
@@ -62,15 +62,15 @@ abstract class AbstractMappingStrategies<T extends Jsonifiable.WithPredicate<Jso
     }
 
     /**
-     * Checks if the given {@link Adaptable} is a {@link HttpStatusCode#CREATED} response.
+     * Checks if the given {@link Adaptable} is a {@link HttpStatus#CREATED} response.
      *
      * @param adaptable an {@link Adaptable}
-     * @return {@code true} if the given {@code adaptable} is a response (has a status field) and the status code is
-     * {@link HttpStatusCode#CREATED}.
+     * @return {@code true} if the given {@code adaptable} is a response (has a status field) and the status is
+     * {@link HttpStatus#CREATED}.
      */
     protected static boolean isCreated(final Adaptable adaptable) {
-        return adaptable.getPayload().getStatus()
-                .map(HttpStatusCode.CREATED::equals)
+        return adaptable.getPayload().getHttpStatus()
+                .map(HttpStatus.CREATED::equals)
                 .orElseThrow(() -> JsonParseException.newBuilder().build());
     }
 

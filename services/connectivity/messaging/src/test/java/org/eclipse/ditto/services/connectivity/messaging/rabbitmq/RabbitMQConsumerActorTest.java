@@ -27,7 +27,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.ResponseType;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.ReplyTarget;
@@ -49,7 +49,7 @@ import akka.testkit.javadsl.TestKit;
  */
 public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<Delivery> {
 
-    private static final ConnectionId CONNECTION_ID = TestConstants.createRandomConnectionId();
+    private static final Connection CONNECTION = TestConstants.createConnection();
     private static final Envelope ENVELOPE = new Envelope(1, false, "inbound", "ditto");
 
     private final Channel channel = Mockito.mock(Channel.class);
@@ -70,7 +70,7 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
                                 .build())
                         .build(),
                 channel,
-                CONNECTION_ID);
+                CONNECTION);
     }
 
     @Override
@@ -88,7 +88,7 @@ public final class RabbitMQConsumerActorTest extends AbstractConsumerActorTest<D
                                 .build())
                         .build(),
                 channel,
-                CONNECTION_ID);
+                CONNECTION);
     }
 
     @Override

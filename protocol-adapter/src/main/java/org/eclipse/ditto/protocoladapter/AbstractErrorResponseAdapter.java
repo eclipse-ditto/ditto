@@ -83,7 +83,7 @@ public abstract class AbstractErrorResponseAdapter<T extends ErrorResponse<T>> i
         final TopicPathBuilder topicPathBuilder = getTopicPathBuilder(errorResponse);
 
         final Payload payload = Payload.newBuilder(errorResponse.getResourcePath())
-                .withStatus(errorResponse.getStatusCode())
+                .withStatus(errorResponse.getHttpStatus())
                 .withValue(errorResponse.toJson(errorResponse.getImplementedSchemaVersion())
                         .getValue(CommandResponse.JsonFields.PAYLOAD)
                         .orElse(JsonFactory.nullObject())) // only use the error payload

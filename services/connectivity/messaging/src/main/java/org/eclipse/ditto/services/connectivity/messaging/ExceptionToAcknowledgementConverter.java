@@ -21,7 +21,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -92,7 +92,7 @@ public abstract class ExceptionToAcknowledgementConverter {
             final EntityIdWithType entityId,
             final DittoHeaders dittoHeaders) {
 
-        final HttpStatusCode status = dittoRuntimeException.getStatusCode();
+        final HttpStatus status = dittoRuntimeException.getHttpStatus();
         final JsonObject payload = getPayload(dittoRuntimeException);
 
         return Acknowledgement.of(label, entityId, status, dittoHeaders, payload);
@@ -116,19 +116,19 @@ public abstract class ExceptionToAcknowledgementConverter {
             final EntityIdWithType entityId,
             final DittoHeaders dittoHeaders) {
 
-        final HttpStatusCode status = getStatusCodeForGenericException(exception);
+        final HttpStatus status = getHttpStatusForGenericException(exception);
         final JsonObject payload = getPayload(exception);
 
         return Acknowledgement.of(label, entityId, status, dittoHeaders, payload);
     }
 
     /**
-     * Gets the acknowledgement status code for the specified exception.
+     * Gets the acknowledgement HTTP status for the specified exception.
      *
      * @param exception the generic exception (non-DittoRuntimeException).
-     * @return the status code of the converted acknowledgement.
+     * @return the HTTP status of the converted acknowledgement.
      */
-    protected abstract HttpStatusCode getStatusCodeForGenericException(Exception exception);
+    protected abstract HttpStatus getHttpStatusForGenericException(Exception exception);
 
     private static JsonObject getPayload(final Exception exception) {
         return JsonObject.newBuilder()

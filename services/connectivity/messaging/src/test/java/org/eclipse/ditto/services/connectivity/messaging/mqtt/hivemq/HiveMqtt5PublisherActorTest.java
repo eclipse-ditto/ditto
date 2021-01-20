@@ -25,7 +25,7 @@ import java.util.function.Supplier;
 import org.awaitility.Awaitility;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.services.connectivity.messaging.AbstractPublisherActorTest;
@@ -103,7 +103,7 @@ public class HiveMqtt5PublisherActorTest extends AbstractPublisherActorTest {
         for (final Acknowledgement ack : acks.getSuccessfulAcknowledgements()) {
             System.out.println(ack);
             assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
-            assertThat(ack.getStatusCode()).isEqualTo(HttpStatusCode.OK);
+            assertThat(ack.getHttpStatus()).isEqualTo(HttpStatus.OK);
         }
     }
 

@@ -27,7 +27,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.common.BinaryValidationResult;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
@@ -148,7 +148,7 @@ public final class JwtAuthenticationProviderTest {
                 (DittoRuntimeException) authenticationResult.getReasonOfFailure();
         softly.assertThat(reasonOfFailureDre).hasMessage("The JWT was missing.");
         softly.assertThat(reasonOfFailureDre.getErrorCode()).isEqualTo("gateway:authentication.failed");
-        softly.assertThat(reasonOfFailureDre.getStatusCode()).isEqualTo(HttpStatusCode.UNAUTHORIZED);
+        softly.assertThat(reasonOfFailureDre.getHttpStatus()).isEqualTo(HttpStatus.UNAUTHORIZED);
         softly.assertThat(reasonOfFailureDre.getDittoHeaders().getCorrelationId())
                 .isEqualTo(knownDittoHeaders.getCorrelationId());
         softly.assertThat(reasonOfFailureDre.getDescription())
@@ -172,7 +172,7 @@ public final class JwtAuthenticationProviderTest {
                 (DittoRuntimeException) authenticationResult.getReasonOfFailure();
         softly.assertThat(reasonOfFailureDre).hasMessage("The JWT could not be verified.");
         softly.assertThat(reasonOfFailureDre.getErrorCode()).isEqualTo("gateway:authentication.failed");
-        softly.assertThat(reasonOfFailureDre.getStatusCode()).isEqualTo(HttpStatusCode.UNAUTHORIZED);
+        softly.assertThat(reasonOfFailureDre.getHttpStatus()).isEqualTo(HttpStatus.UNAUTHORIZED);
         softly.assertThat(reasonOfFailureDre.getDittoHeaders().getCorrelationId())
                 .isEqualTo(knownDittoHeaders.getCorrelationId());
     }
@@ -180,7 +180,7 @@ public final class JwtAuthenticationProviderTest {
     @Test
     public void toFailedAuthenticationResultExtractsDittoRuntimeExceptionFromCause() {
         final DittoRuntimeException dre =
-                DittoRuntimeException.newBuilder("none", HttpStatusCode.INTERNAL_SERVER_ERROR).build();
+                DittoRuntimeException.newBuilder("none", HttpStatus.INTERNAL_SERVER_ERROR).build();
         final IllegalStateException illegalStateException = new IllegalStateException("notExpected", dre);
 
         final Throwable reasonOfFailure =
@@ -192,7 +192,7 @@ public final class JwtAuthenticationProviderTest {
     @Test
     public void toFailedAuthenticationResult() {
         final DittoRuntimeException dre =
-                DittoRuntimeException.newBuilder("none", HttpStatusCode.INTERNAL_SERVER_ERROR).build();
+                DittoRuntimeException.newBuilder("none", HttpStatus.INTERNAL_SERVER_ERROR).build();
 
         final AuthenticationResult authenticationResult =
                 underTest.toFailedAuthenticationResult(dre, knownDittoHeaders);

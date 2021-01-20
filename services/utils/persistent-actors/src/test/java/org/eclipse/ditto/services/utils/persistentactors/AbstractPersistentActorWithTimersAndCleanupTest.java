@@ -21,7 +21,7 @@ import java.time.Duration;
 import java.util.UUID;
 import java.util.stream.IntStream;
 
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupCommandResponse;
@@ -78,7 +78,7 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
 
             // THEN: command is successful and plugin is called
             final CleanupCommandResponse cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
-            assertThat(cleanupCommandResponse.getStatusCode()).isEqualTo(HttpStatusCode.OK);
+            assertThat(cleanupCommandResponse.getHttpStatus()).isEqualTo(HttpStatus.OK);
             verifyPersistencePluginCalledWithCorrectArguments(persistenceId(), 9);
         }};
     }
@@ -96,7 +96,7 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
 
             // THEN: command is successful and plugin is called
             final CleanupCommandResponse cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
-            assertThat(cleanupCommandResponse.getStatusCode()).isEqualTo(HttpStatusCode.OK);
+            assertThat(cleanupCommandResponse.getHttpStatus()).isEqualTo(HttpStatus.OK);
             verifyPersistencePluginCalledWithCorrectArguments(persistenceId(), 9, 10);
         }};
     }
@@ -113,7 +113,7 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
                     getRef());
             final CleanupCommandResponse cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
 
-            assertThat(cleanupCommandResponse.getStatusCode()).isEqualTo(HttpStatusCode.INTERNAL_SERVER_ERROR);
+            assertThat(cleanupCommandResponse.getHttpStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
 
             verifyPersistencePluginCalledWithCorrectArguments(FAIL_DELETE_MESSAGE, 4);
         }};
@@ -132,7 +132,7 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
 
             // THEN: expect success response with correct status and persistence plugin is called
             final CleanupCommandResponse cleanupCommandResponse = expectMsgClass(CleanupCommandResponse.class);
-            assertThat(cleanupCommandResponse.getStatusCode()).isEqualTo(HttpStatusCode.INTERNAL_SERVER_ERROR);
+            assertThat(cleanupCommandResponse.getHttpStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
             verifyPersistencePluginCalledWithCorrectArguments(FAIL_DELETE_SNAPSHOT, 4);
         }};
     }
@@ -148,13 +148,13 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
             persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()),
                     getRef());
             final CleanupCommandResponse response1 = expectMsgClass(CleanupCommandResponse.class);
-            assertThat(response1.getStatusCode()).isEqualTo(HttpStatusCode.OK);
+            assertThat(response1.getHttpStatus()).isEqualTo(HttpStatus.OK);
 
             // and entity is not changed in the meantime
             persistenceActor.tell(CleanupPersistence.of(DefaultEntityId.of(persistenceId()), DittoHeaders.empty()),
                     getRef());
             final CleanupCommandResponse response2 = expectMsgClass(CleanupCommandResponse.class);
-            assertThat(response2.getStatusCode()).isEqualTo(HttpStatusCode.OK);
+            assertThat(response2.getHttpStatus()).isEqualTo(HttpStatus.OK);
 
             // THEN: verify that persistence plugin is only called once
             verifyPersistencePluginCalledWithCorrectArguments(persistenceId(), 19);
@@ -177,7 +177,7 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
                     expectMsgClass(dilated(Duration.ofSeconds(15)), CleanupCommandResponse.class);
 
             // THEN: second command is rejected and only first command ist executed by plugin
-            assertThat(cleanupFailed.getStatusCode()).isEqualTo(HttpStatusCode.INTERNAL_SERVER_ERROR);
+            assertThat(cleanupFailed.getHttpStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
             verifyPersistencePluginCalledWithCorrectArguments(SLOW_DELETE, 9);
         }};
     }
@@ -195,7 +195,7 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
 
             // THEN: command is successful
             final CleanupCommandResponse cleanupCommandResponse1 = expectMsgClass(CleanupCommandResponse.class);
-            assertThat(cleanupCommandResponse1.getStatusCode()).isEqualTo(HttpStatusCode.OK);
+            assertThat(cleanupCommandResponse1.getHttpStatus()).isEqualTo(HttpStatus.OK);
 
             // WHEN: more updates occur and another cleanup command is sent
             modifyDummyAndWaitForSnapshotSuccess(this, persistenceActor, 10,
@@ -205,7 +205,7 @@ public class AbstractPersistentActorWithTimersAndCleanupTest {
 
             // THEN: command is successful and deletes are executed with correct seq number
             final CleanupCommandResponse cleanupCommandResponse2 = expectMsgClass(CleanupCommandResponse.class);
-            assertThat(cleanupCommandResponse2.getStatusCode()).isEqualTo(HttpStatusCode.OK);
+            assertThat(cleanupCommandResponse2.getHttpStatus()).isEqualTo(HttpStatus.OK);
 
             verifyPersistencePluginCalledWithCorrectArguments(persistenceId(), 9);
             verifyPersistencePluginCalledWithCorrectArguments(persistenceId(), 19);

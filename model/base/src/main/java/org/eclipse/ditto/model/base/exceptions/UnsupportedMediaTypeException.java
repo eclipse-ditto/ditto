@@ -21,7 +21,7 @@
  import javax.annotation.concurrent.NotThreadSafe;
 
  import org.eclipse.ditto.json.JsonObject;
- import org.eclipse.ditto.model.base.common.HttpStatusCode;
+ import org.eclipse.ditto.model.base.common.HttpStatus;
  import org.eclipse.ditto.model.base.headers.DittoHeaders;
  import org.eclipse.ditto.model.base.json.JsonParsableException;
 
@@ -47,7 +47,7 @@
       */
      static final String RFC_7396 = "https://tools.ietf.org/html/rfc7396";
 
-     private static final HttpStatusCode STATUS_CODE = HttpStatusCode.UNSUPPORTED_MEDIA_TYPE;
+     private static final HttpStatus STATUS_CODE = HttpStatus.UNSUPPORTED_MEDIA_TYPE;
 
      /**
       * Constructs a new {@code UnsupportedMediaTypeException} object.
@@ -154,6 +154,7 @@
 
              return new UnsupportedMediaTypeException(dittoHeaders, message, description, cause, href);
          }
+
      }
 
  }

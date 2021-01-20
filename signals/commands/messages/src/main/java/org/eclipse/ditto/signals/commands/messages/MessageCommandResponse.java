@@ -31,23 +31,16 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
 /**
  * Base interface for all response messages to things and features.
  *
- * @param <T> the type of the message's payload.
+ * @param <P> the type of the message's payload.
  * @param <C> the type of the MessageCommandResponse.
  */
-public interface MessageCommandResponse<T, C extends MessageCommandResponse<T, C>>
-        extends CommandResponse<C>, WithId, WithThingId {
+public interface MessageCommandResponse<P, C extends MessageCommandResponse<P, C>>
+        extends CommandResponse<C>, WithId, WithThingId, WithMessage<P> {
 
     /**
      * Type Prefix of Message commands.
      */
     String TYPE_PREFIX = "messages." + TYPE_QUALIFIER + ":";
-
-    /**
-     * Retrieves the Message to be delivered.
-     *
-     * @return the Message to be delivered.
-     */
-    Message<T> getMessage();
 
     /**
      * Retrieves the type of the message to be delivered. This will be used as routingKey for delivering the message
@@ -120,9 +113,7 @@ public interface MessageCommandResponse<T, C extends MessageCommandResponse<T, C
 
         /**
          * JSON field containing the MessageCommandResponse's Message payload.
-         * Deprecated because it is not used.
          */
-        @Deprecated
         public static final JsonFieldDefinition<String> JSON_MESSAGE_PAYLOAD =
                 JsonFactory.newStringFieldDefinition("payload", FieldType.REGULAR, JsonSchemaVersion.V_1,
                         JsonSchemaVersion.V_2);

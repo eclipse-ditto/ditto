@@ -19,7 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.things.Feature;
@@ -38,7 +38,7 @@ public final class RetrieveFeatureResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, RetrieveFeatureResponse.TYPE)
-            .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
+            .set(ThingCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
             .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
             .set(RetrieveFeaturePropertiesResponse.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
             .set(RetrieveFeatureResponse.JSON_FEATURE, TestConstants.Feature.FLUX_CAPACITOR.toJson())
@@ -85,7 +85,7 @@ public final class RetrieveFeatureResponseTest {
     public void createInstanceFromJsonWithNullFeature() {
         final JsonObject inputJson = JsonFactory.newObjectBuilder()
                 .set(ThingCommandResponse.JsonFields.TYPE, RetrieveFeatureResponse.TYPE)
-                .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
+                .set(ThingCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
                 .set(ThingCommandResponse.JsonFields.JSON_THING_ID, TestConstants.Thing.THING_ID.toString())
                 .set(RetrieveFeaturePropertiesResponse.JSON_FEATURE_ID, TestConstants.Feature.FLUX_CAPACITOR_ID)
                 .set(RetrieveFeatureResponse.JSON_FEATURE, JsonFactory.nullObject())

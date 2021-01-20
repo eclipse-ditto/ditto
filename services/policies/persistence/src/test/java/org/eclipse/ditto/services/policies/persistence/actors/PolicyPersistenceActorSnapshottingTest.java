@@ -27,7 +27,7 @@ import java.util.function.BiFunction;
 
 import org.bson.BsonDocument;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
@@ -237,7 +237,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 underTest.tell(modifyPolicy, getRef());
 
                 final ModifyPolicyResponse modifyPolicyResponse = expectMsgClass(ModifyPolicyResponse.class);
-                assertThat(modifyPolicyResponse.getStatusCode()).isEqualTo(HttpStatusCode.NO_CONTENT);
+                assertThat(modifyPolicyResponse.getHttpStatus()).isEqualTo(HttpStatus.NO_CONTENT);
 
                 final Event expectedModifiedEvent = toEvent(modifyPolicy, 2);
                 // snapshot created
@@ -311,7 +311,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 underTest.tell(modifyPolicy, getRef());
 
                 final ModifyPolicyResponse modifyPolicyResponse1 = expectMsgClass(ModifyPolicyResponse.class);
-                assertThat(modifyPolicyResponse1.getStatusCode()).isEqualTo(HttpStatusCode.NO_CONTENT);
+                assertThat(modifyPolicyResponse1.getHttpStatus()).isEqualTo(HttpStatus.NO_CONTENT);
 
                 // wait again until snapshot-interval has passed
                 waitFor(snapshotIntervalSecs);
@@ -355,7 +355,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
                 underTest.tell(modifyPolicy, getRef());
 
                 final ModifyPolicyResponse modifyPolicyResponse1 = expectMsgClass(ModifyPolicyResponse.class);
-                assertThat(modifyPolicyResponse1.getStatusCode()).isEqualTo(HttpStatusCode.NO_CONTENT);
+                assertThat(modifyPolicyResponse1.getHttpStatus()).isEqualTo(HttpStatus.NO_CONTENT);
 
                 final Event expectedModifiedEvent1 = toEvent(modifyPolicy, 2);
                 assertJournal(policyId, Arrays.asList(expectedCreatedEvent, expectedModifiedEvent1));

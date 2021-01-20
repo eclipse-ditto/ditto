@@ -24,14 +24,14 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchQuery;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
@@ -129,7 +129,7 @@ public final class JsonExamplesProducer {
         writeJson(commandsDir.resolve(Paths.get("count-things-response.json")), countThingsResponse);
 
         final DittoRuntimeException e =
-                DittoRuntimeException.newBuilder("search.filter.invalid", HttpStatusCode.BAD_REQUEST)
+                DittoRuntimeException.newBuilder("search.filter.invalid", HttpStatus.BAD_REQUEST)
                         .build();
         final SearchErrorResponse errorResponse = SearchErrorResponse.of(e, DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("query-things-error-response.json")), errorResponse);

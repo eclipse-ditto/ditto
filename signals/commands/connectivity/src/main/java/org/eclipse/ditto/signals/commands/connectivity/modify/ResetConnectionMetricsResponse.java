@@ -25,7 +25,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -50,7 +50,7 @@ public final class ResetConnectionMetricsResponse extends AbstractCommandRespons
     private final ConnectionId connectionId;
 
     private ResetConnectionMetricsResponse(final ConnectionId connectionId, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+        super(TYPE, HttpStatus.OK, dittoHeaders);
         this.connectionId = connectionId;
     }
 
@@ -92,9 +92,11 @@ public final class ResetConnectionMetricsResponse extends AbstractCommandRespons
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static ResetConnectionMetricsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static ResetConnectionMetricsResponse fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
+
         return new CommandResponseJsonDeserializer<ResetConnectionMetricsResponse>(TYPE, jsonObject).deserialize(
-                statusCode -> {
+                httpStatus -> {
                     final String readConnectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
                     final ConnectionId connectionId = ConnectionId.of(readConnectionId);
@@ -128,7 +130,7 @@ public final class ResetConnectionMetricsResponse extends AbstractCommandRespons
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof ResetConnectionMetricsResponse);
+        return other instanceof ResetConnectionMetricsResponse;
     }
 
     @Override

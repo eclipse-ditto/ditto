@@ -22,8 +22,8 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.common.ByteBufferUtils;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
@@ -61,14 +61,12 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
     protected final PayloadMapping payloadMapping;
     protected final boolean reconnectForRedelivery;
 
-    protected AbstractMqttConsumerActor(final ConnectionId connectionId, final ActorRef messageMappingProcessor,
-            final Source source, final boolean dryRun, final boolean reconnectForRedelivery,
-            final ConnectionType connectionType) {
-        super(connectionId, String.join(";", source.getAddresses()), messageMappingProcessor, source,
-                connectionType);
+    protected AbstractMqttConsumerActor(final Connection connection, final ActorRef messageMappingProcessor,
+            final Source source, final boolean dryRun, final boolean reconnectForRedelivery) {
+        super(connection, String.join(";", source.getAddresses()), messageMappingProcessor, source);
 
         logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this)
-                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connectionId);
+                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connection.getId());
 
         this.dryRun = dryRun;
         this.payloadMapping = source.getPayloadMapping();

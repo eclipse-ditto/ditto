@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.signals.commands.things.query;
 
+import static org.eclipse.ditto.model.base.common.ConditionChecker.argumentNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
@@ -27,7 +28,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -37,6 +38,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link RetrieveFeatureDesiredProperties} command.
@@ -64,13 +66,14 @@ public final class RetrieveFeatureDesiredPropertiesResponse
     private final String featureId;
     private final FeatureProperties desiredProperties;
 
-    private RetrieveFeatureDesiredPropertiesResponse(final ThingId thingId, final CharSequence featureId,
-            final FeatureProperties desiredProperties, final DittoHeaders dittoHeaders) {
+    private RetrieveFeatureDesiredPropertiesResponse(final ThingId thingId,
+            final CharSequence featureId,
+            final FeatureProperties desiredProperties,
+            final DittoHeaders dittoHeaders) {
 
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+        super(TYPE, HttpStatus.OK, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
-        this.featureId = checkNotNull(featureId == null || featureId.toString().isEmpty() ? null : featureId.toString(),
-                "featureId");
+        this.featureId = argumentNotEmpty(featureId, "featureId").toString();
         this.desiredProperties = checkNotNull(desiredProperties, "desiredProperties");
     }
 
@@ -107,6 +110,7 @@ public final class RetrieveFeatureDesiredPropertiesResponse
             @Nullable final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
 
+        checkNotNull(jsonObject, "jsonObject");
         final FeatureProperties desiredProperties = ThingsModelFactory.newFeatureProperties(jsonObject);
 
         return of(thingId, featureId, desiredProperties, dittoHeaders);
@@ -143,15 +147,10 @@ public final class RetrieveFeatureDesiredPropertiesResponse
             final DittoHeaders dittoHeaders) {
 
         return new CommandResponseJsonDeserializer<RetrieveFeatureDesiredPropertiesResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingQueryCommandResponse.JsonFields.JSON_THING_ID);
-                    final ThingId thingId = ThingId.of(extractedThingId);
-                    final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
-                    final JsonObject extractedDesiredProperties = jsonObject.getValueOrThrow(JSON_DESIRED_PROPERTIES);
-
-                    return of(thingId, extractedFeatureId, extractedDesiredProperties, dittoHeaders);
-                });
+                .deserialize(httpStatus -> of(
+                        ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                        jsonObject.getValueOrThrow(JSON_FEATURE_ID),
+                        jsonObject.getValueOrThrow(JSON_DESIRED_PROPERTIES), dittoHeaders));
     }
 
     @Override
@@ -214,7 +213,7 @@ public final class RetrieveFeatureDesiredPropertiesResponse
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingQueryCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
         jsonObjectBuilder.set(JSON_DESIRED_PROPERTIES, desiredProperties, predicate);
     }
@@ -233,9 +232,11 @@ public final class RetrieveFeatureDesiredPropertiesResponse
             return false;
         }
         final RetrieveFeatureDesiredPropertiesResponse that = (RetrieveFeatureDesiredPropertiesResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(featureId, that.featureId)
-                && Objects.equals(desiredProperties, that.desiredProperties) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(featureId, that.featureId) &&
+                Objects.equals(desiredProperties, that.desiredProperties) &&
+                super.equals(o);
     }
 
     @Override

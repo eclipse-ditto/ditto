@@ -24,7 +24,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.acks.AcknowledgementException;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -60,7 +60,7 @@ public final class AcknowledgementRequestTimeoutException extends DittoRuntimeEx
             @Nullable final URI href) {
 
         super(ERROR_CODE,
-                HttpStatusCode.REQUEST_TIMEOUT,
+                HttpStatus.REQUEST_TIMEOUT,
                 dittoHeaders,
                 message,
                 description,

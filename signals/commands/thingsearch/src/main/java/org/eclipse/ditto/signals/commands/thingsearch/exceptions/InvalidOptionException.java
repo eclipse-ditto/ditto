@@ -18,7 +18,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -38,7 +38,7 @@ public class InvalidOptionException extends DittoRuntimeException implements Thi
 
     static final String DEFAULT_DESCRIPTION = "At least one provided option is invalid.";
 
-    static final HttpStatusCode STATUS_CODE = HttpStatusCode.BAD_REQUEST;
+    static final HttpStatus HTTP_STATUS = HttpStatus.BAD_REQUEST;
 
     private static final long serialVersionUID = -2341639110057194874L;
 
@@ -47,7 +47,8 @@ public class InvalidOptionException extends DittoRuntimeException implements Thi
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
+
+        super(ERROR_CODE, HTTP_STATUS, dittoHeaders, message, description, cause, href);
     }
 
     @Override
@@ -119,7 +120,10 @@ public class InvalidOptionException extends DittoRuntimeException implements Thi
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
+
             return new InvalidOptionException(dittoHeaders, message, description, cause, href);
         }
+
     }
+
 }

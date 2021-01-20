@@ -67,11 +67,13 @@ final class ConnectionMigrationUtil {
         final UnaryOperator<JsonObject> migrateSourceFilters = new MigrateSourceFilters();
         final UnaryOperator<JsonObject> migrateTopicActionSubjectFilters = new MigrateTopicActionSubjectFilters();
         final UnaryOperator<JsonObject> migrateAuthorizationContexts = new MigrateAuthorizationContexts();
+        final UnaryOperator<JsonObject> migrateTargetHeaderMappings = new MigrateTargetHeaderMappings();
 
         return ConnectivityModelFactory.connectionFromJson(
                 migrateAuthorizationContexts
                         .andThen(migrateSourceFilters)
                         .andThen(migrateTopicActionSubjectFilters)
+                        .andThen(migrateTargetHeaderMappings)
                         .apply(connectionJsonObject));
     }
 
@@ -291,6 +293,48 @@ final class ConnectionMigrationUtil {
                                     .orElse(null)
                             ).collect(JsonCollectors.valuesToArray())
                     );
+        }
+    }
+
+    static class MigrateTargetHeaderMappings implements UnaryOperator<JsonObject> {
+
+        private static final JsonObject LEGACY_DEFAULT_TARGET_HEADER_MAPPING = JsonObject.newBuilder()
+                .set("correlation-id", "{{header:correlation-id}}")
+                .set("content-type", "{{header:content-type}}")
+                .set("reply-to", "{{header:reply-to}}")
+                .build();
+
+        @Override
+        public JsonObject apply(final JsonObject connectionJsonObject) {
+            if (containsTargets(connectionJsonObject)) {
+                final JsonArray migratedTargets = connectionJsonObject.getValue(Connection.JsonFields.TARGETS)
+                        .map(MigrateTargetHeaderMappings::migrateTargets)
+                        .orElse(null);
+                return connectionJsonObject
+                        .set(Connection.JsonFields.TARGETS, migratedTargets);
+            }
+            return connectionJsonObject;
+
+        }
+
+        private static boolean containsTargets(@Nonnull final JsonObject connectionJsonObject) {
+            return connectionJsonObject.getValue(Connection.JsonFields.TARGETS)
+                    .map(targets -> !targets.isEmpty())
+                    .orElse(Boolean.FALSE);
+        }
+
+        static JsonArray migrateTargets(@Nonnull final JsonArray targetsJsonArray) {
+            return targetsJsonArray.stream()
+                    .filter(JsonValue::isObject)
+                    .map(JsonValue::asObject)
+                    .map(targetJson -> {
+                        if (!targetJson.contains(Target.JsonFields.HEADER_MAPPING.getPointer())) {
+                            return targetJson
+                                    .set(Target.JsonFields.HEADER_MAPPING, LEGACY_DEFAULT_TARGET_HEADER_MAPPING);
+                        }
+                        return targetJson;
+                    })
+                    .collect(JsonCollectors.valuesToArray());
         }
     }
 }

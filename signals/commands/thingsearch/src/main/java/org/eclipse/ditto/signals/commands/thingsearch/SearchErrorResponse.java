@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.signals.commands.thingsearch;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -48,13 +48,14 @@ public final class SearchErrorResponse extends AbstractCommandResponse<SearchErr
      * Type of this response.
      */
     public static final String TYPE = TYPE_PREFIX + "errorResponse";
-    private final static GlobalErrorRegistry GLOBAL_ERROR_REGISTRY = GlobalErrorRegistry.getInstance();
+
+    private static final GlobalErrorRegistry GLOBAL_ERROR_REGISTRY = GlobalErrorRegistry.getInstance();
+
     private final DittoRuntimeException dittoRuntimeException;
 
     private SearchErrorResponse(final DittoRuntimeException dittoRuntimeException, final DittoHeaders dittoHeaders) {
-        super(TYPE, dittoRuntimeException.getStatusCode(), dittoHeaders);
-        this.dittoRuntimeException =
-                requireNonNull(dittoRuntimeException, "The DittoRuntimeException must not be null");
+        super(TYPE, dittoRuntimeException.getHttpStatus(), dittoHeaders);
+        this.dittoRuntimeException = checkNotNull(dittoRuntimeException, "dittoRuntimeException");
     }
 
     /**
@@ -67,6 +68,7 @@ public final class SearchErrorResponse extends AbstractCommandResponse<SearchErr
      */
     public static SearchErrorResponse of(final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
+
         return new SearchErrorResponse(dittoRuntimeException, dittoHeaders);
     }
 
@@ -81,6 +83,7 @@ public final class SearchErrorResponse extends AbstractCommandResponse<SearchErr
     public static SearchErrorResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         final JsonObject jsonObject =
                 DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
+
         return fromJson(jsonObject, dittoHeaders);
     }
 
@@ -112,6 +115,7 @@ public final class SearchErrorResponse extends AbstractCommandResponse<SearchErr
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
+
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(JsonFields.PAYLOAD, dittoRuntimeException.toJson(schemaVersion, thePredicate), predicate);
     }
@@ -145,8 +149,8 @@ public final class SearchErrorResponse extends AbstractCommandResponse<SearchErr
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof SearchErrorResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof SearchErrorResponse;
     }
 
     @Override
@@ -155,4 +159,5 @@ public final class SearchErrorResponse extends AbstractCommandResponse<SearchErr
                 dittoRuntimeException +
                 "]";
     }
+
 }

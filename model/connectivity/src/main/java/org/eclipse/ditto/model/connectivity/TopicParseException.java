@@ -20,7 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -50,7 +50,8 @@ public final class TopicParseException extends DittoRuntimeException implements 
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
+
+        super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
     /**
@@ -82,8 +83,7 @@ public final class TopicParseException extends DittoRuntimeException implements 
      * @return the new TopicParseException.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static TopicParseException fromMessage(@Nullable final String message,
-            final DittoHeaders dittoHeaders) {
+    public static TopicParseException fromMessage(@Nullable final String message, final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
@@ -99,8 +99,7 @@ public final class TopicParseException extends DittoRuntimeException implements 
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static TopicParseException fromJson(final JsonObject jsonObject,
-            final DittoHeaders dittoHeaders) {
+    public static TopicParseException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
@@ -139,6 +138,7 @@ public final class TopicParseException extends DittoRuntimeException implements 
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
+
             return new TopicParseException(dittoHeaders, message, description, cause, href);
         }
 

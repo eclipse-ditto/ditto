@@ -32,10 +32,12 @@ import org.eclipse.ditto.services.utils.pubsub.api.ReceiveRemoteAcks;
 import org.eclipse.ditto.services.utils.pubsub.api.RemoveSubscriberAcks;
 import org.eclipse.ditto.services.utils.pubsub.ddata.literal.LiteralDData;
 
+import akka.actor.AbstractExtensionId;
 import akka.actor.ActorContext;
 import akka.actor.ActorRef;
 import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
+import akka.actor.ExtendedActorSystem;
 import akka.actor.Props;
 import akka.pattern.Patterns;
 
@@ -131,6 +133,18 @@ final class DistributedAcksImpl implements DistributedAcks {
             return CompletableFuture.failedStage((Throwable) askResponse);
         } else {
             return CompletableFuture.failedStage(new ClassCastException("Expect SubAck, got: " + askResponse));
+        }
+    }
+
+    static final class ExtensionId extends AbstractExtensionId<DistributedAcks> {
+
+        static final ExtensionId INSTANCE = new ExtensionId();
+
+        private ExtensionId() {}
+
+        @Override
+        public DistributedAcks createExtension(final ExtendedActorSystem system) {
+            return DistributedAcks.create(system);
         }
     }
 }

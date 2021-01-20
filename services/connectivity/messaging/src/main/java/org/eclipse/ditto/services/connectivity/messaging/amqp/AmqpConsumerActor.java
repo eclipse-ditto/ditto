@@ -40,8 +40,7 @@ import org.apache.qpid.jms.message.JmsMessage;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.model.connectivity.ConnectionType;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Enforcement;
@@ -100,13 +99,12 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     private ConnectivityConfig connectivityConfig;
 
     @SuppressWarnings("unused")
-    private AmqpConsumerActor(final ConnectionId connectionId, final ConsumerData consumerData,
+    private AmqpConsumerActor(final Connection connection, final ConsumerData consumerData,
             final ActorRef inboundMappingProcessor, final ActorRef jmsActor) {
-        super(connectionId,
+        super(connection,
                 checkNotNull(consumerData, "consumerData").getAddress(),
                 inboundMappingProcessor,
-                consumerData.getSource(),
-                ConnectionType.AMQP_10);
+                consumerData.getSource());
 
         final ConnectivityConfigProvider connectivityConfigProvider =
                 ConnectivityConfigProviderFactory.getInstance(getContext().getSystem());
@@ -129,16 +127,16 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     /**
      * Creates Akka configuration object {@link Props} for this {@code AmqpConsumerActor}.
      *
-     * @param connectionId the connection id
+     * @param connection the connection
      * @param consumerData the consumer data.
      * @param inboundMappingProcessor the message mapping processor where received messages are forwarded to
      * @param jmsActor reference of the {@code JMSConnectionHandlingActor).
      * @return the Akka configuration Props object.
      */
-    static Props props(final ConnectionId connectionId, final ConsumerData consumerData,
+    static Props props(final Connection connection, final ConsumerData consumerData,
             final ActorRef inboundMappingProcessor, final ActorRef jmsActor) {
 
-        return Props.create(AmqpConsumerActor.class, connectionId, consumerData, inboundMappingProcessor, jmsActor);
+        return Props.create(AmqpConsumerActor.class, connection, consumerData, inboundMappingProcessor, jmsActor);
     }
 
     @Override

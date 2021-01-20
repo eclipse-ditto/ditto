@@ -16,11 +16,11 @@ import java.util.Collection;
 
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.ParametrizedCommandAdapterTest;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.ParametrizedCommandAdapterTest;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.TestConstants;
 import org.eclipse.ditto.protocoladapter.TestConstants.Policies;
@@ -77,7 +77,7 @@ public final class ParametrizedPolicyQueryCommandResponseAdapterTest
         final RetrievePolicyResponse response = RetrievePolicyResponse.of(Policies.POLICY_ID,
                 Policies.POLICY, Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.RETRIEVE, EMPTY_PATH,
-                Policies.POLICY.toJson(FieldType.notHidden()), HttpStatusCode.OK);
+                Policies.POLICY.toJson(FieldType.notHidden()), HttpStatus.OK);
         return TestParameter.of("retrievePolicyResponse", adaptable, response);
     }
 
@@ -86,7 +86,7 @@ public final class ParametrizedPolicyQueryCommandResponseAdapterTest
                 Policies.POLICY_ENTRY, Policies.HEADERS);
         final Adaptable adaptable =
                 TestConstants.adaptable(TopicPaths.RETRIEVE, entriesPath(Policies.POLICY_ENTRY_LABEL),
-                        Policies.POLICY_ENTRY.toJson(FieldType.notHidden()), HttpStatusCode.OK);
+                        Policies.POLICY_ENTRY.toJson(FieldType.notHidden()), HttpStatus.OK);
         return TestParameter.of("retrievePolicyEntryResponse", adaptable, response);
     }
 
@@ -95,7 +95,7 @@ public final class ParametrizedPolicyQueryCommandResponseAdapterTest
                 RetrievePolicyEntriesResponse.of(Policies.POLICY_ID, Policies.POLICY_ENTRIES, Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.RETRIEVE, JsonPointer.of("entries"),
                 fromIterable(Policies.POLICY_ENTRIES, e -> JsonKey.of(e.getLabel()),
-                        e -> e.toJson(FieldType.notHidden())), HttpStatusCode.OK);
+                        e -> e.toJson(FieldType.notHidden())), HttpStatus.OK);
         return TestParameter.of("retrievePolicyEntriesResponse", adaptable, response);
     }
 
@@ -104,7 +104,7 @@ public final class ParametrizedPolicyQueryCommandResponseAdapterTest
                 Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL, Policies.RESOURCE1, Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.RETRIEVE,
                 resourcesPath(Policies.POLICY_ENTRY_LABEL, Policies.RESOURCE1.getResourceKey()),
-                Policies.RESOURCE1.toJson(FieldType.notHidden()), HttpStatusCode.OK);
+                Policies.RESOURCE1.toJson(FieldType.notHidden()), HttpStatus.OK);
         return TestParameter.of("retrieveResourceResponse", adaptable, response);
     }
 
@@ -113,7 +113,7 @@ public final class ParametrizedPolicyQueryCommandResponseAdapterTest
                 Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL, Policies.RESOURCES, Policies.HEADERS);
         final Adaptable adaptable =
                 TestConstants.adaptable(TopicPaths.RETRIEVE, resourcesPath(Policies.POLICY_ENTRY_LABEL),
-                        Policies.RESOURCES.toJson(FieldType.notHidden()), HttpStatusCode.OK);
+                        Policies.RESOURCES.toJson(FieldType.notHidden()), HttpStatus.OK);
         return TestParameter.of("retrieveResourcesResponse", adaptable, response);
     }
 
@@ -123,7 +123,7 @@ public final class ParametrizedPolicyQueryCommandResponseAdapterTest
                 Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.RETRIEVE,
                 subjectsPath(Policies.POLICY_ENTRY_LABEL, Policies.SUBJECT1.getId()),
-                Policies.SUBJECT1.toJson(FieldType.notHidden()), HttpStatusCode.OK);
+                Policies.SUBJECT1.toJson(FieldType.notHidden()), HttpStatus.OK);
         return TestParameter.of("retrieveSubjectResponse", adaptable, response);
     }
 
@@ -132,7 +132,7 @@ public final class ParametrizedPolicyQueryCommandResponseAdapterTest
                 Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL, Policies.SUBJECTS, Policies.HEADERS);
         final Adaptable adaptable =
                 TestConstants.adaptable(TopicPaths.RETRIEVE, subjectsPath(Policies.POLICY_ENTRY_LABEL),
-                        Policies.SUBJECTS.toJson(FieldType.notHidden()), HttpStatusCode.OK);
+                        Policies.SUBJECTS.toJson(FieldType.notHidden()), HttpStatus.OK);
         return TestParameter.of("retrieveSubjectsResponse", adaptable, response);
     }
 

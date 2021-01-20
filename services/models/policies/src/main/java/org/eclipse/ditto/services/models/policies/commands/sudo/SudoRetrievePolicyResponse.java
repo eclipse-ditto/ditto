@@ -26,7 +26,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -57,11 +57,11 @@ public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<Su
     private final JsonObject policy;
 
     private SudoRetrievePolicyResponse(final PolicyId policyId,
-            final HttpStatusCode statusCode,
+            final HttpStatus httpStatus,
             final JsonObject policy,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.policy = checkNotNull(policy, "Policy");
     }
@@ -77,8 +77,9 @@ public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<Su
      */
     public static SudoRetrievePolicyResponse of(final PolicyId policyId, final Policy policy,
             final DittoHeaders dittoHeaders) {
-        return new SudoRetrievePolicyResponse(policyId, HttpStatusCode.OK, //
-                checkNotNull(policy, "Policy") //
+
+        return new SudoRetrievePolicyResponse(policyId, HttpStatus.OK,
+                checkNotNull(policy, "Policy")
                         .toJson(dittoHeaders.getSchemaVersion().orElse(policy.getLatestSchemaVersion()),
                                 FieldType.regularOrSpecial()),
                 dittoHeaders);
@@ -96,7 +97,7 @@ public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<Su
     public static SudoRetrievePolicyResponse of(final PolicyId policyId, final JsonObject policy,
             final DittoHeaders dittoHeaders) {
 
-        return new SudoRetrievePolicyResponse(policyId, HttpStatusCode.OK, policy, dittoHeaders);
+        return new SudoRetrievePolicyResponse(policyId, HttpStatus.OK, policy, dittoHeaders);
     }
 
     /**
@@ -105,7 +106,7 @@ public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<Su
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonString} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
      * format.
@@ -120,17 +121,17 @@ public final class SudoRetrievePolicyResponse extends AbstractCommandResponse<Su
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
-     * @throws NullPointerException if {@code jsonObject} is {@code null}.
+     * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
     public static SudoRetrievePolicyResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<SudoRetrievePolicyResponse>(TYPE, jsonObject)
-                .deserialize(statusCode -> {
-                    final String extractedPolicyId =
+        return new CommandResponseJsonDeserializer<SudoRetrievePolicyResponse>(TYPE, jsonObject).deserialize(
+                httpStatus -> {
+                    final var extractedPolicyId =
                             jsonObject.getValueOrThrow(SudoCommandResponse.JsonFields.JSON_POLICY_ID);
-                    final PolicyId policyId = PolicyId.of(extractedPolicyId);
-                    final JsonObject extractedPolicy = jsonObject.getValueOrThrow(JSON_POLICY);
+                    final var policyId = PolicyId.of(extractedPolicyId);
+                    final var extractedPolicy = jsonObject.getValueOrThrow(JSON_POLICY);
 
                     return of(policyId, extractedPolicy, dittoHeaders);
                 });

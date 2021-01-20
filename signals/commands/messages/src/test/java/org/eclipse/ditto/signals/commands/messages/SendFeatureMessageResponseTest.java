@@ -15,7 +15,7 @@ package org.eclipse.ditto.signals.commands.messages;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.FeatureIdInvalidException;
 import org.eclipse.ditto.model.messages.Message;
@@ -23,7 +23,6 @@ import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
-
 
 public final class SendFeatureMessageResponseTest {
 
@@ -38,7 +37,7 @@ public final class SendFeatureMessageResponseTest {
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
         assertThatExceptionOfType(FeatureIdInvalidException.class)
                 .isThrownBy(() ->
-                        SendFeatureMessageResponse.of(thingId, featureId, message, HttpStatusCode.MULTI_STATUS,
+                        SendFeatureMessageResponse.of(thingId, featureId, message, HttpStatus.MULTI_STATUS,
                                 dittoHeaders))
                 .withMessage("The Message did not contain a feature ID at all! Expected was feature ID <foo>.");
     }
@@ -55,9 +54,8 @@ public final class SendFeatureMessageResponseTest {
         final Message<Object> message = Message.newBuilder(messageHeadersWithDifferentFeatureId).build();
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
         assertThatExceptionOfType(FeatureIdInvalidException.class)
-                .isThrownBy(() ->
-                        SendFeatureMessageResponse.of(thingId, featureId, message, HttpStatusCode.MULTI_STATUS,
-                                dittoHeaders))
+                .isThrownBy(() -> SendFeatureMessageResponse.of(thingId, featureId, message, HttpStatus.MULTI_STATUS,
+                        dittoHeaders))
                 .withMessage("The Message contained feature ID <bumlux>. Expected was feature ID <foo>.");
     }
 
@@ -72,7 +70,7 @@ public final class SendFeatureMessageResponseTest {
                         .build();
         final Message<Object> message = Message.newBuilder(messageHeadersWithDifferentFeatureId).build();
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
-        assertThatCode(() -> SendFeatureMessageResponse.of(thingId, featureId, message, HttpStatusCode.MULTI_STATUS,
+        assertThatCode(() -> SendFeatureMessageResponse.of(thingId, featureId, message, HttpStatus.MULTI_STATUS,
                                 dittoHeaders))
                 .doesNotThrowAnyException();
     }

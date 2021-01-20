@@ -25,7 +25,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -51,7 +51,7 @@ public final class QueryThingsResponse extends AbstractCommandResponse<QueryThin
     private final SearchResult searchResult;
 
     private QueryThingsResponse(final SearchResult searchResult, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+        super(TYPE, HttpStatus.OK, dittoHeaders);
         this.searchResult = searchResult;
     }
 
@@ -64,13 +64,11 @@ public final class QueryThingsResponse extends AbstractCommandResponse<QueryThin
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static QueryThingsResponse of(final SearchResult searchResult, final DittoHeaders dittoHeaders) {
-        checkNotNull(searchResult, "search result");
-
-        return new QueryThingsResponse(searchResult, dittoHeaders);
+        return new QueryThingsResponse(checkNotNull(searchResult, "searchResult"), dittoHeaders);
     }
 
     /**
-     * Creates a response to a {@link QueryThingsResponse} command from a JSON string.
+     * Creates a response to a QueryThingsResponse command from a JSON string.
      *
      * @param jsonString the JSON string of which the response is to be created.
      * @param dittoHeaders the headers of the command which caused this response.
@@ -85,7 +83,7 @@ public final class QueryThingsResponse extends AbstractCommandResponse<QueryThin
     }
 
     /**
-     * Creates a response to a {@link QueryThingsResponse} command from a JSON object.
+     * Creates a response to a QueryThingsResponse command from a JSON object.
      *
      * @param jsonObject the JSON object of which the response is to be created.
      * @param dittoHeaders the headers of the command which caused this response.
@@ -95,13 +93,12 @@ public final class QueryThingsResponse extends AbstractCommandResponse<QueryThin
      * format.
      */
     public static QueryThingsResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<QueryThingsResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final JsonObject searchResultJson = jsonObject.getValueOrThrow(JsonFields.PAYLOAD).asObject();
-                    final SearchResult extractedSearchResult = SearchModelFactory.newSearchResult(searchResultJson);
+        return new CommandResponseJsonDeserializer<QueryThingsResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
+            final JsonObject searchResultJson = jsonObject.getValueOrThrow(JsonFields.PAYLOAD).asObject();
+            final SearchResult extractedSearchResult = SearchModelFactory.newSearchResult(searchResultJson);
 
-                    return of(extractedSearchResult, dittoHeaders);
-                });
+            return of(extractedSearchResult, dittoHeaders);
+        });
     }
 
     /**
@@ -121,8 +118,7 @@ public final class QueryThingsResponse extends AbstractCommandResponse<QueryThin
     @Override
     public QueryThingsResponse setEntity(final JsonValue entity) {
         checkNotNull(entity, "entity");
-        final SearchResult searchResult = SearchModelFactory.newSearchResult(entity.toString());
-        return of(searchResult, getDittoHeaders());
+        return of(SearchModelFactory.newSearchResult(entity.toString()), getDittoHeaders());
     }
 
     @Override
@@ -159,12 +155,13 @@ public final class QueryThingsResponse extends AbstractCommandResponse<QueryThin
     }
 
     @Override
-    protected boolean canEqual(final Object other) {
-        return (other instanceof QueryThingsResponse);
+    protected boolean canEqual(@Nullable final Object other) {
+        return other instanceof QueryThingsResponse;
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", searchResult=" + searchResult + "]";
     }
+
 }

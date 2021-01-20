@@ -39,6 +39,7 @@ import org.eclipse.ditto.model.connectivity.AddressMetric;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectionMetrics;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Measurement;
 import org.eclipse.ditto.model.connectivity.MetricDirection;
@@ -48,6 +49,8 @@ import org.eclipse.ditto.model.connectivity.SourceMetrics;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.connectivity.TargetMetrics;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 
 /**
@@ -81,17 +84,16 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
     @Override
     public void initForConnection(final Connection connection) {
 
-        final ConnectionId connectionId = connection.getId();
         connection.getSources().stream()
                 .map(Source::getAddresses)
                 .flatMap(Collection::stream)
                 .forEach(address ->
-                        initCounter(connectionId, MetricDirection.INBOUND, address));
+                        initCounter(connection, MetricDirection.INBOUND, address));
         connection.getTargets().stream()
                 .map(Target::getAddress)
                 .forEach(address ->
-                        initCounter(connectionId, MetricDirection.OUTBOUND, address));
-        initCounter(connectionId, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
+                        initCounter(connection, MetricDirection.OUTBOUND, address));
+        initCounter(connection, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
     /**
@@ -108,14 +110,19 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
                 .forEach(entry -> entry.getValue().reset());
     }
 
-    private static void initCounter(final ConnectionId connectionId, final MetricDirection metricDirection,
+    private static void initCounter(final Connection connection, final MetricDirection metricDirection,
             final String address) {
         Arrays.stream(MetricType.values())
                 .filter(metricType -> metricType.supportsDirection(metricDirection))
                 .forEach(metricType -> {
+                    final ConnectionId connectionId = connection.getId();
                     final MapKey key = new MapKey(connectionId, metricType, metricDirection, address);
                     counters.computeIfAbsent(key, m -> {
-                        final SlidingWindowCounter counter = new SlidingWindowCounter(CLOCK_UTC, DEFAULT_WINDOWS);
+                        final ConnectionType connectionType = connection.getConnectionType();
+                        final Counter metricsCounter =
+                                metricsCounter(connectionId, connectionType, metricType, metricDirection);
+                        final SlidingWindowCounter counter =
+                                new SlidingWindowCounter(metricsCounter, CLOCK_UTC, DEFAULT_WINDOWS);
                         return new DefaultConnectionMetricsCounter(metricDirection, address, metricType, counter);
                     });
                 });
@@ -124,19 +131,20 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
     /**
      * Gets the counter for the given parameter from the registry or creates it if it does not yet exist.
      *
-     * @param connectionId connection id
+     * @param connection connection
      * @param metricType the metricType
      * @param metricDirection the metricDirection
      * @param address the address
      * @return the counter
      */
     public ConnectionMetricsCounter getCounter(
-            final ConnectionId connectionId,
+            final Connection connection,
             final MetricType metricType,
             final MetricDirection metricDirection,
             final String address) {
-
-        return getCounter(CLOCK_UTC, connectionId, metricType, metricDirection, address);
+        final ConnectionId connectionId = connection.getId();
+        final ConnectionType connectionType = connection.getConnectionType();
+        return getCounter(CLOCK_UTC, connectionId, connectionType, metricType, metricDirection, address);
     }
 
     /**
@@ -152,90 +160,104 @@ public final class ConnectivityCounterRegistry implements ConnectionMonitorRegis
     ConnectionMetricsCounter getCounter(
             final Clock clock,
             final ConnectionId connectionId,
+            final ConnectionType connectionType,
             final MetricType metricType,
             final MetricDirection metricDirection,
             final String address) {
 
         final MapKey key = new MapKey(connectionId, metricType, metricDirection, address);
         return counters.computeIfAbsent(key, m -> {
-            final SlidingWindowCounter counter = new SlidingWindowCounter(clock, DEFAULT_WINDOWS);
+            final Counter metricsCounter = metricsCounter(connectionId, connectionType, metricType, metricDirection);
+            final SlidingWindowCounter counter = new SlidingWindowCounter(metricsCounter, clock, DEFAULT_WINDOWS);
             return new DefaultConnectionMetricsCounter(metricDirection, address, metricType, counter);
         });
     }
 
-    @Override
-    public ConnectionMetricsCounter forOutboundDispatched(final ConnectionId connectionId, final String target) {
-        return getCounter(connectionId, MetricType.DISPATCHED, MetricDirection.OUTBOUND, target);
+    private static Counter metricsCounter(final ConnectionId connectionId,
+            final ConnectionType connectionType,
+            final MetricType metricType,
+            final MetricDirection metricDirection) {
+
+        return DittoMetrics.counter("connection_messages")
+                .tag("id", connectionId.toString())
+                .tag("type", connectionType.getName())
+                .tag("category", metricType.getName())
+                .tag("direction", metricDirection.getName());
     }
 
     @Override
-    public ConnectionMetricsCounter forOutboundAcknowledged(final ConnectionId connectionId, final String target) {
-        return getCounter(connectionId, MetricType.ACKNOWLEDGED, MetricDirection.OUTBOUND, target);
+    public ConnectionMetricsCounter forOutboundDispatched(final Connection connection, final String target) {
+        return getCounter(connection, MetricType.DISPATCHED, MetricDirection.OUTBOUND, target);
     }
 
     @Override
-    public ConnectionMetricsCounter forOutboundFiltered(final ConnectionId connectionId, final String target) {
-        return getCounter(connectionId, MetricType.FILTERED, MetricDirection.OUTBOUND, target);
+    public ConnectionMetricsCounter forOutboundAcknowledged(final Connection connection, final String target) {
+        return getCounter(connection, MetricType.ACKNOWLEDGED, MetricDirection.OUTBOUND, target);
     }
 
     @Override
-    public ConnectionMetricsCounter forOutboundPublished(final ConnectionId connectionId, final String target) {
-        return getCounter(connectionId, MetricType.PUBLISHED, MetricDirection.OUTBOUND, target);
+    public ConnectionMetricsCounter forOutboundFiltered(final Connection connection, final String target) {
+        return getCounter(connection, MetricType.FILTERED, MetricDirection.OUTBOUND, target);
     }
 
     @Override
-    public ConnectionMetricsCounter forOutboundDropped(final ConnectionId connectionId, final String target) {
-        return getCounter(connectionId, MetricType.DROPPED, MetricDirection.OUTBOUND, target);
+    public ConnectionMetricsCounter forOutboundPublished(final Connection connection, final String target) {
+        return getCounter(connection, MetricType.PUBLISHED, MetricDirection.OUTBOUND, target);
     }
 
     @Override
-    public ConnectionMetricsCounter forInboundConsumed(final ConnectionId connectionId, final String source) {
-        return getCounter(connectionId, MetricType.CONSUMED, MetricDirection.INBOUND, source);
+    public ConnectionMetricsCounter forOutboundDropped(final Connection connection, final String target) {
+        return getCounter(connection, MetricType.DROPPED, MetricDirection.OUTBOUND, target);
     }
 
     @Override
-    public ConnectionMetricsCounter forInboundAcknowledged(final ConnectionId connectionId, final String source) {
-        return getCounter(connectionId, MetricType.ACKNOWLEDGED, MetricDirection.INBOUND, source);
+    public ConnectionMetricsCounter forInboundConsumed(final Connection connection, final String source) {
+        return getCounter(connection, MetricType.CONSUMED, MetricDirection.INBOUND, source);
     }
 
     @Override
-    public ConnectionMetricsCounter forInboundMapped(final ConnectionId connectionId, final String source) {
-        return getCounter(connectionId, MetricType.MAPPED, MetricDirection.INBOUND, source);
+    public ConnectionMetricsCounter forInboundAcknowledged(final Connection connection, final String source) {
+        return getCounter(connection, MetricType.ACKNOWLEDGED, MetricDirection.INBOUND, source);
     }
 
     @Override
-    public ConnectionMetricsCounter forInboundEnforced(final ConnectionId connectionId, final String source) {
-        return getCounter(connectionId, MetricType.ENFORCED, MetricDirection.INBOUND, source);
+    public ConnectionMetricsCounter forInboundMapped(final Connection connection, final String source) {
+        return getCounter(connection, MetricType.MAPPED, MetricDirection.INBOUND, source);
     }
 
     @Override
-    public ConnectionMetricsCounter forInboundDropped(final ConnectionId connectionId, final String source) {
-        return getCounter(connectionId, MetricType.DROPPED, MetricDirection.INBOUND, source);
+    public ConnectionMetricsCounter forInboundEnforced(final Connection connection, final String source) {
+        return getCounter(connection, MetricType.ENFORCED, MetricDirection.INBOUND, source);
     }
 
     @Override
-    public ConnectionMetricsCounter forResponseDispatched(final ConnectionId connectionId) {
-        return getCounter(connectionId, MetricType.DISPATCHED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
+    public ConnectionMetricsCounter forInboundDropped(final Connection connection, final String source) {
+        return getCounter(connection, MetricType.DROPPED, MetricDirection.INBOUND, source);
     }
 
     @Override
-    public ConnectionMetricsCounter forResponseDropped(final ConnectionId connectionId) {
-        return getCounter(connectionId, MetricType.DROPPED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
+    public ConnectionMetricsCounter forResponseDispatched(final Connection connection) {
+        return getCounter(connection, MetricType.DISPATCHED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
     @Override
-    public ConnectionMetricsCounter forResponseMapped(final ConnectionId connectionId) {
-        return getCounter(connectionId, MetricType.MAPPED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
+    public ConnectionMetricsCounter forResponseDropped(final Connection connection) {
+        return getCounter(connection, MetricType.DROPPED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
     @Override
-    public ConnectionMetricsCounter forResponsePublished(final ConnectionId connectionId) {
-        return getCounter(connectionId, MetricType.PUBLISHED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
+    public ConnectionMetricsCounter forResponseMapped(final Connection connection) {
+        return getCounter(connection, MetricType.MAPPED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
     @Override
-    public ConnectionMetricsCounter forResponseAcknowledged(final ConnectionId connectionId) {
-        return getCounter(connectionId, MetricType.ACKNOWLEDGED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
+    public ConnectionMetricsCounter forResponsePublished(final Connection connection) {
+        return getCounter(connection, MetricType.PUBLISHED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
+    }
+
+    @Override
+    public ConnectionMetricsCounter forResponseAcknowledged(final Connection connection) {
+        return getCounter(connection, MetricType.ACKNOWLEDGED, MetricDirection.OUTBOUND, RESPONSES_ADDRESS);
     }
 
     private static Stream<DefaultConnectionMetricsCounter> streamFor(final ConnectionId connectionId,

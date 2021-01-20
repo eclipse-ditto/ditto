@@ -14,11 +14,11 @@ package org.eclipse.ditto.protocoladapter.policies;
 
 import java.util.Collection;
 
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.ParametrizedCommandAdapterTest;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
+import org.eclipse.ditto.protocoladapter.ParametrizedCommandAdapterTest;
 import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.TestConstants;
 import org.eclipse.ditto.protocoladapter.TestConstants.Policies;
@@ -89,7 +89,7 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
         final CreatePolicyResponse response = CreatePolicyResponse.of(Policies.POLICY_ID, Policies.POLICY,
                 Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.CREATE, EMPTY_PATH,
-                Policies.POLICY.toJson(FieldType.notHidden()), HttpStatusCode.CREATED);
+                Policies.POLICY.toJson(FieldType.notHidden()), HttpStatus.CREATED);
         return TestParameter.of("createPolicyResponse", adaptable, response);
     }
 
@@ -97,20 +97,20 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
         final ModifyPolicyResponse response =
                 ModifyPolicyResponse.created(Policies.POLICY_ID, Policies.POLICY, Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY, EMPTY_PATH,
-                Policies.POLICY.toJson(FieldType.notHidden()), HttpStatusCode.CREATED);
+                Policies.POLICY.toJson(FieldType.notHidden()), HttpStatus.CREATED);
         return TestParameter.of("modifyPolicyCreatedResponse", adaptable, response);
     }
 
     private static TestParameter<PolicyModifyCommandResponse<?>> modifyPolicyModifiedResponse() {
         final ModifyPolicyResponse response =
                 ModifyPolicyResponse.modified(Policies.POLICY_ID, Policies.HEADERS);
-        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY, EMPTY_PATH, HttpStatusCode.NO_CONTENT);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY, EMPTY_PATH, HttpStatus.NO_CONTENT);
         return TestParameter.of("modifyPolicyModifiedResponse", adaptable, response);
     }
 
     private static TestParameter<PolicyModifyCommandResponse<?>> deletePolicyResponse() {
         final DeletePolicyResponse response = DeletePolicyResponse.of(Policies.POLICY_ID, Policies.HEADERS);
-        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.DELETE, EMPTY_PATH, HttpStatusCode.NO_CONTENT);
+        final Adaptable adaptable = TestConstants.adaptable(TopicPaths.DELETE, EMPTY_PATH, HttpStatus.NO_CONTENT);
         return TestParameter.of("deletePolicyResponse", adaptable, response);
     }
 
@@ -120,7 +120,7 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
                 ModifyPolicyEntryResponse.created(Policies.POLICY_ID, Policies.POLICY_ENTRY, Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
                 entriesPath(Policies.POLICY_ENTRY_LABEL),
-                Policies.POLICY_ENTRY.toJson(FieldType.notHidden()), HttpStatusCode.CREATED);
+                Policies.POLICY_ENTRY.toJson(FieldType.notHidden()), HttpStatus.CREATED);
         return TestParameter.of("modifyPolicyEntryCreatedResponse", adaptable, response);
     }
 
@@ -129,7 +129,7 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
                 response = ModifyPolicyEntryResponse.modified(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL,
                 Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
-                entriesPath(Policies.POLICY_ENTRY_LABEL), HttpStatusCode.NO_CONTENT);
+                entriesPath(Policies.POLICY_ENTRY_LABEL), HttpStatus.NO_CONTENT);
         return TestParameter.of("modifyPolicyEntryModifiedResponse", adaptable, response);
     }
 
@@ -138,7 +138,7 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
                 DeletePolicyEntryResponse.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL2, Policies.HEADERS);
         final Adaptable adaptable =
                 TestConstants.adaptable(TopicPaths.DELETE, entriesPath(Policies.POLICY_ENTRY_LABEL2),
-                        HttpStatusCode.NO_CONTENT);
+                        HttpStatus.NO_CONTENT);
         return TestParameter.of("deletePolicyEntryResponse", adaptable, response);
     }
 
@@ -146,7 +146,7 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
         final ModifyPolicyEntriesResponse response =
                 ModifyPolicyEntriesResponse.of(Policies.POLICY_ID, Policies.HEADERS);
         final Adaptable adaptable =
-                TestConstants.adaptable(TopicPaths.MODIFY, entriesPath(), HttpStatusCode.NO_CONTENT);
+                TestConstants.adaptable(TopicPaths.MODIFY, entriesPath(), HttpStatus.NO_CONTENT);
         return TestParameter.of("modifyPolicyEntriesResponse", adaptable, response);
     }
 
@@ -156,7 +156,7 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
                         Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
                 resourcesPath(Policies.POLICY_ENTRY_LABEL, Policies.RESOURCE1.getResourceKey()),
-                Policies.RESOURCE1.toJson(FieldType.notHidden()), HttpStatusCode.CREATED);
+                Policies.RESOURCE1.toJson(FieldType.notHidden()), HttpStatus.CREATED);
         return TestParameter.of("modifyResourceCreatedResponse", adaptable, response);
     }
 
@@ -166,7 +166,7 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
                         Policies.RESOURCE1.getResourceKey(), Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
                 resourcesPath(Policies.POLICY_ENTRY_LABEL, Policies.RESOURCE1.getResourceKey()),
-                HttpStatusCode.NO_CONTENT);
+                HttpStatus.NO_CONTENT);
         return TestParameter.of("modifyResourceModifiedResponse", adaptable, response);
     }
 
@@ -177,7 +177,7 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
                         Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.DELETE,
                 resourcesPath(Policies.POLICY_ENTRY_LABEL, Policies.RESOURCE1.getResourceKey()),
-                HttpStatusCode.NO_CONTENT);
+                HttpStatus.NO_CONTENT);
         return TestParameter.of("deleteResourceResponse", adaptable, response);
     }
 
@@ -185,7 +185,7 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
         final ModifyResourcesResponse response =
                 ModifyResourcesResponse.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL, Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
-                resourcesPath(Policies.POLICY_ENTRY_LABEL), HttpStatusCode.NO_CONTENT);
+                resourcesPath(Policies.POLICY_ENTRY_LABEL), HttpStatus.NO_CONTENT);
         return TestParameter.of("modifyResourcesResponse", adaptable, response);
     }
 
@@ -196,7 +196,7 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
                 Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
                 subjectsPath(Policies.POLICY_ENTRY_LABEL, Policies.SUBJECT1.getId()),
-                Policies.SUBJECT1.toJson(FieldType.notHidden()), HttpStatusCode.CREATED);
+                Policies.SUBJECT1.toJson(FieldType.notHidden()), HttpStatus.CREATED);
         return TestParameter.of("modifySubjectCreatedResponse", adaptable, response);
     }
 
@@ -204,7 +204,7 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
         final ModifySubjectResponse response = ModifySubjectResponse.modified(Policies.POLICY_ID,
                 Policies.POLICY_ENTRY_LABEL, Policies.SUBJECT_ID1, Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
-                subjectsPath(Policies.POLICY_ENTRY_LABEL, Policies.SUBJECT1.getId()), HttpStatusCode.NO_CONTENT);
+                subjectsPath(Policies.POLICY_ENTRY_LABEL, Policies.SUBJECT1.getId()), HttpStatus.NO_CONTENT);
         return TestParameter.of("modifySubjectModifiedResponse", adaptable, response);
     }
 
@@ -213,7 +213,7 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
                 ModifySubjectsResponse.of(Policies.POLICY_ID, Policies.POLICY_ENTRY_LABEL,
                         Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.MODIFY,
-                subjectsPath(Policies.POLICY_ENTRY_LABEL), HttpStatusCode.NO_CONTENT);
+                subjectsPath(Policies.POLICY_ENTRY_LABEL), HttpStatus.NO_CONTENT);
         return TestParameter.of("modifySubjectsResponse", adaptable, response);
     }
 
@@ -222,7 +222,7 @@ public final class ParametrizedPolicyModifyCommandResponseAdapterTest
                 Policies.SUBJECT1.getId(),
                 Policies.HEADERS);
         final Adaptable adaptable = TestConstants.adaptable(TopicPaths.DELETE,
-                subjectsPath(Policies.POLICY_ENTRY_LABEL, Policies.SUBJECT1.getId()), HttpStatusCode.NO_CONTENT);
+                subjectsPath(Policies.POLICY_ENTRY_LABEL, Policies.SUBJECT1.getId()), HttpStatus.NO_CONTENT);
         return TestParameter.of("deleteSubjectResponse", adaptable, response);
     }
 

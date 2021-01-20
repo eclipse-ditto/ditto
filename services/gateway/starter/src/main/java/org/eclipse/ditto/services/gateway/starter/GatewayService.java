@@ -21,7 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import akka.actor.ActorRef;
-import akka.actor.ActorSystem;
 import akka.actor.Props;
 
 /**
@@ -54,11 +53,6 @@ public final class GatewayService extends DittoService<GatewayConfig> {
     @Override
     protected GatewayConfig getServiceSpecificConfig(final ScopedConfig dittoConfig) {
         return DittoGatewayConfig.of(dittoConfig);
-    }
-
-    @Override
-    protected void startDevOpsCommandsActor(final ActorSystem actorSystem) {
-        // The DevOpsCommandsActor is started by GatewayRootActor as it uses the ActorRef.
     }
 
     @Override

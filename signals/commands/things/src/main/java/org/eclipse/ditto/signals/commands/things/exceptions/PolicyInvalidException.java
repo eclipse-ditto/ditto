@@ -23,7 +23,7 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -43,10 +43,11 @@ public final class PolicyInvalidException extends DittoRuntimeException implemen
      * Error code of this exception.
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "policy.invalid";
+
     /**
      * Status code of this exception.
      */
-    static final HttpStatusCode STATUS_CODE = HttpStatusCode.BAD_REQUEST;
+    static final HttpStatus STATUS = HttpStatus.BAD_REQUEST;
 
     private static final String MESSAGE_TEMPLATE = "The Policy specified for the Thing with ID ''{0}'' is invalid.";
 
@@ -60,11 +61,12 @@ public final class PolicyInvalidException extends DittoRuntimeException implemen
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
+
+        super(ERROR_CODE, STATUS, dittoHeaders, message, description, cause, href);
     }
 
     /**
-     * A mutable builder for a {@link PolicyInvalidException}.
+     * A mutable builder for a {@code PolicyInvalidException}.
      *
      * @param permissions the required permissions.
      * @param thingId the identifier of the Thing.
@@ -77,7 +79,7 @@ public final class PolicyInvalidException extends DittoRuntimeException implemen
     }
 
     /**
-     * A mutable builder for a {@link PolicyInvalidException} caused by some other error.
+     * A mutable builder for a {@code PolicyInvalidException} caused by some other error.
      *
      * @param cause reason why the policy is invalid.
      * @param thingId ID of the thing the policy applies to.
@@ -90,11 +92,11 @@ public final class PolicyInvalidException extends DittoRuntimeException implemen
     }
 
     /**
-     * Constructs a new {@link PolicyInvalidException} object from the given JSON object.
+     * Constructs a new {@code PolicyInvalidException} object from the given JSON object.
      *
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new {@link PolicyInvalidException}.
+     * @return the new PolicyInvalidException.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
@@ -152,7 +154,10 @@ public final class PolicyInvalidException extends DittoRuntimeException implemen
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
+
             return new PolicyInvalidException(dittoHeaders, message, description, cause, href);
         }
+
     }
+
 }

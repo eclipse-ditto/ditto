@@ -30,7 +30,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.common.DittoConstants;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -215,12 +215,15 @@ public final class TestConstants {
         return adaptable(topicPath, path, value, null);
     }
 
-    public static Adaptable adaptable(final TopicPath topicPath, final JsonPointer path, final HttpStatusCode status) {
+    public static Adaptable adaptable(final TopicPath topicPath, final JsonPointer path, final HttpStatus status) {
         return adaptable(topicPath, path, null, status);
     }
 
-    public static Adaptable adaptable(final TopicPath topicPath, final JsonPointer path,
-            @Nullable final JsonValue value, final HttpStatusCode status) {
+    public static Adaptable adaptable(final TopicPath topicPath,
+            final JsonPointer path,
+            @Nullable final JsonValue value,
+            final HttpStatus status) {
+
         final PayloadBuilder payloadBuilder = Payload.newBuilder(path);
 
         if (value != null) {
@@ -250,7 +253,7 @@ public final class TestConstants {
             JsonArray.of(THING.toJson(), THING2.toJson());
 
     public static final DittoRuntimeException EXCEPTION =
-            DittoRuntimeException.newBuilder("TestException", HttpStatusCode.BAD_REQUEST).build();
+            DittoRuntimeException.newBuilder("TestException", HttpStatus.BAD_REQUEST).build();
 
     public static class Policies {
 

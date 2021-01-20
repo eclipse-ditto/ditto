@@ -24,7 +24,7 @@ import org.assertj.core.api.SoftAssertions;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -154,8 +154,8 @@ public final class SendingTest {
     @Test
     public void monitorAcknowledgementSendSuccessKeepOriginalResponse() {
         final var acknowledgement = Mockito.mock(Acknowledgement.class);
-        final var acknowledgementStatusCode = HttpStatusCode.ACCEPTED;
-        Mockito.when(acknowledgement.getStatusCode()).thenReturn(acknowledgementStatusCode);
+        final var acknowledgementStatus = HttpStatus.ACCEPTED;
+        Mockito.when(acknowledgement.getHttpStatus()).thenReturn(acknowledgementStatus);
         final Sending underTest =
                 new Sending(sendingContext, CompletableFuture.completedStage(acknowledgement), connectionIdResolver,
                         logger);
@@ -172,11 +172,11 @@ public final class SendingTest {
     public void monitorAcknowledgementSendSuccessInCaseOfHandledException() {
         final var acknowledgement = Mockito.mock(Acknowledgement.class);
         final var acknowledgementPayload = JsonObject.newBuilder().set("foo", "bar").build();
-        final var acknowledgementStatusCode = HttpStatusCode.INTERNAL_SERVER_ERROR;
-        Mockito.when(acknowledgement.getStatusCode()).thenReturn(acknowledgementStatusCode);
+        final var acknowledgementStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+        Mockito.when(acknowledgement.getHttpStatus()).thenReturn(acknowledgementStatus);
         Mockito.when(acknowledgement.getEntity()).thenReturn(Optional.of(acknowledgementPayload));
         final var expectedException = MessageSendingFailedException.newBuilder()
-                .statusCode(acknowledgementStatusCode)
+                .httpStatus(acknowledgementStatus)
                 .message("Received negative acknowledgement for label <" + ACKNOWLEDGEMENT_LABEL + ">.")
                 .description("Payload: " + acknowledgementPayload)
                 .build();
@@ -205,9 +205,9 @@ public final class SendingTest {
                 .set("message", "Encountered <IllegalStateException>.")
                 .set("description", "Test")
                 .build();
-        final var acknowledgementStatusCode = HttpStatusCode.INTERNAL_SERVER_ERROR;
+        final var acknowledgementStatus = HttpStatus.INTERNAL_SERVER_ERROR;
         final var expectedException = MessageSendingFailedException.newBuilder()
-                .statusCode(acknowledgementStatusCode)
+                .httpStatus(acknowledgementStatus)
                 .message("Received negative acknowledgement for label <" + ACKNOWLEDGEMENT_LABEL + ">.")
                 .description("Payload: " + acknowledgementPayload)
                 .build();
@@ -227,7 +227,7 @@ public final class SendingTest {
                     softly.assertThat(ack.getLabel().toString()).isEqualTo(ACKNOWLEDGEMENT_LABEL.toString());
                     softly.assertThat(ack.getEntity()).contains(acknowledgementPayload);
                     softly.assertThat(ack.getEntityId().toString()).isEqualTo(thingId.toString());
-                    softly.assertThat(ack.getStatusCode()).isEqualTo(acknowledgementStatusCode);
+                    softly.assertThat(ack.getHttpStatus()).isEqualTo(acknowledgementStatus);
                     softly.assertAll();
                     return true;
                 }));
@@ -238,8 +238,8 @@ public final class SendingTest {
         final var issuedAckLabel = DittoAcknowledgementLabel.LIVE_RESPONSE;
         Mockito.when(autoAckTarget.getIssuedAcknowledgementLabel()).thenReturn(Optional.of(issuedAckLabel));
         final CommandResponse<?> commandResponse = Mockito.mock(CommandResponse.class);
-        final var commandResponseStatusCode = HttpStatusCode.ACCEPTED;
-        Mockito.when(commandResponse.getStatusCode()).thenReturn(commandResponseStatusCode);
+        final var commandResponseStatus = HttpStatus.ACCEPTED;
+        Mockito.when(commandResponse.getHttpStatus()).thenReturn(commandResponseStatus);
         final Sending underTest =
                 new Sending(sendingContext, CompletableFuture.completedStage(commandResponse), connectionIdResolver,
                         logger);
@@ -257,8 +257,8 @@ public final class SendingTest {
         final var issuedAckLabel = DittoAcknowledgementLabel.LIVE_RESPONSE;
         Mockito.when(autoAckTarget.getIssuedAcknowledgementLabel()).thenReturn(Optional.of(issuedAckLabel));
         final CommandResponse<?> commandResponse = Mockito.mock(CommandResponse.class);
-        final var commandResponseStatusCode = HttpStatusCode.CONFLICT;
-        Mockito.when(commandResponse.getStatusCode()).thenReturn(commandResponseStatusCode);
+        final var commandResponseStatus = HttpStatus.CONFLICT;
+        Mockito.when(commandResponse.getHttpStatus()).thenReturn(commandResponseStatus);
         final Sending underTest =
                 new Sending(sendingContext, CompletableFuture.completedStage(commandResponse), connectionIdResolver,
                         logger);

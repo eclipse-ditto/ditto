@@ -101,7 +101,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
                                 .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                                 .build())
                         .build());
-        return AmqpConsumerActor.props(CONNECTION_ID, mockConsumerData, mappingActor,
+        return AmqpConsumerActor.props(CONNECTION, mockConsumerData, mappingActor,
                 TestProbe.apply(actorSystem).testActor());
     }
 
@@ -121,7 +121,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
                                 .expectedResponseTypes(ResponseType.ERROR, ResponseType.RESPONSE, ResponseType.NACK)
                                 .build())
                         .build());
-        return AmqpConsumerActor.props(CONNECTION_ID, mockConsumerData, mappingActor,
+        return AmqpConsumerActor.props(CONNECTION, mockConsumerData, mappingActor,
                 TestProbe.apply(actorSystem).testActor());
     }
 
@@ -179,7 +179,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
             Mockito.when(source.getAuthorizationContext())
                     .thenReturn(TestConstants.Authorization.AUTHORIZATION_CONTEXT);
             Mockito.when(source.getPayloadMapping()).thenReturn(ConnectivityModelFactory.newPayloadMapping("test"));
-            final ActorRef underTest = actorSystem.actorOf(AmqpConsumerActor.props(CONNECTION_ID,
+            final ActorRef underTest = actorSystem.actorOf(AmqpConsumerActor.props(CONNECTION,
                     consumerData("foo", Mockito.mock(MessageConsumer.class), source), processor, getRef()));
 
             final String plainPayload = "hello world!";
@@ -217,7 +217,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
             Mockito.when(source.getAuthorizationContext())
                     .thenReturn(TestConstants.Authorization.AUTHORIZATION_CONTEXT);
             Mockito.when(source.getPayloadMapping()).thenReturn(ConnectivityModelFactory.newPayloadMapping("test"));
-            final ActorRef underTest = actorSystem.actorOf(AmqpConsumerActor.props(CONNECTION_ID,
+            final ActorRef underTest = actorSystem.actorOf(AmqpConsumerActor.props(CONNECTION,
                     consumerData("foo", Mockito.mock(MessageConsumer.class), source), processor, getRef()));
 
             final String plainPayload = "hello world!";
@@ -317,7 +317,7 @@ public final class AmqpConsumerActorTest extends AbstractConsumerActorTest<JmsMe
                             Collections.singletonMap("correlation-id", "{{ header:correlation-id }}")
                     )));
             final ActorRef underTest = actorSystem.actorOf(
-                    AmqpConsumerActor.props(CONNECTION_ID,
+                    AmqpConsumerActor.props(CONNECTION,
                             consumerData("foo123", Mockito.mock(MessageConsumer.class), source), processor,
                             getRef()));
 

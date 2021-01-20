@@ -19,7 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.PolicyId;
@@ -36,7 +36,7 @@ public final class RetrievePolicyEntryResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommandResponse.JsonFields.TYPE, RetrievePolicyEntryResponse.TYPE)
-            .set(PolicyCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
+            .set(PolicyCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
             .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(RetrievePolicyEntryResponse.JSON_LABEL, TestConstants.Policy.POLICY_ENTRY.getLabel().toString())
             .set(RetrievePolicyEntryResponse.JSON_POLICY_ENTRY, TestConstants.Policy.POLICY_ENTRY.toJson())

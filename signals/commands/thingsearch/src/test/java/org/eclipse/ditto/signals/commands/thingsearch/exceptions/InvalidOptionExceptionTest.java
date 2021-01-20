@@ -18,7 +18,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.net.URI;
 
-import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
@@ -30,12 +29,12 @@ import org.junit.Test;
 /**
  * Tests {@link InvalidOptionException}.
  */
-public class InvalidOptionExceptionTest {
+public final class InvalidOptionExceptionTest {
 
     private static final String EXPECTED_MESSAGE = TestConstants.KNOWN_INVALID_OPTION_EXCEPTION_MESSAGE;
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
-            .set(DittoRuntimeException.JsonFields.STATUS, InvalidOptionException.STATUS_CODE.toInt())
+            .set(DittoRuntimeException.JsonFields.STATUS, InvalidOptionException.HTTP_STATUS.getCode())
             .set(DittoRuntimeException.JsonFields.ERROR_CODE, InvalidOptionException.ERROR_CODE)
             .set(DittoRuntimeException.JsonFields.MESSAGE,
                     TestConstants.INVALID_OPTION_EXCEPTION.getMessage())
@@ -47,12 +46,10 @@ public class InvalidOptionExceptionTest {
                     JsonField.isValueNonNull())
             .build();
 
-
     @Test
     public void assertImmutability() {
         assertInstancesOf(InvalidOptionException.class, areImmutable());
     }
-
 
     @Test
     public void toJsonReturnsExpected() {
@@ -60,7 +57,6 @@ public class InvalidOptionExceptionTest {
 
         assertThat(jsonObject).isEqualTo(KNOWN_JSON);
     }
-
 
     @Test
     public void createInstanceFromValidJson() {
@@ -70,7 +66,6 @@ public class InvalidOptionExceptionTest {
         assertThat(underTest).isEqualTo(TestConstants.INVALID_OPTION_EXCEPTION);
     }
 
-
     @Test
     public void checkErrorCodeWorks() {
         final DittoRuntimeException actual =
@@ -79,7 +74,6 @@ public class InvalidOptionExceptionTest {
         assertThat(actual).isEqualTo(TestConstants.INVALID_OPTION_EXCEPTION);
     }
 
-
     @Test
     public void copy() {
         final DittoRuntimeException copy =
@@ -87,13 +81,13 @@ public class InvalidOptionExceptionTest {
         assertThat(copy).isEqualTo(TestConstants.INVALID_OPTION_EXCEPTION);
     }
 
-
     @Test
     public void checkGetters() {
-        Assertions.assertThat(TestConstants.INVALID_OPTION_EXCEPTION.getMessage()).isEqualTo(EXPECTED_MESSAGE);
-        Assertions.assertThat(TestConstants.INVALID_OPTION_EXCEPTION.getStatusCode())
-                .isEqualTo(InvalidOptionException.STATUS_CODE);
-        Assertions.assertThat(TestConstants.INVALID_OPTION_EXCEPTION.getDescription().orElse(null)).isEqualTo(
+        assertThat(TestConstants.INVALID_OPTION_EXCEPTION.getMessage()).isEqualTo(EXPECTED_MESSAGE);
+        assertThat(TestConstants.INVALID_OPTION_EXCEPTION.getHttpStatus())
+                .isEqualTo(InvalidOptionException.HTTP_STATUS);
+        assertThat(TestConstants.INVALID_OPTION_EXCEPTION.getDescription().orElse(null)).isEqualTo(
                 InvalidOptionException.DEFAULT_DESCRIPTION);
     }
+
 }

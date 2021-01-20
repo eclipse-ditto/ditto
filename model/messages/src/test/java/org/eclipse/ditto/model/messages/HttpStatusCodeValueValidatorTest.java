@@ -19,6 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.AutoCloseableSoftAssertions;
+import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
 import org.eclipse.ditto.model.base.headers.ValueValidator;
@@ -103,7 +104,7 @@ public final class HttpStatusCodeValueValidatorTest {
                 .isThrownBy(() -> underTest.accept(MessageHeaderDefinition.STATUS_CODE, invalidHttpStatusCodeString))
                 .withMessageContaining(invalidHttpStatusCodeString)
                 .withMessageEndingWith("is not a valid HTTP status code.")
-                .withNoCause();
+                .withCauseInstanceOf(HttpStatusCodeOutOfRangeException.class);
     }
 
 }

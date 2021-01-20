@@ -18,8 +18,7 @@ import java.util.Optional;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.model.connectivity.ConnectionType;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.mqtt.MqttSpecificConfig;
@@ -38,25 +37,25 @@ public final class HiveMqtt3ConsumerActor extends AbstractMqttConsumerActor<Mqtt
     static final String NAME = "HiveMqtt3ConsumerActor";
 
     @SuppressWarnings("unused")
-    private HiveMqtt3ConsumerActor(final ConnectionId connectionId, final ActorRef inboundMessageProcessor,
+    private HiveMqtt3ConsumerActor(final Connection connection, final ActorRef inboundMessageProcessor,
             final Source source, final boolean dryRun, final boolean reconnectForRedelivery) {
-        super(connectionId, inboundMessageProcessor, source, dryRun, reconnectForRedelivery, ConnectionType.MQTT);
+        super(connection, inboundMessageProcessor, source, dryRun, reconnectForRedelivery);
     }
 
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param connectionId ID of the connection this consumer is belongs to
+     * @param connection the connection this consumer belongs to
      * @param inboundMessageProcessor the ActorRef to the {@code MessageMappingProcessor}
      * @param source the source from which this consumer is built
      * @param dryRun whether this is a dry-run/connection test or not
      * @param specificConfig the MQTT specific config.
      * @return the Akka configuration Props object.
      */
-    static Props props(final ConnectionId connectionId, final ActorRef inboundMessageProcessor,
+    static Props props(final Connection connection, final ActorRef inboundMessageProcessor,
             final Source source, final boolean dryRun,
             final MqttSpecificConfig specificConfig) {
-        return Props.create(HiveMqtt3ConsumerActor.class, connectionId, inboundMessageProcessor,
+        return Props.create(HiveMqtt3ConsumerActor.class, connection, inboundMessageProcessor,
                 source, dryRun, specificConfig.reconnectForRedelivery());
     }
 
