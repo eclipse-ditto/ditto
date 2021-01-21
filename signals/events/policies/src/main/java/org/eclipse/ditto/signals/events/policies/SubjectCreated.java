@@ -17,6 +17,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -265,7 +266,11 @@ public final class SubjectCreated extends AbstractPolicyActionEvent<SubjectCreat
     @Override
     public SubjectsModifiedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
         final Map<Label, Collection<Subject>> initialCreatedSubjects =
-                Stream.of(0).collect(Collectors.toMap(i -> label, i -> Collections.singleton(subject)));
+                Stream.of(0).collect(Collectors.toMap(i -> label, i -> Collections.singleton(subject),
+                        (u, v) -> {
+                            throw new IllegalStateException(String.format("Duplicate key %s", u));
+                        },
+                        LinkedHashMap::new));
         return aggregateWithSubjectCreatedOrModified(initialCreatedSubjects, otherPolicyActionEvents);
     }
 

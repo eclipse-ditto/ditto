@@ -17,7 +17,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -133,7 +133,7 @@ public final class SubjectsModifiedPartially extends AbstractPolicyActionEvent<S
 
         return new SubjectsModifiedPartially(policyId,
                 Collections.unmodifiableMap(
-                        new HashMap<>(checkNotNull(activatedSubjects, "activatedSubjects"))),
+                        new LinkedHashMap<>(checkNotNull(activatedSubjects, "activatedSubjects"))),
                 revision, timestamp, dittoHeaders);
     }
 
@@ -258,7 +258,11 @@ public final class SubjectsModifiedPartially extends AbstractPolicyActionEvent<S
     private static Map<Label, Collection<Subject>> modifiedSubjectsFromJson(final JsonObject jsonObject) {
         final Map<Label, Collection<Subject>> map = jsonObject.stream()
                 .collect(Collectors.toMap(field -> Label.of(field.getKeyName()),
-                        field -> subjectsFromJsonWithId(field.getValue().asObject())));
+                        field -> subjectsFromJsonWithId(field.getValue().asObject()),
+                        (u, v) -> {
+                            throw new IllegalStateException(String.format("Duplicate key %s", u));
+                        },
+                        LinkedHashMap::new));
         return Collections.unmodifiableMap(map);
     }
 }

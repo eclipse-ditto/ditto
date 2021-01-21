@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -177,7 +178,7 @@ final class ImmutablePolicy implements Policy {
         final Collection<PolicyEntry> policyEntries = readEntries.stream()
                 .filter(jsonField -> !Objects.equals(jsonField.getKey(), JsonSchemaVersion.getJsonKey()))
                 .map(toPolicyEntry)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
 
         return of(policyId, readLifecycle, readRevision, readModified, readCreated, policyEntries);
     }
@@ -445,7 +446,7 @@ final class ImmutablePolicy implements Policy {
 
     @Override
     public Set<PolicyEntry> getEntriesSet() {
-        return stream().collect(Collectors.toSet());
+        return stream().collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     @Override

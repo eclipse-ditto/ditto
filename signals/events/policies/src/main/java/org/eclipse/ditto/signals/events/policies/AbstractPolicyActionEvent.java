@@ -14,7 +14,7 @@ package org.eclipse.ditto.signals.events.policies;
 
 import java.time.Instant;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -62,7 +62,7 @@ abstract class AbstractPolicyActionEvent<T extends AbstractPolicyActionEvent<T>>
             final Map<Label, Collection<Subject>> initialModifiedSubjects,
             final Collection<PolicyActionEvent<?>> otherEvents) {
 
-        final Map<Label, Collection<Subject>> modifiedSubjects = new HashMap<>(initialModifiedSubjects);
+        final Map<Label, Collection<Subject>> modifiedSubjects = new LinkedHashMap<>(initialModifiedSubjects);
         for (final PolicyActionEvent<?> event : otherEvents) {
             if (event instanceof SubjectCreated) {
                 final SubjectCreated subjectCreated = (SubjectCreated) event;
@@ -103,7 +103,7 @@ abstract class AbstractPolicyActionEvent<T extends AbstractPolicyActionEvent<T>>
             final Map<Label, Collection<SubjectId>> initialDeletedSubjectIds,
             final Collection<PolicyActionEvent<?>> otherEvents) {
 
-        final Map<Label, Collection<SubjectId>> deletedSubjectIds = new HashMap<>(initialDeletedSubjectIds);
+        final Map<Label, Collection<SubjectId>> deletedSubjectIds = new LinkedHashMap<>(initialDeletedSubjectIds);
         for (final PolicyActionEvent<?> event : otherEvents) {
             if (event instanceof SubjectDeleted) {
                 final SubjectDeleted subjectDeleted = (SubjectDeleted) event;
