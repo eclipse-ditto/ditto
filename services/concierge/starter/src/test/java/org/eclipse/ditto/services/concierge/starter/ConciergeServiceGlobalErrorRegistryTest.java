@@ -29,6 +29,7 @@ import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingEx
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.signals.commands.common.PathUnknownException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
@@ -56,7 +57,8 @@ public final class ConciergeServiceGlobalErrorRegistryTest extends GlobalErrorRe
                 ThingIdInvalidException.class,
                 PolicyIdInvalidException.class,
                 AcknowledgementLabelInvalidException.class,
-                AcknowledgementCorrelationIdMissingException.class);
+                AcknowledgementCorrelationIdMissingException.class,
+                PathUnknownException.class);
     }
 
 }

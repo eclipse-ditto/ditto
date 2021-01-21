@@ -14,7 +14,9 @@ package org.eclipse.ditto.services.gateway.starter;
 
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
+import org.eclipse.ditto.model.base.exceptions.CloudEventMissingPayloadException;
 import org.eclipse.ditto.model.base.exceptions.CloudEventNotParsableException;
+import org.eclipse.ditto.model.base.exceptions.CloudEventUnsupportedDataSchemaException;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.jwt.JwtAudienceInvalidException;
@@ -26,14 +28,13 @@ import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.things.AclEntryInvalidException;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.protocoladapter.UnknownCommandException;
-import org.eclipse.ditto.model.base.exceptions.CloudEventMissingPayloadException;
-import org.eclipse.ditto.model.base.exceptions.CloudEventUnsupportedDataSchemaException;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.PublicKeyProviderUnavailableException;
 import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.signals.commands.common.PathUnknownException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionConflictException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
@@ -66,7 +67,8 @@ public final class GatewayServiceGlobalErrorRegistryTest extends GlobalErrorRegi
                 AcknowledgementCorrelationIdMissingException.class,
                 CloudEventMissingPayloadException.class,
                 CloudEventUnsupportedDataSchemaException.class,
-                CloudEventNotParsableException.class
+                CloudEventNotParsableException.class,
+                PathUnknownException.class
         );
     }
 

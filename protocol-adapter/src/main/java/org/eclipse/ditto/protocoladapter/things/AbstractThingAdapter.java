@@ -13,11 +13,13 @@
 package org.eclipse.ditto.protocoladapter.things;
 
 import org.eclipse.ditto.protocoladapter.AbstractAdapter;
-import org.eclipse.ditto.protocoladapter.DefaultPayloadPathMatcher;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
-import org.eclipse.ditto.protocoladapter.PayloadPathMatcher;
+import org.eclipse.ditto.protocoladapter.UnknownPathException;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategies;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.common.PathMatcher;
+import org.eclipse.ditto.signals.commands.common.PathPatterns;
+import org.eclipse.ditto.signals.commands.common.ThingModifyPathMatcher;
 
 /**
  * Base class for {@link org.eclipse.ditto.protocoladapter.Adapter}s that handle thing commands.
@@ -35,7 +37,8 @@ abstract class AbstractThingAdapter<T extends Signal<?>> extends AbstractAdapter
      */
     protected AbstractThingAdapter(final MappingStrategies<T> mappingStrategies,
             final HeaderTranslator headerTranslator) {
-        this(mappingStrategies, headerTranslator, DefaultPayloadPathMatcher.from(ThingPayloadPathPatterns.get()));
+        this(mappingStrategies, headerTranslator,
+                ThingModifyPathMatcher.getInstance(path -> UnknownPathException.newBuilder(path).build()));
     }
 
     /**
@@ -44,11 +47,11 @@ abstract class AbstractThingAdapter<T extends Signal<?>> extends AbstractAdapter
      * @param mappingStrategies the mapping strategies used to convert from
      * {@link org.eclipse.ditto.protocoladapter.Adaptable}s to {@link org.eclipse.ditto.signals.base.Signal}s
      * @param headerTranslator the header translator used for the mapping
-     * @param payloadPathMatcher the payload path matcher used for the mapping
+     * @param pathMatcher the path matcher used for the mapping
      */
     protected AbstractThingAdapter(final MappingStrategies<T> mappingStrategies,
-            final HeaderTranslator headerTranslator, final PayloadPathMatcher payloadPathMatcher) {
-        super(mappingStrategies, headerTranslator, payloadPathMatcher);
+            final HeaderTranslator headerTranslator, final PathMatcher<PathPatterns> pathMatcher) {
+        super(mappingStrategies, headerTranslator, pathMatcher);
     }
 
 }

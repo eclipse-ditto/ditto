@@ -26,6 +26,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategies;
+import org.eclipse.ditto.signals.commands.common.PathMatcher;
+import org.eclipse.ditto.signals.commands.common.PathPatterns;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 /**
@@ -39,15 +41,15 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
      */
     protected static final String RESPONSES_CRITERION = "responses";
 
+    protected final PathMatcher<PathPatterns> pathMatcher;
     private final MappingStrategies<T> mappingStrategies;
     private final HeaderTranslator headerTranslator;
-    protected final PayloadPathMatcher payloadPathMatcher;
 
     protected AbstractAdapter(final MappingStrategies<T> mappingStrategies,
-            final HeaderTranslator headerTranslator, final PayloadPathMatcher payloadPathMatcher) {
+            final HeaderTranslator headerTranslator, final PathMatcher<PathPatterns> pathMatcher) {
         this.mappingStrategies = requireNonNull(mappingStrategies);
         this.headerTranslator = requireNonNull(headerTranslator);
-        this.payloadPathMatcher = requireNonNull(payloadPathMatcher);
+        this.pathMatcher = requireNonNull(pathMatcher);
     }
 
     /**
@@ -100,7 +102,7 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
     protected String getType(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
         final JsonPointer path = adaptable.getPayload().getPath();
-        final String commandName = getAction(topicPath) + upperCaseFirst(payloadPathMatcher.match(path));
+        final String commandName = getAction(topicPath) + upperCaseFirst(pathMatcher.match(path).getPath());
         return topicPath.getGroup() + "." + getTypeCriterionAsString(topicPath) + ":" + commandName;
     }
 
@@ -216,4 +218,5 @@ public abstract class AbstractAdapter<T extends Jsonifiable.WithPredicate<JsonOb
         chars[0] = Character.toUpperCase(chars[0]);
         return new String(chars);
     }
+
 }

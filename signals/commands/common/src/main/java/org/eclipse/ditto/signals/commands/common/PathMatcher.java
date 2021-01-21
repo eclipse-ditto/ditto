@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,25 +10,25 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.protocoladapter;
+package org.eclipse.ditto.signals.commands.common;
+
 
 import org.eclipse.ditto.json.JsonPointer;
 
 /**
  * Matches and maps the path to an internal command name.
  *
- * @deprecated as of 1.6.0 please use an implementation of
- * {@link org.eclipse.ditto.signals.commands.common.PathMatcher} instead.
+ * TODO adapt @since annotation @since 1.6.0
  */
-@Deprecated
-public interface PayloadPathMatcher {
+public interface PathMatcher<T> {
 
     /**
      * Tries to match the given payload path against a set of patterns and returns the associated command name.
      *
      * @param path the path from a Ditto Protocol message
      * @return the internal command name
-     * @throws UnknownPathException if the path does not match any of the known patterns.
+     * @throws org.eclipse.ditto.model.base.exceptions.DittoRuntimeException if the path does not match any of the known patterns.
      */
-    String match(JsonPointer path);
+    T match(JsonPointer path);
+
 }

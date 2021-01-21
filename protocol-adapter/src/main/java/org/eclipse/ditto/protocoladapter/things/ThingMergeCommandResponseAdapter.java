@@ -19,9 +19,11 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.MergeCommandResponseAdapter;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.protocoladapter.UnknownPathException;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategiesFactory;
 import org.eclipse.ditto.protocoladapter.signals.SignalMapper;
 import org.eclipse.ditto.protocoladapter.signals.SignalMapperFactory;
+import org.eclipse.ditto.signals.commands.common.ThingMergePathMatcher;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
 
 /**
@@ -36,7 +38,7 @@ final class ThingMergeCommandResponseAdapter extends AbstractThingAdapter<MergeT
 
     private ThingMergeCommandResponseAdapter(final HeaderTranslator headerTranslator) {
         super(MappingStrategiesFactory.getThingMergeCommandResponseMappingStrategies(), headerTranslator,
-                ThingMergePayloadPathMatcher.getInstance());
+                ThingMergePathMatcher.getInstance(path -> UnknownPathException.newBuilder(path).build()));
     }
 
     /**
@@ -52,7 +54,7 @@ final class ThingMergeCommandResponseAdapter extends AbstractThingAdapter<MergeT
     @Override
     protected String getType(final Adaptable adaptable) {
         final JsonPointer path = adaptable.getPayload().getPath();
-        return payloadPathMatcher.match(path);
+        return pathMatcher.match(path).getPath();
     }
 
     @Override

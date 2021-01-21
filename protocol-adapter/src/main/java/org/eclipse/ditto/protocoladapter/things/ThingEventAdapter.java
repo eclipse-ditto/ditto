@@ -60,7 +60,7 @@ final class ThingEventAdapter extends AbstractThingAdapter<ThingEvent<?>> implem
     protected String getType(final Adaptable adaptable) {
         final TopicPath topicPath = adaptable.getTopicPath();
         final JsonPointer path = adaptable.getPayload().getPath();
-        final String eventName = payloadPathMatcher.match(path) + getActionNameWithFirstLetterUpperCase(topicPath);
+        final String eventName = pathMatcher.match(path).getPath() + getActionNameWithFirstLetterUpperCase(topicPath);
         return topicPath.getGroup() + "." + topicPath.getCriterion() + ":" + eventName;
     }
 

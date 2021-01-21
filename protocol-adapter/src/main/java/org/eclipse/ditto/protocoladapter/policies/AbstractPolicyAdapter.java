@@ -12,18 +12,15 @@
  */
 package org.eclipse.ditto.protocoladapter.policies;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.regex.Pattern;
-
 import org.eclipse.ditto.protocoladapter.AbstractAdapter;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.DefaultPayloadPathMatcher;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.protocoladapter.UnknownPathException;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategies;
 import org.eclipse.ditto.protocoladapter.signals.SignalMapper;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.common.PolicyPathMatcher;
 
 /**
  * Base class for {@link org.eclipse.ditto.protocoladapter.Adapter}s that handle policy commands.
@@ -31,18 +28,6 @@ import org.eclipse.ditto.signals.base.Signal;
  * @param <T> the type of the policy command
  */
 abstract class AbstractPolicyAdapter<T extends Signal<?>> extends AbstractAdapter<T> implements PolicyAdapter<T> {
-
-    private static final Map<String, Pattern> POLICY_PATH_PATTERNS = new HashMap<>();
-
-    static {
-        POLICY_PATH_PATTERNS.put("policy", Pattern.compile("^/$"));
-        POLICY_PATH_PATTERNS.put("policyEntry", Pattern.compile("^/entries/[^/]*$"));
-        POLICY_PATH_PATTERNS.put("policyEntries", Pattern.compile("^/entries$"));
-        POLICY_PATH_PATTERNS.put("resource", Pattern.compile("^/entries/[^/]*/resources/.*$"));
-        POLICY_PATH_PATTERNS.put("resources", Pattern.compile("^/entries/[^/]*/resources$"));
-        POLICY_PATH_PATTERNS.put("subject", Pattern.compile("^/entries/[^/]*/subjects/.*$"));
-        POLICY_PATH_PATTERNS.put("subjects", Pattern.compile("^/entries/[^/]*/subjects$"));
-    }
 
     private final SignalMapper<T> signalMapper;
 
@@ -55,7 +40,8 @@ abstract class AbstractPolicyAdapter<T extends Signal<?>> extends AbstractAdapte
      */
     protected AbstractPolicyAdapter(final MappingStrategies<T> mappingStrategies,
             final SignalMapper<T> signalMapper, final HeaderTranslator headerTranslator) {
-        super(mappingStrategies, headerTranslator, DefaultPayloadPathMatcher.from(POLICY_PATH_PATTERNS));
+        super(mappingStrategies, headerTranslator,
+                PolicyPathMatcher.getInstance(path -> UnknownPathException.newBuilder(path).build()));
         this.signalMapper = signalMapper;
     }
 
@@ -63,4 +49,5 @@ abstract class AbstractPolicyAdapter<T extends Signal<?>> extends AbstractAdapte
     protected Adaptable mapSignalToAdaptable(final T signal, final TopicPath.Channel channel) {
         return signalMapper.mapSignalToAdaptable(signal, channel);
     }
+
 }

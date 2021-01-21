@@ -98,8 +98,7 @@ public final class MergeThingStrategyTest extends AbstractCommandStrategyTest {
         final JsonPointer path = Thing.JsonFields.ATTRIBUTES.getPointer().append(JsonPointer.of("large"));
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().correlationId(UUID.randomUUID().toString()).build();
         final MergeThing mergeThing = MergeThing.withAttribute(thingId, path,
-                JsonValue.of("~".repeat((int) THING_SIZE_LIMIT_BYTES - 150)),
-                dittoHeaders);
+                JsonValue.of("~".repeat((int) THING_SIZE_LIMIT_BYTES - 150)), dittoHeaders);
         assertThatExceptionOfType(ThingTooLargeException.class)
                 .isThrownBy(() -> underTest.apply(context, existing, NEXT_REVISION, mergeThing))
                 .satisfies(e -> assertThat(e.getDittoHeaders()).containsAllEntriesOf(dittoHeaders));

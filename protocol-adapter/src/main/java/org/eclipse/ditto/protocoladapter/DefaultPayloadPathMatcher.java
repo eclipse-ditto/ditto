@@ -21,7 +21,11 @@ import org.eclipse.ditto.json.JsonPointer;
 
 /**
  * Utility class for matching {@link Payload} path.
+ *
+ * @deprecated as of 1.6.0 please use an implementation of
+ * {@link org.eclipse.ditto.signals.commands.common.AbstractPathMatcher} instead.
  */
+@Deprecated
 public final class DefaultPayloadPathMatcher implements PayloadPathMatcher {
 
     private final Map<String, Pattern> patterns;
