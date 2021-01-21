@@ -23,21 +23,38 @@ Please note, that in most cases it makes sense to grant read permission in addit
 
 ## Model specification
 
-### API version 2
-
 {% include docson.html schema="jsonschema/policy.json" %}
 
-## Who can be addressed?
+## Subjects
 
-A Subject ID must conform to one of the following rules:
+Subjects in a policy define **who** gets permissions granted/revoked on the [resources](#which-resources-can-be-controlled)
+of a policy entry.  
+Each subject ID contains a prefix defining the subject "issuer" (so which party issued the authentication) and an actual 
+subject, separated with a colon:
+```
+<subject-issuer>:<subject>
+```
 
-* The ID of a User defined in the nginx reverse proxy prefixed with `nginx`.
-* Different JWT providers with their JWT “iss” fields - the currently supported are listed in the table below.
-* OpenID Connect compliant providers - supported providers are listed at [OpenID Connect - Certified OpenID Provider Servers and Services](https://openid.net/developers/certified/) The `sub` claim and configured provider name are used in the form `<provider>:<sub-claim>`.
+The subject can be one of the following ones:
+* `nginx:<nginx-username>` - when using nginx as 
+  [pre-authentication provider](installation-operating.html#pre-authentication) - by default enabled in the Ditto 
+  installation's nginx
+* `<other-pre-auth-provider>:<username>` - when using another custom provider as 
+  [pre-authentication provider](installation-operating.html#pre-authentication) which sets the 
+  `x-ditto-pre-authenticated` HTTP header
+* `google:<google-user-id>` - in general different 
+  <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> - the currently supported 
+  are listed in the table:
+  
+  | Prefix    | Type  | Description   |
+  |-----------|-------|---------------|
+  | google | jwt | A <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> issued by Google |
+* `<custom-openid-connect-provider>:<jwt-sub-claim>` -
+  custom OpenID Connect compliant providers - supported providers are listed at
+  [OpenID Connect - Certified OpenID Provider Servers and Services](https://openid.net/developers/certified/) -
+  [can be configured](installation-operating.html#openid-connect) in Ditto defining the prefix in Ditto's config file.  
+  The `sub` claim from the JWT and the configured provider name are used in the form `<provider>:<jwt-sub-claim>`.
 
-| Prefix    | Type  | Description   |
-|-----------|-------|---------------|
-| google | jwt | A <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> issued by Google |
 
 ### Expiring Policy subjects
 
@@ -54,7 +71,7 @@ When providing an `"expiry"` for a Policy subject, this timestamp is rounded up:
    * configured to "1h": a received "expiry" is rounded up to the next full hour (**default**)
    * configured to "12h": a received "expiry" is rounded up to the next half day
    * configured to "1d": a received "expiry" is rounded up to the next full day
-   * configured to "15d": a received "expiry" is rounded up to the next half month  
+   * configured to "15d": a received "expiry" is rounded up to the next half month
 
 Once an expired subject is deleted, it will immediately no longer have access to the resources protected by the policy
 it was deleted from.
@@ -70,9 +87,15 @@ name, e.g. for a single policy entry:
 
 ### Action activateTokenIntegration
 
+{% include tip.html content="
+  Make use of this action in order to copy your existing permissions for a pre-configured connection 
+  (e.g. invoking an HTTP webhook) until the expiration time of the JWT the user authenticated 
+  with passes.
+" %}
+
 When authenticated using OpenID Connect, it is possible to inject a subject into policies that expires when
-the Json Web Token (JWT) expires. The form of the injected subject (i.e., token integration subject) is configurable in
-the Ditto installation.
+the <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> expires. 
+The form of the injected subject (the token integration subject) is configurable globally in the Ditto installation.
 
 A user is authorized to inject the token integration subject when granted the `EXECUTE` permission on a policy entry.  
 The `WRITE` permission is not necessary. To activate or deactivate a token integration subject, send a `POST` 
@@ -101,7 +124,7 @@ request to the following HTTP routes:
 The injected subject pattern is configurable in Ditto and is by default:
 ```
 {%raw%}
-{{jwt:iss}}:{{policy-entry:label}}:{{jwt:sub}}
+integration:{{policy-entry:label}}:{{jwt:aud}}
 {%endraw%}
 ```
 
@@ -283,65 +306,65 @@ Your Policy then might look like the following:
 The correct Policy JSON object notation would be as shown in the following code block.
 
 ```json
-  {
-    "policyId": "my.namespace:policy-a",
-    "entries": {
-      "owner": {
-        "subjects": {
-          "nginx:ditto": {
-            "type": "nginx basic auth user"
-          }
-        },
-        "resources": {
-          "thing:/": {
-            "grant": ["READ", "WRITE"],
-            "revoke": []
-          },
-          "policy:/": {
-            "grant": ["READ", "WRITE"],
-            "revoke": []
-          },
-          "message:/": {
-            "grant": ["READ", "WRITE"],
-            "revoke": []
-          }
+{
+  "policyId": "my.namespace:policy-a",
+  "entries": {
+    "owner": {
+      "subjects": {
+        "nginx:ditto": {
+          "type": "nginx basic auth user"
         }
       },
-      "observer": {
-        "subjects": {
-          "nginx:observer-client": {
-            "type": "technical client"
-          },
-          "nginx:some-users": {
-            "type": "a group of users"
-          }
+      "resources": {
+        "thing:/": {
+          "grant": ["READ", "WRITE"],
+          "revoke": []
         },
-        "resources": {
-          "thing:/features/featureX": {
-            "grant": ["READ"],
-            "revoke": []
-          },
-          "thing:/features/featureY": {
-            "grant": ["READ"],
-            "revoke": []
-          }
+        "policy:/": {
+          "grant": ["READ", "WRITE"],
+          "revoke": []
+        },
+        "message:/": {
+          "grant": ["READ", "WRITE"],
+          "revoke": []
+        }
+      }
+    },
+    "observer": {
+      "subjects": {
+        "nginx:observer-client": {
+          "type": "technical client"
+        },
+        "nginx:some-users": {
+          "type": "a group of users"
         }
       },
-      "private": {
-        "subjects": {
-          "nginx:some-users": {
-            "type": "a group of users"
-          },
-          "resources": {
-            "thing:/features/featureX/properties/location/city": {
-              "grant": [],
-              "revoke": ["READ"]
-            }
+      "resources": {
+        "thing:/features/featureX": {
+          "grant": ["READ"],
+          "revoke": []
+        },
+        "thing:/features/featureY": {
+          "grant": ["READ"],
+          "revoke": []
+        }
+      }
+    },
+    "private": {
+      "subjects": {
+        "nginx:some-users": {
+          "type": "a group of users"
+        },
+        "resources": {
+          "thing:/features/featureX/properties/location/city": {
+            "grant": [],
+            "revoke": ["READ"]
           }
         }
       }
     }
   }
+}
 ```
 
 The Policy can be found:

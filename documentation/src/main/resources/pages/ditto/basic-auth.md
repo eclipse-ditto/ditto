@@ -26,6 +26,18 @@ A user who calls the HTTP API can be authenticated using two mechanisms:
 * A <a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> issued by Google or other
   OpenID Connect providers as [documented in the installation/operation guide](installation-operating.html#openid-connect).
 
+### Authenticated subjects
+
+Every request to one of Ditto's API is done in scope of already authenticated subjects.   
+This authentication may be provided via nginx (like mentioned [above](#authentication)), a 
+<a href="#" data-toggle="tooltip" data-original-title="{{site.data.glossary.jwt}}">JWT</a> or in a connection via the
+configured `authorizationContext` in scope of the connection's [authorization](basic-connections.html#authorization).
+
+For each of the possibilities of authenticating subjects, the [command](basic-signals-command.html) or 
+[message](basic-messages.html) processed by Ditto will contain one or more of the "authenticated subjects" which e.g.
+might be user IDs.
+
+
 ### Single sign-on (SSO)
 
 By configuring an arbitrary OpenID Connect provider (as mentioned above) it is possible for Ditto to participate in SSO
