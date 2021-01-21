@@ -1,0 +1,222 @@
+ /*
+  * Copyright (c) 2021 Contributors to the Eclipse Foundation
+  *
+  * See the NOTICE file(s) distributed with this work for additional
+  * information regarding copyright ownership.
+  *
+  * This program and the accompanying materials are made available under the
+  * terms of the Eclipse Public License 2.0 which is available at
+  * http://www.eclipse.org/legal/epl-2.0
+  *
+  * SPDX-License-Identifier: EPL-2.0
+  */
+ package org.eclipse.ditto.services.utils.akka.mailbox;
+
+ import java.util.List;
+ import java.util.Optional;
+ import java.util.Queue;
+ import java.util.concurrent.ConcurrentLinkedQueue;
+ import java.util.concurrent.atomic.AtomicInteger;
+ import java.util.regex.Matcher;
+ import java.util.regex.Pattern;
+ import java.util.stream.Collectors;
+
+ import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+ import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
+
+ import com.typesafe.config.Config;
+
+ import akka.actor.ActorPath;
+ import akka.actor.ActorRef;
+ import akka.actor.ActorRefWithCell;
+ import akka.actor.ActorSystem;
+ import akka.dispatch.Envelope;
+ import akka.dispatch.MailboxType;
+ import akka.dispatch.MessageQueue;
+ import akka.dispatch.ProducesMessageQueue;
+ import akka.dispatch.UnboundedMailbox;
+ import akka.event.Logging;
+ import akka.event.LoggingAdapter;
+ import scala.Option;
+
+ /**
+  * MonitoredUnboundedMailboxType is a regular unbounded mailbox, which in addition monitors the size of the
+  * mailbox/queue.
+  * It is backed by a {@link ConcurrentLinkedQueue}, like the default {@link UnboundedMailbox} of Akka. Therefore it can be
+  * used to replace the default unbounded mailbox.
+  * <p>
+  * This mailbox has two additional monitoring features: Logging the size of the mailbox when a given
+  * threshold is reached and a mailbox size gauge metric.
+  */
+ public final class MonitoredUnboundedMailboxType
+         implements MailboxType, ProducesMessageQueue<UnboundedMailbox.MessageQueue> {
+
+     private static final Gauge MAILBOX_SIZE = DittoMetrics.gauge("actor_mailbox_size");
+     private static final String CONFIG_OBJECT_PATH = "monitored-unbounded-mailbox";
+     private static final String THRESHOLD_FOR_LOGGING_PATH = "threshold-for-logging";
+     private static final String LOGGING_INTERVAL_PATH = "logging-interval";
+     private static final String ACTORS_INCLUDE_REGEX_PATH = "include-actors-regex";
+     private static final String ACTORS_EXCLUDE_REGEX_PATH = "exclude-actors-regex";
+
+     private final Config config;
+
+     /**
+      * Creates a new {@code MonitoredUnboundedMailboxType}.
+      * This constructor signature must exist, it will be called by Akka.
+      *
+      * @param settings the ActorSystem settings.
+      * @param config the config.
+      */
+     public MonitoredUnboundedMailboxType(final ActorSystem.Settings settings, final Config config) {
+         this.config = config;
+     }
+
+     /**
+      * Factory for the actual mailbox/queue. Depending on the configured include/exclude actor filters, it either
+      * creates a normal message queue or an instrumented queue, which keeps track of its size.
+      *
+      * @param owner the owner actor of this mailbox.
+      * @param system the actor system this mailbox is part of.
+      * @return a queue
+      */
+     @Override
+     public MessageQueue create(final Option<ActorRef> owner, final Option<ActorSystem> system) {
+         if (owner.isEmpty() || system.isEmpty()) {
+             throw new IllegalArgumentException("no mailbox owner or system given");
+         }
+
+         final ActorRef mailboxOwner = owner.get();
+
+         final Config mailboxConfig = config.getObject(CONFIG_OBJECT_PATH).toConfig();
+         final List<Pattern> includeRegexFilters = compileRegex(mailboxConfig.getStringList(ACTORS_INCLUDE_REGEX_PATH));
+         final List<Pattern> excludeRegexFilters = compileRegex(mailboxConfig.getStringList(ACTORS_EXCLUDE_REGEX_PATH));
+
+         if (trackActor(mailboxOwner.path(), includeRegexFilters, excludeRegexFilters)) {
+             final int threshold = mailboxConfig.getInt(THRESHOLD_FOR_LOGGING_PATH);
+             final long interval = mailboxConfig.getLong(LOGGING_INTERVAL_PATH);
+             return new InstrumentedMessageQueue(mailboxOwner, system.get(), threshold, interval);
+         } else {
+             // Use akka default mailbox as fallback
+             return new UnboundedMailbox.MessageQueue();
+         }
+     }
+
+     private static List<Pattern> compileRegex(final List<String> regexFilter) {
+         return regexFilter.stream()
+                 .map(Pattern::compile)
+                 .collect(Collectors.toList());
+     }
+
+     /**
+      * Decides whether mailbox size of the actor shall be tracked or not.
+      * @param path the path of the actor.
+      * @param includeRegexFilters include filters, which determines that an actor shall be tracked.
+      * @param excludeRegexFilters exclude filters, which determines that an actor shall not be tracked (stronger than
+      * include filters).
+      * @return the made decision.
+      */
+     private static boolean trackActor(final ActorPath path, final List<Pattern> includeRegexFilters,
+             final List<Pattern> excludeRegexFilters) {
+
+         if (pathMatchingFilter(path, excludeRegexFilters)) {
+             return false;
+         } else {
+             return pathMatchingFilter(path, includeRegexFilters);
+         }
+     }
+
+     private static boolean pathMatchingFilter(ActorPath path, List<Pattern> filters) {
+         return filters.stream()
+                 .map(regexPattern -> regexPattern.matcher(path.toStringWithoutAddress()))
+                 .anyMatch(Matcher::matches);
+     }
+
+     /**
+      * A {@code MessageQueue} implementation which keeps track of its size. The size is tracked separately, to avoid
+      * {@link Queue#size} complexity of O(n). The size will be reported via logging and a gauge metric.
+      */
+     static final class InstrumentedMessageQueue implements MessageQueue, akka.dispatch.UnboundedMessageQueueSemantics {
+
+         private final LoggingAdapter log;
+         private final String path;
+         private final int threshold;
+         private final long interval;
+         private final String ownerActorClassName;
+         private final Gauge mailboxSizeByActorClassGauge;
+         private final Queue<Envelope> queue = new ConcurrentLinkedQueue<>();
+         private final AtomicInteger queueSize = new AtomicInteger();
+         private volatile long lastLogTime = System.nanoTime();
+
+         InstrumentedMessageQueue(final ActorRef owner, final ActorSystem system, final int threshold,
+                 final long interval) {
+             this.log = Logging.getLogger(system, InstrumentedMessageQueue.class);
+             this.path = owner.path().toString();
+             this.threshold = threshold;
+             this.interval = interval;
+             this.ownerActorClassName = getClassOfOwnerActorRef(owner).orElse("unknown-actor-class");
+             this.mailboxSizeByActorClassGauge = MAILBOX_SIZE.tag("actor-class", ownerActorClassName);
+         }
+
+         /**
+          * Uses internal akka API to retrieve the Class of the owner Actor.
+          * @param owner actor reference of the owner.
+          * @return the name of the actor class or empty.
+          */
+         private static Optional<String> getClassOfOwnerActorRef(final ActorRef owner) {
+             if (owner instanceof ActorRefWithCell) {
+                 final ActorRefWithCell ownerWithCell = (ActorRefWithCell) owner;
+                 return Optional.ofNullable(ownerWithCell.underlying().props().actorClass().getCanonicalName());
+             } else {
+                 return Optional.empty();
+             }
+         }
+
+         @Override
+         public Envelope dequeue() {
+             Envelope handle = queue.poll();
+             if (handle != null) {
+                 mailboxSizeByActorClassGauge.decrement();
+                 int size = queueSize.decrementAndGet();
+                 logMailboxSize(size);
+             }
+             return handle;
+         }
+
+         @Override
+         public void enqueue(final ActorRef receiver, final Envelope handle) {
+             queue.offer(handle);
+             int mailboxSize = queueSize.incrementAndGet();
+             mailboxSizeByActorClassGauge.increment();
+             logMailboxSize(mailboxSize);
+         }
+
+         private void logMailboxSize(final int mailboxSize) {
+             if (mailboxSize >= threshold) {
+                 long now = System.nanoTime();
+                 if (now - lastLogTime > interval) {
+                     lastLogTime = now;
+                     log.info("Mailbox size for <{}> of class <{}> is <{}>", path, ownerActorClassName, mailboxSize);
+                 }
+             }
+         }
+
+         @Override
+         public int numberOfMessages() {
+             return queueSize.get();
+         }
+
+         @Override
+         public boolean hasMessages() {
+             return !queue.isEmpty();
+         }
+
+         @Override
+         public void cleanUp(final ActorRef owner, final MessageQueue deadLetters) {
+             for (Envelope handle : queue) {
+                 deadLetters.enqueue(owner, handle);
+                 mailboxSizeByActorClassGauge.decrement();
+                 queueSize.decrementAndGet();
+             }
+         }
+     }
+ }
