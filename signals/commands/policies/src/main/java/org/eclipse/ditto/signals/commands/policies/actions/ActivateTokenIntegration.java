@@ -38,6 +38,8 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
@@ -52,6 +54,7 @@ import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 
 /**
  * This command injects one or several subjects derived from a provided token including an "expiry" extracted from the
@@ -161,10 +164,15 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
     }
 
     @Override
-    public boolean isApplicable(final PolicyEntry policyEntry) {
-        // This action is applicable to policy entries containing a READ permission grated to a thing resource.
-        return policyEntry.getResources()
-                .stream()
+    public boolean isApplicable(final PolicyEntry policyEntry, final AuthorizationContext authorizationContext) {
+        // This action is applicable to policy entries
+        //  1.) containing the authenticated subject from the passed command's authorizationContext
+        final boolean authenticatedSubjectIsContained = policyEntry.getSubjects().stream()
+                .anyMatch(subject -> authorizationContext.getAuthorizationSubjectIds()
+                        .contains(subject.getId().toString())
+                );
+        //  AND 2.) containing a READ permission grated to a thing resource.
+        return authenticatedSubjectIsContained && policyEntry.getResources().stream()
                 .anyMatch(resource -> {
                     final String resourceType = resource.getResourceKey().getResourceType();
                     final EffectedPermissions permissions = resource.getEffectedPermissions();
@@ -172,6 +180,16 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
                             permissions.getGrantedPermissions().contains(READ_PERMISSION) &&
                             !permissions.getRevokedPermissions().contains(READ_PERMISSION);
                 });
+    }
+
+    @Override
+    public PolicyActionFailedException getNotApplicableException(final DittoHeaders dittoHeaders) {
+        return PolicyActionFailedException.newBuilderForActivateTokenIntegration()
+                .status(HttpStatus.NOT_FOUND)
+                .description("No policy entry found containing one of the authorized subjects and with any READ " +
+                        "permission for things.")
+                .dittoHeaders(dittoHeaders)
+                .build();
     }
 
     /**

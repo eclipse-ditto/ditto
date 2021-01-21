@@ -131,7 +131,7 @@ public final class ActivateTokenIntegrationStrategyTest extends AbstractPolicyCo
                 ActivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId), expiry,
                         dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
-                underTest.getNotApplicableException(dittoHeaders));
+                command.getNotApplicableException(dittoHeaders));
     }
 
     @Test
@@ -149,6 +149,6 @@ public final class ActivateTokenIntegrationStrategyTest extends AbstractPolicyCo
                 .setSubject(TestConstants.Policy.SUPPORT_SUBJECT)
                 .setGrantedPermissions(ResourceKey.newInstance("policy:/"), Permission.READ)
                 .build();
-        assertErrorResult(underTest, policy, command, underTest.getNotApplicableException(dittoHeaders));
+        assertErrorResult(underTest, policy, command, command.getNotApplicableException(dittoHeaders));
     }
 }

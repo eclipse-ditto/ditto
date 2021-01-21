@@ -68,6 +68,17 @@ public class OAuthTokenIntegrationSubjectIdFactoryTest {
     }
 
     @Test
+    public void resolveSubjectIdWithJsonArraySingleNestedValueJwtClaim() {
+        final String subjectPattern = "{{jwt:single/nested}}:{{some:unresolved}}";
+        final OAuthTokenIntegrationSubjectIdFactory sut = createSut(subjectPattern);
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().build();
+        final Set<SubjectId> subjectIds = sut.getSubjectIds(dittoHeaders, new DummyJwt());
+        Assertions.assertThat(subjectIds).hasSize(1).containsExactly(
+                SubjectId.newInstance("I am a nested single:{{some:unresolved}}")
+        );
+    }
+
+    @Test
     public void resolveSubjectIdWithMultipleJsonArrayJwtClaims() {
         final String subjectPattern = "{{jwt:iss}}:{{jwt:aud}}:static:{{jwt:foo}}";
         final OAuthTokenIntegrationSubjectIdFactory sut = createSut(subjectPattern);

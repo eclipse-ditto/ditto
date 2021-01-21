@@ -45,6 +45,7 @@ final class DummyJwt implements JsonWebToken {
                 .set("iss", "dummy-issuer")
                 .set("aud", JsonArray.of("aud-1", "aud-2"))
                 .set("foo", JsonArray.of("bar1", "bar2", "bar3"))
+                .set("/single/nested", JsonArray.newBuilder().add("I am a nested single").build())
                 .build();
     }
 

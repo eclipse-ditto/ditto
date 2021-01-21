@@ -15,11 +15,14 @@ package org.eclipse.ditto.signals.commands.policies.actions;
 import java.util.Set;
 
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 
 /**
  * Interface for policy action commands requiring the EXECUTE permission.
@@ -53,9 +56,19 @@ public interface PolicyActionCommand<T extends PolicyActionCommand<T>> extends P
      * Check if this command is applicable to a policy entry.
      *
      * @param policyEntry the policy entry.
+     * @param authorizationContext the AuthorizationContext containing the authenticated subjects of the command.
      * @return whether this command is applicable.
      */
-    boolean isApplicable(PolicyEntry policyEntry);
+    boolean isApplicable(PolicyEntry policyEntry, AuthorizationContext authorizationContext);
+
+    /**
+     * Get the exception for when a policy action command is not applicable (after having invoked
+     * {@link #isApplicable(PolicyEntry, AuthorizationContext)}) to the designated policy entry.
+     *
+     * @param dittoHeaders headers of the exception.
+     * @return the exception for when a policy action command is not applicable.
+     */
+    PolicyActionFailedException getNotApplicableException(DittoHeaders dittoHeaders);
 
     @Override
     default Category getCategory() {

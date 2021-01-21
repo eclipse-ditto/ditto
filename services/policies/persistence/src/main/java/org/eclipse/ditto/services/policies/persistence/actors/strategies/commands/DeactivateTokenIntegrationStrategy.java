@@ -64,7 +64,7 @@ final class DeactivateTokenIntegrationStrategy
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(label)
-                .filter(entry -> containsAuthenticatedSubject(entry, dittoHeaders.getAuthorizationContext()));
+                .filter(entry -> command.isApplicable(entry, dittoHeaders.getAuthorizationContext()));
         if (optionalEntry.isPresent()) {
             final Set<SubjectId> subjectIds;
             final PolicyEntry policyEntry = optionalEntry.get();
@@ -89,7 +89,7 @@ final class DeactivateTokenIntegrationStrategy
                     DeactivateTokenIntegrationResponse.of(policyId, label, dittoHeaders);
             return ResultFactory.newMutationResult(adjustedCommand, event, rawResponse);
         } else {
-            return ResultFactory.newErrorResult(getNotApplicableException(dittoHeaders), command);
+            return ResultFactory.newErrorResult(command.getNotApplicableException(dittoHeaders), command);
         }
     }
 

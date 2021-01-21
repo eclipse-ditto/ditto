@@ -37,6 +37,7 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
@@ -49,6 +50,7 @@ import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 
 /**
  * This command executes a policy action on all authorized policy entries.
@@ -150,8 +152,13 @@ public final class TopLevelPolicyActionCommand extends AbstractCommand<TopLevelP
     }
 
     @Override
-    public boolean isApplicable(final PolicyEntry policyEntry) {
+    public boolean isApplicable(final PolicyEntry policyEntry, final AuthorizationContext authorizationContext) {
         return false;
+    }
+
+    @Override
+    public PolicyActionFailedException getNotApplicableException(final DittoHeaders dittoHeaders) {
+        return PolicyActionFailedException.newBuilder().dittoHeaders(dittoHeaders).build();
     }
 
     /**

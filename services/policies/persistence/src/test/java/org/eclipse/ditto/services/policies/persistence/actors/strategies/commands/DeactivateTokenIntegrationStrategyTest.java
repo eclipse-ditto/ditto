@@ -124,7 +124,7 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
         final DeactivateTokenIntegration command =
                 DeactivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId), dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
-                underTest.getNotApplicableException(dittoHeaders));
+                command.getNotApplicableException(dittoHeaders));
     }
 
 }

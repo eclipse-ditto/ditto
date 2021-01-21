@@ -74,7 +74,7 @@ final class TopLevelPolicyActionCommandStrategy
                 .stream()
                 .map(nonNullPolicy::getEntryFor)
                 .flatMap(Optional::stream)
-                .filter(actionCommand::isApplicable)
+                .filter(policyEntry -> actionCommand.isApplicable(policyEntry, dittoHeaders.getAuthorizationContext()))
                 .collect(Collectors.toList());
         final AbstractPolicyActionCommandStrategy<?> strategy =
                 policyActionCommandStrategyMap.get(actionCommand.getName());
@@ -106,7 +106,7 @@ final class TopLevelPolicyActionCommandStrategy
                 }
             }
         }
-        return ResultFactory.newErrorResult(strategy.getNotApplicableException(dittoHeaders), command);
+        return ResultFactory.newErrorResult(command.getNotApplicableException(dittoHeaders), command);
     }
 
     @Override

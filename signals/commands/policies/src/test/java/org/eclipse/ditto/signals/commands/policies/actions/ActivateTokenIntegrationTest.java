@@ -18,6 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -26,8 +27,10 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
+import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.policies.TestConstants;
 import org.junit.Test;
@@ -47,6 +50,16 @@ public final class ActivateTokenIntegrationTest {
                     .add(TestConstants.Policy.SUBJECT_ID.toString())
                     .build())
             .set(ActivateTokenIntegration.JSON_EXPIRY, Instant.EPOCH.toString())
+            .build();
+
+    private static final SubjectId KNOWN_SECOND_SUBJECT =
+            PoliciesModelFactory.newSubjectId(SubjectIssuer.GOOGLE, "another-subject");
+
+    private static final JsonObject KNOWN_JSON_MULTIPLE_SUBJECT_IDS = KNOWN_JSON.toBuilder()
+            .set(ActivateTokenIntegration.JSON_SUBJECT_IDS, JsonArray.newBuilder()
+                    .add(TestConstants.Policy.SUBJECT_ID.toString())
+                    .add(KNOWN_SECOND_SUBJECT.toString())
+                    .build())
             .build();
 
     @Test
@@ -99,6 +112,17 @@ public final class ActivateTokenIntegrationTest {
     }
 
     @Test
+    public void toJsonWithSeveralSubjectsReturnsExpected() {
+        final ActivateTokenIntegration underTest =
+                ActivateTokenIntegration.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
+                        Arrays.asList(TestConstants.Policy.SUBJECT_ID, KNOWN_SECOND_SUBJECT), Instant.EPOCH,
+                        TestConstants.EMPTY_DITTO_HEADERS);
+        final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
+
+        assertThat(actualJson).isEqualTo(KNOWN_JSON_MULTIPLE_SUBJECT_IDS);
+    }
+
+    @Test
     public void createInstanceFromValidJson() {
         final ActivateTokenIntegration underTest =
                 ActivateTokenIntegration.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
@@ -106,6 +130,18 @@ public final class ActivateTokenIntegrationTest {
         final ActivateTokenIntegration expectedCommand =
                 ActivateTokenIntegration.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
                         Collections.singleton(TestConstants.Policy.SUBJECT_ID), Instant.EPOCH, TestConstants.EMPTY_DITTO_HEADERS);
+        assertThat(underTest).isEqualTo(expectedCommand);
+    }
+
+    @Test
+    public void createInstanceFromValidJsonWithSeveralSubjects() {
+        final ActivateTokenIntegration underTest =
+                ActivateTokenIntegration.fromJson(KNOWN_JSON_MULTIPLE_SUBJECT_IDS, TestConstants.EMPTY_DITTO_HEADERS);
+
+        final ActivateTokenIntegration expectedCommand =
+                ActivateTokenIntegration.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
+                        Arrays.asList(TestConstants.Policy.SUBJECT_ID, KNOWN_SECOND_SUBJECT), Instant.EPOCH,
+                        TestConstants.EMPTY_DITTO_HEADERS);
         assertThat(underTest).isEqualTo(expectedCommand);
     }
 
