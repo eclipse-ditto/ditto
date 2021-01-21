@@ -46,6 +46,8 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
 
     private static final HttpStatus DEFAULT_STATUS = HttpStatus.INTERNAL_SERVER_ERROR;
 
+    private static final String DEFAULT_MESSAGE = "Failed to execute action.";
+
     private static final String MESSAGE_TEMPLATE = "Failed to execute action ''{0}''.";
 
     private static final String DEFAULT_DESCRIPTION = "Please contact the service team.";
@@ -150,6 +152,7 @@ public final class PolicyActionFailedException extends DittoRuntimeException imp
         private HttpStatus status = DEFAULT_STATUS;
 
         private Builder() {
+            message(DEFAULT_MESSAGE);
             description(DEFAULT_DESCRIPTION);
         }
 

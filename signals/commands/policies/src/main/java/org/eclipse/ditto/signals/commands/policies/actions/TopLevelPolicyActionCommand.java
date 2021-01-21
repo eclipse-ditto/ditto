@@ -158,7 +158,10 @@ public final class TopLevelPolicyActionCommand extends AbstractCommand<TopLevelP
 
     @Override
     public PolicyActionFailedException getNotApplicableException(final DittoHeaders dittoHeaders) {
-        return PolicyActionFailedException.newBuilder().dittoHeaders(dittoHeaders).build();
+        return PolicyActionFailedException.newBuilder()
+                .action(getPolicyActionCommand().getName())
+                .dittoHeaders(dittoHeaders)
+                .build();
     }
 
     /**
