@@ -12,14 +12,11 @@
   */
  package org.eclipse.ditto.services.utils.akka.mailbox;
 
- import java.util.List;
  import java.util.Optional;
  import java.util.Queue;
  import java.util.concurrent.ConcurrentLinkedQueue;
  import java.util.concurrent.atomic.AtomicInteger;
- import java.util.regex.Matcher;
  import java.util.regex.Pattern;
- import java.util.stream.Collectors;
 
  import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
  import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
@@ -87,9 +84,9 @@
 
          final ActorRef mailboxOwner = owner.get();
 
-         final Config mailboxConfig = config.getObject(CONFIG_OBJECT_PATH).toConfig();
-         final List<Pattern> includeRegexFilters = compileRegex(mailboxConfig.getStringList(ACTORS_INCLUDE_REGEX_PATH));
-         final List<Pattern> excludeRegexFilters = compileRegex(mailboxConfig.getStringList(ACTORS_EXCLUDE_REGEX_PATH));
+         final Config mailboxConfig = config.getConfig(CONFIG_OBJECT_PATH);
+         final Pattern includeRegexFilters = Pattern.compile(mailboxConfig.getString(ACTORS_INCLUDE_REGEX_PATH));
+         final Pattern excludeRegexFilters = Pattern.compile(mailboxConfig.getString(ACTORS_EXCLUDE_REGEX_PATH));
 
          if (trackActor(mailboxOwner.path(), includeRegexFilters, excludeRegexFilters)) {
              final int threshold = mailboxConfig.getInt(THRESHOLD_FOR_LOGGING_PATH);
@@ -101,34 +98,24 @@
          }
      }
 
-     private static List<Pattern> compileRegex(final List<String> regexFilter) {
-         return regexFilter.stream()
-                 .map(Pattern::compile)
-                 .collect(Collectors.toList());
-     }
 
      /**
       * Decides whether mailbox size of the actor shall be tracked or not.
+      *
       * @param path the path of the actor.
       * @param includeRegexFilters include filters, which determines that an actor shall be tracked.
       * @param excludeRegexFilters exclude filters, which determines that an actor shall not be tracked (stronger than
       * include filters).
       * @return the made decision.
       */
-     private static boolean trackActor(final ActorPath path, final List<Pattern> includeRegexFilters,
-             final List<Pattern> excludeRegexFilters) {
-
-         if (pathMatchingFilter(path, excludeRegexFilters)) {
+     private static boolean trackActor(final ActorPath path, final Pattern includeRegexFilters,
+             final Pattern excludeRegexFilters) {
+         final String pathWithoutAddress = path.toStringWithoutAddress();
+         if (excludeRegexFilters.matcher(pathWithoutAddress).matches()) {
              return false;
          } else {
-             return pathMatchingFilter(path, includeRegexFilters);
+             return includeRegexFilters.matcher(pathWithoutAddress).matches();
          }
-     }
-
-     private static boolean pathMatchingFilter(ActorPath path, List<Pattern> filters) {
-         return filters.stream()
-                 .map(regexPattern -> regexPattern.matcher(path.toStringWithoutAddress()))
-                 .anyMatch(Matcher::matches);
      }
 
      /**
@@ -138,7 +125,7 @@
      static final class InstrumentedMessageQueue implements MessageQueue, akka.dispatch.UnboundedMessageQueueSemantics {
 
          private final LoggingAdapter log;
-         private final String path;
+         private final ActorPath path;
          private final int threshold;
          private final long interval;
          private final String ownerActorClassName;
@@ -150,15 +137,17 @@
          InstrumentedMessageQueue(final ActorRef owner, final ActorSystem system, final int threshold,
                  final long interval) {
              this.log = Logging.getLogger(system, InstrumentedMessageQueue.class);
-             this.path = owner.path().toString();
+             this.path = owner.path();
              this.threshold = threshold;
              this.interval = interval;
              this.ownerActorClassName = getClassOfOwnerActorRef(owner).orElse("unknown-actor-class");
              this.mailboxSizeByActorClassGauge = MAILBOX_SIZE.tag("actor-class", ownerActorClassName);
+             log.debug("instrumented queue created for actor {} of class {}", path, ownerActorClassName);
          }
 
          /**
           * Uses internal akka API to retrieve the Class of the owner Actor.
+          *
           * @param owner actor reference of the owner.
           * @return the name of the actor class or empty.
           */
@@ -195,7 +184,7 @@
                  long now = System.nanoTime();
                  if (now - lastLogTime > interval) {
                      lastLogTime = now;
-                     log.info("Mailbox size for <{}> of class <{}> is <{}>", path, ownerActorClassName, mailboxSize);
+                     log.info("Mailbox size is <{}> for <{}> of class <{}>", mailboxSize, path, ownerActorClassName);
                  }
              }
          }
