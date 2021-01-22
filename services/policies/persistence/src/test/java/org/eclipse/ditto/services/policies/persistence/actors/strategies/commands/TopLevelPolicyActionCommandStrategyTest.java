@@ -20,15 +20,19 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
+import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
@@ -63,14 +67,12 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
     private static final Label DUMMY_LABEL = Label.of("-");
 
     private TopLevelPolicyActionCommandStrategy underTest;
-    private ActivateTokenIntegrationStrategy activateTokenIntegrationStrategy;
 
     @Before
     public void setUp() {
         final PolicyConfig policyConfig = DefaultPolicyConfig.of(ConfigFactory.load("policy-test"));
         final ActorSystem system = ActorSystem.create("test");
         underTest = new TopLevelPolicyActionCommandStrategy(policyConfig, system);
-        activateTokenIntegrationStrategy = new ActivateTokenIntegrationStrategy(policyConfig, system);
     }
 
     @Test
@@ -185,6 +187,48 @@ public final class TopLevelPolicyActionCommandStrategyTest extends AbstractPolic
         );
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
                 UnresolvedPlaceholderException.newBuilder("{{request:subjectId}}").build());
+    }
+
+    @Test
+    public void activate2SubjectsIn2Entries() {
+        final CommandStrategy.Context<PolicyId> context = getDefaultContext();
+        final Instant expiry = Instant.now().plus(Duration.ofDays(1L));
+        final SubjectId subjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, LABEL + ":this-is-me");
+        final SubjectId subjectId2 = SubjectId.newInstance(SubjectIssuer.INTEGRATION, LABEL + ":this-is-me-2");
+        final Set<SubjectId> subjectIds = Set.of(subjectId, subjectId2);
+        final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
+        final Label label2 = Label.of("label2");
+        final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
+                ActivateTokenIntegration.of(context.getState(), DUMMY_LABEL, subjectIds, expiry, dittoHeaders),
+                List.of(LABEL, label2)
+        );
+
+        final PolicyEntry entryToCopy = TestConstants.Policy.POLICY.getEntryFor(LABEL).orElseThrow();
+        final Policy policy = TestConstants.Policy.POLICY.toBuilder()
+                .forLabel(label2)
+                .setSubjects(entryToCopy.getSubjects())
+                .setResources(entryToCopy.getResources())
+                .build();
+
+        assertModificationResult(underTest, policy, command,
+                SubjectsModifiedPartially.class,
+                event -> {
+                    assertThat(event.getModifiedSubjects()).containsOnlyKeys(LABEL, label2);
+                    final Map<Label, Collection<Subject>> modifiedSubjects = event.getModifiedSubjects();
+                    final Set<SubjectId> labelSubjectIds =
+                            modifiedSubjects.get(LABEL).stream().map(Subject::getId).collect(Collectors.toSet());
+                    final Set<SubjectId> label2SubjectIds =
+                            modifiedSubjects.get(label2).stream().map(Subject::getId).collect(Collectors.toSet());
+                    assertThat(labelSubjectIds)
+                            .describedAs("Subject IDs in entry <{}>", LABEL)
+                            .isEqualTo(subjectIds);
+                    assertThat(label2SubjectIds)
+                            .describedAs("Subject IDs in entry <{}>", label2)
+                            .isEqualTo(subjectIds);
+                },
+                TopLevelPolicyActionCommandResponse.class,
+                response -> assertThat(response)
+                        .isEqualTo(TopLevelPolicyActionCommandResponse.of(context.getState(), dittoHeaders)));
     }
 
     @Test

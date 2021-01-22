@@ -29,9 +29,10 @@ import org.eclipse.ditto.model.policies.SubjectId;
 public interface TokenIntegrationSubjectIdFactory {
 
     /**
-     * Compiled Pattern of a string containing any unresolved JsonArray-String notations inside.
+     * Compiled Pattern of a string containing any unresolved non-empty JsonArray-String notations inside.
+     * All strings matching this pattern are valid JSON arrays. Not all JSON arrays match this pattern.
      */
-    Pattern JSON_ARRAY_PATTERN = Pattern.compile(".*(\\[\".*\"])+?.*");
+    Pattern JSON_ARRAY_PATTERN = Pattern.compile("(\\[\"(?:\\\\\"|[^\"])*+\"(?:,\"(?:\\\\\"|[^\"])*+\")*+])");
 
     /**
      * Compute the token integration subject IDs from headers and JWT.
@@ -57,7 +58,7 @@ public interface TokenIntegrationSubjectIdFactory {
     static Stream<String> expandJsonArraysInResolvedSubject(final String resolvedSubject) {
         final Matcher jsonArrayMatcher = JSON_ARRAY_PATTERN.matcher(resolvedSubject);
         final int group = 1;
-        if (jsonArrayMatcher.matches()) {
+        if (jsonArrayMatcher.find()) {
             final String beforeMatched = resolvedSubject.substring(0, jsonArrayMatcher.start(group));
             final String matchedStr =
                     resolvedSubject.substring(jsonArrayMatcher.start(group), jsonArrayMatcher.end(group));

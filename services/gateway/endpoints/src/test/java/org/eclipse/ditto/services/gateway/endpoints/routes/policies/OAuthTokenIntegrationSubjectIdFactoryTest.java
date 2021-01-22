@@ -61,7 +61,7 @@ public class OAuthTokenIntegrationSubjectIdFactoryTest {
         final OAuthTokenIntegrationSubjectIdFactory sut = createSut(subjectPattern);
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().build();
         final Set<SubjectId> subjectIds = sut.getSubjectIds(dittoHeaders, new DummyJwt());
-        Assertions.assertThat(subjectIds).hasSize(2).containsExactly(
+        Assertions.assertThat(subjectIds).hasSize(2).containsExactlyInAnyOrder(
                 SubjectId.newInstance("integration:aud-1:static"),
                 SubjectId.newInstance("integration:aud-2:static")
         );
@@ -73,7 +73,7 @@ public class OAuthTokenIntegrationSubjectIdFactoryTest {
         final OAuthTokenIntegrationSubjectIdFactory sut = createSut(subjectPattern);
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().build();
         final Set<SubjectId> subjectIds = sut.getSubjectIds(dittoHeaders, new DummyJwt());
-        Assertions.assertThat(subjectIds).hasSize(1).containsExactly(
+        Assertions.assertThat(subjectIds).hasSize(1).containsExactlyInAnyOrder(
                 SubjectId.newInstance("I am a nested single:{{some:unresolved}}")
         );
     }
@@ -84,7 +84,7 @@ public class OAuthTokenIntegrationSubjectIdFactoryTest {
         final OAuthTokenIntegrationSubjectIdFactory sut = createSut(subjectPattern);
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().build();
         final Set<SubjectId> subjectIds = sut.getSubjectIds(dittoHeaders, new DummyJwt());
-        Assertions.assertThat(subjectIds).hasSize(6).containsExactly(
+        Assertions.assertThat(subjectIds).hasSize(6).containsExactlyInAnyOrder(
                 SubjectId.newInstance("dummy-issuer:aud-1:static:bar1"),
                 SubjectId.newInstance("dummy-issuer:aud-2:static:bar1"),
                 SubjectId.newInstance("dummy-issuer:aud-1:static:bar2"),

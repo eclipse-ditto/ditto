@@ -66,26 +66,17 @@ abstract class AbstractPolicyActionEvent<T extends AbstractPolicyActionEvent<T>>
         for (final PolicyActionEvent<?> event : otherEvents) {
             if (event instanceof SubjectCreated) {
                 final SubjectCreated subjectCreated = (SubjectCreated) event;
-                final Collection<Subject> existingSubjects = modifiedSubjects.get(subjectCreated.getLabel());
-                final Set<Subject> mergedSubjects;
-                if (null == existingSubjects) {
-                    mergedSubjects = new LinkedHashSet<>();
-                } else {
-                    mergedSubjects = new LinkedHashSet<>(existingSubjects);
-                }
-                mergedSubjects.add(subjectCreated.getSubject());
+                final Set<Subject> mergedSubjects =
+                        append(modifiedSubjects.get(subjectCreated.getLabel()), subjectCreated.getSubject());
                 modifiedSubjects.put(subjectCreated.getLabel(), mergedSubjects);
             } else if (event instanceof SubjectModified) {
                 final SubjectModified subjectModified = (SubjectModified) event;
-                final Collection<Subject> existingSubjects = modifiedSubjects.get(subjectModified.getLabel());
-                final Set<Subject> mergedSubjects;
-                if (null == existingSubjects) {
-                    mergedSubjects = new LinkedHashSet<>();
-                } else {
-                    mergedSubjects = new LinkedHashSet<>(existingSubjects);
-                }
-                mergedSubjects.add(subjectModified.getSubject());
+                final Set<Subject> mergedSubjects =
+                        append(modifiedSubjects.get(subjectModified.getLabel()), subjectModified.getSubject());
                 modifiedSubjects.put(subjectModified.getLabel(), mergedSubjects);
+            } else if (event instanceof SubjectsModifiedPartially) {
+                final SubjectsModifiedPartially subjectsModifiedPartially = (SubjectsModifiedPartially) event;
+                appendValues(modifiedSubjects, subjectsModifiedPartially.getModifiedSubjects());
             }
         }
         return SubjectsModifiedPartially.of(getPolicyEntityId(), modifiedSubjects, getRevision(),
@@ -116,9 +107,35 @@ abstract class AbstractPolicyActionEvent<T extends AbstractPolicyActionEvent<T>>
                 }
                 mergedSubjectIds.add(subjectDeleted.getSubjectId());
                 deletedSubjectIds.put(subjectDeleted.getLabel(), mergedSubjectIds);
+            } else if (event instanceof SubjectsDeletedPartially) {
+                final SubjectsDeletedPartially subjectsDeletedPartially = (SubjectsDeletedPartially) event;
+                appendValues(deletedSubjectIds, subjectsDeletedPartially.getDeletedSubjectIds());
             }
         }
         return SubjectsDeletedPartially.of(getPolicyEntityId(), deletedSubjectIds, getRevision(),
                 getTimestamp().orElse(null), getDittoHeaders());
+    }
+
+    private static <T> LinkedHashSet<T> append(@Nullable final Collection<T> existingItems, final T newItem) {
+        final LinkedHashSet<T> mergedItems = new LinkedHashSet<>();
+        if (null != existingItems) {
+            mergedItems.addAll(existingItems);
+        }
+        mergedItems.add(newItem);
+        return mergedItems;
+    }
+
+    private static <K, V> void appendValues(final Map<K, Collection<V>> accumulator,
+            final Map<K, Collection<V>> toMerge) {
+
+        toMerge.forEach((key, valueToMerge) -> accumulator.compute(key, (k, value) -> {
+            if (value == null) {
+                return valueToMerge;
+            } else {
+                final LinkedHashSet<V> mergedValue = new LinkedHashSet<>(value);
+                mergedValue.addAll(valueToMerge);
+                return mergedValue;
+            }
+        }));
     }
 }
