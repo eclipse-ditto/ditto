@@ -61,7 +61,6 @@ import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
-import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.server.Route;

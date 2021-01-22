@@ -18,8 +18,11 @@ import java.util.function.Supplier;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.services.utils.config.Version;
+
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigValueFactory;
 
 /**
  * Determines the {@link Config} to use based on the environment we are running in.
@@ -59,6 +62,7 @@ public final class RawConfigSupplier implements Supplier<Config> {
         final Config configWithFallbacks = serviceSpecificEnvironmentConfig
                 .withFallback(getServiceSpecificBaseConfig())
                 .withFallback(getCommonDittoServicesConfig())
+                .withFallback(getAppVersionConfig())
                 .resolve();
 
         return ConfigFactory.load(configWithFallbacks);
@@ -75,6 +79,11 @@ public final class RawConfigSupplier implements Supplier<Config> {
 
     private static Config getCommonDittoServicesConfig() {
         return DittoConfigFactory.fromResource(DITTO_BASE_CONFIG_NAME);
+    }
+
+    private static Config getAppVersionConfig() {
+        return ConfigFactory.empty()
+                .withValue("akka.cluster.app-version", ConfigValueFactory.fromAnyRef(Version.getServiceVersion()));
     }
 
 }

@@ -12,27 +12,21 @@
  */
 package org.eclipse.ditto.services.utils.health.status;
 
-import java.io.InputStream;
-import java.util.Scanner;
-
-import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.services.utils.config.HostNameSupplier;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
+import org.eclipse.ditto.services.utils.config.Version;
 
 /**
  * Helper class providing the status of a Things-Service microservice instance.
  */
 public final class Status {
 
-    private static final String VERSIONS_FILE_NAME = "versions.json";
-
-    private static final JsonObject VERSIONS_JSON;
+    private static final JsonObject STATUS_JSON;
 
     static {
-        final InputStream versionsInputStream = Status.class.getClassLoader().getResourceAsStream(VERSIONS_FILE_NAME);
-        VERSIONS_JSON = JsonFactory.readFrom(new Scanner(versionsInputStream).useDelimiter("\\Z").next()).asObject()
+        STATUS_JSON = Version.getVersionJson()
                 .setValue("hostname", HostNameSupplier.getInstance().get())
                 .setValue("local-address", LocalHostAddressSupplier.getInstance().get())
                 .setValue("instance", InstanceIdentifierSupplier.getInstance().get())
@@ -41,13 +35,13 @@ public final class Status {
     }
 
     /**
-     * Returns the static status of this instance as loaded from {@value #VERSIONS_FILE_NAME} file in the classpath +
+     * Returns the static status of this instance as loaded from {@link Version#getVersionJson()} +
      * calculated JVM specific values determined at startup.
      *
      * @return the static status of this instance.
      */
     public static JsonObject provideStaticStatus() {
-        return VERSIONS_JSON;
+        return STATUS_JSON;
     }
 
     private Status() {
