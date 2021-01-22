@@ -18,7 +18,7 @@ The upcoming version of Eclipse Ditto **2.0.0** will be enhanced with the abilit
 This new concept of [Policy actions](basic-policy.html#actions) allows upfront defined modifications to policies without 
 the need for the one invoking the action to have "WRITE" permissions granted on the policy.
 
-## Activate token based activation of subject
+## Token based activation of subject
 
 Together with the concept of actions, a first action named 
 [`activateTokenIntegration`](basic-policy.html#action-activatetokenintegration) is added.  
