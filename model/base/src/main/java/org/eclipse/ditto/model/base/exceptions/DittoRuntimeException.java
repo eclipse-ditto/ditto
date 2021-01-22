@@ -374,12 +374,13 @@ public class DittoRuntimeException extends RuntimeException
         return Objects.equals(errorCode, that.errorCode) &&
                 Objects.equals(httpStatus, that.httpStatus) &&
                 Objects.equals(description, that.description) &&
+                Objects.equals(getMessage(), that.getMessage()) &&
                 Objects.equals(href, that.href);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(errorCode, httpStatus, description, href);
+        return Objects.hash(errorCode, httpStatus, description, getMessage(), href);
     }
 
     /**

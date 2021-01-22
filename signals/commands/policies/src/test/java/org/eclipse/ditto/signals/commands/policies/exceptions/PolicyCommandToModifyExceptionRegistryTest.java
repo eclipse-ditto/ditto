@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.signals.commands.policies.exceptions;
 
-
 import static org.eclipse.ditto.model.base.assertions.DittoBaseAssertions.assertThat;
 
 import java.util.HashSet;
@@ -41,17 +40,17 @@ public final class PolicyCommandToModifyExceptionRegistryTest {
 
     @Test
     public void mapModifyResourceToResourceNotModifiable() {
-        final PolicyId policyId = PolicyId.of("ns", "policyId");
-        final ModifyResource modifyResource = ModifyResource.of(policyId, Label.of("myLabel"),
+        final ModifyResource modifyResource = ModifyResource.of(PolicyId.of("ns", "policyId"),
+                Label.of("myLabel"),
                 Resource.newInstance("thing", "/", EffectedPermissions.newInstance(new HashSet<>(), new HashSet<>())),
-                DittoHeaders.empty());
+                DittoHeaders.newBuilder().randomCorrelationId().build());
 
-        final DittoRuntimeException mappedException = registryUnderTest.exceptionFrom(modifyResource);
         final DittoRuntimeException expectedException = ResourceNotModifiableException
-                .newBuilder(policyId, "myLabel", "/")
+                .newBuilder(modifyResource.getEntityId(), modifyResource.getLabel(), modifyResource.getResourcePath())
+                .dittoHeaders(modifyResource.getDittoHeaders())
                 .build();
 
-        assertThat(mappedException).isEqualTo(expectedException);
+        assertThat(registryUnderTest.exceptionFrom(modifyResource)).isEqualTo(expectedException);
     }
 
 }

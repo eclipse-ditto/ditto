@@ -35,11 +35,11 @@ public final class FeatureDefinitionNotAccessibleExceptionTest {
             .set(DittoRuntimeException.JsonFields.STATUS, HttpStatus.NOT_FOUND.getCode())
             .set(DittoRuntimeException.JsonFields.ERROR_CODE, FeatureDefinitionNotAccessibleException.ERROR_CODE)
             .set(DittoRuntimeException.JsonFields.MESSAGE,
-                    TestConstants.Feature.FEATURE_PROPERTIES_NOT_ACCESSIBLE_EXCEPTION.getMessage())
+                    TestConstants.Feature.FEATURE_DEFINITION_NOT_ACCESSIBLE_EXCEPTION.getMessage())
             .set(DittoRuntimeException.JsonFields.DESCRIPTION,
-                    TestConstants.Feature.FEATURE_PROPERTIES_NOT_ACCESSIBLE_EXCEPTION.getDescription().get())
+                    TestConstants.Feature.FEATURE_DEFINITION_NOT_ACCESSIBLE_EXCEPTION.getDescription().get())
             .set(DittoRuntimeException.JsonFields.HREF,
-                    TestConstants.Feature.FEATURE_PROPERTIES_NOT_ACCESSIBLE_EXCEPTION.getHref()
+                    TestConstants.Feature.FEATURE_DEFINITION_NOT_ACCESSIBLE_EXCEPTION.getHref()
                             .map(URI::toString).orElse(null))
             .build();
 
@@ -50,8 +50,8 @@ public final class FeatureDefinitionNotAccessibleExceptionTest {
 
     @Test
     public void checkFeatureDefinitionErrorCodeWorks() {
-        final DittoRuntimeException actual =
-                GlobalErrorRegistry.getInstance().parse(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
+        final GlobalErrorRegistry globalErrorRegistry = GlobalErrorRegistry.getInstance();
+        final DittoRuntimeException actual = globalErrorRegistry.parse(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
         assertThat(actual).isEqualTo(TestConstants.Feature.FEATURE_DEFINITION_NOT_ACCESSIBLE_EXCEPTION);
     }
