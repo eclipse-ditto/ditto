@@ -1415,7 +1415,7 @@ paths:
                 serialno: '42'
                 model: Speaking coffee machine
         description: |-
-          JSON object of all attributes to be patched. Consider that the value has to be a [JSON merge patch] (https://tools .ietf.org/html/rfc7396).
+          JSON object of all attributes to be patched. Consider that the value has to be a [JSON merge patch](https://tools .ietf.org/html/rfc7396).
 
             Examples:
               * a simple object: `{ "key": "value"}` - We strongly recommend to use a restricted set of characters for the key (identifier), as the key might be needed for the (URL) path later.<br> Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
@@ -2057,7 +2057,7 @@ paths:
                   status:
                     failState: true
         description: |-
-          JSON object of all features to be patched. Consider that the value has to be a [JSON merge patch] (https://tools .ietf.org/html/rfc7396).
+          JSON object of all features to be patched. Consider that the value has to be a [JSON merge patch](https://tools .ietf.org/html/rfc7396).
 
           Examples:
 
@@ -2374,7 +2374,7 @@ paths:
                 connected: true
                 brewed-coffees: 0
         description: |-
-          JSON representation of the feature to be patched. Consider that the value has to be a [JSON merge patch] (https://tools .ietf.org/html/rfc7396).
+          JSON representation of the feature to be patched. Consider that the value has to be a [JSON merge patch](https://tools .ietf.org/html/rfc7396).
 
           Examples:
           * a nested object with multiple model definitions and multiple properties as shown in the example value field
@@ -2939,7 +2939,7 @@ paths:
         description: |-
           JSON object of all properties to be patched.
 
-          Consider that the value has to be a [JSON merge patch] (https://tools .ietf.org/html/rfc7396). We strongly recommend to use a restricted set of characters for the key (identifier).
+          Consider that the value has to be a [JSON merge patch](https://tools .ietf.org/html/rfc7396). We strongly recommend to use a restricted set of characters for the key (identifier).
 
           Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
         required: true
@@ -3487,7 +3487,7 @@ paths:
         description: |-
           JSON object of all desried properties to be patched.
 
-          Consider that the value has to be a [JSON merge patch] (https://tools .ietf.org/html/rfc7396). We strongly recommend to use
+          Consider that the value has to be a [JSON merge patch](https://tools .ietf.org/html/rfc7396). We strongly recommend to use
           a restricted set of characters for the key (identifier).
 
           Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
