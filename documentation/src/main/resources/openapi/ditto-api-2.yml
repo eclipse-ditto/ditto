@@ -953,8 +953,10 @@ paths:
               $ref: '#/components/schemas/Definition'
             example: '"example:test:definition"'
         description: |-
-          JSON string representation of the definition to be patched. Consider that the value has to be a JSON string,
-          examples:
+          JSON string representation of the definition to be patched.
+
+          Consider that the value has to be a JSON string.
+          Examples:
 
             * an string: `"value"` - Currently the definition should follow the pattern: [_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]:[_a-zA-Z0-9\-]
             * an empty string: `""`
