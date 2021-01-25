@@ -35,6 +35,8 @@ The provider micro-service hooks into a twin (e.g. via websockets) and listens f
 
 With this approach the access to the database is secured via Ditto [policies](basic-policy.html) and in scope of single things while the data retrieval happens via a performant proxy application without the Ditto cluster ever seeing those packages.
 
+*Note: Keep in mind that security in this situation is highly dependent of the micro-service implementation. You have to make sure that you implementation uses provided information of ditto properly and that the contents of a message do not allow a violation of the policy. E.g. through SQL-Injections.*
+
 ## Discussion
 
 **Benefits**:
