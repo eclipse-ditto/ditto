@@ -207,7 +207,8 @@ paths:
         Optionally, you can use the field selectors (see parameter `fields`) to only get specific
         fields, which you are interested in.
 
-        Example: Use the field selector `_policy` to retrieve the content of the policy.
+        ### Example:
+        Use the field selector `_policy` to retrieve the content of the policy.
       tags:
         - Things
       parameters:
@@ -270,7 +271,7 @@ paths:
         At the initial creation of a thing, only a valid `thingId` is required.
         However, you can create a full-fledged thing all at once.
 
-        Example:
+        ### Example:
         To create a coffee maker thing, set the `thingId` in the path, e.g. to "com.acme.coffeemaker:BE-42"
         and the body part, like in the following snippet.
 
@@ -504,7 +505,8 @@ paths:
         For further documentation of JSON merge patch see [RFC 7396](https://tools.ietf.org/html/rfc7396).
 
 
-        For example, a Thing already exists with this content:
+        ### Example
+        A Thing already exists with the following content:
 
         ```
         {
@@ -1474,7 +1476,8 @@ paths:
 
         The attribute (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
 
-        Example:
+        ### Example:
+
         In order to retrieve the `name` field of an `manufacturer` attribute,
         the full path would be `/things/{thingId}/attributes/manufacturer/name`
       tags:
@@ -1530,7 +1533,9 @@ paths:
 
         The attribute (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
 
-        Example: In order to put the `name` field of an `manufacturer` attribute, the full path would be
+        ### Example:
+
+        In order to put the `name` field of an `manufacturer` attribute, the full path would be
         `/things/{thingId}/attributes/manufacturer/name`
       tags:
         - Things
@@ -1613,7 +1618,7 @@ paths:
 
         The attribute (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
 
-        Examples:
+        ### Example:
 
         In order to patch the `name` field of an `manufacturer` attribute, the full path would be
         `/things/{thingId}/attributes/manufacturer/name`
@@ -1680,7 +1685,9 @@ paths:
 
         The attribute (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
 
-        Example: In order to delete the `name` field of an `manufacturer` attribute, the full path would be
+        ### Example:
+
+        In order to delete the `name` field of an `manufacturer` attribute, the full path would be
         `/things/{thingId}/attributes/manufacturer/name`
       tags:
         - Things
@@ -1807,7 +1814,7 @@ paths:
         but the content will be **overwritten**.
         If you need to update single features or their paths, please use the sub-resources instead.
 
-        Example:
+        ### Example:
 
         ```
         {
@@ -2051,6 +2058,7 @@ paths:
           JSON object of all features to be patched. Consider that the value has to be a [JSON merge patch] (https://tools .ietf.org/html/rfc7396).
 
           Examples:
+
           * a nested object with multiple features as shown in the example value field
 
           * **Note**: To delete certain entries of a feature the `null` value can be used.
@@ -2170,7 +2178,8 @@ paths:
         If the feature ID is used already in this thing, the feature will be overwrittern
         with the content from the JSON body.
 
-        Example: Set the `featureId` to **coffee-brewer** and all properties in the body part.
+        ### Example:
+        Set the `featureId` to **coffee-brewer** and all properties in the body part.
 
         ```
         {
@@ -4273,7 +4282,7 @@ paths:
         By default the authorized subject needs WRITE permission on the root resource of the created policy.
         You can however omit this check by setting the parameter `allow-policy-lockout` to `true`.
 
-        Example: To create a policy for multiple coffee maker things,
+        ### Example: To create a policy for multiple coffee maker things,
         which gives **yourself** all permissions on all resources, set the policyId in the path,
         e.g. to "com.acme.coffeemaker:policy-01" and the body part, like in the following snippet.
 
@@ -4634,7 +4643,7 @@ paths:
         Returns all entries (subjects, resources, etc.) of the policy identified by the `policyId` path parameter,
         and by the `label` path parameter.
 
-        Example label: DEFAULT.
+        ### Example label: DEFAULT.
       tags:
         - Policies
       parameters:
@@ -5921,7 +5930,7 @@ components:
       description: |-
         JSON object of all attributes to be modified at once. Consider that the value has to be a JSON object or `null`.
 
-        Examples:
+        ### Examples:
          * an empty object: `{}` - would just delete all old attributes
          * a simple object: `{ "key": "value"}` - We strongly recommend to use a restricted set of characters for the key (identifier), as the key might be needed for the (URL) path later.<br> Currently these identifiers should follow the pattern: [_a-zA-Z][_a-zA-Z0-9\-]*
          * a nested object as shown in the example value
