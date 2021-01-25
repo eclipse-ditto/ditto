@@ -37,7 +37,7 @@ final class SudoRetrievePolicyStrategy extends AbstractPolicyQueryCommandStrateg
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+    protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy entity,
             final long nextRevision,
             final SudoRetrievePolicy command,

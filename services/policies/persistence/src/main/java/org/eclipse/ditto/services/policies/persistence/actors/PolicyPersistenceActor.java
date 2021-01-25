@@ -48,7 +48,6 @@ import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersiste
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
-import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
@@ -64,7 +63,7 @@ import akka.persistence.RecoveryCompleted;
  * PersistentActor which "knows" the state of a single {@link Policy}.
  */
 public final class PolicyPersistenceActor
-        extends AbstractShardedPersistenceActor<Command, Policy, PolicyId, PolicyId, PolicyEvent> {
+        extends AbstractShardedPersistenceActor<Command<?>, Policy, PolicyId, PolicyId, PolicyEvent<?>> {
 
     /**
      * The prefix of the persistenceId for Policies.
@@ -128,7 +127,7 @@ public final class PolicyPersistenceActor
     }
 
     @Override
-    protected Class<PolicyEvent> getEventClass() {
+    protected Class<?> getEventClass() {
         return PolicyEvent.class;
     }
 
@@ -139,16 +138,16 @@ public final class PolicyPersistenceActor
 
     @Override
     protected PolicyCommandStrategies getCreatedStrategy() {
-        return PolicyCommandStrategies.getInstance(policyConfig);
+        return PolicyCommandStrategies.getInstance(policyConfig, getContext().getSystem());
     }
 
     @Override
-    protected CommandStrategy<? extends Command, Policy, PolicyId, Result<PolicyEvent>> getDeletedStrategy() {
+    protected CommandStrategy<? extends Command<?>, Policy, PolicyId, PolicyEvent<?>> getDeletedStrategy() {
         return PolicyCommandStrategies.getCreatePolicyStrategy(policyConfig);
     }
 
     @Override
-    protected EventStrategy<PolicyEvent, Policy> getEventStrategy() {
+    protected EventStrategy<PolicyEvent<?>, Policy> getEventStrategy() {
         return PolicyEventStrategies.getInstance();
     }
 
@@ -168,12 +167,12 @@ public final class PolicyPersistenceActor
     }
 
     @Override
-    protected DittoRuntimeExceptionBuilder newNotAccessibleExceptionBuilder() {
+    protected DittoRuntimeExceptionBuilder<?> newNotAccessibleExceptionBuilder() {
         return PolicyNotAccessibleException.newBuilder(entityId);
     }
 
     @Override
-    protected void publishEvent(final PolicyEvent event) {
+    protected void publishEvent(final PolicyEvent<?> event) {
         pubSubMediator.tell(DistPubSubAccess.publishViaGroup(PolicyEvent.TYPE_PREFIX, event), getSender());
 
         final boolean policyEnforcerInvalidatedPreemptively = Boolean.parseBoolean(event.getDittoHeaders()
@@ -227,7 +226,7 @@ public final class PolicyPersistenceActor
                 final Duration scheduleTimeout = durationBetweenNowAndEarliestExpiry.compareTo(oneDay) < 0 ?
                         durationBetweenNowAndEarliestExpiry : oneDay;
                 log.info("Scheduling message for deleting next expired subject in: <{}> - " +
-                                "earliest expiry is at: <{}>", scheduleTimeout, earliestExpiry);
+                        "earliest expiry is at: <{}>", scheduleTimeout, earliestExpiry);
                 timers().startSingleTimer(NEXT_SUBJECT_EXPIRY_TIMER, DeleteOldestExpiredSubject.INSTANCE,
                         scheduleTimeout);
             }
@@ -238,11 +237,11 @@ public final class PolicyPersistenceActor
         log.debug("Calculating whether subjects did expire and need to be deleted..");
         calculateSubjectDeletedEventOfOldestExpiredSubject(entityId, entity)
                 .ifPresentOrElse(subjectDeleted ->
-                        persistAndApplyEvent(subjectDeleted, (persistedEvent, resultingEntity) ->
-                                log.withCorrelationId(persistedEvent)
-                                        .info("Deleted expired subject <{}> of label <{}>",
-                                                subjectDeleted.getSubjectId(), subjectDeleted.getLabel())
-                        ),
+                                persistAndApplyEvent(subjectDeleted, (persistedEvent, resultingEntity) ->
+                                        log.withCorrelationId(persistedEvent)
+                                                .info("Deleted expired subject <{}> of label <{}>",
+                                                        subjectDeleted.getSubjectId(), subjectDeleted.getLabel())
+                                ),
                         this::scheduleNextSubjectExpiryCheck
                 );
     }
@@ -306,6 +305,7 @@ public final class PolicyPersistenceActor
     }
 
     private static final class DeleteOldestExpiredSubject {
+
         private static final DeleteOldestExpiredSubject INSTANCE = new DeleteOldestExpiredSubject();
     }
 }

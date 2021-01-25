@@ -44,6 +44,7 @@ import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CacheFactory;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
+import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -108,11 +109,12 @@ final class EnforcementFlow {
         final Duration askTimeout = updaterStreamConfig.getAskTimeout();
         final StreamCacheConfig streamCacheConfig = updaterStreamConfig.getCacheConfig();
 
-        final AsyncCacheLoader<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCacheLoader =
+        final AsyncCacheLoader<EntityIdWithResourceType, Entry<PolicyEnforcer>> policyEnforcerCacheLoader =
                 new PolicyEnforcerCacheLoader(askTimeout, policiesShardRegion);
         final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache =
                 CacheFactory.createCache(policyEnforcerCacheLoader, streamCacheConfig,
-                        EnforcementFlow.class.getCanonicalName() + ".cache", cacheDispatcher);
+                        EnforcementFlow.class.getCanonicalName() + ".cache", cacheDispatcher)
+                        .projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
 
         return new EnforcementFlow(thingsShardRegion, policyEnforcerCache, askTimeout,
                 streamCacheConfig.getRetryDelay(), updaterStreamConfig.getMaxArraySize(), deleteEvent);

@@ -34,7 +34,9 @@ import org.eclipse.ditto.services.concierge.enforcement.placeholders.strategies.
  * its {@link DittoHeaders}.
  */
 @Immutable
-public final class PlaceholderSubstitution implements Function<WithDittoHeaders, CompletionStage<WithDittoHeaders>>  {
+public final class PlaceholderSubstitution
+        implements Function<WithDittoHeaders<?>, CompletionStage<WithDittoHeaders<?>>> {
+
     private final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm;
     private final SubstitutionStrategyRegistry substitutionStrategyRegistry;
 
@@ -90,8 +92,7 @@ public final class PlaceholderSubstitution implements Function<WithDittoHeaders,
         if (firstMatchingStrategyOpt.isPresent()) {
             final SubstitutionStrategy firstMatchingStrategy = firstMatchingStrategyOpt.get();
             return CompletableFuture.supplyAsync(() -> {
-                @SuppressWarnings("unchecked")
-                final WithDittoHeaders maybeSubstituted =
+                @SuppressWarnings("unchecked") final WithDittoHeaders maybeSubstituted =
                         firstMatchingStrategy.apply(withDittoHeaders, substitutionAlgorithm);
 
                 return maybeSubstituted;
@@ -103,7 +104,8 @@ public final class PlaceholderSubstitution implements Function<WithDittoHeaders,
 
     private static Map<String, Function<DittoHeaders, String>> createDefaultReplacementDefinitions() {
         final Map<String, Function<DittoHeaders, String>> defaultReplacementDefinitions = new LinkedHashMap<>();
-        defaultReplacementDefinitions.put(SubjectIdReplacementDefinition.REPLACER_NAME, SubjectIdReplacementDefinition.getInstance());
+        defaultReplacementDefinitions.put(SubjectIdReplacementDefinition.REPLACER_NAME,
+                SubjectIdReplacementDefinition.getInstance());
         defaultReplacementDefinitions.put(SubjectIdReplacementDefinition.LEGACY_REPLACER_NAME,
                 SubjectIdReplacementDefinition.getInstance());
         return Collections.unmodifiableMap(defaultReplacementDefinitions);

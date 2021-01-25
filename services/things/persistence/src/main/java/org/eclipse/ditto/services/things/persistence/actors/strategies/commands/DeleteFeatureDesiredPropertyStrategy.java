@@ -46,7 +46,7 @@ final class DeleteFeatureDesiredPropertyStrategy extends AbstractThingCommandStr
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final DeleteFeatureDesiredProperty command,
@@ -65,7 +65,7 @@ final class DeleteFeatureDesiredPropertyStrategy extends AbstractThingCommandStr
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getDeleteFeatureDesiredPropertyResult(final Feature feature,
+    private Result<ThingEvent<?>> getDeleteFeatureDesiredPropertyResult(final Feature feature,
             final Context<ThingId> context,
             final long nextRevision,
             final DeleteFeatureDesiredProperty command,
@@ -79,11 +79,11 @@ final class DeleteFeatureDesiredPropertyStrategy extends AbstractThingCommandStr
 
         return feature.getDesiredProperties()
                 .flatMap(desiredProperties -> desiredProperties.getValue(desiredPropertyPointer))
-                .map(FeatureDesiredProperty -> {
-                    final ThingEvent event =
+                .<Result<ThingEvent<?>>>map(FeatureDesiredProperty -> {
+                    final ThingEvent<?> event =
                             FeatureDesiredPropertyDeleted.of(thingId, featureId, desiredPropertyPointer, nextRevision,
                                     getEventTimestamp(), dittoHeaders, metadata);
-                    final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                    final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
                             DeleteFeatureDesiredPropertyResponse.of(thingId, featureId, desiredPropertyPointer,
                                     dittoHeaders), thing);
                     return ResultFactory.newMutationResult(command, event, response);

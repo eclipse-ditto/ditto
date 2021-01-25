@@ -50,12 +50,12 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinition;
 
 
 public final class ThingCommandToModifyExceptionRegistry
-        extends AbstractCommandToExceptionRegistry<ThingCommand, DittoRuntimeException> {
+        extends AbstractCommandToExceptionRegistry<ThingCommand<?>, DittoRuntimeException> {
 
     private static final ThingCommandToModifyExceptionRegistry INSTANCE = createInstance();
 
     private ThingCommandToModifyExceptionRegistry(
-            final Map<String, Function<ThingCommand, DittoRuntimeException>> mappingStrategies) {
+            final Map<String, Function<ThingCommand<?>, DittoRuntimeException>> mappingStrategies) {
         super(mappingStrategies);
     }
 
@@ -69,7 +69,7 @@ public final class ThingCommandToModifyExceptionRegistry
     }
 
     private static ThingCommandToModifyExceptionRegistry createInstance() {
-        final Map<String, Function<ThingCommand, DittoRuntimeException>> mappingStrategies = new HashMap<>();
+        final Map<String, Function<ThingCommand<?>, DittoRuntimeException>> mappingStrategies = new HashMap<>();
 
         // modify
         mappingStrategies.put(CreateThing.TYPE,
@@ -199,7 +199,7 @@ public final class ThingCommandToModifyExceptionRegistry
     }
 
     @Override
-    protected DittoRuntimeException fallback(final ThingCommand command) {
+    protected DittoRuntimeException fallback(final ThingCommand<?> command) {
         return ThingNotModifiableException.newBuilder(command.getThingEntityId())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();

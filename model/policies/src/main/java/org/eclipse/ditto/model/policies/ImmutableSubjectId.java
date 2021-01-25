@@ -84,6 +84,8 @@ final class ImmutableSubjectId implements SubjectId {
 
         if (Placeholders.containsAnyPlaceholder(subjectIssuerWithId)) {
             // in case of placeholders, just use the whole input as subject, use an empty issuer
+            //  reason: the placeholder contains a ":" which would conflict with the ISSUE_DELIMITER separating the
+            //  issuer fom the subject
             return of(EMPTY_ISSUER, subjectIssuerWithId);
         }
 

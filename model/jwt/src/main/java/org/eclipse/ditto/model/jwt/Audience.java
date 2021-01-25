@@ -69,7 +69,7 @@ public final class Audience {
      *
      * @return the empty audience.
      */
-    static Audience empty() {
+    public static Audience empty() {
         return new Audience(Collections.emptyList());
     }
 

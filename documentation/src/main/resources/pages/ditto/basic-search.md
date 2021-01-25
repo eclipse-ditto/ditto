@@ -36,7 +36,7 @@ will not reflect that change in that instant. The change will most likely be ref
 1-2 seconds. In rare cases the duration until consistency is reached again might be higher.
 
 If it is important to know when a twin modification is reflected in the search index, request the
-[built-in acknowledgement](#built-in-acknowledgement-labels) `search-persisted` in the corresponding command.
+[built-in acknowledgement](basic-acknowledgements.html#built-in-acknowledgement-labels) `search-persisted` in the corresponding command.
 Search index update is successful if the status code of `search-persisted` in the command response is 204 "no content".
 Status codes at or above 400 indicate failed search index update due to client or server errors.
 

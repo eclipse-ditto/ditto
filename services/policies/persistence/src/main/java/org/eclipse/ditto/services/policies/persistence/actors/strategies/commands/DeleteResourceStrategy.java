@@ -39,14 +39,14 @@ import org.eclipse.ditto.signals.events.policies.ResourceDeleted;
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.modify.DeleteResource} command.
  */
-final class DeleteResourceStrategy extends AbstractPolicyCommandStrategy<DeleteResource> {
+final class DeleteResourceStrategy extends AbstractPolicyCommandStrategy<DeleteResource, PolicyEvent<?>> {
 
     DeleteResourceStrategy(final PolicyConfig policyConfig) {
         super(DeleteResource.class, policyConfig);
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+    protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy policy,
             final long nextRevision,
             final DeleteResource command,

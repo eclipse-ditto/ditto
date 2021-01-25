@@ -46,7 +46,7 @@ final class DeleteFeatureDesiredPropertiesStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final DeleteFeatureDesiredProperties command,
@@ -67,7 +67,7 @@ final class DeleteFeatureDesiredPropertiesStrategy
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getDeleteFeatureDesiredPropertiesResult(final Feature feature,
+    private Result<ThingEvent<?>> getDeleteFeatureDesiredPropertiesResult(final Feature feature,
             final Context<ThingId> context,
             final long nextRevision,
             final DeleteFeatureDesiredProperties command,
@@ -80,12 +80,12 @@ final class DeleteFeatureDesiredPropertiesStrategy
 
         return feature.getDesiredProperties()
                 .map(desiredProperties -> {
-                    final ThingEvent event =
+                    final ThingEvent<?> event =
                             FeatureDesiredPropertiesDeleted.of(thingId, featureId, nextRevision, getEventTimestamp(),
                                     dittoHeaders, metadata);
-                    final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                    final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
                             DeleteFeatureDesiredPropertiesResponse.of(thingId, featureId, dittoHeaders), thing);
-                    return ResultFactory.newMutationResult(command, event, response);
+                    return ResultFactory.<ThingEvent<?>>newMutationResult(command, event, response);
                 })
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureDesiredPropertiesNotFound(thingId, featureId, dittoHeaders), command));

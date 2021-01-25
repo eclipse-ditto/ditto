@@ -31,6 +31,6 @@ public interface JwtAuthenticationResultProvider {
      * @return the authentication result based on the given JSON web token.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    AuthenticationResult getAuthenticationResult(JsonWebToken jwt, DittoHeaders dittoHeaders);
+    JwtAuthenticationResult getAuthenticationResult(JsonWebToken jwt, DittoHeaders dittoHeaders);
 
 }

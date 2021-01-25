@@ -45,7 +45,7 @@ final class DeleteFeatureDefinitionStrategy extends AbstractThingCommandStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final DeleteFeatureDefinition command,
@@ -60,7 +60,7 @@ final class DeleteFeatureDefinitionStrategy extends AbstractThingCommandStrategy
                                 command.getDittoHeaders()), command));
     }
 
-    private Result<ThingEvent> getDeleteFeatureDefinitionResult(final Feature feature, final Context<ThingId> context,
+    private Result<ThingEvent<?>> getDeleteFeatureDefinitionResult(final Feature feature, final Context<ThingId> context,
             final long nextRevision, final DeleteFeatureDefinition command, @Nullable final Thing thing,
             @Nullable final Metadata metadata) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
@@ -70,12 +70,12 @@ final class DeleteFeatureDefinitionStrategy extends AbstractThingCommandStrategy
 
         return feature.getDefinition()
                 .map(featureDefinition -> {
-                    final ThingEvent event =
+                    final ThingEvent<?> event =
                             FeatureDefinitionDeleted.of(thingId, featureId, nextRevision, getEventTimestamp(),
                                     dittoHeaders, metadata);
-                    final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                    final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
                             DeleteFeatureDefinitionResponse.of(thingId, featureId, dittoHeaders), thing);
-                    return ResultFactory.newMutationResult(command, event, response);
+                    return ResultFactory.<ThingEvent<?>>newMutationResult(command, event, response);
                 })
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureDefinitionNotFound(thingId, featureId, dittoHeaders), command));

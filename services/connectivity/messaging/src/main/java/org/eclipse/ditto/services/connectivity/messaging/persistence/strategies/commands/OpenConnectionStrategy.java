@@ -48,7 +48,7 @@ final class OpenConnectionStrategy extends AbstractConnectivityCommandStrategy<O
     }
 
     @Override
-    protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
+    protected Result<ConnectivityEvent<?>> doApply(final Context<ConnectionState> context,
             @Nullable final Connection connection,
             final long nextRevision,
             final OpenConnection command,

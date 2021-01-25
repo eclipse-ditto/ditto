@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  * @param <S> the type of the entity
  */
 @Immutable
-public abstract class AbstractEventStrategies<E extends Event, S> implements EventStrategy<E, S> {
+public abstract class AbstractEventStrategies<E extends Event<?>, S> implements EventStrategy<E, S> {
 
     protected final Logger log = LoggerFactory.getLogger(getClass());
 

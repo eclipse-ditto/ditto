@@ -14,17 +14,32 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
 
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.jwt.JsonWebToken;
+import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
+import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
+import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationResult;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
+import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.actions.TopLevelPolicyActionCommand;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyIdNotExplicitlySettableException;
 import org.eclipse.ditto.signals.commands.policies.modify.DeletePolicy;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy;
@@ -41,10 +56,15 @@ import akka.http.javadsl.server.Route;
  */
 public final class PoliciesRoute extends AbstractRoute {
 
+    private static final String PATH_ACTIONS = "actions";
+
     private static final String PATH_POLICIES = "policies";
     private static final String PATH_ENTRIES = "entries";
 
+    private static final Label DUMMY_LABEL = Label.of("-");
+
     private final PolicyEntriesRoute policyEntriesRoute;
+    private final TokenIntegrationSubjectIdFactory tokenIntegrationSubjectIdFactory;
 
     /**
      * Constructs the {@code /policies} route builder.
@@ -54,18 +74,22 @@ public final class PoliciesRoute extends AbstractRoute {
      * @param httpConfig the configuration settings of the Gateway service's HTTP endpoint.
      * @param commandConfig the configuration settings of the Gateway service's incoming command processing.
      * @param headerTranslator translates headers from external sources or to external sources.
+     * @param tokenIntegrationSubjectIdFactory factory of resolvers for placeholders.
      * @throws NullPointerException if any argument is {@code null}.
      */
     public PoliciesRoute(final ActorRef proxyActor,
             final ActorSystem actorSystem,
             final HttpConfig httpConfig,
             final CommandConfig commandConfig,
-            final HeaderTranslator headerTranslator) {
+            final HeaderTranslator headerTranslator,
+            final TokenIntegrationSubjectIdFactory tokenIntegrationSubjectIdFactory) {
 
         super(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
+        this.tokenIntegrationSubjectIdFactory = tokenIntegrationSubjectIdFactory;
 
         policyEntriesRoute =
-                new PolicyEntriesRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator);
+                new PolicyEntriesRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator,
+                        tokenIntegrationSubjectIdFactory);
     }
 
     /**
@@ -73,19 +97,22 @@ public final class PoliciesRoute extends AbstractRoute {
      *
      * @return the {@code /policies} route.
      */
-    public Route buildPoliciesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders) {
+    public Route buildPoliciesRoute(final RequestContext ctx, final DittoHeaders dittoHeaders,
+            final AuthenticationResult authenticationResult) {
         return rawPathPrefix(PathMatchers.slash().concat(PATH_POLICIES), () ->
                 rawPathPrefix(PathMatchers.slash().concat(PathMatchers.segment()), policyId ->
                         // /policies/<policyId>
-                        policyRoute(ctx, dittoHeaders, PolicyId.of(policyId))
+                        policyRoute(ctx, dittoHeaders, PolicyId.of(policyId), authenticationResult)
                 )
         );
     }
 
-    private Route policyRoute(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId) {
+    private Route policyRoute(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId,
+            final AuthenticationResult authenticationResult) {
         return concat(
-                policyEntry(ctx, dittoHeaders, policyId),
-                policyEntryEntries(ctx, dittoHeaders, policyId)
+                policyId(ctx, dittoHeaders, policyId),
+                policyEntries(ctx, dittoHeaders, policyId, authenticationResult),
+                policyActions(ctx, dittoHeaders, policyId, authenticationResult)
         );
     }
 
@@ -93,7 +120,7 @@ public final class PoliciesRoute extends AbstractRoute {
      * Describes {@code /policies/<policyId>} route.
      * @return {@code /policies/<policyId>} route.
      */
-    private Route policyEntry(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId) {
+    private Route policyId(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId) {
         return pathEndOrSingleSlash(() ->
                 concat(
                         get(() -> // GET /policies/<policyId>
@@ -134,11 +161,74 @@ public final class PoliciesRoute extends AbstractRoute {
      *
      * @return {@code /policies/<policyId>/entries} route.
      */
-    private Route policyEntryEntries(final RequestContext ctx, final DittoHeaders dittoHeaders,
-            final PolicyId policyId) {
+    private Route policyEntries(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId,
+            final AuthenticationResult authResult) {
         return rawPathPrefix(PathMatchers.slash().concat(PATH_ENTRIES), () -> // /policies/<policyId>/entries
-                policyEntriesRoute.buildPolicyEntriesRoute(ctx, dittoHeaders, policyId)
+                policyEntriesRoute.buildPolicyEntriesRoute(ctx, dittoHeaders, policyId, authResult)
         );
+    }
+
+    /*
+     * Describes{@code /policies/<policyId>/actions} route.
+     */
+    private Route policyActions(final RequestContext ctx, final DittoHeaders dittoHeaders, final PolicyId policyId,
+            final AuthenticationResult authenticationResult) {
+
+        return rawPathPrefix(PathMatchers.slash().concat(PATH_ACTIONS), () -> concat(
+                // POST /policies/<policyId>/actions/activateTokenIntegration
+                rawPathPrefix(PathMatchers.slash().concat(ActivateTokenIntegration.NAME), () ->
+                        pathEndOrSingleSlash(() ->
+                                extractJwt(dittoHeaders, authenticationResult, ActivateTokenIntegration.NAME, jwt ->
+                                        post(() -> handlePerRequest(ctx, topLevelActivateTokenIntegration(
+                                                dittoHeaders, policyId, jwt)))
+                                )
+                        )
+                ),
+                // POST /policies/<policyId>/actions/deactivateTokenIntegration
+                rawPathPrefix(PathMatchers.slash().concat(DeactivateTokenIntegration.NAME), () ->
+                        pathEndOrSingleSlash(() ->
+                                extractJwt(dittoHeaders, authenticationResult, DeactivateTokenIntegration.NAME, jwt ->
+                                        post(() -> handlePerRequest(ctx, topLevelDeactivateTokenIntegration(
+                                                dittoHeaders, policyId, jwt)))
+                                )
+                        )
+                )
+        ));
+    }
+
+    private TopLevelPolicyActionCommand topLevelActivateTokenIntegration(final DittoHeaders dittoHeaders,
+            final PolicyId policyId, final JsonWebToken jwt) {
+
+        final Set<SubjectId> subjectIds = tokenIntegrationSubjectIdFactory.getSubjectIds(dittoHeaders, jwt);
+        final Instant expiry = jwt.getExpirationTime();
+        final ActivateTokenIntegration activateTokenIntegration =
+                ActivateTokenIntegration.of(policyId, DUMMY_LABEL, subjectIds, expiry, dittoHeaders);
+        return TopLevelPolicyActionCommand.of(activateTokenIntegration, List.of());
+    }
+
+    private TopLevelPolicyActionCommand topLevelDeactivateTokenIntegration(final DittoHeaders dittoHeaders,
+            final PolicyId policyId, final JsonWebToken jwt) {
+
+        final Set<SubjectId> subjectIds = tokenIntegrationSubjectIdFactory.getSubjectIds(dittoHeaders, jwt);
+        final DeactivateTokenIntegration deactivateTokenIntegration =
+                DeactivateTokenIntegration.of(policyId, DUMMY_LABEL, subjectIds, dittoHeaders);
+        return TopLevelPolicyActionCommand.of(deactivateTokenIntegration, List.of());
+    }
+
+    static Route extractJwt(final DittoHeaders dittoHeaders,
+            final AuthenticationResult authResult,
+            final String actionName,
+            final Function<JsonWebToken, Route> inner) {
+
+        if (authResult instanceof JwtAuthenticationResult) {
+            final Optional<JsonWebToken> jwtOptional = ((JwtAuthenticationResult) authResult).getJwt();
+            if (jwtOptional.isPresent()) {
+                return inner.apply(jwtOptional.get());
+            }
+        }
+        throw PolicyActionFailedException.newBuilderForInappropriateAuthenticationMethod(actionName)
+                .dittoHeaders(dittoHeaders)
+                .build();
     }
 
 }

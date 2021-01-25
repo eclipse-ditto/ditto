@@ -1,0 +1,43 @@
+# Copyright (c) 2021 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+post:
+  summary: Activate a subject for this policy entry derived from the token
+  description: |-
+    **This action only works when authenticated with a Json Web Token (JWT).**
+
+    Based on the authenticated token (JWT), **this policy entry** is checked to match those conditions:
+    * the authenticated token is granted the `EXECUTE` permission to perform the `activateTokenIntegration` action
+    * one of the subject IDs is contained in the authenticated token
+    * at least one `READ` permission to a `thing:/` resource path is granted
+
+    When all conditions match, a new subject is **injected into this policy entry** calculated with information
+    extracted from the authenticated JWT.
+
+    The injected subjects expire when the JWT expires.
+  tags:
+    - Policies
+  parameters:
+    - $ref: '../../parameters/policyIdPathParam.yml'
+    - $ref: '../../parameters/labelPathParam.yml'
+  responses:
+    '204':
+      description: The request was successful. The subject was injected.
+    '400':
+      description: The request could not be completed because the authentication was not performed with a JWT.
+    '403':
+      description: |-
+        The request could not be completed because the authenticated JWT did not have the `EXECUTE` permission on this
+        policy entry.
+    '404':
+      description: |-
+        The request could not be completed because this policy entry did not match the following conditions:
+        * containing a a subject ID matching the JWT's authenticated subject
+        * containing a `READ` permission granted to a `thing:/` resource path

@@ -44,7 +44,7 @@ final class RetrieveAttributesStrategy extends AbstractThingCommandStrategy<Retr
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final RetrieveAttributes command,
@@ -56,7 +56,7 @@ final class RetrieveAttributesStrategy extends AbstractThingCommandStrategy<Retr
         return extractAttributes(thing)
                 .map(attributes -> getAttributesJson(attributes, command))
                 .map(attributesJson -> RetrieveAttributesResponse.of(thingId, attributesJson, dittoHeaders))
-                .<Result<ThingEvent>>map(response ->
+                .<Result<ThingEvent<?>>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing))
                 )
                 .orElseGet(() ->

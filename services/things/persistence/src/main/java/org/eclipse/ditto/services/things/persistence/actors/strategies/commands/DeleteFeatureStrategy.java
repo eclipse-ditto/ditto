@@ -45,7 +45,7 @@ final class DeleteFeatureStrategy extends AbstractThingCommandStrategy<DeleteFea
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final DeleteFeature command,
@@ -67,7 +67,7 @@ final class DeleteFeatureStrategy extends AbstractThingCommandStrategy<DeleteFea
                 .flatMap(features -> features.getFeature(featureId));
     }
 
-    private Result<ThingEvent> getDeleteFeatureResult(final Context<ThingId> context, final long nextRevision,
+    private Result<ThingEvent<?>> getDeleteFeatureResult(final Context<ThingId> context, final long nextRevision,
             final DeleteFeature command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
 
         final ThingId thingId = context.getState();

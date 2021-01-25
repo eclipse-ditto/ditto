@@ -22,6 +22,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.events.base.Event;
 
 /**
  * This <em>Singleton</em> delegates a {@code Command} to a dedicated strategy - if one is available - to be handled.
@@ -29,13 +30,13 @@ import org.eclipse.ditto.signals.commands.base.Command;
  * @param <C> the type of the handled command
  * @param <S> the type of the managed entity
  * @param <K> the type of the context
- * @param <R> the type of the results
+ * @param <E> the type of the result's event
  */
 @Immutable
-public abstract class AbstractCommandStrategies<C extends Command, S, K, R extends Result>
-        extends AbstractCommandStrategy<C, S, K, R> {
+public abstract class AbstractCommandStrategies<C extends Command<?>, S, K, E extends Event<?>>
+        extends AbstractCommandStrategy<C, S, K, E> {
 
-    protected final Map<Class<? extends C>, CommandStrategy<? extends C, S, K, R>> strategies;
+    protected final Map<Class<? extends C>, CommandStrategy<? extends C, S, K, ? extends E>> strategies;
 
     /**
      * Constructs a new {@code AbstractCommandStrategy} object.
@@ -43,7 +44,7 @@ public abstract class AbstractCommandStrategies<C extends Command, S, K, R exten
      * @param theMatchingClass the class
      * @throws NullPointerException if {@code theMatchingClass} is {@code null}.
      */
-    protected AbstractCommandStrategies(final Class<C> theMatchingClass) {
+    protected AbstractCommandStrategies(final Class<?> theMatchingClass) {
         super(theMatchingClass);
         strategies = new HashMap<>();
     }
@@ -51,20 +52,21 @@ public abstract class AbstractCommandStrategies<C extends Command, S, K, R exten
     /**
      * @return the empty result.
      */
-    protected abstract R getEmptyResult();
+    protected abstract Result<E> getEmptyResult();
 
     /**
      * Add a command strategy. Call in constructor only.
      *
      * @param strategy the strategy.
      */
-    protected void addStrategy(final CommandStrategy<? extends C, S, K, R> strategy) {
+    protected void addStrategy(final CommandStrategy<? extends C, S, K, ? extends E> strategy) {
         final Class<? extends C> matchingClass = strategy.getMatchingClass();
         strategies.put(matchingClass, strategy);
     }
 
     @Override
-    public R unhandled(final Context<K> context, @Nullable final S entity, final long nextRevision, final C command) {
+    public Result<E> unhandled(final Context<K> context, @Nullable final S entity, final long nextRevision,
+            final C command) {
         context.getLog().withCorrelationId(command)
                 .info("Command <{}> cannot be handled by this strategy.", command);
         return getEmptyResult();
@@ -86,15 +88,17 @@ public abstract class AbstractCommandStrategies<C extends Command, S, K, R exten
     }
 
     @Override
-    protected R doApply(final Context<K> context, @Nullable final S entity, final long nextRevision, final C command,
+    protected Result<E> doApply(final Context<K> context, @Nullable final S entity, final long nextRevision,
+            final C command,
             @Nullable final Metadata metadata) {
 
-        final CommandStrategy<C, S, K, R> commandStrategy = getAppropriateStrategy(command.getClass());
+        final CommandStrategy<C, S, K, ? extends E> commandStrategy =
+                getAppropriateStrategy(command.getClass());
 
         if (commandStrategy != null) {
             context.getLog().withCorrelationId(command)
                     .debug("Applying command <{}>", command);
-            return commandStrategy.apply(context, entity, nextRevision, command);
+            return commandStrategy.apply(context, entity, nextRevision, command).map(x -> x);
         } else {
             // this may happen when subclasses override the "isDefined" condition.
             return unhandled(context, entity, nextRevision, command);
@@ -102,8 +106,9 @@ public abstract class AbstractCommandStrategies<C extends Command, S, K, R exten
     }
 
     @Nullable
-    private CommandStrategy<C, S, K, R> getAppropriateStrategy(final Class commandClass) {
-        return (CommandStrategy<C, S, K, R>) strategies.get(commandClass);
+    @SuppressWarnings("unchecked")
+    private CommandStrategy<C, S, K, ? extends E> getAppropriateStrategy(final Class<?> commandClass) {
+        return (CommandStrategy<C, S, K, ? extends E>) strategies.get(commandClass);
     }
 
 }

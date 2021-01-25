@@ -66,68 +66,70 @@ public abstract class AbstractCommandStrategyTest {
         return DefaultContext.getInstance(THING_ID, logger);
     }
 
-    protected static <T extends ThingModifiedEvent<?>> T assertModificationResult(final CommandStrategy underTest,
+    protected static <C extends Command<?>, T extends ThingModifiedEvent<?>> T assertModificationResult(
+            final CommandStrategy<C, Thing, ThingId, ThingEvent<?>> underTest,
             @Nullable final Thing thing,
-            final Command command,
+            final C command,
             final Class<T> expectedEventClass,
-            final CommandResponse expectedCommandResponse) {
+            final CommandResponse<?> expectedCommandResponse) {
 
         return assertModificationResult(underTest, thing, command, expectedEventClass, expectedCommandResponse, false);
     }
 
-    protected static <T extends ThingModifiedEvent<?>> T assertModificationResult(final CommandStrategy underTest,
+    protected static <C extends Command<?>, T extends ThingModifiedEvent<?>> T assertModificationResult(
+            final CommandStrategy<C, Thing, ThingId, ThingEvent<?>> underTest,
             @Nullable final Thing thing,
-            final Command command,
+            final C command,
             final Class<T> expectedEventClass,
-            final CommandResponse expectedCommandResponse,
+            final CommandResponse<?> expectedCommandResponse,
             final boolean becomeDeleted) {
 
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
-        final Result<ThingEvent> result = applyStrategy(underTest, context, thing, command);
+        final Result<ThingEvent<?>> result = applyStrategy(underTest, context, thing, command);
 
         return assertModificationResult(result, expectedEventClass, expectedCommandResponse, becomeDeleted);
     }
 
-    protected static <C extends Command> void assertErrorResult(
-            final CommandStrategy<C, Thing, ThingId, Result<ThingEvent>> underTest,
+    protected static <C extends Command<?>> void assertErrorResult(
+            final CommandStrategy<C, Thing, ThingId, ThingEvent<?>> underTest,
             @Nullable final Thing thing,
             final C command,
             final DittoRuntimeException expectedException) {
 
-        final ResultVisitor<ThingEvent> mock = mock(Dummy.class);
+        final ResultVisitor<ThingEvent<?>> mock = mock(Dummy.class);
         applyStrategy(underTest, getDefaultContext(), thing, command).accept(mock);
         verify(mock).onError(eq(expectedException), eq(command));
     }
 
-    protected static <C extends Command> void assertQueryResult(
-            final CommandStrategy<C, Thing, ThingId, Result<ThingEvent>> underTest,
+    protected static <C extends Command<?>> void assertQueryResult(
+            final CommandStrategy<C, Thing, ThingId, ThingEvent<?>> underTest,
             @Nullable final Thing thing,
             final C command,
-            final CommandResponse expectedCommandResponse) {
+            final CommandResponse<?> expectedCommandResponse) {
 
         assertInfoResult(applyStrategy(underTest, getDefaultContext(), thing, command), expectedCommandResponse);
     }
 
 
-    protected static <C extends Command> void assertUnhandledResult(
-            final AbstractCommandStrategy<C, Thing, ThingId, Result<ThingEvent>> underTest,
+    protected static <C extends Command<?>> void assertUnhandledResult(
+            final AbstractCommandStrategy<C, Thing, ThingId, ThingEvent<?>> underTest,
             @Nullable final Thing thing,
             final C command,
             final DittoRuntimeException expectedResponse) {
 
-        final ResultVisitor<ThingEvent> mock = mock(Dummy.class);
+        final ResultVisitor<ThingEvent<?>> mock = mock(Dummy.class);
         underTest.unhandled(getDefaultContext(), thing, NEXT_REVISION, command).accept(mock);
         verify(mock).onError(eq(expectedResponse), eq(command));
     }
 
-    private static <T extends ThingModifiedEvent<?>> T assertModificationResult(final Result<ThingEvent> result,
+    private static <T extends ThingModifiedEvent<?>> T assertModificationResult(final Result<ThingEvent<?>> result,
             final Class<T> eventClazz,
-            final WithDittoHeaders expectedResponse,
+            final WithDittoHeaders<?> expectedResponse,
             final boolean becomeDeleted) {
 
         final ArgumentCaptor<T> event = ArgumentCaptor.forClass(eventClazz);
 
-        final ResultVisitor<ThingEvent> mock = mock(Dummy.class);
+        final ResultVisitor<ThingEvent<?>> mock = mock(Dummy.class);
 
         result.accept(mock);
 
@@ -136,14 +138,14 @@ public abstract class AbstractCommandStrategyTest {
         return event.getValue();
     }
 
-    private static void assertInfoResult(final Result<ThingEvent> result, final WithDittoHeaders infoResponse) {
-        final ResultVisitor<ThingEvent> mock = mock(Dummy.class);
+    private static void assertInfoResult(final Result<ThingEvent<?>> result, final WithDittoHeaders<?> infoResponse) {
+        final ResultVisitor<ThingEvent<?>> mock = mock(Dummy.class);
         result.accept(mock);
         verify(mock).onQuery(any(), eq(infoResponse));
     }
 
-    private static <C extends Command> Result<ThingEvent> applyStrategy(
-            final CommandStrategy<C, Thing, ThingId, Result<ThingEvent>> underTest,
+    private static <C extends Command<?>> Result<ThingEvent<?>> applyStrategy(
+            final CommandStrategy<C, Thing, ThingId, ThingEvent<?>> underTest,
             final CommandStrategy.Context<ThingId> context,
             final @Nullable Thing thing,
             final C command) {
@@ -151,6 +153,6 @@ public abstract class AbstractCommandStrategyTest {
         return underTest.apply(context, thing, NEXT_REVISION, command);
     }
 
-    interface Dummy extends ResultVisitor<ThingEvent> {}
+    interface Dummy extends ResultVisitor<ThingEvent<?>> {}
 
 }

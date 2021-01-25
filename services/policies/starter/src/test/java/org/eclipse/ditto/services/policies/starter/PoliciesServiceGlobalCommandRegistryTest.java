@@ -22,10 +22,13 @@ import org.eclipse.ditto.signals.commands.common.purge.PurgeEntities;
 import org.eclipse.ditto.signals.commands.devops.ExecutePiggybackCommand;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespace;
+import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.modify.DeleteSubject;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveResource;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
+import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
+import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
 
 public final class PoliciesServiceGlobalCommandRegistryTest extends GlobalCommandRegistryTestCases {
 
@@ -41,9 +44,14 @@ public final class PoliciesServiceGlobalCommandRegistryTest extends GlobalComman
                 PurgeNamespace.class,
                 RetrieveResource.class,
                 DeleteSubject.class,
+                ActivateTokenIntegration.class,
                 CleanupPersistence.class,
                 RetrieveHealth.class,
-                PurgeEntities.class
+                PurgeEntities.class,
+
+                // added due to ditto-model-placeholders
+                CreateSubscription.class,
+                QueryThings.class
         );
     }
 }

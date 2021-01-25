@@ -45,7 +45,7 @@ final class DeleteFeaturesStrategy extends AbstractThingCommandStrategy<DeleteFe
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final DeleteFeatures command,
@@ -55,7 +55,7 @@ final class DeleteFeaturesStrategy extends AbstractThingCommandStrategy<DeleteFe
 
         return extractFeatures(thing)
                 .map(features ->
-                        ResultFactory.newMutationResult(command,
+                        ResultFactory.<ThingEvent<?>>newMutationResult(command,
                                 getEventToPersist(context, nextRevision, dittoHeaders, metadata),
                                 getResponse(context, command, thing))
                 )
@@ -68,13 +68,13 @@ final class DeleteFeaturesStrategy extends AbstractThingCommandStrategy<DeleteFe
         return getEntityOrThrow(thing).getFeatures();
     }
 
-    private static ThingEvent getEventToPersist(final Context<ThingId> context, final long nextRevision,
+    private static ThingEvent<?> getEventToPersist(final Context<ThingId> context, final long nextRevision,
             final DittoHeaders dittoHeaders, @Nullable final Metadata metadata) {
 
         return FeaturesDeleted.of(context.getState(), nextRevision, getEventTimestamp(), dittoHeaders, metadata);
     }
 
-    private WithDittoHeaders getResponse(final Context<ThingId> context, final DeleteFeatures command,
+    private WithDittoHeaders<?> getResponse(final Context<ThingId> context, final DeleteFeatures command,
             @Nullable final Thing thing) {
         return appendETagHeaderIfProvided(command,
                 DeleteFeaturesResponse.of(context.getState(), command.getDittoHeaders()), thing);

@@ -27,7 +27,6 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSizeChecker;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -50,6 +49,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.thingsearch.ThingSear
 import org.eclipse.ditto.services.gateway.endpoints.routes.websocket.WebSocketRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.routes.whoami.WhoamiRoute;
 import org.eclipse.ditto.services.gateway.endpoints.utils.DittoRejectionHandlerFactory;
+import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.utils.health.routes.StatusRoute;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
@@ -219,16 +219,17 @@ public final class RootRoute extends AllDirectives {
         return rawPathPrefix(PathMatchers.slash().concat(HTTP_PATH_API_PREFIX), () -> // /api
                 ensureSchemaVersion(apiVersion -> // /api/<apiVersion>
                         customApiRoutesProvider.unauthorized(apiVersion, correlationId).orElse(
-                                apiAuthentication(apiVersion, correlationId, initialHeadersBuilder -> {
+                                apiAuthentication(apiVersion, correlationId, auth -> {
                                             final CompletionStage<DittoHeaders> dittoHeadersPromise =
                                                     rootRouteHeadersStepBuilder
-                                                            .withInitialDittoHeadersBuilder(initialHeadersBuilder)
+                                                            .withInitialDittoHeadersBuilder(
+                                                                    auth.getDittoHeaders().toBuilder())
                                                             .withRequestContext(ctx)
                                                             .withQueryParameters(queryParameters)
                                                             .build(CustomHeadersHandler.RequestType.API);
 
                                             return withDittoHeaders(dittoHeadersPromise,
-                                                    dittoHeaders -> buildApiSubRoutes(ctx, dittoHeaders));
+                                                    dittoHeaders -> buildApiSubRoutes(ctx, dittoHeaders, auth));
                                         }
                                 )
                         )
@@ -255,7 +256,7 @@ public final class RootRoute extends AllDirectives {
     }
 
     private Route apiAuthentication(final JsonSchemaVersion schemaVersion, final CharSequence correlationId,
-            final Function<DittoHeadersBuilder<?, ?>, Route> inner) {
+            final Function<AuthenticationResult, Route> inner) {
 
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(schemaVersion)
@@ -264,13 +265,14 @@ public final class RootRoute extends AllDirectives {
         return apiAuthenticationDirective.authenticate(dittoHeaders, inner);
     }
 
-    private Route buildApiSubRoutes(final RequestContext ctx, final DittoHeaders dittoHeaders) {
+    private Route buildApiSubRoutes(final RequestContext ctx, final DittoHeaders dittoHeaders,
+            final AuthenticationResult authenticationResult) {
 
         final Route customApiSubRoutes = customApiRoutesProvider.authorized(dittoHeaders);
 
         return concat(
                 // /api/{apiVersion}/policies
-                policiesRoute.buildPoliciesRoute(ctx, dittoHeaders),
+                policiesRoute.buildPoliciesRoute(ctx, dittoHeaders, authenticationResult),
                 // /api/{apiVersion}/things SSE support
                 buildSseThingsRoute(ctx, dittoHeaders),
                 // /api/{apiVersion}/things
@@ -309,10 +311,10 @@ public final class RootRoute extends AllDirectives {
             final Map<String, String> queryParameters) {
         return rawPathPrefix(PathMatchers.slash().concat(WS_PATH_PREFIX), () -> // /ws
                 ensureSchemaVersion(wsVersion -> // /ws/<wsVersion>
-                        wsAuthentication(wsVersion, correlationId, initialHeadersBuilder -> {
+                        wsAuthentication(wsVersion, correlationId, auth -> {
                                     final CompletionStage<DittoHeaders> dittoHeadersPromise =
                                             rootRouteHeadersStepBuilder
-                                                    .withInitialDittoHeadersBuilder(initialHeadersBuilder)
+                                                    .withInitialDittoHeadersBuilder(auth.getDittoHeaders().toBuilder())
                                                     .withRequestContext(ctx)
                                                     .withQueryParameters(queryParameters)
                                                     .build(CustomHeadersHandler.RequestType.WS);
@@ -331,7 +333,7 @@ public final class RootRoute extends AllDirectives {
     }
 
     private Route wsAuthentication(final JsonSchemaVersion schemaVersion, final CharSequence correlationId,
-            final Function<DittoHeadersBuilder<?, ?>, Route> inner) {
+            final Function<AuthenticationResult, Route> inner) {
 
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
                 .schemaVersion(schemaVersion)

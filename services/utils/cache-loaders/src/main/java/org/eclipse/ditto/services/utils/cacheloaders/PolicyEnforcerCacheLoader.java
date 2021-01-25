@@ -18,13 +18,11 @@ import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
-import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyRevision;
@@ -45,9 +43,9 @@ import akka.actor.ActorRef;
  */
 @Immutable
 public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EntityIdWithResourceType,
-        Entry<Enforcer>> {
+        Entry<PolicyEnforcer>> {
 
-    private final ActorAskCacheLoader<Enforcer, Command> delegate;
+    private final ActorAskCacheLoader<PolicyEnforcer, Command<?>> delegate;
 
     /**
      * Constructor.
@@ -59,8 +57,9 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EntityI
         requireNonNull(askTimeout);
         requireNonNull(policiesShardRegionProxy);
 
-        final BiFunction<EntityId, CacheLookupContext, Command> commandCreator = PolicyCommandFactory::sudoRetrievePolicy;
-        final BiFunction<Object, CacheLookupContext, Entry<Enforcer>> responseTransformer =
+        final BiFunction<EntityId, CacheLookupContext, Command<?>> commandCreator =
+                PolicyCommandFactory::sudoRetrievePolicy;
+        final BiFunction<Object, CacheLookupContext, Entry<PolicyEnforcer>> responseTransformer =
                 PolicyEnforcerCacheLoader::handleSudoRetrievePolicyResponse;
 
         delegate = ActorAskCacheLoader.forShard(askTimeout, PolicyCommand.RESOURCE_TYPE, policiesShardRegionProxy,
@@ -68,28 +67,24 @@ public final class PolicyEnforcerCacheLoader implements AsyncCacheLoader<EntityI
     }
 
     @Override
-    public CompletableFuture<Entry<Enforcer>> asyncLoad(final EntityIdWithResourceType key,
+    public CompletableFuture<Entry<PolicyEnforcer>> asyncLoad(final EntityIdWithResourceType key,
             final Executor executor) {
         return delegate.asyncLoad(key, executor);
     }
 
-    private static Entry<Enforcer> handleSudoRetrievePolicyResponse(final Object response,
+    private static Entry<PolicyEnforcer> handleSudoRetrievePolicyResponse(final Object response,
             @Nullable final CacheLookupContext cacheLookupContext) {
         if (response instanceof SudoRetrievePolicyResponse) {
             final SudoRetrievePolicyResponse sudoRetrievePolicyResponse = (SudoRetrievePolicyResponse) response;
             final Policy policy = sudoRetrievePolicyResponse.getPolicy();
             final long revision = policy.getRevision().map(PolicyRevision::toLong)
-                    .orElseThrow(badPolicyResponse("no revision"));
-            return Entry.of(revision, PolicyEnforcers.defaultEvaluator(policy));
+                    .orElseThrow(() -> new IllegalStateException("Bad SudoRetrievePolicyResponse: no revision"));
+            return Entry.of(revision, PolicyEnforcer.of(policy, PolicyEnforcers.defaultEvaluator(policy)));
         } else if (response instanceof PolicyNotAccessibleException) {
             return Entry.nonexistent();
         } else {
             throw new IllegalStateException("expect SudoRetrievePolicyResponse, got: " + response);
         }
-    }
-
-    private static Supplier<RuntimeException> badPolicyResponse(final String message) {
-        return () -> new IllegalStateException("Bad SudoRetrievePolicyResponse: " + message);
     }
 
 }

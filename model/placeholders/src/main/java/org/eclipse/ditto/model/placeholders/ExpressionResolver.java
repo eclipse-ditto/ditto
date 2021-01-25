@@ -61,6 +61,28 @@ public interface ExpressionResolver {
     }
 
     /**
+     * Resolves a complete expression template starting with a {@link Placeholder} followed by optional pipeline stages
+     * (e.g. functions). Keep unresolvable expressions as is.
+     *
+     * @param expressionTemplate the expressionTemplate to resolve {@link Placeholder}s and and execute optional
+     * pipeline stages
+     * @return the resolved String, a signifier for resolution failure, or one for deletion.
+     * @throws PlaceholderFunctionTooComplexException thrown if the {@code expressionTemplate} contains a placeholder
+     * function chain which is too complex (e.g. too much chained function calls)
+     * @since 2.0.0
+     */
+    default String resolvePartially(final String expressionTemplate) {
+        return ExpressionResolver.substitute(expressionTemplate, expression -> {
+            try {
+                return resolveAsPipelineElement(expression).onUnresolved(() -> PipelineElement.resolved(expression));
+            } catch (final UnresolvedPlaceholderException e) {
+                // placeholder is not supported; return the expression without resolution.
+                return PipelineElement.resolved("{{" + expression + "}}");
+            }
+        }).toOptional().orElseThrow(() -> new IllegalStateException("Impossible"));
+    }
+
+    /**
      * Perform simple substitution on a string based on a template function.
      *
      * @param input the input string.

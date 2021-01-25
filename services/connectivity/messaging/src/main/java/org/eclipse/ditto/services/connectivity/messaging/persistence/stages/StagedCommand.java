@@ -42,18 +42,18 @@ import akka.actor.ActorRef;
  */
 public final class StagedCommand implements ConnectivityCommand<StagedCommand>, Iterator<StagedCommand> {
 
-    private static final ConnectivityEvent DUMMY_EVENT =
+    private static final ConnectivityEvent<?> DUMMY_EVENT =
             ConnectionClosed.of(ConnectionId.dummy(), DittoHeaders.empty());
 
-    private final ConnectivityCommand command;
-    private final ConnectivityEvent event;
-    private final WithDittoHeaders response;
+    private final ConnectivityCommand<?> command;
+    private final ConnectivityEvent<?> event;
+    private final WithDittoHeaders<?> response;
     private final ActorRef sender;
     private final Collection<ConnectionAction> actions;
 
-    private StagedCommand(final ConnectivityCommand command,
-            final ConnectivityEvent event,
-            final WithDittoHeaders response,
+    private StagedCommand(final ConnectivityCommand<?> command,
+            final ConnectivityEvent<?> event,
+            final WithDittoHeaders<?> response,
             final ActorRef sender,
             final Collection<ConnectionAction> actions) {
         this.command = command;
@@ -72,36 +72,36 @@ public final class StagedCommand implements ConnectivityCommand<StagedCommand>, 
      * @param actions remaining actions.
      * @return the staged command.
      */
-    public static StagedCommand of(final ConnectivityCommand command, final ConnectivityEvent event,
-            final WithDittoHeaders response, final List<ConnectionAction> actions) {
+    public static StagedCommand of(final ConnectivityCommand<?> command, final ConnectivityEvent<?> event,
+            final WithDittoHeaders<?> response, final List<ConnectionAction> actions) {
         return new StagedCommand(command, event, response, ActorRef.noSender(), actions);
     }
 
     /**
      * @return a dummy placeholder event.
      */
-    public static ConnectivityEvent dummyEvent() {
+    public static ConnectivityEvent<?> dummyEvent() {
         return DUMMY_EVENT;
     }
 
     /**
      * @return the wrapped command.
      */
-    public ConnectivityCommand getCommand() {
+    public ConnectivityCommand<?> getCommand() {
         return command;
     }
 
     /**
      * @return the event to persist, apply or publish.
      */
-    public ConnectivityEvent getEvent() {
+    public ConnectivityEvent<?> getEvent() {
         return event;
     }
 
     /**
      * @return the response to send to the original sender, or the signal to forward to client actors.
      */
-    public WithDittoHeaders getResponse() {
+    public WithDittoHeaders<?> getResponse() {
         return response;
     }
 
@@ -132,7 +132,7 @@ public final class StagedCommand implements ConnectivityCommand<StagedCommand>, 
      * @param response the response.
      * @return the copy.
      */
-    public StagedCommand withResponse(final WithDittoHeaders response) {
+    public StagedCommand withResponse(final WithDittoHeaders<?> response) {
         return new StagedCommand(command, event, response, sender, actions);
     }
 

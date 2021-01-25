@@ -44,7 +44,7 @@ final class DeleteThingStrategy extends AbstractThingCommandStrategy<DeleteThing
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final DeleteThing command,

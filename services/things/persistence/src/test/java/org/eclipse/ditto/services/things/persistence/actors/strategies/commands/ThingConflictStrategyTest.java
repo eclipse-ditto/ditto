@@ -56,7 +56,7 @@ public final class ThingConflictStrategyTest {
         final Thing thing = ThingsModelFactory.newThingBuilder().setId(thingId).setRevision(25L).build();
         final CommandStrategy.Context<ThingId> context = DefaultContext.getInstance(thingId, mockLoggingAdapter());
         final CreateThing command = CreateThing.of(thing, null, DittoHeaders.empty());
-        final Result<ThingEvent> result = underTest.apply(context, thing, 26L, command);
+        final Result<ThingEvent<?>> result = underTest.apply(context, thing, 26L, command);
         result.accept(new ExpectErrorVisitor(ThingConflictException.class));
     }
 
@@ -69,7 +69,7 @@ public final class ThingConflictStrategyTest {
         final CreateThing command = CreateThing.of(thing, null, DittoHeaders.newBuilder()
                 .ifNoneMatch(EntityTagMatchers.fromStrings("*"))
                 .build());
-        final Result<ThingEvent> result = underTest.apply(context, thing, 26L, command);
+        final Result<ThingEvent<?>> result = underTest.apply(context, thing, 26L, command);
         result.accept(new ExpectErrorVisitor(ThingPreconditionFailedException.class));
     }
 
@@ -79,7 +79,7 @@ public final class ThingConflictStrategyTest {
         return mock;
     }
 
-    private static final class ExpectErrorVisitor implements ResultVisitor<ThingEvent> {
+    private static final class ExpectErrorVisitor implements ResultVisitor<ThingEvent<?>> {
 
         private final Class<? extends DittoRuntimeException> clazz;
 
@@ -88,13 +88,13 @@ public final class ThingConflictStrategyTest {
         }
 
         @Override
-        public void onMutation(final Command command, final ThingEvent event, final WithDittoHeaders response,
+        public void onMutation(final Command<?> command, final ThingEvent<?> event, final WithDittoHeaders<?> response,
                 final boolean becomeCreated, final boolean becomeDeleted) {
             throw new AssertionError("Expect error, got mutation: " + event);
         }
 
         @Override
-        public void onQuery(final Command command, final WithDittoHeaders response) {
+        public void onQuery(final Command<?> command, final WithDittoHeaders<?> response) {
             throw new AssertionError("Expect error, got query: " + response);
         }
 

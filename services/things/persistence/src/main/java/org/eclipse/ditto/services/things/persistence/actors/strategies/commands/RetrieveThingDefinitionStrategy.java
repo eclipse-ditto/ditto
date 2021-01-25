@@ -44,7 +44,7 @@ final class RetrieveThingDefinitionStrategy extends AbstractThingCommandStrategy
 
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final RetrieveThingDefinition command,
@@ -53,7 +53,7 @@ final class RetrieveThingDefinitionStrategy extends AbstractThingCommandStrategy
         return extractDefinition(thing)
                 .map(definition -> RetrieveThingDefinitionResponse.of(context.getState(), definition,
                         command.getDittoHeaders()))
-                .<Result<ThingEvent>>map(response ->
+                .<Result<ThingEvent<?>>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ThingDefinitionNotAccessibleException.newBuilder(context.getState())

@@ -20,7 +20,6 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationChain;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLogger;
@@ -77,7 +76,7 @@ public final class GatewayAuthenticationDirective {
      * @param inner the inner route which will be wrapped with the {@link DittoHeaders}.
      * @return the inner route.
      */
-    public Route authenticate(final DittoHeaders dittoHeaders, final Function<DittoHeadersBuilder<?, ?>, Route> inner) {
+    public Route authenticate(final DittoHeaders dittoHeaders, final Function<AuthenticationResult, Route> inner) {
         return extractRequestContext(requestContext -> {
             final Uri requestUri = requestContext.getRequest().getUri();
 
@@ -95,12 +94,12 @@ public final class GatewayAuthenticationDirective {
     private Route handleAuthenticationTry(final Try<AuthenticationResult> authenticationResultTry,
             final Uri requestUri,
             final DittoHeaders dittoHeaders,
-            final Function<DittoHeadersBuilder<?, ?>, Route> inner) {
+            final Function<AuthenticationResult, Route> inner) {
 
         if (authenticationResultTry.isSuccess()) {
             final AuthenticationResult authenticationResult = authenticationResultTry.get();
             if (authenticationResult.isSuccess()) {
-                return inner.apply(authenticationResult.getDittoHeaders().toBuilder());
+                return inner.apply(authenticationResult);
             }
             return handleFailedAuthentication(authenticationResult.getReasonOfFailure(), requestUri, dittoHeaders);
         }

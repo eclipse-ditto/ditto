@@ -24,7 +24,6 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.services.utils.persistentactors.commands.AbstractCommandStrategy;
-import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
@@ -35,10 +34,10 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
  *
  * @param <C> the type of the handled command
  */
-abstract class AbstractConnectivityCommandStrategy<C extends ConnectivityCommand>
-        extends AbstractCommandStrategy<C, Connection, ConnectionState, Result<ConnectivityEvent>> {
+abstract class AbstractConnectivityCommandStrategy<C extends ConnectivityCommand<?>>
+        extends AbstractCommandStrategy<C, Connection, ConnectionState, ConnectivityEvent<?>> {
 
-    AbstractConnectivityCommandStrategy(final Class<C> theMatchingClass) {
+    AbstractConnectivityCommandStrategy(final Class<?> theMatchingClass) {
         super(theMatchingClass);
     }
 
@@ -54,14 +53,14 @@ abstract class AbstractConnectivityCommandStrategy<C extends ConnectivityCommand
     }
 
     ConnectionNotAccessibleException notAccessible(final Context<ConnectionState> context,
-            final WithDittoHeaders command) {
+            final WithDittoHeaders<?> command) {
         return ConnectionNotAccessibleException.newBuilder(context.getState().id())
                 .dittoHeaders(command.getDittoHeaders())
                 .build();
     }
 
     static Optional<DittoRuntimeException> validate(final Context<ConnectionState> context,
-            final ConnectivityCommand command, final Connection connection) {
+            final ConnectivityCommand<?> command, final Connection connection) {
         try {
             context.getState().getValidator().accept(command, () -> connection);
             return Optional.empty();
