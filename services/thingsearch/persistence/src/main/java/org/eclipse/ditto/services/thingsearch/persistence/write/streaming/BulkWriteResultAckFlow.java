@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
@@ -37,6 +38,7 @@ import com.mongodb.bulk.BulkWriteResult;
 
 import akka.NotUsed;
 import akka.actor.ActorRef;
+import akka.stream.DelayOverflowStrategy;
 import akka.stream.javadsl.Flow;
 
 /**
@@ -58,9 +60,8 @@ final class BulkWriteResultAckFlow {
         return new BulkWriteResultAckFlow(updaterShard);
     }
 
-    Flow<WriteResultAndErrors, String, NotUsed> start() {
-        return Flow.<WriteResultAndErrors>create()
-                .mapConcat(this::checkBulkWriteResult);
+    Flow<WriteResultAndErrors, String, NotUsed> start(final Duration delay) {
+        return getDelayFlow(delay).mapConcat(this::checkBulkWriteResult);
     }
 
     private Iterable<String> checkBulkWriteResult(final WriteResultAndErrors writeResultAndErrors) {
@@ -114,6 +115,18 @@ final class BulkWriteResultAckFlow {
             metadata.sendNAck();
             updaterShard.tell(envelope, ActorRef.noSender());
         }
+    }
+
+    private static Flow<WriteResultAndErrors, WriteResultAndErrors, NotUsed> getDelayFlow(final Duration delay) {
+        if (isPositive(delay)) {
+            return Flow.<WriteResultAndErrors>create().delay(delay, DelayOverflowStrategy.backpressure());
+        } else {
+            return Flow.create();
+        }
+    }
+
+    private static boolean isPositive(final Duration duration) {
+        return Duration.ZERO.minus(duration).isNegative();
     }
 
     private static UpdateThingResponse createFailureResponse(final Metadata metadata) {

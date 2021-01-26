@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.thingsearch.common.config;
 
+import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -28,15 +29,17 @@ import com.typesafe.config.Config;
 @Immutable
 public final class DefaultPersistenceStreamConfig implements PersistenceStreamConfig {
 
-    private static final String CONFIG_PATH = "persistence";
+    static final String CONFIG_PATH = "persistence";
 
     private final int maxBulkSize;
+    private final Duration ackDelay;
     private final DefaultStreamStageConfig defaultStreamStageConfig;
 
     private DefaultPersistenceStreamConfig(final ConfigWithFallback persistenceStreamScopedConfig,
             final DefaultStreamStageConfig defaultStreamStageConfig) {
 
         maxBulkSize = persistenceStreamScopedConfig.getInt(PersistenceStreamConfigValue.MAX_BULK_SIZE.getConfigPath());
+        ackDelay = persistenceStreamScopedConfig.getDuration(PersistenceStreamConfigValue.ACK_DELAY.getConfigPath());
         this.defaultStreamStageConfig = defaultStreamStageConfig;
     }
 
@@ -59,6 +62,11 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
     }
 
     @Override
+    public Duration getAckDelay() {
+        return ackDelay;
+    }
+
+    @Override
     public int getParallelism() {
         return defaultStreamStageConfig.getParallelism();
     }
@@ -78,18 +86,20 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
         }
         final DefaultPersistenceStreamConfig that = (DefaultPersistenceStreamConfig) o;
         return maxBulkSize == that.maxBulkSize &&
-                defaultStreamStageConfig.equals(that.defaultStreamStageConfig);
+                Objects.equals(ackDelay, that.ackDelay) &&
+                Objects.equals(defaultStreamStageConfig, that.defaultStreamStageConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxBulkSize, defaultStreamStageConfig);
+        return Objects.hash(maxBulkSize, ackDelay, defaultStreamStageConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "maxBulkSize=" + maxBulkSize +
+                ", ackDelay=" + ackDelay +
                 ", defaultStreamStageConfig=" + defaultStreamStageConfig +
                 "]";
     }

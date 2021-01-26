@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.thingsearch.common.config;
 
+import java.time.Duration;
+
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
@@ -30,6 +32,13 @@ public interface PersistenceStreamConfig extends StreamStageConfig {
     int getMaxBulkSize();
 
     /**
+     * Returns the delay between DB acknowledgement and sending "search-persisted" acknowledgement.
+     *
+     * @return the delay.
+     */
+    Duration getAckDelay();
+
+    /**
      * An enumeration of known config path expressions and their associated default values for
      * {@code PersistenceStreamConfig}.
      * This enumeration is a logical extension of {@link StreamStageConfigValue}.
@@ -39,12 +48,17 @@ public interface PersistenceStreamConfig extends StreamStageConfig {
         /**
          * The amount of write operations to perform in one bulk.
          */
-        MAX_BULK_SIZE("max-bulk-size", 250);
+        MAX_BULK_SIZE("max-bulk-size", 250),
+
+        /**
+         * Internal delay between acknowledgement from database and the sending of "search-persisted" acknowledgements.
+         */
+        ACK_DELAY("ack-delay", Duration.ZERO);
 
         private final String configPath;
         private final Object defaultValue;
 
-        private PersistenceStreamConfigValue(final String configPath, final Object defaultValue) {
+        PersistenceStreamConfigValue(final String configPath, final Object defaultValue) {
             this.configPath = configPath;
             this.defaultValue = defaultValue;
         }
