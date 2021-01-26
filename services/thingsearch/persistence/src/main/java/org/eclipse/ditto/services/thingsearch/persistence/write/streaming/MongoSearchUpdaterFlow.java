@@ -23,8 +23,6 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWr
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.WriteResultAndErrors;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.mongodb.MongoBulkWriteException;
 import com.mongodb.client.model.BulkWriteOptions;
@@ -36,7 +34,6 @@ import akka.NotUsed;
 import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
 import akka.stream.Attributes;
-import akka.stream.DelayOverflowStrategy;
 import akka.stream.FanInShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
@@ -46,7 +43,6 @@ import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.Zip;
-import kamon.Kamon;
 
 /**
  * Flow mapping write models to write results via the search persistence.
@@ -56,8 +52,6 @@ final class MongoSearchUpdaterFlow {
     private static final String TRACE_THING_BULK_UPDATE = "things_search_thing_bulkUpdate";
     private static final String COUNT_THING_BULK_UPDATES_PER_BULK = "things_search_thing_bulkUpdate_updates_per_bulk";
     private static final String UPDATE_TYPE_TAG = "update_type";
-
-    private Logger log = LoggerFactory.getLogger(MongoSearchUpdaterFlow.class);
 
     private final MongoCollection<Document> collection;
 
@@ -93,7 +87,7 @@ final class MongoSearchUpdaterFlow {
         final Flow<List<AbstractWriteModel>, List<AbstractWriteModel>, NotUsed> throttleFlow;
         if (Duration.ZERO.minus(writeInterval).isNegative()) {
             throttleFlow = Flow.<List<AbstractWriteModel>>create()
-                    .delay(writeInterval, DelayOverflowStrategy.backpressure());
+                    .throttle(parallelism, writeInterval);
         } else {
             throttleFlow = Flow.create();
         }
