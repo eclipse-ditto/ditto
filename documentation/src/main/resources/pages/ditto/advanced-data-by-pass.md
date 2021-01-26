@@ -54,6 +54,36 @@ With this approach the access to the database is secured via Ditto [policies](ba
 
 * Managing and communicating custom messaging APIs is not natively supported in Ditto, other ways have to be explored to keep APIs consistent
 
+## Policies
+
+Policies can be used to restrict access to the provider micro-service and through that eventually to the database using restrictions on the `message:/` resource.
+
+Let's assume that the provider micro-service registers via websockets and expects requests to the message-topic `/services/history`. With the following policy entry we can allow access to this resource:
+
+```json
+{
+  "subjects": {},
+  "resources": {
+    "message:/": {
+      "grant": [],
+      "revoke": ["READ", "WRITE"]
+    },
+    "message:/inbox/messages/services/history": {
+      "grant": ["READ"],
+      "revoke": []
+    },
+    "message:/outbox/messages/services/history": {
+      "grant": ["WRITE"],
+      "revoke": []
+    }
+  }
+}
+```
+
+The first resource entry revokes any access to messages for subjects of this type. This is optional. The next entry allows the provider micro-service to read messages from the topic `/services/history`. Note that we've decided to insert another "namespace" `/services` here to distinguish these messages from other device faced messages. The last section than allows the provider micro-service to reply to the received requests with it's 303 response.
+
+This can also be built against single features. Since features have to be stated explicitly in the policy, this is not as general but can provide a more fine-grained access control when using distinct policies for different things, or features with same names over multiple things.
+
 ## Proxy Implementations
 
 The [ceryx proxy project](https://github.com/sourcelair/ceryx) was used for the [PoC (or reference implementation)](https://github.com/w4tsn/ceryx) of this pattern. It was enhanced with delegation features which still have to be contributed upstream. Have a look at the [forks source code](https://github.com/w4tsn/ceryx) or the [corresponding container image](https://quay.io/repository/w4tsn/ceryx) until then.
