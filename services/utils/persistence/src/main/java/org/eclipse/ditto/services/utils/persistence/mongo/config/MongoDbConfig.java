@@ -18,6 +18,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
+import com.mongodb.WriteConcern;
+
 /**
  * Provides configuration settings for the service's MongoDB connection.
  */
@@ -117,6 +119,27 @@ public interface MongoDbConfig {
         ReadPreference readPreference();
 
         /**
+         * Gets the desired read concern that should be used for accessing MongoDB.
+         *
+         * @return the desired read concern.
+         */
+        ReadConcern readConcern();
+
+        /**
+         * Gets the desired write concern that should be used for writing to MongoDB.
+         *
+         * @return the desired write concern.
+         */
+        WriteConcern writeConcern();
+
+        /**
+         * Gets the desired "retryWrites" setting that should be used for writing to MongoDB.
+         *
+         * @return the desired "retryWrites".
+         */
+        boolean isRetryWrites();
+
+        /**
          * An enumeration of known value paths and associated default values of the OptionsConfig.
          */
         enum OptionsConfigValue implements KnownConfigValue {
@@ -129,7 +152,23 @@ public interface MongoDbConfig {
             /**
              * Determines the read preference used for MongoDB connections. See {@link ReadPreference} for available options.
              */
-            READ_PREFERENCE("readPreference", "primaryPreferred");
+            READ_PREFERENCE("readPreference", "primaryPreferred"),
+
+            /**
+             * Determines the read concern used for MongoDB connections. See {@link ReadConcern} for available options.
+             */
+            READ_CONCERN("readConcern", "default"),
+
+            /**
+             * Determines the write concern used for MongoDB connections. See {@link com.mongodb.WriteConcern} for
+             * available options.
+             */
+            WRITE_CONCERN("writeConcern", "acknowledged"),
+
+            /**
+             * Determines the "retryWrites" setting used for MongoDB connections.
+             */
+            RETRY_WRITES("retryWrites", true);
 
             private final String path;
             private final Object defaultValue;

@@ -33,7 +33,7 @@ import org.reactivestreams.Publisher;
 import com.mongodb.ClientSessionOptions;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
-import com.mongodb.MongoCredential;
+import com.mongodb.ReadConcern;
 import com.mongodb.ReadPreference;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcern;
@@ -286,6 +286,9 @@ public final class MongoClientWrapper implements DittoMongoClient {
             final MongoDbConfig.OptionsConfig optionsConfig = mongoDbConfig.getOptionsConfig();
             builder.enableSsl(optionsConfig.isSslEnabled());
             builder.setReadPreference(optionsConfig.readPreference().getMongoReadPreference());
+            builder.setReadConcern(optionsConfig.readConcern().getMongoReadConcern());
+            builder.setWriteConcern(optionsConfig.writeConcern());
+            builder.setRetryWrites(optionsConfig.isRetryWrites());
 
             return builder;
         }
@@ -295,17 +298,6 @@ public final class MongoClientWrapper implements DittoMongoClient {
             connectionString = new ConnectionString(checkNotNull(string, "connection string"));
 
             mongoClientSettingsBuilder.applyConnectionString(connectionString);
-
-            final MongoCredential credential = connectionString.getCredential();
-            if (null != credential) {
-                mongoClientSettingsBuilder.credential(credential);
-            }
-
-            final WriteConcern writeConcern = connectionString.getWriteConcern();
-            if (null != writeConcern) {
-                mongoClientSettingsBuilder.writeConcern(writeConcern);
-            }
-
             defaultDatabaseName = connectionString.getDatabase();
 
             return this;
@@ -389,6 +381,24 @@ public final class MongoClientWrapper implements DittoMongoClient {
         @Override
         public GeneralPropertiesStep setReadPreference(final ReadPreference readPreference) {
             mongoClientSettingsBuilder.readPreference(readPreference);
+            return this;
+        }
+
+        @Override
+        public GeneralPropertiesStep setReadConcern(final ReadConcern readConcern) {
+            mongoClientSettingsBuilder.readConcern(readConcern);
+            return this;
+        }
+
+        @Override
+        public GeneralPropertiesStep setWriteConcern(final WriteConcern writeConcern) {
+            mongoClientSettingsBuilder.writeConcern(writeConcern);
+            return this;
+        }
+
+        @Override
+        public GeneralPropertiesStep setRetryWrites(final boolean retryWrites) {
+            mongoClientSettingsBuilder.retryWrites(retryWrites);
             return this;
         }
 
