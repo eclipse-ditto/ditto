@@ -81,7 +81,8 @@ public final class DefaultMongoDbConfigTest {
 
         softly.assertThat(underTest.getMaxQueryTime()).isEqualTo(Duration.ofSeconds(10));
         softly.assertThat(underTest.getMongoDbUri())
-                .isEqualTo("mongodb://foo:bar@mongodb:27017/test?w=1&readPreference=secondaryPreferred&ssl=false");
+                .isEqualTo("mongodb://foo:bar@mongodb:27017/test?" +
+                        "retryWrites=false&readConcern=linearizable&readPreference=secondaryPreferred&writeConcern=w3&ssl=false");
         softly.assertThat(underTest.getOptionsConfig()).satisfies(optionsConfig -> {
             softly.assertThat(optionsConfig.isSslEnabled()).isFalse();
         });
