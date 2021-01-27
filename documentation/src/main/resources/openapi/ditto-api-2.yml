@@ -168,6 +168,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -458,6 +460,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -502,6 +506,7 @@ paths:
         With this resource it is possible to add, update or delete parts of an existing thing.
         The request body provided in *JSON merge patch* (RFC-7396) format will be merged with the existing thing.
         Notice that the `null` value in the JSON body will delete the specified JSON key from the thing.
+        The `Content-Type` header for this request must be "application/merge-patch+json".
         For further documentation of JSON merge patch see [RFC 7396](https://tools.ietf.org/html/rfc7396).
 
 
@@ -510,6 +515,8 @@ paths:
 
         ```
         {
+          "thingId": "com.acme:coffeebrewer",
+          "policyId": "com.acme:coffeebrewer-policy",
           "definition": "com.acme:coffeebrewer:0.1.0",
           "attributes": {
             "manufacturer": "ACME demo corp.",
@@ -555,7 +562,7 @@ paths:
               "properties": {
                 "configuration": {
                   "smartMode": null,
-                  "tempToHold": 50,
+                  "tempToHold": 50
                 }
               }
             }
@@ -608,7 +615,7 @@ paths:
         *WRITE* permissions on all affected paths of the JSON merge patch: `attributes/manufacturingYear`,
         `features/water-tank/properties/configuration/smartMode`,
         `features/water-tank/properties/configuration/tempToHold`. The *WRITE* permission must not be revoked on any
-        level further down the hierarchy. Consequently it is also sufficient for the authorized subject to have
+        level further down the hierarchy. Consequently, it is also sufficient for the authorized subject to have
         unrestricted *WRITE* permission at root level or unrestricted *WRITE* permission at `/attributes` and
         `/features` etc.
       tags:
@@ -671,6 +678,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/merge-patch+json:
@@ -878,6 +887,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         $ref: '#/components/requestBodies/Definition'
     patch:
@@ -888,6 +899,7 @@ paths:
         * If the request body is set to `null` then the defintion will be deleted.
 
         Notice that the `null` value in the JSON body has a special meaning and will delete the definition from the thing.
+        The `Content-Type` header for this request must be "application/merge-patch+json".
         For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
       tags:
         - Things
@@ -946,6 +958,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/merge-patch+json:
@@ -1131,6 +1145,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -1151,6 +1167,7 @@ paths:
         The `policyId` of the thing will be updated.
         Notice that for this resource it is not possible to remove the `policyId` from the thing by setting the
         payload to `null`.
+        The `Content-Type` header for this request must be "application/merge-patch+json".
       tags:
         - Things
       parameters:
@@ -1197,6 +1214,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/merge-patch+json:
@@ -1335,6 +1354,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         $ref: '#/components/requestBodies/Attributes'
     patch:
@@ -1344,6 +1365,7 @@ paths:
         The existing attributes will be merged with the JSON content set in the request body.
 
         Notice that the `null` value has a special meaning and can be used to delete all or specific attributes from a thing.
+        The `Content-Type` header for this request must be "application/merge-patch+json".
         For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
 
         **Note**: In contrast to the "PUT things/{thingId}/attributes" request,
@@ -1402,6 +1424,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/merge-patch+json:
@@ -1606,6 +1630,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         $ref: '#/components/requestBodies/Value'
     patch:
@@ -1617,6 +1643,9 @@ paths:
         * If you specify an existing attribute path, this will be merged
         * If you set the request body to `null` for an existing attribute path then the attribute will be deleted.
           For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
+
+        The `Content-Type` header for this request must be "application/merge-patch+json".
+
 
         The attribute (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
 
@@ -1678,6 +1707,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         $ref: '#/components/requestBodies/PatchValue'
     delete:
@@ -1914,6 +1945,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -1955,6 +1988,7 @@ paths:
         The existing features will be merged with the JSON content set in the request body.
 
         Notice that the `null` value has a special meaning and can be used to delete specific features from the thing.
+        The `Content-Type` header for this request must be "application/merge-patch+json".
         For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
 
         **Note**: In contrast to the "PUT thing/{thingId}/features" request, a partial update is supported here
@@ -2040,6 +2074,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/merge-patch+json:
@@ -2263,6 +2299,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -2290,6 +2328,7 @@ paths:
         The existing feature will be merged with the JSON content set in the request body.
 
         Notice that the `null` value can be used to delete the whole feature or specific parts of it.
+        The `Content-Type` header for this request must be "application/merge-patch+json".
         For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
 
         **Note**: In contrast to the "PUT things/{thingId}/features/{featureId}" request,
@@ -2363,6 +2402,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/merge-patch+json:
@@ -2562,6 +2603,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -2584,6 +2627,7 @@ paths:
         The existing definition field will be overwritten with the JSON array set in the request body.
 
         Notice that the `null` value can be used to delete the definition of a feature.
+        The `Content-Type` header for this request must be "application/merge-patch+json".
         For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
       tags:
         - Features
@@ -2640,6 +2684,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/merge-patch+json:
@@ -2833,6 +2879,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -2863,6 +2911,7 @@ paths:
         The existing properties will be merged with the JSON content set in the request body.
 
         Notice that the `null` value can be used to delete specific feature properties.
+        The `Content-Type` header for this request must be "application/merge-patch+json".
         For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
 
         **Note**: In contrast to the "PUT things/{thingId}/features/{featureId}/properties" request,
@@ -2922,6 +2971,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/merge-patch+json:
@@ -3128,6 +3179,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         $ref: '#/components/requestBodies/Value'
     patch:
@@ -3138,6 +3191,7 @@ paths:
         The existing property will be merged with the existing one of the thing.
 
         Notice that the `null` value can be used to delete the specified propertyPath.
+        The `Content-Type` header for this request must be "application/merge-patch+json".
         For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
 
         The property (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
@@ -3202,6 +3256,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         $ref: '#/components/requestBodies/PatchValue'
     delete:
@@ -3381,6 +3437,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -3411,6 +3469,7 @@ paths:
         The existing desired properties will be merged with the JSON content set in the request body.
 
         Notice that the `null` value can be used to delete the whole feature or specific parts of it.
+        The `Content-Type` header for this request must be "application/merge-patch+json".
         For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
 
         **Note**: In contrast to the "PUT things/{thingId}/features/{featureId}/desiredProperties" request,
@@ -3470,6 +3529,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/merge-patch+json:
@@ -3677,6 +3738,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         $ref: '#/components/requestBodies/Value'
     patch:
@@ -3687,6 +3750,7 @@ paths:
         The exisiting desired property of a feature will be merged with the JSON content set in the request body.
 
         Notice that the `null` value can be used to delete the specified propertyPath.
+        The `Content-Type` header for this request must be "application/merge-patch+json".
         For further documentation see [RFC 7396](https://tools.ietf.org/html/rfc7396).
 
         The desired property (JSON) can be referenced hierarchically, by applying JSON Pointer notation (RFC-6901).
@@ -3750,6 +3814,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         $ref: '#/components/requestBodies/PatchValue'
     delete:
@@ -4408,6 +4474,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -4608,6 +4676,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -4778,6 +4848,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -5015,6 +5087,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -5162,6 +5236,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -5389,6 +5465,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -5535,6 +5613,8 @@ paths:
           $ref: '#/components/responses/PreconditionFailed'
         '413':
           $ref: '#/components/responses/EntityTooLarge'
+        '415':
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/json:
@@ -5862,11 +5942,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdvancedError'
         '415':
-          description: The `Content-Type` of the request was not supported.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdvancedError'
+          $ref: '#/components/responses/MediaTypeNotSupported'
       requestBody:
         content:
           application/vnd.eclipse.ditto+json:
@@ -6017,6 +6093,12 @@ components:
             $ref: '#/components/schemas/AdvancedError'
     MessageTooLarge:
       description: The size of the send message is larger than the accepted limit of 250 kB.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/AdvancedError'
+    MediaTypeNotSupported:
+      description: The Media-Type send in the `Content-Type` header is not supported for this resource.
       content:
         application/json:
           schema:
