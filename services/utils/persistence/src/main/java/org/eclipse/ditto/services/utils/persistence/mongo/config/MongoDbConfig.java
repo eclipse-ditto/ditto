@@ -27,18 +27,18 @@ import com.mongodb.WriteConcern;
 public interface MongoDbConfig {
 
     /**
-     * Returns the maximum query duration.
-     *
-     * @return the duration.
-     */
-    Duration getMaxQueryTime();
-
-    /**
      * Retrieves the MongoDB URI from configured source URI and MongoDB settings.
      *
      * @return the URI adapted from source URI with parameters set according to MongoDB settings.
      */
     String getMongoDbUri();
+
+    /**
+     * Returns the maximum query duration.
+     *
+     * @return the duration.
+     */
+    Duration getMaxQueryTime();
 
     /**
      * Returns the configuration settings of the MongoDB options.
@@ -72,6 +72,11 @@ public interface MongoDbConfig {
      * An enumeration of known value paths and associated default values of the MongoDbConfig.
      */
     enum MongoDbConfigValue implements KnownConfigValue {
+
+        /**
+         * The MongoDB URI - no default value in code provided.
+         */
+        URI("uri", null),
 
         /**
          * The maximum query duration.

@@ -32,16 +32,16 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
      */
     static final String CONFIG_PATH = "mongodb";
 
-    private final Duration maxQueryTime;
     private final String mongoDbUri;
+    private final Duration maxQueryTime;
     private final DefaultOptionsConfig optionsConfig;
     private final DefaultConnectionPoolConfig connectionPoolConfig;
     private final DefaultCircuitBreakerConfig circuitBreakerConfig;
     private final DefaultMonitoringConfig monitoringConfig;
 
-    private DefaultMongoDbConfig(final ConfigWithFallback config, final String theMongoDbUri) {
+    private DefaultMongoDbConfig(final ConfigWithFallback config) {
+        mongoDbUri = config.getString(MongoDbConfigValue.URI.getConfigPath());
         maxQueryTime = config.getDuration(MongoDbConfigValue.MAX_QUERY_TIME.getConfigPath());
-        mongoDbUri = theMongoDbUri;
         optionsConfig = DefaultOptionsConfig.of(config);
         connectionPoolConfig = DefaultConnectionPoolConfig.of(config);
         circuitBreakerConfig = DefaultCircuitBreakerConfig.of(config);
@@ -56,28 +56,21 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultMongoDbConfig of(final Config config) {
-        final ConfigWithFallback configWithFallback = appendFallbackValues(config);
-
-        return new DefaultMongoDbConfig(configWithFallback, determineMongoDbUri(configWithFallback));
+        return new DefaultMongoDbConfig(appendFallbackValues(config));
     }
 
     private static ConfigWithFallback appendFallbackValues(final Config config) {
         return ConfigWithFallback.newInstance(config, CONFIG_PATH, MongoDbConfigValue.values());
     }
 
-    private static String determineMongoDbUri(final Config mongoDbConfig) {
-        final MongoDbUriSupplier mongoDbUriSupplier = MongoDbUriSupplier.of(mongoDbConfig);
-        return mongoDbUriSupplier.get();
+    @Override
+    public String getMongoDbUri() {
+        return mongoDbUri;
     }
 
     @Override
     public Duration getMaxQueryTime() {
         return maxQueryTime;
-    }
-
-    @Override
-    public String getMongoDbUri() {
-        return mongoDbUri;
     }
 
     @Override
@@ -109,8 +102,8 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
             return false;
         }
         final DefaultMongoDbConfig that = (DefaultMongoDbConfig) o;
-        return Objects.equals(maxQueryTime, that.maxQueryTime) &&
-                Objects.equals(mongoDbUri, that.mongoDbUri) &&
+        return Objects.equals(mongoDbUri, that.mongoDbUri) &&
+                Objects.equals(maxQueryTime, that.maxQueryTime) &&
                 Objects.equals(optionsConfig, that.optionsConfig) &&
                 Objects.equals(connectionPoolConfig, that.connectionPoolConfig) &&
                 Objects.equals(circuitBreakerConfig, that.circuitBreakerConfig) &&
@@ -119,15 +112,15 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxQueryTime, mongoDbUri, optionsConfig, connectionPoolConfig, circuitBreakerConfig,
+        return Objects.hash(mongoDbUri, maxQueryTime, optionsConfig, connectionPoolConfig, circuitBreakerConfig,
                 monitoringConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "maxQueryTime=" + maxQueryTime +
-                ", mongoDbUri=" + mongoDbUri +
+                "mongoDbUri=" + mongoDbUri +
+                ", maxQueryTime=" + maxQueryTime +
                 ", optionsConfig=" + optionsConfig +
                 ", connectionPoolConfig=" + connectionPoolConfig +
                 ", circuitBreakerConfig=" + circuitBreakerConfig +
