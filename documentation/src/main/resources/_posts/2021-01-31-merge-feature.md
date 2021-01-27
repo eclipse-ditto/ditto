@@ -248,19 +248,19 @@ final DittoClient dittoClient = ... ;
     dittoClient.twin()
         .forId("com.acme:coffeebrewer")
         .mergeAttribute("manufacturingYear", "2021")
-        .whenComplete(printResult("merge attribute"));
+        .whenComplete(...);
         
     // merge attributes
     dittoClient.twin()
         .forId("com.acme:coffeebrewer")
         .mergeAttributes(JsonObject.newBuilder().set("manufacturingYear", "2021").build())
-        .whenComplete(printResult("merge attributes"));
+        .whenComplete(...);
     
     // merge feature property
     dittoClient.twin()
         .forFeature("com.acme:coffeebrewer", "water-tank")
         .mergeProperty("configuration/smartMode", false)
-        .whenComplete(printResult("merge property"));
+        .whenComplete(...);
 ```
 
 ## Feedback?
