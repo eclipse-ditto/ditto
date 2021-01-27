@@ -74,21 +74,18 @@ final class EnforcementFlow {
     private final Duration thingsTimeout;
     private final Duration cacheRetryDelay;
     private final int maxArraySize;
-    private final boolean deleteEvent;
 
     private EnforcementFlow(final ActorRef thingsShardRegion,
             final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
             final Duration thingsTimeout,
             final Duration cacheRetryDelay,
-            final int maxArraySize,
-            final boolean deleteEvent) {
+            final int maxArraySize) {
 
         this.thingsShardRegion = thingsShardRegion;
         this.policyEnforcerCache = policyEnforcerCache;
         this.thingsTimeout = thingsTimeout;
         this.cacheRetryDelay = cacheRetryDelay;
         this.maxArraySize = maxArraySize;
-        this.deleteEvent = deleteEvent;
     }
 
     /**
@@ -103,8 +100,7 @@ final class EnforcementFlow {
     public static EnforcementFlow of(final StreamConfig updaterStreamConfig,
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
-            final MessageDispatcher cacheDispatcher,
-            final boolean deleteEvent) {
+            final MessageDispatcher cacheDispatcher) {
 
         final Duration askTimeout = updaterStreamConfig.getAskTimeout();
         final StreamCacheConfig streamCacheConfig = updaterStreamConfig.getCacheConfig();
@@ -117,7 +113,7 @@ final class EnforcementFlow {
                         .projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
 
         return new EnforcementFlow(thingsShardRegion, policyEnforcerCache, askTimeout,
-                streamCacheConfig.getRetryDelay(), updaterStreamConfig.getMaxArraySize(), deleteEvent);
+                streamCacheConfig.getRetryDelay(), updaterStreamConfig.getMaxArraySize());
     }
 
     private static EntityIdWithResourceType getPolicyEntityId(final PolicyId policyId) {
@@ -217,9 +213,7 @@ final class EnforcementFlow {
             @Nullable final SudoRetrieveThingResponse sudoRetrieveThingResponse) {
 
         if (sudoRetrieveThingResponse == null) {
-            return deleteEvent
-                    ? Source.single(ThingDeleteModel.of(metadata))
-                    : Source.empty();
+            return Source.single(ThingDeleteModel.of(metadata));
         } else {
             final JsonObject thing = sudoRetrieveThingResponse.getEntity().asObject();
 

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
 
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletionStage;
@@ -20,7 +19,6 @@ import java.util.function.Function;
 
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
-import org.eclipse.ditto.services.thingsearch.common.config.DeleteConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.PersistenceStreamConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.SearchConfig;
 import org.eclipse.ditto.services.thingsearch.common.config.StreamCacheConfig;
@@ -94,18 +92,14 @@ public final class SearchUpdaterStream {
             final MongoDatabase database,
             final BlockedNamespaces blockedNamespaces) {
 
-        final StreamConfig streamConfig = searchConfig.getStreamConfig();
+        final StreamConfig streamConfig = searchConfig.getUpdaterConfig().getStreamConfig();
 
         final StreamCacheConfig cacheConfig = streamConfig.getCacheConfig();
         final String dispatcherName = cacheConfig.getDispatcherName();
         final MessageDispatcher messageDispatcher = actorSystem.dispatchers().lookup(dispatcherName);
 
-        final DeleteConfig deleteConfig = searchConfig.getDeleteConfig();
-        final boolean deleteEvent = deleteConfig.isDeleteEvent();
-
         final EnforcementFlow enforcementFlow =
-                EnforcementFlow.of(streamConfig, thingsShard, policiesShard, messageDispatcher,
-                        deleteEvent);
+                EnforcementFlow.of(streamConfig, thingsShard, policiesShard, messageDispatcher);
 
         final MongoSearchUpdaterFlow mongoSearchUpdaterFlow = MongoSearchUpdaterFlow.of(database);
 
@@ -130,7 +124,7 @@ public final class SearchUpdaterStream {
     }
 
     private Source<Source<AbstractWriteModel, NotUsed>, NotUsed> createRestartSource() {
-        final StreamConfig streamConfig = searchConfig.getStreamConfig();
+        final StreamConfig streamConfig = searchConfig.getUpdaterConfig().getStreamConfig();
         final StreamStageConfig retrievalConfig = streamConfig.getRetrievalConfig();
 
         final Source<Source<AbstractWriteModel, NotUsed>, NotUsed> source =
@@ -147,12 +141,11 @@ public final class SearchUpdaterStream {
     }
 
     private Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> createRestartSink() {
-        final StreamConfig streamConfig = searchConfig.getStreamConfig();
+        final StreamConfig streamConfig = searchConfig.getUpdaterConfig().getStreamConfig();
         final PersistenceStreamConfig persistenceConfig = streamConfig.getPersistenceConfig();
 
         final int parallelism = persistenceConfig.getParallelism();
         final int maxBulkSize = persistenceConfig.getMaxBulkSize();
-        final Duration writeInterval = streamConfig.getWriteInterval();
         final Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> sink =
                 mongoSearchUpdaterFlow.start(parallelism, maxBulkSize)
                         .via(bulkWriteResultAckFlow.start(persistenceConfig.getAckDelay()))

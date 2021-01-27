@@ -78,7 +78,7 @@ final class PolicyEventForwarder extends AbstractActor {
         this.persistence = persistence;
         blockNamespaceBehavior = BlockNamespaceBehavior.of(blockedNamespaces);
         interval = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
-                .getStreamConfig().getWriteInterval();
+                .getUpdaterConfig().getStreamConfig().getWriteInterval();
 
         pubSubMediator.tell(DistPubSubAccess.subscribeViaGroup(PolicyEvent.TYPE_PREFIX, ACTOR_NAME, getSelf()),
                 getSelf());

@@ -46,14 +46,11 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
     private final DittoServiceConfig dittoServiceConfig;
     @Nullable private final String mongoHintsByNamespace;
     private final String queryCriteriaValidator;
-    private final DeleteConfig deleteConfig;
-    private final DeletionConfig deletionConfig;
     private final UpdaterConfig updaterConfig;
     private final HealthCheckConfig healthCheckConfig;
     private final IndexInitializationConfig indexInitializationConfig;
     private final PersistenceOperationsConfig persistenceOperationsConfig;
     private final MongoDbConfig mongoDbConfig;
-    private final StreamConfig streamConfig;
 
     private DittoSearchConfig(final ScopedConfig dittoScopedConfig) {
         dittoServiceConfig = DittoServiceConfig.of(dittoScopedConfig, CONFIG_PATH);
@@ -65,11 +62,8 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
                 ConfigWithFallback.newInstance(dittoScopedConfig, CONFIG_PATH, SearchConfigValue.values());
         mongoHintsByNamespace = configWithFallback.getStringOrNull(SearchConfigValue.MONGO_HINTS_BY_NAMESPACE);
         queryCriteriaValidator = configWithFallback.getStringOrNull(SearchConfigValue.QUERY_CRITERIA_VALIDATOR);
-        deleteConfig = DefaultDeleteConfig.of(configWithFallback);
-        deletionConfig = DefaultDeletionConfig.of(configWithFallback);
         updaterConfig = DefaultUpdaterConfig.of(configWithFallback);
         indexInitializationConfig = DefaultIndexInitializationConfig.of(configWithFallback);
-        streamConfig = DefaultStreamConfig.of(configWithFallback);
     }
 
     /**
@@ -95,23 +89,8 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
     }
 
     @Override
-    public DeleteConfig getDeleteConfig() {
-        return deleteConfig;
-    }
-
-    @Override
-    public DeletionConfig getDeletionConfig() {
-        return deletionConfig;
-    }
-
-    @Override
     public UpdaterConfig getUpdaterConfig() {
         return updaterConfig;
-    }
-
-    @Override
-    public StreamConfig getStreamConfig() {
-        return streamConfig;
     }
 
     @Override
@@ -166,22 +145,19 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
         final DittoSearchConfig that = (DittoSearchConfig) o;
         return Objects.equals(mongoHintsByNamespace, that.mongoHintsByNamespace) &&
                 Objects.equals(queryCriteriaValidator, that.queryCriteriaValidator) &&
-                Objects.equals(deleteConfig, that.deleteConfig) &&
-                Objects.equals(deletionConfig, that.deletionConfig) &&
                 Objects.equals(updaterConfig, that.updaterConfig) &&
                 Objects.equals(dittoServiceConfig, that.dittoServiceConfig) &&
                 Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
                 Objects.equals(indexInitializationConfig, that.indexInitializationConfig) &&
                 Objects.equals(persistenceOperationsConfig, that.persistenceOperationsConfig) &&
-                Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
-                Objects.equals(streamConfig, that.streamConfig);
+                Objects.equals(mongoDbConfig, that.mongoDbConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(mongoHintsByNamespace, queryCriteriaValidator, deleteConfig, deletionConfig, updaterConfig,
+        return Objects.hash(mongoHintsByNamespace, queryCriteriaValidator, updaterConfig,
                 dittoServiceConfig, healthCheckConfig, indexInitializationConfig, persistenceOperationsConfig,
-                mongoDbConfig, streamConfig);
+                mongoDbConfig);
     }
 
     @Override
@@ -189,15 +165,12 @@ public final class DittoSearchConfig implements SearchConfig, WithConfigPath {
         return getClass().getSimpleName() + " [" +
                 "mongoHintsByNamespace=" + mongoHintsByNamespace +
                 ", queryCriteriaValidator=" + queryCriteriaValidator +
-                ", deleteConfig=" + deleteConfig +
-                ", deletionConfig=" + deletionConfig +
                 ", updaterConfig=" + updaterConfig +
                 ", dittoServiceConfig=" + dittoServiceConfig +
                 ", healthCheckConfig=" + healthCheckConfig +
                 ", indexInitializationConfig=" + indexInitializationConfig +
                 ", persistenceOperationsConfig=" + persistenceOperationsConfig +
                 ", mongoDbConfig=" + mongoDbConfig +
-                ", streamConfig=" + streamConfig +
                 "]";
     }
 

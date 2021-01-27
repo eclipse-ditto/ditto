@@ -39,6 +39,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     private final Duration shardingStatePollInterval;
     private final boolean eventProcessingActive;
     private final BackgroundSyncConfig backgroundSyncConfig;
+    private final StreamConfig streamConfig;
 
     private DefaultUpdaterConfig(final ConfigWithFallback updaterScopedConfig) {
         maxIdleTime = updaterScopedConfig.getDuration(UpdaterConfigValue.MAX_IDLE_TIME.getConfigPath());
@@ -48,6 +49,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
         eventProcessingActive =
                 updaterScopedConfig.getBoolean(UpdaterConfigValue.EVENT_PROCESSING_ACTIVE.getConfigPath());
         backgroundSyncConfig = DefaultBackgroundSyncConfig.fromUpdaterConfig(updaterScopedConfig);
+        streamConfig = DefaultStreamConfig.of(updaterScopedConfig);
     }
 
     /**
@@ -88,6 +90,11 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
     }
 
     @Override
+    public StreamConfig getStreamConfig() {
+        return streamConfig;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -100,13 +107,14 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
                 eventProcessingActive == that.eventProcessingActive &&
                 Objects.equals(maxIdleTime, that.maxIdleTime) &&
                 Objects.equals(shardingStatePollInterval, that.shardingStatePollInterval) &&
-                Objects.equals(backgroundSyncConfig, that.backgroundSyncConfig);
+                Objects.equals(backgroundSyncConfig, that.backgroundSyncConfig) &&
+                Objects.equals(streamConfig, that.streamConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(maxIdleTime, maxBulkSize, shardingStatePollInterval, eventProcessingActive,
-                backgroundSyncConfig);
+                backgroundSyncConfig, streamConfig);
     }
 
     @Override
@@ -117,6 +125,7 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
                 ", shardingStatePollInterval=" + shardingStatePollInterval +
                 ", eventProcessingActive=" + eventProcessingActive +
                 ", backgroundSyncConfig=" + backgroundSyncConfig +
+                ", streamConfig=" + streamConfig +
                 "]";
     }
 
