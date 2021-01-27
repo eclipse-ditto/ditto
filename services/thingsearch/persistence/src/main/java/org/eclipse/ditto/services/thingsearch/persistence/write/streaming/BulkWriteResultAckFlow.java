@@ -119,7 +119,9 @@ final class BulkWriteResultAckFlow {
 
     private static Flow<WriteResultAndErrors, WriteResultAndErrors, NotUsed> getDelayFlow(final Duration delay) {
         if (isPositive(delay)) {
-            return Flow.<WriteResultAndErrors>create().delay(delay, DelayOverflowStrategy.backpressure());
+            // delay required to delay the first result. delay applied for each buffered batch.
+            return Flow.<WriteResultAndErrors>create()
+                    .delay(delay, DelayOverflowStrategy.backpressure());
         } else {
             return Flow.create();
         }

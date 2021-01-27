@@ -26,8 +26,6 @@ import akka.actor.Props;
 import akka.japi.function.Function;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
-import akka.stream.Attributes;
-import akka.stream.DelayOverflowStrategy;
 import akka.stream.javadsl.Source;
 
 /**
@@ -88,8 +86,7 @@ public final class ChangeQueueActor extends AbstractActor {
             final ActorRef changeQueueActor,
             final Duration writeInterval) {
         return Source.repeat(Control.DUMP)
-                .delay(writeInterval, DelayOverflowStrategy.backpressure())
-                .withAttributes(Attributes.inputBuffer(1, 1))
+                .throttle(1, writeInterval)
                 .flatMapConcat(ChangeQueueActor.askSelf(changeQueueActor))
                 .filter(map -> !map.isEmpty());
     }
@@ -99,6 +96,7 @@ public final class ChangeQueueActor extends AbstractActor {
         cache = new HashMap<>();
     }
 
+    @SuppressWarnings("unchecked")
     private static Function<Control, Source<Map<ThingId, Metadata>, NotUsed>> askSelf(final ActorRef self) {
         return message -> Source.completionStageSource(
                 Patterns.ask(self, message, ASK_SELF_TIMEOUT)

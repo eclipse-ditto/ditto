@@ -178,8 +178,7 @@ final class PolicyEventForwarder extends AbstractActor {
         terminateStream();
         final ActorRef self = getSelf();
         killSwitch = Source.repeat(Control.DUMP_POLICY_REVISIONS)
-                .delay(interval, DelayOverflowStrategy.backpressure())
-                .withAttributes(Attributes.inputBuffer(1, 1))
+                .throttle(1, interval)
                 .viaMat(KillSwitches.single(), Keep.right())
                 .mapAsync(1, message ->
                         Patterns.ask(self, message, ASK_SELF_TIMEOUT).exceptionally(Function.identity()))

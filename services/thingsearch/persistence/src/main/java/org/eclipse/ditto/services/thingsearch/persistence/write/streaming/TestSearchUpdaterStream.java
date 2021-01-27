@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
 
-import java.time.Duration;
-
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -75,7 +73,7 @@ public final class TestSearchUpdaterStream {
                 null);
 
         return Source.single(Source.single(writeModel))
-                .via(mongoSearchUpdaterFlow.start(1, 1, Duration.ZERO));
+                .via(mongoSearchUpdaterFlow.start(1, 1));
     }
 
     /**
@@ -114,7 +112,7 @@ public final class TestSearchUpdaterStream {
     private Source<WriteResultAndErrors, NotUsed> delete(final Metadata metadata) {
         final AbstractWriteModel writeModel = ThingDeleteModel.of(metadata);
         return Source.single(Source.single(writeModel))
-                .via(mongoSearchUpdaterFlow.start(1, 1, Duration.ZERO));
+                .via(mongoSearchUpdaterFlow.start(1, 1));
     }
 
 }

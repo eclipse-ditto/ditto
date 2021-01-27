@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
 
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_COLLECTION_NAME;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -76,26 +75,15 @@ final class MongoSearchUpdaterFlow {
      *
      * @param parallelism How many write operations may run in parallel for this sink.
      * @param maxBulkSize How many writes to perform in one bulk.
-     * @param writeInterval Delay between bulk operation requests. MongoDB backpressure is insufficient.
      * @return the sink.
      */
     public Flow<Source<AbstractWriteModel, NotUsed>, WriteResultAndErrors, NotUsed> start(
             final int parallelism,
-            final int maxBulkSize,
-            final Duration writeInterval) {
-
-        final Flow<List<AbstractWriteModel>, List<AbstractWriteModel>, NotUsed> throttleFlow;
-        if (Duration.ZERO.minus(writeInterval).isNegative()) {
-            throttleFlow = Flow.<List<AbstractWriteModel>>create()
-                    .throttle(parallelism, writeInterval);
-        } else {
-            throttleFlow = Flow.create();
-        }
+            final int maxBulkSize) {
 
         final Flow<Source<AbstractWriteModel, NotUsed>, List<AbstractWriteModel>, NotUsed> batchFlow =
                 Flow.<Source<AbstractWriteModel, NotUsed>>create()
-                        .flatMapConcat(source -> source.grouped(maxBulkSize))
-                        .via(throttleFlow);
+                        .flatMapConcat(source -> source.grouped(maxBulkSize));
 
         final Flow<List<AbstractWriteModel>, WriteResultAndErrors, NotUsed> writeFlow =
                 Flow.<List<AbstractWriteModel>>create()

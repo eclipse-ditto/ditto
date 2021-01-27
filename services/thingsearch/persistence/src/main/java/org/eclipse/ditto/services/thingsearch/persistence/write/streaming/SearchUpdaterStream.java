@@ -154,7 +154,7 @@ public final class SearchUpdaterStream {
         final int maxBulkSize = persistenceConfig.getMaxBulkSize();
         final Duration writeInterval = streamConfig.getWriteInterval();
         final Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> sink =
-                mongoSearchUpdaterFlow.start(parallelism, maxBulkSize, writeInterval)
+                mongoSearchUpdaterFlow.start(parallelism, maxBulkSize)
                         .via(bulkWriteResultAckFlow.start(persistenceConfig.getAckDelay()))
                         .log("SearchUpdaterStream/BulkWriteResult")
                         .withAttributes(Attributes.logLevels(

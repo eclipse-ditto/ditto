@@ -100,7 +100,7 @@ public final class MongoSearchUpdaterFlowTest {
             final MongoSearchUpdaterFlow flow = MongoSearchUpdaterFlow.of(db);
 
             final Sink<Source<AbstractWriteModel, NotUsed>, ?> sink =
-                    flow.start(1, 1, Duration.ZERO).to(Sink.ignore());
+                    flow.start(1, 1).to(Sink.ignore());
 
             final Sink<Source<AbstractWriteModel, NotUsed>, ?> restartSink =
                     RestartSink.withBackoff(Duration.ZERO, Duration.ZERO, 1.0, () -> sink);
