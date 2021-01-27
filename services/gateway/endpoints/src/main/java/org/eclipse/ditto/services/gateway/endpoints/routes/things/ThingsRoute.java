@@ -44,6 +44,7 @@ import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.MessageConfig;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotDeletableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingMergeInvalidException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteAttribute;
@@ -250,15 +251,23 @@ public final class ThingsRoute extends AbstractRoute {
                         patch(() -> ensureMediaTypeMergePatchJsonThenExtractDataBytes(ctx, dittoHeaders,
                                 payloadSource -> handlePerRequest(ctx, dittoHeaders, payloadSource,
                                         thingJson -> MergeThing.withThing(thingId,
-                                                ThingsModelFactory.newThingBuilder(
-                                                        ThingJsonObjectCreator.newInstance(thingJson,
-                                                                thingId.toString()).forPatch()).build(),
+                                                thingFromJsonForPatch(thingJson, thingId, dittoHeaders),
                                                 dittoHeaders)))
                         ),
                         // DELETE /things/<thingId>
                         delete(() -> handlePerRequest(ctx, DeleteThing.of(thingId, dittoHeaders)))
                 )
         );
+    }
+
+    private static Thing thingFromJsonForPatch(final String thingJson, final ThingId thingId,
+            final DittoHeaders dittoHeaders) {
+        if (JsonFactory.readFrom(thingJson).isNull()) {
+            throw ThingMergeInvalidException.fromMessage(
+                    "The provided json value can not be applied at this resource", dittoHeaders);
+        }
+        return ThingsModelFactory.newThingBuilder(
+                ThingJsonObjectCreator.newInstance(thingJson, thingId.toString()).forPatch()).build();
     }
 
     /*

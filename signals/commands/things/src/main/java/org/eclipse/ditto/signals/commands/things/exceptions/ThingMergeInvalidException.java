@@ -20,7 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -39,11 +39,12 @@ public class ThingMergeInvalidException extends DittoRuntimeException implements
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "merge.invalid";
 
+    private static final String RFC_7396_URI = "https://tools.ietf.org/html/rfc7396";
+
     private static final String MESSAGE_TEMPLATE =
             "The provided JSON Merge Patch is invalid, it must conform to RFC7396.";
     private static final String DEFAULT_DESCRIPTION =
             "The provided JSON Merge Patch cannot be applied at the given path.";
-    private static final String RFC_7396_URI = "https://tools.ietf.org/html/rfc7396";
 
     private static final long serialVersionUID = -5292193314632230887L;
 
@@ -52,7 +53,7 @@ public class ThingMergeInvalidException extends DittoRuntimeException implements
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
     /**

@@ -50,6 +50,7 @@ import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingMergeInvalidException;
 
 /**
  * /**
@@ -115,6 +116,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
     public static MergeThing withThing(final ThingId thingId, final Thing thing, final DittoHeaders dittoHeaders) {
         ensureThingIdMatches(thingId, thing);
         ensureAuthorizationMatchesSchemaVersion(thingId, thing, dittoHeaders);
+        ensureThingIsNotNullOrEmpty(thing, dittoHeaders);
         final JsonObject mergePatch = thing.toJson();
         return new MergeThing(thingId, JsonPointer.empty(), mergePatch, dittoHeaders);
     }
@@ -353,9 +355,26 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
         }
     }
 
+    /**
+     * Ensures that the thingId is consistent with the id of the thing.
+     *
+     * @throws org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException if ids do not match.
+     */
     private static void ensureThingIdMatches(final ThingId thingId, final Thing thing) {
         if (!thing.getEntityId().map(id -> id.equals(thingId)).orElse(true)) {
             throw ThingIdNotExplicitlySettableException.forDittoProtocol().build();
+        }
+    }
+
+    /**
+     * Ensures that the thing is not null or empty.
+     *
+     * @throws org.eclipse.ditto.signals.commands.things.exceptions.ThingMergeInvalidException if the thing is null or empty.
+     */
+    private static void ensureThingIsNotNullOrEmpty(final Thing thing, final DittoHeaders dittoHeaders) {
+        if (thing.toJson().isEmpty()) {
+            throw ThingMergeInvalidException.fromMessage(
+                    "The provided json value can not be applied at this resource", dittoHeaders);
         }
     }
 

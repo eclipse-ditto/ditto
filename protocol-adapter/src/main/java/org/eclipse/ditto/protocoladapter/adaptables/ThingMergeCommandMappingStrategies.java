@@ -26,6 +26,7 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotDeletableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotDeletableException;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingMergeInvalidException;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
 
 /**
@@ -155,6 +156,10 @@ final class ThingMergeCommandMappingStrategies extends AbstractThingMappingStrat
     }
 
     protected static Thing thingForMergeFrom(final Adaptable adaptable) {
+        if (payloadValueIsNull(adaptable)) {
+            throw ThingMergeInvalidException.fromMessage(
+                    "The provided json value can not be applied at this resource", adaptable.getDittoHeaders());
+        }
         if (fieldIsNull(adaptable, Thing.JsonFields.ID.getPointer())) {
             throw ThingIdNotDeletableException.newBuilder().build();
         }
@@ -183,4 +188,5 @@ final class ThingMergeCommandMappingStrategies extends AbstractThingMappingStrat
     private static boolean payloadValueIsNull(final Adaptable adaptable) {
         return adaptable.getPayload().getValue().map(JsonValue::isNull).orElse(false);
     }
+
 }
