@@ -14,38 +14,31 @@ With the upcoming release of Eclipse Ditto **version 2.0.0** it will be possible
 
 ## Merge functionality for things resources
 Ditto now supports merging of existing things and all of its subresources with the provided payload in the request.
-This can be done by using the HTTP API with the PATCH method or via the Ditto protocol and also by using the Ditto Java Client. 
+This can be done by using the HTTP API with the PATCH method, via the Ditto protocol, and also by using the Ditto Java Client. 
 For all three ways there is an example provided in this blog post.
 
-In contrast to the already existing PUT resource this new functionality allows partial updates on things and all subresources. 
-To get more into detail from now on it is possible to add or update some attributes, and a feature property at the same time 
-without overriding the complete thing. Another use case might be to update several feature properties within a single request
+In contrast to the already existing PUT resource, this new functionality **allows partial updates** on a thing and all its subresources. 
+To get more into detail, from now on it is possible to add or update some attributes, and a feature property at the same time,
+without overwriting the complete thing. Another use case might be to update several feature properties within a single request
 and let all other parts of the thing untouched. 
 
 Ditto uses the [JSON Merge Patch](https://tools.ietf.org/html/rfc7396) semantics to merge the request body 
 with the existing thing. In short, a JSON merge patch resembles the original JSON structure of a thing, and 
-the fields provided in the patch are added, updated or deleted in the existing thing.
+the fields provided in the patch are added, updated, or deleted in the existing thing.
 
 Please be aware that `null` values have a special meaning when applying a merge patch. A `null` value indicates 
 the removal of existing fields in the updated thing. 
-For more details and examples please refer to [RFC-7396](https://tools.ietf.org/html/rfc7396).
+For more details and examples, please refer to [RFC-7396](https://tools.ietf.org/html/rfc7396).
 
 ### Permissions to merge things and things subresources
-In order to execute such a merge operation the authorized subject needs to have WRITE permission at all resources
-that are changed by the merge. Consequently, if the permissions is missing for some part of the merge,
-the merge is rejected and **not** applied at all.  
-
-For example, to successfully execute the below example the authorized subject needs to have unrestricted WRITE permissions 
-on all affected paths of the JSON merge patch: attributes/manufacturingYear, features/water-tank/properties/configuration/smartMode, 
-features/water-tank/properties/configuration/tempToHold. 
-The WRITE permission must not be revoked on any level further down the hierarchy. 
-Consequently, it is also sufficient for the authorized subject to have unrestricted WRITE permission at root level or 
-unrestricted WRITE permission at /attributes and /features etc.
+In order to execute such a merge operation, the authorized subject needs to have WRITE permission at all resources
+that should change by the merge. Consequently, if the permissions is missing for some part of the merge,
+the merge is rejected and **not** applied at all.
 
 
 ## Examples
 
-To demonstrate the new merge feature we assume that the following thing already exists:
+To demonstrate the new merge feature, we assume that the following thing already exists:
 
 ```json
 {
@@ -83,10 +76,18 @@ To demonstrate the new merge feature we assume that the following thing already 
 }
 ```
 
-In the following subparts will be shown how to use the merge feature via the HTTP API, the Ditto protocol 
+### Permissions to execute the example
+For this example, the authorized subject needs to have unrestricted WRITE permissions on all affected paths 
+of the JSON merge patch: *attributes/manufacturingYear*, *features/water-tank/properties/configuration/smartMode*, and
+*features/water-tank/properties/configuration/tempToHold*.
+The WRITE permission must not be revoked on any level further down the hierarchy.
+Consequently, it is also sufficient for the authorized subject to have unrestricted WRITE permission at root level or
+unrestricted WRITE permission at /attributes and /features etc.
+
+The following subparts will show how to use the merge feature via the HTTP API, the Ditto protocol 
 and the Ditto Java Client.
 
-### HTTP API
+### Merge via HTTP API
 An existing thing can be merged via the HTTP API using the *PATCH* method with the following request body.
 Notice that this request will add the "manufacturingYear" to the attributes, update the "tempToHold" to 50 and 
 delete the "smartMode" key from  the feature property "water-tank".
@@ -154,9 +155,9 @@ After the request was successfully performed the thing will look like this:
 It is also possible to apply the *PATCH* method to all subresources of a thing, e.g. merging only the attributes of a thing.    
 Check out the newly added *PATCH* resources in our [HTTP API](http-api-doc.html). 
 
-### Ditto protocol
+### Merge via Ditto protocol
 It is also possible to merge the existing thing via the Ditto protocol.
-Applying the following Ditto protocol message to the existing thing will lead to the same result as in the above HTTP example.   
+Applying the following Ditto merge command to the existing thing will lead to the same result as in the above HTTP example.   
 
 ```json
 {
@@ -236,7 +237,7 @@ dittoClient.twin().merge(THING_ID, THING)
         }));
 ```
 
-After running this code snippet the existing thing should look like the above result for the HTTP example.
+After running this code snippet, the existing thing should look like the above result for the HTTP example.
 
 More examples for merging an attribute, all attributes and a feature property via Ditto Java Client.
 ```java
