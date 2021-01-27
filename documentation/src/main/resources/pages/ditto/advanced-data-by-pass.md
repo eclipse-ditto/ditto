@@ -5,13 +5,13 @@ tags: [advanced]
 permalink: advanced-data-by-pass.html
 ---
 
-This pattern centers around the idea to delegate the data transmission to external services, by-passing the Ditto cluster, while still being able to benefit from Ditto's [policy system](basic-policies.html) and IoT architecture.
+This pattern centers around the idea to delegate the data transmission to external services, by-passing the Ditto cluster, while still being able to benefit from Ditto's [policy system](basic-policy.html) and IoT architecture.
 
 ## Context
 
-You have services exposing their functionality transparently though Ditto's messaging API as part of your digital twin. E.g. a history service providing the actual interface to your timeseries database as part of the things interface such that a client may not need to know if the history actually is managed by the thing itself or any other program. You use Ditto's [policy system](basic-policies.html) to secure access to your services that way.
+You have services exposing their functionality transparently though Ditto's messaging API as part of your digital twin. E.g. a history service providing the actual interface to your timeseries database as part of the things interface such that a client may not need to know if the history actually is managed by the thing itself or any other program. You use Ditto's [policy system](basic-policy.html) to secure access to your services that way.
 
-Your services provides data in quantities that are not suited for transmission through the Ditto cluster directly, because of (de-)serialization costs, round-trip-times etc.
+Your services provide data in quantities that are not suited for transmission through the Ditto cluster directly, because of (de-)serialization costs, round-trip-times etc.
 
 ## Problem
 
@@ -19,12 +19,12 @@ You want to query a greater amount of data (e.g. database query result) by issui
 
 ## Solution
 
-The solution is comprised of the following systems:
+The solution consists of the following systems:
 
 * **database**: where your bigger chunks of data reside and wait to be delivered / queried
 * **database provider mirco-service**: the service managing the database connection and exposing it to clients through things messaging API
 * **thing**: a digital twin with extended API through a micro-service
-* **client**: a client-application trying to receiving bigger quantities of data via a things messaging API in the scope of that thing and secured via ditto policies
+* **client**: a client-application trying to receive bigger quantities of data via a things messaging API in the scope of that thing and secured via ditto policies
 * **high-performance data proxy** (or just proxy): a third-party application proxy sitting in-between the database and the provider micro-service managing data delivery
 
 {% include image.html file="pages/advanced/data-by-pass-architectural-design.jpg" alt="Architectural Design" caption="Architectural design of the data by-pass pattern showing all actors and their interactions." max-width=800 %}
@@ -35,7 +35,7 @@ The provider micro-service hooks into a twin (e.g. via websockets) and listens f
 
 With this approach the access to the database is secured via Ditto [policies](basic-policy.html) and in scope of single things while the data retrieval happens via a performant proxy application without the Ditto cluster ever seeing those packages.
 
-*Note: Keep in mind that security in this situation is highly dependent of the micro-service implementation. You have to make sure that you implementation uses provided information of ditto properly and that the contents of a message do not allow a violation of the policy. E.g. through SQL-Injections.*
+*Note: Keep in mind that security in this situation is highly dependent of the micro-service implementation. You have to make sure that your implementation uses provided information of ditto properly and that the contents of a message do not allow a violation of the policy. E.g. through SQL-Injections.*
 
 ## Discussion
 
@@ -88,10 +88,10 @@ This can also be built against single features. Since features have to be stated
 
 The [ceryx proxy project](https://github.com/sourcelair/ceryx) was used for the [PoC (or reference implementation)](https://github.com/w4tsn/ceryx) of this pattern. It was enhanced with delegation features which still have to be contributed upstream. Have a look at the [forks source code](https://github.com/w4tsn/ceryx) or the [corresponding container image](https://quay.io/repository/w4tsn/ceryx) until then.
 
-The ceryx proxy is a modified nginx with a redis-database to store the randomly generated IDs correlating with prepared queries. It is not suited for this use-case on it's own so capabilities to store queries (including Authentication) behind expiring random URLs was added, but not send upstream yet.
+The ceryx proxy is a modified nginx with a redis-database to store the randomly generated IDs correlating with prepared queries. It is not suited for this use-case on its own so capabilities to store queries (including Authentication) behind expiring random URLs was added, but not send upstream yet.
 
 ## Known uses
 
 **[othermo GmbH](https://www.othermo.de) uses this for a history-service**: The history service connects to Ditto via websockets and hooks into things by answering specific `/history` messages. The messages API is translated to InfluxDB queries which then are stored with a randomly generated URL and expiration of 5 minutes at the high-performance proxy. The service then returns the random URL to the client which then follows the 303 to retrieve the actual data.
 
-The messages contain InfluxDB-similar query elements while the query is only constructed at the provider service. That's because the provider service uses the databases specifics like Tags in InfluxDB to assign thingId, policy and path informations in order to get the stored data into the right scopes and to be able to retrieve the correct sets of data.
+The messages contain InfluxDB-similar query elements while the query is only constructed at the provider service. That's because the provider service uses the databases specifics like Tags in InfluxDB to assign thingId, policy and path information in order to get the stored data into the right scopes and to be able to retrieve the correct sets of data.
