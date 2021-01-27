@@ -18,7 +18,7 @@ This can be done by using the HTTP API with the PATCH method, via the Ditto prot
 For all three ways there is an example provided in this blog post.
 
 In contrast to the already existing PUT resource, this new functionality **allows partial updates** on a thing and all its subresources. 
-To get more into detail, from now on it is possible to add or update some attributes, and a feature property at the same time,
+To get more into detail, from now on it is possible to add or update attributes, and a feature property at the same time,
 without overwriting the complete thing. Another use case might be to update several feature properties within a single request
 and let all other parts of the thing untouched. 
 
@@ -32,7 +32,7 @@ For more details and examples, please refer to [RFC-7396](https://tools.ietf.org
 
 ### Permissions to merge things and things subresources
 In order to execute such a merge operation, the authorized subject needs to have WRITE permission at all resources
-that should change by the merge. Consequently, if the permissions is missing for some part of the merge,
+that should change by the merge. Consequently, if the permission is missing for some part of the merge,
 the merge is rejected and **not** applied at all.
 
 
