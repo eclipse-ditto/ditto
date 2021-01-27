@@ -29,7 +29,6 @@ import com.mongodb.MongoCommandException;
 import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
-import com.mongodb.reactivestreams.client.Success;
 
 import akka.Done;
 import akka.NotUsed;
@@ -163,7 +162,7 @@ public final class MongoTimestampPersistence implements TimestampPersistence {
             final long cappedCollectionSizeInBytes,
             final Materializer materializer) {
 
-        final Source<Success, NotUsed> createCollectionSource =
+        final Source<Done, NotUsed> createCollectionSource =
                 repeatableCreateCappedCollectionSource(database, collectionName, cappedCollectionSizeInBytes);
 
         final Source<MongoCollection, NotUsed> infiniteCollectionSource =
@@ -178,7 +177,7 @@ public final class MongoTimestampPersistence implements TimestampPersistence {
         return restartSource.runWith(BroadcastHub.of(MongoCollection.class, 1), materializer);
     }
 
-    private static Source<Success, NotUsed> repeatableCreateCappedCollectionSource(
+    private static Source<Done, NotUsed> repeatableCreateCappedCollectionSource(
             final MongoDatabase database,
             final String collectionName,
             final long cappedCollectionSizeInBytes) {
@@ -188,14 +187,15 @@ public final class MongoTimestampPersistence implements TimestampPersistence {
                 .sizeInBytes(cappedCollectionSizeInBytes)
                 .maxDocuments(1);
 
-        return Source.lazily(
+        return Source.lazySource(
                 () -> Source.fromPublisher(database.createCollection(collectionName, collectionOptions)))
                 .mapMaterializedValue(whatever -> NotUsed.getInstance())
+                .map(nullValue -> Done.done())
                 .withAttributes(Attributes.inputBuffer(1, 1))
-                .recoverWithRetries(1, new PFBuilder<Throwable, Source<Success, NotUsed>>()
+                .recoverWithRetries(1, new PFBuilder<Throwable, Source<Done, NotUsed>>()
                         .match(MongoCommandException.class,
                                 MongoTimestampPersistence::isCollectionAlreadyExistsError,
-                                error -> Source.single(Success.SUCCESS))
+                                error -> Source.single(Done.done()))
                         .build());
 
     }

@@ -109,7 +109,7 @@ public final class EnforcedThingFlattenerTest {
                 "  },\n" +
                 "  {\n" +
                 "    \"k\": \"/d/l\",\n" +
-                "    \"v\": { \"$numberLong\": \"123456789012\" },\n" +
+                "    \"v\": 123456789012,\n" +
                 "    \"g\": [ \"grant:read-only\" ],\n" +
                 "    \"r\": []\n" +
                 "  }\n" +
@@ -206,7 +206,7 @@ public final class EnforcedThingFlattenerTest {
                 "  },\n" +
                 "  {\n" +
                 "    \"k\": \"/d/l\",\n" +
-                "    \"v\": { \"$numberLong\": \"123456789012\" },\n" +
+                "    \"v\": 123456789012,\n" +
                 "    \"g\": [ \"grant:root\" ],\n" +
                 "    \"r\": []\n" +
                 "  }\n" +

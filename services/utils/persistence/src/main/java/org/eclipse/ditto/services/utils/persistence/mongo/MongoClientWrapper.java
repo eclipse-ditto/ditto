@@ -37,6 +37,7 @@ import com.mongodb.MongoCredential;
 import com.mongodb.ReadPreference;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcern;
+import com.mongodb.connection.ClusterDescription;
 import com.mongodb.connection.netty.NettyStreamFactoryFactory;
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
@@ -123,12 +124,6 @@ public final class MongoClientWrapper implements DittoMongoClient {
     @Override
     public MongoDatabase getDatabase(final String name) {
         return mongoClient.getDatabase(name);
-    }
-
-    @Override
-    @Deprecated
-    public com.mongodb.async.client.MongoClientSettings getSettings() {
-        return mongoClient.getSettings();
     }
 
     @Override
@@ -219,6 +214,11 @@ public final class MongoClientWrapper implements DittoMongoClient {
     @Override
     public Publisher<ClientSession> startSession(final ClientSessionOptions options) {
         return mongoClient.startSession(options);
+    }
+
+    @Override
+    public ClusterDescription getClusterDescription() {
+        return mongoClient.getClusterDescription();
     }
 
     @Override
@@ -346,7 +346,8 @@ public final class MongoClientWrapper implements DittoMongoClient {
 
         @Override
         public MongoClientWrapperBuilder connectionPoolMaxWaitQueueSize(final int maxQueueSize) {
-            mongoClientSettingsBuilder.applyToConnectionPoolSettings(builder -> builder.maxWaitQueueSize(maxQueueSize));
+//            mongoClientSettingsBuilder.applyToConnectionPoolSettings(builder -> builder.maxWaitQueueSize(maxQueueSize));
+            // TODO: Yannic fix this.
             return this;
         }
 

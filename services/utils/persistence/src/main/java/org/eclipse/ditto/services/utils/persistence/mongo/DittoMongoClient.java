@@ -46,7 +46,7 @@ public interface DittoMongoClient extends MongoClient {
 
     /**
      * Returns the the settings that this client uses additionally to the
-     * {@link com.mongodb.async.client.MongoClientSettings}.
+     * {@link com.mongodb.MongoClientSettings}.
      *
      * @return the Ditto specific settings of this client.
      */
