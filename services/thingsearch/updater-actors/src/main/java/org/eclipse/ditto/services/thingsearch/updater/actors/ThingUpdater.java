@@ -39,7 +39,6 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.services.utils.metrics.instruments.timer.OnStopHandler;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
@@ -210,9 +209,7 @@ final class ThingUpdater extends AbstractActor {
         } else {
             l.debug("Applying thing event <{}>.", thingEvent);
             thingRevision = thingEvent.getRevision();
-            final StartedTimer timer = DittoMetrics.expiringTimer(SEARCH_UPDATER_CONSISTENCY_LAG).build()
-                    .onStop(new OnStopHandler(stimer ->
-                            l.debug("Applied thing event to search index in duration: <{}>", stimer.getDuration())));
+            final StartedTimer timer = DittoMetrics.expiringTimer(SEARCH_UPDATER_CONSISTENCY_LAG).build();
             enqueueMetadata(exportMetadataWithSender(shouldAcknowledge, getSender(), timer));
         }
     }
