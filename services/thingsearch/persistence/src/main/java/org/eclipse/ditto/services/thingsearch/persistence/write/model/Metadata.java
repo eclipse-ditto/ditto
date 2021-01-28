@@ -243,12 +243,13 @@ public final class Metadata {
                 Objects.equals(thingId, that.thingId) &&
                 Objects.equals(policyId, that.policyId) &&
                 Objects.equals(modified, that.modified) &&
+                Objects.equals(timer, that.timer)&&
                 Objects.equals(senders, that.senders);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified, senders);
+        return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified, timer, senders);
     }
 
     @Override
@@ -259,6 +260,7 @@ public final class Metadata {
                 ", policyId=" + policyId +
                 ", policyRevision=" + policyRevision +
                 ", modified=" + modified +
+                ", timer=" + timer +
                 ", senders=" + senders +
                 "]";
     }
