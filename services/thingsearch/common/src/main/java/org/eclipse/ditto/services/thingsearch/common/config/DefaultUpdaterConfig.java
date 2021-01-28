@@ -31,8 +31,6 @@ public final class DefaultUpdaterConfig implements UpdaterConfig {
      * Path where the updater config values are expected.
      */
     static final String CONFIG_PATH = "updater";
-    static final String THINGS_SYNC_CONFIG_PATH = "sync.things";
-    static final String POLICIES_SYNC_CONFIG_PATH = "sync.policies";
 
     private final Duration maxIdleTime;
     private final int maxBulkSize;

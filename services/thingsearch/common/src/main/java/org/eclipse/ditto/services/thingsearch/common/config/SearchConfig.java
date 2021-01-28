@@ -38,7 +38,6 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
      * {@link org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand}.
      *
      * @return the config.
-     * @since 1.6.0
      */
     String getQueryValidatorImplementation();
 
