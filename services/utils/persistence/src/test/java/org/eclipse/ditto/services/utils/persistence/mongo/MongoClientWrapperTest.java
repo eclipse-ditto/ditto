@@ -19,6 +19,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nullable;
+
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.junit.Test;
 
@@ -81,11 +83,10 @@ public final class MongoClientWrapperTest {
         final MongoClientWrapper underTest = MongoClientWrapper.newInstance(mongoDbConfig);
 
         // verify
-        // TODO: Yannic fix
-//        assertThat(underTest.getSettings().getConnectionPoolSettings().
-//                 getMaxConnectionIdleTime(TimeUnit.MILLISECONDS)).isEqualTo(maxIdleTime.toMillis());
-//        assertThat(underTest.getSettings().getConnectionPoolSettings().
-//                getMaxConnectionLifeTime(TimeUnit.MILLISECONDS)).isEqualTo(maxLifeTime.toMillis());
+        assertThat(underTest.getClientSettings().getConnectionPoolSettings().
+                 getMaxConnectionIdleTime(TimeUnit.MILLISECONDS)).isEqualTo(maxIdleTime.toMillis());
+        assertThat(underTest.getClientSettings().getConnectionPoolSettings().
+                getMaxConnectionLifeTime(TimeUnit.MILLISECONDS)).isEqualTo(maxLifeTime.toMillis());
     }
 
     @Test
@@ -123,7 +124,7 @@ public final class MongoClientWrapperTest {
         final String uriWithSslEnabled = createUri(true);
 
         final Config config = CONFIG.withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uriWithSslEnabled))
-                                 .withValue(MONGO_SSL_CONFIG_KEY, ConfigValueFactory.fromAnyRef("true"));
+                .withValue(MONGO_SSL_CONFIG_KEY, ConfigValueFactory.fromAnyRef("true"));
         final DefaultMongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(config);
 
         // test
@@ -172,17 +173,17 @@ public final class MongoClientWrapperTest {
     private static void assertWithExpected(final DittoMongoClient mongoClient, final boolean sslEnabled,
             final boolean withCredentials) {
 
-        final ClusterDescription mongoClientSettings = mongoClient.getClusterDescription();
+        final MongoClientSettings mongoClientSettings = mongoClient.getClientSettings();
         assertThat(mongoClientSettings.getClusterSettings().getHosts())
                 .isEqualTo(Collections.singletonList(new ServerAddress(KNOWN_SERVER_ADDRESS)));
 
-        final List<MongoCredential> expectedCredentials = withCredentials ? Collections.singletonList(
-                MongoCredential.createCredential(KNOWN_USER, KNOWN_DB_NAME, KNOWN_PASSWORD.toCharArray())) :
-                Collections.emptyList();
-// TODO: Yannic fix
-//        assertThat(mongoClientSettings.getCredentialList()).isEqualTo(
-//                expectedCredentials);
-//        assertThat(mongoClientSettings.getSslSettings().isEnabled()).isEqualTo(sslEnabled);
+        @Nullable
+        final MongoCredential expectedCredential = withCredentials ?
+                MongoCredential.createCredential(KNOWN_USER, KNOWN_DB_NAME, KNOWN_PASSWORD.toCharArray()) :
+                null;
+
+        assertThat(mongoClientSettings.getCredential()).isEqualTo(expectedCredential);
+        assertThat(mongoClientSettings.getSslSettings().isEnabled()).isEqualTo(sslEnabled);
 
         final MongoDatabase mongoDatabase = mongoClient.getDefaultDatabase();
         assertThat(mongoDatabase).isNotNull();

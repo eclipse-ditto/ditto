@@ -60,17 +60,19 @@ import io.netty.channel.nio.NioEventLoopGroup;
 public final class MongoClientWrapper implements DittoMongoClient {
 
     private final MongoClient mongoClient;
+    private final MongoClientSettings clientSettings;
     private final MongoDatabase defaultDatabase;
     private final DittoMongoClientSettings dittoMongoClientSettings;
     @Nullable private final EventLoopGroup eventLoopGroup;
 
-    private MongoClientWrapper(final MongoClient theMongoClient,
+    private MongoClientWrapper(final MongoClientSettings clientSettings,
             final String defaultDatabaseName,
             final DittoMongoClientSettings theDittoMongoClientSettings,
             @Nullable final EventLoopGroup theEventLoopGroup) {
 
-        mongoClient = theMongoClient;
-        defaultDatabase = theMongoClient.getDatabase(defaultDatabaseName);
+        this.clientSettings = clientSettings;
+        mongoClient = MongoClients.create(clientSettings);
+        defaultDatabase = mongoClient.getDatabase(defaultDatabaseName);
         dittoMongoClientSettings = theDittoMongoClientSettings;
         eventLoopGroup = theEventLoopGroup;
     }
@@ -214,6 +216,11 @@ public final class MongoClientWrapper implements DittoMongoClient {
     @Override
     public Publisher<ClientSession> startSession(final ClientSessionOptions options) {
         return mongoClient.startSession(options);
+    }
+
+    @Override
+    public MongoClientSettings getClientSettings() {
+        return clientSettings;
     }
 
     @Override
@@ -389,7 +396,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
         public MongoClientWrapper build() {
             buildAndApplySslSettings();
 
-            return new MongoClientWrapper(MongoClients.create(mongoClientSettingsBuilder.build()), defaultDatabaseName,
+            return new MongoClientWrapper(mongoClientSettingsBuilder.build(), defaultDatabaseName,
                     dittoMongoClientSettingsBuilder.build(), eventLoopGroup);
         }
 

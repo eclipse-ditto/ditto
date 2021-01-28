@@ -16,6 +16,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.bson.Document;
 
+import com.mongodb.MongoClientSettings;
 import com.mongodb.reactivestreams.client.MongoClient;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
@@ -46,10 +47,17 @@ public interface DittoMongoClient extends MongoClient {
 
     /**
      * Returns the the settings that this client uses additionally to the
-     * {@link com.mongodb.MongoClientSettings}.
+     * {@link MongoClientSettings}.
      *
      * @return the Ditto specific settings of this client.
      */
     DittoMongoClientSettings getDittoSettings();
+
+    /**
+     * Returns the settings with which the mongo client was built.
+     *
+     * @return the settings of the mongo client.
+     */
+    MongoClientSettings getClientSettings();
 
 }
