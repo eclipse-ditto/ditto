@@ -199,7 +199,7 @@ public final class BulkWriteResultAckFlowTest {
             final PolicyId policyId = i % 4 < 2 ? null : PolicyId.of("policy", String.valueOf(i));
             final long policyRevision = i * 100;
             final Metadata metadata =
-                    Metadata.of(thingId, thingRevision, policyId, policyRevision, probes.get(i).ref());
+                    Metadata.of(thingId, thingRevision, policyId, policyRevision, null, probes.get(i).ref());
             if (i % 2 == 0) {
                 writeModels.add(ThingDeleteModel.of(metadata));
             } else {

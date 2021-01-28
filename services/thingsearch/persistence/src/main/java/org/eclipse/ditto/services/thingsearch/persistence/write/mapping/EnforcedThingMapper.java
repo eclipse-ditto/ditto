@@ -103,7 +103,7 @@ public final class EnforcedThingMapper {
         final ThingId thingId = ThingId.of(extractedThing);
         final long thingRevision = thing.getValueOrThrow(Thing.JsonFields.REVISION);
         final PolicyId nullablePolicyId = thing.getValue(Thing.JsonFields.POLICY_ID).map(PolicyId::of).orElse(null);
-        final Metadata metadata = Metadata.of(thingId, thingRevision, nullablePolicyId, policyRevision);
+        final Metadata metadata = Metadata.of(thingId, thingRevision, nullablePolicyId, policyRevision, null);
 
         // hierarchical values for sorting
         final BsonValue thingCopyForSorting = JsonToBson.convert(pruneArrays(thing, maxArraySize));
