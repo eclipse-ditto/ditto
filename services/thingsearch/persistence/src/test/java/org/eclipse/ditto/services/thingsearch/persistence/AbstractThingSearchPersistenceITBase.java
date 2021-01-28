@@ -114,7 +114,6 @@ public abstract class AbstractThingSearchPersistenceITBase {
                 .connectionString(
                         "mongodb://" + MONGO_RESOURCE.getBindIp() + ":" + MONGO_RESOURCE.getPort() + "/testSearchDB")
                 .connectionPoolMaxSize(100)
-                .connectionPoolMaxWaitQueueSize(500000)
                 .connectionPoolMaxWaitTime(Duration.ofSeconds(30))
                 .build();
     }

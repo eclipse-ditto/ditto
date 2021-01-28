@@ -279,7 +279,6 @@ public final class MongoClientWrapper implements DittoMongoClient {
 
             final MongoDbConfig.ConnectionPoolConfig connectionPoolConfig = mongoDbConfig.getConnectionPoolConfig();
             builder.connectionPoolMaxSize(connectionPoolConfig.getMaxSize());
-            builder.connectionPoolMaxWaitQueueSize(connectionPoolConfig.getMaxWaitQueueSize());
             builder.connectionPoolMaxWaitTime(connectionPoolConfig.getMaxWaitTime());
             builder.enableJmxListener(connectionPoolConfig.isJmxListenerEnabled());
 
@@ -341,13 +340,6 @@ public final class MongoClientWrapper implements DittoMongoClient {
         @Override
         public MongoClientWrapperBuilder connectionPoolMaxSize(final int maxSize) {
             mongoClientSettingsBuilder.applyToConnectionPoolSettings(builder -> builder.maxSize(maxSize));
-            return this;
-        }
-
-        @Override
-        public MongoClientWrapperBuilder connectionPoolMaxWaitQueueSize(final int maxQueueSize) {
-//            mongoClientSettingsBuilder.applyToConnectionPoolSettings(builder -> builder.maxWaitQueueSize(maxQueueSize));
-            // TODO: Yannic fix this.
             return this;
         }
 

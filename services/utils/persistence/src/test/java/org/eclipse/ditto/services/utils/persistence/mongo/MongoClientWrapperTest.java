@@ -140,7 +140,6 @@ public final class MongoClientWrapperTest {
                 .hostnameAndPort(KNOWN_HOST, KNOWN_PORT)
                 .defaultDatabaseName(KNOWN_DB_NAME)
                 .connectionPoolMaxSize(KNOWN_MAX_POOL_SIZE)
-                .connectionPoolMaxWaitQueueSize(KNOWN_MAX_POOL_WAIT_QUEUE_SIZE)
                 .connectionPoolMaxWaitTime(Duration.ofSeconds(KNOWN_MAX_POOL_WAIT_SECS))
                 .build();
 
@@ -155,7 +154,6 @@ public final class MongoClientWrapperTest {
                 .hostnameAndPort(KNOWN_HOST, KNOWN_PORT)
                 .defaultDatabaseName(KNOWN_DB_NAME)
                 .connectionPoolMaxSize(KNOWN_MAX_POOL_SIZE)
-                .connectionPoolMaxWaitQueueSize(KNOWN_MAX_POOL_WAIT_QUEUE_SIZE)
                 .connectionPoolMaxWaitTime(Duration.ofSeconds(KNOWN_MAX_POOL_WAIT_SECS))
                 .enableSsl(true)
                 .build();
@@ -181,7 +179,7 @@ public final class MongoClientWrapperTest {
         final List<MongoCredential> expectedCredentials = withCredentials ? Collections.singletonList(
                 MongoCredential.createCredential(KNOWN_USER, KNOWN_DB_NAME, KNOWN_PASSWORD.toCharArray())) :
                 Collections.emptyList();
-// TODO: Yannic fix        
+// TODO: Yannic fix
 //        assertThat(mongoClientSettings.getCredentialList()).isEqualTo(
 //                expectedCredentials);
 //        assertThat(mongoClientSettings.getSslSettings().isEnabled()).isEqualTo(sslEnabled);
