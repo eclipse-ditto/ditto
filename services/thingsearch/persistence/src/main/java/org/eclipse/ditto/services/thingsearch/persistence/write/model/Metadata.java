@@ -28,6 +28,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThingResponse;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 
 import akka.actor.ActorRef;
@@ -43,6 +44,7 @@ public final class Metadata {
     @Nullable private final PolicyId policyId;
     @Nullable private final Long policyRevision;
     @Nullable final Instant modified;
+    @Nullable private final StartedTimer timer;
     private final List<ActorRef> senders;
 
     private Metadata(final ThingId thingId,
@@ -50,6 +52,7 @@ public final class Metadata {
             @Nullable final PolicyId policyId,
             @Nullable final Long policyRevision,
             @Nullable final Instant modified,
+            @Nullable final StartedTimer timer,
             final List<ActorRef> senders) {
 
         this.thingId = thingId;
@@ -57,6 +60,7 @@ public final class Metadata {
         this.policyId = policyId;
         this.policyRevision = policyRevision;
         this.modified = modified;
+        this.timer = timer;
         this.senders = senders; // does not need to be made unmodifiable as there is no getter returning that to the "outside world"
     }
 
@@ -67,14 +71,16 @@ public final class Metadata {
      * @param thingRevision the Thing revision.
      * @param policyId the Policy ID if the Thing has one.
      * @param policyRevision the Policy revision if the Thing has a policy, or null if it does not.
+     * @param timer an optional timer measuring the search updater's consistency lag.
      * @return the new Metadata object.
      */
     public static Metadata of(final ThingId thingId,
             final long thingRevision,
             @Nullable final PolicyId policyId,
-            @Nullable final Long policyRevision) {
+            @Nullable final Long policyRevision,
+            @Nullable final StartedTimer timer) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, null, List.of());
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, null, timer, List.of());
     }
 
     /**
@@ -84,16 +90,18 @@ public final class Metadata {
      * @param thingRevision the Thing revision.
      * @param policyId the Policy ID if the Thing has one.
      * @param policyRevision the Policy revision if the Thing has a policy, or null if it does not.
-     * @param sender the sender
+     * @param timer an optional timer measuring the search updater's consistency lag.
+     * @param sender the sender.
      * @return the new Metadata object.
      */
     public static Metadata of(final ThingId thingId,
             final long thingRevision,
             @Nullable final PolicyId policyId,
             @Nullable final Long policyRevision,
+            @Nullable final StartedTimer timer,
             final ActorRef sender) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, null, List.of(sender));
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, null, timer, List.of(sender));
     }
 
     /**
@@ -104,15 +112,17 @@ public final class Metadata {
      * @param policyId the Policy ID if the Thing has one.
      * @param policyRevision the Policy revision if the Thing has a policy, or null if it does not.
      * @param modified the timestamp of the last change incorporated into the search index, or null if not known.
+     * @param timer an optional timer measuring the search updater's consistency lag.
      * @return the new Metadata object.
      */
     public static Metadata of(final ThingId thingId,
             final long thingRevision,
             @Nullable final PolicyId policyId,
             @Nullable final Long policyRevision,
-            @Nullable final Instant modified) {
+            @Nullable final Instant modified,
+            @Nullable final StartedTimer timer) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, List.of());
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, timer, List.of());
     }
 
     /**
@@ -124,7 +134,8 @@ public final class Metadata {
     public static Metadata fromResponse(final UpdateThingResponse updateThingResponse) {
         return of(updateThingResponse.getThingId(), updateThingResponse.getThingRevision(),
                 updateThingResponse.getPolicyId().orElse(null),
-                updateThingResponse.getPolicyRevision().orElse(null));
+                updateThingResponse.getPolicyRevision().orElse(null),
+                null);
     }
 
     /**
@@ -192,7 +203,7 @@ public final class Metadata {
         final List<ActorRef> newSenders =
                 Stream.concat(newMetadata.senders.stream(), senders.stream()).collect(Collectors.toList());
         return new Metadata(newMetadata.thingId, newMetadata.thingRevision, newMetadata.policyId,
-                newMetadata.policyRevision, newMetadata.modified, newSenders);
+                newMetadata.policyRevision, newMetadata.modified, newMetadata.timer, newSenders);
     }
 
     /**
@@ -212,6 +223,9 @@ public final class Metadata {
     }
 
     private void send(final Acknowledgement ack) {
+        if (null != timer) {
+            timer.tag("success", ack.isSuccess()).stop();
+        }
         senders.forEach(sender -> sender.tell(ack, ActorRef.noSender()));
     }
 

@@ -17,7 +17,7 @@ import java.util.function.Consumer;
 /**
  * Contains {@code stoppedTimerConsumer} to be invoked when a Timer stops.
  */
-public class OnStopHandler {
+public final class OnStopHandler {
 
     private final Consumer<StoppedTimer> stoppedTimerConsumer;
 
