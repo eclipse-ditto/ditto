@@ -207,6 +207,14 @@ entries:
             url: /basic-acknowledgements.html
             output: web
 
+      - title: Advanced concepts
+        output: web
+
+        folderitems:
+          - title: Data By-Pass
+            url: /advanced-data-by-pass.html
+            output: web
+
       - title: Architecture
         output: web
 
