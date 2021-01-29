@@ -62,7 +62,7 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final MergeThing command,
@@ -73,7 +73,7 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
         return handleMergeExisting(context, nonNullThing, eventTs, nextRevision, command, metadata);
     }
 
-    private Result<ThingEvent> handleMergeExisting(final Context<ThingId> context, final Thing thing,
+    private Result<ThingEvent<?>> handleMergeExisting(final Context<ThingId> context, final Thing thing,
             final Instant eventTs, final long nextRevision, final MergeThing command,
             @Nullable final Metadata metadata) {
         if (JsonSchemaVersion.V_1.equals(thing.getImplementedSchemaVersion())) {
@@ -86,13 +86,13 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
     /**
      * Handles a {@link MergeThing} command that was sent via API v2 and targets a Thing with API version V2.
      */
-    private Result<ThingEvent> handleMergeExistingV2WithV2Command(final Context<ThingId> context, final Thing thing,
+    private Result<ThingEvent<?>> handleMergeExistingV2WithV2Command(final Context<ThingId> context, final Thing thing,
             final Instant eventTs, final long nextRevision, final MergeThing command,
             @Nullable final Metadata metadata) {
         return applyMergeCommand(context, thing, eventTs, nextRevision, command, metadata);
     }
 
-    private Result<ThingEvent> applyMergeCommand(final Context<ThingId> context, final Thing thing,
+    private Result<ThingEvent<?>> applyMergeCommand(final Context<ThingId> context, final Thing thing,
             final Instant eventTs, final long nextRevision, final MergeThing command,
             @Nullable final Metadata metadata) {
 
@@ -214,7 +214,7 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
         }
     }
 
-    private Result<ThingEvent> getV1UnsupportedResult(final Command<?> command) {
+    private Result<ThingEvent<?>> getV1UnsupportedResult(final Command<?> command) {
         return ResultFactory.newErrorResult(CommandNotSupportedException.newBuilder(JsonSchemaVersion.V_1.toInt())
                 .dittoHeaders(command.getDittoHeaders())
                 .build(), command);
