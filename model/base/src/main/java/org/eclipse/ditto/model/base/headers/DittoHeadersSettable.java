@@ -19,9 +19,6 @@ package org.eclipse.ditto.model.base.headers;
  */
 public interface DittoHeadersSettable<T extends DittoHeadersSettable<T>> extends WithDittoHeaders {
 
-    @Override
-    DittoHeaders getDittoHeaders();
-
     /**
      * Sets the {@link DittoHeaders} and returns a new object.
      *
