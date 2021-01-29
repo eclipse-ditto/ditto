@@ -116,7 +116,7 @@ services:
       - TZ=Europe/Berlin
       - INSTANCE_INDEX=1
       - BIND_HOSTNAME=0.0.0.0
-      - ENABLE_DUMMY_AUTH=true
+      - ENABLE_PRE_AUTHENTICATION=true
       - DEVOPS_SECURE_STATUS=false
       - OPENJ9_JAVA_OPTIONS=-XX:+ExitOnOutOfMemoryError -Xtune:virtualized -Xss512k -XX:MaxRAMPercentage=80 -Dakka.coordinated-shutdown.exit-jvm=on -Dakka.cluster.shutdown-after-unsuccessful-join-seed-nodes=120s
 

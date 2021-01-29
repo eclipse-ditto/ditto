@@ -286,78 +286,78 @@ public final class ConnectionLoggerRegistry implements ConnectionMonitorRegistry
     }
 
     @Override
-    public ConnectionLogger forOutboundDispatched(final ConnectionId connectionId, final String target) {
-        return getLogger(connectionId, LogCategory.TARGET, LogType.DISPATCHED, target);
+    public ConnectionLogger forOutboundDispatched(final Connection connection, final String target) {
+        return getLogger(connection.getId(), LogCategory.TARGET, LogType.DISPATCHED, target);
     }
 
     @Override
-    public ConnectionLogger forOutboundFiltered(final ConnectionId connectionId, final String target) {
-        return getLogger(connectionId, LogCategory.TARGET, LogType.FILTERED, target);
+    public ConnectionLogger forOutboundFiltered(final Connection connection, final String target) {
+        return getLogger(connection.getId(), LogCategory.TARGET, LogType.FILTERED, target);
     }
 
     @Override
-    public ConnectionLogger forOutboundPublished(final ConnectionId connectionId, final String target) {
-        return getLogger(connectionId, LogCategory.TARGET, LogType.PUBLISHED, target);
+    public ConnectionLogger forOutboundPublished(final Connection connection, final String target) {
+        return getLogger(connection.getId(), LogCategory.TARGET, LogType.PUBLISHED, target);
     }
 
     @Override
-    public ConnectionLogger forOutboundDropped(final ConnectionId connectionId, final String target) {
-        return getLogger(connectionId, LogCategory.TARGET, LogType.DROPPED, target);
+    public ConnectionLogger forOutboundDropped(final Connection connection, final String target) {
+        return getLogger(connection.getId(), LogCategory.TARGET, LogType.DROPPED, target);
     }
 
     @Override
-    public ConnectionLogger forOutboundAcknowledged(final ConnectionId connectionId, final String target) {
-        return getLogger(connectionId, LogCategory.TARGET, LogType.ACKNOWLEDGED, target);
+    public ConnectionLogger forOutboundAcknowledged(final Connection connection, final String target) {
+        return getLogger(connection.getId(), LogCategory.TARGET, LogType.ACKNOWLEDGED, target);
     }
 
     @Override
-    public ConnectionLogger forInboundConsumed(final ConnectionId connectionId, final String source) {
-        return getLogger(connectionId, LogCategory.SOURCE, LogType.CONSUMED, source);
+    public ConnectionLogger forInboundConsumed(final Connection connection, final String source) {
+        return getLogger(connection.getId(), LogCategory.SOURCE, LogType.CONSUMED, source);
     }
 
     @Override
-    public ConnectionLogger forInboundMapped(final ConnectionId connectionId, final String source) {
-        return getLogger(connectionId, LogCategory.SOURCE, LogType.MAPPED, source);
+    public ConnectionLogger forInboundMapped(final Connection connection, final String source) {
+        return getLogger(connection.getId(), LogCategory.SOURCE, LogType.MAPPED, source);
     }
 
     @Override
-    public ConnectionLogger forInboundEnforced(final ConnectionId connectionId, final String source) {
-        return getLogger(connectionId, LogCategory.SOURCE, LogType.ENFORCED, source);
+    public ConnectionLogger forInboundEnforced(final Connection connection, final String source) {
+        return getLogger(connection.getId(), LogCategory.SOURCE, LogType.ENFORCED, source);
     }
 
     @Override
-    public ConnectionLogger forInboundDropped(final ConnectionId connectionId, final String source) {
-        return getLogger(connectionId, LogCategory.SOURCE, LogType.DROPPED, source);
+    public ConnectionLogger forInboundDropped(final Connection connection, final String source) {
+        return getLogger(connection.getId(), LogCategory.SOURCE, LogType.DROPPED, source);
     }
 
     @Override
-    public ConnectionLogger forInboundAcknowledged(final ConnectionId connectionId, final String source) {
-        return getLogger(connectionId, LogCategory.SOURCE, LogType.ACKNOWLEDGED, source);
+    public ConnectionLogger forInboundAcknowledged(final Connection connection, final String source) {
+        return getLogger(connection.getId(), LogCategory.SOURCE, LogType.ACKNOWLEDGED, source);
     }
 
     @Override
-    public ConnectionLogger forResponseDispatched(final ConnectionId connectionId) {
-        return getLogger(connectionId, LogCategory.RESPONSE, LogType.DISPATCHED, RESPONSES_ADDRESS);
+    public ConnectionLogger forResponseDispatched(final Connection connection) {
+        return getLogger(connection.getId(), LogCategory.RESPONSE, LogType.DISPATCHED, RESPONSES_ADDRESS);
     }
 
     @Override
-    public ConnectionLogger forResponseDropped(final ConnectionId connectionId) {
-        return getLogger(connectionId, LogCategory.RESPONSE, LogType.DROPPED, RESPONSES_ADDRESS);
+    public ConnectionLogger forResponseDropped(final Connection connection) {
+        return getLogger(connection.getId(), LogCategory.RESPONSE, LogType.DROPPED, RESPONSES_ADDRESS);
     }
 
     @Override
-    public ConnectionLogger forResponseMapped(final ConnectionId connectionId) {
-        return getLogger(connectionId, LogCategory.RESPONSE, LogType.MAPPED, RESPONSES_ADDRESS);
+    public ConnectionLogger forResponseMapped(final Connection connection) {
+        return getLogger(connection.getId(), LogCategory.RESPONSE, LogType.MAPPED, RESPONSES_ADDRESS);
     }
 
     @Override
-    public ConnectionLogger forResponsePublished(final ConnectionId connectionId) {
-        return getLogger(connectionId, LogCategory.RESPONSE, LogType.PUBLISHED, RESPONSES_ADDRESS);
+    public ConnectionLogger forResponsePublished(final Connection connection) {
+        return getLogger(connection.getId(), LogCategory.RESPONSE, LogType.PUBLISHED, RESPONSES_ADDRESS);
     }
 
     @Override
-    public ConnectionLogger forResponseAcknowledged(final ConnectionId connectionId) {
-        return getLogger(connectionId, LogCategory.RESPONSE, LogType.ACKNOWLEDGED, RESPONSES_ADDRESS);
+    public ConnectionLogger forResponseAcknowledged(final Connection connection) {
+        return getLogger(connection.getId(), LogCategory.RESPONSE, LogType.ACKNOWLEDGED, RESPONSES_ADDRESS);
     }
 
     /**

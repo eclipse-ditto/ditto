@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.signals.commands.messages;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -23,6 +21,8 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -42,15 +42,31 @@ abstract class AbstractMessageCommandResponse<T, C extends AbstractMessageComman
     private final ThingId thingId;
     private final Message<T> message;
 
+    /**
+     * @deprecated as of 2.0.0 please use {@link AbstractCommandResponse(String, HttpStatus, DittoHeaders)} instead.
+     */
+    @Deprecated
     AbstractMessageCommandResponse(final String type,
             final ThingId thingId,
             final Message<T> message,
             final HttpStatusCode httpStatusCode,
             final DittoHeaders dittoHeaders) {
 
-        super(type, httpStatusCode, dittoHeaders);
-        this.thingId = requireNonNull(thingId, "The thingId cannot be null.");
-        this.message = requireNonNull(message, "The message cannot be null.");
+        this(type, thingId, message, httpStatusCode.getAsHttpStatus(), dittoHeaders);
+    }
+
+    /**
+     * @since 2.0.0
+     */
+    AbstractMessageCommandResponse(final String type,
+            final ThingId thingId,
+            final Message<T> message,
+            final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        super(type, httpStatus, dittoHeaders);
+        this.thingId = ConditionChecker.checkNotNull(thingId, "thingId");
+        this.message = ConditionChecker.checkNotNull(message, "message");
     }
 
     @Override
@@ -112,7 +128,7 @@ abstract class AbstractMessageCommandResponse<T, C extends AbstractMessageComman
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof AbstractMessageCommandResponse);
+        return other instanceof AbstractMessageCommandResponse;
     }
 
     @Override
@@ -122,4 +138,5 @@ abstract class AbstractMessageCommandResponse<T, C extends AbstractMessageComman
 
     @Override
     public abstract C setDittoHeaders(final DittoHeaders dittoHeaders);
+
 }

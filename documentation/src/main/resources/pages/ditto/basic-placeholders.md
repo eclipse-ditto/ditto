@@ -20,6 +20,16 @@ may be used:
 |----------------|--------------|
 | `{%raw%}{{ request:subjectId }}{%endraw%}` | the first authenticated subjectId which sent the command / did the request | 
 
+### Scope: Policy actions
+
+In [policy actions](basic-policy.html#actions), the following placeholders are available in general:
+
+| Placeholder                       | Description  |
+|-----------------------------------|--------------|
+| `{%raw%}{{ header:<header-name> }}{%endraw%}` | HTTP header values passed along the HTTP action request |
+| `{%raw%}{{ jwt:<jwt-body-claim> }}{%endraw%}` | any standard or custom claims in the body of the authenticated JWT - e.g., `jwt:sub` for the JWT "subject" |
+| `{%raw%}{{ policy-entry:label }}{%endraw%}` | label of the policy entry in which the token integration subject is injected |
+
 ### Scope: Connections
 
 In [connections](basic-connections.html), the following placeholders are available in general:
@@ -45,7 +55,6 @@ In [connections](basic-connections.html), the following placeholders are availab
 | `{%raw%}{{ topic:action }}{%endraw%}` | Ditto Protocol [Action](protocol-specification-topic.html#action-optional) |
 | `{%raw%}{{ topic:subject }}{%endraw%}` | Ditto Protocol [Subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands) |
 | `{%raw%}{{ topic:action-subject }}{%endraw%}` | either Ditto Protocol [Action](protocol-specification-topic.html#action-optional) or [Subject](protocol-specification-topic.html#messages-criterion-actions) (for message commands) |
-| `{%raw%}{{ jwt:<jwt-body-claim> }}{%endraw%}` | any standard or custom claims in the body of the JSON web token for [policy token integration](basic-policy.html#token-integration-subjects) |
 
 
 #### Examples

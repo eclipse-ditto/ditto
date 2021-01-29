@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingConstants;
@@ -68,7 +68,7 @@ final class AcknowledgementsAdapter implements Adapter<Acknowledgements> {
         return ThingAcknowledgementsFactory.newAcknowledgements(
                 thingId,
                 gatherContainedAcknowledgements(adaptable, thingId),
-                getStatusCodeOrThrow(adaptable),
+                getHttpStatusOrThrow(adaptable),
                 adaptable.getDittoHeaders()
         );
     }
@@ -105,9 +105,9 @@ final class AcknowledgementsAdapter implements Adapter<Acknowledgements> {
                 .collect(Collectors.toList());
     }
 
-    private static HttpStatusCode getStatusCodeOrThrow(final Adaptable adaptable) {
+    private static HttpStatus getHttpStatusOrThrow(final Adaptable adaptable) {
         final Payload payload = adaptable.getPayload();
-        return payload.getStatus()
+        return payload.getHttpStatus()
                 .orElseThrow(() -> new JsonMissingFieldException(Payload.JsonFields.STATUS));
     }
 
@@ -157,7 +157,7 @@ final class AcknowledgementsAdapter implements Adapter<Acknowledgements> {
 
     private static Payload getPayload(final Acknowledgements acknowledgements) {
         return Payload.newBuilder(JsonPointer.empty())
-                .withStatus(acknowledgements.getStatusCode())
+                .withStatus(acknowledgements.getHttpStatus())
                 .withValue(getPayloadValue(acknowledgements))
                 .build();
     }
@@ -170,7 +170,7 @@ final class AcknowledgementsAdapter implements Adapter<Acknowledgements> {
 
     private static JsonObject toJsonWithoutLabel(final Acknowledgement ack) {
         final JsonObjectBuilder builder = JsonObject.newBuilder()
-                .set(Acknowledgement.JsonFields.STATUS_CODE, ack.getStatusCodeValue());
+                .set(Acknowledgement.JsonFields.STATUS_CODE, ack.getHttpStatus().getCode());
         ack.getEntity().ifPresent(payload -> builder.set(Acknowledgement.JsonFields.PAYLOAD, payload));
         if (!ack.getDittoHeaders().isEmpty()) {
             builder.set(Acknowledgement.JsonFields.DITTO_HEADERS, ack.getDittoHeaders().toJson());

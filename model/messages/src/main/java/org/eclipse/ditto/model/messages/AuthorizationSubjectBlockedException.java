@@ -18,7 +18,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -47,7 +47,7 @@ public final class AuthorizationSubjectBlockedException extends DittoRuntimeExce
     }
 
     private AuthorizationSubjectBlockedException(final DittoHeaders dittoHeaders) {
-        super(ERROR_CODE, HttpStatusCode.TOO_MANY_REQUESTS, dittoHeaders, MESSAGE_TEMPLATE, DEFAULT_DESCRIPTION,
+        super(ERROR_CODE, HttpStatus.TOO_MANY_REQUESTS, dittoHeaders, MESSAGE_TEMPLATE, DEFAULT_DESCRIPTION,
                 null, null);
     }
 

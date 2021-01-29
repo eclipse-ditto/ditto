@@ -29,7 +29,6 @@ import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Label;
-import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
@@ -37,7 +36,6 @@ import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectExpiryInvalidException;
-import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
@@ -58,11 +56,10 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
  *
  * @param <C> the type of the handled command - of type {@code Command} as also
  * {@link org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand} are handled which are no PolicyCommands.
+ * @param <E> the type of the emitted events
  */
-abstract class AbstractPolicyCommandStrategy<C extends Command<C>>
-        extends AbstractConditionHeaderCheckingCommandStrategy<C, Policy, PolicyId, PolicyEvent<?>> {
-
-    static SubjectType TOKEN_INTEGRATION = PoliciesModelFactory.newSubjectType("actions/activateTokenIntegration");
+abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends PolicyEvent<?>>
+        extends AbstractConditionHeaderCheckingCommandStrategy<C, Policy, PolicyId, E> {
 
     private final PolicyExpiryGranularity policyExpiryGranularity;
 
@@ -237,9 +234,11 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>>
      * @param entries the policy entries to check for an expiry date in the past.
      * @param dittoHeaders the DittoHeaders to use for building the exception.
      * @param command the command which caused the change of the policy entries.
+     * @param <T> the type of the emitted event
      * @return an Optional with ErrorResponse if a subject was invalid, an empty Optional if everything was valid.
      */
-    protected static Optional<Result<PolicyEvent<?>>> checkForAlreadyExpiredSubject(final Iterable<PolicyEntry> entries,
+    protected static <T extends PolicyEvent<?>> Optional<Result<T>> checkForAlreadyExpiredSubject(
+            final Iterable<PolicyEntry> entries,
             final DittoHeaders dittoHeaders, final Command<?> command) {
 
         return StreamSupport.stream(entries.spliterator(), false)

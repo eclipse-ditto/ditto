@@ -108,13 +108,13 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMo
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.metrics.ConnectivityCounterRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionSupervisorActor;
-import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
-import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
+import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
+import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionMetricsResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
@@ -206,6 +206,7 @@ public final class TestConstants {
         map.put("correlation-id", "{{ header:correlation-id }}");
         map.put("content-type", "{{ header:content-type }}");
         map.put("reply-to", "{{ header:reply-to }}");
+        map.put("ditto-connection-id", "hallo");
         HEADER_MAPPING = ConnectivityModelFactory.newHeaderMapping(map);
     }
 
@@ -521,27 +522,27 @@ public final class TestConstants {
                 Collections.unmodifiableList(Arrays.asList(LOG_ENTRY, LOG_ENTRY_2));
 
         static {
-            when(MONITOR_REGISTRY_MOCK.forInboundConsumed(any(ConnectionId.class), anyString()))
+            when(MONITOR_REGISTRY_MOCK.forInboundConsumed(any(Connection.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forInboundAcknowledged(any(ConnectionId.class), anyString()))
+            when(MONITOR_REGISTRY_MOCK.forInboundAcknowledged(any(Connection.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forInboundDropped(any(ConnectionId.class), anyString()))
+            when(MONITOR_REGISTRY_MOCK.forInboundDropped(any(Connection.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forInboundEnforced(any(ConnectionId.class), anyString()))
+            when(MONITOR_REGISTRY_MOCK.forInboundEnforced(any(Connection.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forInboundMapped(any(ConnectionId.class), anyString()))
+            when(MONITOR_REGISTRY_MOCK.forInboundMapped(any(Connection.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forOutboundDispatched(any(ConnectionId.class), anyString()))
+            when(MONITOR_REGISTRY_MOCK.forOutboundDispatched(any(Connection.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forOutboundFiltered(any(ConnectionId.class), anyString()))
+            when(MONITOR_REGISTRY_MOCK.forOutboundFiltered(any(Connection.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forOutboundPublished(any(ConnectionId.class), anyString()))
+            when(MONITOR_REGISTRY_MOCK.forOutboundPublished(any(Connection.class), anyString()))
                     .thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forResponseDispatched(any(ConnectionId.class))).thenReturn(
+            when(MONITOR_REGISTRY_MOCK.forResponseDispatched(any(Connection.class))).thenReturn(
                     CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forResponseDropped(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forResponseMapped(any(ConnectionId.class))).thenReturn(CONNECTION_MONITOR_MOCK);
-            when(MONITOR_REGISTRY_MOCK.forResponsePublished(any(ConnectionId.class))).thenReturn(
+            when(MONITOR_REGISTRY_MOCK.forResponseDropped(any(Connection.class))).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponseMapped(any(Connection.class))).thenReturn(CONNECTION_MONITOR_MOCK);
+            when(MONITOR_REGISTRY_MOCK.forResponsePublished(any(Connection.class))).thenReturn(
                     CONNECTION_MONITOR_MOCK);
         }
 

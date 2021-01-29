@@ -19,7 +19,7 @@ import java.text.MessageFormat;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.live.base.LiveCommandAnswer;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
@@ -107,7 +107,7 @@ public final class RetrieveFeaturePropertyLiveCommandAnswerBuilderImplTest {
                 .hasThingErrorResponse()
                 .withType(ThingErrorResponse.TYPE)
                 .withDittoHeaders(DittoHeaders.newBuilder().responseRequired(false).build())
-                .withStatus(HttpStatusCode.NOT_FOUND)
+                .withStatus(HttpStatus.NOT_FOUND)
                 .withDittoRuntimeExceptionOfType(FeaturePropertyNotAccessibleException.class);
     }
 

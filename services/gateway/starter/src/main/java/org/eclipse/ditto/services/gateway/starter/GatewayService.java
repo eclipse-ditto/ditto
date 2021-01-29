@@ -57,11 +57,6 @@ public final class GatewayService extends DittoService<GatewayConfig> {
     }
 
     @Override
-    protected void startDevOpsCommandsActor(final ActorSystem actorSystem) {
-        // The DevOpsCommandsActor is started by GatewayRootActor as it uses the ActorRef.
-    }
-
-    @Override
     protected Props getMainRootActorProps(final GatewayConfig gatewayConfig, final ActorRef pubSubMediator) {
 
         return GatewayRootActor.props(gatewayConfig, pubSubMediator);

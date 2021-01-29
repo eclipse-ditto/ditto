@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.persistentactors.results;
 
+import java.util.function.Function;
+
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.events.base.Event;
@@ -41,6 +43,12 @@ public final class MutationResult<E extends Event<?>> implements Result<E> {
     @Override
     public void accept(final ResultVisitor<E> visitor) {
         visitor.onMutation(command, eventToPersist, response, becomeCreated, becomeDeleted);
+    }
+
+    @Override
+    public <F extends Event<?>> Result<F> map(final Function<E, F> mappingFunction) {
+        return new MutationResult<>(command, mappingFunction.apply(eventToPersist), response, becomeCreated,
+                becomeDeleted);
     }
 
     @Override

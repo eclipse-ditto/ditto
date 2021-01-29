@@ -20,7 +20,7 @@ import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.messages.Message;
@@ -154,7 +154,7 @@ public final class SendClaimMessageTest {
     public void createResponseFromJsonWithoutPayload() {
         final Message<?> emptyMessage = Message.newBuilder(MESSAGE_HEADERS).build();
         final SendClaimMessageResponse<?> underTest = SendClaimMessageResponse.of(THING_ID, emptyMessage,
-                HttpStatusCode.OK, TestConstants.EMPTY_DITTO_HEADERS);
+                HttpStatus.OK, TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject jsonWithoutPayload = underTest.toJson();
         final SendClaimMessageResponse<?> result =
                 SendClaimMessageResponse.fromJson(jsonWithoutPayload, TestConstants.EMPTY_DITTO_HEADERS);

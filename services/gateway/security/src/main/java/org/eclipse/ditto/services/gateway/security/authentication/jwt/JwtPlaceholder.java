@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -29,6 +29,8 @@ public final class JwtPlaceholder implements Placeholder<JsonWebToken> {
 
     private static final JwtPlaceholder INSTANCE = new JwtPlaceholder();
 
+    private static final String PREFIX = "jwt";
+
     /**
      * Get the instance of {@code JwtPlaceholder}.
      *
@@ -40,7 +42,7 @@ public final class JwtPlaceholder implements Placeholder<JsonWebToken> {
 
     @Override
     public String getPrefix() {
-        return "jwt";
+        return PREFIX;
     }
 
     @Override

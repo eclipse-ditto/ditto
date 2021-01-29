@@ -20,7 +20,7 @@ import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
@@ -36,7 +36,7 @@ public final class ThingAcknowledgementFactoryTest {
 
     private static final AcknowledgementLabel KNOWN_LABEL = DittoAcknowledgementLabel.TWIN_PERSISTED;
     private static final ThingId KNOWN_THING_ID = ThingId.generateRandom();
-    private static final HttpStatusCode KNOWN_STATUS_CODE = HttpStatusCode.NOT_FOUND;
+    private static final HttpStatus KNOWN_HTTP_STATUS = HttpStatus.NOT_FOUND;
     private static final JsonObject KNOWN_PAYLOAD = JsonObject.newBuilder().set("foo", "bar").build();
 
     @Rule
@@ -60,7 +60,7 @@ public final class ThingAcknowledgementFactoryTest {
     @Test
     public void newAcknowledgementReturnsExpected() {
         final Acknowledgement acknowledgement =
-                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, KNOWN_STATUS_CODE,
+                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, KNOWN_HTTP_STATUS,
                         dittoHeaders, KNOWN_PAYLOAD);
 
         try (final AutoCloseableSoftAssertions softly = new AutoCloseableSoftAssertions()) {
@@ -73,9 +73,9 @@ public final class ThingAcknowledgementFactoryTest {
             softly.assertThat(acknowledgement.getType())
                     .as("same type")
                     .isEqualTo(Acknowledgement.getType(KNOWN_THING_ID.getEntityType()));
-            softly.assertThat(acknowledgement.getStatusCode())
+            softly.assertThat(acknowledgement.getHttpStatus())
                     .as("same status code")
-                    .isEqualTo(KNOWN_STATUS_CODE);
+                    .isEqualTo(KNOWN_HTTP_STATUS);
             softly.assertThat(acknowledgement.getDittoHeaders())
                     .as("same DittoHeaders")
                     .isEqualTo(dittoHeaders);
@@ -88,7 +88,7 @@ public final class ThingAcknowledgementFactoryTest {
     @Test
     public void fromJsonReturnsExpected() {
         final Acknowledgement acknowledgement =
-                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, KNOWN_STATUS_CODE,
+                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, KNOWN_HTTP_STATUS,
                         dittoHeaders, KNOWN_PAYLOAD);
 
         final Acknowledgement parsedAcknowledgement = ThingAcknowledgementFactory.fromJson(acknowledgement.toJson());

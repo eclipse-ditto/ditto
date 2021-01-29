@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.services.gateway.security.authentication.AbstractAuthenticationResult;
 
 /**
- * Implementation of JwtAuthenticationResult.
+ * Implementation of {@link JwtAuthenticationResult}.
  */
 final class DefaultJwtAuthenticationResult extends AbstractAuthenticationResult implements JwtAuthenticationResult {
 

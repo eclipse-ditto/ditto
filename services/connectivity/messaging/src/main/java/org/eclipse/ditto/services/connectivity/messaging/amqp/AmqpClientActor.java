@@ -399,7 +399,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private void startCommandConsumer(final ConsumerData consumer, final ActorRef inboundMappingProcessor,
             final ActorRef jmsActor) {
         final String namePrefix = consumer.getActorNamePrefix();
-        final Props props = AmqpConsumerActor.props(connectionId(), consumer, inboundMappingProcessor, jmsActor);
+        final Props props = AmqpConsumerActor.props(connection(), consumer, inboundMappingProcessor, jmsActor);
 
         final ActorRef child = startChildActorConflictFree(namePrefix, props);
         consumerByNamePrefix.put(namePrefix, child);
@@ -546,9 +546,10 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
         jmsSession = sessionRecovered.getSession();
 
-        startPublisherActor()
-                .thenRun(() -> startCommandConsumers(sessionRecovered.getConsumerList(), jmsActor))
-                .thenRun(() -> connectionLogger.success("Session has been recovered successfully."))
+        final CompletionStage<Status.Status> publisherReady = startPublisherActor();
+        startCommandConsumers(sessionRecovered.getConsumerList(), jmsActor);
+
+        publisherReady.thenRun(() -> connectionLogger.success("Session has been recovered successfully."))
                 .exceptionally(t -> {
                     final ImmutableConnectionFailure failure = new ImmutableConnectionFailure(null, t,
                             "failed to recover session");

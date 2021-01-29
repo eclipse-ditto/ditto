@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.jwt.Audience;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
@@ -42,6 +43,9 @@ final class DummyJwt implements JsonWebToken {
         return JsonObject.newBuilder()
                 .set("sub", "dummy-subject")
                 .set("iss", "dummy-issuer")
+                .set("aud", JsonArray.of("aud-1", "aud-2"))
+                .set("foo", JsonArray.of("bar1", "bar2", "bar3"))
+                .set("/single/nested", JsonArray.newBuilder().add("I am a nested single").build())
                 .build();
     }
 

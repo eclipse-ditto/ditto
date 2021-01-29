@@ -26,7 +26,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -34,14 +34,15 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link DeleteFeature} command.
  */
 @Immutable
 @JsonParsableCommandResponse(type = DeleteFeatureResponse.TYPE)
-public final class DeleteFeatureResponse extends AbstractCommandResponse<DeleteFeatureResponse> implements
-        ThingModifyCommandResponse<DeleteFeatureResponse> {
+public final class DeleteFeatureResponse extends AbstractCommandResponse<DeleteFeatureResponse>
+        implements ThingModifyCommandResponse<DeleteFeatureResponse> {
 
     /**
      * Type of this response.
@@ -55,9 +56,8 @@ public final class DeleteFeatureResponse extends AbstractCommandResponse<DeleteF
     private final ThingId thingId;
     private final String featureId;
 
-    private DeleteFeatureResponse(final ThingId thingId, final String featureId,
-            final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
+    private DeleteFeatureResponse(final ThingId thingId, final String featureId, final DittoHeaders dittoHeaders) {
+        super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.featureId = checkNotNull(featureId, "Feature ID");
     }
@@ -77,6 +77,7 @@ public final class DeleteFeatureResponse extends AbstractCommandResponse<DeleteF
     @Deprecated
     public static DeleteFeatureResponse of(final String thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
+
         return of(ThingId.of(thingId), featureId, dittoHeaders);
     }
 
@@ -91,6 +92,7 @@ public final class DeleteFeatureResponse extends AbstractCommandResponse<DeleteF
      */
     public static DeleteFeatureResponse of(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
+
         return new DeleteFeatureResponse(thingId, featureId, dittoHeaders);
     }
 
@@ -120,15 +122,13 @@ public final class DeleteFeatureResponse extends AbstractCommandResponse<DeleteF
      * format.
      */
     public static DeleteFeatureResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<DeleteFeatureResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
-                    final ThingId thingId = ThingId.of(extractedThingId);
-                    final String featureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
+        return new CommandResponseJsonDeserializer<DeleteFeatureResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
+            final String featureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
 
-                    return of(thingId, featureId, dittoHeaders);
-                });
+            return of(thingId, featureId, dittoHeaders);
+        });
     }
 
     @Override
@@ -155,7 +155,7 @@ public final class DeleteFeatureResponse extends AbstractCommandResponse<DeleteF
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
     }
 
@@ -173,13 +173,15 @@ public final class DeleteFeatureResponse extends AbstractCommandResponse<DeleteF
             return false;
         }
         final DeleteFeatureResponse that = (DeleteFeatureResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(featureId, that.featureId) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(featureId, that.featureId) &&
+                super.equals(o);
     }
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof DeleteFeatureResponse);
+        return other instanceof DeleteFeatureResponse;
     }
 
     @Override

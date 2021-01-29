@@ -24,7 +24,6 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.stages.ConnectionState;
 import org.eclipse.ditto.services.utils.persistentactors.commands.AbstractCommandStrategy;
-import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
@@ -36,9 +35,9 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
  * @param <C> the type of the handled command
  */
 abstract class AbstractConnectivityCommandStrategy<C extends ConnectivityCommand<?>>
-        extends AbstractCommandStrategy<C, Connection, ConnectionState, Result<ConnectivityEvent<?>>> {
+        extends AbstractCommandStrategy<C, Connection, ConnectionState, ConnectivityEvent<?>> {
 
-    AbstractConnectivityCommandStrategy(final Class<C> theMatchingClass) {
+    AbstractConnectivityCommandStrategy(final Class<?> theMatchingClass) {
         super(theMatchingClass);
     }
 

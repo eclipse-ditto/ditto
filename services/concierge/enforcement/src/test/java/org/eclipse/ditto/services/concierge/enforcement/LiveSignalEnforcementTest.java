@@ -35,7 +35,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -275,8 +275,7 @@ public final class LiveSignalEnforcementTest {
     @Test
     public void acceptMessageCommandByAcl() {
         final JsonObject thingWithAcl = newThing()
-                .setPermissions(
-                        AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
+                .setPermissions(AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
                 .build()
                 .toJson(V_1, FieldType.all());
         final SudoRetrieveThingResponse response =
@@ -413,8 +412,7 @@ public final class LiveSignalEnforcementTest {
     @Test
     public void acceptLiveEventByAcl() {
         final JsonObject thingWithAcl = newThing()
-                .setPermissions(
-                        AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
+                .setPermissions(AclEntry.newInstance(SUBJECT, READ, WRITE, ADMINISTRATE))
                 .build()
                 .toJson(V_1, FieldType.all());
         final SudoRetrieveThingResponse response =
@@ -519,7 +517,7 @@ public final class LiveSignalEnforcementTest {
 
     private static MessageCommandResponse thingMessageCommandResponse(final MessageCommand<?, ?> command) {
         return SendThingMessageResponse.of(command.getThingEntityId(), command.getMessage(),
-                HttpStatusCode.VARIANT_ALSO_NEGOTIATES, command.getDittoHeaders());
+                HttpStatus.VARIANT_ALSO_NEGOTIATES, command.getDittoHeaders());
     }
 
     private static MessageCommand featureMessageCommand() {

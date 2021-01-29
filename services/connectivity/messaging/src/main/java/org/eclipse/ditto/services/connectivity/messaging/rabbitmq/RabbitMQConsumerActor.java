@@ -25,8 +25,7 @@ import org.eclipse.ditto.model.base.common.CharsetDeterminer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.model.connectivity.ConnectionType;
+import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.ResourceStatus;
@@ -34,12 +33,13 @@ import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.BaseConsumerActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
+import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 
 import com.rabbitmq.client.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -59,7 +59,7 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
     private static final String MESSAGE_ID_HEADER = "messageId";
     private static final String CONTENT_TYPE_APPLICATION_OCTET_STREAM = "application/octet-stream";
 
-    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+    private final ThreadSafeDittoLoggingAdapter log;
 
     @Nullable
     private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
@@ -67,9 +67,13 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
     private final Channel channel;
 
     @SuppressWarnings("unused")
-    private RabbitMQConsumerActor(final ConnectionId connectionId, final String sourceAddress,
+    private RabbitMQConsumerActor(final Connection connection, final String sourceAddress,
             final ActorRef inboundMessageProcessor, final Source source, final Channel channel) {
-        super(connectionId, sourceAddress, inboundMessageProcessor, source, ConnectionType.AMQP_091);
+        super(connection, sourceAddress, inboundMessageProcessor, source);
+
+        log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
+                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connectionId);
+
         headerEnforcementFilterFactory =
                 source.getEnforcement()
                         .map(value ->
@@ -81,7 +85,7 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
     }
 
     @Override
-    protected DittoDiagnosticLoggingAdapter log() {
+    protected ThreadSafeDittoLoggingAdapter log() {
         return log;
     }
 
@@ -91,14 +95,14 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
      * @param sourceAddress the source address.
      * @param inboundMessageProcessor the message mapping processor where received messages are forwarded to
      * @param source the configured connection source for the consumer actor.
-     * @param connectionId ID of the connection
+     * @param connection the connection
      * @return the Akka configuration Props object.
      */
     static Props props(final String sourceAddress, final ActorRef inboundMessageProcessor, final Source source,
             Channel channel,
-            final ConnectionId connectionId) {
+            final Connection connection) {
 
-        return Props.create(RabbitMQConsumerActor.class, connectionId, sourceAddress, inboundMessageProcessor, source,
+        return Props.create(RabbitMQConsumerActor.class, connection, sourceAddress, inboundMessageProcessor, source,
                 channel);
     }
 

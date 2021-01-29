@@ -25,7 +25,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredExceptio
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -100,7 +100,7 @@ public final class OutboundDispatchingActorTest {
             assertThat(unmappedOutboundSignal.getSource()).isEqualTo(attributeModified);
 
             final Acknowledgement acknowledgement =
-                    Acknowledgement.of(acknowledgementLabel, TestConstants.Things.THING_ID, HttpStatusCode.OK,
+                    Acknowledgement.of(acknowledgementLabel, TestConstants.Things.THING_ID, HttpStatus.OK,
                             dittoHeaders);
             underTest.tell(InboundSignal.of(acknowledgement), getRef());
 
@@ -141,7 +141,7 @@ public final class OutboundDispatchingActorTest {
             assertThat(unmappedOutboundSignal.getSource()).isEqualTo(attributeModified);
 
             final Acknowledgement acknowledgement =
-                    Acknowledgement.of(acknowledgementLabel, TestConstants.Things.THING_ID, HttpStatusCode.OK,
+                    Acknowledgement.of(acknowledgementLabel, TestConstants.Things.THING_ID, HttpStatus.OK,
                             dittoHeaders);
             underTest.tell(InboundSignal.of(acknowledgement), getRef());
 
@@ -193,7 +193,7 @@ public final class OutboundDispatchingActorTest {
             // WHEN: an acknowledgement of matching correlation ID is sent to the connection actor, which should not
             // happen as target-issued acks bypass the connection persistence actor
             final Acknowledgement acknowledgement =
-                    Acknowledgement.of(acknowledgementLabel, TestConstants.Things.THING_ID, HttpStatusCode.OK,
+                    Acknowledgement.of(acknowledgementLabel, TestConstants.Things.THING_ID, HttpStatus.OK,
                             dittoHeaders);
             underTest.tell(InboundSignal.of(acknowledgement), getRef());
 
@@ -241,7 +241,7 @@ public final class OutboundDispatchingActorTest {
 
             // THEN: acknowledgements of non-declared labels are answered by AcknowledgementLabelNotDeclaredException
             final Acknowledgement acknowledgement =
-                    Acknowledgement.of(acknowledgementLabel, TestConstants.Things.THING_ID, HttpStatusCode.OK,
+                    Acknowledgement.of(acknowledgementLabel, TestConstants.Things.THING_ID, HttpStatus.OK,
                             dittoHeaders);
             underTest.tell(InboundSignal.of(acknowledgement), getRef());
             expectMsg(AcknowledgementLabelNotDeclaredException.of(acknowledgementLabel, dittoHeaders));

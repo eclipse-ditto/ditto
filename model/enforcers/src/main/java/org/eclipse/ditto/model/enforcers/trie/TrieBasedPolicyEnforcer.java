@@ -51,7 +51,6 @@ import org.eclipse.ditto.model.policies.ResourceKey;
  * Each trie node has a {@link GrantRevokeIndex}, which maps each permission to the set of granted authorization
  * subjects and the set of revoked authorization subjects. The grant-revoke-indices are calculated in 4 different ways
  * to produce 4 tries of the same shape. 3 of those tries are used for policy enforcement.
- * </p>
  * <ol>
  * <li><em>Raw Trie:</em>
  * For each policy entry, pairs of permissions and their granted/revoked subjects are added to the trie node at the

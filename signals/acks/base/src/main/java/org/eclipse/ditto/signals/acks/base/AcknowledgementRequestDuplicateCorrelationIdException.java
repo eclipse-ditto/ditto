@@ -21,7 +21,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.acks.AcknowledgementException;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -59,7 +59,7 @@ public final class AcknowledgementRequestDuplicateCorrelationIdException extends
             @Nullable final URI href) {
 
         super(ERROR_CODE,
-                HttpStatusCode.CONFLICT,
+                HttpStatus.CONFLICT,
                 dittoHeaders,
                 message,
                 description,
@@ -132,6 +132,7 @@ public final class AcknowledgementRequestDuplicateCorrelationIdException extends
             return new AcknowledgementRequestDuplicateCorrelationIdException(dittoHeaders, message, description, cause,
                     href);
         }
+
     }
 
 }

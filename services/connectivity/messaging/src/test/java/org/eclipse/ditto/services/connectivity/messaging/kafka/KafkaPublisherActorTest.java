@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BiConsumer;
@@ -40,7 +41,8 @@ import org.awaitility.Awaitility;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -130,6 +132,13 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         shouldContainHeader(headers, "prefixed_thing_id", "some.prefix." + TestConstants.Things.THING_ID);
         shouldContainHeader(headers, "eclipse", "ditto");
         shouldContainHeader(headers, "device_id", TestConstants.Things.THING_ID.toString());
+        shouldContainHeader(headers, "ditto-connection-id");
+        final Optional<Header> expectedHeader = headers.stream()
+                .filter(header -> header.key().equals("ditto-connection-id"))
+                .findAny();
+        assertThat(expectedHeader).isPresent();
+        assertThat(new String(expectedHeader.get().value()))
+                .isNotEqualTo("hallo");//verify that header mapping has no effect
     }
 
     @Override
@@ -149,7 +158,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         final Acknowledgements acks = ackSupplier.get();
         assertThat(acks.getSize()).isEqualTo(1);
         final Acknowledgement ack = acks.stream().findAny().orElseThrow();
-        assertThat(ack.getStatusCode()).isEqualTo(HttpStatusCode.NO_CONTENT);
+        assertThat(ack.getHttpStatus()).isEqualTo(HttpStatus.NO_CONTENT);
         assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
         assertThat(ack.getEntity()).isEmpty();
     }
@@ -198,7 +207,7 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
                         .hasSize(1)
                         .first()
                         .satisfies(ack -> {
-                            assertThat(ack.getStatusCode()).isEqualTo(HttpStatusCode.OK);
+                            assertThat(ack.getHttpStatus()).isEqualTo(HttpStatus.OK);
                             assertThat(ack.getLabel().toString()).isEqualTo("please-verify");
                             assertThat(ack.getEntity()).contains(JsonObject.newBuilder()
                                     .set("timestamp", 0)
@@ -216,16 +225,16 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     @Test
     public void retriableExceptionBecomesInternalErrorAcknowledgement() {
         testSendFailure(new DisconnectException(), (sender, parent) ->
-                assertThat(sender.expectMsgClass(Acknowledgements.class).getStatusCode())
-                        .isEqualTo(HttpStatusCode.INTERNAL_SERVER_ERROR)
+                assertThat(sender.expectMsgClass(Acknowledgements.class).getHttpStatus())
+                        .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
         );
     }
 
     @Test
     public void nonRetriableExceptionBecomesClientErrorAcknowledgement() {
         testSendFailure(new InvalidTopicException(), (sender, parent) -> {
-            assertThat(sender.expectMsgClass(Acknowledgements.class).getStatusCode())
-                    .isEqualTo(HttpStatusCode.BAD_REQUEST);
+            assertThat(sender.expectMsgClass(Acknowledgements.class).getHttpStatus())
+                    .isEqualTo(HttpStatus.BAD_REQUEST);
 
             // expect failure escalation
             parent.expectMsgClass(ConnectionFailure.class);
@@ -250,6 +259,11 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     private void shouldContainHeader(final List<Header> headers, final String key, final String value) {
         final RecordHeader expectedHeader = new RecordHeader(key, value.getBytes(StandardCharsets.US_ASCII));
         assertThat(headers).contains(expectedHeader);
+    }
+
+    private void shouldContainHeader(final List<Header> headers, final String key) {
+        final Optional<Header> expectedHeader = headers.stream().filter(header -> header.key().equals(key)).findAny();
+        assertThat(expectedHeader).isPresent();
     }
 
     private void testSendFailure(final Exception exception, final BiConsumer<TestProbe, TestKit> assertions) {

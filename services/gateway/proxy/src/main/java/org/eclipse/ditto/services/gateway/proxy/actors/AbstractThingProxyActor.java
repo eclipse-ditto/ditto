@@ -21,6 +21,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
 import org.eclipse.ditto.signals.commands.thingsearch.query.QueryThings;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.japi.pf.ReceiveBuilder;
 
 /**
@@ -29,12 +30,12 @@ import akka.japi.pf.ReceiveBuilder;
  */
 public abstract class AbstractThingProxyActor extends AbstractProxyActor {
 
-    private final ActorRef devOpsCommandsActor;
+    private final ActorSelection devOpsCommandsActor;
     private final ActorRef conciergeForwarder;
     private final ActorRef aggregatorProxyActor;
 
     protected AbstractThingProxyActor(final ActorRef pubSubMediator,
-            final ActorRef devOpsCommandsActor,
+            final ActorSelection devOpsCommandsActor,
             final ActorRef conciergeForwarder) {
 
         super(pubSubMediator);

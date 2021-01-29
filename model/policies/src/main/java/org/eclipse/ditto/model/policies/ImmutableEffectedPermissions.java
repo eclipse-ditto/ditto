@@ -17,6 +17,7 @@ import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJso
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -105,7 +106,7 @@ final class ImmutableEffectedPermissions implements EffectedPermissions {
                 .stream()
                 .filter(JsonValue::isString)
                 .map(JsonValue::asString)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     @Override

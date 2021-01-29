@@ -15,6 +15,7 @@ package org.eclipse.ditto.model.connectivity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.eclipse.ditto.model.connectivity.ImmutableConnection.ConnectionUri;
+import static org.eclipse.ditto.model.connectivity.Topic.TWIN_EVENTS;
 import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -206,6 +207,12 @@ public final class ImmutableConnectionTest {
 
     private static final JsonObject KNOWN_LEGACY_JSON = KNOWN_JSON
             .set(Connection.JsonFields.MAPPING_CONTEXT, KNOWN_MAPPING_CONTEXT.toJson());
+
+    private static final HeaderMapping DEFAULT_TARGET_HEADER_MAPPING =
+            ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
+                    .set("correlation-id", "{{header:correlation-id}}")
+                    .set("reply-to", "{{header:reply-to}}")
+                    .build());
 
     @Test
     public void testHashCodeAndEquals() {
@@ -435,8 +442,7 @@ public final class ImmutableConnectionTest {
 
 
     /**
-     * Permit construction of connection URIs with username and without password
-     * because RFC-3986 permits it.
+     * Permit construction of connection URIs with username and without password because RFC-3986 permits it.
      */
     @Test
     public void canParseUriWithUsernameWithoutPassword() {
@@ -472,6 +478,36 @@ public final class ImmutableConnectionTest {
         assertThat(connection.toString()).doesNotContain(password);
     }
 
+    @Test
+    public void providesDefaultHeaderMappings() {
+
+        final Target targetWithoutHeaderMapping = ConnectivityModelFactory.newTargetBuilder()
+                .address("amqp/target1")
+                .authorizationContext(AUTHORIZATION_CONTEXT)
+                .topics(TWIN_EVENTS)
+                .build();
+        final Connection connectionWithoutHeaderMappingForTarget =
+                ConnectivityModelFactory.newConnectionBuilder(ID, TYPE, STATUS, URI)
+                        .targets(Collections.singletonList(targetWithoutHeaderMapping))
+                        .build();
+
+        connectionWithoutHeaderMappingForTarget.getTargets()
+                .forEach(target -> assertThat(target.getHeaderMapping()).contains(DEFAULT_TARGET_HEADER_MAPPING));
+    }
+
+    @Test
+    public void providesDefaultHeaderMappingsFromJson() {
+        final JsonObject connectionJsonWithoutHeaderMappingForTarget = KNOWN_JSON
+                .set(Connection.JsonFields.TARGETS, JsonArray.of(
+                        TARGET1.toJson()
+                                .remove(Target.JsonFields.HEADER_MAPPING.getPointer())));
+        final Connection connectionWithoutHeaderMappingForTarget =
+                ImmutableConnection.fromJson(connectionJsonWithoutHeaderMappingForTarget);
+
+        connectionWithoutHeaderMappingForTarget.getTargets()
+                .forEach(target -> assertThat(target.getHeaderMapping()).contains(DEFAULT_TARGET_HEADER_MAPPING));
+    }
+
     private List<Source> addSourceMapping(final List<Source> sources, final String... mapping) {
         return sources.stream()
                 .map(s -> new ImmutableSource.Builder(s).payloadMapping(
@@ -485,4 +521,5 @@ public final class ImmutableConnectionTest {
                         ConnectivityModelFactory.newPayloadMapping(mapping)).build())
                 .collect(Collectors.toList());
     }
+
 }

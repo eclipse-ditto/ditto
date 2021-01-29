@@ -50,15 +50,15 @@ import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.base.CommandToExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
+import org.eclipse.ditto.signals.commands.policies.actions.PolicyActionCommand;
+import org.eclipse.ditto.signals.commands.policies.actions.TopLevelPolicyActionCommand;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToAccessExceptionRegistry;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToActionsExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyCommandToModifyExceptionRegistry;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyUnavailableException;
-import org.eclipse.ditto.signals.commands.policies.modify.ActivateSubjects;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
-import org.eclipse.ditto.signals.commands.policies.modify.DeactivateSubjects;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy;
-import org.eclipse.ditto.signals.commands.policies.modify.PolicyActionCommand;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
@@ -130,14 +130,20 @@ public final class PolicyCommandEnforcement
         return authorizedCommand;
     }
 
+    @SuppressWarnings("unchecked")
     private static <T extends PolicyCommand<?>> Optional<T> authorizeActionCommand(final PolicyEnforcer enforcer,
             final T command, final ResourceKey resourceKey, final AuthorizationContext authorizationContext) {
 
-        if (resourceKey.getResourcePath().isEmpty()) {
-            return authorizeTopLevelAction(enforcer, command, authorizationContext);
+        if (command instanceof TopLevelPolicyActionCommand) {
+            final TopLevelPolicyActionCommand topLevelPolicyActionCommand = (TopLevelPolicyActionCommand) command;
+            return (Optional<T>) authorizeTopLevelAction(enforcer, topLevelPolicyActionCommand, authorizationContext);
         } else {
             return authorizeEntryLevelAction(enforcer.getEnforcer(), command, resourceKey, authorizationContext);
         }
+    }
+
+    private static boolean isTopLevelActionCommand(final PolicyCommand<?> command) {
+        return PolicyActionCommand.RESOURCE_PATH_ACTIONS.getRoot().equals(command.getResourcePath().getRoot());
     }
 
     private static <T extends PolicyCommand<?>> Optional<T> authorizeEntryLevelAction(final Enforcer enforcer,
@@ -147,32 +153,22 @@ public final class PolicyCommandEnforcement
                 : Optional.empty();
     }
 
-    @SuppressWarnings("unchecked")
-    private static <T extends PolicyCommand<?>> Optional<T> authorizeTopLevelAction(final PolicyEnforcer policyEnforcer,
-            final T command, final AuthorizationContext authorizationContext) {
+    private static Optional<TopLevelPolicyActionCommand> authorizeTopLevelAction(final PolicyEnforcer policyEnforcer,
+            final TopLevelPolicyActionCommand command, final AuthorizationContext authorizationContext) {
         final Enforcer enforcer = policyEnforcer.getEnforcer();
         final List<Label> authorizedLabels = policyEnforcer.getPolicy()
                 .map(policy -> policy.getEntriesSet().stream()
                         .map(PolicyEntry::getLabel)
-                        .filter(label -> enforcer.hasUnrestrictedPermissions(asResourceKey(label), authorizationContext,
-                                Permission.EXECUTE))
+                        .filter(label -> enforcer.hasUnrestrictedPermissions(asResourceKey(label, command),
+                                authorizationContext, Permission.EXECUTE))
                         .collect(Collectors.toList()))
                 .orElse(List.of());
         if (authorizedLabels.isEmpty()) {
             return Optional.empty();
-        } else if (command instanceof ActivateSubjects) {
-            final ActivateSubjects c = (ActivateSubjects) command;
-            final T adjustedCommand =
-                    (T) ActivateSubjects.of(c.getEntityId(), c.getSubjectId(), c.getExpiry(), authorizedLabels,
-                            c.getDittoHeaders());
-            return Optional.of(adjustedCommand);
-        } else if (command instanceof DeactivateSubjects) {
-            final DeactivateSubjects c = (DeactivateSubjects) command;
-            final T adjustedCommand =
-                    (T) DeactivateSubjects.of(c.getEntityId(), c.getSubjectId(), authorizedLabels, c.getDittoHeaders());
-            return Optional.of(adjustedCommand);
         } else {
-            return Optional.empty();
+            final TopLevelPolicyActionCommand adjustedCommand =
+                    TopLevelPolicyActionCommand.of(command.getPolicyActionCommand(), authorizedLabels);
+            return Optional.of(adjustedCommand);
         }
     }
 
@@ -206,7 +202,6 @@ public final class PolicyCommandEnforcement
             final PolicyQueryCommandResponse<?> response,
             final Enforcer enforcer) {
 
-
         final ResourceKey resourceKey =
                 ResourceKey.newInstance(PolicyCommand.RESOURCE_TYPE, response.getResourcePath());
         final AuthorizationContext authorizationContext = response.getDittoHeaders().getAuthorizationContext();
@@ -231,10 +226,14 @@ public final class PolicyCommandEnforcement
      * @return the error.
      */
     private static DittoRuntimeException errorForPolicyCommand(final PolicyCommand<?> policyCommand) {
-        final CommandToExceptionRegistry<PolicyCommand<?>, DittoRuntimeException> registry =
-                policyCommand instanceof PolicyModifyCommand
-                        ? PolicyCommandToModifyExceptionRegistry.getInstance()
-                        : PolicyCommandToAccessExceptionRegistry.getInstance();
+        final CommandToExceptionRegistry<PolicyCommand<?>, DittoRuntimeException> registry;
+        if (policyCommand instanceof PolicyActionCommand) {
+            registry = PolicyCommandToActionsExceptionRegistry.getInstance();
+        } else if (policyCommand instanceof PolicyModifyCommand) {
+            registry = PolicyCommandToModifyExceptionRegistry.getInstance();
+        } else {
+            registry = PolicyCommandToAccessExceptionRegistry.getInstance();
+        }
         return registry.exceptionFrom(policyCommand);
     }
 
@@ -357,9 +356,16 @@ public final class PolicyCommandEnforcement
         }
     }
 
-    private static ResourceKey asResourceKey(final Label label) {
+    /**
+     * Convert a policy entry label for a top-level policy action into a resource path for authorization check.
+     *
+     * @param label the policy entry label.
+     * @param command the top-level policy action command.
+     * @return the resource key.
+     */
+    private static ResourceKey asResourceKey(final Label label, final PolicyCommand<?> command) {
         return ResourceKey.newInstance(PoliciesResourceType.POLICY,
-                Policy.JsonFields.ENTRIES.getPointer().addLeaf(JsonKey.of(label)));
+                Policy.JsonFields.ENTRIES.getPointer().addLeaf(JsonKey.of(label)).append(command.getResourcePath()));
     }
 
     /**

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.persistentactors.results;
 
+import java.util.function.Function;
+
 import org.eclipse.ditto.signals.events.base.Event;
 
 /**
@@ -37,6 +39,11 @@ public final class EmptyResult<E extends Event<?>> implements Result<E> {
     @Override
     public void accept(final ResultVisitor<E> visitor) {
         visitor.onEmpty();
+    }
+
+    @Override
+    public <F extends Event<?>> Result<F> map(final Function<E, F> mappingFunction) {
+        return getInstance();
     }
 
     @Override

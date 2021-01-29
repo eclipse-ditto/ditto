@@ -19,7 +19,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableException;
 
@@ -39,7 +39,7 @@ public final class TooManyRequestsException extends DittoRuntimeException {
      */
     static final String RETRY_AFTER = "retry-after";
 
-    private static final HttpStatusCode STATUS_CODE = HttpStatusCode.TOO_MANY_REQUESTS;
+    private static final HttpStatus STATUS_CODE = HttpStatus.TOO_MANY_REQUESTS;
     private static final String MESSAGE = "You made too many requests.";
     private static final String DESCRIPTION = "Try again soon.";
 
@@ -76,6 +76,7 @@ public final class TooManyRequestsException extends DittoRuntimeException {
      */
     public static TooManyRequestsException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
+
         return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 

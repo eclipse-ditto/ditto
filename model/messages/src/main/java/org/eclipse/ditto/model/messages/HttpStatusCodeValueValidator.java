@@ -12,11 +12,10 @@
  */
 package org.eclipse.ditto.model.messages;
 
-import java.util.Optional;
-
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.AbstractHeaderValueValidator;
 import org.eclipse.ditto.model.base.headers.HeaderDefinition;
@@ -24,7 +23,7 @@ import org.eclipse.ditto.model.base.headers.HeaderValueValidators;
 import org.eclipse.ditto.model.base.headers.ValueValidator;
 
 /**
- * This validator parses a CharSequence to an integer value and checks if that int is a known {@link HttpStatusCode}.
+ * This validator parses a CharSequence to an integer value and checks if that int is a known {@link HttpStatus}.
  * If validation fails, a {@link org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException} is thrown.
  */
 @Immutable
@@ -48,9 +47,12 @@ final class HttpStatusCodeValueValidator extends AbstractHeaderValueValidator {
 
     @Override
     protected void validateValue(final HeaderDefinition definition, final CharSequence value) {
-        final Optional<HttpStatusCode> httpStatusCodeOptional = HttpStatusCode.forInt(parseInt(value));
-        if (!httpStatusCodeOptional.isPresent()) {
-            throw DittoHeaderInvalidException.newInvalidTypeBuilder(definition, value, "HTTP status code").build();
+        try {
+            HttpStatus.getInstance(parseInt(value));
+        } catch (final HttpStatusCodeOutOfRangeException e) {
+            throw DittoHeaderInvalidException.newInvalidTypeBuilder(definition, value, "HTTP status code")
+                    .cause(e)
+                    .build();
         }
     }
 

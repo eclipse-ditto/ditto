@@ -19,7 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.text.MessageFormat;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.Rule;
@@ -36,7 +36,7 @@ public final class AcknowledgementRequestParseExceptionTest {
             .set(DittoRuntimeException.JsonFields.MESSAGE,
                     MessageFormat.format(AcknowledgementRequestParseException.MESSAGE_TEMPLATE, "ab"))
             .set(DittoRuntimeException.JsonFields.DESCRIPTION, AcknowledgementRequestParseException.DEFAULT_DESCRIPTION)
-            .set(DittoRuntimeException.JsonFields.STATUS, HttpStatusCode.UNPROCESSABLE_ENTITY.toInt())
+            .set(DittoRuntimeException.JsonFields.STATUS, HttpStatus.UNPROCESSABLE_ENTITY.getCode())
             .build();
 
     @Rule

@@ -21,7 +21,7 @@
  import javax.annotation.concurrent.NotThreadSafe;
 
  import org.eclipse.ditto.json.JsonObject;
- import org.eclipse.ditto.model.base.common.HttpStatusCode;
+ import org.eclipse.ditto.model.base.common.HttpStatus;
  import org.eclipse.ditto.model.base.headers.DittoHeaders;
  import org.eclipse.ditto.model.base.json.JsonParsableException;
 
@@ -41,7 +41,7 @@
      private static final String MESSAGE_PATTERN = "The Media-Type <{0}> is not supported for this Resource.";
      private static final String DESCRIPTION_ALLOWED_TYPES_PATTERN = "Allowed Media-Types are: <{0}>.";
 
-     private static final HttpStatusCode STATUS_CODE = HttpStatusCode.UNSUPPORTED_MEDIA_TYPE;
+     private static final HttpStatus STATUS_CODE = HttpStatus.UNSUPPORTED_MEDIA_TYPE;
 
      /**
       * Constructs a new {@code UnsupportedMediaTypeException} object.
@@ -127,6 +127,7 @@
 
              return new UnsupportedMediaTypeException(dittoHeaders, message, description, cause, href);
          }
+
      }
 
  }

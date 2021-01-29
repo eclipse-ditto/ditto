@@ -26,7 +26,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -86,7 +86,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.THING.toJson())
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -104,7 +104,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.THING.toJson())
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -142,7 +142,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
                 .withPayload(Payload.newBuilder(path).withValue(JsonFactory.newArray()
                         .add(TestConstants.THING.toJsonString())
                         .add(TestConstants.THING2.toJsonString()))
-                        .withStatus(HttpStatusCode.OK).build())
+                        .withStatus(HttpStatus.OK).build())
                 .withHeaders(TestConstants.HEADERS_V_2).build();
 
         final RetrieveThingsResponse retrieveThingsResponse = RetrieveThingsResponse.of(JsonFactory.newArray()
@@ -166,7 +166,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.ACL.toJson())
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -184,7 +184,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.ACL.toJson())
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -207,7 +207,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson())
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -225,7 +225,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.ACL_ENTRY.getPermissions().toJson())
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -249,7 +249,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.ATTRIBUTES)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -267,7 +267,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.ATTRIBUTES_JSON)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -292,7 +292,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.ATTRIBUTE_VALUE)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -310,7 +310,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.ATTRIBUTE_VALUE)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -334,7 +334,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.JSON_THING_DEFINITION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -352,7 +352,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.JSON_THING_DEFINITION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -376,7 +376,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.FEATURES.toJson())
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -394,7 +394,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.FEATURES.toJson())
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -416,7 +416,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.FEATURES.toJson(JsonSchemaVersion.V_1))
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -440,7 +440,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.FEATURE.toJson())
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -458,7 +458,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.FEATURE.toJson())
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -481,7 +481,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.FEATURE.toJson(JsonSchemaVersion.V_1))
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -507,7 +507,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.FEATURE_DEFINITION_JSON)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -525,7 +525,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.FEATURE_DEFINITION_JSON)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -550,7 +550,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.FEATURE_PROPERTIES)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -568,7 +568,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.FEATURE_PROPERTIES_JSON)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -594,7 +594,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.FEATURE_DESIRED_PROPERTIES)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -612,7 +612,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.FEATURE_DESIRED_PROPERTIES_JSON)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -639,7 +639,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.FEATURE_PROPERTY_VALUE)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -658,7 +658,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.FEATURE_PROPERTY_VALUE)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_1)
@@ -685,7 +685,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.FEATURE_DESIRED_PROPERTY_VALUE)
                         .build())
                 .withHeaders(DITTO_HEADERS_V_2)
@@ -704,7 +704,7 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.FEATURE_DESIRED_PROPERTY_VALUE)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -774,8 +774,8 @@ public final class ThingQueryCommandResponseAdapterTest extends LiveTwinTest imp
         }
 
         @Override
-        public HttpStatusCode getStatusCode() {
-            return HttpStatusCode.OK;
+        public HttpStatus getHttpStatus() {
+            return HttpStatus.OK;
         }
 
         @Override

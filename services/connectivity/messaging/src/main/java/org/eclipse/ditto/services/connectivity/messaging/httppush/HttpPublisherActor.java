@@ -16,12 +16,12 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BiFunction;
@@ -33,7 +33,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -42,7 +43,6 @@ import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
 import org.eclipse.ditto.model.messages.Message;
-import org.eclipse.ditto.model.messages.MessageHeaders;
 import org.eclipse.ditto.model.messages.MessageHeadersBuilder;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
@@ -53,7 +53,10 @@ import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
+import org.eclipse.ditto.services.utils.akka.controlflow.TimeMeasuringFlow;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -85,6 +88,7 @@ import akka.stream.Materializer;
 import akka.stream.OverflowStrategy;
 import akka.stream.QueueOfferResult;
 import akka.stream.UniqueKillSwitch;
+import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -108,6 +112,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private static final DittoProtocolAdapter DITTO_PROTOCOL_ADAPTER = DittoProtocolAdapter.newInstance();
     private static final String LIVE_RESPONSE_NOT_OF_EXPECTED_TYPE =
             "Live response of type <%s> is not of expected type <%s>.";
+    private static final String TOO_MANY_IN_FLIGHT_MESSAGE_DESCRIPTION = "This can have the following reasons:\n" +
+            "a) The HTTP endpoint does not consume the messages fast enough.\n" +
+            "b) The client count and/or the parallelism of this connection is not configured high enough.";
 
     private final HttpPushFactory factory;
 
@@ -121,12 +128,23 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         this.factory = factory;
 
         final HttpPushConfig config = connectionConfig.getHttpPushConfig();
+        final PreparedTimer timer = DittoMetrics.timer("http_publish_request_time")
+                .tag("id", connection.getId().toString());
 
         materializer = Materializer.createMaterializer(this::getContext);
+
+
+        final Sink<Duration, CompletionStage<Done>> logRequestTimes = Sink.<Duration>foreach(duration -> {
+            connectionLogger.success("HTTP request took <{0}> ms.", duration.toMillis());
+        });
+        final Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?>
+                performHttpRequestFlow = factory.createFlow(getContext().getSystem(), logger);
+        final Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?>
+                timedHttpRequestFlow = TimeMeasuringFlow.measureTimeOf(performHttpRequestFlow, timer, logRequestTimes);
         final Pair<Pair<SourceQueueWithComplete<Pair<HttpRequest, HttpPushContext>>, UniqueKillSwitch>,
                 CompletionStage<Done>> materialized =
                 Source.<Pair<HttpRequest, HttpPushContext>>queue(config.getMaxQueueSize(), OverflowStrategy.dropNew())
-                        .viaMat(factory.createFlow(getContext().getSystem(), logger), Keep.left())
+                        .viaMat(timedHttpRequestFlow, Keep.left())
                         .viaMat(KillSwitches.single(), Keep.both())
                         .toMat(Sink.foreach(HttpPublisherActor::processResponse), Keep.both())
                         .run(materializer);
@@ -228,8 +246,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             } else if (Objects.equals(queueOfferResult, QueueOfferResult.dropped())) {
                 resultFuture.completeExceptionally(MessageSendingFailedException.newBuilder()
                         .message("Outgoing HTTP request aborted: There are too many in-flight requests.")
-                        .description("Please improve the performance of the HTTP server " +
-                                "or reduce the rate of outgoing signals.")
+                        .description(TOO_MANY_IN_FLIGHT_MESSAGE_DESCRIPTION)
                         .dittoHeaders(message.getInternalHeaders())
                         .build());
             }
@@ -291,67 +308,69 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
         final EntityIdWithType entityIdWithType = ThingId.of(signal.getEntityId());
         final AcknowledgementLabel label = getAcknowledgementLabel(autoAckTarget).orElse(NO_ACK_LABEL);
-        final Optional<HttpStatusCode> statusOptional = HttpStatusCode.forInt(response.status().intValue());
-        if (statusOptional.isEmpty()) {
+
+        final var statusCode = response.status().intValue();
+        final HttpStatus httpStatus;
+        try {
+            httpStatus = HttpStatus.getInstance(statusCode);
+        } catch (final HttpStatusCodeOutOfRangeException e) {
             response.discardEntityBytes(materializer);
-            final MessageSendingFailedException error = MessageSendingFailedException.newBuilder()
-                    .message(String.format("Remote server delivers unknown HTTP status code <%d>",
-                            response.status().intValue()))
+            final var error = MessageSendingFailedException.newBuilder()
+                    .message(String.format("Remote server delivered unknown HTTP status code <%d>!", statusCode))
+                    .cause(e)
                     .build();
             return CompletableFuture.failedFuture(error);
-        } else {
-            final HttpStatusCode statusCode = statusOptional.orElseThrow();
-            final boolean isMessageCommand = signal instanceof MessageCommand;
-            final int maxResponseSize = isMessageCommand ? maxTotalMessageSize : ackSizeQuota;
-            return getResponseBody(response, maxResponseSize, materializer).thenApply(body -> {
-                @Nullable final CommandResponse<?> result;
-                final DittoHeaders dittoHeaders = setDittoHeaders(signal.getDittoHeaders(), response);
-                if (DittoAcknowledgementLabel.LIVE_RESPONSE.equals(label)) {
-                    // Live-Response is declared as issued ack => parse live response from response
-                    if (isMessageCommand) {
-                        result =
-                                toMessageCommandResponse((MessageCommand<?, ?>) signal, dittoHeaders, body, statusCode);
-                    } else {
-                        result = null;
-                    }
-                } else if (NO_ACK_LABEL.equals(label)) {
-                    // No Acks declared as issued acks => Handle response either as live response or as acknowledgement.
-                    final boolean isDittoProtocolMessage = dittoHeaders.getDittoContentType()
-                            .filter(org.eclipse.ditto.model.base.headers.contenttype.ContentType::isDittoProtocol)
-                            .isPresent();
-                    if (isDittoProtocolMessage && body.isObject()) {
-                        final CommandResponse<?> parsedResponse = toCommandResponse(body.asObject());
-                        if (parsedResponse instanceof Acknowledgement) {
-                            result = parsedResponse;
-                        } else if (parsedResponse instanceof MessageCommandResponse) {
-                            result = parsedResponse;
-                        } else {
-                            result = Acknowledgement.of(NO_ACK_LABEL, entityIdWithType, statusCode, dittoHeaders, body);
-                        }
-                    } else {
-                        result = Acknowledgement.of(NO_ACK_LABEL, entityIdWithType, statusCode, dittoHeaders, body);
-                    }
-                } else {
-                    // There is an issued ack declared but its not live-response => handle response as acknowledgement.
-                    result = Acknowledgement.of(label, entityIdWithType, statusCode, dittoHeaders, body);
-                }
-
-                if (result instanceof MessageCommandResponse && isMessageCommand) {
-                    // Do only return command response for live commands with a correct response.
-                    validateLiveResponse(result, (MessageCommand<?, ?>) signal);
-                }
-                if (result == null) {
-                    connectionLogger.success(
-                            "No CommandResponse created from HTTP response with status <{0}> and body <{1}>.",
-                            response.status(), body);
-                } else {
-                    connectionLogger.success(
-                            "CommandResponse <{0}> created from HTTP response with Status <{1}> and body <{2}>.",
-                            result, response.status(), body);
-                }
-                return result;
-            });
         }
+
+        final boolean isMessageCommand = signal instanceof MessageCommand;
+        final int maxResponseSize = isMessageCommand ? maxTotalMessageSize : ackSizeQuota;
+        return getResponseBody(response, maxResponseSize, materializer).thenApply(body -> {
+            @Nullable final CommandResponse<?> result;
+            final DittoHeaders dittoHeaders = setDittoHeaders(signal.getDittoHeaders(), response);
+            if (DittoAcknowledgementLabel.LIVE_RESPONSE.equals(label)) {
+                // Live-Response is declared as issued ack => parse live response from response
+                if (isMessageCommand) {
+                    result = toMessageCommandResponse((MessageCommand<?, ?>) signal, dittoHeaders, body, httpStatus);
+                } else {
+                    result = null;
+                }
+            } else if (NO_ACK_LABEL.equals(label)) {
+                // No Acks declared as issued acks => Handle response either as live response or as acknowledgement.
+                final boolean isDittoProtocolMessage = dittoHeaders.getDittoContentType()
+                        .filter(org.eclipse.ditto.model.base.headers.contenttype.ContentType::isDittoProtocol)
+                        .isPresent();
+                if (isDittoProtocolMessage && body.isObject()) {
+                    final CommandResponse<?> parsedResponse = toCommandResponse(body.asObject());
+                    if (parsedResponse instanceof Acknowledgement) {
+                        result = parsedResponse;
+                    } else if (parsedResponse instanceof MessageCommandResponse) {
+                        result = parsedResponse;
+                    } else {
+                        result = Acknowledgement.of(NO_ACK_LABEL, entityIdWithType, httpStatus, dittoHeaders, body);
+                    }
+                } else {
+                    result = Acknowledgement.of(NO_ACK_LABEL, entityIdWithType, httpStatus, dittoHeaders, body);
+                }
+            } else {
+                // There is an issued ack declared but its not live-response => handle response as acknowledgement.
+                result = Acknowledgement.of(label, entityIdWithType, httpStatus, dittoHeaders, body);
+            }
+
+            if (result instanceof MessageCommandResponse && isMessageCommand) {
+                // Do only return command response for live commands with a correct response.
+                validateLiveResponse(result, (MessageCommand<?, ?>) signal);
+            }
+            if (result == null) {
+                connectionLogger.success(
+                        "No CommandResponse created from HTTP response with status <{0}> and body <{1}>.",
+                        response.status(), body);
+            } else {
+                connectionLogger.success(
+                        "CommandResponse <{0}> created from HTTP response with Status <{1}> and body <{2}>.",
+                        result, response.status(), body);
+            }
+            return result;
+        });
     }
 
     private void validateLiveResponse(final CommandResponse<?> commandResponse,
@@ -412,8 +431,8 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     }
 
     private void handleInvalidResponse(final String message, final CommandResponse<?> commandResponse) {
-        final MessageSendingFailedException exception = MessageSendingFailedException.newBuilder()
-                .statusCode(HttpStatusCode.BAD_REQUEST)
+        final var exception = MessageSendingFailedException.newBuilder()
+                .httpStatus(HttpStatus.BAD_REQUEST)
                 .description(message)
                 .build();
         connectionLogger.failure(commandResponse, exception);
@@ -424,7 +443,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private MessageCommandResponse<?, ?> toMessageCommandResponse(final MessageCommand<?, ?> messageCommand,
             final DittoHeaders dittoHeaders,
             final JsonValue jsonValue,
-            final HttpStatusCode status) {
+            final HttpStatus status) {
 
         final boolean isDittoProtocolMessage = dittoHeaders.getDittoContentType()
                 .filter(org.eclipse.ditto.model.base.headers.contenttype.ContentType::isDittoProtocol)
@@ -442,11 +461,12 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
                 return null;
             }
         } else {
-            final MessageHeadersBuilder responseMessageBuilder = messageCommand.getMessage().getHeaders().toBuilder();
-            final MessageHeaders messageHeaders = responseMessageBuilder.statusCode(status)
+            final var commandMessage = messageCommand.getMessage();
+            final var messageHeaders = MessageHeadersBuilder.of(commandMessage.getHeaders())
+                    .httpStatus(status)
                     .putHeaders(dittoHeaders)
                     .build();
-            final Message<Object> message = Message.newBuilder(messageHeaders)
+            final var message = Message.newBuilder(messageHeaders)
                     .payload(jsonValue)
                     .build();
 
@@ -510,8 +530,7 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
         return message.getBytePayload().map(ByteBuffer::array).orElse(new byte[0]);
     }
 
-    private static CompletionStage<JsonValue> getResponseBody(final HttpResponse response,
-            final int maxBytes,
+    private static CompletionStage<JsonValue> getResponseBody(final HttpResponse response, final int maxBytes,
             final Materializer materializer) {
 
         return response.entity()

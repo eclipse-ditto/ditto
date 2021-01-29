@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.gateway.proxy.actors;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 import akka.actor.ActorRef;
+import akka.actor.ActorSelection;
 import akka.actor.Props;
 
 /**
@@ -24,7 +25,7 @@ public final class ProxyActor extends AbstractThingProxyActor {
 
     @SuppressWarnings("unused")
     private ProxyActor(final ActorRef pubSubMediator,
-            final ActorRef devOpsCommandsActor,
+            final ActorSelection devOpsCommandsActor,
             final ActorRef conciergeForwarder) {
 
         super(pubSubMediator, devOpsCommandsActor, conciergeForwarder);
@@ -38,7 +39,7 @@ public final class ProxyActor extends AbstractThingProxyActor {
      * @return the Akka configuration Props object.
      */
     public static Props props(final ActorRef pubSubMediator,
-            final ActorRef devOpsCommandsActor,
+            final ActorSelection devOpsCommandsActor,
             final ActorRef conciergeForwarder) {
 
         return Props.create(ProxyActor.class, pubSubMediator, devOpsCommandsActor, conciergeForwarder);

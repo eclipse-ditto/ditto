@@ -47,7 +47,7 @@ previous expression in the function pipeline unless the condition specified by t
 
 The new HTTP `GET` resource `/whoami` may be called in order to find out which authorization subjects were resolved in 
 the HTTP call's authentication. This can be e.g. useful to find out the used JWT subject which should be added to 
-[policies](basic-policy.html#who-can-be-addressed).
+[policies](basic-policy.html#subjects).
 
 #### [Support using client certificate based authentication in HTTP push connections](https://github.com/eclipse/ditto/pull/695)
 

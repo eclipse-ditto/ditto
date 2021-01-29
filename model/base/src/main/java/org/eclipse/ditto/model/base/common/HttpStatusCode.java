@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.model.base.common;
 
+import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
@@ -23,7 +24,9 @@ import java.util.stream.Stream;
  * An enumeration of HTTP status codes.
  *
  * @see <a href="http://tools.ietf.org/html/rfc7231#section-6.1"></a>
+ * @deprecated as of 2.0.0 please use {@link HttpStatus} instead.
  */
+@Deprecated
 @SuppressWarnings("squid:S109")
 public enum HttpStatusCode {
 
@@ -445,6 +448,24 @@ public enum HttpStatusCode {
     public boolean isInternalError() {
         return statusCodeValue >= INTERNAL_SERVER_ERROR.statusCodeValue &&
                 statusCodeValue <= NETWORK_CONNECT_TIMEOUT.statusCodeValue;
+    }
+
+    /**
+     * Returns an equivalent HttpStatus for this HttpStatusCode. This is guaranteed to work as all constants of
+     * HttpStatusCode are reflected in HttpStatus.
+     *
+     * @return the HttpStatus which is equivalent to this HttpStatusCode.
+     * @since 2.0.0
+     */
+    public HttpStatus getAsHttpStatus() {
+        try {
+            return HttpStatus.getInstance(statusCodeValue);
+        } catch (final HttpStatusCodeOutOfRangeException e) {
+
+            // This cannot happen at runtime as all constants of HttpStatusCode are reflected in HttpStatus.
+            throw new IllegalStateException(
+                    MessageFormat.format("Failed to get HttpStatus for <{0}>!", statusCodeValue));
+        }
     }
 
 }

@@ -28,7 +28,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.messages.Message;
@@ -201,13 +201,13 @@ public abstract class AbstractHttpRequestActorTest {
             final JsonValue responsePayload) {
         final Message<?> responseMessage = Message.newBuilder(
                 MessageHeaders.newBuilder(MessageDirection.TO, thingId, messageSubject)
-                        .statusCode(HttpStatusCode.IMUSED)
+                        .httpStatus(HttpStatus.IM_USED)
                         .contentType(contentType)
                         .build()
         )
                 .payload(responsePayload)
                 .build();
-        return SendThingMessageResponse.of(thingId, responseMessage, HttpStatusCode.IMUSED, expectedHeaders);
+        return SendThingMessageResponse.of(thingId, responseMessage, HttpStatus.IM_USED, expectedHeaders);
     }
 
     ActorRef createHttpRequestActor(final ActorRef proxyActorRef, final HttpRequest request,

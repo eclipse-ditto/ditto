@@ -18,12 +18,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.actors.AbstractHttpRequestActor;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevOpsOAuth2AuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
@@ -168,7 +167,7 @@ public final class StatsRoute extends AbstractRoute {
                         .map(count -> JsonObject.newBuilder().set("allThingsCount", count).build())
                         .map(jsonObject -> HttpResponse.create()
                                 .withEntity(ContentTypes.APPLICATION_JSON, ByteString.fromString(jsonObject.toString()))
-                                .withStatus(HttpStatusCode.OK.toInt()))
+                                .withStatus(HttpStatus.OK.getCode()))
                         .toMat(Sink.head(), Keep.right())
         );
 

@@ -12,9 +12,9 @@
  */
 package org.eclipse.ditto.signals.commands.base;
 
-import static java.util.Objects.requireNonNull;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -26,6 +26,7 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -39,7 +40,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 public abstract class AbstractCommandResponse<T extends AbstractCommandResponse<T>> implements CommandResponse<T> {
 
     private final String responseType;
-    private final HttpStatusCode statusCode;
+    private final HttpStatus httpStatus;
     private final DittoHeaders dittoHeaders;
 
     /**
@@ -49,20 +50,58 @@ public abstract class AbstractCommandResponse<T extends AbstractCommandResponse<
      * @param statusCode the HTTP statusCode of this response.
      * @param dittoHeaders the headers of the CommandType which caused this CommandResponseType.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated as of 2.0.0 please use {@link #AbstractCommandResponse(String, HttpStatus, DittoHeaders)} instead.
      */
+    @Deprecated
     protected AbstractCommandResponse(final String responseType, final HttpStatusCode statusCode,
             final DittoHeaders dittoHeaders) {
-        this.responseType = requireNonNull(responseType, "responseType");
-        this.statusCode = requireNonNull(statusCode, "statusCode");
-        this.dittoHeaders = checkNotNull(dittoHeaders, "dittoHeaders").isResponseRequired() ? dittoHeaders
-                .toBuilder()
-                .responseRequired(false)
-                .build() : dittoHeaders;
+
+        this.responseType = checkNotNull(responseType, "responseType");
+        httpStatus = checkNotNull(statusCode, "statusCode").getAsHttpStatus();
+        this.dittoHeaders = ensureNoResponseRequired(checkNotNull(dittoHeaders, "dittoHeaders"));
+    }
+
+    /**
+     * Constructs a new {@code AbstractCommandResponse} object.
+     *
+     * @param responseType the type of this response.
+     * @param httpStatus the HTTP status of this response.
+     * @param dittoHeaders the headers of the CommandType which caused this CommandResponseType.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @since 2.0.0
+     */
+    protected AbstractCommandResponse(final String responseType, final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders) {
+
+        this.responseType = checkNotNull(responseType, "responseType");
+        this.httpStatus = checkNotNull(httpStatus, "httpStatus");
+        this.dittoHeaders = ensureNoResponseRequired(checkNotNull(dittoHeaders, "dittoHeaders"));
+    }
+
+    private static DittoHeaders ensureNoResponseRequired(final DittoHeaders dittoHeaders) {
+        final DittoHeaders result;
+        if (dittoHeaders.isResponseRequired()) {
+            result = DittoHeaders.newBuilder(dittoHeaders).responseRequired(false).build();
+        } else {
+            result = dittoHeaders;
+        }
+        return result;
     }
 
     @Override
     public HttpStatusCode getStatusCode() {
-        return statusCode;
+        return HttpStatusCode.forInt(httpStatus.getCode()).orElseThrow(() -> {
+
+            // This might happen at runtime when httpStatus has a code which is
+            // not reflected as constant in HttpStatusCode.
+            final String msgPattern = "Found no HttpStatusCode for int <{0}>!";
+            return new IllegalStateException(MessageFormat.format(msgPattern, httpStatus.getCode()));
+        });
+    }
+
+    @Override
+    public HttpStatus getHttpStatus() {
+        return httpStatus;
     }
 
     @Override
@@ -96,14 +135,14 @@ public abstract class AbstractCommandResponse<T extends AbstractCommandResponse<
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
                 .set(JsonFields.TYPE, responseType, predicate)
-                .set(JsonFields.STATUS, statusCode.toInt(), predicate);
+                .set(JsonFields.STATUS, httpStatus.getCode(), predicate);
 
         appendPayload(jsonObjectBuilder, schemaVersion, thePredicate);
 
         return jsonObjectBuilder.build();
     }
 
-    @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067", "OverlyComplexMethod"})
+    @SuppressWarnings({"squid:MethodCyclomaticComplexity", "squid:S1067"})
     @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
@@ -114,7 +153,7 @@ public abstract class AbstractCommandResponse<T extends AbstractCommandResponse<
         }
         final AbstractCommandResponse that = (AbstractCommandResponse) o;
         return that.canEqual(this) && Objects.equals(dittoHeaders, that.dittoHeaders)
-                && Objects.equals(statusCode, that.statusCode)
+                && Objects.equals(httpStatus, that.httpStatus)
                 && Objects.equals(responseType, that.responseType);
     }
 
@@ -124,13 +163,12 @@ public abstract class AbstractCommandResponse<T extends AbstractCommandResponse<
 
     @Override
     public int hashCode() {
-        return Objects.hash(dittoHeaders, statusCode, responseType);
+        return Objects.hash(dittoHeaders, httpStatus, responseType);
     }
 
     @Override
     public String toString() {
-        return "dittoHeaders=" + dittoHeaders + ", responseType=" + responseType
-                + ", statusCode=" + statusCode;
+        return "dittoHeaders=" + dittoHeaders + ", responseType=" + responseType + ", httpStatus=" + httpStatus;
     }
 
 }

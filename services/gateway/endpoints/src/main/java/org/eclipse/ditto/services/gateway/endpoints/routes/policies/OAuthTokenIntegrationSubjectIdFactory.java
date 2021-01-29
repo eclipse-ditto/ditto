@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -11,6 +11,10 @@
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
@@ -42,11 +46,15 @@ public final class OAuthTokenIntegrationSubjectIdFactory implements TokenIntegra
     }
 
     @Override
-    public SubjectId getSubjectId(final DittoHeaders dittoHeaders, final JsonWebToken jwt) {
+    public Set<SubjectId> getSubjectIds(final DittoHeaders dittoHeaders, final JsonWebToken jwt) {
         final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
                 PlaceholderFactory.newPlaceholderResolver(PlaceholderFactory.newHeadersPlaceholder(), dittoHeaders),
                 PlaceholderFactory.newPlaceholderResolver(JwtPlaceholder.getInstance(), jwt)
         );
-        return SubjectId.newInstance(expressionResolver.resolvePartially(subjectTemplate));
+        final String issuerWithSubject = expressionResolver.resolvePartially(subjectTemplate);
+        return TokenIntegrationSubjectIdFactory.expandJsonArraysInResolvedSubject(issuerWithSubject)
+                .map(SubjectId::newInstance)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
+
 }

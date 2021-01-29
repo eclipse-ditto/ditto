@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.models.thingsearch.commands.sudo;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
+import java.text.MessageFormat;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -23,8 +24,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -51,7 +53,7 @@ public final class SudoRetrieveNamespaceReportResponse
     private SudoRetrieveNamespaceReportResponse(final SearchNamespaceReportResult namespaceReportResult,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+        super(TYPE, HttpStatus.OK, dittoHeaders);
         this.namespaceReportResult = namespaceReportResult;
     }
 
@@ -79,10 +81,12 @@ public final class SudoRetrieveNamespaceReportResponse
      * @return the response.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected format.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} was not in the expected
+     * format.
      */
     public static SudoRetrieveNamespaceReportResponse fromJson(final String jsonString,
             final DittoHeaders dittoHeaders) {
+
         return fromJson(JsonFactory.newObject(jsonString), dittoHeaders);
     }
 
@@ -93,17 +97,21 @@ public final class SudoRetrieveNamespaceReportResponse
      * @param dittoHeaders the headers of the command which caused this response.
      * @return the response.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
-     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected format.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * format.
      */
     public static SudoRetrieveNamespaceReportResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<SudoRetrieveNamespaceReportResponse>(TYPE, jsonObject)
-                .deserialize(statusCode -> {
-                    final JsonObject namespaceReportJson = jsonObject.getValueOrThrow(JsonFields.PAYLOAD).asObject();
-                    final SearchNamespaceReportResult namespaceReportResult =
-                            SearchNamespaceReportResult.fromJson(namespaceReportJson);
 
-                    return of(namespaceReportResult, dittoHeaders);
+        return new CommandResponseJsonDeserializer<SudoRetrieveNamespaceReportResponse>(TYPE, jsonObject)
+                .deserialize(httpStatus -> {
+
+                    final var payload = jsonObject.getValueOrThrow(JsonFields.PAYLOAD);
+                    if (!payload.isObject()) {
+                        throw new JsonParseException(
+                                MessageFormat.format("Payload JSON value <{0}> is not an object!", payload));
+                    }
+                    return of(SearchNamespaceReportResult.fromJson(payload.asObject()), dittoHeaders);
                 });
     }
 

@@ -33,8 +33,7 @@ final class ImmutableSourceAddressPlaceholder implements SourceAddressPlaceholde
     private static final String PREFIX = "source";
     private static final String VALUE = "address";
 
-    private static final List<String> VALID_VALUES = Collections.unmodifiableList(
-            Collections.singletonList(PREFIX + SEPARATOR + VALUE));
+    private static final List<String> VALID_VALUES = Collections.singletonList(VALUE);
 
     @Override
     public String getPrefix() {
@@ -48,7 +47,7 @@ final class ImmutableSourceAddressPlaceholder implements SourceAddressPlaceholde
 
     @Override
     public boolean supports(final String name) {
-        return VALUE.equalsIgnoreCase(name);
+        return VALID_VALUES.contains(name);
     }
 
     @Override

@@ -12,7 +12,7 @@
  */
 package org.eclipse.ditto.signals.commands.things;
 
-import static java.util.Objects.requireNonNull;
+import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.commands.base.AbstractErrorResponse;
+import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**
  * Response to a {@link ThingCommand} which wraps the exception thrown while processing the command.
@@ -57,10 +58,10 @@ public final class ThingErrorResponse
 
     private ThingErrorResponse(final ThingId thingId, final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
-        super(TYPE, dittoRuntimeException.getStatusCode(), dittoHeaders);
-        this.thingId = requireNonNull(thingId, "Thing ID");
-        this.dittoRuntimeException =
-                requireNonNull(dittoRuntimeException, "The Ditto Runtime Exception must not be null");
+
+        super(TYPE, dittoRuntimeException.getHttpStatus(), dittoHeaders);
+        this.thingId = checkNotNull(thingId, "thingId");
+        this.dittoRuntimeException = checkNotNull(dittoRuntimeException, "dittoRuntimeException");
     }
 
     /**
@@ -115,6 +116,7 @@ public final class ThingErrorResponse
      */
     public static ThingErrorResponse of(final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
+
         return of(FALLBACK_THING_ID, dittoRuntimeException, dittoHeaders);
     }
 
@@ -133,6 +135,7 @@ public final class ThingErrorResponse
     @Deprecated
     public static ThingErrorResponse of(final String thingId, final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
+
         return of(ThingId.of(thingId), dittoRuntimeException, dittoHeaders);
     }
 
@@ -147,6 +150,7 @@ public final class ThingErrorResponse
      */
     public static ThingErrorResponse of(final ThingId thingId, final DittoRuntimeException dittoRuntimeException,
             final DittoHeaders dittoHeaders) {
+
         return new ThingErrorResponse(thingId, dittoRuntimeException, dittoHeaders);
     }
 
@@ -161,6 +165,7 @@ public final class ThingErrorResponse
     public static ThingErrorResponse fromJson(final String jsonString, final DittoHeaders dittoHeaders) {
         final JsonObject jsonObject =
                 DittoJsonException.wrapJsonRuntimeException(() -> JsonFactory.newObject(jsonString));
+
         return fromJson(jsonObject, dittoHeaders);
     }
 
@@ -175,7 +180,7 @@ public final class ThingErrorResponse
     public static ThingErrorResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         final String extractedThingId = jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
         final ThingId thingId = ThingId.of(extractedThingId);
-        final JsonObject payload = jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.PAYLOAD).asObject();
+        final JsonObject payload = jsonObject.getValueOrThrow(CommandResponse.JsonFields.PAYLOAD).asObject();
         final DittoRuntimeException exception = buildExceptionFromJson(GLOBAL_ERROR_REGISTRY, payload, dittoHeaders);
         return of(thingId, exception, dittoHeaders);
     }
@@ -201,8 +206,9 @@ public final class ThingErrorResponse
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
-        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.PAYLOAD,
-                dittoRuntimeException.toJson(schemaVersion, thePredicate), predicate);
+        jsonObjectBuilder.set(CommandResponse.JsonFields.PAYLOAD,
+                dittoRuntimeException.toJson(schemaVersion, thePredicate),
+                predicate);
     }
 
     @Override
@@ -226,8 +232,10 @@ public final class ThingErrorResponse
             return false;
         }
         final ThingErrorResponse that = (ThingErrorResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId) &&
-                Objects.equals(dittoRuntimeException, that.dittoRuntimeException) && super.equals(that);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(dittoRuntimeException, that.dittoRuntimeException) &&
+                super.equals(that);
     }
 
     @Override

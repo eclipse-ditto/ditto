@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
@@ -552,7 +553,7 @@ public final class PoliciesModelFactory {
         checkNotNull(jsonObject, "JSON object");
         return jsonObject.stream()
                 .map(jsonField -> newPolicyEntry(jsonField.getKey(), jsonField.getValue()))
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     /**

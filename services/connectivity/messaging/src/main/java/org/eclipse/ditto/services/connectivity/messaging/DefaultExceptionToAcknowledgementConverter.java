@@ -14,11 +14,11 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 
 /**
  * Default implementation of {@link ExceptionToAcknowledgementConverter} which uses
- * {@link HttpStatusCode#INTERNAL_SERVER_ERROR} as status code for generic exceptions.
+ * {@link HttpStatus#INTERNAL_SERVER_ERROR} as status for generic exceptions.
  *
  * @since 1.3.0
  */
@@ -46,8 +46,8 @@ final class DefaultExceptionToAcknowledgementConverter extends ExceptionToAcknow
     }
 
     @Override
-    protected HttpStatusCode getStatusCodeForGenericException(final Exception exception) {
-        return HttpStatusCode.INTERNAL_SERVER_ERROR;
+    protected HttpStatus getHttpStatusForGenericException(final Exception exception) {
+        return HttpStatus.INTERNAL_SERVER_ERROR;
     }
 
 }

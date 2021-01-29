@@ -27,7 +27,8 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
 import org.eclipse.ditto.model.base.entity.type.EntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
@@ -76,7 +77,7 @@ public final class ThingAcknowledgementJsonParserTest {
     @Test
     public void parseValidJsonRepresentationWithPayload() {
         final Acknowledgement acknowledgement =
-                Acknowledgement.of(KNOWN_LABEL, KNOWN_THING_ID, HttpStatusCode.OK, dittoHeaders, KNOWN_PAYLOAD);
+                Acknowledgement.of(KNOWN_LABEL, KNOWN_THING_ID, HttpStatus.OK, dittoHeaders, KNOWN_PAYLOAD);
         final JsonObject jsonRepresentation = acknowledgement.toJson();
 
         final Acknowledgement parsedAcknowledgement = underTest.apply(jsonRepresentation);
@@ -87,7 +88,7 @@ public final class ThingAcknowledgementJsonParserTest {
     @Test
     public void parseValidJsonRepresentationWithoutPayload() {
         final Acknowledgement acknowledgement =
-                Acknowledgement.of(KNOWN_LABEL, KNOWN_THING_ID, HttpStatusCode.OK, dittoHeaders);
+                Acknowledgement.of(KNOWN_LABEL, KNOWN_THING_ID, HttpStatus.OK, dittoHeaders);
         final JsonObject jsonRepresentation = acknowledgement.toJson();
 
         final Acknowledgement parsedAcknowledgement = underTest.apply(jsonRepresentation);
@@ -98,7 +99,7 @@ public final class ThingAcknowledgementJsonParserTest {
     @Test
     public void parseJsonRepresentationWithoutLabel() {
         final Acknowledgement acknowledgement =
-                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, HttpStatusCode.OK,
+                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, HttpStatus.OK,
                         dittoHeaders);
         final JsonFieldDefinition<String> labelFieldDefinition = Acknowledgement.JsonFields.LABEL;
         final JsonObject jsonRepresentation = JsonFactory.newObjectBuilder(acknowledgement.toJson())
@@ -114,7 +115,7 @@ public final class ThingAcknowledgementJsonParserTest {
     @Test
     public void parseJsonRepresentationWithInvalidLabel() {
         final Acknowledgement acknowledgement =
-                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, HttpStatusCode.OK,
+                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, HttpStatus.OK,
                         dittoHeaders);
         final JsonFieldDefinition<String> labelFieldDefinition = Acknowledgement.JsonFields.LABEL;
         final String invalidLabel = "19";
@@ -132,7 +133,7 @@ public final class ThingAcknowledgementJsonParserTest {
     @Test
     public void parseJsonRepresentationWithoutEntityId() {
         final Acknowledgement acknowledgement =
-                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, HttpStatusCode.OK,
+                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, HttpStatus.OK,
                         dittoHeaders);
         final JsonFieldDefinition<String> entityIdFieldDefinition = Acknowledgement.JsonFields.ENTITY_ID;
         final JsonObject jsonRepresentation = JsonFactory.newObjectBuilder(acknowledgement.toJson())
@@ -148,7 +149,7 @@ public final class ThingAcknowledgementJsonParserTest {
     @Test
     public void parseJsonRepresentationWithInvalidEntityId() {
         final Acknowledgement acknowledgement =
-                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, HttpStatusCode.OK,
+                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, HttpStatus.OK,
                         dittoHeaders);
         final JsonFieldDefinition<String> entityIdFieldDefinition = Acknowledgement.JsonFields.ENTITY_ID;
         final String invalidThingId = "abc{}";
@@ -165,7 +166,7 @@ public final class ThingAcknowledgementJsonParserTest {
     @Test
     public void parseJsonRepresentationWithoutEntityType() {
         final Acknowledgement acknowledgement =
-                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, HttpStatusCode.OK,
+                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, HttpStatus.OK,
                         dittoHeaders);
         final JsonFieldDefinition<String> entityTypeFieldDefinition = Acknowledgement.JsonFields.ENTITY_TYPE;
         final JsonObject jsonRepresentation = JsonFactory.newObjectBuilder(acknowledgement.toJson())
@@ -181,7 +182,7 @@ public final class ThingAcknowledgementJsonParserTest {
     @Test
     public void parseJsonRepresentationWithUnexpectedEntityType() {
         final Acknowledgement acknowledgement =
-                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, HttpStatusCode.OK,
+                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, HttpStatus.OK,
                         dittoHeaders);
         final JsonFieldDefinition<String> entityTypeFieldDefinition = Acknowledgement.JsonFields.ENTITY_TYPE;
         final EntityType unexpectedEntityType = EntityType.of("plumbus");
@@ -199,7 +200,7 @@ public final class ThingAcknowledgementJsonParserTest {
     @Test
     public void parseJsonRepresentationWithoutStatusCode() {
         final Acknowledgement acknowledgement =
-                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, HttpStatusCode.OK,
+                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, HttpStatus.OK,
                         dittoHeaders);
         final JsonFieldDefinition<?> statusCodeFieldDefinition = Acknowledgement.JsonFields.STATUS_CODE;
         final JsonObject jsonRepresentation = JsonFactory.newObjectBuilder(acknowledgement.toJson())
@@ -215,7 +216,7 @@ public final class ThingAcknowledgementJsonParserTest {
     @Test
     public void parseJsonRepresentationWithUnknownStatusCode() {
         final Acknowledgement acknowledgement =
-                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, HttpStatusCode.OK,
+                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, HttpStatus.OK,
                         dittoHeaders);
         final JsonFieldDefinition<Integer> statusCodeFieldDefinition = Acknowledgement.JsonFields.STATUS_CODE;
         final int unknownStatusCode = 19;
@@ -225,14 +226,13 @@ public final class ThingAcknowledgementJsonParserTest {
 
         assertThatExceptionOfType(JsonParseException.class)
                 .isThrownBy(() -> underTest.apply(jsonRepresentation))
-                .withMessage("Status code <%d> is not supported!", unknownStatusCode)
-                .withNoCause();
+                .withCauseInstanceOf(HttpStatusCodeOutOfRangeException.class);
     }
 
     @Test
     public void parseJsonRepresentationWithoutDittoHeaders() {
         final Acknowledgement acknowledgement =
-                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, HttpStatusCode.OK,
+                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, HttpStatus.OK,
                         dittoHeaders);
         final JsonFieldDefinition<?> dittoHeadersFieldDefinition = Acknowledgement.JsonFields.DITTO_HEADERS;
         final JsonObject jsonRepresentation = JsonFactory.newObjectBuilder(acknowledgement.toJson())
@@ -248,7 +248,7 @@ public final class ThingAcknowledgementJsonParserTest {
     @Test
     public void parseJsonRepresentationWithInvalidDittoHeaders() {
         final Acknowledgement acknowledgement =
-                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, HttpStatusCode.OK,
+                ThingAcknowledgementFactory.newAcknowledgement(KNOWN_LABEL, KNOWN_THING_ID, HttpStatus.OK,
                         dittoHeaders);
         final JsonValue invalidDittoHeaders = JsonValue.of("dittoHeaders");
         final JsonFieldDefinition<?> dittoHeadersFieldDefinition = Acknowledgement.JsonFields.DITTO_HEADERS;

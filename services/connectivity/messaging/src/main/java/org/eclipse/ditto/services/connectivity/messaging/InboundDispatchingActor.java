@@ -114,7 +114,7 @@ public final class InboundDispatchingActor extends AbstractActor
     private final DittoDiagnosticLoggingAdapter logger;
 
     private final HeaderTranslator headerTranslator;
-    private final ConnectionId connectionId;
+    private final Connection connection;
     private final ActorSelection proxyActor;
     private final ActorRef connectionActor;
     private final DefaultConnectionMonitorRegistry connectionMonitorRegistry;
@@ -135,14 +135,14 @@ public final class InboundDispatchingActor extends AbstractActor
         this.proxyActor = proxyActor;
         this.outboundMessageMappingProcessorActor = outboundMessageMappingProcessorActor;
         this.headerTranslator = headerTranslator;
-        this.connectionId = connection.getId();
+        this.connection = connection;
         this.connectionActor = connectionActor;
 
         logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this)
-                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connectionId);
+                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
 
         connectionIdResolver = PlaceholderFactory.newExpressionResolver(PlaceholderFactory.newConnectionIdPlaceholder(),
-                connectionId);
+                connection.getId());
 
         final DefaultScopedConfig dittoScoped =
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config());
@@ -152,7 +152,7 @@ public final class InboundDispatchingActor extends AbstractActor
         final LimitsConfig limitsConfig = DefaultLimitsConfig.of(dittoScoped);
 
         connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
-        responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(connectionId);
+        responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(connection);
         toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(limitsConfig.getHeadersMaxSize());
         ackregatorStarter = AcknowledgementAggregatorActorStarter.of(getContext(),
                 connectivityConfig.getConnectionConfig().getAcknowledgementConfig(),
@@ -238,7 +238,7 @@ public final class InboundDispatchingActor extends AbstractActor
         final Signal<?> signal = mappedInboundMessage.getSignal();
         final AuthorizationContext authorizationContext = getAuthorizationContextOrThrow(incomingMessage);
         final ConnectionMonitor.InfoProvider infoProvider = InfoProviderFactory.forExternalMessage(incomingMessage);
-        final ConnectionMonitor mappedMonitor = connectionMonitorRegistry.forInboundMapped(connectionId, source);
+        final ConnectionMonitor mappedMonitor = connectionMonitorRegistry.forInboundMapped(connection, source);
 
         final DittoHeaders mappedHeaders =
                 applyInboundHeaderMapping(signal, incomingMessage, authorizationContext,
@@ -248,7 +248,7 @@ public final class InboundDispatchingActor extends AbstractActor
                 signal.setDittoHeaders(mappedHeaders));
 
         // enforce signal ID after header mapping was done
-        connectionMonitorRegistry.forInboundEnforced(connectionId, source)
+        connectionMonitorRegistry.forInboundEnforced(connection, source)
                 .wrapExecution(adjustedSignal)
                 .execute(() -> applySignalIdEnforcement(incomingMessage, signal));
         // the above throws an exception if signal id enforcement fails
@@ -267,7 +267,7 @@ public final class InboundDispatchingActor extends AbstractActor
         if (incomingMessage != null) {
             final String source = getAddress(incomingMessage);
             final ConnectionMonitor.InfoProvider infoProvider = InfoProviderFactory.forExternalMessage(incomingMessage);
-            final ConnectionMonitor droppedMonitor = connectionMonitorRegistry.forInboundDropped(connectionId, source);
+            final ConnectionMonitor droppedMonitor = connectionMonitorRegistry.forInboundDropped(connection, source);
             droppedMonitor.success(infoProvider,
                     "Payload mapping of mapper <{0}> returned null, incoming message is dropped.", mapperId);
         }
@@ -288,7 +288,7 @@ public final class InboundDispatchingActor extends AbstractActor
                 final AuthorizationContext authorizationContext = getAuthorizationContext(message).orElse(null);
                 final String source = getAddress(message);
                 final ConnectionMonitor mappedMonitor =
-                        connectionMonitorRegistry.forInboundMapped(connectionId, source);
+                        connectionMonitorRegistry.forInboundMapped(connection, source);
                 mappedMonitor.getLogger()
                         .failure("Got exception {0} when processing external message with mapper <{1}>: {2}",
                                 dittoRuntimeException.getErrorCode(),
@@ -325,9 +325,9 @@ public final class InboundDispatchingActor extends AbstractActor
             final InboundMappingOutcomes outcomes) {
         final Set<AcknowledgementLabel> declaredAckLabels = getDeclaredAckLabels(outcomes);
         final PartialFunction<Signal<?>, Signal<?>> appendConnectionId = new PFBuilder<Signal<?>, Signal<?>>()
-                .match(Acknowledgements.class, acks -> appendConnectionIdToAcknowledgements(acks, connectionId))
+                .match(Acknowledgements.class, this::appendConnectionIdToAcknowledgements)
                 .match(CommandResponse.class,
-                        ack -> appendConnectionIdToAcknowledgementOrResponse(ack, connectionId))
+                        ack -> appendConnectionIdToAcknowledgementOrResponse(ack))
                 .matchAny(x -> x)
                 .build();
 
@@ -548,10 +548,10 @@ public final class InboundDispatchingActor extends AbstractActor
                 .flatMap(FilteredAcknowledgementRequest::getFilter)
                 .orElse(null);
 
-        if (additionalAcknowledgementRequests.isEmpty()) {
+        if (additionalAcknowledgementRequests.isEmpty() || explicitlyNoAcksRequested(signal.getDittoHeaders())) {
             // do not change the signal's header if no additional acknowledgementRequests are defined in the Source
             // to preserve the default behavior for signals without the header 'requested-acks'
-            return RequestedAcksFilter.filterAcknowledgements(signal, message, filter, connectionId);
+            return RequestedAcksFilter.filterAcknowledgements(signal, message, filter, connection.getId());
         } else {
             // The Source's acknowledgementRequests get appended to the requested-acks DittoHeader of the mapped signal
             final Set<AcknowledgementRequest> combinedRequestedAcks =
@@ -566,8 +566,13 @@ public final class InboundDispatchingActor extends AbstractActor
             return RequestedAcksFilter.filterAcknowledgements(signalWithCombinedAckRequests,
                     message,
                     filter,
-                    connectionId);
+                    connection.getId());
         }
+    }
+
+    private boolean explicitlyNoAcksRequested(final DittoHeaders dittoHeaders) {
+        return dittoHeaders.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey()) &&
+                dittoHeaders.getAcknowledgementRequests().isEmpty();
     }
 
     /**
@@ -596,7 +601,7 @@ public final class InboundDispatchingActor extends AbstractActor
                 .map(mapping -> {
                     final ExpressionResolver expressionResolver =
                             Resolvers.forInbound(externalMessage, signal, topicPath, authorizationContext,
-                                    connectionId);
+                                    connection.getId());
 
                     final DittoHeadersBuilder<?, ?> dittoHeadersBuilder = signal.getDittoHeaders().toBuilder();
 
@@ -638,7 +643,7 @@ public final class InboundDispatchingActor extends AbstractActor
             final DittoHeaders extraInternalHeaders,
             final boolean appendRandomCorrelationId) {
 
-        builder.putHeaders(extraInternalHeaders).origin(connectionId);
+        builder.putHeaders(extraInternalHeaders).origin(connection.getId());
         if (authorizationContext != null) {
             builder.authorizationContext(authorizationContext);
         }
@@ -652,26 +657,23 @@ public final class InboundDispatchingActor extends AbstractActor
      * Appends the ConnectionId to the processed {@code commandResponse} payload.
      *
      * @param commandResponse the CommandResponse (or Acknowledgement as subtype) to append the ConnectionId to
-     * @param connectionId the ConnectionId to append to the CommandResponse's DittoHeader
      * @param <T> the type of the CommandResponse
      * @return the CommandResponse with appended ConnectionId.
      */
-    static <T extends CommandResponse<T>> T appendConnectionIdToAcknowledgementOrResponse(final T commandResponse,
-            final ConnectionId connectionId) {
+    private <T extends CommandResponse<T>> T appendConnectionIdToAcknowledgementOrResponse(final T commandResponse) {
         final DittoHeaders newHeaders = commandResponse.getDittoHeaders()
                 .toBuilder()
-                .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connectionId.toString())
+                .putHeader(DittoHeaderDefinition.CONNECTION_ID.getKey(), connection.getId().toString())
                 .build();
         return commandResponse.setDittoHeaders(newHeaders);
     }
 
-    static Acknowledgements appendConnectionIdToAcknowledgements(final Acknowledgements acknowledgements,
-            final ConnectionId connectionId) {
+    private Acknowledgements appendConnectionIdToAcknowledgements(final Acknowledgements acknowledgements) {
         final List<Acknowledgement> acksList = acknowledgements.stream()
-                .map(ack -> appendConnectionIdToAcknowledgementOrResponse(ack, connectionId))
+                .map(this::appendConnectionIdToAcknowledgementOrResponse)
                 .collect(Collectors.toList());
         // Uses EntityId and StatusCode from input acknowledges expecting these were set when Acknowledgements was created
-        return Acknowledgements.of(acknowledgements.getEntityId(), acksList, acknowledgements.getStatusCode(),
+        return Acknowledgements.of(acknowledgements.getEntityId(), acksList, acknowledgements.getHttpStatus(),
                 acknowledgements.getDittoHeaders());
     }
 

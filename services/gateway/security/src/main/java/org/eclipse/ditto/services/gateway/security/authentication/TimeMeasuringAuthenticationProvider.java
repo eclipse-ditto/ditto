@@ -20,7 +20,7 @@ import java.util.concurrent.CompletionException;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContextType;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLogger;
@@ -76,7 +76,7 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
                     if (rootCause instanceof DittoRuntimeException) {
                         final DittoRuntimeException e = (DittoRuntimeException) rootCause;
                         timer.tag(AUTH_SUCCESS_TAG, false);
-                        if (isInternalError(e.getStatusCode())) {
+                        if (isInternalError(e.getHttpStatus())) {
                             logger.withCorrelationId(dittoHeaders)
                                     .warn("An unexpected error occurred during authentication of type <{}>.",
                                             authorizationContextType, e);
@@ -100,8 +100,8 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
         }
     }
 
-    private static boolean isInternalError(final HttpStatusCode httpStatusCode) {
-        return httpStatusCode.isInternalError();
+    private static boolean isInternalError(final HttpStatus httpStatusCode) {
+        return httpStatusCode.isServerError();
     }
 
     /**

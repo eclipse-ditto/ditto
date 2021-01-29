@@ -28,7 +28,7 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
  */
 public class ConnectionDeletedStrategies
         extends
-        AbstractCommandStrategies<ConnectivityCommand<?>, Connection, ConnectionState, Result<ConnectivityEvent<?>>> {
+        AbstractCommandStrategies<ConnectivityCommand<?>, Connection, ConnectionState, ConnectivityEvent<?>> {
 
     private static final ConnectionDeletedStrategies DELETED_STRATEGIES = newDeletedStrategies();
 

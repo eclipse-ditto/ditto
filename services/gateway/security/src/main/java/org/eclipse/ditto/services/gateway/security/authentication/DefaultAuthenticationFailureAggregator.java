@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
@@ -67,7 +67,7 @@ final class DefaultAuthenticationFailureAggregator implements AuthenticationFail
         }
 
         return reasonsOfFailure.stream()
-                .filter(reasonOfFailure -> !HttpStatusCode.UNAUTHORIZED.equals(reasonOfFailure.getStatusCode()))
+                .filter(reasonOfFailure -> !HttpStatus.UNAUTHORIZED.equals(reasonOfFailure.getHttpStatus()))
                 .findFirst()
                 .orElseGet(() -> GatewayAuthenticationFailedException.newBuilder(AGGREGATED_AUTH_FAILURE_MESSAGE)
                         .description(buildAggregatedDescriptionFromDittoRuntimeExceptions(reasonsOfFailure))

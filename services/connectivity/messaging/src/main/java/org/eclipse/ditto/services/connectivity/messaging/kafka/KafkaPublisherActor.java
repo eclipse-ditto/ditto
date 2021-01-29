@@ -33,7 +33,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.MessageSendingFailedException;
 import org.eclipse.ditto.model.connectivity.Target;
@@ -144,7 +144,9 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
             escalate(error, "Requested to send Kafka message without producer; this is a bug.");
             return CompletableFuture.failedFuture(error);
         } else {
-            final ProducerRecord<String, String> record = producerRecord(publishTarget, message);
+            final ExternalMessage messageWithConnectionIdHeader = message
+                    .withHeader("ditto-connection-id", connection.getId().toString());
+            final ProducerRecord<String, String> record = producerRecord(publishTarget, messageWithConnectionIdHeader);
             final CompletableFuture<CommandResponse<?>> resultFuture = new CompletableFuture<>();
             final AcknowledgementLabel autoAckLabel = getAcknowledgementLabel(autoAckTarget).orElse(NO_ACK_LABEL);
             final Callback callBack = new ProducerCallBack(signal, autoAckLabel, ackSizeQuota, resultFuture,
@@ -284,9 +286,9 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         private Acknowledgement ackFromMetadata(@Nullable final RecordMetadata metadata) {
             final ThingId id = ThingId.of(signal.getEntityId());
             if (metadata == null || !isDebugEnabled()) {
-                return Acknowledgement.of(autoAckLabel, id, HttpStatusCode.NO_CONTENT, signal.getDittoHeaders());
+                return Acknowledgement.of(autoAckLabel, id, HttpStatus.NO_CONTENT, signal.getDittoHeaders());
             } else {
-                return Acknowledgement.of(autoAckLabel, id, HttpStatusCode.OK, signal.getDittoHeaders(),
+                return Acknowledgement.of(autoAckLabel, id, HttpStatus.OK, signal.getDittoHeaders(),
                         toPayload(metadata));
             }
         }
@@ -334,12 +336,12 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         }
 
         @Override
-        protected HttpStatusCode getStatusCodeForGenericException(final Exception exception) {
+        protected HttpStatus getHttpStatusForGenericException(final Exception exception) {
             // return 500 for retryable exceptions -> sender will retry
             // return 400 for non-retryable exceptions -> sender will give up
             return exception instanceof RetriableException
-                    ? HttpStatusCode.INTERNAL_SERVER_ERROR
-                    : HttpStatusCode.BAD_REQUEST;
+                    ? HttpStatus.INTERNAL_SERVER_ERROR
+                    : HttpStatus.BAD_REQUEST;
         }
 
     }

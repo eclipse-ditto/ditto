@@ -27,7 +27,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.DittoConstants;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
@@ -98,7 +98,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         final JsonPointer path = JsonPointer.empty();
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(thingNotAccessibleException.getStatusCode())
+                        .withStatus(thingNotAccessibleException.getHttpStatus())
                         .withValue(thingNotAccessibleException.toJson())
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -122,7 +122,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         final JsonPointer path = JsonPointer.empty();
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(policyNotAccessibleException.getStatusCode())
+                        .withStatus(policyNotAccessibleException.getHttpStatus())
                         .withValue(policyNotAccessibleException.toJson())
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -202,7 +202,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         final ThingModifyCommandResponse actualCommandResponseCreated =
                 (ThingModifyCommandResponse) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
                         .withPayload(Payload.newBuilder(path)
-                                .withStatus(HttpStatusCode.CREATED)
+                                .withStatus(HttpStatus.CREATED)
                                 .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
                                 .build())
                         .withHeaders(TestConstants.HEADERS_V_2)
@@ -212,7 +212,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         final ThingModifyCommandResponse actualCommandResponseModified =
                 (ThingModifyCommandResponse) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
                         .withPayload(Payload.newBuilder(path)
-                                .withStatus(HttpStatusCode.NO_CONTENT)
+                                .withStatus(HttpStatus.NO_CONTENT)
                                 .build())
                         .withHeaders(TestConstants.HEADERS_V_2)
                         .build());
@@ -295,7 +295,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.OK)
+                        .withStatus(HttpStatus.OK)
                         .withValue(TestConstants.THING.toJson())
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -440,14 +440,14 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
     public void acknowledgementToAdaptable() {
         final Acknowledgement acknowledgement =
                 Acknowledgement.of(AcknowledgementLabel.of("my-twin-persisted"), ThingId.of("thing:id"),
-                        HttpStatusCode.CONTINUE, DittoHeaders.empty());
+                        HttpStatus.CONTINUE, DittoHeaders.empty());
 
         final Adaptable adaptable = underTest.toAdaptable((Signal<?>) acknowledgement);
 
         assertThat(adaptable.getTopicPath())
                 .isEqualTo(ProtocolFactory.newTopicPath("thing/id/things/twin/acks/my-twin-persisted"));
         assertThat((Iterable<?>) adaptable.getPayload().getPath()).isEmpty();
-        assertThat(adaptable.getPayload().getStatus()).contains(HttpStatusCode.CONTINUE);
+        assertThat(adaptable.getPayload().getHttpStatus()).contains(HttpStatus.CONTINUE);
     }
 
     @Test
@@ -462,18 +462,18 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
 
         assertThat(acknowledgement).isEqualTo(
                 Acknowledgement.of(AcknowledgementLabel.of("the-ack-label"), ThingId.of("thing:id"),
-                        HttpStatusCode.LOOP_DETECTED, DittoHeaders.empty())
+                        HttpStatus.LOOP_DETECTED, DittoHeaders.empty())
         );
     }
 
     @Test
     public void acknowledgementsToAdaptable() {
         final Acknowledgement ack1 =
-                Acknowledgement.of(TWIN_PERSISTED, ThingId.of("thing:id"), HttpStatusCode.CONTINUE,
+                Acknowledgement.of(TWIN_PERSISTED, ThingId.of("thing:id"), HttpStatus.CONTINUE,
                         DittoHeaders.empty());
         final Acknowledgement ack2 =
                 Acknowledgement.of(AcknowledgementLabel.of("the-ack-label"), ThingId.of("thing:id"),
-                        HttpStatusCode.LOOP_DETECTED, DittoHeaders.empty());
+                        HttpStatus.LOOP_DETECTED, DittoHeaders.empty());
         final Acknowledgements acks = Acknowledgements.of(Arrays.asList(ack1, ack2), DittoHeaders.empty());
 
         final Adaptable adaptable = underTest.toAdaptable((Signal<?>) acks);
@@ -486,7 +486,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         assertThat(adaptable.getTopicPath())
                 .isEqualTo(ProtocolFactory.newTopicPath("thing/id/things/twin/acks"));
         assertThat((Iterable<?>) adaptable.getPayload().getPath()).isEmpty();
-        assertThat(adaptable.getPayload().getStatus()).contains(HttpStatusCode.FAILED_DEPENDENCY);
+        assertThat(adaptable.getPayload().getHttpStatus()).contains(HttpStatus.FAILED_DEPENDENCY);
         assertThat(adaptable.getPayload().getValue()).contains(expectedPayloadJson);
     }
 
@@ -507,23 +507,19 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         final Signal<?> acknowledgement = underTest.fromAdaptable(adaptable);
 
         assertThat(acknowledgement).isEqualTo(Acknowledgements.of(
-                Arrays.asList(
-                        Acknowledgement.of(TWIN_PERSISTED, ThingId.of("thing:id"),
-                                HttpStatusCode.CONTINUE,
-                                DittoHeaders.empty()
-                        ),
+                Arrays.asList(Acknowledgement.of(TWIN_PERSISTED, ThingId.of("thing:id"), HttpStatus.CONTINUE,
+                                DittoHeaders.empty()),
                         Acknowledgement.of(AcknowledgementLabel.of("the-ack-label"), ThingId.of("thing:id"),
-                                HttpStatusCode.LOOP_DETECTED,
-                                DittoHeaders.empty()
-                        )
+                                HttpStatus.LOOP_DETECTED, DittoHeaders.empty())
                 ),
                 DittoHeaders.newBuilder()
                         .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
                         .build()
         ));
 
-        final Adaptable reverseAdaptable = ProtocolFactory.wrapAsJsonifiableAdaptable(
-                underTest.toAdaptable(acknowledgement));
+        final Adaptable reverseAdaptable =
+                ProtocolFactory.wrapAsJsonifiableAdaptable(underTest.toAdaptable(acknowledgement));
         assertThat(reverseAdaptable).isEqualTo(adaptable);
     }
+
 }

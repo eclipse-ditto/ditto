@@ -26,7 +26,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link DeleteFeatureDefinition} command.
@@ -58,7 +59,7 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
     private DeleteFeatureDefinitionResponse(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
+        super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
         this.thingId = thingId;
         this.featureId = checkNotNull(featureId, "Feature ID");
     }
@@ -110,7 +111,7 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if the parsed {@code jsonString} did not contain any of
      * the required fields
      * <ul>
-     *     <li>{@link ThingModifyCommandResponse.JsonFields#JSON_THING_ID} or</li>
+     *     <li>{@link ThingCommandResponse.JsonFields#JSON_THING_ID} or</li>
      *     <li>{@link #JSON_FEATURE_ID}.</li>
      * </ul>
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
@@ -132,7 +133,7 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain any of the
      * required fields
      * <ul>
-     *     <li>{@link ThingModifyCommandResponse.JsonFields#JSON_THING_ID} or</li>
+     *     <li>{@link ThingCommandResponse.JsonFields#JSON_THING_ID} or</li>
      *     <li>{@link #JSON_FEATURE_ID}.</li>
      * </ul>
      * @throws org.eclipse.ditto.model.things.ThingIdInvalidException if the parsed thing ID did not comply to
@@ -142,9 +143,9 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
             final DittoHeaders dittoHeaders) {
 
         return new CommandResponseJsonDeserializer<DeleteFeatureDefinitionResponse>(TYPE, jsonObject).deserialize(
-                statusCode -> {
+                httpStatus -> {
                     final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
+                            jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
                     final ThingId thingId = ThingId.of(extractedThingId);
                     final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
 
@@ -176,7 +177,7 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureId, predicate);
     }
 
@@ -194,8 +195,10 @@ public final class DeleteFeatureDefinitionResponse extends AbstractCommandRespon
             return false;
         }
         final DeleteFeatureDefinitionResponse that = (DeleteFeatureDefinitionResponse) o;
-        return that.canEqual(this) && Objects.equals(thingId, that.thingId)
-                && Objects.equals(featureId, that.featureId) && super.equals(o);
+        return that.canEqual(this) &&
+                Objects.equals(thingId, that.thingId) &&
+                Objects.equals(featureId, that.featureId) &&
+                super.equals(o);
     }
 
     @Override

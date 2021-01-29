@@ -67,7 +67,7 @@ public abstract class AbstractCommandStrategyTest {
     }
 
     protected static <C extends Command<?>, T extends ThingModifiedEvent<?>> T assertModificationResult(
-            final CommandStrategy<C, Thing, ThingId, Result<ThingEvent<?>>> underTest,
+            final CommandStrategy<C, Thing, ThingId, ThingEvent<?>> underTest,
             @Nullable final Thing thing,
             final C command,
             final Class<T> expectedEventClass,
@@ -77,7 +77,7 @@ public abstract class AbstractCommandStrategyTest {
     }
 
     protected static <C extends Command<?>, T extends ThingModifiedEvent<?>> T assertModificationResult(
-            final CommandStrategy<C, Thing, ThingId, Result<ThingEvent<?>>> underTest,
+            final CommandStrategy<C, Thing, ThingId, ThingEvent<?>> underTest,
             @Nullable final Thing thing,
             final C command,
             final Class<T> expectedEventClass,
@@ -91,7 +91,7 @@ public abstract class AbstractCommandStrategyTest {
     }
 
     protected static <C extends Command<?>> void assertErrorResult(
-            final CommandStrategy<C, Thing, ThingId, Result<ThingEvent<?>>> underTest,
+            final CommandStrategy<C, Thing, ThingId, ThingEvent<?>> underTest,
             @Nullable final Thing thing,
             final C command,
             final DittoRuntimeException expectedException) {
@@ -102,7 +102,7 @@ public abstract class AbstractCommandStrategyTest {
     }
 
     protected static <C extends Command<?>> void assertQueryResult(
-            final CommandStrategy<C, Thing, ThingId, Result<ThingEvent<?>>> underTest,
+            final CommandStrategy<C, Thing, ThingId, ThingEvent<?>> underTest,
             @Nullable final Thing thing,
             final C command,
             final CommandResponse<?> expectedCommandResponse) {
@@ -112,7 +112,7 @@ public abstract class AbstractCommandStrategyTest {
 
 
     protected static <C extends Command<?>> void assertUnhandledResult(
-            final AbstractCommandStrategy<C, Thing, ThingId, Result<ThingEvent<?>>> underTest,
+            final AbstractCommandStrategy<C, Thing, ThingId, ThingEvent<?>> underTest,
             @Nullable final Thing thing,
             final C command,
             final DittoRuntimeException expectedResponse) {
@@ -145,7 +145,7 @@ public abstract class AbstractCommandStrategyTest {
     }
 
     private static <C extends Command<?>> Result<ThingEvent<?>> applyStrategy(
-            final CommandStrategy<C, Thing, ThingId, Result<ThingEvent<?>>> underTest,
+            final CommandStrategy<C, Thing, ThingId, ThingEvent<?>> underTest,
             final CommandStrategy.Context<ThingId> context,
             final @Nullable Thing thing,
             final C command) {

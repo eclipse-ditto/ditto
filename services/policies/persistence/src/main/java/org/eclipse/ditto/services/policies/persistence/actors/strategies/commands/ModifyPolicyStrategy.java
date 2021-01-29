@@ -42,7 +42,7 @@ import org.eclipse.ditto.signals.events.policies.PolicyModified;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy} command for an
  * already existing Policy.
  */
-final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPolicy> {
+final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPolicy, PolicyEvent<?>> {
 
     ModifyPolicyStrategy(final PolicyConfig policyConfig) {
         super(ModifyPolicy.class, policyConfig);

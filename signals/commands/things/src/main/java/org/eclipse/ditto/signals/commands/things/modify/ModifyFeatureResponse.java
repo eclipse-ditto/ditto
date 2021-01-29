@@ -28,7 +28,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -38,14 +38,15 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 /**
  * Response to a {@link ModifyFeature} command.
  */
 @Immutable
 @JsonParsableCommandResponse(type = ModifyFeatureResponse.TYPE)
-public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyFeatureResponse> implements
-        ThingModifyCommandResponse<ModifyFeatureResponse> {
+public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyFeatureResponse>
+        implements ThingModifyCommandResponse<ModifyFeatureResponse> {
 
     /**
      * Type of this response.
@@ -62,21 +63,20 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
 
     private final ThingId thingId;
     private final Feature featureCreated;
-    private final HttpStatusCode statusCode;
 
-    private ModifyFeatureResponse(final ThingId thingId, final Feature featureCreated,
-            final HttpStatusCode statusCode,
+    private ModifyFeatureResponse(final ThingId thingId,
+            final Feature featureCreated,
+            final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
 
-        super(TYPE, statusCode, dittoHeaders);
+        super(TYPE, httpStatus, dittoHeaders);
         this.thingId = checkNotNull(thingId, "Thing ID");
         this.featureCreated = featureCreated;
-        this.statusCode = statusCode;
     }
 
     /**
-     * Returns a new {@code ModifyFeatureResponse} for a created Feature. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#CREATED}.
+     * Returns a new {@code ModifyFeatureResponse} for a created Feature. This corresponds to the HTTP status
+     * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created feature.
      * @param feature the created Feature.
@@ -95,8 +95,8 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
     }
 
     /**
-     * Returns a new {@code ModifyFeatureResponse} for a created Feature. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#CREATED}.
+     * Returns a new {@code ModifyFeatureResponse} for a created Feature. This corresponds to the HTTP status
+     * {@link HttpStatus#CREATED}.
      *
      * @param thingId the Thing ID of the created feature.
      * @param feature the created Feature.
@@ -106,13 +106,14 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
      */
     public static ModifyFeatureResponse created(final ThingId thingId, final Feature feature,
             final DittoHeaders dittoHeaders) {
+
         checkNotNull(feature, "created Feature");
-        return new ModifyFeatureResponse(thingId, feature, HttpStatusCode.CREATED, dittoHeaders);
+        return new ModifyFeatureResponse(thingId, feature, HttpStatus.CREATED, dittoHeaders);
     }
 
     /**
-     * Returns a new {@code ModifyFeatureResponse} for a modified Feature. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#NO_CONTENT}.
+     * Returns a new {@code ModifyFeatureResponse} for a modified Feature. This corresponds to the HTTP status
+     * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified feature.
      * @param featureId the identifier of the modified Feature.
@@ -126,12 +127,13 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
     @Deprecated
     public static ModifyFeatureResponse modified(final String thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
+
         return modified(ThingId.of(thingId), featureId, dittoHeaders);
     }
 
     /**
-     * Returns a new {@code ModifyFeatureResponse} for a modified Feature. This corresponds to the HTTP status code
-     * {@link HttpStatusCode#NO_CONTENT}.
+     * Returns a new {@code ModifyFeatureResponse} for a modified Feature. This corresponds to the HTTP status
+     * {@link HttpStatus#NO_CONTENT}.
      *
      * @param thingId the Thing ID of the modified feature.
      * @param featureId the identifier of the modified Feature.
@@ -141,7 +143,8 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
      */
     public static ModifyFeatureResponse modified(final ThingId thingId, final String featureId,
             final DittoHeaders dittoHeaders) {
-        return new ModifyFeatureResponse(thingId, ThingsModelFactory.nullFeature(featureId), HttpStatusCode.NO_CONTENT,
+
+        return new ModifyFeatureResponse(thingId, ThingsModelFactory.nullFeature(featureId), HttpStatus.NO_CONTENT,
                 dittoHeaders);
     }
 
@@ -171,25 +174,23 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
      * format.
      */
     public static ModifyFeatureResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        return new CommandResponseJsonDeserializer<ModifyFeatureResponse>(TYPE, jsonObject)
-                .deserialize((statusCode) -> {
-                    final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingModifyCommandResponse.JsonFields.JSON_THING_ID);
-                    final ThingId thingId = ThingId.of(extractedThingId);
-                    final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
-                    final JsonObject featureJsonObject = jsonObject.getValueOrThrow(JSON_FEATURE);
+        return new CommandResponseJsonDeserializer<ModifyFeatureResponse>(TYPE, jsonObject).deserialize(httpStatus -> {
+            final String extractedThingId = jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID);
+            final ThingId thingId = ThingId.of(extractedThingId);
+            final String extractedFeatureId = jsonObject.getValueOrThrow(JSON_FEATURE_ID);
+            final JsonObject featureJsonObject = jsonObject.getValueOrThrow(JSON_FEATURE);
 
-                    final Feature extractedFeature;
-                    if (featureJsonObject == null || featureJsonObject.isNull()) {
-                        extractedFeature = ThingsModelFactory.nullFeature(extractedFeatureId);
-                    } else {
-                        extractedFeature = ThingsModelFactory.newFeatureBuilder(featureJsonObject)
-                                .useId(extractedFeatureId)
-                                .build();
-                    }
+            final Feature extractedFeature;
+            if (featureJsonObject.isNull()) {
+                extractedFeature = ThingsModelFactory.nullFeature(extractedFeatureId);
+            } else {
+                extractedFeature = ThingsModelFactory.newFeatureBuilder(featureJsonObject)
+                        .useId(extractedFeatureId)
+                        .build();
+            }
 
-                    return new ModifyFeatureResponse(thingId, extractedFeature, statusCode, dittoHeaders);
-                });
+            return new ModifyFeatureResponse(thingId, extractedFeature, httpStatus, dittoHeaders);
+        });
     }
 
     @Override
@@ -222,14 +223,14 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(ThingModifyCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommandResponse.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JSON_FEATURE_ID, featureCreated.getId());
         jsonObjectBuilder.set(JSON_FEATURE, featureCreated.toJson(schemaVersion, thePredicate), predicate);
     }
 
     @Override
     public ModifyFeatureResponse setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new ModifyFeatureResponse(thingId, featureCreated, statusCode, dittoHeaders);
+        return new ModifyFeatureResponse(thingId, featureCreated, getHttpStatus(), dittoHeaders);
     }
 
     @Override
@@ -244,13 +245,12 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
         return that.canEqual(this) &&
                 Objects.equals(thingId, that.thingId) &&
                 Objects.equals(featureCreated, that.featureCreated) &&
-                statusCode == that.statusCode &&
                 super.equals(that);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), thingId, featureCreated, statusCode);
+        return Objects.hash(super.hashCode(), thingId, featureCreated);
     }
 
     @Override
@@ -259,7 +259,6 @@ public final class ModifyFeatureResponse extends AbstractCommandResponse<ModifyF
                 super.toString() +
                 ", thingId=" + thingId +
                 ", featureCreated=" + featureCreated +
-                ", statusCode=" + statusCode +
                 "]";
     }
 

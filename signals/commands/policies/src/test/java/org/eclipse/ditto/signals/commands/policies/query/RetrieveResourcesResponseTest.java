@@ -19,7 +19,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
@@ -38,7 +38,7 @@ public final class RetrieveResourcesResponseTest {
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommandResponse.JsonFields.TYPE, RetrieveResourcesResponse.TYPE)
-            .set(PolicyCommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt())
+            .set(PolicyCommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode())
             .set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, TestConstants.Policy.POLICY_ID.toString())
             .set(RetrieveResourcesResponse.JSON_LABEL, TestConstants.Policy.LABEL.toString())
             .set(RetrieveResourcesResponse.JSON_RESOURCES, TestConstants.Policy.RESOURCES.toJson())

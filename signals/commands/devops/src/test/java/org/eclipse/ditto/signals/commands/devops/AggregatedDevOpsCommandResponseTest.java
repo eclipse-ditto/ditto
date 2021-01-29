@@ -21,7 +21,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.util.Arrays;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.GlobalCommandResponseRegistry;
@@ -60,7 +60,7 @@ public final class AggregatedDevOpsCommandResponseTest {
                 Arrays.asList(changeLogLevelResponseForThings1, changeLogLevelResponseForThings2,
                         changeLogLevelResponseForGateway1),
                 RESPONSES_TYPE,
-                HttpStatusCode.OK, DittoHeaders.empty());
+                HttpStatus.OK, DittoHeaders.empty());
 
         final JsonObject responseToJson = aggregatedDevOpsCommandResponse.toJson();
 

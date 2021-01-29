@@ -158,7 +158,7 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
         ackregator.addReceivedAcknowledgment(ThingAcknowledgementFactory.newAcknowledgement(
                 isLiveResponse ? LIVE_RESPONSE : TWIN_PERSISTED,
                 withThingId.getThingEntityId(),
-                commandResponse.getStatusCode(),
+                commandResponse.getHttpStatus(),
                 dittoHeaders,
                 getPayload(commandResponse).orElse(null)
         ));

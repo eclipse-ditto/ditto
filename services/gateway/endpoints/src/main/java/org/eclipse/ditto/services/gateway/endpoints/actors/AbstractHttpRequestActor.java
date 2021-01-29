@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -32,7 +31,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
@@ -125,7 +124,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         this.proxyActor = proxyActor;
         this.headerTranslator = headerTranslator;
         this.httpResponseFuture = httpResponseFuture;
-        this.httpRequest = request;
+        httpRequest = request;
         this.commandConfig = commandConfig;
         ackregatorStarter = AcknowledgementAggregatorActorStarter.of(getContext(),
                 HttpAcknowledgementConfig.of(httpConfig),
@@ -153,12 +152,10 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                         logger.warning("Got EntityStreamSizeException when a 'Command' was expected which means that" +
                                 " the max. allowed http payload size configured in Akka was overstepped in this" +
                                 " request.");
-                        completeWithResult(
-                                HttpResponse.create().withStatus(HttpStatusCode.REQUEST_ENTITY_TOO_LARGE.toInt()));
+                        completeWithResult(createHttpResponse(HttpStatus.REQUEST_ENTITY_TOO_LARGE));
                     } else {
                         logger.error(cause, "Got unknown Status.Failure when a 'Command' was expected.");
-                        completeWithResult(
-                                HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
+                        completeWithResult(createHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR));
                     }
                 })
                 .match(Whoami.class, this::handleWhoami)
@@ -170,9 +167,13 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 .match(Command.class, this::handleCommand)
                 .matchAny(m -> {
                     logger.warning("Got unknown message, expected a 'Command': {}", m);
-                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
+                    completeWithResult(createHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR));
                 })
                 .build();
+    }
+
+    private static HttpResponse createHttpResponse(final HttpStatus httpStatus) {
+        return HttpResponse.create().withStatus(httpStatus.getCode());
     }
 
     private void handleCommand(final Command<?> command) {
@@ -214,7 +215,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private void completeAcknowledgements(final Acknowledgements acks) {
-        completeWithResult(createCommandResponse(acks.getDittoHeaders(), acks.getStatusCode(),
+        completeWithResult(createCommandResponse(acks.getDittoHeaders(), acks.getHttpStatus(),
                 mapAcknowledgementsForHttp(acks)));
     }
 
@@ -222,7 +223,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         logger.withCorrelationId(command)
                 .debug("Received <{}> that doesn't expect a response. Answering with status code 202 ..", command);
         proxyActor.tell(command, getSelf());
-        completeWithResult(HttpResponse.create().withStatus(StatusCodes.ACCEPTED));
+        completeWithResult(createHttpResponse(HttpStatus.ACCEPTED));
     }
 
     private Supplier<DittoRuntimeException> getTimeoutExceptionSupplier(final WithDittoHeaders command) {
@@ -236,7 +237,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private void rememberResponseLocationUri(final CommandResponse<?> commandResponse) {
-        if (HttpStatusCode.CREATED == commandResponse.getStatusCode()) {
+        if (HttpStatus.CREATED.equals(commandResponse.getHttpStatus())) {
             responseLocationUri = getUriForLocationHeader(httpRequest, commandResponse);
         }
     }
@@ -322,8 +323,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
                     final WithEntity<?> withEntity = (WithEntity<?>) commandResponse;
 
-                    final HttpResponse responseWithoutHeaders = HttpResponse.create()
-                            .withStatus(commandResponse.getStatusCode().toInt());
+                    final var responseWithoutHeaders = createHttpResponse(commandResponse.getHttpStatus());
                     final HttpResponse responseWithoutBody = enhanceResponseWithExternalDittoHeaders(
                             responseWithoutHeaders, commandResponse.getDittoHeaders());
 
@@ -344,7 +344,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     logger.withCorrelationId(commandResponse).debug("Got <{}> message.", commandResponse.getType());
                     rememberResponseLocationUri(commandResponse);
                     completeWithResult(
-                            createCommandResponse(commandResponse.getDittoHeaders(), commandResponse.getStatusCode(),
+                            createCommandResponse(commandResponse.getDittoHeaders(), commandResponse.getHttpStatus(),
                                     (WithOptionalEntity) commandResponse));
                 })
                 .match(ErrorResponse.class,
@@ -353,13 +353,13 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     logger.withCorrelationId(commandResponse)
                             .error("Got 'CommandResponse' message which did neither implement 'WithEntity' nor" +
                                     " 'WithOptionalEntity': <{}>!", commandResponse);
-                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
+                    completeWithResult(createHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR));
                 })
                 .match(Status.Failure.class, f -> f.cause() instanceof AskTimeoutException, failure -> {
                     final Throwable cause = failure.cause();
                     logger.error(cause, "Got <{}> when a command response was expected: <{}>!",
                             cause.getClass().getSimpleName(), cause.getMessage());
-                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
+                    completeWithResult(createHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR));
                 })
 
                 // wrap JsonRuntimeExceptions
@@ -372,11 +372,11 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     final Throwable cause = failure.cause();
                     logger.error(cause.fillInStackTrace(),
                             "Got <Status.Failure> when a command response was expected: <{}>!", cause.getMessage());
-                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
+                    completeWithResult(createHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR));
                 })
                 .matchAny(m -> {
                     logger.error("Got unknown message when a command response was expected: <{}>!", m);
-                    completeWithResult(HttpResponse.create().withStatus(HttpStatusCode.INTERNAL_SERVER_ERROR.toInt()));
+                    completeWithResult(createHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR));
                 })
                 .build();
     }
@@ -387,14 +387,14 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         final Message<?> message = messageCommandResponse.getMessage();
         final Optional<?> optionalPayload = message.getPayload();
         final Optional<ByteBuffer> optionalRawPayload = message.getRawPayload();
-        final Optional<HttpStatusCode> responseStatusCode = Optional.of(messageCommandResponse.getStatusCode())
-                .filter(code -> StatusCodes.lookup(code.toInt()).isPresent())
-                // only allow status code which are known to akka-http
-                .filter(code -> !HttpStatusCode.BAD_GATEWAY.equals(code));
+        final var responseStatus = Optional.of(messageCommandResponse.getHttpStatus())
+                .filter(httpStatus -> StatusCodes.lookup(httpStatus.getCode()).isPresent())
+                // only allow HTTP status which are known to akka-http
+                .filter(httpStatus -> !HttpStatus.BAD_GATEWAY.equals(httpStatus));
         // filter "bad gateway" 502 from being used as this is used Ditto internally for graceful HTTP shutdown
 
         // if statusCode is != NO_CONTENT
-        if (responseStatusCode.map(status -> status != HttpStatusCode.NO_CONTENT).orElse(true)) {
+        if (responseStatus.map(status -> !HttpStatus.NO_CONTENT.equals(status)).orElse(true)) {
             // this is on purpose not .map(ContentTypes:parse) as this would throw an exception:
             final Optional<akka.http.scaladsl.model.ContentType> optionalContentType =
                     message.getContentType().map(ContentType$.MODULE$::parse)
@@ -408,7 +408,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                     .filter(ContentType::isBinary)
                     .isPresent();
 
-            httpResponse = HttpResponse.create().withStatus(responseStatusCode.orElse(HttpStatusCode.OK).toInt());
+            httpResponse = createHttpResponse(responseStatus.orElse(HttpStatus.OK));
 
             if (optionalPayload.isPresent() && optionalContentType.isPresent() && !isBinary) {
                 final akka.http.scaladsl.model.ContentType contentType = optionalContentType.get();
@@ -424,13 +424,12 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                 httpResponse = httpResponse.withEntity(HttpEntities.create(rawPayload.array()));
             }
         } else {
-            // if payload was missing OR statusCode was NO_CONTENT:
+            // if payload was missing OR HTTP status was NO_CONTENT:
             optionalRawPayload.ifPresent(byteBuffer -> logger.withCorrelationId(messageCommandResponse)
                     .info("Response payload was set but response status code was also set to <{}>." +
-                                    " Ignoring the response payload. Command=<{}>", responseStatusCode,
+                                    " Ignoring the response payload. Command=<{}>", responseStatus,
                             messageCommandResponse));
-            httpResponse =
-                    HttpResponse.create().withStatus(responseStatusCode.orElse(HttpStatusCode.NO_CONTENT).toInt());
+            httpResponse = createHttpResponse(HttpStatus.NO_CONTENT);
         }
 
         return enhanceResponseWithExternalDittoHeaders(httpResponse, messageCommandResponse.getDittoHeaders());
@@ -458,8 +457,9 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private static HttpResponse buildResponseWithoutHeadersFromDittoRuntimeException(
             final DittoRuntimeException exception) {
 
-        final HttpResponse responseWithoutHeaders = HttpResponse.create().withStatus(exception.getStatusCode().toInt());
-        if (HttpStatusCode.NOT_MODIFIED.equals(exception.getStatusCode())) {
+        final var httpStatus = exception.getHttpStatus();
+        final var responseWithoutHeaders = createHttpResponse(httpStatus);
+        if (HttpStatus.NOT_MODIFIED.equals(httpStatus)) {
             return responseWithoutHeaders;
         }
         return responseWithoutHeaders.withEntity(CONTENT_TYPE_JSON, ByteString.fromString(exception.toJsonString()));
@@ -499,12 +499,11 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             completionResponse = response;
         } else {
             // when no response was required but response would have been successful, respond with 202 "Accepted":
-            completionResponse = HttpResponse.create().withStatus(StatusCodes.ACCEPTED);
+            completionResponse = createHttpResponse(HttpStatus.ACCEPTED);
         }
 
-        final int statusCode = completionResponse.status().intValue();
         if (logger.isDebugEnabled()) {
-            logger.debug("Responding with HTTP response code <{}>.", statusCode);
+            logger.debug("Responding with HTTP response code <{}>.", completionResponse.status().intValue());
             logger.debug("Responding with entity <{}>.", completionResponse.entity());
         }
         httpResponseFuture.complete(completionResponse);
@@ -550,19 +549,15 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         return dittoHeaders.getDittoContentType().orElse(ContentType.APPLICATION_JSON);
     }
 
-    private HttpResponse createCommandResponse(final DittoHeaders dittoHeaders, final HttpStatusCode statusCode,
+    private HttpResponse createCommandResponse(final DittoHeaders dittoHeaders, final HttpStatus httpStatus,
             final WithOptionalEntity withOptionalEntity) {
 
         final UnaryOperator<HttpResponse> addExternalDittoHeaders =
                 response -> enhanceResponseWithExternalDittoHeaders(response, dittoHeaders);
         final UnaryOperator<HttpResponse> modifyResponseOperator = this::modifyResponse;
-        final Function<HttpResponse, HttpResponse> addHeaders = addExternalDittoHeaders
-                .andThen(modifyResponseOperator);
-
-        final UnaryOperator<HttpResponse> addBodyIfEntityExists =
-                createBodyAddingResponseMapper(dittoHeaders, withOptionalEntity);
-
-        return createHttpResponseWithHeadersAndBody(statusCode, addHeaders, addBodyIfEntityExists);
+        final var addHeaders = addExternalDittoHeaders.andThen(modifyResponseOperator);
+        final var addBodyIfEntityExists = createBodyAddingResponseMapper(dittoHeaders, withOptionalEntity);
+        return addBodyIfEntityExists.apply(addHeaders.apply(createHttpResponse(httpStatus)));
     }
 
     private static UnaryOperator<HttpResponse> createBodyAddingResponseMapper(final DittoHeaders dittoHeaders,
@@ -580,22 +575,16 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         };
     }
 
-    private static HttpResponse createHttpResponseWithHeadersAndBody(final HttpStatusCode statusCode,
-            final Function<HttpResponse, HttpResponse> addHeaders, final UnaryOperator<HttpResponse> addBody) {
-
-        final HttpResponse response = HttpResponse.create().withStatus(statusCode.toInt());
-        return addBody.apply(addHeaders.apply(response));
-    }
-
     /**
-     * Modify an HTTP response according to the HTTP response's status code, add the {@code Location} header
-     * when the status code was {@link HttpStatusCode#CREATED}.
+     * Modify an HTTP response according to the HTTP response's status, add the {@code Location} header when the status
+     * was {@link HttpStatus#CREATED}.
      *
      * @param response the candidate HTTP response.
      * @return the modified HTTP response.
      */
     protected HttpResponse modifyResponse(final HttpResponse response) {
-        if (HttpStatusCode.CREATED.toInt() == response.status().intValue() && null != responseLocationUri) {
+        final var status = response.status();
+        if (HttpStatus.CREATED.getCode() == status.intValue() && null != responseLocationUri) {
             return response.addHeader(Location.create(responseLocationUri));
         } else {
             return response;
@@ -609,18 +598,17 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
     private Acknowledgements mapAcknowledgementsForHttp(final Acknowledgements acks) {
         if (!isResponseRequired()) {
-            if (acks.getStatusCode().isSuccess()) {
+            if (acks.getHttpStatus().isSuccess()) {
                 // no need to minimize payload because the response will have no body
                 return acks;
             } else {
                 // minimize payload to status codes
-                return Acknowledgements.of(
-                        acks.stream().map(ack ->
-                                Acknowledgement.of(ack.getLabel(), ack.getEntityId(), ack.getStatusCode(),
-                                        DittoHeaders.empty())
-                        ).collect(Collectors.toList()),
-                        acks.getDittoHeaders()
-                );
+
+                final var acknowledgementList = acks.stream()
+                        .map(ack -> Acknowledgement.of(ack.getLabel(), ack.getEntityId(), ack.getHttpStatus(),
+                                DittoHeaders.empty()))
+                        .collect(Collectors.toList());
+                return Acknowledgements.of(acknowledgementList, acks.getDittoHeaders());
             }
         } else {
             return Acknowledgements.of(
@@ -684,5 +672,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         public int getIssuedMaxBytes() {
             return 0;
         }
+
     }
+
 }

@@ -62,7 +62,7 @@ public interface PolicyConfig extends WithSupervisorConfig, WithActivityCheckCon
         SUBJECT_EXPIRY_GRANULARITY("subject-expiry-granularity", Duration.ofHours(1L)),
 
         SUBJECT_ID_RESOLVER("subject-id-resolver",
-                "org.eclipse.ditto.services.policies.persistence.actors.placeholders.PolicyEntryPlaceholder");
+                "org.eclipse.ditto.services.policies.persistence.actors.resolvers.DefaultSubjectIdFromActionResolver");
 
         private final String path;
         private final Object defaultValue;

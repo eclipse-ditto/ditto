@@ -19,6 +19,7 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
@@ -40,8 +41,16 @@ public class MissingThingIdsException extends DittoRuntimeException implements T
 
     /**
      * Status code of this exception.
+     * @deprecated as of 2.0.0 please use {@link #HTTP_STATUS} instead.
      */
+    @Deprecated
     public static final HttpStatusCode STATUS_CODE = HttpStatusCode.BAD_REQUEST;
+
+    /**
+     * HTTP status of this exception.
+     * @since 2.0.0
+     */
+    static final HttpStatus HTTP_STATUS = HttpStatus.BAD_REQUEST;
 
     private static final String DEFAULT_MESSAGE = "The required list of thing ids was missing.";
 
@@ -54,7 +63,8 @@ public class MissingThingIdsException extends DittoRuntimeException implements T
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
+
+        super(ERROR_CODE, HTTP_STATUS, dittoHeaders, message, description, cause, href);
     }
 
     @Override
@@ -63,7 +73,7 @@ public class MissingThingIdsException extends DittoRuntimeException implements T
     }
 
     /**
-     * A mutable builder for a {@link MissingThingIdsException}.
+     * A mutable builder for a {@code MissingThingIdsException}.
      *
      * @return the builder.
      */
@@ -72,12 +82,12 @@ public class MissingThingIdsException extends DittoRuntimeException implements T
     }
 
     /**
-     * Constructs a new {@link MissingThingIdsException} object with the exception message extracted from the
+     * Constructs a new {@code MissingThingIdsException} object with the exception message extracted from the
      * given JSON object.
      *
      * @param jsonObject the JSON to read the {@link JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new {@link MissingThingIdsException}.
+     * @return the new MissingThingIdsException.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
@@ -115,7 +125,10 @@ public class MissingThingIdsException extends DittoRuntimeException implements T
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
+
             return new MissingThingIdsException(dittoHeaders, message, description, cause, href);
         }
+
     }
+
 }

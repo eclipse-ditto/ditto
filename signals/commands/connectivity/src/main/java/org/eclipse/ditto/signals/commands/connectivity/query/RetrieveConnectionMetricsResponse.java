@@ -29,7 +29,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -63,7 +63,8 @@ public final class RetrieveConnectionMetricsResponse
 
     private RetrieveConnectionMetricsResponse(final ConnectionId connectionId, final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.OK, dittoHeaders);
+
+        super(TYPE, HttpStatus.OK, dittoHeaders);
 
         this.connectionId = checkNotNull(connectionId, "Connection ID");
         this.jsonObject = jsonObject;
@@ -111,8 +112,9 @@ public final class RetrieveConnectionMetricsResponse
      */
     public static RetrieveConnectionMetricsResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
+
         return new CommandResponseJsonDeserializer<RetrieveConnectionMetricsResponse>(TYPE, jsonObject).deserialize(
-                statusCode -> {
+                httpStatus -> {
                     final String readConnectionId =
                             jsonObject.getValueOrThrow(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID);
                     final ConnectionId connectionId = ConnectionId.of(readConnectionId);
@@ -192,7 +194,7 @@ public final class RetrieveConnectionMetricsResponse
 
     @Override
     protected boolean canEqual(@Nullable final Object other) {
-        return (other instanceof RetrieveConnectionMetricsResponse);
+        return other instanceof RetrieveConnectionMetricsResponse;
     }
 
     public static Builder getBuilder(final ConnectionId connectionId, final DittoHeaders dittoHeaders){
@@ -288,7 +290,7 @@ public final class RetrieveConnectionMetricsResponse
         public RetrieveConnectionMetricsResponse build() {
             final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
             jsonObjectBuilder.set(CommandResponse.JsonFields.TYPE, TYPE);
-            jsonObjectBuilder.set(CommandResponse.JsonFields.STATUS, HttpStatusCode.OK.toInt());
+            jsonObjectBuilder.set(CommandResponse.JsonFields.STATUS, HttpStatus.OK.getCode());
             jsonObjectBuilder.set(ConnectivityCommandResponse.JsonFields.JSON_CONNECTION_ID, String.valueOf(connectionId));
 
             if (connectionMetrics != null) {

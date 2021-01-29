@@ -26,14 +26,12 @@ import org.eclipse.ditto.signals.events.policies.ResourceCreated;
 import org.eclipse.ditto.signals.events.policies.ResourceDeleted;
 import org.eclipse.ditto.signals.events.policies.ResourceModified;
 import org.eclipse.ditto.signals.events.policies.ResourcesModified;
-import org.eclipse.ditto.signals.events.policies.SubjectActivated;
 import org.eclipse.ditto.signals.events.policies.SubjectCreated;
-import org.eclipse.ditto.signals.events.policies.SubjectDeactivated;
 import org.eclipse.ditto.signals.events.policies.SubjectDeleted;
 import org.eclipse.ditto.signals.events.policies.SubjectModified;
-import org.eclipse.ditto.signals.events.policies.SubjectsActivated;
-import org.eclipse.ditto.signals.events.policies.SubjectsDeactivated;
+import org.eclipse.ditto.signals.events.policies.SubjectsDeletedPartially;
 import org.eclipse.ditto.signals.events.policies.SubjectsModified;
+import org.eclipse.ditto.signals.events.policies.SubjectsModifiedPartially;
 
 /**
  * Holds all {@link org.eclipse.ditto.signals.events.policies.PolicyEvent} strategies.
@@ -51,13 +49,11 @@ public final class PolicyEventStrategies extends AbstractEventStrategies<PolicyE
         addStrategy(PolicyEntryModified.class, new PolicyEntryModifiedStrategy());
         addStrategy(PolicyEntryDeleted.class, new PolicyEntryDeletedStrategy());
         addStrategy(SubjectsModified.class, new SubjectsModifiedStrategy());
-        addStrategy(SubjectsActivated.class, new SubjectsActivatedStrategy());
-        addStrategy(SubjectsDeactivated.class, new SubjectsDeactivatedStrategy());
+        addStrategy(SubjectsModifiedPartially.class, new SubjectsModifiedPartiallyStrategy());
         addStrategy(SubjectCreated.class, new SubjectCreatedStrategy());
         addStrategy(SubjectModified.class, new SubjectModifiedStrategy());
         addStrategy(SubjectDeleted.class, new SubjectDeletedStrategy());
-        addStrategy(SubjectActivated.class, new SubjectActivatedStrategy());
-        addStrategy(SubjectDeactivated.class, new SubjectDeactivatedStrategy());
+        addStrategy(SubjectsDeletedPartially.class, new SubjectsDeletedPartiallyStrategy());
         addStrategy(ResourcesModified.class, new ResourcesModifiedStrategy());
         addStrategy(ResourceCreated.class, new ResourceCreatedStrategy());
         addStrategy(ResourceModified.class, new ResourceModifiedStrategy());

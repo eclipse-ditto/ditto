@@ -17,7 +17,7 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -148,7 +148,7 @@ public final class HeaderTranslator {
     @Deprecated
     public HeaderTranslator forgetHeaderKeys(final Collection<String> headerKeys) {
         checkNotNull(headerKeys, "headerKeys");
-        final Map<String, HeaderDefinition> newHeaderDefinitions = new HashMap<>(headerDefinitions);
+        final Map<String, HeaderDefinition> newHeaderDefinitions = new LinkedHashMap<>(headerDefinitions);
         headerKeys.forEach(newHeaderDefinitions::remove);
         return new HeaderTranslator(newHeaderDefinitions);
     }
@@ -189,7 +189,7 @@ public final class HeaderTranslator {
     private static Map<String, String> filterHeadersMap(final Map<String, String> headersToFilter,
             final HeaderEntryFilter headerEntryFilter) {
 
-        final Map<String, String> result = new HashMap<>(headersToFilter.size());
+        final Map<String, String> result = new LinkedHashMap<>(headersToFilter.size());
         headersToFilter.forEach((originalKey, value) -> {
             final String lowercaseKey = originalKey.toLowerCase();
             final String filteredValue = headerEntryFilter.apply(lowercaseKey, value);

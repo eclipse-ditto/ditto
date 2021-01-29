@@ -29,6 +29,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Retrieves an enforcer by using an ID Cache and Enforcer Cache.
+ *
+ * @param <E> the type of the enforcer cache {@link Entry}'s value
  */
 public final class EnforcerRetriever<E> {
 

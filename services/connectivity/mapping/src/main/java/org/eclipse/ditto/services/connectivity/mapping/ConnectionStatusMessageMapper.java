@@ -176,6 +176,7 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
 
         final DittoHeaders newDittoHeaders = dittoHeaders.toBuilder()
                 .responseRequired(false) // we never expect a response when updating the ConnectionState
+                .acknowledgementRequests(Collections.emptyList())
                 .build();
         final ModifyFeatureProperty modifyFeatureProperty =
                 ModifyFeatureProperty.of(thingId, featureId, propertyJsonPointer, JsonValue.of(readyUntil.toString()),
@@ -205,6 +206,7 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
 
         final DittoHeaders newDittoHeaders = dittoHeaders.toBuilder()
                 .responseRequired(false) // we never expect a response when updating the ConnectionState
+                .acknowledgementRequests(Collections.emptyList())
                 .build();
         final ModifyFeature modifyFeature = ModifyFeature.of(thingId, feature, newDittoHeaders);
 
