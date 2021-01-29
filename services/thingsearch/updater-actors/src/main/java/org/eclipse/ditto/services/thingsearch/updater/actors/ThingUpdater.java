@@ -17,6 +17,7 @@ import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
+import java.time.Instant;
 import java.util.Objects;
 
 import javax.annotation.Nullable;
@@ -209,7 +210,11 @@ final class ThingUpdater extends AbstractActor {
         } else {
             l.debug("Applying thing event <{}>.", thingEvent);
             thingRevision = thingEvent.getRevision();
-            final StartedTimer timer = DittoMetrics.expiringTimer(SEARCH_UPDATER_CONSISTENCY_LAG).build();
+            final StartedTimer timer = DittoMetrics.expiringTimer(SEARCH_UPDATER_CONSISTENCY_LAG)
+                    .expirationHandling(startedTimer ->
+                            l.warning("Timer measuring consistency lag started at <{}> timed out for event <{}>",
+                                    Instant.ofEpochMilli(startedTimer.getStartTimeStamp()/1_000_000L), thingEvent))
+                    .build();
             enqueueMetadata(exportMetadataWithSender(shouldAcknowledge, getSender(), timer));
         }
     }
