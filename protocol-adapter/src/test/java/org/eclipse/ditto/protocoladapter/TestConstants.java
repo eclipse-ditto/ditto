@@ -183,7 +183,13 @@ public final class TestConstants {
 
     public static final DittoHeaders HEADERS_V_1 = ProtocolFactory.newHeadersWithDittoContentType(DITTO_HEADERS_V_1);
 
+    public static final DittoHeaders HEADERS_V_1_FOR_MERGE_COMMANDS =
+            ProtocolFactory.newHeadersWithJsonMergePatchContentType(DITTO_HEADERS_V_1);
+
     public static final DittoHeaders HEADERS_V_2 = ProtocolFactory.newHeadersWithDittoContentType(DITTO_HEADERS_V_2);
+
+    public static final DittoHeaders HEADERS_V_2_FOR_MERGE_COMMANDS =
+            ProtocolFactory.newHeadersWithJsonMergePatchContentType(DITTO_HEADERS_V_2);
 
     public static final DittoHeaders HEADERS_V_1_NO_CONTENT_TYPE = DittoHeaders.newBuilder(HEADERS_V_1).removeHeader(
             DittoHeaderDefinition.CONTENT_TYPE.getKey()).build();
@@ -224,6 +230,7 @@ public final class TestConstants {
             @Nullable final JsonValue value,
             final HttpStatus status) {
 
+        final DittoHeaders dittoHeaders;
         final PayloadBuilder payloadBuilder = Payload.newBuilder(path);
 
         if (value != null) {
@@ -233,9 +240,15 @@ public final class TestConstants {
             payloadBuilder.withStatus(status);
         }
 
+        if (topicPath.getAction().filter(topicPath1 -> topicPath1.equals(TopicPath.Action.MERGE)).isPresent()) {
+           dittoHeaders  = TestConstants.HEADERS_V_2_FOR_MERGE_COMMANDS;
+        } else {
+            dittoHeaders  = TestConstants.HEADERS_V_2;
+        }
+
         return Adaptable.newBuilder(topicPath)
                 .withPayload(payloadBuilder.build())
-                .withHeaders(TestConstants.HEADERS_V_2)
+                .withHeaders(dittoHeaders)
                 .build();
     }
 

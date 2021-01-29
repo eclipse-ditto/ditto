@@ -54,7 +54,7 @@ public final class ThingMergeCommandAdapterTest extends LiveTwinTest implements 
                 .withPayload(Payload.newBuilder(JsonPointer.of("/_policy"))
                         .withValue(TestConstants.ATTRIBUTE_VALUE)
                         .build())
-                .withHeaders(TestConstants.HEADERS_V_2)
+                .withHeaders(TestConstants.HEADERS_V_2_FOR_MERGE_COMMANDS)
                 .build();
 
         underTest.fromAdaptable(adaptable);
@@ -66,7 +66,7 @@ public final class ThingMergeCommandAdapterTest extends LiveTwinTest implements 
                 .withPayload(Payload.newBuilder(TestConstants.THING_ATTRIBUTE_POINTER)
                         .withValue(TestConstants.ATTRIBUTE_VALUE)
                         .build())
-                .withHeaders(TestConstants.HEADERS_V_1)
+                .withHeaders(TestConstants.HEADERS_V_1_FOR_MERGE_COMMANDS)
                 .build();
 
         underTest.fromAdaptable(adaptable);
@@ -78,7 +78,7 @@ public final class ThingMergeCommandAdapterTest extends LiveTwinTest implements 
                 .withPayload(Payload.newBuilder(JsonPointer.empty())
                         .withValue(JsonFactory.newObject(Thing.JsonFields.ID.getPointer(), JsonFactory.nullLiteral()))
                         .build())
-                .withHeaders(TestConstants.HEADERS_V_2)
+                .withHeaders(TestConstants.HEADERS_V_2_FOR_MERGE_COMMANDS)
                 .build();
 
         underTest.fromAdaptable(adaptable);
@@ -90,7 +90,7 @@ public final class ThingMergeCommandAdapterTest extends LiveTwinTest implements 
                 .withPayload(Payload.newBuilder(JsonPointer.empty())
                         .withValue(JsonFactory.newObject(Thing.JsonFields.ID.getPointer(), JsonValue.of("wrong:id")))
                         .build())
-                .withHeaders(TestConstants.HEADERS_V_2)
+                .withHeaders(TestConstants.HEADERS_V_2_FOR_MERGE_COMMANDS)
                 .build();
 
         underTest.fromAdaptable(adaptable);
@@ -103,7 +103,7 @@ public final class ThingMergeCommandAdapterTest extends LiveTwinTest implements 
                 .withPayload(Payload.newBuilder(TestConstants.THING_POINTER)
                         .withValue(thing.toJson())
                         .build())
-                .withHeaders(TestConstants.HEADERS_V_2)
+                .withHeaders(TestConstants.HEADERS_V_2_FOR_MERGE_COMMANDS)
                 .build();
 
         final MergeThing mergeThing = MergeThing.withThing(TestConstants.THING_ID,
@@ -124,7 +124,7 @@ public final class ThingMergeCommandAdapterTest extends LiveTwinTest implements 
                 .withPayload(Payload.newBuilder(TestConstants.POLICY_ID_POINTER)
                         .withValue(JsonValue.of(TestConstants.POLICY_ID))
                         .build())
-                .withHeaders(TestConstants.HEADERS_V_2)
+                .withHeaders(TestConstants.HEADERS_V_2_FOR_MERGE_COMMANDS)
                 .build();
 
         final MergeThing actual = underTest.fromAdaptable(adaptable);
@@ -138,7 +138,7 @@ public final class ThingMergeCommandAdapterTest extends LiveTwinTest implements 
                 .withPayload(Payload.newBuilder(TestConstants.POLICY_ID_POINTER)
                         .withValue(JsonValue.nullLiteral())
                         .build())
-                .withHeaders(TestConstants.HEADERS_V_2)
+                .withHeaders(TestConstants.HEADERS_V_2_FOR_MERGE_COMMANDS)
                 .build();
 
         underTest.fromAdaptable(adaptable);
@@ -150,7 +150,7 @@ public final class ThingMergeCommandAdapterTest extends LiveTwinTest implements 
                 .withPayload(Payload.newBuilder(JsonPointer.empty())
                         .withValue(JsonFactory.newObject(TestConstants.POLICY_ID_POINTER, JsonValue.nullLiteral()))
                         .build())
-                .withHeaders(TestConstants.HEADERS_V_2)
+                .withHeaders(TestConstants.HEADERS_V_2_FOR_MERGE_COMMANDS)
                 .build();
 
         underTest.fromAdaptable(adaptable);
@@ -162,7 +162,7 @@ public final class ThingMergeCommandAdapterTest extends LiveTwinTest implements 
                 .withPayload(Payload.newBuilder(TestConstants.POLICY_ID_POINTER)
                         .withValue(JsonValue.of(TestConstants.POLICY_ID))
                         .build())
-                .withHeaders(TestConstants.HEADERS_V_2)
+                .withHeaders(TestConstants.HEADERS_V_2_FOR_MERGE_COMMANDS)
                 .build();
 
         final MergeThing mergeThing = MergeThing.withPolicyId(TestConstants.THING_ID,
@@ -181,7 +181,7 @@ public final class ThingMergeCommandAdapterTest extends LiveTwinTest implements 
                 .isThrownBy(() -> {
                             final Adaptable adaptable = Adaptable.newBuilder(TestConstants.TOPIC_PATH_MERGE_THING)
                                     .withPayload(Payload.newBuilder(path).build())
-                                    .withHeaders(TestConstants.HEADERS_V_2)
+                                    .withHeaders(TestConstants.HEADERS_V_2_FOR_MERGE_COMMANDS)
                                     .build();
                             underTest.fromAdaptable(adaptable);
                         }

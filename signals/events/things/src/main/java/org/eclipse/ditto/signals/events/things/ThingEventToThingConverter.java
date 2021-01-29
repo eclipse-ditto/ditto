@@ -19,6 +19,7 @@ import java.util.function.BiFunction;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
@@ -113,6 +114,13 @@ public final class ThingEventToThingConverter {
                 (te, tb) -> ((ThingCreated) te).getThing().toBuilder().setRevision(te.getRevision()).build());
         mappers.put(ThingModified.class,
                 (te, tb) -> ((ThingModified) te).getThing().toBuilder().setRevision(te.getRevision()).build());
+        mappers.put(ThingMerged.class,
+                (te, tb) -> {
+                    final ThingMerged thingMerged = (ThingMerged) te;
+                    return ThingsModelFactory.newThing(
+                            JsonFactory.newObject(thingMerged.getResourcePath(), thingMerged.getValue()));
+                }
+        );
         mappers.put(ThingDeleted.class,
                 (te, tb) -> tb.build());
 

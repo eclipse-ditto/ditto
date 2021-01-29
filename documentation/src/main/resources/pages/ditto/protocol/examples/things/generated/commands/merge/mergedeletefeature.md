@@ -4,7 +4,7 @@
 {
   "topic": "com.acme/xdk_53/things/twin/commands/merge",
   "headers": {
-    "content-type": "application/vnd.eclipse.ditto+json"
+    "content-type": "application/merge-patch+json"
   },
   "path": "/features/accelerometer",
   "value": null

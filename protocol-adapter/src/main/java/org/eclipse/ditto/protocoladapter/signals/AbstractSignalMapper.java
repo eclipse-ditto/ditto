@@ -20,6 +20,7 @@ import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
 
 /**
  * Base class for all {@link SignalMapper}s. Constructs an {@link Adaptable} with data common to all signals
@@ -84,6 +85,9 @@ abstract class AbstractSignalMapper<T extends Signal<?>> implements SignalMapper
      * @param signal the {@code signal} that is processed
      */
     DittoHeaders enhanceHeaders(final T signal) {
+        if (signal instanceof MergeThing) {
+            return ProtocolFactory.newHeadersWithJsonMergePatchContentType(signal.getDittoHeaders());
+        }
         return ProtocolFactory.newHeadersWithDittoContentType(signal.getDittoHeaders());
     }
 

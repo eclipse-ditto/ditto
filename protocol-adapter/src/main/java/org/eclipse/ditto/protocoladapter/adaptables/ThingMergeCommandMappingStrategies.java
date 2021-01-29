@@ -14,9 +14,13 @@ package org.eclipse.ditto.protocoladapter.adaptables;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.exceptions.UnsupportedMediaTypeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
@@ -64,27 +68,32 @@ final class ThingMergeCommandMappingStrategies extends AbstractThingMappingStrat
     }
 
     private static MergeThing mergeThing(final Adaptable adaptable) {
+        checkContentTypeHeader(adaptable.getDittoHeaders());
         return MergeThing.withThing(thingIdFrom(adaptable), thingForMergeFrom(adaptable), dittoHeadersFrom(adaptable));
     }
 
     private static MergeThing mergeThingWithPolicyId(final Adaptable adaptable) {
+        checkContentTypeHeader(adaptable.getDittoHeaders());
         return MergeThing.withPolicyId(thingIdFrom(adaptable), policyIdForMergeFrom(adaptable),
                 dittoHeadersFrom(adaptable));
     }
 
     private static MergeThing mergeThingWithThingDefinition(final Adaptable adaptable) {
+        checkContentTypeHeader(adaptable.getDittoHeaders());
         return MergeThing.withThingDefinition(thingIdFrom(adaptable),
                 thingDefinitionFromForPatch(adaptable),
                 dittoHeadersFrom(adaptable));
     }
 
     private static MergeThing mergeThingWithAttributes(final Adaptable adaptable) {
+        checkContentTypeHeader(adaptable.getDittoHeaders());
         return MergeThing.withAttributes(thingIdFrom(adaptable),
                 attributesForMergeFrom(adaptable),
                 dittoHeadersFrom(adaptable));
     }
 
     private static MergeThing mergeThingWithAttribute(final Adaptable adaptable) {
+        checkContentTypeHeader(adaptable.getDittoHeaders());
         return MergeThing.withAttribute(thingIdFrom(adaptable),
                 attributePointerFrom(adaptable),
                 attributeValueFrom(adaptable),
@@ -92,18 +101,21 @@ final class ThingMergeCommandMappingStrategies extends AbstractThingMappingStrat
     }
 
     private static MergeThing mergeThingWithFeatures(final Adaptable adaptable) {
+        checkContentTypeHeader(adaptable.getDittoHeaders());
         return MergeThing.withFeatures(thingIdFrom(adaptable),
                 featuresFrom(adaptable),
                 dittoHeadersFrom(adaptable));
     }
 
     private static MergeThing mergeThingWithFeature(final Adaptable adaptable) {
+        checkContentTypeHeader(adaptable.getDittoHeaders());
         return MergeThing.withFeature(thingIdFrom(adaptable),
                 featureFrom(adaptable),
                 dittoHeadersFrom(adaptable));
     }
 
     private static MergeThing mergeThingWithFeatureDefinition(final Adaptable adaptable) {
+        checkContentTypeHeader(adaptable.getDittoHeaders());
         return MergeThing.withFeatureDefinition(thingIdFrom(adaptable),
                 featureIdFrom(adaptable),
                 featureDefinitionFrom(adaptable),
@@ -111,6 +123,7 @@ final class ThingMergeCommandMappingStrategies extends AbstractThingMappingStrat
     }
 
     private static MergeThing mergeThingWithFeatureProperties(final Adaptable adaptable) {
+        checkContentTypeHeader(adaptable.getDittoHeaders());
         return MergeThing.withFeatureProperties(thingIdFrom(adaptable),
                 featureIdFrom(adaptable),
                 featurePropertiesFrom(adaptable),
@@ -118,6 +131,7 @@ final class ThingMergeCommandMappingStrategies extends AbstractThingMappingStrat
     }
 
     private static MergeThing mergeThingWithFeatureProperty(final Adaptable adaptable) {
+        checkContentTypeHeader(adaptable.getDittoHeaders());
         return MergeThing.withFeatureProperty(thingIdFrom(adaptable),
                 featureIdFrom(adaptable),
                 featurePropertyPointerFrom(adaptable),
@@ -126,6 +140,7 @@ final class ThingMergeCommandMappingStrategies extends AbstractThingMappingStrat
     }
 
     private static MergeThing mergeThingWithFeatureDesiredProperties(final Adaptable adaptable) {
+        checkContentTypeHeader(adaptable.getDittoHeaders());
         return MergeThing.withFeatureDesiredProperties(thingIdFrom(adaptable),
                 featureIdFrom(adaptable),
                 featurePropertiesFrom(adaptable),
@@ -133,6 +148,7 @@ final class ThingMergeCommandMappingStrategies extends AbstractThingMappingStrat
     }
 
     private static MergeThing mergeThingWithFeatureDesiredProperty(final Adaptable adaptable) {
+        checkContentTypeHeader(adaptable.getDittoHeaders());
         return MergeThing.withFeatureDesiredProperty(thingIdFrom(adaptable),
                 featureIdFrom(adaptable),
                 featurePropertyPointerFrom(adaptable),
@@ -187,6 +203,25 @@ final class ThingMergeCommandMappingStrategies extends AbstractThingMappingStrat
 
     private static boolean payloadValueIsNull(final Adaptable adaptable) {
         return adaptable.getPayload().getValue().map(JsonValue::isNull).orElse(false);
+    }
+
+    private static void checkContentTypeHeader(final DittoHeaders dittoHeaders) {
+        final Optional<String> contentType = dittoHeaders.getContentType();
+        if (contentType.isPresent()) {
+            final String requestsMediaType = contentType.get();
+
+            if (!contentType.map(ContentType::of).filter(ContentType::isJsonMergePatch).isPresent()){
+                throw UnsupportedMediaTypeException
+                        .builderForMergePatchJsonMediaType(requestsMediaType, ContentType.APPLICATION_MERGE_PATCH_JSON.getValue())
+                        .dittoHeaders(dittoHeaders)
+                        .build();
+            }
+        } else {
+            throw UnsupportedMediaTypeException
+                    .builderForEmptyContentTypeHeader(ContentType.APPLICATION_MERGE_PATCH_JSON.getValue())
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
     }
 
 }
