@@ -36,7 +36,7 @@ public final class MetadataTest extends AbstractWithActorSystemTest {
         assertInstancesOf(Metadata.class,
                 areImmutable(),
                 provided(ThingId.class, PolicyId.class).areAlsoImmutable(),
-                assumingFields("senders", "timer")
+                assumingFields("senders", "timers")
                         .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
