@@ -20,6 +20,8 @@
 
  import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
  import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
 
  import com.typesafe.config.Config;
 
@@ -48,6 +50,7 @@
  public final class MonitoredUnboundedMailboxType
          implements MailboxType, ProducesMessageQueue<UnboundedMailbox.MessageQueue> {
 
+     private static final Logger LOGGER = LoggerFactory.getLogger(MonitoredUnboundedMailboxType.class);
      private static final Gauge MAILBOX_SIZE = DittoMetrics.gauge("actor_mailbox_size");
      private static final String CONFIG_OBJECT_PATH = "monitored-unbounded-mailbox";
      private static final String THRESHOLD_FOR_LOGGING_PATH = "threshold-for-logging";
@@ -82,19 +85,19 @@
       */
      @Override
      public MessageQueue create(final Option<ActorRef> owner, final Option<ActorSystem> system) {
-         if (owner.isEmpty() || system.isEmpty()) {
-             throw new IllegalArgumentException("no mailbox owner or system given");
-         }
-         final ActorRef mailboxOwner = owner.get();
+         if (owner.nonEmpty() && system.nonEmpty()) {
+             final ActorRef mailboxOwner = owner.get();
 
-         if (shouldTrackActor(mailboxOwner.path())) {
-             final int threshold = mailboxConfig.getInt(THRESHOLD_FOR_LOGGING_PATH);
-             final long interval = mailboxConfig.getLong(LOGGING_INTERVAL_PATH);
-             return new InstrumentedMessageQueue(mailboxOwner, system.get(), threshold, interval);
+             if (shouldTrackActor(mailboxOwner.path())) {
+                 final int threshold = mailboxConfig.getInt(THRESHOLD_FOR_LOGGING_PATH);
+                 final long interval = mailboxConfig.getLong(LOGGING_INTERVAL_PATH);
+                 return new InstrumentedMessageQueue(mailboxOwner, system.get(), threshold, interval);
+             }
          } else {
-             // Use akka default mailbox as fallback
-             return new UnboundedMailbox.MessageQueue();
+             LOGGER.warn("Mailbox creation not possible, owner actor <{}> or system <{}> not available", owner, system);
          }
+         // Use akka default unbounded mailbox as fallback
+         return new UnboundedMailbox.MessageQueue();
      }
 
 
