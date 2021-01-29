@@ -44,9 +44,9 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.signals.base.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
-import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
@@ -81,13 +81,10 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
     private MergeThing(final ThingId thingId, final JsonPointer path, final JsonValue value,
             final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        Optional.of(getImplementedSchemaVersion())
-                .filter(this::implementsSchemaVersion)
-                .orElseThrow(
-                        () -> CommandNotSupportedException.newBuilder(getImplementedSchemaVersion().toInt()).build());
         this.thingId = checkNotNull(thingId, "thingId");
         this.path = checkNotNull(path, "path");
         this.value = checkJsonSize(checkNotNull(value, "value"), dittoHeaders);
+        checkSchemaVersion();
     }
 
     /**
@@ -463,6 +460,13 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
     @Override
     public JsonSchemaVersion[] getSupportedSchemaVersions() {
         return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
+    }
+
+    private void checkSchemaVersion() {
+        final JsonSchemaVersion implementedSchemaVersion = getImplementedSchemaVersion();
+        if (!implementsSchemaVersion(implementedSchemaVersion)) {
+            throw UnsupportedSchemaVersionException.newBuilder(implementedSchemaVersion).build();
+        }
     }
 
     /**

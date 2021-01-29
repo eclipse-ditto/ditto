@@ -15,7 +15,6 @@ package org.eclipse.ditto.signals.commands.things.modify;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Predicate;
 
 import javax.annotation.concurrent.Immutable;
@@ -32,8 +31,8 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.signals.base.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
-import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 
 /**
@@ -56,12 +55,9 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
 
     private MergeThingResponse(final ThingId thingId, final JsonPointer path, final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
-        Optional.of(getImplementedSchemaVersion())
-                .filter(this::implementsSchemaVersion)
-                .orElseThrow(
-                        () -> CommandNotSupportedException.newBuilder(getImplementedSchemaVersion().toInt()).build());
         this.thingId = checkNotNull(thingId, "thingId");
         this.path = checkNotNull(path, "path");
+        checkSchemaVersion();
     }
 
     /**
@@ -94,6 +90,13 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
     @Override
     public JsonSchemaVersion[] getSupportedSchemaVersions() {
         return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
+    }
+
+    private void checkSchemaVersion() {
+        final JsonSchemaVersion implementedSchemaVersion = getImplementedSchemaVersion();
+        if (!implementsSchemaVersion(implementedSchemaVersion)) {
+            throw UnsupportedSchemaVersionException.newBuilder(implementedSchemaVersion).build();
+        }
     }
 
     @Override

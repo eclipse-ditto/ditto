@@ -26,7 +26,7 @@ import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.TestConstants;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.UnknownPathException;
-import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
+import org.eclipse.ditto.signals.base.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotDeletableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotDeletableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
@@ -60,7 +60,7 @@ public final class ThingMergeCommandAdapterTest extends LiveTwinTest implements 
         underTest.fromAdaptable(adaptable);
     }
 
-    @Test(expected = CommandNotSupportedException.class)
+    @Test(expected = UnsupportedSchemaVersionException.class)
     public void invalidSchemaVersion() {
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(TestConstants.THING_ATTRIBUTE_POINTER)

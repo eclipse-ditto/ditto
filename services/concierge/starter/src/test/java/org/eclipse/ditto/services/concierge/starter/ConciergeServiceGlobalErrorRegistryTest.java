@@ -27,6 +27,7 @@ import org.eclipse.ditto.protocoladapter.UnknownCommandException;
 import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
+import org.eclipse.ditto.signals.base.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.PathUnknownException;
@@ -43,6 +44,7 @@ public final class ConciergeServiceGlobalErrorRegistryTest extends GlobalErrorRe
                 PolicyEntryInvalidException.class,
                 AclEntryInvalidException.class,
                 CommandNotSupportedException.class,
+                UnsupportedSchemaVersionException.class,
                 GatewayAuthenticationFailedException.class,
                 ConnectionConflictException.class,
                 ConnectionConfigurationInvalidException.class,

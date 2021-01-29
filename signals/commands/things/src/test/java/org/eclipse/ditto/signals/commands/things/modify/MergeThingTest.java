@@ -47,7 +47,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingTooLargeException;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
+import org.eclipse.ditto.signals.base.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.signals.commands.things.TestConstants;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.junit.Test;
@@ -447,6 +447,6 @@ public final class MergeThingTest {
 
         assertThatThrownBy(() -> MergeThing.withPolicyId(thingId, policyId,
                 DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_1).build()))
-                .isInstanceOf(CommandNotSupportedException.class);
+                .isInstanceOf(UnsupportedSchemaVersionException.class);
     }
 }
