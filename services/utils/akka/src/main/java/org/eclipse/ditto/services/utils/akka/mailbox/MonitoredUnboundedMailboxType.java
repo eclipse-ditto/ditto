@@ -55,7 +55,9 @@
      private static final String ACTORS_INCLUDE_REGEX_PATH = "include-actors-regex";
      private static final String ACTORS_EXCLUDE_REGEX_PATH = "exclude-actors-regex";
 
-     private final Config config;
+     private final Config mailboxConfig;
+     private final Pattern includeRegexFilters;
+     private final Pattern excludeRegexFilters;
 
      /**
       * Creates a new {@code MonitoredUnboundedMailboxType}.
@@ -65,7 +67,9 @@
       * @param config the config.
       */
      public MonitoredUnboundedMailboxType(final ActorSystem.Settings settings, final Config config) {
-         this.config = config;
+         this.mailboxConfig = config.getConfig(CONFIG_OBJECT_PATH);
+         this.includeRegexFilters = Pattern.compile(mailboxConfig.getString(ACTORS_INCLUDE_REGEX_PATH));
+         this.excludeRegexFilters = Pattern.compile(mailboxConfig.getString(ACTORS_EXCLUDE_REGEX_PATH));
      }
 
      /**
@@ -81,14 +85,9 @@
          if (owner.isEmpty() || system.isEmpty()) {
              throw new IllegalArgumentException("no mailbox owner or system given");
          }
-
          final ActorRef mailboxOwner = owner.get();
 
-         final Config mailboxConfig = config.getConfig(CONFIG_OBJECT_PATH);
-         final Pattern includeRegexFilters = Pattern.compile(mailboxConfig.getString(ACTORS_INCLUDE_REGEX_PATH));
-         final Pattern excludeRegexFilters = Pattern.compile(mailboxConfig.getString(ACTORS_EXCLUDE_REGEX_PATH));
-
-         if (trackActor(mailboxOwner.path(), includeRegexFilters, excludeRegexFilters)) {
+         if (shouldTrackActor(mailboxOwner.path())) {
              final int threshold = mailboxConfig.getInt(THRESHOLD_FOR_LOGGING_PATH);
              final long interval = mailboxConfig.getLong(LOGGING_INTERVAL_PATH);
              return new InstrumentedMessageQueue(mailboxOwner, system.get(), threshold, interval);
@@ -103,13 +102,9 @@
       * Decides whether mailbox size of the actor shall be tracked or not.
       *
       * @param path the path of the actor.
-      * @param includeRegexFilters include filters, which determines that an actor shall be tracked.
-      * @param excludeRegexFilters exclude filters, which determines that an actor shall not be tracked (stronger than
-      * include filters).
       * @return the made decision.
       */
-     private static boolean trackActor(final ActorPath path, final Pattern includeRegexFilters,
-             final Pattern excludeRegexFilters) {
+     private boolean shouldTrackActor(final ActorPath path) {
          final String pathWithoutAddress = path.toStringWithoutAddress();
          if (excludeRegexFilters.matcher(pathWithoutAddress).matches()) {
              return false;
