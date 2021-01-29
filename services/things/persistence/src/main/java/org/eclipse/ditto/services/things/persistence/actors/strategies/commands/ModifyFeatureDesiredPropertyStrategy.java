@@ -50,7 +50,7 @@ final class ModifyFeatureDesiredPropertyStrategy extends AbstractThingCommandStr
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final ModifyFeatureDesiredProperty command,
@@ -93,7 +93,7 @@ final class ModifyFeatureDesiredPropertyStrategy extends AbstractThingCommandStr
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getModifyOrCreateResult(final Feature feature,
+    private Result<ThingEvent<?>> getModifyOrCreateResult(final Feature feature,
             final Context<ThingId> context,
             final long nextRevision,
             final ModifyFeatureDesiredProperty command,
@@ -106,7 +106,7 @@ final class ModifyFeatureDesiredPropertyStrategy extends AbstractThingCommandStr
                 .orElseGet(() -> getCreateResult(context, nextRevision, command, thing, metadata));
     }
 
-    private Result<ThingEvent> getModifyResult(final Context<ThingId> context,
+    private Result<ThingEvent<?>> getModifyResult(final Context<ThingId> context,
             final long nextRevision,
             final ModifyFeatureDesiredProperty command,
             @Nullable final Thing thing,
@@ -127,7 +127,7 @@ final class ModifyFeatureDesiredPropertyStrategy extends AbstractThingCommandStr
         return ResultFactory.newMutationResult(command, event, response);
     }
 
-    private Result<ThingEvent> getCreateResult(final Context<ThingId> context,
+    private Result<ThingEvent<?>> getCreateResult(final Context<ThingId> context,
             final long nextRevision,
             final ModifyFeatureDesiredProperty command,
             @Nullable final Thing thing,

@@ -75,6 +75,9 @@ public final class DefaultOAuthConfigTest {
         softly.assertThat(underTest.getOpenIdConnectIssuers())
                 .as(OAuthConfig.OAuthConfigValue.OPENID_CONNECT_ISSUERS_EXTENSION.getConfigPath())
                 .isEqualTo(OAuthConfig.OAuthConfigValue.OPENID_CONNECT_ISSUERS_EXTENSION.getDefaultValue());
+
+        softly.assertThat(underTest.getTokenIntegrationSubject())
+                .isEqualTo(OAuthConfig.OAuthConfigValue.TOKEN_INTEGRATION_SUBJECT.getDefaultValue());
     }
 
     @Test
@@ -92,6 +95,8 @@ public final class DefaultOAuthConfigTest {
                 .as(OAuthConfig.OAuthConfigValue.OPENID_CONNECT_ISSUERS_EXTENSION.getConfigPath())
                 .isEqualTo(Collections.singletonMap(SubjectIssuer.newInstance("additional"),
                         "https://additional.google.com"));
+
+        softly.assertThat(underTest.getTokenIntegrationSubject()).isEqualTo("ditto:ditto");
     }
 
 }

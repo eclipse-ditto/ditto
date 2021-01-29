@@ -49,7 +49,7 @@ import akka.actor.ActorRef;
 public final class AclEnforcerCacheLoader
         implements AsyncCacheLoader<EntityIdWithResourceType, Entry<Enforcer>> {
 
-    private final ActorAskCacheLoader<Enforcer, Command> delegate;
+    private final ActorAskCacheLoader<Enforcer, Command<?>> delegate;
 
     /**
      * Constructor.
@@ -61,7 +61,8 @@ public final class AclEnforcerCacheLoader
         requireNonNull(askTimeout);
         requireNonNull(thingsShardRegionProxy);
 
-        final BiFunction<EntityId, CacheLookupContext, Command> commandCreator = ThingCommandFactory::sudoRetrieveThing;
+        final BiFunction<EntityId, CacheLookupContext, Command<?>> commandCreator =
+                ThingCommandFactory::sudoRetrieveThing;
         final BiFunction<Object, CacheLookupContext, Entry<Enforcer>> responseTransformer =
                 AclEnforcerCacheLoader::handleSudoRetrieveThingResponse;
 

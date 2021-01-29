@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.endpoints;
 
+import static akka.http.javadsl.model.ContentTypes.APPLICATION_JSON;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.base.config.http.DefaultHttpProxyConfig;
+import org.eclipse.ditto.services.gateway.endpoints.routes.RootRouteExceptionHandler;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.DittoJwtAuthorizationSubjectsProvider;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthenticationFactory;
 import org.eclipse.ditto.services.gateway.security.authentication.jwt.JwtAuthorizationSubjectsProviderFactory;
@@ -74,8 +76,11 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.actor.Props;
+import akka.http.javadsl.model.HttpEntities;
 import akka.http.javadsl.model.HttpRequest;
+import akka.http.javadsl.model.HttpResponse;
 import akka.http.javadsl.model.StatusCodes;
+import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.JUnitRouteTest;
 import akka.http.javadsl.testkit.TestRouteResult;
 import akka.japi.pf.ReceiveBuilder;
@@ -121,8 +126,9 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         publicHealthConfig = DefaultPublicHealthConfig.of(gatewayScopedConfig);
         protocolConfig = DefaultProtocolConfig.of(dittoScopedConfig);
         cloudEventsConfig = DefaultCloudEventsConfig.of(gatewayScopedConfig);
-        httpClientFacade = DefaultHttpClientFacade.getInstance(ActorSystem.create(EndpointTestBase.class.getSimpleName()),
-                DefaultHttpProxyConfig.ofProxy(DefaultScopedConfig.empty("/")));
+        httpClientFacade =
+                DefaultHttpClientFacade.getInstance(ActorSystem.create(EndpointTestBase.class.getSimpleName()),
+                        DefaultHttpProxyConfig.ofProxy(DefaultScopedConfig.empty("/")));
         authorizationSubjectsProviderFactory = DittoJwtAuthorizationSubjectsProvider::of;
         jwtAuthenticationFactory = JwtAuthenticationFactory.newInstance(authConfig.getOAuthConfig(), cacheConfig,
                 httpClientFacade, authorizationSubjectsProviderFactory);
@@ -175,6 +181,15 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
 
     protected HttpRequest withStatusCredentials(final HttpRequest httpRequest) {
         return httpRequest.addCredentials(EndpointTestConstants.STATUS_CREDENTIALS);
+    }
+
+    protected Route handleExceptions(final Supplier<Route> inner) {
+        return handleExceptions(
+                RootRouteExceptionHandler.getInstance(exception ->
+                        HttpResponse.create().withStatus(exception.getStatusCode().toInt())
+                                .withEntity(HttpEntities.create(APPLICATION_JSON, exception.toJsonString()))
+                ),
+                inner);
     }
 
     protected static void assertWebsocketUpgradeExpectedResult(final TestRouteResult result) {

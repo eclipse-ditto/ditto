@@ -48,7 +48,7 @@ import akka.actor.ActorRef;
 public final class ThingEnforcementIdCacheLoader
         implements AsyncCacheLoader<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> {
 
-    private final ActorAskCacheLoader<EntityIdWithResourceType, Command> delegate;
+    private final ActorAskCacheLoader<EntityIdWithResourceType, Command<?>> delegate;
 
     /**
      * Constructor.
@@ -57,7 +57,8 @@ public final class ThingEnforcementIdCacheLoader
      * @param shardRegionProxy the shard-region-proxy.
      */
     public ThingEnforcementIdCacheLoader(final Duration askTimeout, final ActorRef shardRegionProxy) {
-        final BiFunction<EntityId, CacheLookupContext, Command> commandCreator = ThingCommandFactory::sudoRetrieveThing;
+        final BiFunction<EntityId, CacheLookupContext, Command<?>> commandCreator =
+                ThingCommandFactory::sudoRetrieveThing;
         final BiFunction<Object, CacheLookupContext, Entry<EntityIdWithResourceType>> responseTransformer =
                 ThingEnforcementIdCacheLoader::handleSudoRetrieveThingResponse;
 

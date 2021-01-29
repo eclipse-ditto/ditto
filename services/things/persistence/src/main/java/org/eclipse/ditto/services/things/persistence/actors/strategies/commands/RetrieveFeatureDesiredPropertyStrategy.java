@@ -46,7 +46,7 @@ final class RetrieveFeatureDesiredPropertyStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final RetrieveFeatureDesiredProperty command,
@@ -68,7 +68,7 @@ final class RetrieveFeatureDesiredPropertyStrategy
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getRetrieveFeatureDesiredPropertyResult(final Feature feature,
+    private Result<ThingEvent<?>> getRetrieveFeatureDesiredPropertyResult(final Feature feature,
             final Context<ThingId> context,
             final RetrieveFeatureDesiredProperty command,
             @Nullable final Thing thing) {
@@ -81,7 +81,7 @@ final class RetrieveFeatureDesiredPropertyStrategy
                                 command.getDittoHeaders()), command));
     }
 
-    private Result<ThingEvent> getRetrieveFeatureDesiredPropertyResult(final JsonObject featureProperties,
+    private Result<ThingEvent<?>> getRetrieveFeatureDesiredPropertyResult(final JsonObject featureProperties,
             final Context<ThingId> context,
             final RetrieveFeatureDesiredProperty command,
             @Nullable final Thing thing) {
@@ -93,7 +93,7 @@ final class RetrieveFeatureDesiredPropertyStrategy
         return featureProperties.getValue(propertyPointer)
                 .map(featureDesiredProperty -> RetrieveFeatureDesiredPropertyResponse.of(context.getState(), featureId,
                         propertyPointer, featureDesiredProperty, dittoHeaders))
-                .<Result<ThingEvent>>map(response ->
+                .<Result<ThingEvent<?>>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureDesiredPropertyNotFound(context.getState(), featureId, propertyPointer,

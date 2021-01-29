@@ -47,7 +47,7 @@ final class ModifyAclStrategy extends AbstractThingCommandStrategy<ModifyAcl> {
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final ModifyAcl command,

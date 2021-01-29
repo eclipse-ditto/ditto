@@ -101,10 +101,18 @@ paths:
   ###
   '/policies/{policyId}':
     $ref: "./paths/policies/policy.yml"
+  '/policies/{policyId}/actions/activateTokenIntegration':
+    $ref: "./paths/policies/activateTokenIntegration.yml"
+  '/policies/{policyId}/actions/deactivateTokenIntegration':
+    $ref: "./paths/policies/deactivateTokenIntegration.yml"
   '/policies/{policyId}/entries':
     $ref: "./paths/policies/entries.yml"
   '/policies/{policyId}/entries/{label}':
     $ref: "./paths/policies/entry.yml"
+  '/policies/{policyId}/entries/{label}/actions/activateTokenIntegration':
+    $ref: "./paths/policies/activateTokenIntegrationForEntry.yml"
+  '/policies/{policyId}/entries/{label}/actions/deactivateTokenIntegration':
+    $ref: "./paths/policies/deactivateTokenIntegrationForEntry.yml"
   '/policies/{policyId}/entries/{label}/subjects':
     $ref: "./paths/policies/subjects.yml"
   '/policies/{policyId}/entries/{label}/subjects/{subjectId}':

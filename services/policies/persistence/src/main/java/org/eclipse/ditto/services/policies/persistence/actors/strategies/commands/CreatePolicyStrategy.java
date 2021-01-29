@@ -41,14 +41,14 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy} command for a
  * new Policy.
  */
-final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePolicy> {
+final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePolicy, PolicyEvent<?>> {
 
     CreatePolicyStrategy(final PolicyConfig policyConfig) {
         super(CreatePolicy.class, policyConfig);
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+    protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy entity,
             final long nextRevision,
             final CreatePolicy command,
@@ -69,7 +69,7 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
         }
         final Policy newPolicyWithLifecycle = newPolicyBuilder.build();
 
-        final Optional<Result<PolicyEvent>> alreadyExpiredSubject =
+        final Optional<Result<PolicyEvent<?>>> alreadyExpiredSubject =
                 checkForAlreadyExpiredSubject(newPolicyWithLifecycle, dittoHeaders, command);
         if (alreadyExpiredSubject.isPresent()) {
             return alreadyExpiredSubject.get();

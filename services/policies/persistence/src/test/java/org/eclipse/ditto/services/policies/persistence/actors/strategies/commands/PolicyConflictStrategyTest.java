@@ -60,7 +60,7 @@ public final class PolicyConflictStrategyTest {
         final Policy policy = PoliciesModelFactory.newPolicyBuilder(policyId).setRevision(25L).build();
         final CommandStrategy.Context<PolicyId> context = DefaultContext.getInstance(policyId, mockLoggingAdapter());
         final CreatePolicy command = CreatePolicy.of(policy, DittoHeaders.empty());
-        final Result<PolicyEvent> result = underTest.apply(context, policy, 26L, command);
+        final Result<PolicyEvent<?>> result = underTest.apply(context, policy, 26L, command);
         result.accept(new ExpectErrorVisitor(PolicyConflictException.class));
     }
 
@@ -74,7 +74,7 @@ public final class PolicyConflictStrategyTest {
         final CreatePolicy command = CreatePolicy.of(policy, DittoHeaders.newBuilder()
                 .ifNoneMatch(EntityTagMatchers.fromStrings("*"))
                 .build());
-        final Result<PolicyEvent> result = underTest.apply(context, policy, 26L, command);
+        final Result<PolicyEvent<?>> result = underTest.apply(context, policy, 26L, command);
         result.accept(new ExpectErrorVisitor(PolicyPreconditionFailedException.class));
     }
 
@@ -84,7 +84,7 @@ public final class PolicyConflictStrategyTest {
         return mock;
     }
 
-    private static final class ExpectErrorVisitor implements ResultVisitor<PolicyEvent> {
+    private static final class ExpectErrorVisitor implements ResultVisitor<PolicyEvent<?>> {
 
         private final Class<? extends DittoRuntimeException> clazz;
 

@@ -15,9 +15,15 @@ package org.eclipse.ditto.signals.events.policies;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -43,9 +49,8 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link Subject} was modified.
  */
 @Immutable
-@JsonParsableEvent(name = SubjectModified.NAME, typePrefix= SubjectModified.TYPE_PREFIX)
-public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
-        implements PolicyEvent<SubjectModified> {
+@JsonParsableEvent(name = SubjectModified.NAME, typePrefix = SubjectModified.TYPE_PREFIX)
+public final class SubjectModified extends AbstractPolicyActionEvent<SubjectModified> {
 
     /**
      * Name of this event
@@ -198,15 +203,16 @@ public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
     public static SubjectModified fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<SubjectModified>(TYPE, jsonObject).deserialize(
                 (revision, timestamp, metadata) -> {
-            final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
-            final PolicyId policyId = PolicyId.of(extractedPolicyId);
-            final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
-            final String subjectId = jsonObject.getValueOrThrow(JSON_SUBJECT_ID);
-            final JsonObject subjectJsonObject = jsonObject.getValueOrThrow(JSON_SUBJECT);
-            final Subject extractedModifiedSubject = PoliciesModelFactory.newSubject(subjectId, subjectJsonObject);
+                    final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+                    final PolicyId policyId = PolicyId.of(extractedPolicyId);
+                    final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
+                    final String subjectId = jsonObject.getValueOrThrow(JSON_SUBJECT_ID);
+                    final JsonObject subjectJsonObject = jsonObject.getValueOrThrow(JSON_SUBJECT);
+                    final Subject extractedModifiedSubject =
+                            PoliciesModelFactory.newSubject(subjectId, subjectJsonObject);
 
-            return of(policyId, label, extractedModifiedSubject, revision, timestamp, dittoHeaders);
-        });
+                    return of(policyId, label, extractedModifiedSubject, revision, timestamp, dittoHeaders);
+                });
     }
 
     /**
@@ -257,6 +263,17 @@ public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
         jsonObjectBuilder.set(JSON_SUBJECT, subject.toJson(schemaVersion, thePredicate), predicate);
     }
 
+    @Override
+    public SubjectsModifiedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
+        final Map<Label, Collection<Subject>> initialModifiedSubjects =
+                Stream.of(0).collect(Collectors.toMap(i -> label, i -> Collections.singleton(subject),
+                        (u, v) -> {
+                            throw new IllegalStateException(String.format("Duplicate key %s", u));
+                        },
+                        LinkedHashMap::new));
+        return aggregateWithSubjectCreatedOrModified(initialModifiedSubjects, otherPolicyActionEvents);
+    }
+
     @SuppressWarnings("squid:S109")
     @Override
     public int hashCode() {
@@ -291,5 +308,4 @@ public final class SubjectModified extends AbstractPolicyEvent<SubjectModified>
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", label=" + label + ", subject=" + subject + "]";
     }
-
 }

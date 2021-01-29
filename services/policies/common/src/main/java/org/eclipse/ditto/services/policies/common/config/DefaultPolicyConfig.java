@@ -40,6 +40,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
     private final ActivityCheckConfig activityCheckConfig;
     private final SnapshotConfig snapshotConfig;
     private final Duration policySubjectExpiryGranularity;
+    private final String subjectIdResolver;
 
     private DefaultPolicyConfig(final ScopedConfig scopedConfig) {
         supervisorConfig = DefaultSupervisorConfig.of(scopedConfig);
@@ -47,6 +48,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
         snapshotConfig = DefaultSnapshotConfig.of(scopedConfig);
         policySubjectExpiryGranularity = scopedConfig.getDuration(
                 PolicyConfigValue.SUBJECT_EXPIRY_GRANULARITY.getConfigPath());
+        subjectIdResolver = scopedConfig.getString(PolicyConfigValue.SUBJECT_ID_RESOLVER.getConfigPath());
     }
 
     /**
@@ -83,6 +85,11 @@ public final class DefaultPolicyConfig implements PolicyConfig {
     }
 
     @Override
+    public String getSubjectIdResolver() {
+        return subjectIdResolver;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -94,12 +101,14 @@ public final class DefaultPolicyConfig implements PolicyConfig {
         return Objects.equals(supervisorConfig, that.supervisorConfig) &&
                 Objects.equals(activityCheckConfig, that.activityCheckConfig) &&
                 Objects.equals(snapshotConfig, that.snapshotConfig) &&
-                Objects.equals(policySubjectExpiryGranularity, that.policySubjectExpiryGranularity);
+                Objects.equals(policySubjectExpiryGranularity, that.policySubjectExpiryGranularity) &&
+                Objects.equals(subjectIdResolver, that.subjectIdResolver);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig, policySubjectExpiryGranularity);
+        return Objects.hash(supervisorConfig, activityCheckConfig, snapshotConfig, policySubjectExpiryGranularity,
+                subjectIdResolver);
     }
 
     @Override
@@ -109,6 +118,7 @@ public final class DefaultPolicyConfig implements PolicyConfig {
                 ", activityCheckConfig=" + activityCheckConfig +
                 ", snapshotConfig=" + snapshotConfig +
                 ", policySubjectExpiryGranularity=" + policySubjectExpiryGranularity +
+                ", subjectIdResolver=" + subjectIdResolver +
                 "]";
     }
 

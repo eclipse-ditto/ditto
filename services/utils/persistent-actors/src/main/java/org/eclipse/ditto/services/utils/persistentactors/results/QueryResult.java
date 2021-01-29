@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.persistentactors.results;
 
+import java.util.function.Function;
+
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.events.base.Event;
@@ -21,12 +23,12 @@ import org.eclipse.ditto.signals.events.base.Event;
  *
  * @param <E> type of events (irrelevant).
  */
-public final class QueryResult<E extends Event> implements Result<E> {
+public final class QueryResult<E extends Event<?>> implements Result<E> {
 
-    private final Command command;
-    private final WithDittoHeaders response;
+    private final Command<?> command;
+    private final WithDittoHeaders<?> response;
 
-    QueryResult(final Command command, final WithDittoHeaders response) {
+    QueryResult(final Command<?> command, final WithDittoHeaders<?> response) {
         this.command = command;
         this.response = response;
     }
@@ -42,5 +44,10 @@ public final class QueryResult<E extends Event> implements Result<E> {
     @Override
     public void accept(final ResultVisitor<E> visitor) {
         visitor.onQuery(command, response);
+    }
+
+    @Override
+    public <F extends Event<?>> Result<F> map(final Function<E, F> mappingFunction) {
+        return new QueryResult<>(command, response);
     }
 }

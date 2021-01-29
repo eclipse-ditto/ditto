@@ -97,7 +97,13 @@ public interface Command<T extends Command<T>> extends Signal<T> {
         /**
          * Category of commands that delete entities.
          */
-        DELETE
+        DELETE,
+
+        /**
+         * Category of commands that are neither of the above 3 (query, modify, delete) but perform an action on the
+         * entity.
+         */
+        ACTION
     }
 
     /**

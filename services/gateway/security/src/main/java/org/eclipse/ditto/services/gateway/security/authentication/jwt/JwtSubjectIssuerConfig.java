@@ -76,7 +76,7 @@ public final class JwtSubjectIssuerConfig {
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", issuer=" + issuer +
+                "issuer=" + issuer +
                 ", subjectIssuer=" + subjectIssuer +
                 "]";
     }

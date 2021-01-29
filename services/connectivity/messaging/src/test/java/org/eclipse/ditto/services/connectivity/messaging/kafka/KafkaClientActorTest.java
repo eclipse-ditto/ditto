@@ -18,6 +18,7 @@ import static org.eclipse.ditto.services.connectivity.messaging.TestConstants.Au
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -194,7 +195,7 @@ public final class KafkaClientActorTest extends AbstractBaseClientActorTest {
             final ActorRef kafkaClientActor = actorSystem.actorOf(props);
 
             kafkaClientActor.tell(TestConnection.of(connection, DittoHeaders.empty()), getRef());
-            expectMsgClass(Status.Failure.class);
+            expectMsgClass(Duration.ofSeconds(10), Status.Failure.class);
         }};
     }
 

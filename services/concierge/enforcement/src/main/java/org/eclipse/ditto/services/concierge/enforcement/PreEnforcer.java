@@ -45,7 +45,7 @@ public interface PreEnforcer {
      * @param signal the signal.
      * @return future result of the pre-enforcement.
      */
-    CompletionStage<WithDittoHeaders> apply(WithDittoHeaders signal);
+    CompletionStage<WithDittoHeaders<?>> apply(WithDittoHeaders<?> signal);
 
     /**
      * Perform pre-enforcement with error handling.

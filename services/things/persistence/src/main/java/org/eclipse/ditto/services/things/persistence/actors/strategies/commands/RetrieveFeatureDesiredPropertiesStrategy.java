@@ -46,7 +46,7 @@ final class RetrieveFeatureDesiredPropertiesStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final RetrieveFeatureDesiredProperties command,
@@ -68,7 +68,7 @@ final class RetrieveFeatureDesiredPropertiesStrategy
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getFeatureDesiredProperties(final Feature feature,
+    private Result<ThingEvent<?>> getFeatureDesiredProperties(final Feature feature,
             final ThingId thingId,
             final RetrieveFeatureDesiredProperties command,
             @Nullable final Thing thing) {
@@ -80,7 +80,7 @@ final class RetrieveFeatureDesiredPropertiesStrategy
                 .map(desiredProperties -> getFeatureDesiredPropertiesJson(desiredProperties, command))
                 .map(desiredPropertiesJson -> RetrieveFeatureDesiredPropertiesResponse.of(thingId, featureId,
                         desiredPropertiesJson, dittoHeaders))
-                .<Result<ThingEvent>>map(response ->
+                .<Result<ThingEvent<?>>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureDesiredPropertiesNotFound(thingId, featureId, dittoHeaders), command));

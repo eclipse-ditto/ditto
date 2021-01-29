@@ -46,7 +46,7 @@ final class ModifyPolicyIdStrategy extends AbstractThingCommandStrategy<ModifyPo
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final ModifyPolicyId command,
@@ -61,7 +61,7 @@ final class ModifyPolicyIdStrategy extends AbstractThingCommandStrategy<ModifyPo
         return getEntityOrThrow(thing).getPolicyEntityId();
     }
 
-    private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
+    private Result<ThingEvent<?>> getModifyResult(final Context<ThingId> context, final long nextRevision,
             final ModifyPolicyId command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
 
         final ThingId thingId = context.getState();
@@ -76,7 +76,7 @@ final class ModifyPolicyIdStrategy extends AbstractThingCommandStrategy<ModifyPo
         return ResultFactory.newMutationResult(command, event, response);
     }
 
-    private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
+    private Result<ThingEvent<?>> getCreateResult(final Context<ThingId> context, final long nextRevision,
             final ModifyPolicyId command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
 
         final ThingId thingId = context.getState();

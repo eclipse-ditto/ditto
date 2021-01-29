@@ -62,7 +62,7 @@ import org.eclipse.ditto.signals.events.things.ThingModified;
  * This Singleton strategy handles all {@link org.eclipse.ditto.signals.events.things.ThingEvent}s.
  */
 @Immutable
-public final class ThingEventStrategies extends AbstractEventStrategies<ThingEvent, Thing> {
+public final class ThingEventStrategies extends AbstractEventStrategies<ThingEvent<?>, Thing> {
 
     private static final ThingEventStrategies INSTANCE = new ThingEventStrategies();
 

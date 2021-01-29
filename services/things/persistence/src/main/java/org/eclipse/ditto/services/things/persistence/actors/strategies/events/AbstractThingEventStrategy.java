@@ -82,7 +82,7 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
      * Apply the specified event to the also specified ThingBuilder.
      * The builder has already the specified revision set as well as the event's timestamp.
      *
-     * @param event the ThingEvent to be applied.
+     * @param event the ThingEvent<?>to be applied.
      * @param thingBuilder builder which is derived from the {@code event}'s Thing with the revision and event
      * timestamp already set.
      * @return the updated {@code thingBuilder} after applying {@code event}.

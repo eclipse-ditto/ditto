@@ -43,7 +43,7 @@ pipeline {
             }
             steps {
                 configFileProvider([configFile(fileId: 'mvn-bdc-settings', variable: 'MVN_SETTINGS')]) {
-                    sh "mvn -s $MVN_SETTINGS clean deploy source:jar " +
+                    sh "mvn -s $MVN_SETTINGS clean deploy javadoc:jar source:jar " +
                                "-T1C --batch-mode --errors " +
                                "-Pbuild-documentation,ditto " +
                                "-Drevision=${theVersion} " +

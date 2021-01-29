@@ -58,7 +58,7 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
     @Test
     public void cleanupDeletesUntilButExcludingLatestSnapshot() {
         setup(createNewDefaultTestConfig());
-        final List<Event> expectedEvents = new ArrayList<>();
+        final List<Event<?>> expectedEvents = new ArrayList<>();
         final LinkedList<Thing> expectedSnapshots = new LinkedList<>();
 
         new TestKit(actorSystem) {
@@ -117,13 +117,13 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
 
                 // only events after the latest snapshot should survive
                 final long revision = latestSnapshot;
-                final List<Event> expectedEventsAfterCleanup = expectedEvents.stream()
+                final List<Event<?>> expectedEventsAfterCleanup = expectedEvents.stream()
                         .filter(e -> e.getRevision() > revision)
                         .collect(Collectors.toList());
                 assertJournal(thingId, expectedEventsAfterCleanup);
             }
 
-            private Event sendModifyThing(final Thing modifiedThing, final ActorRef underTest,
+            private Event<?> sendModifyThing(final Thing modifiedThing, final ActorRef underTest,
                     final int revisionNumber) {
                 final ModifyThing modifyThingCommand =
                         ModifyThing.of(modifiedThing.getEntityId()
@@ -141,7 +141,7 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
     @Test
     public void testDeletedThingIsCleanedUpCorrectly() {
         setup(createNewDefaultTestConfig());
-        final List<Event> expectedEvents = new ArrayList<>();
+        final List<Event<?>> expectedEvents = new ArrayList<>();
 
         new TestKit(actorSystem) {
             {
@@ -170,7 +170,7 @@ public final class ThingPersistenceActorCleanupTest extends PersistenceActorTest
 
                 final Thing expectedDeletedSnapshot = toDeletedThing(thingCreated, 2);
                 assertSnapshots(thingId, Collections.singletonList(expectedDeletedSnapshot));
-                final Event deletedEvent = toEvent(deleteThing, expectedDeletedSnapshot);
+                final Event<?> deletedEvent = toEvent(deleteThing, expectedDeletedSnapshot);
                 expectedEvents.add(deletedEvent);
                 assertJournal(thingId, expectedEvents);
 

@@ -48,7 +48,7 @@ final class ModifyFeaturesStrategy extends AbstractThingCommandStrategy<ModifyFe
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final ModifyFeatures command,
@@ -77,7 +77,7 @@ final class ModifyFeaturesStrategy extends AbstractThingCommandStrategy<ModifyFe
                 .orElseGet(() -> getCreateResult(context, nextRevision, command, thing, metadata));
     }
 
-    private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
+    private Result<ThingEvent<?>> getModifyResult(final Context<ThingId> context, final long nextRevision,
             final ModifyFeatures command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
 
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
@@ -91,7 +91,7 @@ final class ModifyFeaturesStrategy extends AbstractThingCommandStrategy<ModifyFe
         return ResultFactory.newMutationResult(command, event, response);
     }
 
-    private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
+    private Result<ThingEvent<?>> getCreateResult(final Context<ThingId> context, final long nextRevision,
             final ModifyFeatures command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
 
         final Features features = command.getFeatures();

@@ -36,7 +36,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  */
 @Immutable
 abstract class AbstractThingCommandStrategy<C extends Command<C>>
-        extends AbstractConditionHeaderCheckingCommandStrategy<C, Thing, ThingId, ThingEvent> {
+        extends AbstractConditionHeaderCheckingCommandStrategy<C, Thing, ThingId, ThingEvent<?>> {
 
     private static final ConditionalHeadersValidator VALIDATOR =
             ThingsConditionalHeadersValidatorProvider.getInstance();

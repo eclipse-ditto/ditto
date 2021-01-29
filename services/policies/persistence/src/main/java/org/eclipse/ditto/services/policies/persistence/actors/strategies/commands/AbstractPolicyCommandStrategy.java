@@ -56,9 +56,10 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
  *
  * @param <C> the type of the handled command - of type {@code Command} as also
  * {@link org.eclipse.ditto.services.models.policies.commands.sudo.SudoCommand} are handled which are no PolicyCommands.
+ * @param <E> the type of the emitted events
  */
-abstract class AbstractPolicyCommandStrategy<C extends Command<C>>
-        extends AbstractConditionHeaderCheckingCommandStrategy<C, Policy, PolicyId, PolicyEvent> {
+abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends PolicyEvent<?>>
+        extends AbstractConditionHeaderCheckingCommandStrategy<C, Policy, PolicyId, E> {
 
     private final PolicyExpiryGranularity policyExpiryGranularity;
 
@@ -86,7 +87,7 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>>
         final Duration minutes = granularity.truncatedTo(ChronoUnit.MINUTES);
         if (!minutes.isZero()) {
             amount = minutes.dividedBy(ChronoUnit.MINUTES.getDuration());
-            return new PolicyExpiryGranularity(ChronoUnit.MINUTES,  amount, ChronoUnit.HOURS);
+            return new PolicyExpiryGranularity(ChronoUnit.MINUTES, amount, ChronoUnit.HOURS);
         }
 
         final Duration seconds = granularity.truncatedTo(ChronoUnit.SECONDS);
@@ -233,9 +234,11 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>>
      * @param entries the policy entries to check for an expiry date in the past.
      * @param dittoHeaders the DittoHeaders to use for building the exception.
      * @param command the command which caused the change of the policy entries.
+     * @param <T> the type of the emitted event
      * @return an Optional with ErrorResponse if a subject was invalid, an empty Optional if everything was valid.
      */
-    protected static Optional<Result<PolicyEvent>> checkForAlreadyExpiredSubject(final Iterable<PolicyEntry> entries,
+    protected static <T extends PolicyEvent<?>> Optional<Result<T>> checkForAlreadyExpiredSubject(
+            final Iterable<PolicyEntry> entries,
             final DittoHeaders dittoHeaders, final Command<?> command) {
 
         return StreamSupport.stream(entries.spliterator(), false)
@@ -295,6 +298,7 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>>
     }
 
     private static class PolicyExpiryGranularity {
+
         private final ChronoUnit temporalUnit;
         private final long amount;
         private final ChronoUnit parentTemporalUnit;

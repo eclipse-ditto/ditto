@@ -43,7 +43,7 @@ final class RetrieveFeatureDefinitionStrategy extends AbstractThingCommandStrate
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final RetrieveFeatureDefinition command,
@@ -63,7 +63,7 @@ final class RetrieveFeatureDefinitionStrategy extends AbstractThingCommandStrate
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getFeatureDefinition(final Feature feature, final ThingId thingId,
+    private Result<ThingEvent<?>> getFeatureDefinition(final Feature feature, final ThingId thingId,
             final RetrieveFeatureDefinition command, @Nullable final Thing thing) {
 
         final String featureId = feature.getId();
@@ -72,7 +72,7 @@ final class RetrieveFeatureDefinitionStrategy extends AbstractThingCommandStrate
         return feature.getDefinition()
                 .map(featureDefinition -> RetrieveFeatureDefinitionResponse.of(thingId, featureId,
                         featureDefinition, dittoHeaders))
-                .<Result<ThingEvent>>map(response ->
+                .<Result<ThingEvent<?>>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureDefinitionNotFound(thingId, featureId, dittoHeaders), command));

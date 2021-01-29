@@ -52,7 +52,7 @@ public final class BlockNamespaceBehavior {
      * @return a completion stage which either completes successfully with the given {@code signal} or exceptionally
      * with a {@code NamespaceBlockedException}.
      */
-    public CompletionStage<WithDittoHeaders> block(final WithDittoHeaders signal) {
+    public CompletionStage<WithDittoHeaders<?>> block(final WithDittoHeaders<?> signal) {
         if (signal instanceof WithId) {
             final Optional<String> namespaceOptional = NamespaceReader.fromEntityId(((WithId) signal).getEntityId());
             if (namespaceOptional.isPresent()) {

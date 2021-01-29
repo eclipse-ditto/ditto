@@ -29,6 +29,7 @@ import org.eclipse.ditto.signals.commands.devops.RetrieveLoggerConfigResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
 import org.eclipse.ditto.signals.commands.namespaces.PurgeNamespaceResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
+import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegrationResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.DeleteSubjectResponse;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveResourceResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
@@ -52,6 +53,7 @@ public final class GatewayServiceGlobalCommandResponseRegistryTest extends Globa
                 PurgeNamespaceResponse.class,
                 RetrieveResourceResponse.class,
                 DeleteSubjectResponse.class,
+                ActivateTokenIntegrationResponse.class,
                 SearchErrorResponse.class,
                 ThingErrorResponse.class,
                 PolicyErrorResponse.class,

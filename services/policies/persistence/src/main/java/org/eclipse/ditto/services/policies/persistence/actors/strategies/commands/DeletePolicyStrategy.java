@@ -33,14 +33,14 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.modify.DeletePolicy} command.
  */
-final class DeletePolicyStrategy extends AbstractPolicyCommandStrategy<DeletePolicy> {
+final class DeletePolicyStrategy extends AbstractPolicyCommandStrategy<DeletePolicy, PolicyEvent<?>> {
 
     DeletePolicyStrategy(final PolicyConfig policyConfig) {
         super(DeletePolicy.class, policyConfig);
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+    protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy entity,
             final long nextRevision,
             final DeletePolicy command,

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.utils.persistentactors.results;
 
+import java.util.function.Function;
+
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.events.base.Event;
@@ -19,12 +21,12 @@ import org.eclipse.ditto.signals.events.base.Event;
 /**
  * Result signifying an error.
  */
-public final class ErrorResult<E extends Event> implements Result<E> {
+public final class ErrorResult<E extends Event<?>> implements Result<E> {
 
-    private final Command errorCausingCommand;
+    private final Command<?> errorCausingCommand;
     private final DittoRuntimeException dittoRuntimeException;
 
-    ErrorResult(final DittoRuntimeException dittoRuntimeException, final Command errorCausingCommand) {
+    ErrorResult(final DittoRuntimeException dittoRuntimeException, final Command<?> errorCausingCommand) {
         this.dittoRuntimeException = dittoRuntimeException;
         this.errorCausingCommand = errorCausingCommand;
     }
@@ -40,5 +42,10 @@ public final class ErrorResult<E extends Event> implements Result<E> {
     @Override
     public void accept(final ResultVisitor<E> visitor) {
         visitor.onError(dittoRuntimeException, errorCausingCommand);
+    }
+
+    @Override
+    public <F extends Event<?>> Result<F> map(final Function<E, F> mappingFunction) {
+        return new ErrorResult<>(dittoRuntimeException, errorCausingCommand);
     }
 }

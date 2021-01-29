@@ -49,7 +49,7 @@ final class ModifyAttributeStrategy extends AbstractThingCommandStrategy<ModifyA
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final ModifyAttribute command,
@@ -81,7 +81,7 @@ final class ModifyAttributeStrategy extends AbstractThingCommandStrategy<ModifyA
                 .orElseGet(() -> getCreateResult(context, nextRevision, command, thing, metadata));
     }
 
-    private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
+    private Result<ThingEvent<?>> getModifyResult(final Context<ThingId> context, final long nextRevision,
             final ModifyAttribute command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
 
         final ThingId thingId = context.getState();
@@ -97,7 +97,7 @@ final class ModifyAttributeStrategy extends AbstractThingCommandStrategy<ModifyA
         return ResultFactory.newMutationResult(command, event, response);
     }
 
-    private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
+    private Result<ThingEvent<?>> getCreateResult(final Context<ThingId> context, final long nextRevision,
             final ModifyAttribute command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
 
         final ThingId thingId = context.getState();

@@ -22,7 +22,7 @@ import org.eclipse.ditto.signals.events.base.Event;
  *
  * @param <E> type of events.
  */
-public interface ResultVisitor<E extends Event> {
+public interface ResultVisitor<E extends Event<?>> {
 
     /**
      * Evaluate the empty result. Do nothing by default.
@@ -40,7 +40,8 @@ public interface ResultVisitor<E extends Event> {
      * @param becomeCreated whether the actor should behave as if the entity is created.
      * @param becomeDeleted whether the actor should behave as if the entity is deleted.
      */
-    void onMutation(Command command, E event, WithDittoHeaders response, boolean becomeCreated, boolean becomeDeleted);
+    void onMutation(Command<?> command, E event, WithDittoHeaders<?> response, boolean becomeCreated,
+            boolean becomeDeleted);
 
     /**
      * Evaluate a query result.
@@ -48,12 +49,12 @@ public interface ResultVisitor<E extends Event> {
      * @param command the query command.
      * @param response the response.
      */
-    void onQuery(Command command, WithDittoHeaders response);
+    void onQuery(Command<?> command, WithDittoHeaders<?> response);
 
     /**
      * Evaluate an error result.
      *
      * @param error the error.
      */
-    void onError(DittoRuntimeException error, Command errorCausingCommand);
+    void onError(DittoRuntimeException error, Command<?> errorCausingCommand);
 }

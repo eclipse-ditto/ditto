@@ -58,7 +58,7 @@ final class ThingConflictStrategy extends AbstractThingCommandStrategy<CreateThi
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final CreateThing command,
