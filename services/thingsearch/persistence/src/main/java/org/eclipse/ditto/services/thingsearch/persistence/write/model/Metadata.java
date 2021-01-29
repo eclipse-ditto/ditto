@@ -13,6 +13,9 @@
 package org.eclipse.ditto.services.thingsearch.persistence.write.model;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -53,7 +56,7 @@ public final class Metadata {
             @Nullable final Long policyRevision,
             @Nullable final Instant modified,
             @Nullable final StartedTimer timer,
-            final List<ActorRef> senders) {
+            final Collection<ActorRef> senders) {
 
         this.thingId = thingId;
         this.thingRevision = thingRevision;
@@ -61,7 +64,7 @@ public final class Metadata {
         this.policyRevision = policyRevision;
         this.modified = modified;
         this.timer = timer;
-        this.senders = senders; // does not need to be made unmodifiable as there is no getter returning that to the "outside world"
+        this.senders = Collections.unmodifiableList(new ArrayList<>(senders));
     }
 
     /**
@@ -102,6 +105,29 @@ public final class Metadata {
             final ActorRef sender) {
 
         return new Metadata(thingId, thingRevision, policyId, policyRevision, null, timer, List.of(sender));
+    }
+
+    /**
+     * Create an Metadata object retaining the original senders of an event.
+     *
+     * @param thingId the Thing ID.
+     * @param thingRevision the Thing revision.
+     * @param policyId the Policy ID if the Thing has one.
+     * @param policyRevision the Policy revision if the Thing has a policy, or null if it does not.
+     * @param modified the timestamp of the last change incorporated into the search index, or null if not known.
+     * @param timer an optional timer measuring the search updater's consistency lag.
+     * @param senders the senders.
+     * @return the new Metadata object.
+     */
+    public static Metadata of(final ThingId thingId,
+            final long thingRevision,
+            @Nullable final PolicyId policyId,
+            @Nullable final Long policyRevision,
+            @Nullable final Instant modified,
+            @Nullable final StartedTimer timer,
+            final Collection<ActorRef> senders) {
+
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, timer, senders);
     }
 
     /**
@@ -191,6 +217,24 @@ public final class Metadata {
      */
     public Optional<Instant> getModified() {
         return Optional.ofNullable(modified);
+    }
+
+    /**
+     * Returns the optional timer measuring the consistency lag.
+     *
+     * @return the timer.
+     */
+    public Optional<StartedTimer> getTimer() {
+        return Optional.ofNullable(timer);
+    }
+
+    /**
+     * Return the senders of the originating event which should e.g. receive ACKs.
+     *
+     * @return the senders.
+     */
+    public List<ActorRef> getSenders() {
+        return senders;
     }
 
     /**
