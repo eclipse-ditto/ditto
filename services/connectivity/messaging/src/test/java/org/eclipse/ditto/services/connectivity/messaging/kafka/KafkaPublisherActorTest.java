@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BiConsumer;
@@ -131,6 +132,13 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
         shouldContainHeader(headers, "prefixed_thing_id", "some.prefix." + TestConstants.Things.THING_ID);
         shouldContainHeader(headers, "eclipse", "ditto");
         shouldContainHeader(headers, "device_id", TestConstants.Things.THING_ID.toString());
+        shouldContainHeader(headers, "ditto-connection-id");
+        final Optional<Header> expectedHeader = headers.stream()
+                .filter(header -> header.key().equals("ditto-connection-id"))
+                .findAny();
+        assertThat(expectedHeader).isPresent();
+        assertThat(new String(expectedHeader.get().value()))
+                .isNotEqualTo("hallo");//verify that header mapping has no effect
     }
 
     @Override
@@ -251,6 +259,11 @@ public class KafkaPublisherActorTest extends AbstractPublisherActorTest {
     private void shouldContainHeader(final List<Header> headers, final String key, final String value) {
         final RecordHeader expectedHeader = new RecordHeader(key, value.getBytes(StandardCharsets.US_ASCII));
         assertThat(headers).contains(expectedHeader);
+    }
+
+    private void shouldContainHeader(final List<Header> headers, final String key) {
+        final Optional<Header> expectedHeader = headers.stream().filter(header -> header.key().equals(key)).findAny();
+        assertThat(expectedHeader).isPresent();
     }
 
     private void testSendFailure(final Exception exception, final BiConsumer<TestProbe, TestKit> assertions) {
