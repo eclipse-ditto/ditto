@@ -267,7 +267,7 @@ public final class Metadata {
     }
 
     private void send(final Acknowledgement ack) {
-        if (null != timer) {
+        if (null != timer && timer.isRunning()) {
             timer.tag("success", ack.isSuccess()).stop();
         }
         senders.forEach(sender -> sender.tell(ack, ActorRef.noSender()));
