@@ -19,7 +19,7 @@ import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
 /**
  * Interface providing the mergeThing command adapter and the mergeThing command response adapter.
  *
- * @since 2.0.0
+ * TODO adapt @since annotation @since 1.6.0
  */
 interface MergeCommandAdapterProvider {
 

@@ -374,7 +374,7 @@ public final class JsonFactory {
      * @param jsonValue1 the json value to merge, overrides conflicting fields.
      * @param jsonValue2 the json value to merge.
      * @return returns a new value merged the given {@code jsonValue1} and {@code jsonValue2}.
-     * @since 1.6.0
+     * TODO adapt @since annotation @since 1.6.0
      */
     public static JsonValue mergeJsonValues(final JsonValue jsonValue1, final JsonValue jsonValue2) {
         return JsonValueMerger.mergeJsonValues(jsonValue1, jsonValue2);
