@@ -22,7 +22,6 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategiesFactory;
 import org.eclipse.ditto.protocoladapter.signals.SignalMapper;
 import org.eclipse.ditto.protocoladapter.signals.SignalMapperFactory;
-import org.eclipse.ditto.signals.commands.common.ThingModifyPathMatcher;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessageResponse;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessageResponse;
@@ -39,7 +38,7 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
 
     private MessageCommandResponseAdapter(final HeaderTranslator headerTranslator) {
         super(MappingStrategiesFactory.getMessageCommandResponseMappingStrategies(), headerTranslator,
-                ThingModifyPathMatcher.empty());
+                EmptyPathMatcher.getInstance());
     }
 
     /**

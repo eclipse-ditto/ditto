@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.signals.commands.common;
+package org.eclipse.ditto.signals.commands.base.exceptions;
 
 import java.net.URI;
 import java.text.MessageFormat;

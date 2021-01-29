@@ -23,9 +23,7 @@ import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.PayloadBuilder;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.protocoladapter.UnknownPathException;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategiesFactory;
-import org.eclipse.ditto.signals.commands.common.ThingMergePathMatcher;
 import org.eclipse.ditto.signals.events.things.ThingMerged;
 
 /**
@@ -36,7 +34,7 @@ final class ThingMergedEventAdapter extends AbstractThingAdapter<ThingMerged> im
 
     private ThingMergedEventAdapter(final HeaderTranslator headerTranslator) {
         super(MappingStrategiesFactory.getThingMergedEventMappingStrategies(), headerTranslator,
-                ThingMergePathMatcher.getInstance(path -> UnknownPathException.newBuilder(path).build()));
+                ThingMergePathMatcher.getInstance());
     }
 
     /**
@@ -52,7 +50,7 @@ final class ThingMergedEventAdapter extends AbstractThingAdapter<ThingMerged> im
     @Override
     protected String getType(final Adaptable adaptable) {
         final JsonPointer path = adaptable.getPayload().getPath();
-        return pathMatcher.match(path).getPath();
+        return payloadPathMatcher.match(path);
     }
 
     @Override

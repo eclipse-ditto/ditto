@@ -21,7 +21,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonRuntimeException;
@@ -32,7 +31,6 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
-import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -40,8 +38,8 @@ import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
-import org.eclipse.ditto.signals.commands.common.ThingMergePathMatcher;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
+import org.eclipse.ditto.signals.commands.things.ThingResourceMapper;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingMergeInvalidException;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
@@ -53,6 +51,9 @@ import org.eclipse.ditto.signals.events.things.ThingMerged;
  */
 @Immutable
 final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> {
+
+    private static final ThingResourceMapper<Thing, Optional<EntityTag>> ENTITY_TAG_MAPPER =
+            ThingResourceMapper.from(EntityTagCalculator.getInstance());
 
     /**
      * Constructs a new {@code MergeThingStrategy} object.
@@ -134,84 +135,12 @@ final class MergeThingStrategy extends AbstractThingCommandStrategy<MergeThing> 
 
     @Override
     public Optional<EntityTag> previousEntityTag(final MergeThing command, @Nullable final Thing previousEntity) {
-        return determineEntityTag(command, previousEntity);
+        return ENTITY_TAG_MAPPER.map(command.getPath(), previousEntity);
     }
 
     @Override
     public Optional<EntityTag> nextEntityTag(final MergeThing thingCommand, @Nullable final Thing newEntity) {
-        return determineEntityTag(thingCommand, getEntityOrThrow(newEntity));
-    }
-
-    private Optional<EntityTag> determineEntityTag(final MergeThing command, @Nullable Thing entity) {
-        final Optional<Thing> optionalEntity = Optional.ofNullable(entity);
-        final ThingMergePathMatcher mergePathMatcher = ThingMergePathMatcher.getInstance();
-
-        switch (mergePathMatcher.match(command.getPath())) {
-            case THING_PATH:
-            case POLICY_ID_PATH:
-            case DEFINITION_PATH:
-                return optionalEntity.flatMap(EntityTag::fromEntity);
-
-            case ATTRIBUTES_PATH:
-                return optionalEntity.flatMap(Thing::getAttributes).flatMap(EntityTag::fromEntity);
-
-            case ATTRIBUTE_PATH:
-                final JsonKey attributeKey = command.getPath().getLeaf().orElseThrow();
-                return optionalEntity.flatMap(Thing::getAttributes)
-                        .flatMap(attr -> attr.getValue(attributeKey))
-                        .flatMap(EntityTag::fromEntity);
-
-            case FEATURES_PATH:
-                return optionalEntity.flatMap(Thing::getFeatures).flatMap(EntityTag::fromEntity);
-
-            case FEATURE_PATH:
-                final String featureId = command.getPath().get(1).orElseThrow().toString();
-                return optionalEntity.flatMap(Thing::getFeatures)
-                        .flatMap(features -> features.getFeature(featureId))
-                        .flatMap(EntityTag::fromEntity);
-
-            case FEATURE_DEFINITION_PATH:
-                final String featureIdForDefinition = command.getPath().get(1).orElseThrow().toString();
-                return optionalEntity.flatMap(Thing::getFeatures)
-                        .flatMap(features -> features.getFeature(featureIdForDefinition))
-                        .flatMap(Feature::getDefinition)
-                        .flatMap(EntityTag::fromEntity);
-
-            case FEATURE_PROPERTIES_PATH:
-                final String featureIdForPropertiesPath = command.getPath().get(1).orElseThrow().toString();
-                return optionalEntity.flatMap(Thing::getFeatures)
-                        .flatMap(features -> features.getFeature(featureIdForPropertiesPath))
-                        .flatMap(Feature::getProperties)
-                        .flatMap(EntityTag::fromEntity);
-
-            case FEATURE_PROPERTY_PATH:
-                final String featureIdForPropertyPath = command.getPath().get(1).orElseThrow().toString();
-                final String propertyPath = command.getPath().getSubPointer(3).orElseThrow().toString();
-                return optionalEntity.flatMap(Thing::getFeatures)
-                        .flatMap(features -> features.getFeature(featureIdForPropertyPath))
-                        .flatMap(Feature::getProperties)
-                        .flatMap(properties -> properties.getValue(propertyPath))
-                        .flatMap(EntityTag::fromEntity);
-
-            case FEATURE_DESIRED_PROPERTIES_PATH:
-                final String desiredFeatureId = command.getPath().get(1).orElseThrow().toString();
-                return optionalEntity.flatMap(Thing::getFeatures)
-                        .flatMap(features -> features.getFeature(desiredFeatureId))
-                        .flatMap(Feature::getDesiredProperties)
-                        .flatMap(EntityTag::fromEntity);
-
-            case FEATURE_DESIRED_PROPERTY_PATH:
-                final String desiredFeatureIdForPropertyPath = command.getPath().get(1).orElseThrow().toString();
-                final String propertyPath2 = command.getPath().getSubPointer(3).orElseThrow().toString();
-                return optionalEntity.flatMap(Thing::getFeatures)
-                        .flatMap(features -> features.getFeature(desiredFeatureIdForPropertyPath))
-                        .flatMap(Feature::getDesiredProperties)
-                        .flatMap(desiredProperties -> desiredProperties.getValue(propertyPath2))
-                        .flatMap(EntityTag::fromEntity);
-
-            default:
-                return Optional.empty();
-        }
+        return ENTITY_TAG_MAPPER.map(thingCommand.getPath(), getEntityOrThrow(newEntity));
     }
 
     private Result<ThingEvent<?>> getV1UnsupportedResult(final Command<?> command) {

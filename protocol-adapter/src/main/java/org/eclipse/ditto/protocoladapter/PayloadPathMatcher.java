@@ -16,11 +16,7 @@ import org.eclipse.ditto.json.JsonPointer;
 
 /**
  * Matches and maps the path to an internal command name.
- *
- * @deprecated as of 1.6.0 please use an implementation of
- * {@link org.eclipse.ditto.signals.commands.common.PathMatcher} instead.
  */
-@Deprecated
 public interface PayloadPathMatcher {
 
     /**

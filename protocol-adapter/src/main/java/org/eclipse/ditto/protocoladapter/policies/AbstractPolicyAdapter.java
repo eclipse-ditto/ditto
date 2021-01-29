@@ -16,11 +16,9 @@ import org.eclipse.ditto.protocoladapter.AbstractAdapter;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.protocoladapter.UnknownPathException;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategies;
 import org.eclipse.ditto.protocoladapter.signals.SignalMapper;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.common.PolicyPathMatcher;
 
 /**
  * Base class for {@link org.eclipse.ditto.protocoladapter.Adapter}s that handle policy commands.
@@ -40,8 +38,7 @@ abstract class AbstractPolicyAdapter<T extends Signal<?>> extends AbstractAdapte
      */
     protected AbstractPolicyAdapter(final MappingStrategies<T> mappingStrategies,
             final SignalMapper<T> signalMapper, final HeaderTranslator headerTranslator) {
-        super(mappingStrategies, headerTranslator,
-                PolicyPathMatcher.getInstance(path -> UnknownPathException.newBuilder(path).build()));
+        super(mappingStrategies, headerTranslator, PolicyPathMatcher.getInstance());
         this.signalMapper = signalMapper;
     }
 
