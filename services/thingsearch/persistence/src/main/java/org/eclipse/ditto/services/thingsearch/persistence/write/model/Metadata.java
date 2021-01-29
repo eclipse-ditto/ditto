@@ -47,7 +47,7 @@ public final class Metadata {
     @Nullable private final PolicyId policyId;
     @Nullable private final Long policyRevision;
     @Nullable final Instant modified;
-    @Nullable private final StartedTimer timer;
+    private final List<StartedTimer> timers;
     private final List<ActorRef> senders;
 
     private Metadata(final ThingId thingId,
@@ -55,7 +55,7 @@ public final class Metadata {
             @Nullable final PolicyId policyId,
             @Nullable final Long policyRevision,
             @Nullable final Instant modified,
-            @Nullable final StartedTimer timer,
+            final Collection<StartedTimer> timers,
             final Collection<ActorRef> senders) {
 
         this.thingId = thingId;
@@ -63,7 +63,7 @@ public final class Metadata {
         this.policyId = policyId;
         this.policyRevision = policyRevision;
         this.modified = modified;
-        this.timer = timer;
+        this.timers = Collections.unmodifiableList(new ArrayList<>(timers));
         this.senders = Collections.unmodifiableList(new ArrayList<>(senders));
     }
 
@@ -83,7 +83,8 @@ public final class Metadata {
             @Nullable final Long policyRevision,
             @Nullable final StartedTimer timer) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, null, timer, List.of());
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, null,
+                null != timer ? List.of(timer) : List.of(), List.of());
     }
 
     /**
@@ -104,7 +105,8 @@ public final class Metadata {
             @Nullable final StartedTimer timer,
             final ActorRef sender) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, null, timer, List.of(sender));
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, null,
+                null != timer ? List.of(timer) : List.of(), List.of(sender));
     }
 
     /**
@@ -115,7 +117,7 @@ public final class Metadata {
      * @param policyId the Policy ID if the Thing has one.
      * @param policyRevision the Policy revision if the Thing has a policy, or null if it does not.
      * @param modified the timestamp of the last change incorporated into the search index, or null if not known.
-     * @param timer an optional timer measuring the search updater's consistency lag.
+     * @param timers the timers measuring the search updater's consistency lag.
      * @param senders the senders.
      * @return the new Metadata object.
      */
@@ -124,10 +126,10 @@ public final class Metadata {
             @Nullable final PolicyId policyId,
             @Nullable final Long policyRevision,
             @Nullable final Instant modified,
-            @Nullable final StartedTimer timer,
+            final Collection<StartedTimer> timers,
             final Collection<ActorRef> senders) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, timer, senders);
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, timers, senders);
     }
 
     /**
@@ -148,7 +150,8 @@ public final class Metadata {
             @Nullable final Instant modified,
             @Nullable final StartedTimer timer) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, timer, List.of());
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified,
+                null != timer ? List.of(timer) : List.of(), List.of());
     }
 
     /**
@@ -220,12 +223,12 @@ public final class Metadata {
     }
 
     /**
-     * Returns the optional timer measuring the consistency lag.
+     * Returns the timers measuring the consistency lag.
      *
-     * @return the timer.
+     * @return the timers.
      */
-    public Optional<StartedTimer> getTimer() {
-        return Optional.ofNullable(timer);
+    public List<StartedTimer> getTimers() {
+        return timers;
     }
 
     /**
@@ -244,10 +247,12 @@ public final class Metadata {
      * @return the new metadata with concatenated senders.
      */
     public Metadata prependSenders(final Metadata newMetadata) {
+        final List<StartedTimer> newTimers =
+                Stream.concat(newMetadata.timers.stream(), timers.stream()).collect(Collectors.toList());
         final List<ActorRef> newSenders =
                 Stream.concat(newMetadata.senders.stream(), senders.stream()).collect(Collectors.toList());
         return new Metadata(newMetadata.thingId, newMetadata.thingRevision, newMetadata.policyId,
-                newMetadata.policyRevision, newMetadata.modified, newMetadata.timer, newSenders);
+                newMetadata.policyRevision, newMetadata.modified, newTimers, newSenders);
     }
 
     /**
@@ -267,9 +272,11 @@ public final class Metadata {
     }
 
     private void send(final Acknowledgement ack) {
-        if (null != timer && timer.isRunning()) {
-            timer.tag("success", ack.isSuccess()).stop();
-        }
+        timers.forEach(timer -> {
+            if (timer.isRunning()) {
+                timer.tag("success", ack.isSuccess()).stop();
+            }
+        });
         senders.forEach(sender -> sender.tell(ack, ActorRef.noSender()));
     }
 
@@ -287,13 +294,13 @@ public final class Metadata {
                 Objects.equals(thingId, that.thingId) &&
                 Objects.equals(policyId, that.policyId) &&
                 Objects.equals(modified, that.modified) &&
-                Objects.equals(timer, that.timer)&&
+                Objects.equals(timers, that.timers)&&
                 Objects.equals(senders, that.senders);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified, timer, senders);
+        return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified, timers, senders);
     }
 
     @Override
@@ -304,7 +311,7 @@ public final class Metadata {
                 ", policyId=" + policyId +
                 ", policyRevision=" + policyRevision +
                 ", modified=" + modified +
-                ", timer=" + timer +
+                ", timers=" + timers +
                 ", senders=" + senders +
                 "]";
     }

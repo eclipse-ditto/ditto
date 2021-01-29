@@ -245,6 +245,7 @@ final class EnforcementFlow {
      * @return source of an enforcer or an empty source.
      */
     private Source<Entry<Enforcer>, NotUsed> getEnforcer(final Metadata metadata, final JsonObject thing) {
+        metadata.getTimers().forEach(timer -> timer.startNewSegment("get_enforcer"));
         final Optional<JsonObject> acl = thing.getValue(Thing.JsonFields.ACL);
         if (acl.isPresent()) {
             return Source.single(Entry.permanent(AclEnforcer.of(ThingsModelFactory.newAcl(acl.get()))));
@@ -253,6 +254,15 @@ final class EnforcementFlow {
                 return thing.getValue(Thing.JsonFields.POLICY_ID)
                         .map(PolicyId::of)
                         .map(policyId -> readCachedEnforcer(metadata, getPolicyEntityId(policyId), 0))
+                        .map(enforcerSource -> {
+                            metadata.getTimers().forEach(timer ->
+                                    Optional.ofNullable(timer.getSegments().get("get_enforcer")).ifPresent(segment -> {
+                                if (segment.isRunning()) {
+                                    segment.stop();
+                                }
+                            }));
+                            return enforcerSource;
+                        })
                         .orElse(ENFORCER_NONEXISTENT);
             } catch (PolicyIdInvalidException e) {
                 return ENFORCER_NONEXISTENT;

@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_COLLECTION_NAME;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.bson.Document;
@@ -51,6 +52,7 @@ final class MongoSearchUpdaterFlow {
     private static final String TRACE_THING_BULK_UPDATE = "things_search_thing_bulkUpdate";
     private static final String COUNT_THING_BULK_UPDATES_PER_BULK = "things_search_thing_bulkUpdate_updates_per_bulk";
     private static final String UPDATE_TYPE_TAG = "update_type";
+    private static final String MONGO_TIMER_SEGMENT = "mongo";
 
     private final MongoCollection<Document> collection;
 
@@ -97,10 +99,27 @@ final class MongoSearchUpdaterFlow {
     private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(
             final List<AbstractWriteModel> abstractWriteModels) {
         final List<WriteModel<Document>> writeModels = abstractWriteModels.stream()
-                .map(AbstractWriteModel::toMongo)
+                .map(writeModel -> {
+                    writeModel.getMetadata().getTimers()
+                            .forEach(timer -> timer.startNewSegment(MONGO_TIMER_SEGMENT));
+                    return writeModel.toMongo();
+                })
                 .collect(Collectors.toList());
         return Source.fromPublisher(collection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false)))
-                .map(bulkWriteResult -> WriteResultAndErrors.success(abstractWriteModels, bulkWriteResult))
+                .map(bulkWriteResult -> {
+                    abstractWriteModels.forEach(writeModel -> writeModel.getMetadata()
+                            .getTimers()
+                            .forEach(timer -> Optional.ofNullable(
+                                    timer.getSegments().get(MONGO_TIMER_SEGMENT)
+                                    ).ifPresent(mongoSegment -> {
+                                        if (mongoSegment.isRunning()) {
+                                            mongoSegment.stop();
+                                        }
+                                    })
+                            )
+                    );
+                    return WriteResultAndErrors.success(abstractWriteModels, bulkWriteResult);
+                })
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<WriteResultAndErrors, NotUsed>>()
                         .match(MongoBulkWriteException.class, bulkWriteException ->
                                 Source.single(WriteResultAndErrors.failure(abstractWriteModels, bulkWriteException))

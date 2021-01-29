@@ -107,7 +107,7 @@ public final class EnforcedThingMapper {
         final PolicyId nullablePolicyId = thing.getValue(Thing.JsonFields.POLICY_ID).map(PolicyId::of).orElse(null);
         final Metadata metadata = Metadata.of(thingId, thingRevision, nullablePolicyId, policyRevision,
                 Optional.ofNullable(oldMetadata).flatMap(Metadata::getModified).orElse(null),
-                Optional.ofNullable(oldMetadata).flatMap(Metadata::getTimer).orElse(null),
+                Optional.ofNullable(oldMetadata).map(Metadata::getTimers).orElse(Collections.emptyList()),
                 Optional.ofNullable(oldMetadata).map(Metadata::getSenders).orElse(Collections.emptyList()));
 
         // hierarchical values for sorting
