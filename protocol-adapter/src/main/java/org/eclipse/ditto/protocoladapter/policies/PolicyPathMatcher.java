@@ -41,6 +41,7 @@ final class PolicyPathMatcher implements PayloadPathMatcher {
         resourceNames.put(PolicyResource.POLICY_ENTRY_RESOURCES, "resources");
         resourceNames.put(PolicyResource.POLICY_ENTRY_RESOURCE, "resource");
         resourceNames.put(PolicyResource.POLICY_ENTRY_SUBJECTS, "subjects");
+        resourceNames.put(PolicyResource.POLICY_ENTRY_SUBJECT, "subject");
     }
 
     private static final PolicyPathMatcher INSTANCE = new PolicyPathMatcher();
