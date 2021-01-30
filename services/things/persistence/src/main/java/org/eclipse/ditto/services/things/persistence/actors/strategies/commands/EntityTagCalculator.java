@@ -82,7 +82,8 @@ class EntityTagCalculator implements ThingResourceVisitor<Thing, Optional<Entity
     public Optional<EntityTag> visitAttribute(final JsonPointer path, @Nullable final Thing thing) {
         final JsonPointer attributePath = extractAttributePath(path);
         return Optional.ofNullable(thing)
-                .flatMap(Thing::getAttributes).flatMap(attr -> attr.getValue(attributePath))
+                .flatMap(Thing::getAttributes)
+                .flatMap(attr -> attr.getValue(attributePath))
                 .flatMap(EntityTag::fromEntity);
     }
 
@@ -97,7 +98,7 @@ class EntityTagCalculator implements ThingResourceVisitor<Thing, Optional<Entity
 
     @Override
     public Optional<EntityTag> visitFeatures(final JsonPointer path, @Nullable final Thing thing) {
-        return Optional.ofNullable(thing).flatMap(Thing::getAttributes).flatMap(EntityTag::fromEntity);
+        return Optional.ofNullable(thing).flatMap(Thing::getFeatures).flatMap(EntityTag::fromEntity);
     }
 
     @Override
