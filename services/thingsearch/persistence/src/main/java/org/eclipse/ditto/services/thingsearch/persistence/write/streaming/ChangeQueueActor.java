@@ -24,6 +24,9 @@ import akka.NotUsed;
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import akka.dispatch.ControlMessage;
+import akka.dispatch.RequiresMessageQueue;
+import akka.dispatch.UnboundedControlAwareMessageQueueSemantics;
 import akka.japi.function.Function;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
@@ -32,7 +35,8 @@ import akka.stream.javadsl.Source;
 /**
  * Collects changes from ThingUpdaters and forward them downstream on demand.
  */
-public final class ChangeQueueActor extends AbstractActor {
+public final class ChangeQueueActor extends AbstractActor
+        implements RequiresMessageQueue<UnboundedControlAwareMessageQueueSemantics> {
 
     /**
      * Name of this actor.
@@ -57,7 +61,8 @@ public final class ChangeQueueActor extends AbstractActor {
      * @return Props of a ChangeQueueActor.
      */
     public static Props props() {
-        return Props.create(ChangeQueueActor.class);
+        return Props.create(ChangeQueueActor.class)
+                .withMailbox("akka.actor.mailbox.unbounded-control-aware-queue-based");
     }
 
     @Override
@@ -101,12 +106,12 @@ public final class ChangeQueueActor extends AbstractActor {
                 .filter(map -> !map.isEmpty())
                 .map(map -> {
                     map.values().forEach(metadata -> metadata.getTimers().forEach(timer ->
-                        Optional.ofNullable(timer.getSegments().get(TIMER_SEGMENT_WAIT_FOR_DEQUEUE))
-                            .ifPresent(dequeueSegment -> {
-                                if (dequeueSegment.isRunning()) {
-                                    dequeueSegment.stop();
-                                }
-                            })
+                            Optional.ofNullable(timer.getSegments().get(TIMER_SEGMENT_WAIT_FOR_DEQUEUE))
+                                    .ifPresent(dequeueSegment -> {
+                                        if (dequeueSegment.isRunning()) {
+                                            dequeueSegment.stop();
+                                        }
+                                    })
                     ));
                     return map;
                 });
@@ -131,7 +136,7 @@ public final class ChangeQueueActor extends AbstractActor {
                 .mapMaterializedValue(whatever -> NotUsed.getInstance());
     }
 
-    private enum Control {
+    private enum Control implements ControlMessage {
         DUMP
     }
 }
