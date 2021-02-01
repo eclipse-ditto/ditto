@@ -36,7 +36,7 @@ import com.mongodb.event.ConnectionRemovedEvent;
  */
 public class KamonConnectionPoolListener implements ConnectionPoolListener {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(KamonCommandListener.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(KamonConnectionPoolListener.class);
     private final ConcurrentMap<ServerId, PoolMetric> metrics = new ConcurrentHashMap<>();
     private final String metricName;
 

@@ -118,6 +118,7 @@ import akka.stream.FlowShape;
 import akka.stream.Graph;
 import akka.stream.Materializer;
 import akka.stream.SinkShape;
+import akka.stream.SourceShape;
 import akka.stream.UniformFanInShape;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
@@ -389,7 +390,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                         .getOrElse(either.left()::get)
                 );
 
-        final Source<ActorRef, ?> sessionActorSource = Source.fromSourceCompletionStage(
+        final Source<ActorRef, ?> sessionActorSource = Source.completionStageSource(
                 Patterns.ask(streamingActor, connect, LOCAL_ASK_TIMEOUT)
                         .thenApply(result -> Source.repeat((ActorRef) result))
         );
@@ -570,16 +571,27 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     getRateLimiter(final WebsocketConfig websocketConfig) {
         final Duration rateLimitInterval = websocketConfig.getThrottlingConfig().getInterval();
         final int throttlingLimit = websocketConfig.getThrottlingConfig().getLimit();
-        final int messagesPerInterval =
-                Math.max(throttlingLimit, (int) (throttlingLimit * websocketConfig.getThrottlingRejectionFactor()));
-        return LimitRateByRejection.of(rateLimitInterval, messagesPerInterval, either -> {
-            final TooManyRequestsException.Builder builder =
-                    TooManyRequestsException.newBuilder().retryAfter(rateLimitInterval);
-            if (either.isRight()) {
-                builder.dittoHeaders(either.right().get().getDittoHeaders());
-            }
-            return builder.build();
-        });
+
+        if (throttlingLimit > 0 && rateLimitInterval.negated().isNegative()) {
+            final int messagesPerInterval =
+                    Math.max(throttlingLimit, (int) (throttlingLimit * websocketConfig.getThrottlingRejectionFactor()));
+            return LimitRateByRejection.of(rateLimitInterval, messagesPerInterval, either -> {
+                final TooManyRequestsException.Builder builder =
+                        TooManyRequestsException.newBuilder().retryAfter(rateLimitInterval);
+                if (either.isRight()) {
+                    builder.dittoHeaders(either.right().get().getDittoHeaders());
+                }
+                return builder.build();
+            });
+        } else {
+            return GraphDSL.create(builder -> {
+                final Flow<Either<T, Signal<?>>, Either<T, Signal<?>>, NotUsed> flow = Flow.create();
+                final Source<DittoRuntimeException, NotUsed> empty = Source.empty(DittoRuntimeException.class);
+                final FlowShape<Either<T, Signal<?>>, Either<T, Signal<?>>> flowShape = builder.add(flow);
+                final SourceShape<DittoRuntimeException> emptyShape = builder.add(empty);
+                return new FanOutShape2<>(flowShape.in(), flowShape.out(), emptyShape.out());
+            });
+        }
     }
 
     private static Signal<?> buildSignal(final String cmdString,
@@ -846,7 +858,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private static final class NoOpWebSocketConfigProvider implements WebSocketConfigProvider {
 
         @Override
-        public WebsocketConfig apply(final DittoHeaders DittoHeaders,
+        public WebsocketConfig apply(final DittoHeaders dittoHeaders,
                 final WebsocketConfig websocketConfig) {
             // given websocketConfig is not touched
             return websocketConfig;
