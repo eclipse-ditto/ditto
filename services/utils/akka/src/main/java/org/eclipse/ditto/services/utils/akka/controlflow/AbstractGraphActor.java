@@ -127,7 +127,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
         final String graphActorClassName = getClass().getSimpleName();
         return ActorAttributes.withSupervisionStrategy(exc -> {
                     if (exc instanceof DittoRuntimeException) {
-                        logger.withCorrelationId((WithDittoHeaders<?>) exc)
+                        logger.withCorrelationId((WithDittoHeaders) exc)
                                 .warning("DittoRuntimeException in stream of {}: [{}] {}",
                                         graphActorClassName, exc.getClass().getSimpleName(), exc.getMessage());
                     } else {
@@ -183,7 +183,7 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
     private void handleMatched(final SourceQueue<T> sourceQueue, final M match) {
         final ThreadSafeDittoLoggingAdapter loggerWithCID;
         if (match instanceof WithDittoHeaders) {
-            loggerWithCID = logger.withCorrelationId((WithDittoHeaders<?>) match);
+            loggerWithCID = logger.withCorrelationId((WithDittoHeaders) match);
         } else {
             loggerWithCID = logger;
         }

@@ -226,7 +226,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         completeWithResult(createHttpResponse(HttpStatus.ACCEPTED));
     }
 
-    private Supplier<DittoRuntimeException> getTimeoutExceptionSupplier(final WithDittoHeaders<?> command) {
+    private Supplier<DittoRuntimeException> getTimeoutExceptionSupplier(final WithDittoHeaders command) {
         return () -> {
             final ActorContext context = getContext();
             final Duration receiveTimeout = context.getReceiveTimeout();
@@ -636,7 +636,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         return acknowledgement;
     }
 
-    private static boolean shallAcceptImmediately(final WithDittoHeaders<?> withDittoHeaders) {
+    private static boolean shallAcceptImmediately(final WithDittoHeaders withDittoHeaders) {
         final DittoHeaders dittoHeaders = withDittoHeaders.getDittoHeaders();
         return !dittoHeaders.isResponseRequired() && dittoHeaders.getAcknowledgementRequests().isEmpty();
     }

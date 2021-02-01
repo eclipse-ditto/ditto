@@ -26,11 +26,6 @@
     <packaging>bundle</packaging>
     <name>Eclipse Ditto :: Model :: Placeholders</name>
 
-    <properties>
-        <!-- deactivate binary comp check for this module until first milestone release -->
-        <binary-compatibility-check.version>${revision}</binary-compatibility-check.version>
-    </properties>
-
     <dependencies>
         <!-- ### Compile ### -->
         <dependency>

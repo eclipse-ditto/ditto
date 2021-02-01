@@ -86,7 +86,7 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
             final PolicyId policyId = context.getState();
             final PolicyEntriesModified policyEntriesModified = PolicyEntriesModified.of(policyId, adjustedEntries,
                     nextRevision, getEventTimestamp(), dittoHeaders);
-            final WithDittoHeaders<?> response = appendETagHeaderIfProvided(adjustedCommand,
+            final WithDittoHeaders response = appendETagHeaderIfProvided(adjustedCommand,
                     ModifyPolicyEntriesResponse.of(policyId, dittoHeaders), entity);
 
             return ResultFactory.newMutationResult(adjustedCommand, policyEntriesModified, response);

@@ -16,7 +16,7 @@ import static java.util.Objects.requireNonNull;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.HeaderBasedPlaceholderSubstitutionAlgorithm;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntry;
@@ -31,7 +31,7 @@ final class ModifyAclEntrySubstitutionStrategy extends AbstractTypedSubstitution
     }
 
     @Override
-    public WithDittoHeaders apply(final ModifyAclEntry modifyAclEntry,
+    public DittoHeadersSettable<?> apply(final ModifyAclEntry modifyAclEntry,
             final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm) {
         requireNonNull(modifyAclEntry);
         requireNonNull(substitutionAlgorithm);

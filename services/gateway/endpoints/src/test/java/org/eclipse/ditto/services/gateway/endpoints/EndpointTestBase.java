@@ -238,7 +238,7 @@ public abstract class EndpointTestBase extends JUnitRouteTest {
         private static Optional<Object> echo(final Object m) {
             final DittoHeaders dittoHeaders;
             if (m instanceof WithDittoHeaders) {
-                dittoHeaders = ((WithDittoHeaders<?>) m).getDittoHeaders();
+                dittoHeaders = ((WithDittoHeaders) m).getDittoHeaders();
             } else {
                 dittoHeaders = DittoHeaders.empty();
             }

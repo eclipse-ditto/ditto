@@ -70,7 +70,7 @@ final class ModifyPolicyIdStrategy extends AbstractThingCommandStrategy<ModifyPo
         final ThingEvent<?> event =
                 PolicyIdModified.of(thingId, command.getPolicyEntityId(), nextRevision, getEventTimestamp(),
                         dittoHeaders, metadata);
-        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                 ModifyPolicyIdResponse.modified(thingId, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command, event, response);
@@ -85,7 +85,7 @@ final class ModifyPolicyIdStrategy extends AbstractThingCommandStrategy<ModifyPo
 
         final ThingEvent<?> event =
                 PolicyIdCreated.of(thingId, policyId, nextRevision, getEventTimestamp(), dittoHeaders, metadata);
-        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                 ModifyPolicyIdResponse.created(thingId, policyId, dittoHeaders), thing);
 
         return ResultFactory.newMutationResult(command, event, response);

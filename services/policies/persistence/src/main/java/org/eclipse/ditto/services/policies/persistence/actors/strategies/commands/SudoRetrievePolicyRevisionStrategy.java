@@ -52,7 +52,7 @@ final class SudoRetrievePolicyRevisionStrategy extends AbstractPolicyQueryComman
                 .flatMap(Policy::getRevision)
                 .map(PolicyRevision::toLong);
 
-        final WithDittoHeaders<?> response = revisionOptional.<WithDittoHeaders<?>>map(revision ->
+        final WithDittoHeaders response = revisionOptional.<WithDittoHeaders>map(revision ->
                 SudoRetrievePolicyRevisionResponse.of(
                         context.getState(), revision, command.getDittoHeaders()))
                 .orElseGet(() ->

@@ -238,7 +238,7 @@ public final class PolicyCommandEnforcement
     }
 
     @Override
-    public CompletionStage<Contextual<WithDittoHeaders<?>>> enforce() {
+    public CompletionStage<Contextual<WithDittoHeaders>> enforce() {
         return enforcerRetriever.retrieve(entityId(), (idEntry, enforcerEntry) -> {
             try {
                 return CompletableFuture.completedFuture(doEnforce(enforcerEntry));
@@ -248,7 +248,7 @@ public final class PolicyCommandEnforcement
         });
     }
 
-    private Contextual<WithDittoHeaders<?>> doEnforce(final Entry<PolicyEnforcer> enforcerEntry) {
+    private Contextual<WithDittoHeaders> doEnforce(final Entry<PolicyEnforcer> enforcerEntry) {
         if (enforcerEntry.exists()) {
             return enforcePolicyCommandByEnforcer(enforcerEntry.getValueOrThrow());
         } else {
@@ -256,7 +256,7 @@ public final class PolicyCommandEnforcement
         }
     }
 
-    private Contextual<WithDittoHeaders<?>> enforcePolicyCommandByEnforcer(final PolicyEnforcer policyEnforcer) {
+    private Contextual<WithDittoHeaders> enforcePolicyCommandByEnforcer(final PolicyEnforcer policyEnforcer) {
         final PolicyCommand<?> policyCommand = signal();
         final Optional<? extends PolicyCommand<?>> authorizedCommandOpt =
                 authorizePolicyCommand(policyCommand, policyEnforcer);
@@ -305,7 +305,7 @@ public final class PolicyCommandEnforcement
      * @param command command to forward.
      * @return the contextual including message and receiver
      */
-    private Contextual<WithDittoHeaders<?>> forwardToPoliciesShardRegion(final PolicyCommand<?> command) {
+    private Contextual<WithDittoHeaders> forwardToPoliciesShardRegion(final PolicyCommand<?> command) {
         final PolicyCommand<?> commandToForward;
         if (command instanceof PolicyModifyCommand) {
             invalidateCaches(command.getEntityId());

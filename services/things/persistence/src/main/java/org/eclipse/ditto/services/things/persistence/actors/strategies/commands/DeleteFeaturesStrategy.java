@@ -74,7 +74,7 @@ final class DeleteFeaturesStrategy extends AbstractThingCommandStrategy<DeleteFe
         return FeaturesDeleted.of(context.getState(), nextRevision, getEventTimestamp(), dittoHeaders, metadata);
     }
 
-    private WithDittoHeaders<?> getResponse(final Context<ThingId> context, final DeleteFeatures command,
+    private WithDittoHeaders getResponse(final Context<ThingId> context, final DeleteFeatures command,
             @Nullable final Thing thing) {
         return appendETagHeaderIfProvided(command,
                 DeleteFeaturesResponse.of(context.getState(), command.getDittoHeaders()), thing);

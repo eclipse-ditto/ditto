@@ -40,7 +40,7 @@ import akka.actor.ActorRef;
 /**
  * A message together with contextual information about the actor processing it.
  */
-public final class Contextual<T extends WithDittoHeaders> implements WithSender<T>, WithId, WithDittoHeaders<T> {
+public final class Contextual<T extends WithDittoHeaders> implements WithSender<T>, WithId, WithDittoHeaders {
 
     @Nullable
     private final T message;
@@ -76,9 +76,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     @Nullable
     private final Supplier<CompletionStage<Object>> askFuture;
 
-    private final boolean changesAuthorization;
-
-    private Contextual(@Nullable final T message, final ActorRef self, final ActorRef sender,
+    private Contextual(@Nullable final T message, final ActorRef self, @Nullable final ActorRef sender,
             final ActorRef pubSubMediator, final ActorRef conciergeForwarder,
             final Duration askTimeout, final ThreadSafeDittoLoggingAdapter log,
             @Nullable final EntityIdWithResourceType entityId,
@@ -86,8 +84,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
             @Nullable final ActorRef receiver,
             @Nullable final Function<Object, Object> receiverWrapperFunction,
             @Nullable final Cache<String, ActorRef> responseReceivers,
-            @Nullable final Supplier<CompletionStage<Object>> askFuture,
-            final boolean changesAuthorization) {
+            @Nullable final Supplier<CompletionStage<Object>> askFuture) {
         this.message = message;
         this.self = self;
         this.sender = sender;
@@ -101,10 +98,9 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         this.receiverWrapperFunction = receiverWrapperFunction;
         this.responseReceivers = responseReceivers;
         this.askFuture = askFuture;
-        this.changesAuthorization = changesAuthorization;
     }
 
-    static <T extends WithDittoHeaders<?>> Contextual<T> forActor(final ActorRef self,
+    static <T extends WithDittoHeaders> Contextual<T> forActor(final ActorRef self,
             final ActorRef deadLetters,
             final ActorRef pubSubMediator,
             final ActorRef conciergeForwarder,
@@ -114,7 +110,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
 
         return new Contextual<>(null, self, deadLetters, pubSubMediator, conciergeForwarder, askTimeout, log, null,
                 null,
-                null, null, responseReceivers, null, false);
+                null, null, responseReceivers, null);
     }
 
     /**
@@ -127,7 +123,7 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
      */
     Contextual<T> withAskFuture(final Supplier<CompletionStage<Object>> askFuture) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout, log, entityId,
-                startedTimer, receiver, receiverWrapperFunction, responseReceivers, askFuture, changesAuthorization);
+                startedTimer, receiver, receiverWrapperFunction, responseReceivers, askFuture);
     }
 
     /**
@@ -173,16 +169,11 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
     }
 
     @Override
-    public T setDittoHeaders(final DittoHeaders dittoHeaders) {
-        if (message != null) {
-            return (T) message.setDittoHeaders(dittoHeaders);
-        } else {
-            return null;
-        }
+    public Contextual<T> withMessage(@Nullable final T message) {
+        return withReceivedMessage(message, sender);
     }
 
-    @Override
-    public <S extends WithDittoHeaders> Contextual<S> withMessage(@Nullable final S message) {
+    <S extends WithDittoHeaders> Contextual<S> setMessage(@Nullable final S message) {
         return withReceivedMessage(message, sender);
     }
 
@@ -233,46 +224,37 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
         return Optional.ofNullable(responseReceivers);
     }
 
-    boolean changesAuthorization() {
-        return changesAuthorization;
-    }
-
     <S extends WithDittoHeaders> Optional<Contextual<S>> tryToMapMessage(final Function<T, Optional<S>> f) {
-        return f.apply(getMessage()).map(this::withMessage);
+        return f.apply(getMessage()).map(result -> withReceivedMessage(result, sender));
     }
 
-    <S extends WithDittoHeaders> Contextual<S> withReceivedMessage(@Nullable final S message, final ActorRef sender) {
+    <S extends WithDittoHeaders> Contextual<S> withReceivedMessage(@Nullable final S message,
+            @Nullable final ActorRef sender) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
                 log, entityIdFor(message), startedTimer, receiver, receiverWrapperFunction, responseReceivers,
-                askFuture, changesAuthorization);
+                askFuture);
     }
 
     Contextual<T> withTimer(final StartedTimer startedTimer) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
                 log, entityId, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
-                askFuture, changesAuthorization);
+                askFuture);
     }
 
     Contextual<T> withReceiver(@Nullable final ActorRef receiver) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
                 log, entityId, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
-                askFuture, changesAuthorization);
+                askFuture);
     }
 
     Contextual<T> withReceiverWrapperFunction(final Function<Object, Object> receiverWrapperFunction) {
         return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
                 log, entityId, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
-                askFuture, changesAuthorization);
-    }
-
-    Contextual<T> changesAuthorization(final boolean changesAuthorization) {
-        return new Contextual<>(message, self, sender, pubSubMediator, conciergeForwarder, askTimeout,
-                log, entityId, startedTimer, receiver, receiverWrapperFunction, responseReceivers,
-                askFuture, changesAuthorization);
+                askFuture);
     }
 
     @Nullable
-    private static EntityIdWithResourceType entityIdFor(@Nullable final WithDittoHeaders<?> signal) {
+    private static EntityIdWithResourceType entityIdFor(@Nullable final WithDittoHeaders signal) {
 
         if (signal == null) {
             return null;
@@ -303,7 +285,6 @@ public final class Contextual<T extends WithDittoHeaders> implements WithSender<
                 ", receiver=" + receiver +
                 ", receiverWrapperFunction=" + receiverWrapperFunction +
                 ", responseReceivers=" + responseReceivers +
-                ", changesAuthorization=" + changesAuthorization +
                 "]";
     }
 

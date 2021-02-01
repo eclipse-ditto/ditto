@@ -25,7 +25,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -170,7 +170,7 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
      * @param originalSignal A signal with authorization context.
      * @return A copy of the signal with the header "ditto-originator" set.
      */
-    public static WithDittoHeaders<?> setOriginatorHeader(final WithDittoHeaders<?> originalSignal) {
+    public static DittoHeadersSettable<?> setOriginatorHeader(final DittoHeadersSettable<?> originalSignal) {
         final DittoHeaders dittoHeaders = originalSignal.getDittoHeaders();
         final AuthorizationContext authorizationContext = dittoHeaders.getAuthorizationContext();
         return authorizationContext.getFirstAuthorizationSubject()
@@ -178,23 +178,23 @@ public final class DefaultEnforcerActorFactory implements EnforcerActorFactory<C
                 .map(originatorSubjectId -> DittoHeaders.newBuilder(dittoHeaders)
                         .putHeader(DittoHeaderDefinition.ORIGINATOR.getKey(), originatorSubjectId)
                         .build())
-                .<WithDittoHeaders<?>>map(originalSignal::setDittoHeaders)
+                .<DittoHeadersSettable<?>>map(originalSignal::setDittoHeaders)
                 .orElse(originalSignal);
     }
 
     private static PreEnforcer newPreEnforcer(final BlockedNamespaces blockedNamespaces,
             final PlaceholderSubstitution placeholderSubstitution) {
 
-        return withDittoHeaders ->
+        return dittoHeadersSettable ->
                 BlockNamespaceBehavior.of(blockedNamespaces)
-                        .block(withDittoHeaders)
+                        .block(dittoHeadersSettable)
                         .thenApply(CommandWithOptionalEntityValidator.getInstance())
                         .thenApply(DefaultEnforcerActorFactory::prependDefaultNamespaceToCreateThing)
                         .thenApply(DefaultEnforcerActorFactory::setOriginatorHeader)
                         .thenCompose(placeholderSubstitution);
     }
 
-    private static WithDittoHeaders<?> prependDefaultNamespaceToCreateThing(final WithDittoHeaders<?> signal) {
+    private static DittoHeadersSettable<?> prependDefaultNamespaceToCreateThing(final DittoHeadersSettable<?> signal) {
         if (signal instanceof CreateThing) {
             final CreateThing createThing = (CreateThing) signal;
             final Thing thing = createThing.getThing();

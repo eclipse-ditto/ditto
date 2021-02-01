@@ -144,7 +144,7 @@ public abstract class AbstractPolicyCommandStrategyTest {
 
     private static <T extends PolicyEvent<?>> T assertModificationResult(final Result<?> result,
             final Class<T> eventClazz,
-            final WithDittoHeaders<?> expectedResponse,
+            final WithDittoHeaders expectedResponse,
             final boolean becomeDeleted) {
 
         final ArgumentCaptor<T> event = ArgumentCaptor.forClass(eventClazz);

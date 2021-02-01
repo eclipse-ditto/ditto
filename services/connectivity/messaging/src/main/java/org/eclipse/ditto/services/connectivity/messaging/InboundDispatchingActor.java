@@ -37,6 +37,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -382,9 +383,9 @@ public final class InboundDispatchingActor extends AbstractActor
                 final DittoHeaders originalHeaders = signal.getDittoHeaders();
                 Patterns.ask(proxyActor, signal, originalHeaders.getTimeout().orElse(Duration.ofSeconds(10)))
                         .thenApply(response -> {
-                            if (response instanceof WithDittoHeaders<?>) {
+                            if (response instanceof WithDittoHeaders) {
                                 return AcknowledgementAggregatorActor.restoreCommandConnectivityHeaders(
-                                        (WithDittoHeaders<?>) response,
+                                        (DittoHeadersSettable<?>) response,
                                         originalHeaders);
                             } else {
                                 final String messageTemplate =
@@ -510,7 +511,7 @@ public final class InboundDispatchingActor extends AbstractActor
         return newTopicPathBuilder(acks, acks).acks().aggregatedAcks().build();
     }
 
-    private TopicPathBuilder newTopicPathBuilder(final WithId withId, final WithDittoHeaders<?> withDittoHeaders) {
+    private TopicPathBuilder newTopicPathBuilder(final WithId withId, final WithDittoHeaders withDittoHeaders) {
         final TopicPathBuilder builder = ProtocolFactory.newTopicPathBuilder(ThingId.of(withId.getEntityId()));
         return withDittoHeaders.getDittoHeaders()
                 .getChannel()
@@ -719,7 +720,7 @@ public final class InboundDispatchingActor extends AbstractActor
                 isApplicable(MessageCommandAckRequestSetter.getInstance(), signal);
     }
 
-    private static <C extends WithDittoHeaders<? extends C>> boolean isApplicable(
+    private static <C extends DittoHeadersSettable<? extends C>> boolean isApplicable(
             final AbstractCommandAckRequestSetter<C> setter, final Signal<?> signal) {
         return setter.getMatchedClass().isInstance(signal) &&
                 setter.isApplicable(setter.getMatchedClass().cast(signal));

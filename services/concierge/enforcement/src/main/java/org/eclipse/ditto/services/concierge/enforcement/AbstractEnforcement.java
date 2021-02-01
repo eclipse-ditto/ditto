@@ -68,7 +68,7 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
      *
      * @return future after enforcement was performed.
      */
-    public abstract CompletionStage<Contextual<WithDittoHeaders<?>>> enforce();
+    public abstract CompletionStage<Contextual<WithDittoHeaders>> enforce();
 
     /**
      * Performs authorization enforcement for the passed {@code signal}.
@@ -78,11 +78,11 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
      *
      * @return future after enforcement was performed.
      */
-    public CompletionStage<Contextual<WithDittoHeaders<?>>> enforceSafely() {
+    public CompletionStage<Contextual<WithDittoHeaders>> enforceSafely() {
         return enforce().handle(handleEnforcementCompletion());
     }
 
-    private BiFunction<Contextual<WithDittoHeaders<?>>, Throwable, Contextual<WithDittoHeaders<?>>> handleEnforcementCompletion() {
+    private BiFunction<Contextual<WithDittoHeaders>, Throwable, Contextual<WithDittoHeaders>> handleEnforcementCompletion() {
         return (result, throwable) -> {
             context.getStartedTimer()
                     .map(startedTimer -> startedTimer.tag("outcome", throwable != null ? "fail" : "success"))
@@ -204,7 +204,7 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
      */
     protected ThreadSafeDittoLoggingAdapter log(final Object withPotentialDittoHeaders) {
         if (withPotentialDittoHeaders instanceof WithDittoHeaders) {
-            return context.getLog().withCorrelationId((WithDittoHeaders<?>) withPotentialDittoHeaders);
+            return context.getLog().withCorrelationId((WithDittoHeaders) withPotentialDittoHeaders);
         }
         if (withPotentialDittoHeaders instanceof DittoHeaders) {
             return context.getLog().withCorrelationId((DittoHeaders) withPotentialDittoHeaders);
@@ -255,11 +255,11 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
      * @param <S> the message's type
      * @return the adjusted context.
      */
-    protected <S extends WithDittoHeaders<?>> Contextual<S> withMessageToReceiver(
+    protected <S extends WithDittoHeaders> Contextual<S> withMessageToReceiver(
             @Nullable final S message,
             @Nullable final ActorRef receiver) {
 
-        return context.withMessage(message).withReceiver(receiver);
+        return context.setMessage(message).withReceiver(receiver);
     }
 
     /**
@@ -273,11 +273,11 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
      * @param <T> type of results of the ask future.
      * @return a copy of the context with message, receiver and ask-future including error handling.
      */
-    protected <T> Contextual<WithDittoHeaders<?>> withMessageToReceiverViaAskFuture(final WithDittoHeaders<?> message,
+    protected <T> Contextual<WithDittoHeaders> withMessageToReceiverViaAskFuture(final WithDittoHeaders message,
             final ActorRef receiver,
             final Supplier<CompletionStage<T>> askFutureWithoutErrorHandling) {
 
-        return this.<WithDittoHeaders<?>>withMessageToReceiver(message, receiver)
+        return this.withMessageToReceiver(message, receiver)
                 .withAskFuture(() -> askFutureWithoutErrorHandling.get()
                         .<Object>thenApply(x -> x)
                         .exceptionally(error -> this.reportError("Error thrown during enforcement", error))
@@ -295,11 +295,11 @@ public abstract class AbstractEnforcement<C extends Signal<?>> {
      * @param <S> the message's type
      * @return the adjusted context.
      */
-    protected <S extends WithDittoHeaders<?>> Contextual<S> withMessageToReceiver(final S message,
+    protected <S extends WithDittoHeaders> Contextual<S> withMessageToReceiver(final S message,
             final ActorRef receiver,
             final Function<Object, Object> wrapperFunction) {
 
-        return context.withMessage(message).withReceiver(receiver).withReceiverWrapperFunction(wrapperFunction);
+        return context.setMessage(message).withReceiver(receiver).withReceiverWrapperFunction(wrapperFunction);
     }
 
     /**

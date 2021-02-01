@@ -133,13 +133,6 @@
                         <excludes>
                             <!-- Don't add excludes here before checking with the whole Ditto team -->
                             <!--<exclude></exclude>-->
-
-                            <!-- CborFactory is treated as "internal" but public due to technical reasons: -->
-                            <exclude>org.eclipse.ditto.json.CborFactory</exclude>
-                            <!-- SerializationContext is treated as "internal" but public due to technical reasons: -->
-                            <exclude>org.eclipse.ditto.json.SerializationContext</exclude>
-                            <!-- BinaryToHexConverter was internal API and removed in Ditto 1.2.1 -->
-                            <exclude>org.eclipse.ditto.json.BinaryToHexConverter</exclude>
                         </excludes>
                     </parameter>
                 </configuration>

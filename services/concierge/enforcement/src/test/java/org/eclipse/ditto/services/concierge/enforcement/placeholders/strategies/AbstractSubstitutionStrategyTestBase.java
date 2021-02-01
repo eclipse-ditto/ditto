@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
 import org.eclipse.ditto.model.policies.PolicyId;
@@ -49,7 +49,7 @@ public abstract class AbstractSubstitutionStrategyTestBase {
     protected static final String SUBJECT_ID_2 = "nginx:ditto2";
     protected static final Iterable<Resource> RESOURCES = Collections.singleton(
             Resource.newInstance("resourceKey", "resourcePath",
-            EffectedPermissions.newInstance(Collections.singleton("READ"), Collections.emptySet())));
+                    EffectedPermissions.newInstance(Collections.singleton("READ"), Collections.emptySet())));
 
     protected static final ThingId THING_ID = ThingId.of(NAMESPACE, "my-thing");
     protected static final Thing THING = Thing.newBuilder().setId(THING_ID)
@@ -77,8 +77,8 @@ public abstract class AbstractSubstitutionStrategyTestBase {
     @Test
     public abstract void assertImmutability();
 
-    protected final WithDittoHeaders applyBlocking(final WithDittoHeaders input) {
-        final CompletionStage<WithDittoHeaders> responseFuture = substitution.apply(input);
+    protected final DittoHeadersSettable<?> applyBlocking(final DittoHeadersSettable<?> input) {
+        final CompletionStage<DittoHeadersSettable<?>> responseFuture = substitution.apply(input);
         try {
             return responseFuture.toCompletableFuture().get();
         } catch (final InterruptedException | ExecutionException e) {

@@ -20,7 +20,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
@@ -66,7 +66,7 @@ final class RetrieveThingStrategy extends AbstractThingCommandStrategy<RetrieveT
                 appendETagHeaderIfProvided(command, getRetrieveThingResponse(thing, command), thing));
     }
 
-    private static WithDittoHeaders<?> getRetrieveThingResponse(@Nullable final Thing thing,
+    private static DittoHeadersSettable<?> getRetrieveThingResponse(@Nullable final Thing thing,
             final ThingQueryCommand<RetrieveThing> command) {
         if (thing != null) {
             return RetrieveThingResponse.of(command.getThingEntityId(), getThingJson(thing, command),

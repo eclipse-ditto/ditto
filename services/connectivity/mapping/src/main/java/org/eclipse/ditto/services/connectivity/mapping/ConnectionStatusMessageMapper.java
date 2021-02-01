@@ -112,7 +112,7 @@ public class ConnectionStatusMessageMapper extends AbstractMessageMapper {
         } catch (final Exception e) {
             final DittoHeaders dittoHeaders;
             if (e instanceof WithDittoHeaders) {
-                dittoHeaders = ((WithDittoHeaders<?>) e).getDittoHeaders();
+                dittoHeaders = ((WithDittoHeaders) e).getDittoHeaders();
             } else {
                 dittoHeaders = externalMessage.getInternalHeaders();
             }

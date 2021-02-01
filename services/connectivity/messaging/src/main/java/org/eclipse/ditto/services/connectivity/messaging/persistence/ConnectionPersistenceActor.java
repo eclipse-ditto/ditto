@@ -342,7 +342,7 @@ public final class ConnectionPersistenceActor
 
     @Override
     public void onMutation(final Command<?> command, final ConnectivityEvent<?> event,
-            final WithDittoHeaders<?> response, final boolean becomeCreated, final boolean becomeDeleted) {
+            final WithDittoHeaders response, final boolean becomeCreated, final boolean becomeDeleted) {
         if (command instanceof StagedCommand) {
             interpretStagedCommand(((StagedCommand) command).withSenderUnlessDefined(getSender()));
         } else {
@@ -584,7 +584,7 @@ public final class ConnectionPersistenceActor
                 });
     }
 
-    private void logDroppedSignal(final WithDittoHeaders<?> withDittoHeaders, final String type, final String reason) {
+    private void logDroppedSignal(final WithDittoHeaders withDittoHeaders, final String type, final String reason) {
         log.withCorrelationId(withDittoHeaders).debug("Signal ({}) dropped: {}", type, reason);
     }
 

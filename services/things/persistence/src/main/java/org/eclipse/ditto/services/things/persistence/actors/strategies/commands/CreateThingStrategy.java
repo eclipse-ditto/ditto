@@ -122,7 +122,7 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
                 .build();
         final ThingCreated thingCreated = ThingCreated.of(newThingWithImplicits, nextRevision, now, commandHeaders,
                 metadata);
-        final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
+        final WithDittoHeaders response = appendETagHeaderIfProvided(command,
                 CreateThingResponse.of(newThingWithImplicits, commandHeaders),
                 newThingWithImplicits);
 

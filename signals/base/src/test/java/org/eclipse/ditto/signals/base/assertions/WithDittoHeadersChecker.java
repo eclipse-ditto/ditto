@@ -26,7 +26,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  */
 public final class WithDittoHeadersChecker {
 
-    private final WithDittoHeaders<?> actual;
+    private final WithDittoHeaders actual;
 
     /**
      * Constructs a new {@code WithDittoHeadersChecker} object.

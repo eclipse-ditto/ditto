@@ -25,17 +25,17 @@ import java.util.function.Function;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.strategies.SubstitutionStrategy;
 import org.eclipse.ditto.services.concierge.enforcement.placeholders.strategies.SubstitutionStrategyRegistry;
 
 /**
- * A function which applies substitution of placeholders on a command (subtype of {@link WithDittoHeaders}) based on
+ * A function which applies substitution of placeholders on a command (subtype of {@link DittoHeadersSettable}) based on
  * its {@link DittoHeaders}.
  */
 @Immutable
 public final class PlaceholderSubstitution
-        implements Function<WithDittoHeaders<?>, CompletionStage<WithDittoHeaders<?>>> {
+        implements Function<DittoHeadersSettable<?>, CompletionStage<DittoHeadersSettable<?>>> {
 
     private final HeaderBasedPlaceholderSubstitutionAlgorithm substitutionAlgorithm;
     private final SubstitutionStrategyRegistry substitutionStrategyRegistry;
@@ -84,21 +84,19 @@ public final class PlaceholderSubstitution
     }
 
     @Override
-    public CompletionStage<WithDittoHeaders> apply(final WithDittoHeaders withDittoHeaders) {
-        requireNonNull(withDittoHeaders);
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public CompletionStage<DittoHeadersSettable<?>> apply(final DittoHeadersSettable<?> dittoHeadersSettable) {
+        requireNonNull(dittoHeadersSettable);
 
         final Optional<SubstitutionStrategy> firstMatchingStrategyOpt =
-                substitutionStrategyRegistry.getMatchingStrategy(withDittoHeaders);
+                substitutionStrategyRegistry.getMatchingStrategy(dittoHeadersSettable);
         if (firstMatchingStrategyOpt.isPresent()) {
             final SubstitutionStrategy firstMatchingStrategy = firstMatchingStrategyOpt.get();
-            return CompletableFuture.supplyAsync(() -> {
-                @SuppressWarnings("unchecked") final WithDittoHeaders maybeSubstituted =
-                        firstMatchingStrategy.apply(withDittoHeaders, substitutionAlgorithm);
-
-                return maybeSubstituted;
-            });
+            return CompletableFuture.supplyAsync(() ->
+                    firstMatchingStrategy.apply(dittoHeadersSettable, substitutionAlgorithm)
+            );
         } else {
-            return CompletableFuture.completedFuture(withDittoHeaders);
+            return CompletableFuture.completedFuture(dittoHeadersSettable);
         }
     }
 
