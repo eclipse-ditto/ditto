@@ -85,8 +85,15 @@ public final class ChangeQueueActor extends AbstractActor {
     public static Source<Map<ThingId, Metadata>, NotUsed> createSource(
             final ActorRef changeQueueActor,
             final Duration writeInterval) {
-        return Source.repeat(Control.DUMP)
-                .throttle(1, writeInterval)
+
+        final Source<Control, NotUsed> repeat;
+        if (!writeInterval.isNegative() && !writeInterval.isZero()) {
+            repeat = Source.repeat(Control.DUMP)
+                    .throttle(1, writeInterval);
+        } else {
+            repeat = Source.repeat(Control.DUMP);
+        }
+        return repeat
                 .flatMapConcat(ChangeQueueActor.askSelf(changeQueueActor))
                 .filter(map -> !map.isEmpty());
     }

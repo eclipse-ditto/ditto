@@ -41,8 +41,6 @@ import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
-import akka.stream.Attributes;
-import akka.stream.DelayOverflowStrategy;
 import akka.stream.KillSwitch;
 import akka.stream.KillSwitches;
 import akka.stream.javadsl.Keep;
@@ -177,8 +175,15 @@ final class PolicyEventForwarder extends AbstractActor {
     private void restartPolicyReferenceTagStream() {
         terminateStream();
         final ActorRef self = getSelf();
-        killSwitch = Source.repeat(Control.DUMP_POLICY_REVISIONS)
-                .throttle(1, interval)
+
+        final Source<Control, NotUsed> repeat;
+        if (!interval.isNegative() && !interval.isZero()) {
+            repeat = Source.repeat(Control.DUMP_POLICY_REVISIONS)
+                    .throttle(1, interval);
+        } else {
+            repeat = Source.repeat(Control.DUMP_POLICY_REVISIONS);
+        }
+        killSwitch = repeat
                 .viaMat(KillSwitches.single(), Keep.right())
                 .mapAsync(1, message ->
                         Patterns.ask(self, message, ASK_SELF_TIMEOUT).exceptionally(Function.identity()))
