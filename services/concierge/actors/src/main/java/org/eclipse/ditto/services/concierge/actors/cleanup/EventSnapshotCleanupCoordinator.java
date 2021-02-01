@@ -40,6 +40,7 @@ import org.eclipse.ditto.services.models.streaming.EntityIdWithRevision;
 import org.eclipse.ditto.services.models.things.ThingSnapshotTaken;
 import org.eclipse.ditto.services.models.things.ThingTag;
 import org.eclipse.ditto.services.utils.akka.controlflow.Transistor;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.health.AbstractBackgroundStreamingActorWithConfigWithStatusReport;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
@@ -141,6 +142,13 @@ public final class EventSnapshotCleanupCoordinator
         creditForRequests = config.getCreditDecisionConfig().getCreditForRequests();
     }
 
+    @Override
+    public void preStart() throws Exception {
+        super.preStart();
+        pubSubMediator.tell(DistPubSubAccess.subscribeViaGroup(ThingSnapshotTaken.PUBSUB_TOPIC, ACTOR_NAME, getSelf()),
+                getSelf());
+    }
+
     /**
      * Create Akka Props object for this actor.
      *
@@ -158,15 +166,21 @@ public final class EventSnapshotCleanupCoordinator
     @Override
     protected void preEnhanceSleepingBehavior(final ReceiveBuilder sleepingReceiveBuilder) {
         sleepingReceiveBuilder.match(DistributedPubSubMediator.SubscribeAck.class,
-                subAck -> log.info("Got <{}>", subAck));
+                subAck -> log.info("Got <{}>", subAck))
+                .match(CreditDecision.class, this::onCreditDecision)
+                .match(ThingSnapshotTaken.class, this::onThingSnapshotTaken)
+                .match(CleanupPersistenceResponse.class, this::onCleanupResponse);
     }
 
     @Override
     protected void preEnhanceStreamingBehavior(final ReceiveBuilder streamingReceiveBuilder) {
         streamingReceiveBuilder.match(CreditDecision.class, this::onCreditDecision)
-                .match(ThingSnapshotTaken.class, this::thingSnapshotTaken)
-                .match(CleanupPersistenceResponse.class, cleanupResponse ->
-                        enqueue(actions, cleanupResponse, config.getKeptActions()));
+                .match(ThingSnapshotTaken.class, this::onThingSnapshotTaken)
+                .match(CleanupPersistenceResponse.class, this::onCleanupResponse);
+    }
+
+    private void onCleanupResponse(final CleanupPersistenceResponse cleanupResponse) {
+        enqueue(actions, cleanupResponse, config.getKeptActions());
     }
 
     private void onCreditDecision(final CreditDecision creditDecision) {
@@ -186,7 +200,7 @@ public final class EventSnapshotCleanupCoordinator
         }
     }
 
-    private void thingSnapshotTaken(final ThingSnapshotTaken event) {
+    private void onThingSnapshotTaken(final ThingSnapshotTaken event) {
         if (creditForRequests > 0) {
             --creditForRequests;
             cleanUpThingByRequest(event.getEntityId());
