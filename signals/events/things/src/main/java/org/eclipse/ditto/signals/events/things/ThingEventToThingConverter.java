@@ -21,9 +21,11 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
@@ -117,8 +119,8 @@ public final class ThingEventToThingConverter {
         mappers.put(ThingMerged.class,
                 (te, tb) -> {
                     final ThingMerged thingMerged = (ThingMerged) te;
-                    return ThingsModelFactory.newThing(
-                            JsonFactory.newObject(thingMerged.getResourcePath(), thingMerged.getValue()));
+                    return ThingsModelFactory.newThing(JsonFactory.newObject(thingMerged.getResourcePath(),
+                                    filterNullValuesInJsonValue(thingMerged.getValue())));
                 }
         );
         mappers.put(ThingDeleted.class,
@@ -182,5 +184,43 @@ public final class ThingEventToThingConverter {
         mappers.put(FeaturePropertyDeleted.class, (te, tb) -> tb.build());
 
         return mappers;
+    }
+
+    private static JsonValue filterNullValuesInJsonValue(final JsonValue value) {
+        final JsonValue result;
+        if (value.isObject()) {
+            result = filterNullValuesInObject(value.asObject());
+        } else if (value.isArray()) {
+            result = value.asArray();
+        } else {
+            if (value.isNull()) {
+                result = JsonObject.empty();
+            } else {
+                result = value;
+            }
+        }
+
+        return result;
+    }
+
+    private static JsonValue filterNullValuesInObject(final JsonObject jsonObject) {
+        final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
+
+        jsonObject.forEach(jsonField -> {
+            final JsonKey key = jsonField.getKey();
+            final JsonValue value = jsonField.getValue();
+            final JsonValue result;
+
+            if (value.isNull()) {
+                return;
+            } else if (value.isObject()) {
+                result = filterNullValuesInObject(value.asObject());
+            } else {
+                result = value;
+            }
+            builder.set(key, result);
+        });
+
+        return builder.build();
     }
 }
