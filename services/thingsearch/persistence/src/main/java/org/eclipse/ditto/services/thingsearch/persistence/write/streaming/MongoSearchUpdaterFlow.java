@@ -52,7 +52,7 @@ final class MongoSearchUpdaterFlow {
     private static final String TRACE_THING_BULK_UPDATE = "things_search_thing_bulkUpdate";
     private static final String COUNT_THING_BULK_UPDATES_PER_BULK = "things_search_thing_bulkUpdate_updates_per_bulk";
     private static final String UPDATE_TYPE_TAG = "update_type";
-    private static final String MONGO_TIMER_SEGMENT = "mongo";
+    private static final String TIMER_SEGMENT_MONGO = "mongo";
 
     private final MongoCollection<Document> collection;
 
@@ -100,8 +100,7 @@ final class MongoSearchUpdaterFlow {
             final List<AbstractWriteModel> abstractWriteModels) {
         final List<WriteModel<Document>> writeModels = abstractWriteModels.stream()
                 .map(writeModel -> {
-                    writeModel.getMetadata().getTimers()
-                            .forEach(timer -> timer.startNewSegment(MONGO_TIMER_SEGMENT));
+                    writeModel.getMetadata().getTimers().forEach(timer -> timer.startNewSegment(TIMER_SEGMENT_MONGO));
                     return writeModel.toMongo();
                 })
                 .collect(Collectors.toList());
@@ -109,9 +108,8 @@ final class MongoSearchUpdaterFlow {
                 .map(bulkWriteResult -> {
                     abstractWriteModels.forEach(writeModel -> writeModel.getMetadata()
                             .getTimers()
-                            .forEach(timer -> Optional.ofNullable(
-                                    timer.getSegments().get(MONGO_TIMER_SEGMENT)
-                                    ).ifPresent(mongoSegment -> {
+                            .forEach(timer -> Optional.ofNullable(timer.getSegments().get(TIMER_SEGMENT_MONGO))
+                                    .ifPresent(mongoSegment -> {
                                         if (mongoSegment.isRunning()) {
                                             mongoSegment.stop();
                                         }

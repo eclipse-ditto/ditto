@@ -68,6 +68,9 @@ final class EnforcementFlow {
 
     private static final Source<Entry<Enforcer>, NotUsed> ENFORCER_NONEXISTENT = Source.single(Entry.nonexistent());
 
+    private static final String TIMER_SEGMENT_RETRIEVE_THINGS = "retrieve_things";
+    private static final String TIMER_SEGMENT_GET_ENFORCER = "get_enforcer";
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final ActorRef thingsShardRegion;
     private final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache;
@@ -163,9 +166,18 @@ final class EnforcementFlow {
         return Flow.<Map<ThingId, Metadata>>create().map(changeMap -> {
             log.info("Updating search index of <{}> things", changeMap.size());
             final Set<ThingId> thingIds = changeMap.keySet();
+            changeMap.values().forEach(metadata -> metadata.getTimers()
+                    .forEach(timer -> timer.startNewSegment(TIMER_SEGMENT_RETRIEVE_THINGS)));
             return sudoRetrieveThingJsons(parallelism, thingIds).flatMapConcat(responseMap ->
-                    Source.fromIterator(changeMap.values()::iterator).flatMapMerge(parallelism, metadataRef ->
-                            computeWriteModel(metadataRef, responseMap.get(metadataRef.getThingId())))
+                    Source.fromIterator(changeMap.values()::iterator).flatMapMerge(parallelism, metadataRef -> {
+                        metadataRef.getTimers().forEach(timer -> Optional.ofNullable(timer.getSegments()
+                                .get(TIMER_SEGMENT_RETRIEVE_THINGS)).ifPresent(segment -> {
+                            if (segment.isRunning()) {
+                                segment.stop();
+                            }
+                        }));
+                        return computeWriteModel(metadataRef, responseMap.get(metadataRef.getThingId()));
+                    })
             );
         });
 
@@ -245,7 +257,7 @@ final class EnforcementFlow {
      * @return source of an enforcer or an empty source.
      */
     private Source<Entry<Enforcer>, NotUsed> getEnforcer(final Metadata metadata, final JsonObject thing) {
-        metadata.getTimers().forEach(timer -> timer.startNewSegment("get_enforcer"));
+        metadata.getTimers().forEach(timer -> timer.startNewSegment(TIMER_SEGMENT_GET_ENFORCER));
         final Optional<JsonObject> acl = thing.getValue(Thing.JsonFields.ACL);
         if (acl.isPresent()) {
             return Source.single(Entry.permanent(AclEnforcer.of(ThingsModelFactory.newAcl(acl.get()))));
@@ -255,8 +267,8 @@ final class EnforcementFlow {
                         .map(PolicyId::of)
                         .map(policyId -> readCachedEnforcer(metadata, getPolicyEntityId(policyId), 0))
                         .map(enforcerSource -> {
-                            metadata.getTimers().forEach(timer ->
-                                    Optional.ofNullable(timer.getSegments().get("get_enforcer")).ifPresent(segment -> {
+                            metadata.getTimers().forEach(timer -> Optional.ofNullable(timer.getSegments()
+                                    .get(TIMER_SEGMENT_GET_ENFORCER)).ifPresent(segment -> {
                                 if (segment.isRunning()) {
                                     segment.stop();
                                 }
