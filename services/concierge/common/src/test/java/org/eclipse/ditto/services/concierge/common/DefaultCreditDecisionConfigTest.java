@@ -76,6 +76,14 @@ public class DefaultCreditDecisionConfigTest {
         softly.assertThat(underTest.getCreditPerBatch())
                 .as(CreditDecisionConfig.ConfigValue.CREDIT_PER_BATCH.getConfigPath())
                 .isEqualTo(500);
+
+        softly.assertThat(underTest.getCreditForRequests())
+                .as(CreditDecisionConfig.ConfigValue.CREDIT_FOR_REQUESTS.getConfigPath())
+                .isEqualTo(600);
+
+        softly.assertThat(underTest.getMaxPendingRequests())
+                .as(CreditDecisionConfig.ConfigValue.MAX_PENDING_REQUESTS.getConfigPath())
+                .isEqualTo(700);
     }
 
     private CreditDecisionConfig createFromConfig() {

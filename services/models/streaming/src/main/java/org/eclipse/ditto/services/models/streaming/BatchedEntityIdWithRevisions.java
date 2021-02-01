@@ -36,7 +36,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  * A list of {@code EntityIdWithRevision} batched together.
  */
 @Immutable
-public final class BatchedEntityIdWithRevisions<E extends EntityIdWithRevision>
+public final class BatchedEntityIdWithRevisions<E extends EntityIdWithRevision<?>>
         implements Jsonifiable<JsonObject>, StreamingMessage, WithManifest {
 
     static final JsonFieldDefinition<String> JSON_TYPE = Command.JsonFields.TYPE;
@@ -60,7 +60,7 @@ public final class BatchedEntityIdWithRevisions<E extends EntityIdWithRevision>
      * @param elements the batched elements.
      * @return a new {@code BatchedEntityIdWithRevisions} object.
      */
-    public static <T extends EntityIdWithRevision> BatchedEntityIdWithRevisions<T> of(final Class<T> elementClass,
+    public static <T extends EntityIdWithRevision<?>> BatchedEntityIdWithRevisions<T> of(final Class<T> elementClass,
             final List<T> elements) {
         return new BatchedEntityIdWithRevisions<>(typeOf(elementClass), elements);
     }
@@ -72,7 +72,7 @@ public final class BatchedEntityIdWithRevisions<E extends EntityIdWithRevision>
      * @param elementClass class of the elements.
      * @return type name of {@code BatchedEntityIdWithRevisions} with elements of type {@code T}.
      */
-    public static <T extends EntityIdWithRevision> String typeOf(final Class<T> elementClass) {
+    public static <T extends EntityIdWithRevision<?>> String typeOf(final Class<T> elementClass) {
         return TYPE_PREFIX + "batched" + elementClass.getSimpleName();
     }
 
@@ -83,7 +83,7 @@ public final class BatchedEntityIdWithRevisions<E extends EntityIdWithRevision>
      * @param elementDeserializer deserializer for the elements.
      * @return deserializer for {@code BatchedEntityIdWithRevisions} with elements of type {@code T}.
      */
-    public static <T extends EntityIdWithRevision> Function<JsonObject, Jsonifiable<?>> deserializer(
+    public static <T extends EntityIdWithRevision<?>> Function<JsonObject, Jsonifiable<?>> deserializer(
             final Function<JsonObject, T> elementDeserializer) {
         return jsonObject -> {
             final String type = jsonObject.getValueOrThrow(JSON_TYPE);
@@ -91,7 +91,7 @@ public final class BatchedEntityIdWithRevisions<E extends EntityIdWithRevision>
             final List<T> elements = jsonArray.stream()
                     .map(jsonValue -> elementDeserializer.apply(jsonValue.asObject()))
                     .collect(Collectors.toList());
-            return new BatchedEntityIdWithRevisions<T>(type, elements);
+            return new BatchedEntityIdWithRevisions<>(type, elements);
         };
     }
 

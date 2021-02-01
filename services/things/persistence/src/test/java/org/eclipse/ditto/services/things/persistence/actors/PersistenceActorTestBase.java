@@ -187,7 +187,7 @@ public abstract class PersistenceActorTestBase {
 
     private Props getPropsOfThingPersistenceActor(final ThingId thingId, final DistributedPub<ThingEvent<?>> pub) {
 
-        return ThingPersistenceActor.props(thingId, pub);
+        return ThingPersistenceActor.props(thingId, pub, pubSubMediator);
     }
 
     protected ActorRef createSupervisorActorFor(final ThingId thingId) {
