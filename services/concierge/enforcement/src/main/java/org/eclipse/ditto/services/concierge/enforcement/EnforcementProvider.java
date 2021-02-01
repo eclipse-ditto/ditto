@@ -111,7 +111,7 @@ public interface EnforcementProvider<T extends Signal<?>> {
 
         return EnforcementTask.of(entityId, changesAuthorization, () ->
                 preEnforcer.withErrorHandlingAsync(contextual,
-                        contextual.setMessage(null),
+                        contextual.setMessage(null).withReceiver(null),
                         converted -> createEnforcement(converted).enforceSafely()
                 )
         );
