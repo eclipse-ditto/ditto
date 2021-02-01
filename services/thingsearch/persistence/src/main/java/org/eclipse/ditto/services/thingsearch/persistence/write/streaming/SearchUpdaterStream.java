@@ -180,7 +180,7 @@ public final class SearchUpdaterStream {
                     final String namespace = namespaceExtractor.apply(element);
                     final CompletionStage<Boolean> shouldUpdate = blockedNamespaces.contains(namespace)
                             .handle((result, error) -> result == null || !result);
-                    return Source.fromCompletionStage(shouldUpdate)
+                    return Source.completionStage(shouldUpdate)
                             .filter(Boolean::valueOf)
                             .map(bool -> element);
                 });
