@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.services.concierge.enforcement.placeholders.strategies;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -57,9 +55,8 @@ public final class SubstitutionStrategyRegistry {
     }
 
     // for testing purposes
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    List<SubstitutionStrategy> getStrategies() {
-        return (List) strategies;
+    List<SubstitutionStrategy<?>> getStrategies() {
+        return strategies;
     }
 
     private static List<SubstitutionStrategy<?>> createStrategies() {

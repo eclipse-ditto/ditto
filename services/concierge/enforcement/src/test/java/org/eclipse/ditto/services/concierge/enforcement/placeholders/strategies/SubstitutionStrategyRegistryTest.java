@@ -87,7 +87,7 @@ public class SubstitutionStrategyRegistryTest {
 
     @Test
     public void allSubstitutionStrategiesHaveBeenConfigured() throws UnsupportedEncodingException {
-        final List<SubstitutionStrategy> strategies = underTest.getStrategies();
+        final List<SubstitutionStrategy<?>> strategies = underTest.getStrategies();
         final List<Class<? extends SubstitutionStrategy>> actualStrategyClasses =
                 strategies.stream().map(SubstitutionStrategy::getClass).collect(Collectors.toList());
 

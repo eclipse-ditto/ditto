@@ -21,7 +21,6 @@ import java.util.List;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
@@ -35,9 +34,9 @@ import org.eclipse.ditto.services.concierge.enforcement.placeholders.HeaderBased
 
 /**
  * Abstract base class for instances of {@link SubstitutionStrategy} which matches on a concrete subtype of
- * {@link WithDittoHeaders}.
+ * {@link DittoHeadersSettable}.
  *
- * @param <T> the subtype of {@link WithDittoHeaders} handled by this strategy.
+ * @param <T> the subtype of {@link DittoHeadersSettable} handled by this strategy.
  */
 abstract class AbstractTypedSubstitutionStrategy<T extends DittoHeadersSettable<?>> implements SubstitutionStrategy<T> {
 
