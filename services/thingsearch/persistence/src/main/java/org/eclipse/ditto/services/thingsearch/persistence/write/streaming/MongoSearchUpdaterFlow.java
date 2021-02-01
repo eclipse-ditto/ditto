@@ -151,21 +151,22 @@ final class MongoSearchUpdaterFlow {
     private static <A, B, C, D> Graph<FlowShape<A, C>, NotUsed> assembleFlows(
             final Flow<A, B, NotUsed> stage1Flow,
             final Flow<B, C, NotUsed> stage2Flow,
-            final Flow<B, D, NotUsed> sideChannelFlow,
+            final Flow<B, D, NotUsed> startTimerFlow,
             final Flow<Pair<C, D>, C, NotUsed> resultProcessorFlow) {
 
         return GraphDSL.create(builder -> {
             final FlowShape<A, B> stage1 = builder.add(stage1Flow);
             final FlowShape<B, C> stage2 = builder.add(stage2Flow);
-            final FlowShape<B, D> sideChannel = builder.add(sideChannelFlow);
+            final FlowShape<B, D> sideChannel = builder.add(startTimerFlow);
             final FlowShape<Pair<C, D>, C> resultProcessor = builder.add(resultProcessorFlow);
 
             final UniformFanOutShape<B, B> broadcast = builder.add(Broadcast.create(2));
             final FanInShape2<C, D, Pair<C, D>> zip = builder.add(Zip.create());
 
             builder.from(stage1.out()).toInlet(broadcast.in());
-            builder.from(broadcast.out(0)).toInlet(stage2.in());
-            builder.from(broadcast.out(1)).toInlet(sideChannel.in());
+            // its important that outlet 0 is connected to the timers, to guarantee that the timer is started first
+            builder.from(broadcast.out(0)).toInlet(sideChannel.in());
+            builder.from(broadcast.out(1)).toInlet(stage2.in());
             builder.from(stage2.out()).toInlet(zip.in0());
             builder.from(sideChannel.out()).toInlet(zip.in1());
             builder.from(zip.out()).toInlet(resultProcessor.in());
