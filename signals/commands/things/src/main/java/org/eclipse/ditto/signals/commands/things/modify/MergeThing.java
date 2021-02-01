@@ -369,7 +369,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      * @throws org.eclipse.ditto.signals.commands.things.exceptions.ThingMergeInvalidException if the thing is null or empty.
      */
     private static void ensureThingIsNotNullOrEmpty(final Thing thing, final DittoHeaders dittoHeaders) {
-        if (thing.toJson().isEmpty()) {
+        if (thing.toJson().isEmpty() && dittoHeaders.getSchemaVersion().filter(JsonSchemaVersion.V_2::equals).isPresent()) {
             throw ThingMergeInvalidException.fromMessage(
                     "The provided json value can not be applied at this resource", dittoHeaders);
         }

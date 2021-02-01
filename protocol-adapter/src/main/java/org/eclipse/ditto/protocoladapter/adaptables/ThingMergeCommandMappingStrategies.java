@@ -21,6 +21,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.UnsupportedMediaTypeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Thing;
@@ -172,7 +173,8 @@ final class ThingMergeCommandMappingStrategies extends AbstractThingMappingStrat
     }
 
     protected static Thing thingForMergeFrom(final Adaptable adaptable) {
-        if (payloadValueIsNull(adaptable)) {
+        if (payloadValueIsNull(adaptable)
+                && adaptable.getDittoHeaders().getSchemaVersion().filter(JsonSchemaVersion.V_2::equals).isPresent()) {
             throw ThingMergeInvalidException.fromMessage(
                     "The provided json value can not be applied at this resource", adaptable.getDittoHeaders());
         }

@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
@@ -262,7 +263,8 @@ public final class ThingsRoute extends AbstractRoute {
 
     private static Thing thingFromJsonForPatch(final String thingJson, final ThingId thingId,
             final DittoHeaders dittoHeaders) {
-        if (JsonFactory.readFrom(thingJson).isNull()) {
+        if (JsonFactory.readFrom(thingJson).isNull() &&
+                dittoHeaders.getSchemaVersion().filter(JsonSchemaVersion.V_2::equals).isPresent()) {
             throw ThingMergeInvalidException.fromMessage(
                     "The provided json value can not be applied at this resource", dittoHeaders);
         }
