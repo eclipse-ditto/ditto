@@ -57,6 +57,7 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.dispatch.MessageDispatcher;
 import akka.pattern.Patterns;
+import akka.stream.Attributes;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
@@ -169,15 +170,16 @@ final class EnforcementFlow {
             changeMap.values().forEach(metadata -> metadata.getTimers()
                     .forEach(timer -> timer.startNewSegment(TIMER_SEGMENT_RETRIEVE_THINGS)));
             return sudoRetrieveThingJsons(parallelism, thingIds).flatMapConcat(responseMap ->
-                    Source.fromIterator(changeMap.values()::iterator).flatMapMerge(parallelism, metadataRef -> {
-                        metadataRef.getTimers().forEach(timer -> Optional.ofNullable(timer.getSegments()
-                                .get(TIMER_SEGMENT_RETRIEVE_THINGS)).ifPresent(segment -> {
-                            if (segment.isRunning()) {
-                                segment.stop();
-                            }
-                        }));
-                        return computeWriteModel(metadataRef, responseMap.get(metadataRef.getThingId()));
-                    })
+                    Source.fromIterator(changeMap.values()::iterator)
+                            .flatMapMerge(parallelism, metadataRef -> {
+                                metadataRef.getTimers().forEach(timer -> Optional.ofNullable(timer.getSegments()
+                                        .get(TIMER_SEGMENT_RETRIEVE_THINGS)).ifPresent(segment -> {
+                                    if (segment.isRunning()) {
+                                        segment.stop();
+                                    }
+                                }));
+                                return computeWriteModel(metadataRef, responseMap.get(metadataRef.getThingId()));
+                            }).withAttributes(Attributes.inputBuffer(parallelism, parallelism))
             );
         });
 
@@ -188,6 +190,7 @@ final class EnforcementFlow {
 
         return Source.fromIterator(thingIds::iterator)
                 .flatMapMerge(parallelism, this::sudoRetrieveThing)
+                .withAttributes(Attributes.inputBuffer(parallelism, parallelism))
                 .<Map<ThingId, SudoRetrieveThingResponse>>fold(new HashMap<>(), (map, response) -> {
                     map.put(getThingId(response), response);
                     return map;
