@@ -65,10 +65,6 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-commands-common</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-policies</artifactId>
         </dependency>
         <dependency>

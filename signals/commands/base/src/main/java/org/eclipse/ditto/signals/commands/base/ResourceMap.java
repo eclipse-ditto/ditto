@@ -43,7 +43,7 @@ public final class ResourceMap<T> extends HashMap<JsonKey, ResourceMap<T>> {
      * @return the new builder
      */
     public static <T> ResourceMapBuilder<T> newBuilder(final T root) {
-        return new ResourceMapBuilder<T>(root);
+        return new ResourceMapBuilder<>(root);
     }
 
     /**

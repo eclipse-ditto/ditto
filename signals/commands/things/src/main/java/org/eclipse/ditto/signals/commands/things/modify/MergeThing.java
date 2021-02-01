@@ -58,7 +58,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingMergeInvalidExc
  * {@code value} describing the change that should be applied. The {@code value} at the given {@code path} is merged
  * with the existing thing according to <a href="https://tools.ietf.org/html/rfc7396">RFC7396 - JSON Merge Patch</a>.
  *
- * @since 2.0.0
+ * TODO adapt @since annotation @since 1.6.0
  */
 @Immutable
 @JsonParsableCommand(typePrefix = MergeThing.TYPE_PREFIX, name = MergeThing.NAME)

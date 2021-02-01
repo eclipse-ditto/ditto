@@ -23,6 +23,10 @@ import org.eclipse.ditto.signals.commands.things.ThingResource;
  */
 final class ThingResourceNames {
 
+    private ThingResourceNames() {
+        // prevent instantiation
+    }
+
     /**
      * This mapping is used in the method {@code AbstractAdapter#getType} to determine the second part of the command
      * name (e.g. {@code thing} of {@value org.eclipse.ditto.signals.commands.things.modify.CreateThing#NAME}),

@@ -40,7 +40,7 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 /**
  * This event is emitted after a {@link org.eclipse.ditto.model.things.Thing} was merged.
  *
- * @since 2.0.0
+ * TODO adapt @since annotation @since 1.6.0
  */
 @Immutable
 @JsonParsableEvent(name = ThingMerged.NAME, typePrefix = ThingMerged.TYPE_PREFIX)

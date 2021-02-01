@@ -18,7 +18,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 
 /**
- * Defines methods where implemeting classes can handle the different resources in the respective methods.
+ * Defines methods where implementing classes can handle the different resources in the respective methods.
  *
  * @param <P> the additional parameter that is passed through to the visit method
  * @param <R> the result type of the visit method
