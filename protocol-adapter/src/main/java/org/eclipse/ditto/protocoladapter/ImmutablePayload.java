@@ -34,7 +34,7 @@ import org.eclipse.ditto.model.base.entity.metadata.Metadata;
  * Immutable implementation of {@link Payload}.
  */
 @Immutable
-public final class ImmutablePayload implements Payload {
+final class ImmutablePayload implements Payload {
 
     private final MessagePath path;
     @Nullable private final JsonValue value;
@@ -203,7 +203,7 @@ public final class ImmutablePayload implements Payload {
      * Mutable implementation of {@link PayloadBuilder} for building immutable {@link Payload} instances.
      */
     @NotThreadSafe
-    public static final class ImmutablePayloadBuilder implements PayloadBuilder {
+    static final class ImmutablePayloadBuilder implements PayloadBuilder {
 
         @Nullable private final MessagePath path;
 
@@ -215,7 +215,7 @@ public final class ImmutablePayload implements Payload {
         @Nullable private Metadata metadata;
         @Nullable private JsonFieldSelector fields;
 
-        public ImmutablePayloadBuilder(@Nullable final JsonPointer path) {
+        private ImmutablePayloadBuilder(@Nullable final JsonPointer path) {
             if (path instanceof MessagePath) {
                 this.path = (MessagePath) path;
             } else if (null != path) {

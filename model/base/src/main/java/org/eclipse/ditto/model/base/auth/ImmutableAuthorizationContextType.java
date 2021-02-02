@@ -20,7 +20,7 @@ import javax.annotation.concurrent.Immutable;
  * Immutable implementation of {@link AuthorizationContextType}.
  */
 @Immutable
-public final class ImmutableAuthorizationContextType extends AuthorizationContextType {
+final class ImmutableAuthorizationContextType extends AuthorizationContextType {
 
     private ImmutableAuthorizationContextType(final String type) {
         super(type);
@@ -34,7 +34,7 @@ public final class ImmutableAuthorizationContextType extends AuthorizationContex
      * @throws NullPointerException if {@code type} is {@code null}.
      * @throws IllegalArgumentException if {@code type} is empty.
      */
-    public static ImmutableAuthorizationContextType of(final CharSequence type) {
+    static ImmutableAuthorizationContextType of(final CharSequence type) {
         return new ImmutableAuthorizationContextType(checkNotNull(type, "type").toString());
     }
 
