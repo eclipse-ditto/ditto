@@ -18,6 +18,7 @@ import java.net.URI;
 import java.text.MessageFormat;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -25,7 +26,13 @@ import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.json.JsonParsableException;
 
+/**
+ * Thrown if a {@link org.eclipse.ditto.signals.base.Signal} is not supported.
+ */
+@Immutable
+@JsonParsableException(errorCode = UnsupportedSignalException.ERROR_CODE)
 public class UnsupportedSignalException extends DittoRuntimeException {
 
     /**

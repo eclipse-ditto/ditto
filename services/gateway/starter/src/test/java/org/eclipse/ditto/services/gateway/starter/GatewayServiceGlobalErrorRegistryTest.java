@@ -33,6 +33,7 @@ import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
 import org.eclipse.ditto.signals.base.UnsupportedSchemaVersionException;
+import org.eclipse.ditto.signals.base.UnsupportedSignalException;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.PathUnknownException;
@@ -50,6 +51,7 @@ public final class GatewayServiceGlobalErrorRegistryTest extends GlobalErrorRegi
                 AclEntryInvalidException.class,
                 CommandNotSupportedException.class,
                 UnsupportedSchemaVersionException.class,
+                UnsupportedSignalException.class,
                 GatewayAuthenticationFailedException.class,
                 ConnectionConflictException.class,
                 ConnectionConfigurationInvalidException.class,
