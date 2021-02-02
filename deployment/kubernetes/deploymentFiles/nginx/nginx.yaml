@@ -11,11 +11,17 @@ spec:
   selector:
     app: nginx
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
+  labels:
+    app: nginx
   name: nginx
 spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx
   template:
     metadata:
       labels:
@@ -23,7 +29,7 @@ spec:
     spec:
       containers:
       - name: nginx
-        image: docker.io/nginx:1.15-alpine
+        image: docker.io/nginx:1.19-alpine
         volumeMounts:
         - name: nginx-conf
           mountPath: /etc/nginx/nginx.conf

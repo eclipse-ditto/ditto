@@ -1,11 +1,21 @@
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: concierge
   labels:
     app: concierge
 spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  minReadySeconds: 30
+  selector:
+    matchLabels:
+      app: concierge
   template:
     metadata:
       labels:
@@ -17,10 +27,15 @@ spec:
       - name: concierge
         image: docker.io/eclipse/ditto-concierge:latest
         imagePullPolicy: IfNotPresent
-        args:
-          - "java"
-          - "-jar"
-          - "/opt/ditto/starter.jar"
+        args: ["java", "-jar", "starter.jar"]
+#       Resource can be managed by setting the following resource config.
+#        resources:
+#          requests:
+#            cpu: "1"
+#            memory: "1Gi"
+#          limits:
+#            # cpu: "{{ item.cpus }}" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+#            memory: "2Gi"
         ports:
         - name: remoting
           containerPort: 2551
@@ -62,13 +77,23 @@ spec:
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: connectivity
   labels:
     app: connectivity
 spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  minReadySeconds: 30
+  selector:
+    matchLabels:
+      app: connectivity
   template:
     metadata:
       labels:
@@ -80,10 +105,15 @@ spec:
       - name: connectivity
         image: docker.io/eclipse/ditto-connectivity:latest
         imagePullPolicy: IfNotPresent
-        args:
-          - "java"
-          - "-jar"
-          - "/opt/ditto/starter.jar"
+        args: ["java", "-jar", "starter.jar"]
+#       Resource can be managed by setting the following resource config.
+#        resources:
+#          requests:
+#            cpu: "2"
+#            memory: "1Gi"
+#          limits:
+#            # cpu: "{{ item.cpus }}" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+#            memory: "4Gi"
         ports:
         - name: remoting
           containerPort: 2551
@@ -125,13 +155,23 @@ spec:
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: things
   labels:
     app: things
 spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  minReadySeconds: 30
+  selector:
+    matchLabels:
+      app: things
   template:
     metadata:
       labels:
@@ -143,10 +183,15 @@ spec:
       - name: things
         image: docker.io/eclipse/ditto-things:latest
         imagePullPolicy: IfNotPresent
-        args:
-          - "java"
-          - "-jar"
-          - "/opt/ditto/starter.jar"
+        args: ["java", "-jar", "starter.jar"]
+#       Resource can be managed by setting the following resource config.
+#        resources:
+#          requests:
+#            cpu: "1"
+#            memory: "1Gi"
+#          limits:
+#            # cpu: "{{ item.cpus }}" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+#            memory: "2Gi"
         ports:
         - name: remoting
           containerPort: 2551
@@ -188,13 +233,23 @@ spec:
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: things-search
   labels:
     app: things-search
 spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  minReadySeconds: 30
+  selector:
+    matchLabels:
+      app: things-search
   template:
     metadata:
       labels:
@@ -205,10 +260,15 @@ spec:
       - name: things-search
         image: docker.io/eclipse/ditto-things-search:latest
         imagePullPolicy: IfNotPresent
-        args:
-          - "java"
-          - "-jar"
-          - "/opt/ditto/starter.jar"
+        args: ["java", "-jar", "starter.jar"]
+#       Resource can be managed by setting the following resource config.
+#        resources:
+#          requests:
+#            cpu: "1"
+#            memory: "512Mi"
+#          limits:
+#            # cpu: "{{ item.cpus }}" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+#            memory: "1Gi"
         ports:
         - name: remoting
           containerPort: 2551
@@ -250,13 +310,23 @@ spec:
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: policies
   labels:
     app: policies
 spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  minReadySeconds: 30
+  selector:
+    matchLabels:
+      app: policies
   template:
     metadata:
       labels:
@@ -267,10 +337,15 @@ spec:
       - name: policies
         image: docker.io/eclipse/ditto-policies:latest
         imagePullPolicy: IfNotPresent
-        args:
-          - "java"
-          - "-jar"
-          - "/opt/ditto/starter.jar"
+        args: ["java", "-jar", "starter.jar"]
+#       Resource can be managed by setting the following resource config.
+#        resources:
+#          requests:
+#            cpu: "1"
+#            memory: "1Gi"
+#          limits:
+#            # cpu: "{{ item.cpus }}" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+#            memory: "2Gi"
         ports:
         - name: remoting
           containerPort: 2551
@@ -312,13 +387,23 @@ spec:
         - name: MONGO_DB_HOSTNAME
           value: "mongodb"
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: gateway
   labels:
     app: gateway
 spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  minReadySeconds: 30
+  selector:
+    matchLabels:
+      app: gateway
   template:
     metadata:
       labels:
@@ -329,10 +414,15 @@ spec:
       - name: gateway
         image: docker.io/eclipse/ditto-gateway:latest
         imagePullPolicy: IfNotPresent
-        args:
-          - "java"
-          - "-jar"
-          - "/opt/ditto/starter.jar"
+        args: ["java", "-jar", "starter.jar"]
+#       Resource can be managed by setting the following resource config.
+#        resources:
+#          requests:
+#            cpu: "1"
+#            memory: "512Mi"
+#          limits:
+#            # cpu: "{{ item.cpus }}" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+#            memory: "1Gi"
         ports:
         - name: remoting
           containerPort: 2551
