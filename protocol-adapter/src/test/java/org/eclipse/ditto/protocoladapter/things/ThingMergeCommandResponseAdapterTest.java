@@ -13,7 +13,7 @@
 package org.eclipse.ditto.protocoladapter.things;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.LiveTwinTest;
@@ -48,7 +48,7 @@ public final class ThingMergeCommandResponseAdapterTest extends LiveTwinTest imp
         final TopicPath topicPath = topicPath(TopicPath.Action.MERGE);
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(JsonPointer.of("/_policy"))
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -66,7 +66,7 @@ public final class ThingMergeCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -83,7 +83,7 @@ public final class ThingMergeCommandResponseAdapterTest extends LiveTwinTest imp
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withStatus(HttpStatusCode.NO_CONTENT)
+                        .withStatus(HttpStatus.NO_CONTENT)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();

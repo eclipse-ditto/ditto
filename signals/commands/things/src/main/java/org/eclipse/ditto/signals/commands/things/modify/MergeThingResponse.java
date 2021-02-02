@@ -25,7 +25,7 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.base.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
  * Response to a {@link MergeThing} command.
@@ -54,7 +55,7 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
     private final JsonPointer path;
 
     private MergeThingResponse(final ThingId thingId, final JsonPointer path, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatusCode.NO_CONTENT, dittoHeaders);
+        super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
         this.thingId = checkNotNull(thingId, "thingId");
         this.path = checkNotNull(path, "path");
         checkSchemaVersion();
@@ -103,7 +104,7 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicateParam) {
         final Predicate<JsonField> predicate = schemaVersion.and(predicateParam);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(MergeThingResponse.JsonFields.JSON_PATH, path.toString(), predicate);
     }
 
@@ -117,13 +118,13 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain a field for
-     * {@link ThingModifyCommand.JsonFields#JSON_THING_ID} or {@link JsonFields#JSON_PATH}.
+     * {@link ThingCommand.JsonFields#JSON_THING_ID} or {@link JsonFields#JSON_PATH}.
      */
     public static MergeThingResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<MergeThingResponse>(TYPE, jsonObject)
                 .deserialize(statusCode -> {
                     final String extractedThingId =
-                            jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+                            jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
                     final String path = jsonObject.getValueOrThrow(JsonFields.JSON_PATH);
 
                     return new MergeThingResponse(ThingId.of(extractedThingId), JsonPointer.of(path), dittoHeaders);
@@ -133,7 +134,8 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
     /**
      * An enumeration of the JSON fields of a {@code MergeThingResponse} command.
      */
-    private static class JsonFields {
+    private static final class JsonFields {
+
         static final JsonFieldDefinition<String> JSON_PATH =
                 JsonFactory.newStringFieldDefinition("path", FieldType.REGULAR, JsonSchemaVersion.V_2);
     }

@@ -83,4 +83,7 @@ public final class MappingStrategiesFactory {
     public static MessageCommandResponseMappingStrategies getMessageCommandResponseMappingStrategies() {
         return MessageCommandResponseMappingStrategies.getInstance();
     }
+
+    private MappingStrategiesFactory() {
+    }
 }

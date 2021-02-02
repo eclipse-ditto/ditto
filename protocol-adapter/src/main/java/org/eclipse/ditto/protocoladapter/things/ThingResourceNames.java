@@ -63,7 +63,7 @@ final class ThingResourceNames {
     }
 
     static Map<ThingResource, String> get(final ThingResource... supportedResources) {
-        final EnumMap<ThingResource, String> filtered = new EnumMap<>(ThingResource.class);
+        final Map<ThingResource, String> filtered = new EnumMap<>(ThingResource.class);
         for (final ThingResource resource : supportedResources) {
             if (resourceNames.containsKey(resource)) {
                 filtered.put(resource, resourceNames.get(resource));

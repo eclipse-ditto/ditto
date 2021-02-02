@@ -15,7 +15,6 @@ package org.eclipse.ditto.protocoladapter.adaptables;
 import java.util.HashMap;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
 import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;

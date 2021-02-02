@@ -47,6 +47,7 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.base.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
 import org.eclipse.ditto.signals.commands.things.ThingCommandSizeValidator;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributePointerInvalidException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
@@ -393,11 +394,11 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if {@code jsonObject} did not contain a field for
-     * {@link ThingModifyCommand.JsonFields#JSON_THING_ID}, {@link JsonFields#JSON_PATH} or {@link JsonFields#JSON_VALUE}.
+     * {@link ThingCommand.JsonFields#JSON_THING_ID}, {@link JsonFields#JSON_PATH} or {@link JsonFields#JSON_VALUE}.
      */
     public static MergeThing fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandJsonDeserializer<MergeThing>(TYPE, jsonObject).deserialize(() -> {
-            final String thingId = jsonObject.getValueOrThrow(ThingModifyCommand.JsonFields.JSON_THING_ID);
+            final String thingId = jsonObject.getValueOrThrow(ThingCommand.JsonFields.JSON_THING_ID);
             final String path = jsonObject.getValueOrThrow(JsonFields.JSON_PATH);
             final JsonValue jsonValue = jsonObject.getValueOrThrow(JsonFields.JSON_VALUE);
 
@@ -452,7 +453,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> predicateParameter) {
         final Predicate<JsonField> predicate = schemaVersion.and(predicateParameter);
-        jsonObjectBuilder.set(ThingModifyCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
+        jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
         jsonObjectBuilder.set(JsonFields.JSON_PATH, path.toString(), predicate);
         jsonObjectBuilder.set(JsonFields.JSON_VALUE, value, predicate);
     }
@@ -480,7 +481,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      * An enumeration of the JSON fields of a {@code MergeThing} command.
      */
     @Immutable
-    public static class JsonFields {
+    private static final class JsonFields {
 
         static final JsonFieldDefinition<String> JSON_PATH =
                 JsonFactory.newStringFieldDefinition("path", FieldType.REGULAR, JsonSchemaVersion.V_2);
