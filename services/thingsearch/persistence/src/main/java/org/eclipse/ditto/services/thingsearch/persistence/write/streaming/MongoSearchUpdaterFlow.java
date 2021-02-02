@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_COLLECTION_NAME;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.bson.Document;
@@ -52,7 +51,6 @@ final class MongoSearchUpdaterFlow {
     private static final String TRACE_THING_BULK_UPDATE = "things_search_thing_bulkUpdate";
     private static final String COUNT_THING_BULK_UPDATES_PER_BULK = "things_search_thing_bulkUpdate_updates_per_bulk";
     private static final String UPDATE_TYPE_TAG = "update_type";
-    private static final String TIMER_SEGMENT_MONGO = "mongo_bulk_write";
 
     private final MongoCollection<Document> collection;
 
@@ -100,24 +98,12 @@ final class MongoSearchUpdaterFlow {
             final List<AbstractWriteModel> abstractWriteModels) {
         final List<WriteModel<Document>> writeModels = abstractWriteModels.stream()
                 .map(writeModel -> {
-                    writeModel.getMetadata().getTimers().forEach(timer -> timer.startNewSegment(TIMER_SEGMENT_MONGO));
+                    ConsistencyLag.startS5MongoBulkWrite(writeModel.getMetadata());
                     return writeModel.toMongo();
                 })
                 .collect(Collectors.toList());
         return Source.fromPublisher(collection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false)))
-                .map(bulkWriteResult -> {
-                    abstractWriteModels.forEach(writeModel -> writeModel.getMetadata()
-                            .getTimers()
-                            .forEach(timer -> Optional.ofNullable(timer.getSegments().get(TIMER_SEGMENT_MONGO))
-                                    .ifPresent(mongoSegment -> {
-                                        if (mongoSegment.isRunning()) {
-                                            mongoSegment.stop();
-                                        }
-                                    })
-                            )
-                    );
-                    return WriteResultAndErrors.success(abstractWriteModels, bulkWriteResult);
-                })
+                .map(bulkWriteResult -> WriteResultAndErrors.success(abstractWriteModels, bulkWriteResult))
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<WriteResultAndErrors, NotUsed>>()
                         .match(MongoBulkWriteException.class, bulkWriteException ->
                                 Source.single(WriteResultAndErrors.failure(abstractWriteModels, bulkWriteException))
@@ -126,7 +112,12 @@ final class MongoSearchUpdaterFlow {
                                 Source.single(WriteResultAndErrors.unexpectedError(abstractWriteModels, error))
                         )
                         .build()
-                );
+                )
+                .map(resultAndErrors -> {
+                    abstractWriteModels.forEach(writeModel ->
+                            ConsistencyLag.startS6Acknowledge(writeModel.getMetadata()));
+                    return resultAndErrors;
+                });
     }
 
     private static <T> Flow<List<T>, StartedTimer, NotUsed> createStartTimerFlow() {

@@ -34,6 +34,7 @@ import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThing;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThingResponse;
 import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
+import org.eclipse.ditto.services.thingsearch.persistence.write.streaming.ConsistencyLag;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
@@ -53,8 +54,6 @@ import akka.cluster.sharding.ShardRegion;
  * This Actor initiates persistence updates related to 1 thing.
  */
 final class ThingUpdater extends AbstractActor {
-
-    private static final String SEARCH_UPDATER_CONSISTENCY_LAG = "things_search_updater_consistency_lag";
 
     private static final AcknowledgementRequest SEARCH_PERSISTED_REQUEST =
             AcknowledgementRequest.of(DittoAcknowledgementLabel.SEARCH_PERSISTED);
@@ -209,11 +208,12 @@ final class ThingUpdater extends AbstractActor {
         } else {
             l.debug("Applying thing event <{}>.", thingEvent);
             thingRevision = thingEvent.getRevision();
-            final StartedTimer timer = DittoMetrics.expiringTimer(SEARCH_UPDATER_CONSISTENCY_LAG)
+            final StartedTimer timer = DittoMetrics.expiringTimer(ConsistencyLag.TIMER_NAME)
                     .expirationHandling(startedTimer ->
                             l.warning("Timer measuring consistency lag timed out for event <{}>",
                                     thingEvent))
                     .build();
+            ConsistencyLag.startS0InUpdater(timer);
             enqueueMetadata(exportMetadataWithSender(shouldAcknowledge, getSender(), timer));
         }
     }

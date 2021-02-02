@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
@@ -44,8 +43,6 @@ public final class ChangeQueueActor extends AbstractActor
     public static final String ACTOR_NAME = "changeQueueActor";
 
     private static final Duration ASK_SELF_TIMEOUT = Duration.ofSeconds(5L);
-    private static final String TIMER_SEGMENT_WAIT_FOR_DEQUEUE = "wait_for_dequeue";
-    private static final String TIMER_SEGMENT_WAIT_FOR_DEQUEUE_DUMP = "wait_for_dequeue_dump";
 
     /**
      * Caching changes of 1 Thing per key.
@@ -80,10 +77,7 @@ public final class ChangeQueueActor extends AbstractActor
      * @param metadata a description of the change.
      */
     private void enqueue(final Metadata metadata) {
-        metadata.getTimers().forEach(timer -> {
-            timer.startNewSegment(TIMER_SEGMENT_WAIT_FOR_DEQUEUE);
-            timer.startNewSegment(TIMER_SEGMENT_WAIT_FOR_DEQUEUE_DUMP);
-        });
+        ConsistencyLag.startS1InChangeQueue(metadata);
         cache.merge(metadata.getThingId(), metadata, Metadata::prependSenders);
     }
 
@@ -107,29 +101,11 @@ public final class ChangeQueueActor extends AbstractActor
         }
         return repeat
                 .flatMapConcat(ChangeQueueActor.askSelf(changeQueueActor))
-                .filter(map -> !map.isEmpty())
-                .map(map -> {
-                    map.values().forEach(metadata -> metadata.getTimers().forEach(timer ->
-                            Optional.ofNullable(timer.getSegments().get(TIMER_SEGMENT_WAIT_FOR_DEQUEUE))
-                                    .ifPresent(dequeueSegment -> {
-                                        if (dequeueSegment.isRunning()) {
-                                            dequeueSegment.stop();
-                                        }
-                                    })
-                    ));
-                    return map;
-                });
+                .filter(map -> !map.isEmpty());
     }
 
     private void dump(final Control dump) {
-        cache.values().forEach(metadata -> metadata.getTimers().forEach(timer ->
-                Optional.ofNullable(timer.getSegments().get(TIMER_SEGMENT_WAIT_FOR_DEQUEUE_DUMP))
-                        .ifPresent(dequeueDumpSegment -> {
-                            if (dequeueDumpSegment.isRunning()) {
-                                dequeueDumpSegment.stop();
-                            }
-                        })
-        ));
+        cache.values().forEach(ConsistencyLag::startS2WaitForDemand);
         getSender().tell(cache, getSelf());
         cache = new HashMap<>();
     }

@@ -13,9 +13,7 @@
 package org.eclipse.ditto.services.thingsearch.persistence.write.model;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -63,8 +61,8 @@ public final class Metadata {
         this.policyId = policyId;
         this.policyRevision = policyRevision;
         this.modified = modified;
-        this.timers = Collections.unmodifiableList(new ArrayList<>(timers));
-        this.senders = Collections.unmodifiableList(new ArrayList<>(senders));
+        this.timers = List.copyOf(timers);
+        this.senders = List.copyOf(senders);
     }
 
     /**
@@ -294,7 +292,7 @@ public final class Metadata {
                 Objects.equals(thingId, that.thingId) &&
                 Objects.equals(policyId, that.policyId) &&
                 Objects.equals(modified, that.modified) &&
-                Objects.equals(timers, that.timers)&&
+                Objects.equals(timers, that.timers) &&
                 Objects.equals(senders, that.senders);
     }
 

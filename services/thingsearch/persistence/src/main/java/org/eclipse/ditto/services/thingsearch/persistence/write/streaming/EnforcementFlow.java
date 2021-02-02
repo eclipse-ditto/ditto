@@ -13,11 +13,9 @@
 package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
 
 import java.time.Duration;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -68,9 +66,6 @@ import akka.stream.javadsl.Source;
 final class EnforcementFlow {
 
     private static final Source<Entry<Enforcer>, NotUsed> ENFORCER_NONEXISTENT = Source.single(Entry.nonexistent());
-
-    private static final String TIMER_SEGMENT_RETRIEVE_THINGS = "retrieve_things";
-    private static final String TIMER_SEGMENT_GET_ENFORCER = "get_enforcer";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final ActorRef thingsShardRegion;
@@ -166,29 +161,21 @@ final class EnforcementFlow {
     public Flow<Map<ThingId, Metadata>, Source<AbstractWriteModel, NotUsed>, NotUsed> create(final int parallelism) {
         return Flow.<Map<ThingId, Metadata>>create().map(changeMap -> {
             log.info("Updating search index of <{}> things", changeMap.size());
-            final Set<ThingId> thingIds = changeMap.keySet();
-            changeMap.values().forEach(metadata -> metadata.getTimers()
-                    .forEach(timer -> timer.startNewSegment(TIMER_SEGMENT_RETRIEVE_THINGS)));
-            return sudoRetrieveThingJsons(parallelism, thingIds).flatMapConcat(responseMap ->
+            return sudoRetrieveThingJsons(parallelism, changeMap).flatMapConcat(responseMap ->
                     Source.fromIterator(changeMap.values()::iterator)
-                            .flatMapMerge(parallelism, metadataRef -> {
-                                metadataRef.getTimers().forEach(timer -> Optional.ofNullable(timer.getSegments()
-                                        .get(TIMER_SEGMENT_RETRIEVE_THINGS)).ifPresent(segment -> {
-                                    if (segment.isRunning()) {
-                                        segment.stop();
-                                    }
-                                }));
-                                return computeWriteModel(metadataRef, responseMap.get(metadataRef.getThingId()));
-                            }).withAttributes(Attributes.inputBuffer(parallelism, parallelism))
+                            .flatMapMerge(parallelism, metadataRef ->
+                                    computeWriteModel(metadataRef, responseMap.get(metadataRef.getThingId()))
+                            )
+                            .withAttributes(Attributes.inputBuffer(parallelism, parallelism))
             );
         });
 
     }
 
     private Source<Map<ThingId, SudoRetrieveThingResponse>, NotUsed> sudoRetrieveThingJsons(
-            final int parallelism, final Collection<ThingId> thingIds) {
+            final int parallelism, final Map<ThingId, Metadata> changeMap) {
 
-        return Source.fromIterator(thingIds::iterator)
+        return Source.fromIterator(changeMap.entrySet()::iterator)
                 .flatMapMerge(parallelism, this::sudoRetrieveThing)
                 .withAttributes(Attributes.inputBuffer(parallelism, parallelism))
                 .<Map<ThingId, SudoRetrieveThingResponse>>fold(new HashMap<>(), (map, response) -> {
@@ -201,7 +188,9 @@ final class EnforcementFlow {
                 });
     }
 
-    private Source<SudoRetrieveThingResponse, NotUsed> sudoRetrieveThing(final ThingId thingId) {
+    private Source<SudoRetrieveThingResponse, NotUsed> sudoRetrieveThing(final Map.Entry<ThingId, Metadata> entry) {
+        final ThingId thingId = entry.getKey();
+        ConsistencyLag.startS3RetrieveThing(entry.getValue());
         final SudoRetrieveThing command =
                 SudoRetrieveThing.withOriginalSchemaVersion(thingId, DittoHeaders.empty());
         final CompletionStage<Source<SudoRetrieveThingResponse, NotUsed>> responseFuture =
@@ -227,6 +216,7 @@ final class EnforcementFlow {
     private Source<AbstractWriteModel, NotUsed> computeWriteModel(final Metadata metadata,
             @Nullable final SudoRetrieveThingResponse sudoRetrieveThingResponse) {
 
+        ConsistencyLag.startS4GetEnforcer(metadata);
         if (sudoRetrieveThingResponse == null) {
             return Source.single(ThingDeleteModel.of(metadata));
         } else {
@@ -260,7 +250,6 @@ final class EnforcementFlow {
      * @return source of an enforcer or an empty source.
      */
     private Source<Entry<Enforcer>, NotUsed> getEnforcer(final Metadata metadata, final JsonObject thing) {
-        metadata.getTimers().forEach(timer -> timer.startNewSegment(TIMER_SEGMENT_GET_ENFORCER));
         final Optional<JsonObject> acl = thing.getValue(Thing.JsonFields.ACL);
         if (acl.isPresent()) {
             return Source.single(Entry.permanent(AclEnforcer.of(ThingsModelFactory.newAcl(acl.get()))));
@@ -269,15 +258,6 @@ final class EnforcementFlow {
                 return thing.getValue(Thing.JsonFields.POLICY_ID)
                         .map(PolicyId::of)
                         .map(policyId -> readCachedEnforcer(metadata, getPolicyEntityId(policyId), 0))
-                        .map(enforcerSource -> {
-                            metadata.getTimers().forEach(timer -> Optional.ofNullable(timer.getSegments()
-                                    .get(TIMER_SEGMENT_GET_ENFORCER)).ifPresent(segment -> {
-                                if (segment.isRunning()) {
-                                    segment.stop();
-                                }
-                            }));
-                            return enforcerSource;
-                        })
                         .orElse(ENFORCER_NONEXISTENT);
             } catch (PolicyIdInvalidException e) {
                 return ENFORCER_NONEXISTENT;
