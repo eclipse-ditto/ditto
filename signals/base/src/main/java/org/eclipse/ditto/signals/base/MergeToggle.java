@@ -27,7 +27,12 @@ public final class MergeToggle {
     /**
      * Resolves the system property {@value MERGE_THINGS_ENABLED}.
      */
-    private static final boolean IS_MERGE_THINGS_ENABLED = Boolean.getBoolean(MERGE_THINGS_ENABLED);
+    private static final boolean IS_MERGE_THINGS_ENABLED = resolveProperty();
+
+    private static boolean resolveProperty() {
+        final String propertyValue = System.getProperty(MERGE_THINGS_ENABLED, Boolean.TRUE.toString());
+        return !Boolean.FALSE.toString().equalsIgnoreCase(propertyValue);
+    }
 
     private MergeToggle() {}
 
