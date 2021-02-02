@@ -23,7 +23,7 @@ import org.eclipse.ditto.signals.commands.things.ThingResource;
 /**
  * PathMatcher implementation for merge thing commands.
  * <p>
- * TODO adapt @since annotation @since 1.6.0
+ * @since 2.0.0
  */
 final class ThingMergePathMatcher implements PayloadPathMatcher {
 

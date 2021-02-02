@@ -38,7 +38,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
 /**
  * Response to a {@link MergeThing} command.
  *
- * TODO adapt @since annotation @since 1.6.0
+ * @since 2.0.0
  */
 @Immutable
 @JsonParsableCommandResponse(type = MergeThingResponse.TYPE)

@@ -29,7 +29,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
 /**
  * Thrown if a path is not known for any existing command, response or event.
  *
- * TODO adapt @since annotation @since 1.6.0
+ * @since 2.0.0
  */
 @JsonParsableException(errorCode = PathUnknownException.ERROR_CODE)
 public class PathUnknownException extends DittoRuntimeException {

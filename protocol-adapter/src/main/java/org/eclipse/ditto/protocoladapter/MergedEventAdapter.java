@@ -21,7 +21,7 @@ import org.eclipse.ditto.signals.events.things.ThingMerged;
  * An {@code Adapter} maps objects of type {@link org.eclipse.ditto.signals.events.things.ThingMerged} to an {@link org.eclipse.ditto.protocoladapter.Adaptable} and
  * vice versa.
  *
- * TODO adapt @since annotation @since 1.6.0
+ * @since 2.0.0
  */
 public interface MergedEventAdapter extends Adapter<ThingMerged> {
 

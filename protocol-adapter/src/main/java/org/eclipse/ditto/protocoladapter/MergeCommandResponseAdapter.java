@@ -20,7 +20,7 @@ import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
 /**
  * An {@code Adapter} mixin for merge command responses.
  *
- * TODO adapt @since annotation @since 1.6.0
+ * @since 2.0.0
  */
 public interface MergeCommandResponseAdapter extends Adapter<MergeThingResponse> {
 

@@ -19,7 +19,7 @@ import org.eclipse.ditto.protocoladapter.UnknownPathException;
 /**
  * PayloadPathMatcher implementation for adapters that do not rely on the path to resolve the type from the message.
  * <p>
- * TODO adapt @since annotation @since 1.6.0
+ * @since 2.0.0
  */
 final class EmptyPathMatcher implements PayloadPathMatcher {
 

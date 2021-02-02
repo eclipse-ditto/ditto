@@ -23,7 +23,7 @@ import org.eclipse.ditto.signals.commands.policies.PolicyResource;
 /**
  * PayloadPathMatcher implementation that handles policy resources.
  * <p>
- * TODO adapt @since annotation @since 1.6.0
+ * @since 2.0.0
  */
 final class PolicyPathMatcher implements PayloadPathMatcher {
 

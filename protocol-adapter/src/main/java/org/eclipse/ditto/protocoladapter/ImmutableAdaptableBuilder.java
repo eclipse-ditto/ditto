@@ -22,7 +22,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
  * An {@link AdaptableBuilder} for building instances of {@link ImmutableAdaptable}.
  */
 @NotThreadSafe
-final class ImmutableAdaptableBuilder implements AdaptableBuilder {
+public final class ImmutableAdaptableBuilder implements AdaptableBuilder {
 
     private final TopicPath topicPath;
 

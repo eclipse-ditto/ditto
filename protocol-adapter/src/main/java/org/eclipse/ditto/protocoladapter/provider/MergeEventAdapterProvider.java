@@ -18,7 +18,7 @@ import org.eclipse.ditto.signals.events.things.ThingMerged;
 /**
  * Interface providing the merged event adapter.
  *
- * TODO adapt @since annotation @since 1.6.0
+ * @since 2.0.0
  */
 interface MergeEventAdapterProvider {
 
