@@ -118,7 +118,6 @@ import akka.stream.FlowShape;
 import akka.stream.Graph;
 import akka.stream.Materializer;
 import akka.stream.SinkShape;
-import akka.stream.SourceShape;
 import akka.stream.UniformFanInShape;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
@@ -571,27 +570,16 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     getRateLimiter(final WebsocketConfig websocketConfig) {
         final Duration rateLimitInterval = websocketConfig.getThrottlingConfig().getInterval();
         final int throttlingLimit = websocketConfig.getThrottlingConfig().getLimit();
-
-        if (throttlingLimit > 0 && rateLimitInterval.negated().isNegative()) {
-            final int messagesPerInterval =
-                    Math.max(throttlingLimit, (int) (throttlingLimit * websocketConfig.getThrottlingRejectionFactor()));
-            return LimitRateByRejection.of(rateLimitInterval, messagesPerInterval, either -> {
-                final TooManyRequestsException.Builder builder =
-                        TooManyRequestsException.newBuilder().retryAfter(rateLimitInterval);
-                if (either.isRight()) {
-                    builder.dittoHeaders(either.right().get().getDittoHeaders());
-                }
-                return builder.build();
-            });
-        } else {
-            return GraphDSL.create(builder -> {
-                final Flow<Either<T, Signal<?>>, Either<T, Signal<?>>, NotUsed> flow = Flow.create();
-                final Source<DittoRuntimeException, NotUsed> empty = Source.empty(DittoRuntimeException.class);
-                final FlowShape<Either<T, Signal<?>>, Either<T, Signal<?>>> flowShape = builder.add(flow);
-                final SourceShape<DittoRuntimeException> emptyShape = builder.add(empty);
-                return new FanOutShape2<>(flowShape.in(), flowShape.out(), emptyShape.out());
-            });
-        }
+        final int messagesPerInterval =
+                Math.max(throttlingLimit, (int) (throttlingLimit * websocketConfig.getThrottlingRejectionFactor()));
+        return LimitRateByRejection.of(rateLimitInterval, messagesPerInterval, either -> {
+            final TooManyRequestsException.Builder builder =
+                    TooManyRequestsException.newBuilder().retryAfter(rateLimitInterval);
+            if (either.isRight()) {
+                builder.dittoHeaders(either.right().get().getDittoHeaders());
+            }
+            return builder.build();
+        });
     }
 
     private static Signal<?> buildSignal(final String cmdString,
