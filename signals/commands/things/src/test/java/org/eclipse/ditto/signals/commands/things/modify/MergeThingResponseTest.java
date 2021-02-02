@@ -15,7 +15,6 @@ package org.eclipse.ditto.signals.commands.things.modify;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.ditto.signals.commands.things.TestConstants.Thing.ABSOLUTE_LOCATION_ATTRIBUTE_POINTER;
-import static org.eclipse.ditto.signals.commands.things.TestConstants.Thing.LOCATION_ATTRIBUTE_VALUE;
 import static org.eclipse.ditto.signals.commands.things.TestConstants.Thing.THING_ID;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
@@ -29,7 +28,7 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
@@ -49,7 +48,7 @@ public class MergeThingResponseTest {
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(ThingCommandResponse.JsonFields.TYPE, MergeThingResponse.TYPE)
             .set(ThingCommandResponse.JsonFields.JSON_THING_ID, THING_ID.toString())
-            .set(ThingCommandResponse.JsonFields.STATUS, HttpStatusCode.NO_CONTENT.toInt())
+            .set(ThingCommandResponse.JsonFields.STATUS, HttpStatus.NO_CONTENT.getCode())
             .set(MergeThing.JsonFields.JSON_PATH, ABSOLUTE_LOCATION_ATTRIBUTE_POINTER.toString())
             .build();
 

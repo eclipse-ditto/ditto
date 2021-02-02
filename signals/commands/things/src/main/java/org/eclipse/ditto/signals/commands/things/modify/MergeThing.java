@@ -488,7 +488,7 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      * An enumeration of the JSON fields of a {@code MergeThing} command.
      */
     @Immutable
-    private static final class JsonFields {
+    static final class JsonFields {
 
         static final JsonFieldDefinition<String> JSON_PATH =
                 JsonFactory.newStringFieldDefinition("path", FieldType.REGULAR, JsonSchemaVersion.V_2);
