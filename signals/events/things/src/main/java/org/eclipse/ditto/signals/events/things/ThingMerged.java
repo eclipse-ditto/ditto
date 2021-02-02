@@ -34,6 +34,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.signals.base.MergeToggle;
 import org.eclipse.ditto.signals.base.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
@@ -55,6 +56,12 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged> implement
      * Type of this event.
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
+
+    static {
+        // Check if merge feature is enabled in static block before execution of super constructor because further
+        // checks are done there.
+        MergeToggle.checkMergeFeatureEnabled(TYPE);
+    }
 
     private final ThingId thingId;
     private final JsonPointer path;

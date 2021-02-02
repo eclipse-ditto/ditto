@@ -44,6 +44,7 @@ import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
+import org.eclipse.ditto.signals.base.MergeToggle;
 import org.eclipse.ditto.signals.base.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
@@ -74,6 +75,12 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      * Type of this command.
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
+
+    static {
+        // Check if merge feature is enabled in static block before execution of super constructor because further
+        // checks are done there.
+        MergeToggle.checkMergeFeatureEnabled(TYPE);
+    }
 
     private final ThingId thingId;
     private final JsonPointer path;

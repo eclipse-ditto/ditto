@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommandResponse;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.signals.base.MergeToggle;
 import org.eclipse.ditto.signals.base.UnsupportedSchemaVersionException;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.base.CommandResponseJsonDeserializer;
@@ -50,6 +51,12 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
      * Type of this response.
      */
     public static final String TYPE = TYPE_PREFIX + MergeThing.NAME;
+
+    static {
+        // Check if merge feature is enabled in static block before execution of super constructor because further
+        // checks are done there.
+        MergeToggle.checkMergeFeatureEnabled(TYPE);
+    }
 
     private final ThingId thingId;
     private final JsonPointer path;
