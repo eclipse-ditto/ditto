@@ -12,8 +12,12 @@
  */
 package org.eclipse.ditto.protocoladapter.things;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.LiveTwinTest;
@@ -94,5 +98,7 @@ public final class ThingMergeCommandResponseAdapterTest extends LiveTwinTest imp
         final Adaptable actualMerged = underTest.toAdaptable(mergeThingResponse, channel);
 
         assertWithExternalHeadersThat(actualMerged).isEqualTo(expected);
+        assertThat(actualMerged.getDittoHeaders()).containsEntry(DittoHeaderDefinition.CONTENT_TYPE.getKey(),
+                ContentType.APPLICATION_MERGE_PATCH_JSON.getValue());
     }
 }

@@ -64,7 +64,7 @@ final class ThingMergedEventAdapter extends AbstractThingAdapter<ThingMerged> im
 
         return Adaptable.newBuilder(eventsTopicPathBuilder.build())
                 .withPayload(payloadBuilder.build())
-                .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(event.getDittoHeaders()))
+                .withHeaders(ProtocolFactory.newHeadersWithJsonMergePatchContentType(event.getDittoHeaders()))
                 .build();
     }
 

@@ -12,11 +12,15 @@
  */
 package org.eclipse.ditto.protocoladapter.things;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
@@ -113,6 +117,16 @@ public final class ThingMergeCommandAdapterTest extends LiveTwinTest implements 
         final Adaptable actual = underTest.toAdaptable(mergeThing, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void mergeThingHasJsonMergePatchContentType() {
+        final Thing thing = TestConstants.THING.setFeature(TestConstants.FEATURE);
+        final MergeThing mergeThing =
+                MergeThing.withThing(TestConstants.THING_ID, thing, TestConstants.DITTO_HEADERS_V_2);
+        final Adaptable actual = underTest.toAdaptable(mergeThing, channel);
+        assertThat(actual.getDittoHeaders()).containsEntry(DittoHeaderDefinition.CONTENT_TYPE.getKey(),
+                ContentType.APPLICATION_MERGE_PATCH_JSON.getValue());
     }
 
     @Test

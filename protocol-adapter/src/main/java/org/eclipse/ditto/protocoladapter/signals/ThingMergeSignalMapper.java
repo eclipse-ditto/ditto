@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.protocoladapter.signals;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.PayloadBuilder;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
@@ -30,12 +31,15 @@ final class ThingMergeSignalMapper extends AbstractModifySignalMapper<MergeThing
         return ProtocolFactory.newTopicPathBuilder(command.getEntityId()).things();
     }
 
-    private static final TopicPath.Action[] SUPPORTED_ACTIONS =
-            {TopicPath.Action.MERGE};
+    private static final TopicPath.Action[] SUPPORTED_ACTIONS = {TopicPath.Action.MERGE};
 
     @Override
     TopicPath.Action[] getSupportedActions() {
         return SUPPORTED_ACTIONS;
     }
 
+    @Override
+    DittoHeaders enhanceHeaders(final MergeThing signal) {
+        return ProtocolFactory.newHeadersWithJsonMergePatchContentType(signal.getDittoHeaders());
+    }
 }

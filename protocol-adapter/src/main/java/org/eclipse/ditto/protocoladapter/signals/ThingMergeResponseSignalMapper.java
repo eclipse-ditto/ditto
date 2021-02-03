@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.protocoladapter.signals;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.PayloadBuilder;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
@@ -49,5 +50,10 @@ final class ThingMergeResponseSignalMapper
     void enhancePayloadBuilder(final MergeThingResponse commandResponse,
             final PayloadBuilder payloadBuilder) {
         payloadBuilder.withStatus(commandResponse.getStatusCode());
+    }
+
+    @Override
+    DittoHeaders enhanceHeaders(final MergeThingResponse signal) {
+        return ProtocolFactory.newHeadersWithJsonMergePatchContentType(signal.getDittoHeaders());
     }
 }
