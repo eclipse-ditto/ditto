@@ -32,7 +32,7 @@ final class ThingResourceNames {
      * name (e.g. {@code thing} of {@value org.eclipse.ditto.signals.commands.things.modify.CreateThing#NAME}),
      * i.e. the name of the resource that is affected by the command, from a given path.
      */
-    private static final EnumMap<ThingResource, String> resourceNames = new EnumMap<>(ThingResource.class);
+    private static final Map<ThingResource, String> resourceNames = new EnumMap<>(ThingResource.class);
 
     static {
         resourceNames.put(ThingResource.THING, "thing");

@@ -13,6 +13,7 @@
 package org.eclipse.ditto.protocoladapter.policies;
 
 import java.util.EnumMap;
+import java.util.Map;
 import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonPointer;
@@ -32,7 +33,7 @@ final class PolicyPathMatcher implements PayloadPathMatcher {
      * name (e.g. {@code policy} of {@value org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy#NAME}),
      * i.e. the name of the resource that is affected by the command, from a given path.
      */
-    private static final EnumMap<PolicyResource, String> resourceNames = new EnumMap<>(PolicyResource.class);
+    private static final Map<PolicyResource, String> resourceNames = new EnumMap<>(PolicyResource.class);
 
     static {
         resourceNames.put(PolicyResource.POLICY, "policy");
