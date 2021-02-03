@@ -52,17 +52,11 @@ public final class MergeThingResponse extends AbstractCommandResponse<MergeThing
      */
     public static final String TYPE = TYPE_PREFIX + MergeThing.NAME;
 
-    static {
-        // Check if merge feature is enabled in static block before execution of super constructor because further
-        // checks are done there.
-        MergeToggle.checkMergeFeatureEnabled(TYPE);
-    }
-
     private final ThingId thingId;
     private final JsonPointer path;
 
     private MergeThingResponse(final ThingId thingId, final JsonPointer path, final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatus.NO_CONTENT, dittoHeaders);
+        super(TYPE, HttpStatus.NO_CONTENT, MergeToggle.checkMergeFeatureEnabled(TYPE, dittoHeaders));
         this.thingId = checkNotNull(thingId, "thingId");
         this.path = checkNotNull(path, "path");
         checkSchemaVersion();

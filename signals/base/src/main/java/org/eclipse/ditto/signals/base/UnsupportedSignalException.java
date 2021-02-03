@@ -33,7 +33,7 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
  */
 @Immutable
 @JsonParsableException(errorCode = UnsupportedSignalException.ERROR_CODE)
-public class UnsupportedSignalException extends DittoRuntimeException {
+public final class UnsupportedSignalException extends DittoRuntimeException {
 
     /**
      * Error code of this exception.

@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.signals.base;
 
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
+
 /**
  * Decides based on the system property {@value MERGE_THINGS_ENABLED} whether the merge thing feature
  * is enabled and throws an {@link org.eclipse.ditto.signals.base.UnsupportedSignalException} if the property is set
@@ -40,12 +42,18 @@ public final class MergeToggle {
      * Checks if the merge feature is enabled based on the system property {@value MERGE_THINGS_ENABLED}.
      *
      * @param signal the name of the signal that was supposed to be processed
+     * @param dittoHeaders headers used to build exception
+     * @return the unmodified headers parameters
      * @throws org.eclipse.ditto.signals.base.UnsupportedSignalException if the system property
      * {@value MERGE_THINGS_ENABLED} resolves to {@code false}
      */
-    public static void checkMergeFeatureEnabled(final String signal) {
+    public static DittoHeaders checkMergeFeatureEnabled(final String signal, final DittoHeaders dittoHeaders) {
         if (!IS_MERGE_THINGS_ENABLED) {
-            throw UnsupportedSignalException.newBuilder(signal).build();
+            throw UnsupportedSignalException
+                    .newBuilder(signal)
+                    .dittoHeaders(dittoHeaders)
+                    .build();
         }
+        return dittoHeaders;
     }
 }

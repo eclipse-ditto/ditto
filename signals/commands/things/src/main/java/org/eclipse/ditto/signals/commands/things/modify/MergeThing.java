@@ -76,19 +76,13 @@ public final class MergeThing extends AbstractCommand<MergeThing> implements Thi
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static {
-        // Check if merge feature is enabled in static block before execution of super constructor because further
-        // checks are done there.
-        MergeToggle.checkMergeFeatureEnabled(TYPE);
-    }
-
     private final ThingId thingId;
     private final JsonPointer path;
     private final JsonValue value;
 
     private MergeThing(final ThingId thingId, final JsonPointer path, final JsonValue value,
             final DittoHeaders dittoHeaders) {
-        super(TYPE, dittoHeaders);
+        super(TYPE, MergeToggle.checkMergeFeatureEnabled(TYPE, dittoHeaders));
         this.thingId = checkNotNull(thingId, "thingId");
         this.path = checkNotNull(path, "path");
         this.value = checkJsonSize(checkNotNull(value, "value"), dittoHeaders);

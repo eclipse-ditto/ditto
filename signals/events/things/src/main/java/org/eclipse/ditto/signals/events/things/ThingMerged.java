@@ -57,12 +57,6 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged> implement
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    static {
-        // Check if merge feature is enabled in static block before execution of super constructor because further
-        // checks are done there.
-        MergeToggle.checkMergeFeatureEnabled(TYPE);
-    }
-
     private final ThingId thingId;
     private final JsonPointer path;
     private final JsonValue value;
@@ -74,7 +68,7 @@ public final class ThingMerged extends AbstractThingEvent<ThingMerged> implement
             @Nullable final Instant timestamp,
             final DittoHeaders dittoHeaders,
             @Nullable final Metadata metadata) {
-        super(TYPE, thingId, revision, timestamp, dittoHeaders, metadata);
+        super(TYPE, thingId, revision, timestamp, MergeToggle.checkMergeFeatureEnabled(TYPE, dittoHeaders), metadata);
         this.thingId = checkNotNull(thingId, "thingId");
         this.path = checkNotNull(path, "path");
         this.value = checkNotNull(value, "value");
