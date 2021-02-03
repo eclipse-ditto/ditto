@@ -22,7 +22,7 @@ public final class MergeToggle {
     /**
      * System property name of the property defining whether the merge feature is enabled.
      */
-    private static final String MERGE_THINGS_ENABLED = "ditto.devops.feature.merge-things-enabled";
+    public static final String MERGE_THINGS_ENABLED = "ditto.devops.feature.merge-things-enabled";
 
     /**
      * Resolves the system property {@value MERGE_THINGS_ENABLED}.
