@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
@@ -37,7 +36,6 @@ import akka.actor.ActorRef;
 /**
  * Data class holding information about a "thingEntities" database record.
  */
-@Immutable
 public final class Metadata {
 
     private final ThingId thingId;

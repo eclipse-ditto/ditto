@@ -12,13 +12,6 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.write.model;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
-import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
@@ -30,15 +23,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  * Unit test for {@link Metadata}.
  */
 public final class MetadataTest extends AbstractWithActorSystemTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(Metadata.class,
-                areImmutable(),
-                provided(ThingId.class, PolicyId.class).areAlsoImmutable(),
-                assumingFields("senders", "timers")
-                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
-    }
 
     @Test
     public void testHashCodeAndEquals() {
