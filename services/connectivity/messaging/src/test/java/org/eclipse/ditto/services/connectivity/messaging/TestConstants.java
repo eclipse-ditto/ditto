@@ -206,6 +206,7 @@ public final class TestConstants {
         map.put("correlation-id", "{{ header:correlation-id }}");
         map.put("content-type", "{{ header:content-type }}");
         map.put("reply-to", "{{ header:reply-to }}");
+        map.put("ditto-connection-id", "hallo");
         HEADER_MAPPING = ConnectivityModelFactory.newHeaderMapping(map);
     }
 
