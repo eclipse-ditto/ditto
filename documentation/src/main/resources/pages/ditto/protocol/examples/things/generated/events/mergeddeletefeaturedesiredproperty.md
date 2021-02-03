@@ -3,7 +3,9 @@
 ```json
 {
   "topic": "com.acme/xdk_53/things/twin/events/merged",
-  "headers": {},
+  "headers": {
+    "content-type": "application/merge-patch+json"
+  },
   "path": "/features/accelerometer/desiredProperties/x",
   "value": null,
   "revision": 42,

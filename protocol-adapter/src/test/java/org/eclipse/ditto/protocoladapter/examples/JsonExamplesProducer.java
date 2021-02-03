@@ -419,7 +419,7 @@ class JsonExamplesProducer {
     private static final List<DittoHeaderDefinition> EXCLUDED_RESPONSE_HEADERS =
             Arrays.asList(DittoHeaderDefinition.RESPONSE_REQUIRED, DittoHeaderDefinition.CONTENT_TYPE);
     private static final List<DittoHeaderDefinition> EXCLUDED_EVENT_HEADERS =
-            Arrays.asList(DittoHeaderDefinition.RESPONSE_REQUIRED, DittoHeaderDefinition.CONTENT_TYPE);
+            Collections.singletonList(DittoHeaderDefinition.RESPONSE_REQUIRED);
 
     /**
      * Generates *.json examples. If you want to create examples for ditto-documentation use {@link
