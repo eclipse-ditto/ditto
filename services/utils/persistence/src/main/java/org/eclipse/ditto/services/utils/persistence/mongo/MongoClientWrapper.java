@@ -150,7 +150,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
 
     @Override
     public ListDatabasesPublisher<Document> listDatabases(final ClientSession clientSession) {
-        return listDatabases(clientSession);
+        return mongoClient.listDatabases(clientSession);
     }
 
     @Override

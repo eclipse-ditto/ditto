@@ -16,7 +16,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
@@ -25,10 +24,9 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbC
 import org.junit.Test;
 
 import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoCredential;
 import com.mongodb.ServerAddress;
-import com.mongodb.MongoClientSettings;
-import com.mongodb.connection.ClusterDescription;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -40,7 +38,6 @@ import com.typesafe.config.ConfigValueFactory;
 public final class MongoClientWrapperTest {
 
     private static final int KNOWN_MAX_POOL_SIZE = 100;
-    private static final int KNOWN_MAX_POOL_WAIT_QUEUE_SIZE = 5000;
     private static final long KNOWN_MAX_POOL_WAIT_SECS = 10L;
     private static final String KNOWN_DB_NAME = "someGeneratedName";
     private static final String KNOWN_USER = "theUser";
