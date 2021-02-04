@@ -12,9 +12,9 @@ Run the following command to install k3s.
 curl -sfL https://get.k3s.io | sh -
 ```
 
-Optional step: Change the owner of `/etc/rancher/k3s/k3s.yaml` to your user.
+Change the owner of `/etc/rancher/k3s/k3s.yaml` to your user.
 ```bash
-sudo chown <userId>:<groupId> /etc/rancher/k3s/k3s.yaml
+sudo chown <groupId>:<userId> /etc/rancher/k3s/k3s.yaml
 ```
 
 Set the path to the kube config file:
@@ -123,7 +123,7 @@ nginx-7bdb84f965-gf2lp           1/1     Running   0          1m
 
 ### Ditto status/health endpoint
 To check if Ditto is up & running you can use the Ditto health endpoint.
-curl -u devops  --request GET localhost:30080/status/health
+curl -u devops --request GET localhost:30080/status/health
 Default devops password is: "foobar"
 
 Have Fun!
