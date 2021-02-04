@@ -26,12 +26,15 @@ Verify that the `kubectl` command works:
 ```bash
 kubectl get nodes
 ```
+
 The command should print something like this:
 ```bash
 kubectl get nodes
 NAME              STATUS   ROLES                  AGE     VERSION
 <your-hostname>   Ready    control-plane,master   5h21m   v1.20.2+k3s1
 ```
+
+The container logs can be found here: `/var/log/containers/...`
 
 ## Configure nginx
 The nginx's configuration is located in the `nginx.conf` file and contains a "Basic authentication"
@@ -69,14 +72,22 @@ kubectl create configmap nginx-index --from-file=deployment/kubernetes/deploymen
 kubectl create configmap swagger-ui-api --from-file=$PWD/documentation/src/main/resources/openapi
 ```
 
-### Start Eclipse Ditto
-
-#### Start MongoDB
+#### MongoDB
+There are two ways starting a mongodb instance.
+Either use a simple Mongodb container without persistence.
 ```bash
 kubectl apply -f deployment/kubernetes/deploymentFiles/mongodb/mongodb.yaml
 ```
 
-#### Start Ditto services
+Or use the stateful Mongodb set with a local persistent volume.
+```bash
+kubectl apply -f deployment/kubernetes/deploymentFiles/mongodb-statefulset
+```
+
+Another option is to configure the MongoDb endpoint by setting the MongoDb URI via env variable "MONGO_DB_URI".
+
+### Start Eclipse Ditto
+
 ```bash
 kubectl apply -f deployment/kubernetes/deploymentFiles/ditto/ditto-cluster.yaml
 # Start ditto services with an alternative version e.g. 0-SNAPSHOT
@@ -99,7 +110,7 @@ Run the following command to verify that everything is running.
 ```bash
 kubectl get pods
 NAME                             READY   STATUS    RESTARTS   AGE
-mongodb-6cbf78f74c-22ddd         1/1     Running   0          5m
+mongodb-0                        1/1     Running   0          5m
 policies-5d6798cc6-dzklx         1/1     Running   0          3m
 gateway-d9f9cbb65-4fsbk          1/1     Running   0          3m
 things-search-768c894bd4-v4n2z   1/1     Running   0          3m
@@ -110,5 +121,9 @@ swagger-b8asd6f857-651bg         1/1     Running   0          2m
 nginx-7bdb84f965-gf2lp           1/1     Running   0          1m
 ```
 
+### Ditto status/health endpoint
+To check if Ditto is up & running you can use the Ditto health endpoint.
+curl -u devops  --request GET localhost:30080/status/health
+Default devops password is: "foobar"
 
 Have Fun!

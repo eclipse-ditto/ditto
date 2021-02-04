@@ -28,14 +28,14 @@ spec:
         image: docker.io/eclipse/ditto-concierge:latest
         imagePullPolicy: IfNotPresent
         args: ["java", "-jar", "starter.jar"]
-#       Resource can be managed by setting the following resource config.
-#        resources:
-#          requests:
-#            cpu: "1"
-#            memory: "1Gi"
-#          limits:
-#            # cpu: "{{ item.cpus }}" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
-#            memory: "2Gi"
+        # Resource can be managed by setting the following resource config.
+        resources:
+          requests:
+            cpu: "1"
+            memory: "512Mi"
+          limits:
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "2Gi"
         ports:
         - name: remoting
           containerPort: 2551
@@ -106,14 +106,14 @@ spec:
         image: docker.io/eclipse/ditto-connectivity:latest
         imagePullPolicy: IfNotPresent
         args: ["java", "-jar", "starter.jar"]
-#       Resource can be managed by setting the following resource config.
-#        resources:
-#          requests:
-#            cpu: "2"
-#            memory: "1Gi"
-#          limits:
-#            # cpu: "{{ item.cpus }}" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
-#            memory: "4Gi"
+        # Resource can be managed by setting the following resource config.
+        resources:
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+          limits:
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "4Gi"
         ports:
         - name: remoting
           containerPort: 2551
@@ -184,14 +184,14 @@ spec:
         image: docker.io/eclipse/ditto-things:latest
         imagePullPolicy: IfNotPresent
         args: ["java", "-jar", "starter.jar"]
-#       Resource can be managed by setting the following resource config.
-#        resources:
-#          requests:
-#            cpu: "1"
-#            memory: "1Gi"
-#          limits:
-#            # cpu: "{{ item.cpus }}" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
-#            memory: "2Gi"
+        # Resource can be managed by setting the following resource config.
+        resources:
+          requests:
+            cpu: "1"
+            memory: "1Gi"
+          limits:
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "4Gi"
         ports:
         - name: remoting
           containerPort: 2551
@@ -261,14 +261,14 @@ spec:
         image: docker.io/eclipse/ditto-things-search:latest
         imagePullPolicy: IfNotPresent
         args: ["java", "-jar", "starter.jar"]
-#       Resource can be managed by setting the following resource config.
-#        resources:
-#          requests:
-#            cpu: "1"
-#            memory: "512Mi"
-#          limits:
-#            # cpu: "{{ item.cpus }}" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
-#            memory: "1Gi"
+        # Resource can be managed by setting the following resource config.
+        resources:
+          requests:
+            cpu: "0.75"
+            memory: "512Mi"
+          limits:
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "2Gi"
         ports:
         - name: remoting
           containerPort: 2551
@@ -338,14 +338,14 @@ spec:
         image: docker.io/eclipse/ditto-policies:latest
         imagePullPolicy: IfNotPresent
         args: ["java", "-jar", "starter.jar"]
-#       Resource can be managed by setting the following resource config.
-#        resources:
-#          requests:
-#            cpu: "1"
-#            memory: "1Gi"
-#          limits:
-#            # cpu: "{{ item.cpus }}" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
-#            memory: "2Gi"
+        # Resource can be managed by setting the following resource config.
+        resources:
+          requests:
+            cpu: "0.75"
+            memory: "1Gi"
+          limits:
+            # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "2Gi"
         ports:
         - name: remoting
           containerPort: 2551
@@ -415,14 +415,14 @@ spec:
         image: docker.io/eclipse/ditto-gateway:latest
         imagePullPolicy: IfNotPresent
         args: ["java", "-jar", "starter.jar"]
-#       Resource can be managed by setting the following resource config.
-#        resources:
-#          requests:
-#            cpu: "1"
-#            memory: "512Mi"
-#          limits:
-#            # cpu: "{{ item.cpus }}" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
-#            memory: "1Gi"
+        # Resource can be managed by setting the following resource config.
+        resources:
+          requests:
+            cpu: "1"
+            memory: "512Mi"
+          limits:
+            # cpu: "{{ item.cpus }}" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
+            memory: "2Gi"
         ports:
         - name: remoting
           containerPort: 2551

@@ -3,13 +3,13 @@ kind: Service
 metadata:
   name: ditto
 spec:
-  ports:
-  - port: 8080
-    targetPort: 80
-    protocol: TCP
   type: NodePort
   selector:
     app: nginx
+  ports:
+    - port: 8080
+      nodePort: 30080
+      protocol: TCP
 ---
 apiVersion: apps/v1
 kind: Deployment
