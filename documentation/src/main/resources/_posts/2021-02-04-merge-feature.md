@@ -1,7 +1,7 @@
 ---
 title: "Support merge functionality for things resources"
-published: false
-permalink: 2021-01-31-merge-feature.html
+published: true
+permalink: 2021-02-04-merge-feature.html
 layout: post
 author: stefan_maute
 tags: [blog, http, protocol]
