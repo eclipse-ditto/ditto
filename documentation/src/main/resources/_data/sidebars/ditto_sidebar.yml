@@ -23,6 +23,9 @@ entries:
       - title: Release Notes
         output: web
         folderitems:
+          - title: 2.0.0
+            url: /release_notes_200.html
+            output: web
           - title: 1.5.1
             url: /release_notes_151.html
             output: web
@@ -349,6 +352,9 @@ entries:
                   - title: Create/Modify
                     url: /protocol-specification-things-create-or-modify.html
                     output: web
+                  - title: Merge
+                    url: /protocol-specification-things-merge.html
+                    output: web
                   - title: Retrieve
                     url: /protocol-specification-things-retrieve.html
                     output: web
@@ -539,6 +545,48 @@ entries:
                     output: web
                   - title: Retrieve a single desired Property
                     url: /protocol-examples-retrievedesiredproperty.html
+                    output: web
+                  - title: Error responses
+                    url: /protocol-examples-errorresponses.html
+                    output: web
+              - title: → Things merge examples
+                output: web
+                subfolderitems:
+                  - title: Merge a Thing
+                    url: /protocol-examples-mergething.html
+                    output: web
+                  - title: Merge the Policy ID of a Thing
+                    url: /protocol-examples-mergepolicyid.html
+                    output: web
+                  - title: Merge Attributes
+                    url: /protocol-examples-mergeattributes.html
+                    output: web
+                  - title: Merge a single Attribute
+                    url: /protocol-examples-mergeattribute.html
+                    output: web
+                  - title: Merge a Definition
+                    url: /protocol-examples-mergethingdefinition.html
+                    output: web
+                  - title: Merge Features
+                    url: /protocol-examples-mergefeatures.html
+                    output: web
+                  - title: Merge a single Feature
+                    url: /protocol-examples-mergefeature.html
+                    output: web
+                  - title: Merge Feature Definition
+                    url: /protocol-examples-mergefeaturedefinition.html
+                    output: web
+                  - title: Merge Feature Properties
+                    url: /protocol-examples-mergeproperties.html
+                    output: web
+                  - title: Merge a single Property
+                    url: /protocol-examples-mergeproperty.html
+                    output: web
+                  - title: Merge desired Feature Properties
+                    url: /protocol-examples-mergedesiredproperties.html
+                    output: web
+                  - title: Merge a single desired Property
+                    url: /protocol-examples-mergedesiredproperty.html
                     output: web
                   - title: Error responses
                     url: /protocol-examples-errorresponses.html

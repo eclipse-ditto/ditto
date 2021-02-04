@@ -43,7 +43,8 @@ public final class TopLevelPolicyActionCommandTest {
 
     private static final ActivateTokenIntegration POLICY_ACTION_COMMAND =
             ActivateTokenIntegration.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
-                    Collections.singleton(TestConstants.Policy.SUBJECT_ID), Instant.EPOCH, TestConstants.EMPTY_DITTO_HEADERS);
+                    Collections.singleton(TestConstants.Policy.SUBJECT_ID), Instant.EPOCH,
+                    TestConstants.EMPTY_DITTO_HEADERS);
 
     private static final JsonObject KNOWN_JSON = JsonFactory.newObjectBuilder()
             .set(PolicyCommand.JsonFields.TYPE, TopLevelPolicyActionCommand.TYPE)

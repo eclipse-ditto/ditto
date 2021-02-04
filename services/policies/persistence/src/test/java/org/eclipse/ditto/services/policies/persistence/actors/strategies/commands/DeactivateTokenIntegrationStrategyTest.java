@@ -63,7 +63,8 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
                 SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{policy-entry:label}}:this-is-me");
         final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final DeactivateTokenIntegration command =
-                DeactivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId), dittoHeaders);
+                DeactivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId),
+                        dittoHeaders);
         assertModificationResult(underTest, TestConstants.Policy.POLICY, command,
                 SubjectDeleted.class,
                 DeactivateTokenIntegrationResponse.of(context.getState(), LABEL, dittoHeaders));
@@ -76,7 +77,8 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
                 SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{policy-entry:label}}:this-is-me");
         final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final DeactivateTokenIntegration command =
-                DeactivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId), dittoHeaders);
+                DeactivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId),
+                        dittoHeaders);
         assertModificationResult(underTest, TestConstants.Policy.POLICY, command,
                 SubjectDeleted.class,
                 DeactivateTokenIntegrationResponse.of(context.getState(), LABEL, dittoHeaders));
@@ -88,7 +90,8 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
         final SubjectId subjectId = SubjectId.newInstance("{{policy-entry:label}}");
         final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final DeactivateTokenIntegration
-                command = DeactivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId), dittoHeaders);
+                command = DeactivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId),
+                dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
                 SubjectIdInvalidException.newBuilder(LABEL).build());
     }
@@ -99,7 +102,8 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
         final SubjectId subjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{fn:delete()}}");
         final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final DeactivateTokenIntegration
-                command = DeactivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId), dittoHeaders);
+                command = DeactivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId),
+                dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
                 UnresolvedPlaceholderException.newBuilder("integration:{{fn:delete()}}").build());
     }
@@ -110,7 +114,8 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
         final SubjectId subjectId = SubjectId.newInstance("{{request:subjectId}}");
         final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
         final DeactivateTokenIntegration
-                command = DeactivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId), dittoHeaders);
+                command = DeactivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId),
+                dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
                 UnresolvedPlaceholderException.newBuilder("{{request:subjectId}}").build());
     }
@@ -122,7 +127,8 @@ public final class DeactivateTokenIntegrationStrategyTest extends AbstractPolicy
                 SubjectId.newInstance(SubjectIssuer.INTEGRATION, "{{policy-entry:label}}:this-is-me");
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
         final DeactivateTokenIntegration command =
-                DeactivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId), dittoHeaders);
+                DeactivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId),
+                        dittoHeaders);
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
                 command.getNotApplicableException(dittoHeaders));
     }

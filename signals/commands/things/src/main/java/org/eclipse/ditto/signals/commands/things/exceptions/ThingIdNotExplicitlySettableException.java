@@ -46,10 +46,10 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
     private static final String DEFAULT_DESCRIPTION_POST =
             "To provide your own Thing ID use a PUT request instead.";
 
-    private static final String MESSAGE_TEMPLATE_PUT =
+    private static final String MESSAGE_TEMPLATE_PUT_AND_PATCH =
             "The Thing ID in the request body is not equal to the Thing ID in the request URL.";
 
-    private static final String DEFAULT_DESCRIPTION_PUT =
+    private static final String DEFAULT_DESCRIPTION_PUT_AND_PATCH =
             "Either delete the Thing ID from the request body or use the same Thing ID as in the request URL.";
 
     private static final String MESSAGE_TEMPLATE_DITTO_PROTOCOL =
@@ -86,7 +86,11 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
     }
 
     public static Builder forPutMethod() {
-        return new Builder(MESSAGE_TEMPLATE_PUT, DEFAULT_DESCRIPTION_PUT);
+        return new Builder(MESSAGE_TEMPLATE_PUT_AND_PATCH, DEFAULT_DESCRIPTION_PUT_AND_PATCH);
+    }
+
+    public static Builder forPutOrPatchMethod() {
+        return new Builder(MESSAGE_TEMPLATE_PUT_AND_PATCH, DEFAULT_DESCRIPTION_PUT_AND_PATCH);
     }
 
     public static Builder forDittoProtocol() {
@@ -138,7 +142,7 @@ public final class ThingIdNotExplicitlySettableException extends DittoRuntimeExc
                 return forPostMethod()
                         .dittoHeaders(dittoHeaders)
                         .build();
-            case MESSAGE_TEMPLATE_PUT:
+            case MESSAGE_TEMPLATE_PUT_AND_PATCH:
                 return forPutMethod()
                         .dittoHeaders(dittoHeaders)
                         .build();

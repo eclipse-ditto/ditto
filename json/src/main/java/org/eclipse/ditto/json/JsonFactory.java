@@ -253,13 +253,20 @@ public final class JsonFactory {
             return nullObject();
         } else {
             final JsonValue jsonValue = JsonValueParser.fromString().apply(jsonString);
-            if (!jsonValue.isObject()) {
-                final String msgPattern = "<{0}> is not a valid JSON object!";
-                throw JsonParseException.newBuilder().message(MessageFormat.format(msgPattern, jsonString)).build();
-            }
-            return jsonValue.asObject();
+            return newObject(jsonValue);
         }
     }
+
+    public static JsonObject newObject(final JsonValue jsonValue) {
+        if (!jsonValue.isObject()) {
+            final String msgPattern = "<{0}> is not a valid JSON object!";
+            throw JsonParseException.newBuilder()
+                    .message(MessageFormat.format(msgPattern, jsonValue.toString()))
+                    .build();
+        }
+        return jsonValue.asObject();
+    }
+
 
     /**
      * Creates a JSON object from the given byte array.
@@ -313,6 +320,30 @@ public final class JsonFactory {
     }
 
     /**
+     * Creates a JSON object from the given {@code path} and {@code value}.
+     *
+     * @param path the path where the given value will be set
+     * @param value the value that will be set at the given path
+     * @return a new JSON object containing the given {@code value} at the given {@code path}.
+     * @throws NullPointerException if {@code path} or {@code value} is {@code null}.
+     * @throws java.lang.IllegalArgumentException if {@code path} is empty and {@code value} is not an object.
+     * @since 1.5.0
+     */
+    public static JsonObject newObject(final JsonPointer path, final JsonValue value) {
+        final JsonObject result;
+        if (path.isEmpty()) {
+            if (value.isObject()) {
+                result = value.asObject();
+            } else {
+                throw new IllegalArgumentException("Value must be a JsonObject at root revel (empty path).");
+            }
+        } else {
+            result = JsonObject.newBuilder().set(path, value).build();
+        }
+        return result;
+    }
+
+    /**
      * @param jsonFields the json fields to create a new JsonObject from.
      * @return a null object if {@code jsonFields} is a null json object. Else this returns a new object containing the
      * given {code jsonFields}.
@@ -334,6 +365,19 @@ public final class JsonFactory {
      */
     public static JsonObject newObject(final JsonObject jsonObject1, final JsonObject jsonObject2) {
         return JsonObjectMerger.mergeJsonObjects(jsonObject1, jsonObject2);
+    }
+
+    /**
+     * Merge two JSON values into one JSON value.
+     * Implementation is conform to <a href="https://tools.ietf.org/html/rfc7396">RFC 7396</a>.
+     *
+     * @param jsonValue1 the json value to merge, overrides conflicting fields.
+     * @param jsonValue2 the json value to merge.
+     * @return returns a new value merged the given {@code jsonValue1} and {@code jsonValue2}.
+     * @since 2.0.0
+     */
+    public static JsonValue mergeJsonValues(final JsonValue jsonValue1, final JsonValue jsonValue2) {
+        return JsonValueMerger.mergeJsonValues(jsonValue1, jsonValue2);
     }
 
     /**

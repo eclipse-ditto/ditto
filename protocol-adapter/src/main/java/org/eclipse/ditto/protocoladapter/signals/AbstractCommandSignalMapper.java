@@ -81,6 +81,9 @@ abstract class AbstractCommandSignalMapper<T extends Signal<?>> extends Abstract
             case MODIFY:
                 builder.modify();
                 break;
+            case MERGE:
+                builder.merge();
+                break;
             case DELETE:
                 builder.delete();
                 break;

@@ -50,7 +50,8 @@ public final class DefaultMuteableConnectionLoggerTest {
     private static final ThingId THING_ID = ThingId.of("the:thing");
     private static final Signal<?> SIGNAL =
             RetrieveConnectionLogs.of(TestConstants.createRandomConnectionId(), DittoHeaders.empty());
-    private static final DittoRuntimeException DITTO_RUNTIME_EXCEPTION = DittoRuntimeException.newBuilder("any.error", HttpStatus.BAD_REQUEST).build();
+    private static final DittoRuntimeException DITTO_RUNTIME_EXCEPTION =
+            DittoRuntimeException.newBuilder("any.error", HttpStatus.BAD_REQUEST).build();
     private static final Exception EXCEPTION = new IllegalArgumentException();
 
     @Mock

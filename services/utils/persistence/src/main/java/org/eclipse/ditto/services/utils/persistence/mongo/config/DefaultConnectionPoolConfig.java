@@ -31,13 +31,11 @@ public final class DefaultConnectionPoolConfig implements MongoDbConfig.Connecti
     private static final String CONFIG_PATH = "pool";
 
     private final int maxSize;
-    private final int maxWaitQueueSize;
     private final Duration maxWaitTime;
     private final boolean jmxListenerEnabled;
 
     private DefaultConnectionPoolConfig(final ScopedConfig config) {
         maxSize = config.getInt(ConnectionPoolConfigValue.MAX_SIZE.getConfigPath());
-        maxWaitQueueSize = config.getInt(ConnectionPoolConfigValue.MAX_WAIT_QUEUE_SIZE.getConfigPath());
         maxWaitTime = config.getDuration(ConnectionPoolConfigValue.MAX_WAIT_TIME.getConfigPath());
         jmxListenerEnabled = config.getBoolean(ConnectionPoolConfigValue.JMX_LISTENER_ENABLED.getConfigPath());
     }
@@ -60,11 +58,6 @@ public final class DefaultConnectionPoolConfig implements MongoDbConfig.Connecti
     }
 
     @Override
-    public int getMaxWaitQueueSize() {
-        return maxWaitQueueSize;
-    }
-
-    @Override
     public Duration getMaxWaitTime() {
         return maxWaitTime;
     }
@@ -84,21 +77,19 @@ public final class DefaultConnectionPoolConfig implements MongoDbConfig.Connecti
         }
         final DefaultConnectionPoolConfig that = (DefaultConnectionPoolConfig) o;
         return maxSize == that.maxSize &&
-                maxWaitQueueSize == that.maxWaitQueueSize &&
                 jmxListenerEnabled == that.jmxListenerEnabled &&
                 Objects.equals(maxWaitTime, that.maxWaitTime);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxSize, maxWaitQueueSize, maxWaitTime, jmxListenerEnabled);
+        return Objects.hash(maxSize, maxWaitTime, jmxListenerEnabled);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "maxSize=" + maxSize +
-                ", maxWaitQueueSize=" + maxWaitQueueSize +
                 ", maxWaitTime=" + maxWaitTime +
                 ", jmxListenerEnabled=" + jmxListenerEnabled +
                 "]";

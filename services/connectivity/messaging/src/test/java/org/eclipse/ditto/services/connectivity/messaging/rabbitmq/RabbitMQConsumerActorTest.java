@@ -28,7 +28,6 @@ import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.ResponseType;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.ReplyTarget;

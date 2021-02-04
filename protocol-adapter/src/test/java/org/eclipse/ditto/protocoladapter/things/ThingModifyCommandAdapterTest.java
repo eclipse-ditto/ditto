@@ -16,9 +16,11 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
 
+import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -134,6 +136,21 @@ public final class ThingModifyCommandAdapterTest extends LiveTwinTest implements
         final ThingModifyCommand<?> actual = underTest.fromAdaptable(adaptable);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void modifyCommandFromAdaptableWithoutPayloadValueThrowsException() {
+        final TopicPath topicPath = topicPath(TopicPath.Action.MODIFY);
+        TestConstants.THING_POINTERS.forEach(path -> Assertions.assertThatExceptionOfType(DittoJsonException.class)
+                .as("fromAdaptable without payload at path '%s' should throw DittoJsonException", path)
+                .isThrownBy(() -> {
+                            final Adaptable adaptable = Adaptable.newBuilder(topicPath)
+                                    .withPayload(Payload.newBuilder(path).build())
+                                    .withHeaders(TestConstants.HEADERS_V_2)
+                                    .build();
+                            underTest.fromAdaptable(adaptable);
+                        }
+                ));
     }
 
     @Test

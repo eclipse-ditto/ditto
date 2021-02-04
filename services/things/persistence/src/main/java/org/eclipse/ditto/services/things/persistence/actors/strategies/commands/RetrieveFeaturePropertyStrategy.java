@@ -65,7 +65,8 @@ final class RetrieveFeaturePropertyStrategy extends AbstractThingCommandStrategy
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent<?>> getRetrieveFeaturePropertyResult(final Feature feature, final Context<ThingId> context,
+    private Result<ThingEvent<?>> getRetrieveFeaturePropertyResult(final Feature feature,
+            final Context<ThingId> context,
             final RetrieveFeatureProperty command, @Nullable final Thing thing) {
 
         return feature.getProperties()

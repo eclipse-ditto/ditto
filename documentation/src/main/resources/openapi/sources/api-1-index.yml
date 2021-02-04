@@ -35,7 +35,7 @@ tags:
     description: Talk with your Things
 security:
   - Google:
-    - openid
+      - openid
   - NginxBasic: []
   - Bearer: []
 paths:

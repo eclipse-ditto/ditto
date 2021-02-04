@@ -98,11 +98,18 @@ permalink: protocol-examples-errorresponses.html
 {% capture things_thing_notfound %}{% include_relative generated/exceptions/things_thing_notfound.md %}{% endcapture %}
 {{ things_thing_notfound | markdownify }}
 
-{% capture things_thing_notmodifiable %}{% include_relative generated/exceptions/things_thing_notmodifiable.md %}{% endcapture %}
-{{ things_thing_notmodifiable | markdownify }}
+{% capture things_thing_notmodifiable %}{% include_relative generated/exceptions/things_thing_notmodifiable.md %}{%
+endcapture %} {{ things_thing_notmodifiable | markdownify }}
 
-{% capture things_thing_toomanymodifyingrequests %}{% include_relative generated/exceptions/things_thing_toomanymodifyingrequests.md %}{% endcapture %}
-{{ things_thing_toomanymodifyingrequests | markdownify }}
+{% capture things_thing_toomanymodifyingrequests %}{% include_relative
+generated/exceptions/things_thing_toomanymodifyingrequests.md %}{% endcapture %} {{
+things_thing_toomanymodifyingrequests | markdownify }}
 
-{% capture things_thing_unavailable %}{% include_relative generated/exceptions/things_thing_unavailable.md %}{% endcapture %}
-{{ things_thing_unavailable | markdownify }}
+{% capture things_thing_unavailable %}{% include_relative generated/exceptions/things_thing_unavailable.md %}{%
+endcapture %} {{ things_thing_unavailable | markdownify }}
+
+{% capture things_id_notdeletable %}{% include_relative generated/exceptions/things_id_notdeletable.md %}{% endcapture
+%} {{ things_id_notdeletable | markdownify }}
+
+{% capture things_policyId_notdeletable %}{% include_relative generated/exceptions/things_policyId_notdeletable.md %}{%
+endcapture %} {{ things_policyId_notdeletable | markdownify }}

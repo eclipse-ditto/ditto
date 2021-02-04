@@ -18,13 +18,17 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 import org.eclipse.ditto.json.JsonArray;
+import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldSelector;
@@ -38,6 +42,7 @@ import org.eclipse.ditto.json.JsonPointerInvalidException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.exceptions.DittoJsonException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
@@ -87,6 +92,7 @@ import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchModelFactory;
 import org.eclipse.ditto.model.thingsearch.SearchQuery;
 import org.eclipse.ditto.model.thingsearch.SearchResult;
+import org.eclipse.ditto.protocoladapter.JsonifiableAdaptable;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationProviderUnavailableException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayMethodNotAllowedException;
@@ -167,9 +173,11 @@ import org.eclipse.ditto.signals.commands.things.exceptions.FeaturePropertyNotMo
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturesNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeaturesNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotAllowedException;
+import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotDeletableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyIdNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.PolicyNotAllowedException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingConflictException;
+import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotDeletableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingIdNotExplicitlySettableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotCreatableException;
@@ -198,6 +206,8 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingDefinition;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingDefinitionResponse;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThingResponse;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAcl;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntry;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
@@ -300,6 +310,7 @@ import org.eclipse.ditto.signals.events.things.ThingDefinitionCreated;
 import org.eclipse.ditto.signals.events.things.ThingDefinitionDeleted;
 import org.eclipse.ditto.signals.events.things.ThingDefinitionModified;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
+import org.eclipse.ditto.signals.events.things.ThingMerged;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
@@ -405,6 +416,11 @@ class JsonExamplesProducer {
 
     private static final DittoHeaders DITTO_HEADERS = DittoHeaders.empty();
 
+    private static final List<DittoHeaderDefinition> EXCLUDED_RESPONSE_HEADERS =
+            Arrays.asList(DittoHeaderDefinition.RESPONSE_REQUIRED, DittoHeaderDefinition.CONTENT_TYPE);
+    private static final List<DittoHeaderDefinition> EXCLUDED_EVENT_HEADERS =
+            Collections.singletonList(DittoHeaderDefinition.RESPONSE_REQUIRED);
+
     /**
      * Generates *.json examples. If you want to create examples for ditto-documentation use {@link
      * PublicJsonExamplesProducer}.
@@ -432,6 +448,7 @@ class JsonExamplesProducer {
 
         produceThingCommands(rootPath.resolve("things"));
         produceThingEvents(rootPath.resolve("things"));
+        produceThingMergedEvents(rootPath.resolve("things"));
         produceThingExceptions(rootPath.resolve("things"));
 
         produceSearchModel(rootPath.resolve("search"));
@@ -799,11 +816,15 @@ class JsonExamplesProducer {
     private void produceThingCommands(final Path rootPath) throws IOException {
         produceThingQueryCommands(rootPath);
         produceThingModifyCommands(rootPath);
+        produceThingMergeCommands(rootPath);
         produceThingQueryResponses(rootPath);
         produceThingModifyResponses(rootPath);
+        produceThingMergeCommandResponses(rootPath);
     }
 
     private void produceThingQueryCommands(final Path rootPath) throws IOException {
+        System.out.println("--- produce thing query commands --------------------------------------------------------");
+
         final Path commandsDir = rootPath.resolve(Paths.get("commands", "query"));
         Files.createDirectories(commandsDir);
 
@@ -881,6 +902,8 @@ class JsonExamplesProducer {
     }
 
     private void produceThingQueryResponses(final Path rootPath) throws IOException {
+        System.out.println("--- produce thing query responses -------------------------------------------------------");
+
         final Path commandsDir = rootPath.resolve(Paths.get("commands", "query"));
         Files.createDirectories(commandsDir);
 
@@ -940,6 +963,8 @@ class JsonExamplesProducer {
     }
 
     private void produceThingModifyCommands(final Path rootPath) throws IOException {
+        System.out.println("--- produce thing modify commands -------------------------------------------------------");
+
         final Path commandsDir = rootPath.resolve(Paths.get("commands", "modify"));
         Files.createDirectories(commandsDir);
 
@@ -1022,6 +1047,8 @@ class JsonExamplesProducer {
     }
 
     private void produceThingModifyResponses(final Path rootPath) throws IOException {
+        System.out.println("--- produce thing modify responses ------------------------------------------------------");
+
         final Path commandsDir = rootPath.resolve(Paths.get("commands", "modify"));
         Files.createDirectories(commandsDir);
 
@@ -1156,7 +1183,229 @@ class JsonExamplesProducer {
         writeJson(commandsDir.resolve(Paths.get("deleteFeaturePropertyResponse.json")), deleteFeaturePropertyResponse);
     }
 
+    private MergeThingResponse toResponse(final MergeThing mergeThing) {
+        return MergeThingResponse.of(mergeThing.getEntityId(), mergeThing.getResourcePath(),
+                mergeThing.getDittoHeaders());
+    }
+
+    private void produceThingMergeCommands(final Path rootPath) throws IOException {
+        System.out.println("--- produce thing merge commands --------------------------------------------------------");
+
+        final Path commandsDir = rootPath.resolve(Paths.get("commands", "merge"));
+        Files.createDirectories(commandsDir);
+
+        final MergeThing mergeThing = MergeThing.withThing(THING_ID, THING, DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeThing.json")), mergeThing);
+
+        final MergeThing mergeThingDefinition =
+                MergeThing.withThingDefinition(THING_ID, ThingsModelFactory.newDefinition(THING_DEFINITION),
+                        DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeThingDefinition.json")), mergeThingDefinition);
+
+        final MergeThing mergeDeleteThingDefinition =
+                MergeThing.withThingDefinition(THING_ID, ThingsModelFactory.nullDefinition(), DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeDeleteThingDefinition.json")), mergeDeleteThingDefinition);
+
+        final MergeThing mergePolicyId = MergeThing.withPolicyId(THING_ID, POLICY_ID, DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergePolicyId.json")), mergePolicyId);
+
+        final MergeThing mergeAttributes = MergeThing.withAttributes(THING_ID, ATTRIBUTES, DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeAttributes.json")), mergeAttributes);
+
+        final MergeThing mergeDeleteAttributes =
+                MergeThing.withAttributes(THING_ID, ThingsModelFactory.nullAttributes(), DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeDeleteAttributes.json")), mergeDeleteAttributes);
+
+        final MergeThing mergeAttribute =
+                MergeThing.withAttribute(THING_ID, ATTRIBUTE_POINTER, ATTRIBUTE_VALUE, DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeAttribute.json")), mergeAttribute);
+
+        final MergeThing mergeDeleteAttribute =
+                MergeThing.withAttribute(THING_ID, ATTRIBUTE_POINTER, JsonValue.nullLiteral(), DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeDeleteAttribute.json")), mergeDeleteAttribute);
+
+        final MergeThing mergeFeature = MergeThing.withFeature(THING_ID, FLUX_CAPACITOR, DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeFeature.json")), mergeFeature);
+
+        final MergeThing mergeDeleteFeature =
+                MergeThing.withFeature(THING_ID, ThingsModelFactory.nullFeature(FEATURE_ID), DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeDeleteFeature.json")), mergeDeleteFeature);
+
+        final MergeThing mergeFeatures = MergeThing.withFeatures(THING_ID, FEATURES, DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeFeatures.json")), mergeFeatures);
+
+        final MergeThing mergeDeleteFeatures =
+                MergeThing.withFeatures(THING_ID, ThingsModelFactory.nullFeatures(), DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeDeleteFeatures.json")), mergeDeleteFeatures);
+
+        final MergeThing mergeFeatureDefinition =
+                MergeThing.withFeatureDefinition(THING_ID, FEATURE_ID, FEATURE_DEFINITION, DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeFeatureDefinition.json")), mergeFeatureDefinition);
+
+        final MergeThing mergeDeleteFeatureDefinition =
+                MergeThing.withFeatureDefinition(THING_ID, FEATURE_ID, ThingsModelFactory.nullFeatureDefinition(),
+                        DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeDeleteFeatureDefinition.json")), mergeDeleteFeatureDefinition);
+
+        final MergeThing mergeFeatureProperties =
+                MergeThing.withFeatureProperties(THING_ID, FEATURE_ID, FEATURE_PROPERTIES, DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeFeatureProperties.json")), mergeFeatureProperties);
+
+        final MergeThing mergeDeleteFeatureProperties =
+                MergeThing.withFeatureProperties(THING_ID, FEATURE_ID, ThingsModelFactory.nullFeatureProperties(),
+                        DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeDeleteFeatureProperties.json")), mergeDeleteFeatureProperties);
+
+        final MergeThing mergeFeatureProperty =
+                MergeThing.withFeatureProperty(THING_ID, FEATURE_ID, PROPERTY_POINTER, PROPERTY_VALUE, DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeFeatureProperty.json")), mergeFeatureProperty);
+
+        final MergeThing mergeDeleteFeatureProperty =
+                MergeThing.withFeatureProperty(THING_ID, FEATURE_ID, PROPERTY_POINTER, JsonValue.nullLiteral(),
+                        DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeDeleteFeatureProperty.json")), mergeDeleteFeatureProperty);
+
+        final MergeThing mergeFeatureDesiredProperties =
+                MergeThing.withFeatureDesiredProperties(THING_ID, FEATURE_ID, FEATURE_PROPERTIES, DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeFeatureDesiredProperties.json")), mergeFeatureDesiredProperties);
+
+        final MergeThing mergeDeleteFeatureDesiredProperties =
+                MergeThing.withFeatureDesiredProperties(THING_ID, FEATURE_ID,
+                        ThingsModelFactory.nullFeatureProperties(), DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeDeleteFeatureDesiredProperties.json")),
+                mergeDeleteFeatureDesiredProperties);
+
+        final MergeThing mergeFeatureDesiredProperty =
+                MergeThing.withFeatureDesiredProperty(THING_ID, FEATURE_ID, PROPERTY_POINTER, PROPERTY_VALUE,
+                        DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeFeatureDesiredProperty.json")), mergeFeatureDesiredProperty);
+
+        final MergeThing mergeDeleteFeatureDesiredProperty =
+                MergeThing.withFeatureDesiredProperty(THING_ID, FEATURE_ID, PROPERTY_POINTER, JsonValue.nullLiteral(),
+                        DITTO_HEADERS);
+        writeJson(commandsDir.resolve(Paths.get("mergeDeleteFeatureDesiredProperty.json")),
+                mergeDeleteFeatureDesiredProperty);
+    }
+
+    private void produceThingMergeCommandResponses(final Path rootPath) throws IOException {
+        System.out.println("--- produce thing merge responses -------------------------------------------------------");
+
+        final Path commandsDir = rootPath.resolve(Paths.get("commands", "merge"));
+        Files.createDirectories(commandsDir);
+
+        final MergeThingResponse mergeThingResponse = toResponse(MergeThing.withThing(THING_ID, THING, DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeThingResponse.json")), mergeThingResponse);
+
+        final MergeThingResponse mergeThingDefinitionResponse = toResponse(
+                MergeThing.withThingDefinition(THING_ID, ThingsModelFactory.newDefinition(THING_DEFINITION),
+                        DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeThingDefinitionResponse.json")),
+                mergeThingDefinitionResponse);
+
+        final MergeThingResponse mergeDeleteThingDefinitionResponse = toResponse(
+                MergeThing.withThingDefinition(THING_ID, ThingsModelFactory.nullDefinition(), DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeDeleteThingDefinitionResponse.json")),
+                mergeDeleteThingDefinitionResponse);
+
+        final MergeThingResponse mergePolicyIdResponse =
+                toResponse(MergeThing.withPolicyId(THING_ID, POLICY_ID, DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergePolicyIdResponse.json")), mergePolicyIdResponse);
+
+        final MergeThingResponse mergeAttributesResponse =
+                toResponse(MergeThing.withAttributes(THING_ID, ATTRIBUTES, DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeAttributesResponse.json")), mergeAttributesResponse);
+
+        final MergeThingResponse mergeDeleteAttributesResponse =
+                toResponse(MergeThing.withAttributes(THING_ID, ThingsModelFactory.nullAttributes(), DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeDeleteAttributesResponse.json")),
+                mergeDeleteAttributesResponse);
+
+        final MergeThingResponse mergeAttributeResponse =
+                toResponse(MergeThing.withAttribute(THING_ID, ATTRIBUTE_POINTER, ATTRIBUTE_VALUE, DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeAttributeResponse.json")), mergeAttributeResponse);
+
+        final MergeThingResponse mergeDeleteAttributeResponse = toResponse(
+                MergeThing.withAttribute(THING_ID, ATTRIBUTE_POINTER, JsonValue.nullLiteral(), DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeDeleteAttributeResponse.json")),
+                mergeDeleteAttributeResponse);
+
+        final MergeThingResponse mergeFeatureResponse =
+                toResponse(MergeThing.withFeature(THING_ID, FLUX_CAPACITOR, DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeFeatureResponse.json")), mergeFeatureResponse);
+
+        final MergeThingResponse mergeDeleteFeatureResponse =
+                toResponse(MergeThing.withFeature(THING_ID, ThingsModelFactory.nullFeature(FEATURE_ID), DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeDeleteFeatureResponse.json")),
+                mergeDeleteFeatureResponse);
+
+        final MergeThingResponse mergeFeaturesResponse =
+                toResponse(MergeThing.withFeatures(THING_ID, FEATURES, DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeFeaturesResponse.json")), mergeFeaturesResponse);
+
+        final MergeThingResponse mergeDeleteFeaturesResponse =
+                toResponse(MergeThing.withFeatures(THING_ID, ThingsModelFactory.nullFeatures(), DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeDeleteFeaturesResponse.json")),
+                mergeDeleteFeaturesResponse);
+
+        final MergeThingResponse mergeFeatureDefinitionResponse =
+                toResponse(MergeThing.withFeatureDefinition(THING_ID, FEATURE_ID, FEATURE_DEFINITION, DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeFeatureDefinitionResponse.json")),
+                mergeFeatureDefinitionResponse);
+
+        final MergeThingResponse mergeDeleteFeatureDefinitionResponse = toResponse(
+                MergeThing.withFeatureDefinition(THING_ID, FEATURE_ID, ThingsModelFactory.nullFeatureDefinition(),
+                        DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeDeleteFeatureDefinitionResponse.json")),
+                mergeDeleteFeatureDefinitionResponse);
+
+        final MergeThingResponse mergeFeaturePropertiesResponse =
+                toResponse(MergeThing.withFeatureProperties(THING_ID, FEATURE_ID, FEATURE_PROPERTIES, DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeFeaturePropertiesResponse.json")),
+                mergeFeaturePropertiesResponse);
+
+        final MergeThingResponse mergeDeleteFeaturePropertiesResponse = toResponse(
+                MergeThing.withFeatureProperties(THING_ID, FEATURE_ID, ThingsModelFactory.nullFeatureProperties(),
+                        DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeDeleteFeaturePropertiesResponse.json")),
+                mergeDeleteFeaturePropertiesResponse);
+
+        final MergeThingResponse mergeFeatureDesiredPropertiesResponse = toResponse(
+                MergeThing.withFeatureDesiredProperties(THING_ID, FEATURE_ID, FEATURE_PROPERTIES, DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeFeatureDesiredPropertiesResponse.json")),
+                mergeFeatureDesiredPropertiesResponse);
+
+        final MergeThingResponse mergeDeleteFeatureDesiredPropertiesResponse = toResponse(
+                MergeThing.withFeatureDesiredProperties(THING_ID, FEATURE_ID,
+                        ThingsModelFactory.nullFeatureProperties(), DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeDeleteFeatureDesiredPropertiesResponse.json")),
+                mergeDeleteFeatureDesiredPropertiesResponse);
+
+        final MergeThingResponse mergeFeaturePropertyResponse = toResponse(
+                MergeThing.withFeatureProperty(THING_ID, FEATURE_ID, PROPERTY_POINTER, PROPERTY_VALUE, DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeFeaturePropertyResponse.json")),
+                mergeFeaturePropertyResponse);
+
+        final MergeThingResponse mergeDeleteFeaturePropertyResponse = toResponse(
+                MergeThing.withFeatureProperty(THING_ID, FEATURE_ID, PROPERTY_POINTER, JsonValue.nullLiteral(),
+                        DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeDeleteFeaturePropertyResponse.json")),
+                mergeDeleteFeaturePropertyResponse);
+
+        final MergeThingResponse mergeFeatureDesiredPropertyResponse = toResponse(
+                MergeThing.withFeatureDesiredProperty(THING_ID, FEATURE_ID, PROPERTY_POINTER, PROPERTY_VALUE,
+                        DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeFeatureDesiredPropertyResponse.json")),
+                mergeFeatureDesiredPropertyResponse);
+
+        final MergeThingResponse mergeDeleteFeatureDesiredPropertyResponse = toResponse(
+                MergeThing.withFeatureDesiredProperty(THING_ID, FEATURE_ID, PROPERTY_POINTER, JsonValue.nullLiteral(),
+                        DITTO_HEADERS));
+        writeResponseJson(commandsDir.resolve(Paths.get("mergeDeleteFeatureDesiredPropertyResponse.json")),
+                mergeDeleteFeatureDesiredPropertyResponse);
+    }
+
     private void produceThingEvents(final Path rootPath) throws IOException {
+        System.out.println("--- produce thing events ---------------------------------------------------------");
         final Path eventsDir = rootPath.resolve(Paths.get("events"));
         Files.createDirectories(eventsDir);
 
@@ -1285,6 +1534,118 @@ class JsonExamplesProducer {
         final FeaturePropertyDeleted featurePropertyDeleted = FeaturePropertyDeleted.of(THING_ID, FEATURE_ID,
                 PROPERTY_POINTER, REVISION_NUMBER, DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("featurePropertyDeleted.json")), featurePropertyDeleted);
+    }
+
+    private ThingMerged toThingMergedEvent(final MergeThing mergeThing) {
+        return ThingMerged.of(mergeThing.getEntityId(), mergeThing.getResourcePath(), mergeThing.getValue(), 42L,
+                Instant.ofEpochSecond(Instant.now().getEpochSecond()), mergeThing.getDittoHeaders(), null);
+    }
+
+    private void produceThingMergedEvents(final Path rootPath) throws IOException {
+
+        System.out.println("--- produce thing merged events ---------------------------------------------------------");
+
+        final Path eventsDir = rootPath.resolve(Paths.get("events"));
+        Files.createDirectories(eventsDir);
+
+        final ThingMerged mergedThing = toThingMergedEvent(MergeThing.withThing(THING_ID, THING, DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedThing.json")), mergedThing);
+
+        final ThingMerged mergedThingDefinition = toThingMergedEvent(
+                MergeThing.withThingDefinition(THING_ID, ThingsModelFactory.newDefinition(THING_DEFINITION),
+                        DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedThingDefinition.json")), mergedThingDefinition);
+
+        final ThingMerged mergedDeleteThingDefinition = toThingMergedEvent(
+                MergeThing.withThingDefinition(THING_ID, ThingsModelFactory.nullDefinition(), DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedDeleteThingDefinition.json")), mergedDeleteThingDefinition);
+
+        final ThingMerged mergedPolicyId =
+                toThingMergedEvent(MergeThing.withPolicyId(THING_ID, POLICY_ID, DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedPolicyId.json")), mergedPolicyId);
+
+        final ThingMerged mergedAttributes =
+                toThingMergedEvent(MergeThing.withAttributes(THING_ID, ATTRIBUTES, DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedAttributes.json")), mergedAttributes);
+
+        final ThingMerged mergedDeleteAttributes = toThingMergedEvent(
+                MergeThing.withAttributes(THING_ID, ThingsModelFactory.nullAttributes(), DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedDeleteAttributes.json")), mergedDeleteAttributes);
+
+        final ThingMerged mergedAttribute = toThingMergedEvent(
+                MergeThing.withAttribute(THING_ID, ATTRIBUTE_POINTER, ATTRIBUTE_VALUE, DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedAttribute.json")), mergedAttribute);
+
+        final ThingMerged mergedDeleteAttribute = toThingMergedEvent(
+                MergeThing.withAttribute(THING_ID, ATTRIBUTE_POINTER, JsonValue.nullLiteral(), DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedDeleteAttribute.json")), mergedDeleteAttribute);
+
+        final ThingMerged mergedFeature =
+                toThingMergedEvent(MergeThing.withFeature(THING_ID, FLUX_CAPACITOR, DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedFeature.json")), mergedFeature);
+
+        final ThingMerged mergedDeleteFeature = toThingMergedEvent(
+                MergeThing.withFeature(THING_ID, ThingsModelFactory.nullFeature(FEATURE_ID), DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedDeleteFeature.json")), mergedDeleteFeature);
+
+        final ThingMerged mergedFeatures =
+                toThingMergedEvent(MergeThing.withFeatures(THING_ID, FEATURES, DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedFeatures.json")), mergedFeatures);
+
+        final ThingMerged mergedDeleteFeatures =
+                toThingMergedEvent(MergeThing.withFeatures(THING_ID, ThingsModelFactory.nullFeatures(), DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedDeleteFeatures.json")), mergedDeleteFeatures);
+
+        final ThingMerged mergedFeatureDefinition = toThingMergedEvent(
+                MergeThing.withFeatureDefinition(THING_ID, FEATURE_ID, FEATURE_DEFINITION, DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedFeatureDefinition.json")), mergedFeatureDefinition);
+
+        final ThingMerged mergedDeleteFeatureDefinition = toThingMergedEvent(
+                MergeThing.withFeatureDefinition(THING_ID, FEATURE_ID, ThingsModelFactory.nullFeatureDefinition(),
+                        DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedDeleteFeatureDefinition.json")),
+                mergedDeleteFeatureDefinition);
+
+        final ThingMerged mergedFeatureProperties = toThingMergedEvent(
+                MergeThing.withFeatureProperties(THING_ID, FEATURE_ID, FEATURE_PROPERTIES, DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedFeatureProperties.json")), mergedFeatureProperties);
+
+        final ThingMerged mergedDeleteFeatureProperties = toThingMergedEvent(
+                MergeThing.withFeatureProperties(THING_ID, FEATURE_ID, ThingsModelFactory.nullFeatureProperties(),
+                        DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedDeleteFeatureProperties.json")),
+                mergedDeleteFeatureProperties);
+
+        final ThingMerged mergedFeatureDesiredProperties = toThingMergedEvent(
+                MergeThing.withFeatureDesiredProperties(THING_ID, FEATURE_ID, FEATURE_PROPERTIES, DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedFeatureDesiredProperties.json")),
+                mergedFeatureDesiredProperties);
+
+        final ThingMerged mergedDeleteFeatureDesiredProperties = toThingMergedEvent(
+                MergeThing.withFeatureDesiredProperties(THING_ID, FEATURE_ID,
+                        ThingsModelFactory.nullFeatureProperties(), DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedDeleteFeatureDesiredProperties.json")),
+                mergedDeleteFeatureDesiredProperties);
+
+        final ThingMerged mergedFeatureProperty = toThingMergedEvent(
+                MergeThing.withFeatureProperty(THING_ID, FEATURE_ID, PROPERTY_POINTER, PROPERTY_VALUE, DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedFeatureProperty.json")), mergedFeatureProperty);
+
+        final ThingMerged mergedDeleteFeatureProperty = toThingMergedEvent(
+                MergeThing.withFeatureProperty(THING_ID, FEATURE_ID, PROPERTY_POINTER, JsonValue.nullLiteral(),
+                        DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedDeleteFeatureProperty.json")), mergedDeleteFeatureProperty);
+
+        final ThingMerged mergedFeatureDesiredProperty = toThingMergedEvent(
+                MergeThing.withFeatureDesiredProperty(THING_ID, FEATURE_ID, PROPERTY_POINTER, PROPERTY_VALUE,
+                        DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedFeatureDesiredProperty.json")), mergedFeatureDesiredProperty);
+
+        final ThingMerged mergedDeleteFeatureDesiredProperty = toThingMergedEvent(
+                MergeThing.withFeatureDesiredProperty(THING_ID, FEATURE_ID, PROPERTY_POINTER, JsonValue.nullLiteral(),
+                        DITTO_HEADERS));
+        writeEventJson(eventsDir.resolve(Paths.get("mergedDeleteFeatureDesiredProperty.json")),
+                mergedDeleteFeatureDesiredProperty);
     }
 
     private void produceThingExceptions(final Path rootPath) throws IOException {
@@ -1485,6 +1846,15 @@ class JsonExamplesProducer {
         final ThingUnavailableException thingUnavailableException =
                 ThingUnavailableException.newBuilder(THING_ID).dittoHeaders(DITTO_HEADERS).build();
         writeJson(exceptionsDir.resolve(Paths.get("thingUnavailableException.json")), thingUnavailableException);
+
+        final ThingIdNotDeletableException thingIdNotDeletableException =
+                ThingIdNotDeletableException.newBuilder().dittoHeaders(DITTO_HEADERS).build();
+        writeJson(exceptionsDir.resolve(Paths.get("thingIdNotDeletableException.json")), thingIdNotDeletableException);
+
+        final PolicyIdNotDeletableException policyIdNotDeletableException =
+                PolicyIdNotDeletableException.newBuilder().dittoHeaders(DITTO_HEADERS).build();
+        writeJson(exceptionsDir.resolve(Paths.get("thingPolicyIdNotDeletableException.json")),
+                policyIdNotDeletableException);
 
         final ThingErrorResponse thingErrorResponse = ThingErrorResponse.of(thingNotAccessibleException);
         writeJson(exceptionsDir.resolve(Paths.get("thingErrorResponse.json")), thingErrorResponse);
@@ -1696,6 +2066,16 @@ class JsonExamplesProducer {
         writeJson(exceptionsDir.resolve(Paths.get("jsonParseException.json")), jsonParseException);
     }
 
+    private void writeResponseJson(final Path path, final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable)
+            throws IOException {
+        writeJson(path, jsonifiable, EXCLUDED_RESPONSE_HEADERS);
+    }
+
+    private void writeEventJson(final Path path, final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable)
+            throws IOException {
+        writeJson(path, jsonifiable, EXCLUDED_EVENT_HEADERS);
+    }
+
     protected void writeJson(final Path path, final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable)
             throws IOException {
         writeJson(path, jsonifiable, JsonSchemaVersion.LATEST);
@@ -1703,9 +2083,21 @@ class JsonExamplesProducer {
 
     protected void writeJson(final Path path, final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable,
             final JsonSchemaVersion schemaVersion) throws IOException {
-        final String jsonString = jsonifiable.toJsonString(schemaVersion);
+        writeJson(path, jsonifiable, schemaVersion, Collections.emptyList());
+    }
+
+    protected void writeJson(final Path path, final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable,
+            final List<DittoHeaderDefinition> excludedHeaders) throws IOException {
+        writeJson(path, jsonifiable, JsonSchemaVersion.LATEST, excludedHeaders);
+    }
+
+    protected void writeJson(final Path path, final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable,
+            final JsonSchemaVersion schemaVersion, final List<DittoHeaderDefinition> excludedHeaders)
+            throws IOException {
+        final JsonObject jsonObject = jsonifiable.toJson(schemaVersion);
+        final JsonObject headersExcluded = excludeHeaders(jsonObject, excludedHeaders);
         System.out.println("Writing file: " + path.toAbsolutePath());
-        Files.write(path, jsonString.getBytes());
+        Files.write(path, headersExcluded.toString().getBytes());
     }
 
     private DittoHeaders headersWithCorrelationIdFor(final String commandType) {
@@ -1714,4 +2106,18 @@ class JsonExamplesProducer {
                 .build();
     }
 
+    JsonObject excludeHeaders(final JsonObject initialObject, final List<DittoHeaderDefinition> excludedHeaders) {
+        final JsonObject headers = initialObject.getValue(JsonifiableAdaptable.JsonFields.HEADERS)
+                .filter(JsonValue::isObject)
+                .map(JsonValue::asObject)
+                .orElse(JsonObject.empty());
+        final JsonObject filteredHeaders = headers.stream()
+                .filter(filterHeader(excludedHeaders))
+                .collect(JsonCollectors.fieldsToObject());
+        return initialObject.set(JsonifiableAdaptable.JsonFields.HEADERS, filteredHeaders);
+    }
+
+    static Predicate<JsonField> filterHeader(final List<DittoHeaderDefinition> definitions) {
+        return field -> definitions.stream().noneMatch(d -> d.getKey().equals(field.getKeyName()));
+    }
 }

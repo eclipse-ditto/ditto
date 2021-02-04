@@ -31,6 +31,7 @@ import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThingResponse;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclEntryResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAclResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributeResponse;
@@ -95,6 +96,19 @@ public final class ETagTestUtils {
         final DittoHeaders dittoHeadersWithETag =
                 appendETagToDittoHeaders(modifiedThingWithUpdatedRevision, dittoHeaders);
         return ModifyThingResponse.modified(modifiedThing.getEntityId().get(), dittoHeadersWithETag);
+    }
+
+    public static MergeThingResponse mergeThingResponse(final Thing currentThing, final JsonPointer path,
+            final DittoHeaders dittoHeaders) {
+        final Thing modifiedThingWithUpdatedRevision = currentThing.toBuilder()
+                .setRevision(currentThing.getRevision()
+                        .map(Revision::increment)
+                        .orElseGet(() -> ThingRevision.newInstance(1L)))
+                .build();
+        final DittoHeaders dittoHeadersWithETag =
+                appendETagToDittoHeaders(modifiedThingWithUpdatedRevision, dittoHeaders);
+        final ThingId thingId = currentThing.getEntityId().orElseThrow();
+        return MergeThingResponse.of(thingId, path, dittoHeadersWithETag);
     }
 
     public static SudoRetrieveThingResponse sudoRetrieveThingResponse(final Thing expectedThing,

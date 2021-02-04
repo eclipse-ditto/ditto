@@ -37,6 +37,7 @@ import com.mongodb.MongoCredential;
 import com.mongodb.ReadPreference;
 import com.mongodb.ServerAddress;
 import com.mongodb.WriteConcern;
+import com.mongodb.connection.ClusterDescription;
 import com.mongodb.connection.netty.NettyStreamFactoryFactory;
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
@@ -59,17 +60,19 @@ import io.netty.channel.nio.NioEventLoopGroup;
 public final class MongoClientWrapper implements DittoMongoClient {
 
     private final MongoClient mongoClient;
+    private final MongoClientSettings clientSettings;
     private final MongoDatabase defaultDatabase;
     private final DittoMongoClientSettings dittoMongoClientSettings;
     @Nullable private final EventLoopGroup eventLoopGroup;
 
-    private MongoClientWrapper(final MongoClient theMongoClient,
+    private MongoClientWrapper(final MongoClientSettings clientSettings,
             final String defaultDatabaseName,
             final DittoMongoClientSettings theDittoMongoClientSettings,
             @Nullable final EventLoopGroup theEventLoopGroup) {
 
-        mongoClient = theMongoClient;
-        defaultDatabase = theMongoClient.getDatabase(defaultDatabaseName);
+        this.clientSettings = clientSettings;
+        mongoClient = MongoClients.create(clientSettings);
+        defaultDatabase = mongoClient.getDatabase(defaultDatabaseName);
         dittoMongoClientSettings = theDittoMongoClientSettings;
         eventLoopGroup = theEventLoopGroup;
     }
@@ -126,12 +129,6 @@ public final class MongoClientWrapper implements DittoMongoClient {
     }
 
     @Override
-    @Deprecated
-    public com.mongodb.async.client.MongoClientSettings getSettings() {
-        return mongoClient.getSettings();
-    }
-
-    @Override
     public Publisher<String> listDatabaseNames() {
         return mongoClient.listDatabaseNames();
     }
@@ -153,7 +150,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
 
     @Override
     public ListDatabasesPublisher<Document> listDatabases(final ClientSession clientSession) {
-        return listDatabases(clientSession);
+        return mongoClient.listDatabases(clientSession);
     }
 
     @Override
@@ -222,6 +219,16 @@ public final class MongoClientWrapper implements DittoMongoClient {
     }
 
     @Override
+    public MongoClientSettings getClientSettings() {
+        return clientSettings;
+    }
+
+    @Override
+    public ClusterDescription getClusterDescription() {
+        return mongoClient.getClusterDescription();
+    }
+
+    @Override
     public void close() {
         if (null != eventLoopGroup) {
             eventLoopGroup.shutdownGracefully();
@@ -279,7 +286,6 @@ public final class MongoClientWrapper implements DittoMongoClient {
 
             final MongoDbConfig.ConnectionPoolConfig connectionPoolConfig = mongoDbConfig.getConnectionPoolConfig();
             builder.connectionPoolMaxSize(connectionPoolConfig.getMaxSize());
-            builder.connectionPoolMaxWaitQueueSize(connectionPoolConfig.getMaxWaitQueueSize());
             builder.connectionPoolMaxWaitTime(connectionPoolConfig.getMaxWaitTime());
             builder.enableJmxListener(connectionPoolConfig.isJmxListenerEnabled());
 
@@ -345,12 +351,6 @@ public final class MongoClientWrapper implements DittoMongoClient {
         }
 
         @Override
-        public MongoClientWrapperBuilder connectionPoolMaxWaitQueueSize(final int maxQueueSize) {
-            mongoClientSettingsBuilder.applyToConnectionPoolSettings(builder -> builder.maxWaitQueueSize(maxQueueSize));
-            return this;
-        }
-
-        @Override
         public MongoClientWrapperBuilder connectionPoolMaxWaitTime(final Duration maxPoolWaitTime) {
             checkNotNull(maxPoolWaitTime, "maxPoolWaitTime");
             mongoClientSettingsBuilder.applyToConnectionPoolSettings(
@@ -396,7 +396,7 @@ public final class MongoClientWrapper implements DittoMongoClient {
         public MongoClientWrapper build() {
             buildAndApplySslSettings();
 
-            return new MongoClientWrapper(MongoClients.create(mongoClientSettingsBuilder.build()), defaultDatabaseName,
+            return new MongoClientWrapper(mongoClientSettingsBuilder.build(), defaultDatabaseName,
                     dittoMongoClientSettingsBuilder.build(), eventLoopGroup);
         }
 

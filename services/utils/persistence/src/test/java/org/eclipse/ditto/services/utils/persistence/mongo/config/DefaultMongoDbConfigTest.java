@@ -87,7 +87,6 @@ public final class DefaultMongoDbConfigTest {
         });
         softly.assertThat(underTest.getConnectionPoolConfig()).satisfies(connectionPoolConfig -> {
             softly.assertThat(connectionPoolConfig.getMaxSize()).isEqualTo(1_000);
-            softly.assertThat(connectionPoolConfig.getMaxWaitQueueSize()).isEqualTo(1_000);
             softly.assertThat(connectionPoolConfig.getMaxWaitTime()).isEqualTo(Duration.ofSeconds(42L));
             softly.assertThat(connectionPoolConfig.isJmxListenerEnabled()).isTrue();
         });
@@ -123,7 +122,6 @@ public final class DefaultMongoDbConfigTest {
         });
         softly.assertThat(underTest.getConnectionPoolConfig()).satisfies(connectionPoolConfig -> {
             softly.assertThat(connectionPoolConfig.getMaxSize()).as("maxSize").isEqualTo(100);
-            softly.assertThat(connectionPoolConfig.getMaxWaitQueueSize()).as("maxWaitQueueSize").isEqualTo(100);
             softly.assertThat(connectionPoolConfig.getMaxWaitTime())
                     .as("maxWaitTime")
                     .isEqualTo(Duration.ofSeconds(30L));

@@ -46,11 +46,14 @@ import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommandRes
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.things.ThingMerged;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -69,29 +72,35 @@ public final class DittoProtocolAdapterParameterizedTest {
     private static final DittoHeaders LIVE_DITTO_HEADERS = DittoHeaders.newBuilder().channel(LIVE.getName()).build();
 
     // mock all adapters and give them a name
-    private static Adapter<ThingQueryCommand<?>> thingQueryCommandAdapter =
+    private static final Adapter<ThingQueryCommand<?>> thingQueryCommandAdapter =
             mock(Adapter.class, "ThingQueryCommandAdapter");
-    private static Adapter<ThingQueryCommandResponse<?>> thingQueryCommandResponseAdapter =
+    private static final Adapter<ThingQueryCommandResponse<?>> thingQueryCommandResponseAdapter =
             mock(Adapter.class, "ThingQueryCommandResponseAdapter");
-    private static Adapter<ThingModifyCommand<?>> thingModifyCommandAdapter =
+    private static final Adapter<ThingModifyCommand<?>> thingModifyCommandAdapter =
             mock(Adapter.class, "ThingModifyCommandAdapter");
-    private static Adapter<ThingModifyCommandResponse<?>> thingModifyCommandResponseAdapter =
+    private static final Adapter<ThingModifyCommandResponse<?>> thingModifyCommandResponseAdapter =
             mock(Adapter.class, "ThingModifyCommandResponseAdapter");
-    private static Adapter<ThingEvent<?>> thingEventAdapter = mock(Adapter.class, "ThingEventAdapter");
-    private static Adapter<MessageCommand<?, ?>> messageCommandAdapter = mock(Adapter.class, "MessageCommandAdapter");
-    private static Adapter<MessageCommandResponse<?, ?>> messageCommandResponseAdapter =
+    private static final Adapter<MergeThing> thingMergeCommandAdapter =
+            mock(Adapter.class, "ThingModifyCommandAdapter");
+    private static final Adapter<MergeThingResponse> thingMergeCommandResponseAdapter =
+            mock(Adapter.class, "ThingModifyCommandResponseAdapter");
+    private static final Adapter<ThingEvent<?>> thingEventAdapter = mock(Adapter.class, "ThingEventAdapter");
+    private static final Adapter<ThingMerged> thingMergedEventAdapter = mock(Adapter.class, "ThingMergedEventAdapter");
+    private static final Adapter<MessageCommand<?, ?>> messageCommandAdapter =
+            mock(Adapter.class, "MessageCommandAdapter");
+    private static final Adapter<MessageCommandResponse<?, ?>> messageCommandResponseAdapter =
             mock(Adapter.class, "MessageCommandResponseAdapter");
-    private static Adapter<ThingErrorResponse> thingErrorResponseAdapter =
+    private static final Adapter<ThingErrorResponse> thingErrorResponseAdapter =
             mock(Adapter.class, "ThingErrorResponseAdapter");
-    private static Adapter<PolicyQueryCommand<?>> policyQueryCommandAdapter =
+    private static final Adapter<PolicyQueryCommand<?>> policyQueryCommandAdapter =
             mock(Adapter.class, "PolicyQueryCommandAdapter");
-    private static Adapter<PolicyQueryCommandResponse<?>> policyQueryCommandResponseAdapter =
+    private static final Adapter<PolicyQueryCommandResponse<?>> policyQueryCommandResponseAdapter =
             mock(Adapter.class, "PolicyQueryCommandResponseAdapter");
-    private static Adapter<PolicyModifyCommand<?>> policyModifyCommandAdapter =
+    private static final Adapter<PolicyModifyCommand<?>> policyModifyCommandAdapter =
             mock(Adapter.class, "PolicyModifyCommandAdapter");
-    private static Adapter<PolicyModifyCommandResponse<?>> policyModifyCommandResponseAdapter =
+    private static final Adapter<PolicyModifyCommandResponse<?>> policyModifyCommandResponseAdapter =
             mock(Adapter.class, "PolicyModifyCommandResponseAdapter");
-    private static Adapter<PolicyErrorResponse> policyErrorResponseAdapter =
+    private static final Adapter<PolicyErrorResponse> policyErrorResponseAdapter =
             mock(Adapter.class, "PolicyErrorResponseAdapter");
 
     // build test parameters with expected outcome
@@ -105,10 +114,13 @@ public final class DittoProtocolAdapterParameterizedTest {
         PARAMS.add(new TestParameter(ThingModifyCommand.class, thingModifyCommandAdapter, TWIN, TWIN, LIVE));
         PARAMS.add(new TestParameter(ThingModifyCommandResponse.class, thingModifyCommandResponseAdapter, TWIN, TWIN,
                 LIVE));
+        PARAMS.add(new TestParameter(MergeThing.class, thingMergeCommandAdapter, TWIN, TWIN, LIVE));
+        PARAMS.add(new TestParameter(MergeThingResponse.class, thingMergeCommandResponseAdapter, TWIN, TWIN, LIVE));
         PARAMS.add(new TestParameter(ThingErrorResponse.class, thingErrorResponseAdapter, TWIN, TWIN, LIVE));
         PARAMS.add(new TestParameter(MessageCommand.class, messageCommandAdapter, LIVE, LIVE));
         PARAMS.add(new TestParameter(MessageCommandResponse.class, messageCommandResponseAdapter, LIVE, LIVE));
         PARAMS.add(new TestParameter(ThingEvent.class, thingEventAdapter, TWIN, TWIN, LIVE));
+        PARAMS.add(new TestParameter(ThingMerged.class, thingMergedEventAdapter, TWIN, TWIN, LIVE));
         PARAMS.add(new TestParameter(PolicyQueryCommand.class, policyQueryCommandAdapter, NONE, NONE));
         PARAMS.add(new TestParameter(PolicyQueryCommandResponse.class, policyQueryCommandResponseAdapter, NONE, NONE));
         PARAMS.add(new TestParameter(PolicyModifyCommand.class, policyModifyCommandAdapter, NONE, NONE));
@@ -189,7 +201,6 @@ public final class DittoProtocolAdapterParameterizedTest {
 
     @Before
     public void setUp() {
-
         final ThingCommandAdapterProvider thingCommandAdapterProvider = mock(ThingCommandAdapterProvider.class);
         final PolicyCommandAdapterProvider policyCommandAdapterProvider = mock(PolicyCommandAdapterProvider.class);
         final AcknowledgementAdapterProvider acknowledgementAdapterProvider = mock(AcknowledgementAdapterProvider.class);
@@ -210,6 +221,12 @@ public final class DittoProtocolAdapterParameterizedTest {
                 .thenReturn(thingErrorResponseAdapter);
         when(thingCommandAdapterProvider.getEventAdapter())
                 .thenReturn(thingEventAdapter);
+        when(thingCommandAdapterProvider.getMergeCommandAdapter())
+                .thenReturn(thingMergeCommandAdapter);
+        when(thingCommandAdapterProvider.getMergeCommandResponseAdapter())
+                .thenReturn(thingMergeCommandResponseAdapter);
+        when(thingCommandAdapterProvider.getMergedEventAdapter())
+                .thenReturn(thingMergedEventAdapter);
 
         when(policyCommandAdapterProvider.getQueryCommandAdapter())
                 .thenReturn(policyQueryCommandAdapter);
@@ -231,7 +248,10 @@ public final class DittoProtocolAdapterParameterizedTest {
         reset(thingQueryCommandResponseAdapter);
         reset(thingModifyCommandAdapter);
         reset(thingModifyCommandResponseAdapter);
+        reset(thingMergeCommandAdapter);
+        reset(thingMergeCommandResponseAdapter);
         reset(thingEventAdapter);
+        reset(thingMergedEventAdapter);
         reset(thingErrorResponseAdapter);
         reset(policyQueryCommandAdapter);
         reset(policyQueryCommandResponseAdapter);

@@ -45,9 +45,8 @@ public abstract class QueryCriteriaValidator implements Extension {
     /**
      * Gets the criteria of a {@link org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand} and
      * validates it.
-     *
+     * <p>
      * May throw an exception depending on the implementation in the used QueryCriteriaValidator.
-     *
      */
     public abstract void validateCommand(final ThingSearchQueryCommand<?> command);
 
