@@ -27,6 +27,9 @@ import java.util.stream.Collectors;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.config.Amqp10Config;
 
+/**
+ * AMQP connection specific config handling that renders a base URI into a JMS connection string.
+ */
 public final class AmqpSpecificConfig {
 
     private static final String CLIENT_ID = "jms.clientID";
@@ -51,6 +54,14 @@ public final class AmqpSpecificConfig {
         this.failoverEnabled = failoverEnabled;
     }
 
+    /**
+     * Create AMQP specific config with default values.
+     *
+     * @param clientId the client ID.
+     * @param connection the connection.
+     * @param defaultConfig the default config values.
+     * @return the AMQP specific config.
+     */
     public static AmqpSpecificConfig withDefault(final String clientId, final Connection connection,
             final Map<String, String> defaultConfig) {
         final var amqpParameters = new HashMap<>(filterForAmqpParameters(defaultConfig));
@@ -67,6 +78,12 @@ public final class AmqpSpecificConfig {
         return new AmqpSpecificConfig(amqpParameters, jmsParameters, connection.isFailoverEnabled());
     }
 
+    /**
+     * Convert {@link Amqp10Config} into a hashmap of config values relevant for a JMS connection string.
+     *
+     * @param config the Amqp10Config.
+     * @return the relevant config values.
+     */
     public static HashMap<String, String> toDefaultConfig(final Amqp10Config config) {
         final HashMap<String, String> defaultConfig = new HashMap<>();
         addParameter(defaultConfig, CONNECT_TIMEOUT, config.getGlobalConnectTimeout().toMillis());
@@ -76,6 +93,12 @@ public final class AmqpSpecificConfig {
         return defaultConfig;
     }
 
+    /**
+     * Render a base URI into a JMS connection string taking specific config and failover into consideration.
+     *
+     * @param uri the base URI.
+     * @return the rendered connection string.
+     */
     public String render(final String uri) {
         if (failoverEnabled) {
             final String innerUri = wrapWithFailOver(joinParameters(uri, List.of(amqpParameters)));
