@@ -362,11 +362,12 @@ public final class JMSConnectionHandlingActor extends AbstractActor {
                         DittoConnectivityConfig.of(
                                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
                                 .getConnectionConfig();
-                final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
+                final Map<String, String> defaultConfig =
+                        AmqpSpecificConfig.toDefaultConfig(connectionConfig.getAmqp10Config());
                 if (log.isDebugEnabled()) {
                     log.debug("Attempt to create connection {} for URI [{}]", connection.getId(),
                             ConnectionBasedJmsConnectionFactory
-                                    .buildAmqpConnectionUriFromConnection(connection, amqp10Config, clientId));
+                                    .buildAmqpConnectionUriFromConnection(connection, defaultConfig, clientId));
                 }
             }
             return jmsConnectionFactory.createConnection(connection, exceptionListener, connectionLogger, clientId);
