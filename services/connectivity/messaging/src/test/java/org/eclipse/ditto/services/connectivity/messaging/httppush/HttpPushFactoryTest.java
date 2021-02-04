@@ -16,6 +16,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
@@ -151,6 +152,11 @@ public final class HttpPushFactoryTest {
             @Override
             public int getMaxQueueSize() {
                 return 0;
+            }
+
+            @Override
+            public Duration getRequestTimeout() {
+                return Duration.ofSeconds(10);
             }
 
             @Override
