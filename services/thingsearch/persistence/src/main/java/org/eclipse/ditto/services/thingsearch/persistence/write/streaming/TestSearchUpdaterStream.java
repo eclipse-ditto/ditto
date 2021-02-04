@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.things.AccessControlList;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingRevision;
+import org.eclipse.ditto.services.thingsearch.common.config.DefaultPersistenceStreamConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.write.mapping.EnforcedThingMapper;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
@@ -30,6 +31,7 @@ import org.eclipse.ditto.services.thingsearch.persistence.write.model.ThingDelet
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.WriteResultAndErrors;
 
 import com.mongodb.reactivestreams.client.MongoDatabase;
+import com.typesafe.config.ConfigFactory;
 
 import akka.NotUsed;
 import akka.stream.javadsl.Source;
@@ -52,7 +54,8 @@ public final class TestSearchUpdaterStream {
      * @return the test stream.
      */
     public static TestSearchUpdaterStream of(final MongoDatabase database) {
-        final MongoSearchUpdaterFlow mongoSearchUpdaterFlow = MongoSearchUpdaterFlow.of(database);
+        final MongoSearchUpdaterFlow mongoSearchUpdaterFlow = MongoSearchUpdaterFlow.of(database,
+                DefaultPersistenceStreamConfig.of(ConfigFactory.empty()));
         return new TestSearchUpdaterStream(mongoSearchUpdaterFlow);
     }
 
@@ -73,7 +76,7 @@ public final class TestSearchUpdaterStream {
                 null);
 
         return Source.single(Source.single(writeModel))
-                .via(mongoSearchUpdaterFlow.start(1, 1));
+                .via(mongoSearchUpdaterFlow.start(false, 1, 1));
     }
 
     /**
@@ -112,7 +115,7 @@ public final class TestSearchUpdaterStream {
     private Source<WriteResultAndErrors, NotUsed> delete(final Metadata metadata) {
         final AbstractWriteModel writeModel = ThingDeleteModel.of(metadata);
         return Source.single(Source.single(writeModel))
-                .via(mongoSearchUpdaterFlow.start(1, 1));
+                .via(mongoSearchUpdaterFlow.start(false, 1, 1));
     }
 
 }

@@ -31,6 +31,11 @@ public final class ConsistencyLag {
     public static final String TIMER_NAME = "things_search_updater_consistency_lag";
 
     /**
+     * Tag for differentiating between search updates requiring acks and those who not require them.
+     */
+    public static final String TAG_SHOULD_ACK = "should_ack";
+
+    /**
      * Name of the segment spent before leaving search updater
      */
     public static final String S0_IN_UPDATER = "s0_in_updater";
@@ -64,6 +69,10 @@ public final class ConsistencyLag {
      * Name of the segment spent processing acknowledgement from MongoDB.
      */
     public static final String S6_ACKNOWLEDGE = "s6_acknowledge";
+
+    private ConsistencyLag() {
+        throw new AssertionError();
+    }
 
     /**
      * Start the segment for time spent in a thing updater.
@@ -132,7 +141,8 @@ public final class ConsistencyLag {
             final String segmentToStart) {
         metadata.getTimers().forEach(timer -> {
             stopSegmentIfPresent(timer, segmentToStop);
-            timer.startNewSegment(segmentToStart);
+            timer.startNewSegment(segmentToStart)
+                    .tag(TAG_SHOULD_ACK, metadata.isShouldAcknowledge());
         });
     }
 

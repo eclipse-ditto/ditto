@@ -41,7 +41,6 @@ import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
-import com.mongodb.reactivestreams.client.MongoDatabase;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -79,6 +78,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     private final SupervisorStrategy supervisorStrategy = RootSupervisorStrategyFactory.createStrategy(log);
 
     private final KillSwitch updaterStreamKillSwitch;
+    private final KillSwitch updaterStreamWithAcknowledgementsKillSwitch;
     private final ActorRef thingsUpdaterActor;
     private final ActorRef backgroundSyncActorProxy;
     private final DittoMongoClient dittoMongoClient;
@@ -111,11 +111,16 @@ public final class SearchUpdaterRootActor extends AbstractActor {
             log.warning("Event processing is disabled!");
         }
 
-        final ActorRef updaterShardRegion =
+        final ActorRef thingsShard = shardRegionFactory.getThingsShardRegion(numberOfShards);
+        final ActorRef policiesShard = shardRegionFactory.getPoliciesShardRegion(numberOfShards);
+        final ActorRef updaterShard =
                 shardRegionFactory.getSearchUpdaterShardRegion(numberOfShards, thingUpdaterProps, CLUSTER_ROLE);
-        updaterStreamKillSwitch = startSearchUpdaterStream(updaterConfig, actorSystem,
-                shardRegionFactory, numberOfShards, updaterShardRegion, changeQueueActor,
-                dittoMongoClient.getDefaultDatabase(), blockedNamespaces);
+
+        final SearchUpdaterStream searchUpdaterStream =
+                SearchUpdaterStream.of(updaterConfig, actorSystem, thingsShard, policiesShard, updaterShard,
+                        changeQueueActor, dittoMongoClient.getDefaultDatabase(), blockedNamespaces);
+        updaterStreamKillSwitch = searchUpdaterStream.start(getContext(), false);
+        updaterStreamWithAcknowledgementsKillSwitch = searchUpdaterStream.start(getContext(), true);
 
         final ThingsSearchUpdaterPersistence searchUpdaterPersistence =
                 MongoThingsSearchUpdaterPersistence.of(dittoMongoClient.getDefaultDatabase());
@@ -126,12 +131,12 @@ public final class SearchUpdaterRootActor extends AbstractActor {
                 ThingEventPubSubFactory.shardIdOnly(getContext(), numberOfShards, DistributedAcks.empty())
                         .startDistributedSub();
         final Props thingsUpdaterProps =
-                ThingsUpdater.props(thingEventSub, updaterShardRegion, updaterConfig, blockedNamespaces,
+                ThingsUpdater.props(thingEventSub, updaterShard, updaterConfig, blockedNamespaces,
                         pubSubMediator);
 
         thingsUpdaterActor = startChildActor(ThingsUpdater.ACTOR_NAME, thingsUpdaterProps);
         startClusterSingletonActor(NewEventForwarder.ACTOR_NAME,
-                NewEventForwarder.props(thingEventSub, updaterShardRegion, blockedNamespaces));
+                NewEventForwarder.props(thingEventSub, updaterShard, blockedNamespaces));
 
         // start policy event forwarder
         final Props policyEventForwarderProps =
@@ -193,6 +198,7 @@ public final class SearchUpdaterRootActor extends AbstractActor {
     @Override
     public void postStop() throws Exception {
         updaterStreamKillSwitch.shutdown();
+        updaterStreamWithAcknowledgementsKillSwitch.shutdown();
         dittoMongoClient.close();
         super.postStop();
     }
@@ -227,25 +233,6 @@ public final class SearchUpdaterRootActor extends AbstractActor {
 
     private ActorRef startClusterSingletonActor(final String actorName, final Props props) {
         return ClusterUtil.startSingleton(getContext(), SEARCH_ROLE, actorName, props);
-    }
-
-    private KillSwitch startSearchUpdaterStream(final UpdaterConfig updaterConfig,
-            final ActorSystem actorSystem,
-            final ShardRegionFactory shardRegionFactory,
-            final int numberOfShards,
-            final ActorRef updaterShard,
-            final ActorRef changeQueueActor,
-            final MongoDatabase mongoDatabase,
-            final BlockedNamespaces blockedNamespaces) {
-
-        final ActorRef thingsShard = shardRegionFactory.getThingsShardRegion(numberOfShards);
-        final ActorRef policiesShard = shardRegionFactory.getPoliciesShardRegion(numberOfShards);
-
-        final SearchUpdaterStream searchUpdaterStream =
-                SearchUpdaterStream.of(updaterConfig, actorSystem, thingsShard, policiesShard, updaterShard,
-                        changeQueueActor, mongoDatabase, blockedNamespaces);
-
-        return searchUpdaterStream.start(getContext());
     }
 
 }

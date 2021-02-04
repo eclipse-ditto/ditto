@@ -12,15 +12,19 @@
  */
 package org.eclipse.ditto.services.thingsearch.common.config;
 
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.base.config.supervision.ExponentialBackOffConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.services.utils.config.DittoConfigError;
 
+import com.mongodb.WriteConcern;
 import com.typesafe.config.Config;
 
 /**
@@ -33,6 +37,7 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
 
     private final int maxBulkSize;
     private final Duration ackDelay;
+    private final WriteConcern withAcknowledgementsWriteConcern;
     private final DefaultStreamStageConfig defaultStreamStageConfig;
 
     private DefaultPersistenceStreamConfig(final ConfigWithFallback persistenceStreamScopedConfig,
@@ -40,6 +45,15 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
 
         maxBulkSize = persistenceStreamScopedConfig.getInt(PersistenceStreamConfigValue.MAX_BULK_SIZE.getConfigPath());
         ackDelay = persistenceStreamScopedConfig.getDuration(PersistenceStreamConfigValue.ACK_DELAY.getConfigPath());
+        final String writeConcernString = persistenceStreamScopedConfig.getString(
+                PersistenceStreamConfigValue.WITH_ACKS_WRITE_CONCERN.getConfigPath());
+        withAcknowledgementsWriteConcern = Optional.ofNullable(WriteConcern.valueOf(writeConcernString))
+                .orElseThrow(() -> {
+                    final String msg =
+                            MessageFormat.format("Could not parse a WriteConcern from configured string <{0}>",
+                                    writeConcernString);
+                    return new DittoConfigError(msg);
+                });
         this.defaultStreamStageConfig = defaultStreamStageConfig;
     }
 
@@ -67,6 +81,11 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
     }
 
     @Override
+    public WriteConcern getWithAcknowledgementsWriteConcern() {
+        return withAcknowledgementsWriteConcern;
+    }
+
+    @Override
     public int getParallelism() {
         return defaultStreamStageConfig.getParallelism();
     }
@@ -87,12 +106,13 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
         final DefaultPersistenceStreamConfig that = (DefaultPersistenceStreamConfig) o;
         return maxBulkSize == that.maxBulkSize &&
                 Objects.equals(ackDelay, that.ackDelay) &&
+                Objects.equals(withAcknowledgementsWriteConcern, that.withAcknowledgementsWriteConcern) &&
                 Objects.equals(defaultStreamStageConfig, that.defaultStreamStageConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxBulkSize, ackDelay, defaultStreamStageConfig);
+        return Objects.hash(maxBulkSize, ackDelay, withAcknowledgementsWriteConcern, defaultStreamStageConfig);
     }
 
     @Override
@@ -100,6 +120,7 @@ public final class DefaultPersistenceStreamConfig implements PersistenceStreamCo
         return getClass().getSimpleName() + " [" +
                 "maxBulkSize=" + maxBulkSize +
                 ", ackDelay=" + ackDelay +
+                ", withAcknowledgementsWriteConcern=" + withAcknowledgementsWriteConcern +
                 ", defaultStreamStageConfig=" + defaultStreamStageConfig +
                 "]";
     }

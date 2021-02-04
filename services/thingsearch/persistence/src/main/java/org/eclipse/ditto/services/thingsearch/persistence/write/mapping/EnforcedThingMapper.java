@@ -126,7 +126,7 @@ public final class EnforcedThingMapper {
                         .append(FIELD_SORTING, thingCopyForSorting)
                         .append(FIELD_INTERNAL, flattenedValues);
 
-        final Metadata metadataToRetain = oldMetadata == null ? metadata : oldMetadata.prependSenders(metadata);
+        final Metadata metadataToRetain = oldMetadata == null ? metadata : oldMetadata.prependTimersAndSenders(metadata);
         return ThingWriteModel.of(metadataToRetain, thingDocument);
     }
 

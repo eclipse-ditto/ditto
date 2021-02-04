@@ -155,12 +155,16 @@ final class EnforcementFlow {
     /**
      * Create a flow from Thing changes to write models by retrieving data from Things shard region and enforcer cache.
      *
+     * @param shouldAcknowledge defines whether for the created flow the requested ack
+     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#SEARCH_PERSISTED} was required or not.
      * @param parallelism how many SudoRetrieveThing commands to send in parallel.
      * @return the flow.
      */
-    public Flow<Map<ThingId, Metadata>, Source<AbstractWriteModel, NotUsed>, NotUsed> create(final int parallelism) {
+    public Flow<Map<ThingId, Metadata>, Source<AbstractWriteModel, NotUsed>, NotUsed> create(
+            final boolean shouldAcknowledge, final int parallelism) {
         return Flow.<Map<ThingId, Metadata>>create().map(changeMap -> {
-            log.info("Updating search index of <{}> things", changeMap.size());
+            log.info("Updating search index with <shouldAcknowledge={}> of <{}> things", shouldAcknowledge,
+                    changeMap.size());
             return sudoRetrieveThingJsons(parallelism, changeMap).flatMapConcat(responseMap ->
                     Source.fromIterator(changeMap.values()::iterator)
                             .flatMapMerge(parallelism, metadataRef ->

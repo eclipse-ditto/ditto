@@ -237,12 +237,21 @@ public final class Metadata {
     }
 
     /**
-     * Prepend new senders to the senders stored in this object.
+     * Returns whether an acknowledgement for the successful adding to the search index is requested.
+     *
+     * @return whether {@code "search-persisted"} is requested.
+     */
+    public boolean isShouldAcknowledge() {
+        return !senders.isEmpty();
+    }
+
+    /**
+     * Prepend new timers and senders to the timers and senders stored in this object.
      *
      * @param newMetadata a previous metadata record.
      * @return the new metadata with concatenated senders.
      */
-    public Metadata prependSenders(final Metadata newMetadata) {
+    public Metadata prependTimersAndSenders(final Metadata newMetadata) {
         final List<StartedTimer> newTimers =
                 Stream.concat(newMetadata.timers.stream(), timers.stream()).collect(Collectors.toList());
         final List<ActorRef> newSenders =

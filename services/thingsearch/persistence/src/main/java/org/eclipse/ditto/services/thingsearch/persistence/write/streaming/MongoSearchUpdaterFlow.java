@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.bson.Document;
+import org.eclipse.ditto.services.thingsearch.common.config.PersistenceStreamConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.WriteResultAndErrors;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
@@ -53,19 +54,25 @@ final class MongoSearchUpdaterFlow {
     private static final String UPDATE_TYPE_TAG = "update_type";
 
     private final MongoCollection<Document> collection;
+    private final MongoCollection<Document> collectionWithAcknowledgements;
 
-    private MongoSearchUpdaterFlow(final MongoCollection<Document> collection) {
+    private MongoSearchUpdaterFlow(final MongoCollection<Document> collection,
+            final PersistenceStreamConfig persistenceConfig) {
         this.collection = collection;
+        this.collectionWithAcknowledgements = collection.withWriteConcern(
+                persistenceConfig.getWithAcknowledgementsWriteConcern());
     }
 
     /**
      * Create a MongoSearchUpdaterFlow object.
      *
      * @param database the MongoDB database.
+     * @param persistenceConfig the persistence configuration for the search updater stream.
      * @return the MongoSearchUpdaterFlow object.
      */
-    public static MongoSearchUpdaterFlow of(final MongoDatabase database) {
-        return new MongoSearchUpdaterFlow(database.getCollection(THINGS_COLLECTION_NAME));
+    public static MongoSearchUpdaterFlow of(final MongoDatabase database,
+            final PersistenceStreamConfig persistenceConfig) {
+        return new MongoSearchUpdaterFlow(database.getCollection(THINGS_COLLECTION_NAME), persistenceConfig);
     }
 
 
@@ -73,11 +80,14 @@ final class MongoSearchUpdaterFlow {
      * Create a new flow through the search persistence.
      * No logging or recovery is attempted.
      *
+     * @param shouldAcknowledge defines whether for this source the requested ack
+     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#SEARCH_PERSISTED} was required or not.
      * @param parallelism How many write operations may run in parallel for this sink.
      * @param maxBulkSize How many writes to perform in one bulk.
      * @return the sink.
      */
     public Flow<Source<AbstractWriteModel, NotUsed>, WriteResultAndErrors, NotUsed> start(
+            final boolean shouldAcknowledge,
             final int parallelism,
             final int maxBulkSize) {
 
@@ -87,14 +97,14 @@ final class MongoSearchUpdaterFlow {
 
         final Flow<List<AbstractWriteModel>, WriteResultAndErrors, NotUsed> writeFlow =
                 Flow.<List<AbstractWriteModel>>create()
-                        .flatMapMerge(parallelism, this::executeBulkWrite)
+                        .flatMapMerge(parallelism, writeModels -> executeBulkWrite(shouldAcknowledge, writeModels))
                         // never initiate more than "parallelism" writes against the persistence
                         .withAttributes(Attributes.inputBuffer(parallelism, parallelism));
 
         return Flow.fromGraph(assembleFlows(batchFlow, writeFlow, createStartTimerFlow(), createStopTimerFlow()));
     }
 
-    private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(
+    private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(final boolean shouldAcknowledge,
             final List<AbstractWriteModel> abstractWriteModels) {
         final List<WriteModel<Document>> writeModels = abstractWriteModels.stream()
                 .map(writeModel -> {
@@ -102,7 +112,15 @@ final class MongoSearchUpdaterFlow {
                     return writeModel.toMongo();
                 })
                 .collect(Collectors.toList());
-        return Source.fromPublisher(collection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false)))
+
+        final MongoCollection<Document> theCollection;
+        if (shouldAcknowledge) {
+            theCollection = this.collection;
+        } else {
+            theCollection = this.collectionWithAcknowledgements;
+        }
+
+        return Source.fromPublisher(theCollection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false)))
                 .map(bulkWriteResult -> WriteResultAndErrors.success(abstractWriteModels, bulkWriteResult))
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<WriteResultAndErrors, NotUsed>>()
                         .match(MongoBulkWriteException.class, bulkWriteException ->

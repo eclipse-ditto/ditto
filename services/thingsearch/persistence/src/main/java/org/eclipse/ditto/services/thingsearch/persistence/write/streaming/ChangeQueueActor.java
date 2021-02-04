@@ -50,6 +50,7 @@ public final class ChangeQueueActor extends AbstractActor
      * for example, replace AtomicReference by a concurrent queue if changes are to be computed from events directly.
      */
     private Map<ThingId, Metadata> cache = new HashMap<>();
+    private Map<ThingId, Metadata> cacheShouldAcknowledge = new HashMap<>();
 
     private ChangeQueueActor() {
         // prevent instantiation elsewhere
@@ -67,7 +68,7 @@ public final class ChangeQueueActor extends AbstractActor
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 .match(Metadata.class, this::enqueue)
-                .matchEquals(Control.DUMP, this::dump)
+                .match(Control.class, this::dump)
                 .build();
     }
 
@@ -77,27 +78,35 @@ public final class ChangeQueueActor extends AbstractActor
      * @param metadata a description of the change.
      */
     private void enqueue(final Metadata metadata) {
-        ConsistencyLag.startS1InChangeQueue(metadata);
-        cache.merge(metadata.getThingId(), metadata, Metadata::prependSenders);
+        if (metadata.getSenders().isEmpty()) {
+            ConsistencyLag.startS1InChangeQueue(metadata);
+            cache.merge(metadata.getThingId(), metadata, Metadata::prependTimersAndSenders);
+        } else {
+            ConsistencyLag.startS1InChangeQueue(metadata);
+            cacheShouldAcknowledge.merge(metadata.getThingId(), metadata, Metadata::prependTimersAndSenders);
+        }
     }
 
     /**
      * Create a source of nonempty queue snapshots such that the queue content is cleared after each snapshot.
      *
      * @param changeQueueActor reference to this actor
+     * @param shouldAcknowledge defines whether for the created source the requested ack
+     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#SEARCH_PERSISTED} was required or not.
      * @param writeInterval minimum delays between cache dumps.
      * @return source of queue snapshots.
      */
     public static Source<Map<ThingId, Metadata>, NotUsed> createSource(
             final ActorRef changeQueueActor,
+            final boolean shouldAcknowledge,
             final Duration writeInterval) {
 
         final Source<Control, NotUsed> repeat;
         if (!writeInterval.isNegative() && !writeInterval.isZero()) {
-            repeat = Source.repeat(Control.DUMP)
+            repeat = Source.repeat(shouldAcknowledge ? Control.DUMP_SHOULD_ACKNOWLEDGE : Control.DUMP)
                     .throttle(1, writeInterval);
         } else {
-            repeat = Source.repeat(Control.DUMP);
+            repeat = Source.repeat(shouldAcknowledge ? Control.DUMP_SHOULD_ACKNOWLEDGE : Control.DUMP);
         }
         return repeat
                 .flatMapConcat(ChangeQueueActor.askSelf(changeQueueActor))
@@ -105,9 +114,17 @@ public final class ChangeQueueActor extends AbstractActor
     }
 
     private void dump(final Control dump) {
-        cache.values().forEach(ConsistencyLag::startS2WaitForDemand);
-        getSender().tell(cache, getSelf());
-        cache = new HashMap<>();
+        if (dump == Control.DUMP) {
+            cache.values().forEach(ConsistencyLag::startS2WaitForDemand);
+            getSender().tell(cache, getSelf());
+            cache = new HashMap<>();
+        } else if (dump == Control.DUMP_SHOULD_ACKNOWLEDGE) {
+            cacheShouldAcknowledge.values().forEach(ConsistencyLag::startS2WaitForDemand);
+            getSender().tell(cacheShouldAcknowledge, getSelf());
+            cacheShouldAcknowledge = new HashMap<>();
+        } else {
+            throw new IllegalArgumentException("Unsupported control dump message: " + dump);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -125,6 +142,7 @@ public final class ChangeQueueActor extends AbstractActor
     }
 
     private enum Control implements ControlMessage {
-        DUMP
+        DUMP,
+        DUMP_SHOULD_ACKNOWLEDGE
     }
 }

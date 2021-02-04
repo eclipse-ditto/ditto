@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.thingsearch.common.config;
 
 import static org.eclipse.ditto.services.thingsearch.common.config.PersistenceStreamConfig.PersistenceStreamConfigValue;
+import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
@@ -24,11 +25,15 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
+import com.mongodb.WriteConcern;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 
+/**
+ * Unit tests for {@link DefaultPersistenceStreamConfig}.
+ */
 public final class DefaultPersistenceStreamConfigTest {
 
 
@@ -45,7 +50,8 @@ public final class DefaultPersistenceStreamConfigTest {
     @Test
     public void assertImmutability() {
         assertInstancesOf(DefaultPersistenceStreamConfig.class,
-                areImmutable());
+                areImmutable(),
+                provided(WriteConcern.class).isAlsoImmutable());
     }
 
     @Test
@@ -74,6 +80,11 @@ public final class DefaultPersistenceStreamConfigTest {
         softly.assertThat(underTest.getExponentialBackOffConfig())
                 .as("exponential-backoff")
                 .isEqualTo(DefaultExponentialBackOffConfig.of(ConfigFactory.empty()));
+
+        softly.assertThat(underTest.getWithAcknowledgementsWriteConcern())
+                .as(PersistenceStreamConfigValue.WITH_ACKS_WRITE_CONCERN.getConfigPath())
+                .isEqualTo(WriteConcern.valueOf(
+                        (String) PersistenceStreamConfigValue.WITH_ACKS_WRITE_CONCERN.getDefaultValue()));
     }
 
     @Test
@@ -96,6 +107,10 @@ public final class DefaultPersistenceStreamConfigTest {
                 .as("exponential-backoff")
                 .isEqualTo(DefaultExponentialBackOffConfig.of(
                         config.getConfig(DefaultPersistenceStreamConfig.CONFIG_PATH)));
+
+        softly.assertThat(underTest.getWithAcknowledgementsWriteConcern())
+                .as(PersistenceStreamConfigValue.WITH_ACKS_WRITE_CONCERN.getConfigPath())
+                .isEqualTo(WriteConcern.MAJORITY);
     }
 
 }

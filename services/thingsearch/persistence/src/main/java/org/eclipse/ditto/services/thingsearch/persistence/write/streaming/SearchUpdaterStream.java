@@ -101,7 +101,8 @@ public final class SearchUpdaterStream {
         final EnforcementFlow enforcementFlow =
                 EnforcementFlow.of(streamConfig, thingsShard, policiesShard, messageDispatcher);
 
-        final MongoSearchUpdaterFlow mongoSearchUpdaterFlow = MongoSearchUpdaterFlow.of(database);
+        final MongoSearchUpdaterFlow mongoSearchUpdaterFlow = MongoSearchUpdaterFlow.of(database,
+                streamConfig.getPersistenceConfig());
 
         final BulkWriteResultAckFlow bulkWriteResultAckFlow = BulkWriteResultAckFlow.of(updaterShard);
 
@@ -113,24 +114,28 @@ public final class SearchUpdaterStream {
      * Start a perpetual search updater stream killed only by the kill-switch.
      *
      * @param actorContext where to create actors for this stream.
+     * @param withAcknowledgements defines whether for the created updater stream the requested ack
+     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#SEARCH_PERSISTED} is required or not.
      * @return kill-switch to terminate the stream.
      */
-    public KillSwitch start(final ActorContext actorContext) {
-        final Source<Source<AbstractWriteModel, NotUsed>, NotUsed> restartSource = createRestartSource();
-        final Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> restartSink = createRestartSink();
+    public KillSwitch start(final ActorContext actorContext, final boolean withAcknowledgements) {
+        final Source<Source<AbstractWriteModel, NotUsed>, NotUsed> restartSource =
+                createRestartSource(withAcknowledgements);
+        final Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> restartSink = createRestartSink(withAcknowledgements);
         return restartSource.viaMat(KillSwitches.single(), Keep.right())
                 .toMat(restartSink, Keep.left())
                 .run(actorContext.system());
     }
 
-    private Source<Source<AbstractWriteModel, NotUsed>, NotUsed> createRestartSource() {
+    private Source<Source<AbstractWriteModel, NotUsed>, NotUsed> createRestartSource(
+            final boolean shouldAcknowledge) {
         final StreamConfig streamConfig = updaterConfig.getStreamConfig();
         final StreamStageConfig retrievalConfig = streamConfig.getRetrievalConfig();
 
         final Source<Source<AbstractWriteModel, NotUsed>, NotUsed> source =
-                ChangeQueueActor.createSource(changeQueueActor, streamConfig.getWriteInterval())
+                ChangeQueueActor.createSource(changeQueueActor, shouldAcknowledge, streamConfig.getWriteInterval())
                         .via(filterMapKeysByBlockedNamespaces())
-                        .via(enforcementFlow.create(retrievalConfig.getParallelism())
+                        .via(enforcementFlow.create(shouldAcknowledge, retrievalConfig.getParallelism())
                                 .map(writeModelSource -> writeModelSource.via(
                                         blockNamespaceFlow(SearchUpdaterStream::namespaceOfWriteModel))));
 
@@ -140,16 +145,18 @@ public final class SearchUpdaterStream {
                 backOffConfig.getRandomFactor(), () -> source);
     }
 
-    private Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> createRestartSink() {
+    private Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> createRestartSink(
+            final boolean shouldAcknowledge) {
         final StreamConfig streamConfig = updaterConfig.getStreamConfig();
         final PersistenceStreamConfig persistenceConfig = streamConfig.getPersistenceConfig();
 
         final int parallelism = persistenceConfig.getParallelism();
         final int maxBulkSize = persistenceConfig.getMaxBulkSize();
+        final String logName = "SearchUpdaterStream/BulkWriteResult<shouldAcknowledge=" + shouldAcknowledge + ">";
         final Sink<Source<AbstractWriteModel, NotUsed>, NotUsed> sink =
-                mongoSearchUpdaterFlow.start(parallelism, maxBulkSize)
+                mongoSearchUpdaterFlow.start(shouldAcknowledge, parallelism, maxBulkSize)
                         .via(bulkWriteResultAckFlow.start(persistenceConfig.getAckDelay()))
-                        .log("SearchUpdaterStream/BulkWriteResult")
+                        .log(logName)
                         .withAttributes(Attributes.logLevels(
                                 Attributes.logLevelInfo(),
                                 Attributes.logLevelWarning(),

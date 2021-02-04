@@ -18,6 +18,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
+import com.mongodb.WriteConcern;
+
 /**
  * Provides configuration settings of the persistence stream.
  */
@@ -39,6 +41,14 @@ public interface PersistenceStreamConfig extends StreamStageConfig {
     Duration getAckDelay();
 
     /**
+     * Returns the MongoDB {@link com.mongodb.WriteConcern} to use for updating search index for events which required
+     * {@code "search-persisted"} Acknowledgements.
+     *
+     * @return the write concern to use for search index updates requiring acknowledgement.
+     */
+    WriteConcern getWithAcknowledgementsWriteConcern();
+
+    /**
      * An enumeration of known config path expressions and their associated default values for
      * {@code PersistenceStreamConfig}.
      * This enumeration is a logical extension of {@link StreamStageConfigValue}.
@@ -53,7 +63,13 @@ public interface PersistenceStreamConfig extends StreamStageConfig {
         /**
          * Internal delay between acknowledgement from database and the sending of "search-persisted" acknowledgements.
          */
-        ACK_DELAY("ack-delay", Duration.ZERO);
+        ACK_DELAY("ack-delay", Duration.ZERO),
+
+        /**
+         * The write concern used for search index updates requiring acknowledgements.
+         * See {@link com.mongodb.WriteConcern} for available options.
+         */
+        WITH_ACKS_WRITE_CONCERN("with-acks-writeConcern", "journaled");
 
         private final String configPath;
         private final Object defaultValue;
