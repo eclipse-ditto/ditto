@@ -202,7 +202,8 @@ public final class InboundMappingProcessorActor
      * @param <T> the type of the CommandResponse
      * @return the CommandResponse with appended ConnectionId.
      */
-    private static <T extends CommandResponse<T>> T appendConnectionIdToAcknowledgementOrResponse(final T commandResponse,
+    private static <T extends CommandResponse<T>> T appendConnectionIdToAcknowledgementOrResponse(
+            final T commandResponse,
             final ConnectionId connectionId) {
 
         final DittoHeaders newHeaders = commandResponse.getDittoHeaders()

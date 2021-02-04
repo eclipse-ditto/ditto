@@ -38,8 +38,17 @@
      public static final String ERROR_CODE = "mediatype.unsupported";
 
      private static final String DEFAULT_MESSAGE = "The Media-Type is not supported.";
-     private static final String MESSAGE_PATTERN = "The Media-Type <{0}> is not supported for this Resource.";
+     private static final String MESSAGE_PATTERN = "The Media-Type <{0}> is not supported for this resource.";
+     private static final String MESSAGE_PATTERN_EMPTY_CONTENT_TYPE = "The Content-Type header was empty or not present. " +
+             "Please set Content-Type header to \"application/merge-patch+json\" for this resource";
+
      private static final String DESCRIPTION_ALLOWED_TYPES_PATTERN = "Allowed Media-Types are: <{0}>.";
+     private static final String DESCRIPTION_ALLOWED_TYPE_PATTERN = "Allowed Media-Type is: <{0}>.";
+
+     /**
+      * URL to RFC describing JSON Merge Patch.
+      */
+     static final String RFC_7396 = "https://tools.ietf.org/html/rfc7396";
 
      private static final HttpStatus STATUS_CODE = HttpStatus.UNSUPPORTED_MEDIA_TYPE;
 
@@ -79,6 +88,43 @@
                  mediaTypeSupportedByCalledResource);
 
          return new Builder().message(msgPattern).description(descriptionPattern);
+     }
+
+     /**
+      * A mutable builder for a {@code UnsupportedMediaTypeException} where the message contains detailed information
+      * about the actual used media-type and the description information about media-types are supported for the
+      * requested resource.
+      *
+      * @param mediaTypeSupportedByCalledResource media-types which are supported.
+      * @return the new UnsupportedMediaTypeException.
+      */
+     public static DittoRuntimeExceptionBuilder<UnsupportedMediaTypeException> builderForMergePatchJsonMediaType(
+             final String callersMediaType,
+             final String mediaTypeSupportedByCalledResource) {
+
+         final String msgPattern = MessageFormat.format(MESSAGE_PATTERN, callersMediaType);
+         final String descriptionPattern = MessageFormat.format(DESCRIPTION_ALLOWED_TYPE_PATTERN,
+                         mediaTypeSupportedByCalledResource);
+         final URI rfcURI = URI.create(RFC_7396);
+
+         return new Builder().message(msgPattern).description(descriptionPattern).href(rfcURI);
+     }
+
+     /**
+      * A mutable builder for a {@code UnsupportedMediaTypeException} where the message indicates that the 'Content-Type'
+      * header is missing.
+      *
+      * @param mediaTypeSupportedByCalledResource media-types which are supported.
+      * @return the new UnsupportedMediaTypeException.
+      */
+     public static DittoRuntimeExceptionBuilder<UnsupportedMediaTypeException> builderForEmptyContentTypeHeader(
+             final String mediaTypeSupportedByCalledResource) {
+
+         final String descriptionPattern = MessageFormat.format(DESCRIPTION_ALLOWED_TYPE_PATTERN,
+                 mediaTypeSupportedByCalledResource);
+         final URI rfcURI = URI.create(RFC_7396);
+
+         return new Builder().message(MESSAGE_PATTERN_EMPTY_CONTENT_TYPE).description(descriptionPattern).href(rfcURI);
      }
 
      /**

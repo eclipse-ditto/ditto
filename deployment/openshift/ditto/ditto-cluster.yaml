@@ -437,7 +437,7 @@ spec:
             # cpu: "" no cpu limit to avoid CFS scheduler limits see https://doc.akka.io/docs/akka/snapshot/additional/deploy.html#in-kubernetes
             memory: "512Mi"
         env:
-        - name: ENABLE_PRE_AUTHENTICATION
+          - name: ENABLE_PRE_AUTHENTICATION
           value: "true"
         - name: INSTANCE_INDEX
           valueFrom:

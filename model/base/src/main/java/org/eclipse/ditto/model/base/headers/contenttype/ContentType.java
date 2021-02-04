@@ -38,10 +38,18 @@ public final class ContentType {
 
     private static final Pattern JSON_PATTERN = Pattern.compile("(application/(vnd\\..+\\+)?json)");
 
+    // application content type for JSON Merge Patch
+    private static final String JSON_MERGE_PATCH = "application/merge-patch+json";
+
     /**
      * The well known content-type "application/json".
      */
     public static final ContentType APPLICATION_JSON = ContentType.of("application/json");
+
+    /**
+     * The content-type "application/merge-patch+json".
+     */
+    public static final ContentType APPLICATION_MERGE_PATCH_JSON = ContentType.of(JSON_MERGE_PATCH);
 
     private final String value;
     private final String mediaType;
@@ -65,7 +73,9 @@ public final class ContentType {
                 .toLowerCase();
         final String mediaType = lowerCaseValue.split(";")[0];
         final ParsingStrategy parsingStrategy;
-        if (TEXT_PATTERN.matcher(mediaType).matches()) {
+        if (JSON_MERGE_PATCH.equals(mediaType)) {
+            parsingStrategy = ParsingStrategy.JSON_MERGE_PATCH;
+        } else if (TEXT_PATTERN.matcher(mediaType).matches()) {
             parsingStrategy = ParsingStrategy.TEXT;
         } else if (JSON_PATTERN.matcher(mediaType).matches()) {
             parsingStrategy = ParsingStrategy.JSON;
@@ -111,6 +121,13 @@ public final class ContentType {
     }
 
     /**
+     * @return whether this content-type is to be parsed as JSON Merge Patch.
+     */
+    public boolean isJsonMergePatch() {
+        return JSON_MERGE_PATCH.equals(mediaType);
+    }
+
+    /**
      * @return whether this content-type is to be parsed as binary.
      */
     public boolean isBinary() {
@@ -149,6 +166,7 @@ public final class ContentType {
     public enum ParsingStrategy {
         TEXT,
         JSON,
+        JSON_MERGE_PATCH,
         BINARY
     }
 

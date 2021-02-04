@@ -45,6 +45,8 @@ import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
@@ -52,6 +54,7 @@ import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.events.base.Event;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
+import org.eclipse.ditto.signals.events.things.ThingMerged;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 
 /**
@@ -263,14 +266,23 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     @Override
     public Adaptable toAdaptable(final ThingModifyCommand<?> thingModifyCommand, final TopicPath.Channel channel) {
         validateChannel(channel, thingModifyCommand, TWIN, LIVE);
-        return thingsAdapters.getModifyCommandAdapter().toAdaptable(thingModifyCommand, channel);
+        if (thingModifyCommand instanceof MergeThing) {
+            return thingsAdapters.getMergeCommandAdapter().toAdaptable((MergeThing) thingModifyCommand, channel);
+        } else {
+            return thingsAdapters.getModifyCommandAdapter().toAdaptable(thingModifyCommand, channel);
+        }
     }
 
     @Override
     public Adaptable toAdaptable(final ThingModifyCommandResponse<?> thingModifyCommandResponse,
             final TopicPath.Channel channel) {
         validateChannel(channel, thingModifyCommandResponse, TWIN, LIVE);
-        return thingsAdapters.getModifyCommandResponseAdapter().toAdaptable(thingModifyCommandResponse, channel);
+        if (thingModifyCommandResponse instanceof MergeThingResponse) {
+            return thingsAdapters.getMergeCommandResponseAdapter()
+                    .toAdaptable((MergeThingResponse) thingModifyCommandResponse, channel);
+        } else {
+            return thingsAdapters.getModifyCommandResponseAdapter().toAdaptable(thingModifyCommandResponse, channel);
+        }
     }
 
     @Override
@@ -297,7 +309,11 @@ public final class DittoProtocolAdapter implements ProtocolAdapter {
     @Override
     public Adaptable toAdaptable(final ThingEvent<?> thingEvent, final TopicPath.Channel channel) {
         validateChannel(channel, thingEvent, TWIN, LIVE);
-        return thingsAdapters.getEventAdapter().toAdaptable(thingEvent, channel);
+        if (thingEvent instanceof ThingMerged) {
+            return thingsAdapters.getMergedEventAdapter().toAdaptable((ThingMerged) thingEvent, channel);
+        } else {
+            return thingsAdapters.getEventAdapter().toAdaptable(thingEvent, channel);
+        }
     }
 
     public Adaptable toAdaptable(final SubscriptionEvent<?> subscriptionEvent, final TopicPath.Channel channel){

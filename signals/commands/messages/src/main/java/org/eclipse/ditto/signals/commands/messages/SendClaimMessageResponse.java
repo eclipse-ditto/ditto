@@ -144,7 +144,8 @@ public final class SendClaimMessageResponse<T> extends AbstractMessageCommandRes
             final DittoHeaders dittoHeaders) {
 
         return new CommandResponseJsonDeserializer<SendClaimMessageResponse<?>>(TYPE, jsonObject).deserialize(
-                httpStatus -> of(ThingId.of(jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID)),
+                httpStatus -> of(
+                        ThingId.of(jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID)),
                         deserializeMessageFromJson(jsonObject),
                         httpStatus,
                         dittoHeaders));

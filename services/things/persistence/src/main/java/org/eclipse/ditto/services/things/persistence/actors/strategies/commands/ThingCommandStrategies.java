@@ -70,6 +70,7 @@ public final class ThingCommandStrategies
         addStrategy(new ModifyThingStrategy());
         addStrategy(new RetrieveThingStrategy());
         addStrategy(new DeleteThingStrategy());
+        addStrategy(new MergeThingStrategy());
     }
 
     private void addPolicyStrategies() {

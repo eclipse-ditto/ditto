@@ -111,7 +111,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
                 final Thing newThingWithoutAcl = command.getThing().toBuilder().removeAllPermissions().build();
                 final Thing mergedThing = mergeThingModifications(newThingWithoutAcl, thing, eventTs, nextRevision);
 
-                final ThingEvent<?>thingModified =
+                final ThingEvent<?> thingModified =
                         ThingModified.of(mergedThing, nextRevision, eventTs, dittoHeaders, metadata);
                 final WithDittoHeaders<?> response =
                         appendETagHeaderIfProvided(command, ModifyThingResponse.modified(thingId, dittoHeaders),
@@ -126,7 +126,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
                         .setModified(eventTs)
                         .setRevision(nextRevision)
                         .build();
-                final ThingEvent<?>thingModified =
+                final ThingEvent<?> thingModified =
                         ThingModified.of(modifiedThing, nextRevision, eventTs, dittoHeaders, metadata);
                 final WithDittoHeaders<?> response =
                         appendETagHeaderIfProvided(command, ModifyThingResponse.modified(thingId, dittoHeaders),
