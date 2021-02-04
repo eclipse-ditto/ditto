@@ -30,7 +30,7 @@ import org.bson.Document;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.conversions.Bson;
 
-import com.mongodb.async.client.MongoClientSettings;
+import com.mongodb.MongoClientSettings;
 
 /**
  * Utility methods for criteria creation.

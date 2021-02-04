@@ -167,13 +167,6 @@ public interface MongoDbConfig {
         int getMaxSize();
 
         /**
-         * Returns the maximum number of threads waiting for a connection to become available.
-         *
-         * @return the maximum number of waiting threads.
-         */
-        int getMaxWaitQueueSize();
-
-        /**
          * Returns the maximum time to wait for a connection to become available.
          *
          * @return the maximum wait time.
@@ -197,11 +190,6 @@ public interface MongoDbConfig {
              * The maximum number of connections in the connection pool.
              */
             MAX_SIZE("maxSize", 100),
-
-            /**
-             * The maximum number of threads waiting for a connection to become available.
-             */
-            MAX_WAIT_QUEUE_SIZE("maxWaitQueueSize", 100),
 
             /**
              * The maximum time to wait for a connection to become available.

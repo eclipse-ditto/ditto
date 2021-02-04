@@ -175,7 +175,7 @@ final class ThingsUpdater extends AbstractActorWithTimers {
     private void updateThings(final ThingsOutOfSync updateThings) {
         // log all thing IDs because getting this command implies out-of-sync things.
         log.withCorrelationId(updateThings)
-                .warning("Out-of-sync things are reported: <{}>", updateThings);
+                .info("Out-of-sync things are reported: <{}>", updateThings);
         updateThings.getThingIds().forEach(thingId ->
                 forwardToShardRegion(
                         UpdateThing.of(ThingId.of(thingId), updateThings.getDittoHeaders()),

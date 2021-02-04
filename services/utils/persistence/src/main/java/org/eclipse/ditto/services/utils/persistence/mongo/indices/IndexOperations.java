@@ -28,8 +28,8 @@ import com.mongodb.MongoCommandException;
 import com.mongodb.client.model.IndexModel;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
-import com.mongodb.reactivestreams.client.Success;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.japi.pf.PFBuilder;
 import akka.stream.javadsl.Source;
@@ -68,10 +68,11 @@ public final class IndexOperations {
      *
      * @param collectionName the name of the collection containing the index.
      * @param indexName the name of the index.
-     * @return a source which emits {@link Success}.
+     * @return a source which emits {@link Void}.
      */
-    public Source<Success, NotUsed> dropIndex(final String collectionName, final String indexName) {
+    public Source<Done, NotUsed> dropIndex(final String collectionName, final String indexName) {
         return Source.fromPublisher(getCollection(collectionName).dropIndex(indexName))
+                .map(nullValue -> Done.done())
                 .recoverWith(buildDropIndexRecovery(indexName));
     }
 
@@ -85,12 +86,12 @@ public final class IndexOperations {
      *
      * @param collectionName the name of the collection containing the index.
      * @param index the index.
-     * @return a source which emits {@link Success}.
+     * @return a source which emits {@link Void}.
      */
-    public Source<Success, NotUsed> createIndex(final String collectionName, final Index index) {
+    public Source<Done, NotUsed> createIndex(final String collectionName, final Index index) {
         final IndexModel indexModel = index.toIndexModel();
         return Source.fromPublisher(getCollection(collectionName).createIndex(indexModel.getKeys(), indexModel
-                .getOptions())).map(unused -> Success.SUCCESS);
+                .getOptions())).map(unused -> Done.done());
     }
 
     /**
@@ -126,13 +127,13 @@ public final class IndexOperations {
         return db.getCollection(collectionName);
     }
 
-    private static PartialFunction<Throwable, Source<Success, NotUsed>> buildDropIndexRecovery(
+    private static PartialFunction<Throwable, Source<Done, NotUsed>> buildDropIndexRecovery(
             final String indexDescription) {
-        return new PFBuilder<Throwable, Source<Success, NotUsed>>()
+        return new PFBuilder<Throwable, Source<Done, NotUsed>>()
                 .match(MongoCommandException.class, IndexOperations::isIndexNotFound, throwable -> {
                     LOGGER.debug("Index <{}> could not be dropped because it does not exist (anymore).",
                             indexDescription);
-                    return Source.single(Success.SUCCESS);
+                    return Source.single(Done.done());
                 })
                 .build();
     }

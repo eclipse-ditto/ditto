@@ -53,7 +53,6 @@ public final class IndexInitializerIT {
     public static final MongoDbResource MONGO_RESOURCE = new MongoDbResource();
 
     private static final int CONNECTION_POOL_MAX_SIZE = 5;
-    private static final int CONNECTION_POOL_MAX_WAIT_QUEUE_SIZE = 5;
     private static final long CONNECTION_POOL_MAX_WAIT_TIME_SECS = 3L;
 
     private static final int MONGO_INDEX_OPTIONS_CONFLICT_ERROR_CODE = 85;
@@ -107,7 +106,6 @@ public final class IndexInitializerIT {
                 .hostnameAndPort(MONGO_RESOURCE.getBindIp(), MONGO_RESOURCE.getPort())
                 .defaultDatabaseName(getClass().getSimpleName() + "-" + UUID.randomUUID().toString())
                 .connectionPoolMaxSize(CONNECTION_POOL_MAX_SIZE)
-                .connectionPoolMaxWaitQueueSize(CONNECTION_POOL_MAX_WAIT_QUEUE_SIZE)
                 .connectionPoolMaxWaitTime(Duration.ofSeconds(CONNECTION_POOL_MAX_WAIT_TIME_SECS))
                 .build();
 

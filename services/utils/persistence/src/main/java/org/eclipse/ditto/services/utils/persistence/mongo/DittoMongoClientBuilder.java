@@ -108,16 +108,6 @@ public interface DittoMongoClientBuilder {
         GeneralPropertiesStep connectionPoolMaxSize(int maxSize);
 
         /**
-         * Sets the maximum number of waiters for a connection to become available from the pool.
-         * All further operations will get an exception immediately.
-         * Default is {@code 500} waiters.
-         *
-         * @param maxQueueSize the maximum number of waiters.
-         * @return this builder instance to allow method chaining.
-         */
-        GeneralPropertiesStep connectionPoolMaxWaitQueueSize(int maxQueueSize);
-
-        /**
          * Sets the maximum time that a thread may wait for a connection to become available.
          * Default is {@code 2} minutes.
          * A value of {@code 0} means that it will not wait.
