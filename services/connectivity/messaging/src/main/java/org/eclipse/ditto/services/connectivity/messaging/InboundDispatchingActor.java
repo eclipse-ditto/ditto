@@ -547,7 +547,7 @@ public final class InboundDispatchingActor extends AbstractActor
                 .flatMap(FilteredAcknowledgementRequest::getFilter)
                 .orElse(null);
 
-        if (additionalAcknowledgementRequests.isEmpty()) {
+        if (additionalAcknowledgementRequests.isEmpty() || explicitlyNoAcksRequested(signal.getDittoHeaders())) {
             // do not change the signal's header if no additional acknowledgementRequests are defined in the Source
             // to preserve the default behavior for signals without the header 'requested-acks'
             return RequestedAcksFilter.filterAcknowledgements(signal, message, filter, connection.getId());
@@ -567,6 +567,11 @@ public final class InboundDispatchingActor extends AbstractActor
                     filter,
                     connection.getId());
         }
+    }
+
+    private boolean explicitlyNoAcksRequested(final DittoHeaders dittoHeaders) {
+        return dittoHeaders.containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey()) &&
+                dittoHeaders.getAcknowledgementRequests().isEmpty();
     }
 
     /**
@@ -662,7 +667,7 @@ public final class InboundDispatchingActor extends AbstractActor
         return commandResponse.setDittoHeaders(newHeaders);
     }
 
-   private Acknowledgements appendConnectionIdToAcknowledgements(final Acknowledgements acknowledgements) {
+    private Acknowledgements appendConnectionIdToAcknowledgements(final Acknowledgements acknowledgements) {
         final List<Acknowledgement> acksList = acknowledgements.stream()
                 .map(this::appendConnectionIdToAcknowledgementOrResponse)
                 .collect(Collectors.toList());

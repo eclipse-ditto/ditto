@@ -65,7 +65,6 @@ public final class MongoTimestampPersistenceIT {
                 .hostnameAndPort(MONGO_RESOURCE.getBindIp(), MONGO_RESOURCE.getPort())
                 .defaultDatabaseName("mongoTimestampPersistenceIT")
                 .connectionPoolMaxSize(100)
-                .connectionPoolMaxWaitQueueSize(500_000)
                 .connectionPoolMaxWaitTime(Duration.ofSeconds(30))
                 .build();
     }

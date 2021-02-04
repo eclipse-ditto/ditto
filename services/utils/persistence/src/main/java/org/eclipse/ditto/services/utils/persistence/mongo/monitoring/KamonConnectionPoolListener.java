@@ -21,15 +21,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.connection.ServerId;
-import com.mongodb.event.ConnectionAddedEvent;
 import com.mongodb.event.ConnectionCheckedInEvent;
 import com.mongodb.event.ConnectionCheckedOutEvent;
+import com.mongodb.event.ConnectionClosedEvent;
+import com.mongodb.event.ConnectionCreatedEvent;
 import com.mongodb.event.ConnectionPoolClosedEvent;
+import com.mongodb.event.ConnectionPoolCreatedEvent;
 import com.mongodb.event.ConnectionPoolListener;
-import com.mongodb.event.ConnectionPoolOpenedEvent;
-import com.mongodb.event.ConnectionPoolWaitQueueEnteredEvent;
-import com.mongodb.event.ConnectionPoolWaitQueueExitedEvent;
-import com.mongodb.event.ConnectionRemovedEvent;
 
 /**
  * Reports MongoDB connection pool statistics to Kamon.
@@ -45,7 +43,7 @@ public class KamonConnectionPoolListener implements ConnectionPoolListener {
     }
 
     @Override
-    public void connectionPoolOpened(final ConnectionPoolOpenedEvent event) {
+    public void connectionPoolCreated(final ConnectionPoolCreatedEvent event) {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("Connection pool opened: {}", event);
         }
@@ -73,22 +71,12 @@ public class KamonConnectionPoolListener implements ConnectionPoolListener {
     }
 
     @Override
-    public void waitQueueEntered(final ConnectionPoolWaitQueueEnteredEvent event) {
-        metrics.compute(event.getServerId(), (serverId, metric) -> metric.incWaitQueueSize());
-    }
-
-    @Override
-    public void waitQueueExited(final ConnectionPoolWaitQueueExitedEvent event) {
-        metrics.compute(event.getServerId(), (serverId, metric) -> metric.decWaitQueueSize());
-    }
-
-    @Override
-    public void connectionAdded(final ConnectionAddedEvent event) {
+    public void connectionCreated(final ConnectionCreatedEvent event) {
         metrics.compute(event.getConnectionId().getServerId(), (serverId, metric) -> metric.incPoolSize());
     }
 
     @Override
-    public void connectionRemoved(final ConnectionRemovedEvent event) {
+    public void connectionClosed(final ConnectionClosedEvent event) {
         metrics.compute(event.getConnectionId().getServerId(), (serverId, metric) -> metric.decPoolSize());
 
     }
@@ -98,12 +86,10 @@ public class KamonConnectionPoolListener implements ConnectionPoolListener {
         private static final String POOL_PREFIX = "_pool";
         private static final String CHECKED_OUT_COUNT = "_checkedOutCount";
         private static final String POOL_SIZE = "_poolSize";
-        private static final String WAIT_QUEUE_SIZE = "_waitQueueSize";
         private static final String CLUSTER_ID_TAG = "cluster_id";
 
         private final Gauge poolSizeGauge;
         private final Gauge checkOutCountGauge;
-        private final Gauge waitQueueGauge;
 
         private PoolMetric(final ServerId serverId) {
             final String clusterId = serverId.getClusterId().getValue();
@@ -111,15 +97,9 @@ public class KamonConnectionPoolListener implements ConnectionPoolListener {
                     .tag(CLUSTER_ID_TAG, clusterId);
             poolSizeGauge.set(0L);
 
-            checkOutCountGauge =
-                    DittoMetrics.gauge(metricName + POOL_PREFIX + CHECKED_OUT_COUNT)
-                            .tag(CLUSTER_ID_TAG, clusterId);
+            checkOutCountGauge = DittoMetrics.gauge(metricName + POOL_PREFIX + CHECKED_OUT_COUNT)
+                    .tag(CLUSTER_ID_TAG, clusterId);
             checkOutCountGauge.set(0L);
-
-            waitQueueGauge =
-                    DittoMetrics.gauge(metricName + POOL_PREFIX + WAIT_QUEUE_SIZE)
-                            .tag(CLUSTER_ID_TAG, clusterId);
-            waitQueueGauge.set(0L);
         }
 
         private PoolMetric incPoolSize() {
@@ -139,16 +119,6 @@ public class KamonConnectionPoolListener implements ConnectionPoolListener {
 
         private PoolMetric decCheckedOutCount() {
             checkOutCountGauge.decrement();
-            return this;
-        }
-
-        private PoolMetric incWaitQueueSize() {
-            waitQueueGauge.increment();
-            return this;
-        }
-
-        private PoolMetric decWaitQueueSize() {
-            waitQueueGauge.decrement();
             return this;
         }
 

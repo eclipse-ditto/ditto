@@ -10,7 +10,8 @@
 [![License](https://img.shields.io/badge/License-EPL%202.0-green.svg)](https://opensource.org/licenses/EPL-2.0)
 [![Lines of code](https://img.shields.io/badge/dynamic/xml.svg?label=Lines%20of%20code&url=https%3A%2F%2Fwww.openhub.net%2Fprojects%2Feclipse-ditto.xml%3Fapi_key%3D11ac3aa12a364fd87b461559a7eedcc53e18fb5a4cf1e43e02cb7a615f1f3d4f&query=%2Fresponse%2Fresult%2Fproject%2Fanalysis%2Ftotal_code_lines&colorB=lightgrey)](https://www.openhub.net/p/eclipse-ditto)
 
-[Eclipse Ditto](https://eclipse.org/ditto/) is the open-source project of Eclipse IoT that provides a ready-to-use functionality to manage the state of Digital Twins. It provides access to them and mediates between the physical world and this digital representation.
+[Eclipse Ditto](https://eclipse.org/ditto/) is an open-source project in scope of Eclipse IoT that provides a ready-to-use functionality to manage the state of Digital Twins. It provides access to them and mediates between the physical world and this digital representation.  
+An ever growing list of [adopters](https://iot.eclipse.org/adopters/?#iot.ditto) makes use of Ditto as part of their IoT platforms - if you're as well using it, it would be super nice to show your [adoption here](https://iot.eclipse.org/adopters/how-to-be-listed-as-an-adopter/).
 
 ## Documentation
 
@@ -18,9 +19,11 @@ Find the documentation on the project site: [https://eclipse.org/ditto/](https:/
 
 ## Getting started
 
-In order to start up Ditto, you'll need
-* a running Docker daemon (at least version 18.06 CE)
-* Docker Compose installed (at least version 1.22)
+In order to start up Ditto via *Docker Compose*, you'll need:
+* a running Docker daemon
+* Docker Compose installed
+
+You also have other possibilities to run Ditto, please have a look [here](https://github.com/eclipse/ditto/tree/master/deployment) to explore them.
 
 ### Start Ditto
 

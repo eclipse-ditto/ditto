@@ -62,7 +62,6 @@ public final class MongoReadJournalIT {
                 .hostnameAndPort(MONGO_RESOURCE.getBindIp(), MONGO_RESOURCE.getPort())
                 .defaultDatabaseName(MONGO_DB)
                 .connectionPoolMaxSize(100)
-                .connectionPoolMaxWaitQueueSize(500_000)
                 .connectionPoolMaxWaitTime(Duration.ofSeconds(30))
                 .build();
     }
