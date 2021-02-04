@@ -175,7 +175,8 @@ public final class SendFeatureMessageResponse<T>
      */
     public static SendFeatureMessageResponse<?> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<SendFeatureMessageResponse<?>>(TYPE, jsonObject).deserialize(
-                httpStatus -> of(ThingId.of(jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID)),
+                httpStatus -> of(
+                        ThingId.of(jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID)),
                         jsonObject.getValueOrThrow(JSON_FEATURE_ID),
                         deserializeMessageFromJson(jsonObject),
                         httpStatus,

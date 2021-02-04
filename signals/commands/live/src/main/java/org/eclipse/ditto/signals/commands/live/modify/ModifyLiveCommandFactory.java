@@ -268,4 +268,18 @@ public final class ModifyLiveCommandFactory {
         return ModifyThingLiveCommandImpl.of(command);
     }
 
+    /**
+     * Returns a new immutable instance of {@code MergeThingLiveCommand}.
+     *
+     * @param command the command to base the result on.
+     * @return the instance.
+     * @throws NullPointerException if {@code command} is {@code null}.
+     * @throws ClassCastException if {@code command} is not an instance of
+     * {@link org.eclipse.ditto.signals.commands.things.modify.MergeThing MergeThing}.
+     */
+    @Nonnull
+    public static MergeThingLiveCommand mergeThing(final Command<?> command) {
+        return MergeThingLiveCommandImpl.of(command);
+    }
+
 }

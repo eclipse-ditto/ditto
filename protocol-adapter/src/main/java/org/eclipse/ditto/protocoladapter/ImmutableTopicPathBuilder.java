@@ -167,6 +167,12 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     @Override
+    public CommandsTopicPathBuilder merge() {
+        this.action = TopicPath.Action.MERGE;
+        return this;
+    }
+
+    @Override
     public CommandsTopicPathBuilder delete() {
         this.action = TopicPath.Action.DELETE;
         return this;
@@ -223,6 +229,12 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     @Override
     public EventsTopicPathBuilder modified() {
         this.action = TopicPath.Action.MODIFIED;
+        return this;
+    }
+
+    @Override
+    public EventsTopicPathBuilder merged() {
+        this.action = TopicPath.Action.MERGED;
         return this;
     }
 

@@ -17,17 +17,13 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import javax.annotation.Nullable;
-
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
-import org.junit.After;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**

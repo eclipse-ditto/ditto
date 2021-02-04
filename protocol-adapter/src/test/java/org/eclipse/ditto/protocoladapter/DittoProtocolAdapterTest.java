@@ -508,7 +508,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
 
         assertThat(acknowledgement).isEqualTo(Acknowledgements.of(
                 Arrays.asList(Acknowledgement.of(TWIN_PERSISTED, ThingId.of("thing:id"), HttpStatus.CONTINUE,
-                                DittoHeaders.empty()),
+                        DittoHeaders.empty()),
                         Acknowledgement.of(AcknowledgementLabel.of("the-ack-label"), ThingId.of("thing:id"),
                                 HttpStatus.LOOP_DETECTED, DittoHeaders.empty())
                 ),

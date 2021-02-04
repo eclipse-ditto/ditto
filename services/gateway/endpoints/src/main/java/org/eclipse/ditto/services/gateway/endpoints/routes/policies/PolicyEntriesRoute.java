@@ -387,7 +387,8 @@ final class PolicyEntriesRoute extends AbstractRoute {
     private ActivateTokenIntegration activateTokenIntegration(final DittoHeaders dittoHeaders, final PolicyId policyId,
             final String label, final JsonWebToken jwt) {
         final Set<SubjectId> subjectIds = tokenIntegrationSubjectIdFactory.getSubjectIds(dittoHeaders, jwt);
-        return ActivateTokenIntegration.of(policyId, Label.of(label), subjectIds, jwt.getExpirationTime(), dittoHeaders);
+        return ActivateTokenIntegration.of(policyId, Label.of(label), subjectIds, jwt.getExpirationTime(),
+                dittoHeaders);
     }
 
     private DeactivateTokenIntegration deactivateTokenIntegration(final DittoHeaders dittoHeaders,

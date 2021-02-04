@@ -18,6 +18,8 @@ import static org.eclipse.ditto.protocoladapter.TopicPath.Action.CREATE;
 import static org.eclipse.ditto.protocoladapter.TopicPath.Action.CREATED;
 import static org.eclipse.ditto.protocoladapter.TopicPath.Action.DELETE;
 import static org.eclipse.ditto.protocoladapter.TopicPath.Action.DELETED;
+import static org.eclipse.ditto.protocoladapter.TopicPath.Action.MERGE;
+import static org.eclipse.ditto.protocoladapter.TopicPath.Action.MERGED;
 import static org.eclipse.ditto.protocoladapter.TopicPath.Action.MODIFIED;
 import static org.eclipse.ditto.protocoladapter.TopicPath.Action.MODIFY;
 import static org.eclipse.ditto.protocoladapter.TopicPath.Action.RETRIEVE;
@@ -51,11 +53,14 @@ public class ProtocolFactoryParameterizedTest {
                 {"ns/id/things/twin/commands/create", of(ns, ID, THINGS, TWIN, COMMANDS, CREATE)},
                 {"ns/id/things/twin/commands/delete", of(ns, ID, THINGS, TWIN, COMMANDS, DELETE)},
                 {"ns/id/things/twin/commands/retrieve", of(ns, ID, THINGS, TWIN, COMMANDS, RETRIEVE)},
+                {"ns/id/things/twin/commands/merge", of(ns, ID, THINGS, TWIN, COMMANDS, MERGE)},
                 {"ns/id/things/twin/events/created", of(ns, ID, THINGS, TWIN, EVENTS, CREATED)},
                 {"ns/id/things/twin/events/modified", of(ns, ID, THINGS, TWIN, EVENTS, MODIFIED)},
+                {"ns/id/things/twin/events/merged", of(ns, ID, THINGS, TWIN, EVENTS, MERGED)},
                 {"ns/id/things/twin/events/deleted", of(ns, ID, THINGS, TWIN, EVENTS, DELETED)},
                 {"ns/id/things/live/events/created", of(ns, ID, THINGS, LIVE, EVENTS, CREATED)},
                 {"ns/id/things/live/events/modified", of(ns, ID, THINGS, LIVE, EVENTS, MODIFIED)},
+                {"ns/id/things/live/events/merged", of(ns, ID, THINGS, LIVE, EVENTS, MERGED)},
                 {"ns/id/things/live/events/deleted", of(ns, ID, THINGS, LIVE, EVENTS, DELETED)},
                 {"ns/id/things/twin/errors", of(ns, ID, THINGS, TWIN, ERRORS)},
                 {"ns/id/things/live/messages/subject/with/multiple/slashes",

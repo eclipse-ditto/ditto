@@ -48,6 +48,7 @@ public class MissingThingIdsException extends DittoRuntimeException implements T
 
     /**
      * HTTP status of this exception.
+     *
      * @since 2.0.0
      */
     static final HttpStatus HTTP_STATUS = HttpStatus.BAD_REQUEST;

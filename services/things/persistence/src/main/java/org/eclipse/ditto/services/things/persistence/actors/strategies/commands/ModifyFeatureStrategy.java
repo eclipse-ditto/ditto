@@ -67,8 +67,7 @@ final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFea
                     return lengthWithOutFeature + featureLength;
                 },
                 () -> {
-                    final long lengthWithOutFeature = thingWithoutFeatureJsonObject.toString()
-                            .length();
+                    final long lengthWithOutFeature = thingWithoutFeatureJsonObject.toString().length();
                     final long featureLength = featureJsonObject.toString().length()
                             + command.getFeatureId().length() + 5L;
                     return lengthWithOutFeature + featureLength;
@@ -114,7 +113,6 @@ final class ModifyFeatureStrategy extends AbstractThingCommandStrategy<ModifyFea
 
         return ResultFactory.newMutationResult(command, event, response);
     }
-
 
     @Override
     public Optional<EntityTag> previousEntityTag(final ModifyFeature command, @Nullable final Thing previousEntity) {

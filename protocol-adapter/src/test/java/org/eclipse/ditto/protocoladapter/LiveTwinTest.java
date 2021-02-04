@@ -62,6 +62,9 @@ public abstract class LiveTwinTest {
             case MODIFY:
                 commandsTopicPathBuilder.modify();
                 break;
+            case MERGE:
+                commandsTopicPathBuilder.merge();
+                break;
             case DELETE:
                 commandsTopicPathBuilder.delete();
                 break;

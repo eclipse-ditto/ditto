@@ -42,8 +42,6 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Enforcement;
@@ -377,7 +375,8 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             }
             final String jmsCorrelationID = message.getJMSCorrelationID();
             log.withCorrelationId(correlationId.orElse(jmsCorrelationID))
-                    .info(MessageFormat.format("Acking <{0}> with original external message headers=<{1}>, isSuccess=<{2}>, ackType=<{3} {4}>",
+                    .info(MessageFormat.format(
+                            "Acking <{0}> with original external message headers=<{1}>, isSuccess=<{2}>, ackType=<{3} {4}>",
                             messageId,
                             externalMessageHeaders,
                             isSuccess,

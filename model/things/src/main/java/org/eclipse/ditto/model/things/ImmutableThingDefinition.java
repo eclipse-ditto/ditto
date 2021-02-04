@@ -17,6 +17,8 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.Objects;
 
+import org.eclipse.ditto.json.JsonValue;
+
 /**
  * An immutable implementation of {@link ThingDefinition}.
  */
@@ -81,6 +83,11 @@ final class ImmutableThingDefinition implements ThingDefinition {
     @Override
     public String getVersion() {
         return delegate.getVersion();
+    }
+
+    @Override
+    public JsonValue toJson() {
+        return JsonValue.of(toString());
     }
 
     @Override

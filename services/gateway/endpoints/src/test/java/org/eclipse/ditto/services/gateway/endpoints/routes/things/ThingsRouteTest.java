@@ -21,6 +21,7 @@ import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.things.exceptions.MissingThingIdsException;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyPolicyId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThingDefinition;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
@@ -33,6 +34,7 @@ import akka.actor.ActorSystem;
 import akka.http.javadsl.model.ContentTypes;
 import akka.http.javadsl.model.HttpEntities;
 import akka.http.javadsl.model.HttpRequest;
+import akka.http.javadsl.model.MediaTypes;
 import akka.http.javadsl.model.RequestEntity;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.server.Route;
@@ -71,7 +73,6 @@ public final class ThingsRouteTest extends EndpointTestBase {
     public void putNewThingWithAttributesSuccessfully() {
         final TestRouteResult result = underTest.run(HttpRequest.PUT("/things/org.eclipse.ditto%3Adummy")
                 .withEntity(ContentTypes.APPLICATION_JSON, "{\"attributes\": {\"foo\": \"bar\"}}"));
-
         result.assertStatusCode(StatusCodes.OK);
     }
 
@@ -99,37 +100,41 @@ public final class ThingsRouteTest extends EndpointTestBase {
 
     @Test
     public void putPolicyIdAssumesJsonContentType() {
-        final String nonJsonStringResponse = underTest.run(HttpRequest.PUT("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/policyId")
+        final String nonJsonStringResponse = underTest.run(HttpRequest.PUT("/things/" +
+                EndpointTestConstants.KNOWN_THING_ID + "/policyId")
                 .withEntity(ContentTypes.APPLICATION_JSON, "hello:world:123")).entityString();
         assertThat(JsonObject.of(nonJsonStringResponse)).contains(JsonKey.of("error"), "json.invalid");
 
-        final String jsonStringResponse = underTest.run(HttpRequest.PUT("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/policyId")
-                .withEntity((RequestEntity) HttpEntity.apply("\"hello:world:123\"")
-                        .withContentType(ContentTypes.APPLICATION_JSON)))
-                .entityString();
+        final String jsonStringResponse =
+                underTest.run(HttpRequest.PUT("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/policyId")
+                        .withEntity((RequestEntity) HttpEntity.apply("\"hello:world:123\"")
+                                .withContentType(ContentTypes.APPLICATION_JSON))).entityString();
         assertThat(JsonObject.of(jsonStringResponse)).contains(JsonKey.of("type"), ModifyPolicyId.TYPE);
     }
 
     @Test
     public void putDefinitionAssumesJsonContentType() {
-        final String nonJsonStringResponse = underTest.run(HttpRequest.PUT("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/definition")
+        final String nonJsonStringResponse = underTest.run(HttpRequest.PUT("/things/" +
+                EndpointTestConstants.KNOWN_THING_ID + "/definition")
                 .withEntity(ContentTypes.APPLICATION_JSON, "hello:world:123")).entityString();
         assertThat(JsonObject.of(nonJsonStringResponse)).contains(JsonKey.of("error"), "json.invalid");
 
-        final String jsonStringResponse = underTest.run(HttpRequest.PUT("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/definition")
-                .withEntity((RequestEntity) HttpEntity.apply("\"hello:world:123\"")
-                        .withContentType(ContentTypes.APPLICATION_JSON)))
-                .entityString();
+        final String jsonStringResponse =
+                underTest.run(HttpRequest.PUT("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/definition")
+                        .withEntity((RequestEntity) HttpEntity.apply("\"hello:world:123\"")
+                                .withContentType(ContentTypes.APPLICATION_JSON))).entityString();
         assertThat(JsonObject.of(jsonStringResponse)).contains(JsonKey.of("type"), ModifyThingDefinition.TYPE);
     }
 
     @Test
     public void putAndRetrieveNullDefinition() {
-        final String putResult = underTest.run(HttpRequest.PUT("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/definition")
+        final String putResult = underTest.run(HttpRequest.PUT("/things/" +
+                EndpointTestConstants.KNOWN_THING_ID + "/definition")
                 .withEntity(ContentTypes.APPLICATION_JSON, "null")).entityString();
         assertThat(JsonObject.of(putResult)).contains(JsonKey.of("type"), ModifyThingDefinition.TYPE);
 
-        final TestRouteResult getResult = underTest.run(HttpRequest.GET("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/definition"));
+        final TestRouteResult getResult = underTest.run(HttpRequest.GET("/things/" +
+                EndpointTestConstants.KNOWN_THING_ID + "/definition"));
         getResult.assertStatusCode(StatusCodes.OK);
     }
 
@@ -186,4 +191,67 @@ public final class ThingsRouteTest extends EndpointTestBase {
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
 
+    @Test
+    public void patchThingWithAttributesSuccessfully() {
+        final TestRouteResult result = underTest.run(HttpRequest.PATCH("/things/org.eclipse.ditto%3Adummy/attributes")
+                .withEntity(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), "{\"foo\": \"bar\"}"));
+        result.assertStatusCode(StatusCodes.OK);
+    }
+
+    @Test
+    public void patchThingWithAttributesWithJsonException() {
+        final TestRouteResult result = underTest.run(HttpRequest.PATCH("/things/org.eclipse.ditto%3Adummy/attributes")
+                .withEntity(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), "{\"foo\", \"bar\"}"));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
+    public void patchThingWithAttributeSuccessfully() {
+        final String body = "\"bumlux\"";
+        final HttpRequest request = HttpRequest.PATCH("/things/org.eclipse.ditto%3Adummy/attributes/bar")
+                .withEntity(HttpEntities.create(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), body));
+        final TestRouteResult result = underTest.run(request);
+        result.assertStatusCode(StatusCodes.OK);
+    }
+
+    @Test
+    public void patchThingWithAttributeWithJsonException() {
+        final String tooLongNumber = "89314404000484999942";
+        final HttpRequest request = HttpRequest.PATCH("/things/org.eclipse.ditto%3Adummy/attributes/bar")
+                .withEntity(HttpEntities.create(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), tooLongNumber));
+        final TestRouteResult result = underTest.run(request);
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
+    public void patchDefinitionSuccessfully() {
+        final TestRouteResult result = underTest.run(HttpRequest.PATCH("/things/" + EndpointTestConstants.KNOWN_THING_ID
+                + "/definition")
+                .withEntity(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), "\"hello:world:123\""));
+        result.assertStatusCode(StatusCodes.OK);
+    }
+
+    @Test
+    public void patchDefinitionWithJsonException() {
+        final TestRouteResult result =
+                underTest.run(HttpRequest.PATCH("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/definition")
+                        .withEntity(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), "hello:world:123"));
+        result.assertStatusCode(StatusCodes.BAD_REQUEST);
+    }
+
+    @Test
+    public void patchPolicyIdAssumesJsonContentType() {
+        final String nonJsonStringResponse =
+                underTest.run(HttpRequest.PATCH("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/policyId")
+                        .withEntity(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType(), "hello:world:123"))
+                        .entityString();
+        assertThat(JsonObject.of(nonJsonStringResponse)).contains(JsonKey.of("error"), "json.invalid");
+
+        final String jsonStringResponse =
+                underTest.run(HttpRequest.PATCH("/things/" + EndpointTestConstants.KNOWN_THING_ID + "/policyId")
+                        .withEntity((RequestEntity) HttpEntity.apply("\"hello:world:123\"")
+                                .withContentType(MediaTypes.APPLICATION_MERGE_PATCH_JSON.toContentType())))
+                        .entityString();
+        assertThat(JsonObject.of(jsonStringResponse)).contains(JsonKey.of("type"), MergeThing.TYPE);
+    }
 }

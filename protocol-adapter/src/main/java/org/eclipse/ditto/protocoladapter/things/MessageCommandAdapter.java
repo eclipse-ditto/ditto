@@ -14,12 +14,9 @@ package org.eclipse.ditto.protocoladapter.things;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.Collections;
-
 import org.eclipse.ditto.model.messages.KnownMessageSubjects;
 import org.eclipse.ditto.protocoladapter.AbstractAdapter;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.DefaultPayloadPathMatcher;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategiesFactory;
@@ -41,7 +38,7 @@ final class MessageCommandAdapter extends AbstractAdapter<MessageCommand<?, ?>>
 
     private MessageCommandAdapter(final HeaderTranslator headerTranslator) {
         super(MappingStrategiesFactory.getMessageCommandMappingStrategies(), headerTranslator,
-                DefaultPayloadPathMatcher.from(Collections.emptyMap()));
+                EmptyPathMatcher.getInstance());
     }
 
     /**

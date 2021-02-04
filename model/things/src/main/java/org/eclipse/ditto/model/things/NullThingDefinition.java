@@ -16,6 +16,9 @@ import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonValue;
+
 /**
  * An immutable implementation of {@link ThingDefinition} which represents {@code null}.
  */
@@ -68,6 +71,11 @@ final class NullThingDefinition implements ThingDefinition {
     @Override
     public String toString() {
         return "";
+    }
+
+    @Override
+    public JsonValue toJson() {
+        return JsonFactory.nullLiteral();
     }
 
     @Override
