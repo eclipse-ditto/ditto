@@ -41,6 +41,13 @@ public interface CommandsTopicPathBuilder extends TopicPathBuildable {
     CommandsTopicPathBuilder modify();
 
     /**
+     * Sets the {@code Action} of this builder to {@link TopicPath.Action#MERGE}. A previously set action is replaced.
+     *
+     * @return this builder to allow method chaining.
+     */
+    CommandsTopicPathBuilder merge();
+
+    /**
      * Sets the {@code Action} of this builder to {@link TopicPath.Action#DELETE}. A previously set action is replaced.
      *
      * @return this builder to allow method chaining.

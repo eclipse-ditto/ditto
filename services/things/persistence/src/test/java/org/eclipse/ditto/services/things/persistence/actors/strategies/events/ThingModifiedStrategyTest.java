@@ -52,6 +52,7 @@ public final class ThingModifiedStrategyTest extends AbstractStrategyTest {
                 .setModified(TIMESTAMP)
                 .setMetadata(METADATA)
                 .build();
+
         assertThat(thingWithEventApplied).isEqualTo(expected);
     }
 

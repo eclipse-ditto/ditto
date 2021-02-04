@@ -66,7 +66,8 @@ final class DeleteFeaturePropertiesStrategy extends AbstractThingCommandStrategy
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent<?>> getDeleteFeaturePropertiesResult(final Feature feature, final Context<ThingId> context,
+    private Result<ThingEvent<?>> getDeleteFeaturePropertiesResult(final Feature feature,
+            final Context<ThingId> context,
             final long nextRevision, final DeleteFeatureProperties command, @Nullable final Thing thing,
             @Nullable final Metadata metadata) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();

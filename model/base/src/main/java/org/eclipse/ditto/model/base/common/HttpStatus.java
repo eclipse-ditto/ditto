@@ -424,7 +424,7 @@ public final class HttpStatus implements Serializable {
      * @param code the code of the HttpStatus to get an instance for.
      * @return an Optional that either contains the HttpStatus with the specified code or is empty if the code is not
      * within the range of valid HTTP status codes.
-     * @see #getInstance(int) 
+     * @see #getInstance(int)
      */
     public static Optional<HttpStatus> tryGetInstance(final int code) {
         HttpStatus httpStatus;

@@ -22,9 +22,10 @@ A valid topic consists of six elements, describing the thing affected by this me
    [`search`](protocol-specification-things-search.html) or [`messages`](protocol-specification-things-messages.html).
 6. `action`: the action executed on the Thing, only required for:
     1. Commands: [`create/modify`](protocol-specification-things-create-or-modify.html),
+       [`merge`](protocol-specification-things-merge.html),
        [`retrieve`](protocol-specification-things-retrieve.html) or
        [`delete`](protocol-specification-things-delete.html).
-    2. Events: `created,` `modified,` `deleted.`
+    2. Events: `created`, `modified`, `merged`, `deleted.`
 
 
 ## Thing representation

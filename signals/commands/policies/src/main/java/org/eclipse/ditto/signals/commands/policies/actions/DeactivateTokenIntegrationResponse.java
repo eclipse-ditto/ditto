@@ -99,7 +99,8 @@ public final class DeactivateTokenIntegrationResponse
      * format.
      */
     @SuppressWarnings("unused") // called by reflection
-    public static DeactivateTokenIntegrationResponse fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static DeactivateTokenIntegrationResponse fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
         final PolicyId policyId =
                 PolicyId.of(jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID));
         final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));

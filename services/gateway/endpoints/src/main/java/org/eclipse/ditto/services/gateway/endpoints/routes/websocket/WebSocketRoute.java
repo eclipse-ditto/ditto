@@ -293,7 +293,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 .thenApply(overwriteWebSocketConfig(dittoHeaders))
                 .thenApply(websocketConfig -> {
                     final Pair<Connect, Flow<DittoRuntimeException, Message, NotUsed>> outgoing =
-                            createOutgoing(version, connectionCorrelationId, authContext, dittoHeaders, adapter, request,
+                            createOutgoing(version, connectionCorrelationId, authContext, dittoHeaders, adapter,
+                                    request,
                                     websocketConfig, signalEnrichmentFacade, logger);
 
                     final Flow<Message, DittoRuntimeException, NotUsed> incoming =

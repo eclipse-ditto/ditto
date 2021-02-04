@@ -32,7 +32,7 @@ public final class TestCommandResponse extends  AbstractCommandResponse<TestComm
     static final String TYPE = "test.commandresponse.type";
 
     private TestCommandResponse(final DittoHeaders dittoHeaders) {
-        super(TYPE, HttpStatus.OK ,dittoHeaders);
+        super(TYPE, HttpStatus.OK, dittoHeaders);
     }
 
     @Override

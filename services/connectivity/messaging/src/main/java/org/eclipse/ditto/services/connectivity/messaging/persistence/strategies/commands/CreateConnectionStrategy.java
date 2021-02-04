@@ -21,7 +21,6 @@ import static org.eclipse.ditto.services.connectivity.messaging.persistence.stag
 import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newErrorResult;
 import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newMutationResult;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 

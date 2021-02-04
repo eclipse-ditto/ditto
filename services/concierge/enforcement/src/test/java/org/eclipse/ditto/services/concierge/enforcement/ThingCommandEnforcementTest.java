@@ -626,9 +626,9 @@ public final class ThingCommandEnforcementTest {
         // the "if-none-match" headers must be removed when retrieving the policy to copy
         // if they are not removed, a PolicyPreconditionNotModifiedException would be returned
         testCreateByCopyFromPolicy(headers(V_2).toBuilder()
-                .allowPolicyLockout(true)
-                .ifNoneMatch(EntityTagMatchers.fromList(Collections.singletonList(EntityTagMatcher.asterisk())))
-                .build(),
+                        .allowPolicyLockout(true)
+                        .ifNoneMatch(EntityTagMatchers.fromList(Collections.singletonList(EntityTagMatcher.asterisk())))
+                        .build(),
                 CreateThingResponse.class);
     }
 

@@ -34,6 +34,7 @@ import org.eclipse.ditto.signals.commands.live.modify.DeleteFeaturePropertiesLiv
 import org.eclipse.ditto.signals.commands.live.modify.DeleteFeaturePropertyLiveCommand;
 import org.eclipse.ditto.signals.commands.live.modify.DeleteFeaturesLiveCommand;
 import org.eclipse.ditto.signals.commands.live.modify.DeleteThingLiveCommand;
+import org.eclipse.ditto.signals.commands.live.modify.MergeThingLiveCommand;
 import org.eclipse.ditto.signals.commands.live.modify.ModifyAttributeLiveCommand;
 import org.eclipse.ditto.signals.commands.live.modify.ModifyAttributesLiveCommand;
 import org.eclipse.ditto.signals.commands.live.modify.ModifyFeatureLiveCommand;
@@ -58,6 +59,7 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
@@ -248,7 +250,9 @@ public final class LiveCommandFactoryTest {
         createAndCheckLiveCommandFor(twinCommand, ModifyFeaturesLiveCommand.class);
     }
 
-    /** */
+    /**
+     *
+     */
     @Test
     public void getModifyThingLiveCommandForModifyThing() {
         final ModifyThing twinCommand = ModifyThing.of(TestConstants.Thing.THING_ID, TestConstants.Thing.THING, null,
@@ -256,7 +260,20 @@ public final class LiveCommandFactoryTest {
         createAndCheckLiveCommandFor(twinCommand, ModifyThingLiveCommand.class);
     }
 
-    /** */
+    /**
+     *
+     */
+    @Test
+    public void getMergeThingLiveCommandForMergeThing() {
+        final MergeThing twinCommand =
+                MergeThing.of(TestConstants.Thing.THING_ID, TestConstants.PATH, TestConstants.VALUE,
+                        DittoHeaders.empty());
+        createAndCheckLiveCommandFor(twinCommand, MergeThingLiveCommand.class);
+    }
+
+    /**
+     *
+     */
     @Test
     public void getRetrieveAttributeLiveCommandForRetrieveAttribute() {
         final RetrieveAttribute twinCommand =

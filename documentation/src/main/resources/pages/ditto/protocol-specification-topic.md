@@ -11,6 +11,7 @@ _[{namespace}](#namespace)/[{entity-name}](#entity-name)/[{group}](#group)/[{cha
 
 Examples for valid topic paths are:
 * `org.eclipse.ditto/fancy-car-1/things/twin/commands/create`
+* `org.eclipse.ditto/fancy-car-23/things/twin/commands/merge`
 * `org.eclipse.ditto/fancy-car-0815/things/live/events/modified`
 * `org.eclipse.ditto/fancy-car-23/things/twin/search`
 * `org.eclipse.ditto/fancy-car-42/things/live/messages/hello.world`
@@ -136,7 +137,8 @@ Requests to
 
 * `create`,
 * `retrieve`,
-* `modify` or
+* `modify`,
+* `merge` or
 * `delete`
 
 an entity or an aspect of an entity.
@@ -146,7 +148,8 @@ an entity or an aspect of an entity.
 An entity (e.g. a Thing) or an aspect of an entity was
 
 * `created`,
-* `modified` or
+* `modified`,
+* `merged` or
 * `deleted`.
 
 ### Messages criterion actions

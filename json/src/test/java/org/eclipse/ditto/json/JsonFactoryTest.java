@@ -571,4 +571,32 @@ public final class JsonFactoryTest {
         assertThat(underTest.mapValue(JsonFactory.nullLiteral())).isEqualTo(JsonFactory.nullLiteral());
     }
 
+    @Test
+    public void newJsonObjectFromPathAndValue() {
+        final JsonObject expected = JsonObject.newBuilder()
+                .set("features", JsonObject.newBuilder()
+                        .set("featureA", JsonObject.newBuilder()
+                                .set("properties", JsonObject.newBuilder()
+                                        .set("temperature",
+                                                JsonObject.newBuilder().set("value", 23.0).set("unit", "°C").build())
+                                        .build())
+                                .build())
+                        .build())
+                .build();
+
+        final JsonPointer path = JsonPointer.of("features/featureA/properties/temperature");
+        final JsonValue value = JsonObject.newBuilder()
+                .set("value", 23.0)
+                .set("unit", "°C")
+                .build();
+
+        final JsonObject actual = JsonFactory.newObject(path, value);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void newJsonObjectThrowsExceptionIfRootIsNotAnObject() {
+        JsonFactory.newObject(JsonPointer.empty(), JsonValue.of(1));
+    }
 }

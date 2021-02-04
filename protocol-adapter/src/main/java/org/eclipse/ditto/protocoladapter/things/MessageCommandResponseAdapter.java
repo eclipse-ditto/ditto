@@ -17,7 +17,6 @@ import static java.util.Objects.requireNonNull;
 import org.eclipse.ditto.model.messages.KnownMessageSubjects;
 import org.eclipse.ditto.protocoladapter.AbstractAdapter;
 import org.eclipse.ditto.protocoladapter.Adaptable;
-import org.eclipse.ditto.protocoladapter.DefaultPayloadPathMatcher;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.adaptables.MappingStrategiesFactory;
@@ -39,7 +38,7 @@ final class MessageCommandResponseAdapter extends AbstractAdapter<MessageCommand
 
     private MessageCommandResponseAdapter(final HeaderTranslator headerTranslator) {
         super(MappingStrategiesFactory.getMessageCommandResponseMappingStrategies(), headerTranslator,
-                DefaultPayloadPathMatcher.empty());
+                EmptyPathMatcher.getInstance());
     }
 
     /**
