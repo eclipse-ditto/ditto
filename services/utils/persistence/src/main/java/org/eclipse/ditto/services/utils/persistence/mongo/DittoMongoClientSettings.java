@@ -23,7 +23,7 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 
 /**
  * Additional settings of a {@link DittoMongoClient} which are not already part of the client's
- * {@link com.mongodb.async.client.MongoClientSettings}.
+ * {@link com.mongodb.MongoClientSettings}.
  */
 @Immutable
 public final class DittoMongoClientSettings {

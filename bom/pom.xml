@@ -37,17 +37,15 @@
         <jackson-core.version>2.10.5</jackson-core.version>
         <typesafe-config.version>1.4.0</typesafe-config.version>
         <ssl-config-core.version>0.4.1</ssl-config-core.version>
-        <akka.version>2.6.9</akka.version>
-        <akka-http.version>10.2.0</akka-http.version>
-        <akka-persistence-mongo.version>3.0.3</akka-persistence-mongo.version>
-        <akka-management.version>1.0.8</akka-management.version>
+        <akka.version>2.6.12</akka.version>
+        <akka-persistence-mongo.version>3.0.6</akka-persistence-mongo.version>
+        <akka-http.version>10.2.3</akka-http.version>
+        <akka-management.version>1.0.9</akka-management.version>
         <hivemq-mqtt-client.version>1.2.0</hivemq-mqtt-client.version>
         <kafka-clients.version>2.5.0</kafka-clients.version>
 
-        <!-- Keep these versions consistent with akka-persistence-mongo.version's build.sbt -->
-        <mongo-scala-driver.version>2.9.0</mongo-scala-driver.version>
-        <mongo-java-driver.version>3.12.6</mongo-java-driver.version>
-        <mongo-reactivestreams.version>1.13.1</mongo-reactivestreams.version>
+        <!-- Keep these version consistent with akka-persistence-mongo.version's build.sbt -->
+        <mongo-java-driver.version>4.1.0</mongo-java-driver.version>
 
         <jjwt.version>0.10.7</jjwt.version>
         <asm.version>7.2</asm.version>
@@ -249,27 +247,6 @@
             </dependency>
 
             <dependency>
-                <groupId>org.mongodb.scala</groupId>
-                <artifactId>mongo-scala-driver_${scala.version}</artifactId>
-                <version>${mongo-scala-driver.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mongodb.scala</groupId>
-                <artifactId>mongo-scala-bson_${scala.version}</artifactId>
-                <version>${mongo-scala-driver.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mongodb</groupId>
-                <artifactId>mongo-java-driver</artifactId>
-                <version>${mongo-java-driver.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mongodb</groupId>
-                <artifactId>mongo-java-driver-async</artifactId>
-                <version>${mongo-java-driver.version}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>com.lightbend.akka.management</groupId>
                 <artifactId>akka-management_${scala.version}</artifactId>
                 <version>${akka-management.version}</version>
@@ -297,23 +274,8 @@
 
             <dependency>
                 <groupId>org.mongodb</groupId>
-                <artifactId>bson</artifactId>
-                <version>${mongo-java-driver.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mongodb</groupId>
-                <artifactId>mongodb-driver-core</artifactId>
-                <version>${mongo-java-driver.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mongodb</groupId>
-                <artifactId>mongodb-driver-async</artifactId>
-                <version>${mongo-java-driver.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.mongodb</groupId>
                 <artifactId>mongodb-driver-reactivestreams</artifactId>
-                <version>${mongo-reactivestreams.version}</version>
+                <version>${mongo-java-driver.version}</version>
             </dependency>
 
             <dependency>
