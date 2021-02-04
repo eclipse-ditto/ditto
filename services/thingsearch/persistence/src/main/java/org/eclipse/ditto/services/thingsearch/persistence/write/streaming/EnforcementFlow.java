@@ -162,17 +162,19 @@ final class EnforcementFlow {
      */
     public Flow<Map<ThingId, Metadata>, Source<AbstractWriteModel, NotUsed>, NotUsed> create(
             final boolean shouldAcknowledge, final int parallelism) {
-        return Flow.<Map<ThingId, Metadata>>create().map(changeMap -> {
-            log.info("Updating search index with <shouldAcknowledge={}> of <{}> things", shouldAcknowledge,
-                    changeMap.size());
-            return sudoRetrieveThingJsons(parallelism, changeMap).flatMapConcat(responseMap ->
-                    Source.fromIterator(changeMap.values()::iterator)
-                            .flatMapMerge(parallelism, metadataRef ->
-                                    computeWriteModel(metadataRef, responseMap.get(metadataRef.getThingId()))
-                            )
-                            .withAttributes(Attributes.inputBuffer(parallelism, parallelism))
-            );
-        });
+        return Flow.<Map<ThingId, Metadata>>create()
+                .map(changeMap -> {
+                    log.info("Updating search index with <shouldAcknowledge={}> of <{}> things", shouldAcknowledge,
+                            changeMap.size());
+                    return sudoRetrieveThingJsons(parallelism, changeMap).flatMapConcat(responseMap ->
+                            Source.fromIterator(changeMap.values()::iterator)
+                                    .flatMapMerge(parallelism, metadataRef ->
+                                            computeWriteModel(metadataRef, responseMap.get(metadataRef.getThingId()))
+                                    )
+                                    .withAttributes(Attributes.inputBuffer(parallelism, parallelism))
+                    );
+                })
+                .withAttributes(Attributes.inputBuffer(1, 1));
 
     }
 
