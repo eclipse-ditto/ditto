@@ -263,6 +263,65 @@ final DittoClient dittoClient = ... ;
         .whenComplete(...);
 ```
 
+## Merge events
+In this section we want to cover the new `ThingMerged` event which will be emitted after successfully applying an `MergeThing` command.
+For every HTTP request or Ditto protocol message which performs a merge operation on a thing there will be sent out 
+exactly one `ThingMerged` event. This event contains the __path__ and the __value__ of the merge operation.
+The __path__ describes on which level of the thing the __value__ was merged.
+
+
+### Merge event example
+Let's assume we want to patch/merge multiple feature properties at once.
+PATCH /things/com.acme:coffeebrewer/features
+
+```json
+{
+  "coffee-brewer": {
+    "properties": {
+      "brewed-coffees": 10
+    }
+  },
+  "water-tank": {
+    "properties": {
+      "configuration": {
+        "smartMode": null,
+        "tempToHold": 30
+      }
+    }
+  }
+}
+```
+
+The following `ThingMerged` event is emitted:
+
+```json
+{
+  "topic": "com.acme/coffeebrewer/things/twin/events/merged",
+  "headers": {
+    "content-type": "application/merge-patch+json"
+  },
+  "path": "/features",
+  "value": {
+    "coffee-brewer": {
+      "properties": {
+        "brewed-coffees": 10
+      }
+    },
+    "water-tank": {
+      "properties": {
+        "configuration": {
+          "smartMode": null,
+          "tempToHold": 30
+        }
+      }
+    }
+  },
+  "revision": 42,
+  "timestamp": "2021-02-04T09:42:39Z"
+}
+```
+
+
 ## Feedback?
 
 Please [get in touch](feedback.html) if you have feedback or questions towards this new functionality.
