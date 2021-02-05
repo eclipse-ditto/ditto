@@ -39,6 +39,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleEx
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.persistence.RecoveryCompleted;
 
@@ -100,10 +101,12 @@ public final class ThingPersistenceActor
      *
      * @param thingId the Thing ID this Actor manages.
      * @param distributedPub the distributed-pub access to publish thing events.
+     * @param pubSubMediator the Akka pub-sub mediator with which to publish snapshot events.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final ThingId thingId, final DistributedPub<ThingEvent<?>> distributedPub) {
-        return props(thingId, distributedPub, new ThingMongoSnapshotAdapter());
+    public static Props props(final ThingId thingId, final DistributedPub<ThingEvent<?>> distributedPub,
+            final ActorRef pubSubMediator) {
+        return props(thingId, distributedPub, new ThingMongoSnapshotAdapter(pubSubMediator));
     }
 
     @Override

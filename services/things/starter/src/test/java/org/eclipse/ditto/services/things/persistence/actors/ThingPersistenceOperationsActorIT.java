@@ -121,7 +121,8 @@ public final class ThingPersistenceOperationsActorIT extends MongoEventSourceITA
                                 return wrapForPublication(message);
                             }
                         },
-                        ThingPersistenceActor::props);
+                        (thingId, distributedPub) -> ThingPersistenceActor.props(thingId, distributedPub,
+                                pubSubMediator));
 
         return system.actorOf(props, id.toString());
     }

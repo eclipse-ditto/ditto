@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.concierge.actors.cleanup.persistenceids;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Function;
 
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
@@ -62,7 +61,7 @@ public final class PersistenceIdSource {
      * @param pubSubMediator the pub-sub mediator.
      * @return source of entity IDs with revisions of their latest snapshots.
      */
-    public static Source<EntityIdWithRevision, NotUsed> create(final PersistenceIdsConfig config,
+    public static Source<EntityIdWithRevision<?>, NotUsed> create(final PersistenceIdsConfig config,
             final ActorRef pubSubMediator) {
         return Source.from(PERSISTENCE_STREAMING_ACTOR_PATHS)
                 .buffer(1, OverflowStrategy.backpressure())
@@ -71,13 +70,13 @@ public final class PersistenceIdSource {
                         .recoverWithRetries(1, Throwable.class, Source::empty));
     }
 
-    private static Source<EntityIdWithRevision, NotUsed> buildResumeSource(final PersistenceIdsConfig config,
+    private static Source<EntityIdWithRevision<?>, NotUsed> buildResumeSource(final PersistenceIdsConfig config,
             final ActorRef pubSubMediator,
             final String path) {
 
-        final EntityIdWithRevision emptyLowerBound = new EmptyEntityIdWithRevision();
+        final EntityIdWithRevision<?> emptyLowerBound = new EmptyEntityIdWithRevision();
 
-        final Function<EntityIdWithRevision, Source<EntityIdWithRevision, ?>> resumptionFunction =
+        final Function<EntityIdWithRevision<?>, Source<EntityIdWithRevision<?>, ?>> resumptionFunction =
                 seed -> Source.single(requestStreamCommand(config, path, seed))
                         .mapAsync(1, command ->
                                 Patterns.ask(pubSubMediator, command, config.getStreamRequestTimeout())
@@ -85,7 +84,7 @@ public final class PersistenceIdSource {
                         .flatMapConcat(PersistenceIdSource::checkForErrors)
                         .flatMapConcat(PersistenceIdSource::handleSourceRef);
 
-        final Function<List<EntityIdWithRevision>, EntityIdWithRevision> nextSeedFunction =
+        final Function<List<EntityIdWithRevision<?>>, EntityIdWithRevision<?>> nextSeedFunction =
                 finalElements -> finalElements.isEmpty()
                         ? emptyLowerBound
                         : finalElements.get(finalElements.size() - 1);
@@ -109,30 +108,30 @@ public final class PersistenceIdSource {
     }
 
     private static DistributedPubSubMediator.Send requestStreamCommand(final PersistenceIdsConfig config,
-            final String path, final EntityIdWithRevision seed) {
+            final String path, final EntityIdWithRevision<?> seed) {
         return DistPubSubAccess.send(path, sudoStreamPids(config, seed), false);
     }
 
     private static SudoStreamPids sudoStreamPids(final PersistenceIdsConfig config,
-            final EntityIdWithRevision seed) {
+            final EntityIdWithRevision<?> seed) {
         return SudoStreamPids.of(config.getBurst(), config.getStreamIdleTimeout().toMillis(), DittoHeaders.empty())
                 .withLowerBound(seed);
     }
 
-    private static Source<EntityIdWithRevision, NotUsed> handleSourceRef(final Object reply) {
+    private static Source<EntityIdWithRevision<?>, NotUsed> handleSourceRef(final Object reply) {
         if (reply instanceof SourceRef) {
-            return createSourceFromSourceRef((SourceRef) reply);
+            return createSourceFromSourceRef((SourceRef<?>) reply);
         } else {
             return failedSourceDueToUnexpectedMessage("SourceRef", reply);
         }
     }
 
-    private static Source<EntityIdWithRevision, NotUsed> createSourceFromSourceRef(final SourceRef<?> sourceRef) {
+    private static Source<EntityIdWithRevision<?>, NotUsed> createSourceFromSourceRef(final SourceRef<?> sourceRef) {
         return sourceRef.getSource()
                 .flatMapConcat(element -> {
                     if (element instanceof BatchedEntityIdWithRevisions) {
-                        final BatchedEntityIdWithRevisions<?> batch = (BatchedEntityIdWithRevisions) element;
-                        final Source<? extends EntityIdWithRevision, NotUsed> source =
+                        final BatchedEntityIdWithRevisions<?> batch = (BatchedEntityIdWithRevisions<?>) element;
+                        final Source<? extends EntityIdWithRevision<?>, NotUsed> source =
                                 Source.from(batch.getElements());
                         return source.map(x -> x);
                     } else {
@@ -148,7 +147,7 @@ public final class PersistenceIdSource {
             error = (Throwable) actualMessage;
         } else {
             final String message = String.format("While expecting <%s>, got unexpected <%s>", expectedMessage,
-                    Objects.toString(actualMessage));
+                    actualMessage);
             error = new IllegalStateException(message);
         }
         return Source.failed(error);
