@@ -84,7 +84,7 @@ public final class AmqpSpecificConfig {
      * @param config the Amqp10Config.
      * @return the relevant config values.
      */
-    public static HashMap<String, String> toDefaultConfig(final Amqp10Config config) {
+    public static Map<String, String> toDefaultConfig(final Amqp10Config config) {
         final HashMap<String, String> defaultConfig = new HashMap<>();
         addParameter(defaultConfig, CONNECT_TIMEOUT, config.getGlobalConnectTimeout().toMillis());
         addParameter(defaultConfig, SEND_TIMEOUT, config.getGlobalSendTimeout().toMillis());
@@ -153,8 +153,8 @@ public final class AmqpSpecificConfig {
     private static void addTransportParameters(final HashMap<String, String> parameters, final Connection connection) {
         if (isSecuredConnection(connection) && !connection.isValidateCertificates()) {
             // these setting can only be applied for amqps connections:
-            addParameter(parameters, TRUST_ALL, "true");
-            addParameter(parameters, VERIFY_HOST, "false");
+            addParameter(parameters, TRUST_ALL, true);
+            addParameter(parameters, VERIFY_HOST, false);
         }
     }
 

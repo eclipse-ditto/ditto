@@ -127,7 +127,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     /*
-     * This constructor is called via reflection by the static method propsForTests.
+     * This constructor is called via reflection by the static method props.
      */
     @SuppressWarnings("unused")
     private AmqpClientActor(final Connection connection,
