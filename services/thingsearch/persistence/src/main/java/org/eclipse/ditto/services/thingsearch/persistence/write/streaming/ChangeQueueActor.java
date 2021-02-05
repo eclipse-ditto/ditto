@@ -29,6 +29,7 @@ import akka.dispatch.UnboundedControlAwareMessageQueueSemantics;
 import akka.japi.function.Function;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
+import akka.stream.Attributes;
 import akka.stream.javadsl.Source;
 
 /**
@@ -138,6 +139,7 @@ public final class ChangeQueueActor extends AbstractActor
                                 return Source.empty();
                             }
                         }))
+                .withAttributes(Attributes.inputBuffer(1, 1))
                 .mapMaterializedValue(whatever -> NotUsed.getInstance());
     }
 
