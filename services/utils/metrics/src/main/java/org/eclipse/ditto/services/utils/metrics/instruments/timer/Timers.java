@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -16,6 +16,10 @@ package org.eclipse.ditto.services.utils.metrics.instruments.timer;
  * Factory methods for timers.
  */
 public final class Timers {
+
+    private Timers() {
+        // No-Op because this is a factory class.
+    }
 
     /**
      * Builds a {@link PreparedTimer} with the given name.
