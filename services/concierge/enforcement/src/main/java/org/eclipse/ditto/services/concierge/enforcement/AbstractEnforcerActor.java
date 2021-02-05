@@ -31,7 +31,7 @@ import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.services.utils.metrics.instruments.timer.ExpiringTimerBuilder;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
@@ -142,18 +142,18 @@ public abstract class AbstractEnforcerActor extends AbstractGraphActor<Contextua
     }
 
     private StartedTimer createTimer(final WithDittoHeaders<?> withDittoHeaders) {
-        final ExpiringTimerBuilder timerBuilder = DittoMetrics.expiringTimer(TIMER_NAME);
+        final PreparedTimer expiringTimer = DittoMetrics.timer(TIMER_NAME);
 
         withDittoHeaders.getDittoHeaders().getChannel().ifPresent(channel ->
-                timerBuilder.tag("channel", channel)
+                expiringTimer.tag("channel", channel)
         );
         if (withDittoHeaders instanceof Signal) {
-            timerBuilder.tag("resource", ((Signal<?>) withDittoHeaders).getResourceType());
+            expiringTimer.tag("resource", ((Signal<?>) withDittoHeaders).getResourceType());
         }
         if (withDittoHeaders instanceof Command) {
-            timerBuilder.tag("category", ((Command<?>) withDittoHeaders).getCategory().name().toLowerCase());
+            expiringTimer.tag("category", ((Command<?>) withDittoHeaders).getCategory().name().toLowerCase());
         }
-        return timerBuilder.build();
+        return expiringTimer.start();
     }
 
     @Override

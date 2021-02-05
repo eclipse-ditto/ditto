@@ -12,9 +12,14 @@
  */
 package org.eclipse.ditto.services.utils.metrics.instruments.timer;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
@@ -29,20 +34,60 @@ import kamon.tag.TagSet;
 /**
  * Kamon based implementation of {@link PreparedTimer}.
  */
-public class PreparedKamonTimer implements PreparedTimer {
+final class PreparedKamonTimer implements PreparedTimer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PreparedKamonTimer.class);
+    private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     private final String name;
     private final Map<String, String> tags;
+    private final Duration maximumDuration;
+    private final Consumer<StartedTimer> additionalExpirationHandling;
 
     private PreparedKamonTimer(final String name) {
+        this(name, new HashMap<>(), Duration.ofMinutes(5), startedTimer -> {});
+    }
+
+    private PreparedKamonTimer(final String name, final Map<String, String> tags, final Duration maximumDuration,
+            final Consumer<StartedTimer> additionalExpirationHandling) {
+
         this.name = name;
-        this.tags = new HashMap<>();
+        this.tags = tags;
+        this.maximumDuration = maximumDuration;
+        this.additionalExpirationHandling = additionalExpirationHandling;
     }
 
     static PreparedTimer newTimer(final String name) {
         return new PreparedKamonTimer(name);
+    }
+
+    private static void defaultExpirationHandling(final String tracingFilter, final StartedTimer timer,
+            @Nullable Consumer<StartedTimer> additionalExpirationHandling) {
+        LOGGER.trace("Trace for {} stopped. Cause: Timer expired", tracingFilter);
+
+        if (additionalExpirationHandling != null) {
+            try {
+                additionalExpirationHandling.accept(timer);
+            } finally {
+                if (timer.isRunning()) {
+                    timer.stop();
+                }
+            }
+        } else {
+            if (timer.isRunning()) {
+                timer.stop();
+            }
+        }
+    }
+
+    private static void cancelScheduledExpiration(final StoppedTimer timer, final ScheduledFuture<?> expirationFuture) {
+        if (!expirationFuture.isDone()) {
+            final boolean canceled = expirationFuture.cancel(false);
+            if (canceled) {
+                LOGGER.trace("Canceled expiration handling of MutableKamonTimer <{}> because it has been stopped " +
+                        "before timeout", timer.getName());
+            }
+        }
     }
 
     @Override
@@ -69,13 +114,18 @@ public class PreparedKamonTimer implements PreparedTimer {
     }
 
     /**
-     * Starts the Timer. This method is package private so only {@link DefaultTimerBuilder} can start
+     * Starts the Timer. This method is package private so only {@link Timers} can start
      * this timer.
      *
      * @return The started {@link StartedTimer}
      */
     public StartedTimer start() {
-        return StartedKamonTimer.fromPreparedTimer(this);
+        final StartedTimer timer = StartedKamonTimer.fromPreparedTimer(this);
+        final ScheduledFuture<?> expirationFuture = scheduler.schedule(
+                () -> defaultExpirationHandling(timer.getName(), timer, additionalExpirationHandling),
+                maximumDuration.toMillis(), TimeUnit.MILLISECONDS);
+        timer.onStop(new OnStopHandler(stoppedTimer -> cancelScheduledExpiration(stoppedTimer, expirationFuture)));
+        return timer;
     }
 
     @Override
@@ -92,6 +142,16 @@ public class PreparedKamonTimer implements PreparedTimer {
     @Override
     public Long getNumberOfRecords() {
         return getSnapshot(false).count();
+    }
+
+    @Override
+    public PreparedTimer maximumDuration(final Duration maximumDuration) {
+        return new PreparedKamonTimer(name, tags, maximumDuration, additionalExpirationHandling);
+    }
+
+    @Override
+    public PreparedTimer onExpiration(final Consumer<StartedTimer> additionalExpirationHandling) {
+        return new PreparedKamonTimer(name, tags, maximumDuration, additionalExpirationHandling);
     }
 
     @Override

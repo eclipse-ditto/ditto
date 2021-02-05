@@ -112,10 +112,10 @@ public abstract class BaseConsumerActor extends AbstractActorWithTimers {
     protected final void forwardToMappingActor(final ExternalMessage message, final Runnable settle,
             final Reject reject) {
 
-        final StartedTimer timer = DittoMetrics.expiringTimer(TIMER_ACK_HANDLING)
+        final StartedTimer timer = DittoMetrics.timer(TIMER_ACK_HANDLING)
                 .tag(TracingTags.CONNECTION_ID, connectionId.toString())
                 .tag(TracingTags.CONNECTION_TYPE, connectionType.getName())
-                .build();
+                .start();
         forwardAndAwaitAck(addSourceAndReplyTarget(message))
                 .handle((output, error) -> {
                     if (output != null) {

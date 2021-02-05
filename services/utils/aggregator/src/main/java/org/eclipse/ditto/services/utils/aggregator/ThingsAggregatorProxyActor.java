@@ -182,9 +182,9 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
             overallResponseSupplier = supplyRetrieveThingsResponse(originatingCommand.getDittoHeaders(), namespace);
         }
 
-        final StartedTimer timer = DittoMetrics.expiringTimer(TRACE_AGGREGATOR_RETRIEVE_THINGS)
+        final StartedTimer timer = DittoMetrics.timer(TRACE_AGGREGATOR_RETRIEVE_THINGS)
                 .tag("size", Integer.toString(thingIds.size()))
-                .build();
+                .start();
 
         final Source<Jsonifiable<?>, NotUsed> thingNotAccessibleExceptionSource = Source.single(
                 ThingNotAccessibleException.fromMessage("Thing could not be accessed.", DittoHeaders.empty())
