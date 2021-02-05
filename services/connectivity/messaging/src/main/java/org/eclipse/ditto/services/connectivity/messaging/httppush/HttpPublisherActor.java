@@ -151,14 +151,16 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?>
     buildHttpRequestFlow(final HttpPushConfig config) {
 
+        final Duration requestTimeout = config.getRequestTimeout();
+
         final PreparedTimer timer = DittoMetrics.timer("http_publish_request_time")
+                // Set maximum duration higher than request timeout to avoid race conditions
+                .maximumDuration(requestTimeout.plus(Duration.ofSeconds(5)))
                 .tag("id", connection.getId().toString());
 
         final Sink<Duration, CompletionStage<Done>> logRequestTimes = Sink.<Duration>foreach(duration -> {
             connectionLogger.success("HTTP request took <{0}> ms.", duration.toMillis());
         });
-
-        final Duration requestTimeout = config.getRequestTimeout();
 
         return DittoFlowEnhancement
                 .enhanceFlow(factory.<HttpPushContext>createFlow(getContext().getSystem(), logger))
