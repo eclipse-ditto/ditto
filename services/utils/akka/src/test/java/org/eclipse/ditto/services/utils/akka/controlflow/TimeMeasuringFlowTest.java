@@ -13,9 +13,11 @@
 package org.eclipse.ditto.services.utils.akka.controlflow;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -29,6 +31,7 @@ import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.AdditionalAnswers;
 
 import akka.Done;
 import akka.NotUsed;
@@ -73,7 +76,8 @@ public final class TimeMeasuringFlowTest {
         });
 
         final PreparedTimer timer = DittoMetrics.timer("test-time-measuring-flow");
-        final PreparedTimer timerSpy = spy(timer);
+        final PreparedTimer timerSpy = mock(PreparedTimer.class);
+        when(timerSpy.start()).thenAnswer(AdditionalAnswers.delegatesTo(timer));
         final List<Duration> durations = new ArrayList<>();
         final Sink<Duration, CompletionStage<Done>> rememberDurations = Sink.<Duration>foreach(durations::add);
         new TestKit(system) {{

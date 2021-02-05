@@ -32,7 +32,7 @@ public class StartedKamonTimerTest {
 
     @Before
     public void setup() {
-        sut = PreparedKamonTimer.newTimer("TestTimer").start();
+        sut = Timers.newTimer("TestTimer").start();
     }
 
     @Test
@@ -45,7 +45,7 @@ public class StartedKamonTimerTest {
         final OnStopHandler onStopHandler = mock(OnStopHandler.class);
         sut.onStop(onStopHandler);
         final List<OnStopHandler> onStopHandlers = sut.getOnStopHandlers();
-        assertThat(onStopHandlers).hasSize(1);
+        assertThat(onStopHandlers).hasSize(2);
         assertThat(onStopHandlers).contains(onStopHandler);
     }
 
