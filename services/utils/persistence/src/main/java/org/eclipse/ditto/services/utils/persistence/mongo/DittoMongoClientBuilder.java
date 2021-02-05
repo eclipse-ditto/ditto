@@ -17,7 +17,9 @@ import java.time.Duration;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import com.mongodb.ReadConcern;
 import com.mongodb.ReadPreference;
+import com.mongodb.WriteConcern;
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
 
@@ -150,6 +152,30 @@ public interface DittoMongoClientBuilder {
          * @return this builder instance with the updated read preference.
          */
         GeneralPropertiesStep setReadPreference(ReadPreference readPreference);
+
+        /**
+         * Sets the read concern that should be used for the mongo client.
+         *
+         * @param readConcern the read concern.
+         * @return this builder instance with the updated read concern.
+         */
+        GeneralPropertiesStep setReadConcern(ReadConcern readConcern);
+
+        /**
+         * Sets the write concern that should be used for the mongo client.
+         *
+         * @param writeConcern the write concern.
+         * @return this builder instance with the updated write concern.
+         */
+        GeneralPropertiesStep setWriteConcern(WriteConcern writeConcern);
+
+        /**
+         * Sets if "retryWrites" should be used for the mongo client.
+         *
+         * @param retryWrites the "retryWrites".
+         * @return this builder instance with the updated retryWrites.
+         */
+        GeneralPropertiesStep setRetryWrites(boolean retryWrites);
 
         /**
          * Creates a new instance of {@code DittoMongoClient} with the properties of this builder.

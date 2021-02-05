@@ -390,7 +390,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                         .getOrElse(either.left()::get)
                 );
 
-        final Source<ActorRef, ?> sessionActorSource = Source.fromSourceCompletionStage(
+        final Source<ActorRef, ?> sessionActorSource = Source.completionStageSource(
                 Patterns.ask(streamingActor, connect, LOCAL_ASK_TIMEOUT)
                         .thenApply(result -> Source.repeat((ActorRef) result))
         );
@@ -847,7 +847,7 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
     private static final class NoOpWebSocketConfigProvider implements WebSocketConfigProvider {
 
         @Override
-        public WebsocketConfig apply(final DittoHeaders DittoHeaders,
+        public WebsocketConfig apply(final DittoHeaders dittoHeaders,
                 final WebsocketConfig websocketConfig) {
             // given websocketConfig is not touched
             return websocketConfig;

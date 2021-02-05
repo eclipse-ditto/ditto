@@ -23,6 +23,7 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 import org.bson.Document;
+import org.eclipse.ditto.services.thingsearch.common.config.DefaultPersistenceStreamConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
 import org.junit.After;
 import org.junit.Before;
@@ -38,6 +39,7 @@ import com.mongodb.client.model.DeleteOneModel;
 import com.mongodb.client.model.WriteModel;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.mongodb.reactivestreams.client.MongoDatabase;
+import com.typesafe.config.ConfigFactory;
 
 import akka.NotUsed;
 import akka.actor.ActorSystem;
@@ -97,10 +99,11 @@ public final class MongoSearchUpdaterFlowTest {
 
             // GIVEN: MongoSearchUpdaterFlow is wrapped inside a RestartSink
 
-            final MongoSearchUpdaterFlow flow = MongoSearchUpdaterFlow.of(db);
+            final MongoSearchUpdaterFlow flow = MongoSearchUpdaterFlow.of(db,
+                    DefaultPersistenceStreamConfig.of(ConfigFactory.empty()));
 
             final Sink<Source<AbstractWriteModel, NotUsed>, ?> sink =
-                    flow.start(1, 1, Duration.ZERO).to(Sink.ignore());
+                    flow.start(false, 1, 1).to(Sink.ignore());
 
             final Sink<Source<AbstractWriteModel, NotUsed>, ?> restartSink =
                     RestartSink.withBackoff(Duration.ZERO, Duration.ZERO, 1.0, () -> sink);

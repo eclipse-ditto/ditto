@@ -57,8 +57,9 @@ public final class LimitRateByRejection {
      *
      * @param <A> type of elements.
      * @param <E> type of errors.
-     * @param timeWindow size of each time window.
-     * @param maxElements number of elements to let through in each time window.
+     * @param timeWindow size of each time window. A windows {@code <= 0} disables the rate limiting.
+     * @param maxElements number of elements to let through in each time window - a value of {@code <= 0} disables the
+     * rate limiting.
      * @param errorReporter creator of error from each rejected element.
      * @return graph with 1 inlet for messages and 2 outlets, the first outlet for messages which were in the configured
      * limits per time window and the second outlet for error messages which surpassed the limit.
@@ -78,6 +79,7 @@ public final class LimitRateByRejection {
         private final long windowSizeMillis;
         private final int maxElements;
         private final transient Function<A, E> errorReporter;
+        private final boolean enabled;
 
         private long previousWindow = 0L;
         private int counter = 0;
@@ -87,6 +89,7 @@ public final class LimitRateByRejection {
             this.windowSizeMillis = windowSizeMillis;
             this.maxElements = maxElements;
             this.errorReporter = errorReporter;
+            enabled = maxElements > 0 && windowSizeMillis > 0;
         }
 
         private static <A, E> Creator<akka.japi.function.Function<A, Iterable<Either<E, A>>>> creator(
@@ -98,20 +101,24 @@ public final class LimitRateByRejection {
 
         @Override
         public Iterable<Either<E, A>> apply(final A element) {
-            final long currentTime = System.currentTimeMillis();
-            if (currentTime - previousWindow >= windowSizeMillis) {
-                previousWindow = currentTime;
-                counter = 1;
+            if (enabled) {
+                final long currentTime = System.currentTimeMillis();
+                if (currentTime - previousWindow >= windowSizeMillis) {
+                    previousWindow = currentTime;
+                    counter = 1;
+                } else {
+                    counter++;
+                }
+                final Either<E, A> result;
+                if (counter <= maxElements) {
+                    result = Right.apply(element);
+                } else {
+                    result = Left.apply(errorReporter.apply(element));
+                }
+                return Collections.singletonList(result);
             } else {
-                counter++;
+                return Collections.singletonList(Right.apply(element));
             }
-            final Either<E, A> result;
-            if (counter <= maxElements) {
-                result = Right.apply(element);
-            } else {
-                result = Left.apply(errorReporter.apply(element));
-            }
-            return Collections.singletonList(result);
         }
     }
 }
