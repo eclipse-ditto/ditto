@@ -57,8 +57,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  */
 @Immutable
 @SuppressWarnings("squid:S2160")
-// TODO for 2.0: Do not extend AbstractMap<String, String>, but rather implement Map<String, String>.
-public abstract class AbstractDittoHeaders extends AbstractMap<String, String> implements DittoHeaders {
+public abstract class AbstractDittoHeaders implements DittoHeaders {
 
     private static final String ISSUER_DIVIDER = ":";
 
@@ -102,6 +101,16 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
             caseSensitiveMap.put(header.getKey(), header.getValue());
         }
         return caseSensitiveMap;
+    }
+
+    @Override
+    public Set<String> keySet() {
+        return headers.keySet();
+    }
+
+    @Override
+    public Collection<String> values() {
+        return headers.values().stream().map(Header::getValue).collect(Collectors.toList());
     }
 
     @Override
