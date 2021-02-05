@@ -5,6 +5,7 @@ with its backing Database - MongoDB - and a reverse proxy - nginx - in front of 
 
 ## Requirements
 * [k3s](https://rancher.com/docs/k3s/latest/en/)
+* Port 30080 needs to be available on the node
 
 ## Install k3s
 Run the following command to install k3s. 
@@ -17,9 +18,9 @@ Change the owner of `/etc/rancher/k3s/k3s.yaml` to your user.
 sudo chown <groupId>:<userId> /etc/rancher/k3s/k3s.yaml
 ```
 
-Set the path to the kube config file:
+Copy k3s kube config to .kube directory:
 ```bash
-export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+cp /etc/rancher/k3s/k3s.yaml .kube/config
 ```
 
 Verify that the `kubectl` command works:
@@ -81,7 +82,9 @@ kubectl apply -f deployment/kubernetes/deploymentFiles/mongodb/mongodb.yaml
 
 Or use the stateful Mongodb set with a local persistent volume.
 ```bash
-kubectl apply -f deployment/kubernetes/deploymentFiles/mongodb-statefulset
+kubectl apply -f deployment/kubernetes/deploymentFiles/mongodb-statefulset/storage-class.yaml
+envsubst < deployment/kubernetes/deploymentFiles/mongodb-statefulset/persistent-volume.yaml | kubectl apply -f -
+kubectl apply -f deployment/kubernetes/deploymentFiles/mongodb-statefulset/mongodb-statefulset.yaml
 ```
 
 Another option is to configure the MongoDb endpoint by setting the MongoDb URI via env variable "MONGO_DB_URI".
@@ -104,7 +107,7 @@ kubectl apply -f deployment/kubernetes/deploymentFiles/swagger/swagger.yaml
 kubectl apply -f deployment/kubernetes/deploymentFiles/nginx/nginx.yaml
 ```
 
-### Verify all pods are running
+#### Verify all pods are running
 Run the following command to verify that everything is running.
 
 ```bash
@@ -121,7 +124,11 @@ swagger-b8asd6f857-651bg         1/1     Running   0          2m
 nginx-7bdb84f965-gf2lp           1/1     Running   0          1m
 ```
 
-### Ditto status/health endpoint
+### Ditto up & running
+Now Ditto should be up & running. You can access Ditto on the local port *30080*.
+
+
+#### Ditto status/health endpoint
 To check if Ditto is up & running you can use the Ditto health endpoint.
 curl -u devops --request GET localhost:30080/status/health
 Default devops password is: "foobar"

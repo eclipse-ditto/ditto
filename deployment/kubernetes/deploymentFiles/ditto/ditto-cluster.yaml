@@ -445,7 +445,7 @@ spec:
           timeoutSeconds: 3
           failureThreshold: 4
         env:
-          - name: ENABLE_PRE_AUTHENTICATION
+        - name: ENABLE_PRE_AUTHENTICATION
           value: "true"
         - name: INSTANCE_INDEX
           valueFrom:
