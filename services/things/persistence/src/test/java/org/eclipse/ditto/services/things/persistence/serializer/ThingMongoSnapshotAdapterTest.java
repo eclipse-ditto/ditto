@@ -17,11 +17,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.bson.BsonDocument;
 import org.eclipse.ditto.model.things.TestConstants;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.services.models.things.DittoThingSnapshotTaken;
+import org.eclipse.ditto.services.models.things.ThingSnapshotTaken;
+import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import akka.actor.ActorSystem;
 import akka.persistence.SnapshotMetadata;
 import akka.persistence.SnapshotOffer;
+import akka.testkit.TestProbe;
+import akka.testkit.javadsl.TestKit;
 
 /**
  * Unit test for {@link org.eclipse.ditto.services.things.persistence.serializer.ThingMongoSnapshotAdapter}.
@@ -31,21 +38,40 @@ public final class ThingMongoSnapshotAdapterTest {
     private static final String PERSISTENCE_ID = "thing:fajofj904q2";
     private static final SnapshotMetadata SNAPSHOT_METADATA = new SnapshotMetadata(PERSISTENCE_ID, 0, 0);
 
+    private ActorSystem system;
+    private TestProbe pubSubProbe;
     private ThingMongoSnapshotAdapter underTest = null;
 
     @Before
     public void setUp() {
-        underTest = new ThingMongoSnapshotAdapter();
+        system = ActorSystem.create();
+        pubSubProbe = TestProbe.apply(system);
+        underTest = new ThingMongoSnapshotAdapter(pubSubProbe.ref());
+    }
+
+    @After
+    public void cleanUp() {
+        if (system != null) {
+            TestKit.shutdownActorSystem(system);
+        }
     }
 
     @Test
     public void toSnapshotStoreFromSnapshotStoreRoundtripV1ReturnsExpected() {
         toSnapshotStoreFromSnapshotStoreRoundtripReturnsExpected(TestConstants.Thing.THING_V1);
+        expectSnapshotPublished();
     }
 
     @Test
     public void toSnapshotStoreFromSnapshotStoreRoundtripV2ReturnsExpected() {
         toSnapshotStoreFromSnapshotStoreRoundtripReturnsExpected(TestConstants.Thing.THING_V2);
+        expectSnapshotPublished();
+    }
+
+    private void expectSnapshotPublished() {
+        pubSubProbe.expectMsg(DistPubSubAccess.publishViaGroup(
+                ThingSnapshotTaken.PUBSUB_TOPIC,
+                DittoThingSnapshotTaken.of(TestConstants.Thing.THING_ID)));
     }
 
     private void toSnapshotStoreFromSnapshotStoreRoundtripReturnsExpected(final Thing thing) {

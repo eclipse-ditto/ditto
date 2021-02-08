@@ -30,12 +30,16 @@ final class DefaultCreditDecisionConfig implements CreditDecisionConfig {
     private final Duration metricReportTimeout;
     private final Duration timerThreshold;
     private final int creditPerBatch;
+    private final int creditForRequests;
+    private final int maxPendingRequests;
 
     private DefaultCreditDecisionConfig(final Config conf) {
         this.interval = conf.getDuration(ConfigValue.INTERVAL.getConfigPath());
         this.metricReportTimeout = conf.getDuration(ConfigValue.METRIC_REPORT_TIMEOUT.getConfigPath());
         this.timerThreshold = conf.getDuration(ConfigValue.TIMER_THRESHOLD.getConfigPath());
         this.creditPerBatch = conf.getInt(ConfigValue.CREDIT_PER_BATCH.getConfigPath());
+        creditForRequests = conf.getInt(ConfigValue.CREDIT_FOR_REQUESTS.getConfigPath());
+        maxPendingRequests = conf.getInt(ConfigValue.MAX_PENDING_REQUESTS.getConfigPath());
     }
 
     static CreditDecisionConfig of(final Config config) {
@@ -64,13 +68,25 @@ final class DefaultCreditDecisionConfig implements CreditDecisionConfig {
     }
 
     @Override
+    public int getCreditForRequests() {
+        return creditForRequests;
+    }
+
+    @Override
+    public int getMaxPendingRequests() {
+        return maxPendingRequests;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (o instanceof DefaultCreditDecisionConfig) {
             final DefaultCreditDecisionConfig that = (DefaultCreditDecisionConfig) o;
             return Objects.equals(interval, that.interval) &&
                     Objects.equals(metricReportTimeout, that.metricReportTimeout) &&
                     Objects.equals(timerThreshold, that.timerThreshold) &&
-                    creditPerBatch == that.creditPerBatch;
+                    creditPerBatch == that.creditPerBatch &&
+                    creditForRequests == that.creditForRequests &&
+                    maxPendingRequests == that.maxPendingRequests;
         } else {
             return false;
         }
@@ -78,7 +94,8 @@ final class DefaultCreditDecisionConfig implements CreditDecisionConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(interval, metricReportTimeout, timerThreshold, creditPerBatch);
+        return Objects.hash(interval, metricReportTimeout, timerThreshold, creditPerBatch, creditForRequests,
+                maxPendingRequests);
     }
 
     @Override
@@ -88,6 +105,8 @@ final class DefaultCreditDecisionConfig implements CreditDecisionConfig {
                 ", metricReportTimeout" + metricReportTimeout +
                 ", timerThreshold" + timerThreshold +
                 ", creditPerBatch" + creditPerBatch +
+                ", creditForRequests" + creditForRequests +
+                ", maxPendingRequests" + maxPendingRequests +
                 "]";
     }
 }

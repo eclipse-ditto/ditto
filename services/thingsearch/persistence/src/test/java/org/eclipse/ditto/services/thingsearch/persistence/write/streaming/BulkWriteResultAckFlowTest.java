@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,7 +23,7 @@ import java.util.stream.IntStream;
 import org.bson.BsonDocument;
 import org.bson.BsonString;
 import org.bson.Document;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThingResponse;
@@ -164,21 +165,21 @@ public final class BulkWriteResultAckFlowTest {
         runBulkWriteResultAckFlowAndGetFirstLogEntry(resultAndErrors);
 
         // THEN: only the non-duplicate-key sender receives negative acknowledgement
-        assertThat(probes.get(0).expectMsgClass(Acknowledgement.class).getStatusCode())
-                .isEqualTo(HttpStatusCode.NO_CONTENT);
-        assertThat(probes.get(1).expectMsgClass(Acknowledgement.class).getStatusCode())
-                .isEqualTo(HttpStatusCode.NO_CONTENT);
-        assertThat(probes.get(2).expectMsgClass(Acknowledgement.class).getStatusCode())
-                .isEqualTo(HttpStatusCode.NO_CONTENT);
-        assertThat(probes.get(3).expectMsgClass(Acknowledgement.class).getStatusCode())
-                .isEqualTo(HttpStatusCode.NO_CONTENT);
-        assertThat(probes.get(4).expectMsgClass(Acknowledgement.class).getStatusCode())
-                .isEqualTo(HttpStatusCode.INTERNAL_SERVER_ERROR);
+        assertThat(probes.get(0).expectMsgClass(Acknowledgement.class).getHttpStatus())
+                .isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(probes.get(1).expectMsgClass(Acknowledgement.class).getHttpStatus())
+                .isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(probes.get(2).expectMsgClass(Acknowledgement.class).getHttpStatus())
+                .isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(probes.get(3).expectMsgClass(Acknowledgement.class).getHttpStatus())
+                .isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(probes.get(4).expectMsgClass(Acknowledgement.class).getHttpStatus())
+                .isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     private String runBulkWriteResultAckFlowAndGetFirstLogEntry(final WriteResultAndErrors writeResultAndErrors) {
         return Source.single(writeResultAndErrors)
-                .via(underTest.start())
+                .via(underTest.start(Duration.ZERO))
                 .runWith(Sink.head(), actorSystem)
                 .toCompletableFuture()
                 .join();
@@ -198,7 +199,7 @@ public final class BulkWriteResultAckFlowTest {
             final PolicyId policyId = i % 4 < 2 ? null : PolicyId.of("policy", String.valueOf(i));
             final long policyRevision = i * 100;
             final Metadata metadata =
-                    Metadata.of(thingId, thingRevision, policyId, policyRevision, probes.get(i).ref());
+                    Metadata.of(thingId, thingRevision, policyId, policyRevision, null, probes.get(i).ref());
             if (i % 2 == 0) {
                 writeModels.add(ThingDeleteModel.of(metadata));
             } else {

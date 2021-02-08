@@ -38,24 +38,8 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
      * {@link org.eclipse.ditto.signals.commands.thingsearch.query.ThingSearchQueryCommand}.
      *
      * @return the config.
-     * @since 1.6.0
      */
     String getQueryValidatorImplementation();
-
-    /**
-     * Returns the configuration settings of the "delete" section.
-     *
-     * @return the config.
-     */
-    DeleteConfig getDeleteConfig();
-
-    /**
-     * Returns the configuration settings for the physical deletion of thing entities that are marked as
-     * {@code "__deleted"}.
-     *
-     * @return the config.
-     */
-    DeletionConfig getDeletionConfig();
 
     /**
      * Returns the configuration settings for the search updating functionality.
@@ -63,13 +47,6 @@ public interface SearchConfig extends ServiceSpecificConfig, WithHealthCheckConf
      * @return the config.
      */
     UpdaterConfig getUpdaterConfig();
-
-    /**
-     * Returns the configuration settings
-     *
-     * @return the config.
-     */
-    StreamConfig getStreamConfig();
 
     /**
      * An enumeration of the known config path expressions and their associated default values for SearchConfig.

@@ -182,7 +182,9 @@ final class TestConstants {
                 ThingsModelFactory.newAcl(Authorization.ACL_ENTRY_OLDMAN, Authorization.ACL_ENTRY_GRIMES);
 
         public static final JsonPointer LOCATION_ATTRIBUTE_POINTER = JsonFactory.newPointer("location");
-
+        public static final JsonPointer ABSOLUTE_LOCATION_ATTRIBUTE_POINTER =
+                org.eclipse.ditto.model.things.Thing.JsonFields.ATTRIBUTES.getPointer()
+                        .append(LOCATION_ATTRIBUTE_POINTER);
         /**
          * A known location attribute for testing.
          */

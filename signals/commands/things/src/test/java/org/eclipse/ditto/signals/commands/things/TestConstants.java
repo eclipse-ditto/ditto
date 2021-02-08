@@ -136,6 +136,16 @@ public final class TestConstants {
     public static final JsonFieldSelector JSON_FIELD_SELECTOR_FEATURE_PROPERTIES =
             JsonFactory.newFieldSelector("properties/target_year_1", JSON_PARSE_OPTIONS);
 
+    /**
+     * A known JsonPointer.
+     */
+    public static final JsonPointer PATH = JsonPointer.of("attributes");
+
+    /**
+     * A known JsonValue.
+     */
+    public static final JsonValue VALUE = JsonObject.empty();
+
     private TestConstants() {
         throw new AssertionError();
     }
@@ -218,12 +228,23 @@ public final class TestConstants {
                 ThingsModelFactory.newAcl(Authorization.ACL_ENTRY_OLDMAN, Authorization.ACL_ENTRY_GRIMES);
 
         public static final JsonPointer LOCATION_ATTRIBUTE_POINTER = JsonFactory.newPointer("location");
+        public static final JsonPointer ABSOLUTE_LOCATION_ATTRIBUTE_POINTER =
+                org.eclipse.ditto.model.things.Thing.JsonFields.ATTRIBUTES.getPointer()
+                        .append(LOCATION_ATTRIBUTE_POINTER);
 
         /**
          * A known location attribute for testing.
          */
         public static final JsonObject LOCATION_ATTRIBUTE_VALUE = JsonFactory.newObjectBuilder()
                 .set("latitude", 44.673856)
+                .set("longitude", 8.261719)
+                .build();
+
+        /**
+         * A known location attribute for testing.
+         */
+        public static final JsonObject INVALID_ATTRIBUTE_VALUE = JsonFactory.newObjectBuilder()
+                .set(Pointer.INVALID_JSON_POINTER, 44.673856)
                 .set("longitude", 8.261719)
                 .build();
 
@@ -409,6 +430,13 @@ public final class TestConstants {
          * Value of a known Feature Property.
          */
         public static final JsonValue FLUX_CAPACITOR_PROPERTY_VALUE = JsonFactory.newValue(1955);
+
+        /**
+         * Value of a Feature Property with an invalid pointer.
+         */
+        public static final JsonValue FLUX_CAPACITOR_PROPERTY_VALUE_WITH_INVALID_POINTER =
+                JsonFactory.newObjectBuilder()
+                        .set(Pointer.INVALID_JSON_POINTER, JsonFactory.newValue(1955)).build();
 
         /**
          * Properties of a known Feature.

@@ -61,6 +61,13 @@ public interface UpdaterConfig {
     BackgroundSyncConfig getBackgroundSyncConfig();
 
     /**
+     * Returns the configuration settings
+     *
+     * @return the config.
+     */
+    StreamConfig getStreamConfig();
+
+    /**
      * An enumeration of the known config path expressions and their associated default values for
      * UpdaterConfig.
      */

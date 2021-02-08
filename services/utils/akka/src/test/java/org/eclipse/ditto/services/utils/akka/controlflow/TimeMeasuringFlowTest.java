@@ -41,6 +41,9 @@ import akka.stream.testkit.TestSubscriber;
 import akka.stream.testkit.javadsl.TestSink;
 import akka.testkit.javadsl.TestKit;
 
+/**
+ * Unit tests for {@link TimeMeasuringFlow}.
+ */
 public final class TimeMeasuringFlowTest {
 
     private ActorSystem system;
@@ -78,7 +81,7 @@ public final class TimeMeasuringFlowTest {
         final Sink<Duration, CompletionStage<Done>> rememberDurations = Sink.<Duration>foreach(durations::add);
         new TestKit(system) {{
             Source.repeat("Test")
-                    .via(TimeMeasuringFlow.measureTimeOf(flowThatNeedsSomeTime, timerSpy,rememberDurations))
+                    .via(TimeMeasuringFlow.measureTimeOf(flowThatNeedsSomeTime, timerSpy, rememberDurations))
                     .via(flowThatNeedsSomeTime) // This should not influence the time measuring above
                     .to(testSink)
                     .run(system);

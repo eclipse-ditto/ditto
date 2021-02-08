@@ -117,7 +117,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
                         .getConnectionConfig();
         final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
 
-        this.jmsConnectionFactory = ConnectionBasedJmsConnectionFactory.getInstance(amqp10Config);
+        this.jmsConnectionFactory =
+                ConnectionBasedJmsConnectionFactory.getInstance(AmqpSpecificConfig.toDefaultConfig(amqp10Config));
         connectionListener = new StatusReportingListener(getSelf(), logger, connectionLogger);
         consumerByNamePrefix = new HashMap<>();
         recoverSessionOnSessionClosed = isRecoverSessionOnSessionClosedEnabled(connection);
@@ -126,7 +127,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     }
 
     /*
-     * This constructor is called via reflection by the static method propsForTests.
+     * This constructor is called via reflection by the static method props.
      */
     @SuppressWarnings("unused")
     private AmqpClientActor(final Connection connection,
@@ -167,7 +168,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * @param jmsConnectionFactory the JMS connection factory.
      * @return the Akka configuration Props object.
      */
-    static Props propsForTests(final Connection connection, @Nullable final ActorRef proxyActor,
+    public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor, final JmsConnectionFactory jmsConnectionFactory) {
 
         return Props.create(AmqpClientActor.class, validateConnection(connection),
@@ -177,9 +178,9 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     private static Connection validateConnection(final Connection connection) {
         try {
             ProviderFactory.create(URI.create(ConnectionBasedJmsConnectionFactory
-                    .buildAmqpConnectionUriFromConnection(connection, null)));
-            // it is safe to pass "null" as amqp10Config as only default values are loaded via that config of which
-            //  we can be certain that they are always valid
+                    .buildAmqpConnectionUriFromConnection(connection, Map.of())));
+            // it is safe to pass an empty map as default config as only default values are loaded via that config
+            // of which we can be certain that they are always valid
             return connection;
         } catch (final Exception e) {
             final String msgPattern = "Failed to instantiate an amqp provider from the given configuration: {0}";

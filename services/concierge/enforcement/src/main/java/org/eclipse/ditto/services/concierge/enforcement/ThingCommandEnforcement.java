@@ -17,6 +17,7 @@ import static org.eclipse.ditto.model.things.Permission.ADMINISTRATE;
 import static org.eclipse.ditto.services.models.policies.Permission.MIN_REQUIRED_POLICY_PERMISSIONS;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -33,6 +34,7 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonFieldSelectorBuilder;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
@@ -101,6 +103,7 @@ import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotCreatableExc
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotModifiableException;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingUnavailableException;
 import org.eclipse.ditto.signals.commands.things.modify.CreateThing;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
@@ -870,7 +873,10 @@ public final class ThingCommandEnforcement
         final AuthorizationContext authorizationContext = dittoHeaders.getAuthorizationContext();
 
         final boolean authorized;
-        if (command instanceof ThingModifyCommand) {
+        if (command instanceof MergeThing) {
+            authorized = enforceMergeThingCommand(policyEnforcer, (MergeThing) command, thingResourceKey,
+                    authorizationContext);
+        } else if (command instanceof ThingModifyCommand) {
             authorized = policyEnforcer.hasUnrestrictedPermissions(thingResourceKey, authorizationContext,
                     Permission.WRITE);
         } else {
@@ -882,6 +888,38 @@ public final class ThingCommandEnforcement
         } else {
             throw errorForThingCommand(command);
         }
+    }
+
+    private static boolean enforceMergeThingCommand(final Enforcer policyEnforcer,
+            final MergeThing command, final ResourceKey thingResourceKey,
+            final AuthorizationContext authorizationContext) {
+        if (policyEnforcer.hasUnrestrictedPermissions(thingResourceKey, authorizationContext, Permission.WRITE)) {
+            // unrestricted permissions at thingResourceKey level
+            return true;
+        } else if (policyEnforcer.hasPartialPermissions(thingResourceKey, authorizationContext, Permission.WRITE)) {
+            // in case of partial permissions at thingResourceKey level check all leaves of merge patch for
+            // unrestricted permissions
+            final Set<ResourceKey> resourceKeys = calculateLeaves(command.getPath(), command.getValue());
+            return policyEnforcer.hasUnrestrictedPermissions(resourceKeys, authorizationContext, Permission.WRITE);
+        } else {
+            // not even partial permission
+            return false;
+        }
+    }
+
+    private static Set<ResourceKey> calculateLeaves(final JsonPointer path, final JsonValue value) {
+        if (value.isObject()) {
+            return value.asObject().stream()
+                    .map(f -> calculateLeaves(path.append(f.getKey().asPointer()), f.getValue()))
+                    .reduce(new HashSet<>(), ThingCommandEnforcement::addAll, ThingCommandEnforcement::addAll);
+        } else {
+            return Set.of(PoliciesResourceType.thingResource(path));
+        }
+    }
+
+    private static Set<ResourceKey> addAll(final Set<ResourceKey> result, final Set<ResourceKey> toBeAdded) {
+        result.addAll(toBeAdded);
+        return result;
     }
 
     /**

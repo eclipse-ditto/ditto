@@ -12,36 +12,17 @@
  */
 package org.eclipse.ditto.services.thingsearch.persistence.write.model;
 
-import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
-import static org.mutabilitydetector.unittesting.AllowedReason.provided;
-import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
-import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
-
-import javax.annotation.Nullable;
-
-import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.things.ThingId;
-import org.junit.After;
 import org.junit.Test;
 
 import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.testkit.TestProbe;
-import akka.testkit.javadsl.TestKit;
 import nl.jqno.equalsverifier.EqualsVerifier;
 
 /**
  * Unit test for {@link Metadata}.
  */
 public final class MetadataTest extends AbstractWithActorSystemTest {
-
-    @Test
-    public void assertImmutability() {
-        assertInstancesOf(Metadata.class,
-                areImmutable(),
-                provided(ThingId.class, PolicyId.class).areAlsoImmutable(),
-                assumingFields("senders").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
-    }
 
     @Test
     public void testHashCodeAndEquals() {

@@ -60,7 +60,8 @@ final class DeleteFeatureDefinitionStrategy extends AbstractThingCommandStrategy
                                 command.getDittoHeaders()), command));
     }
 
-    private Result<ThingEvent<?>> getDeleteFeatureDefinitionResult(final Feature feature, final Context<ThingId> context,
+    private Result<ThingEvent<?>> getDeleteFeatureDefinitionResult(final Feature feature,
+            final Context<ThingId> context,
             final long nextRevision, final DeleteFeatureDefinition command, @Nullable final Thing thing,
             @Nullable final Metadata metadata) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();

@@ -12,8 +12,11 @@
  */
 package org.eclipse.ditto.model.things;
 
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.json.Jsonifiable;
+
 /**
  * A ThingDefinition represents a single fully qualified {@link DefinitionIdentifier}.
  */
-public interface ThingDefinition extends DefinitionIdentifier {
+public interface ThingDefinition extends DefinitionIdentifier, Jsonifiable<JsonValue> {
 }

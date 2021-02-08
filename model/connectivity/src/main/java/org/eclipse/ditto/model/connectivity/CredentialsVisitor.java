@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.model.connectivity;
 
-import javax.annotation.Nullable;
-
 /**
  * Process credentials of a connection.
  *

@@ -51,6 +51,20 @@ public interface CreditDecisionConfig {
     int getCreditPerBatch();
 
     /**
+     * Returns the amount of credit given out on request to persistence actors per interval.
+     *
+     * @return the amount of credit for requests.
+     */
+    int getCreditForRequests();
+
+    /**
+     * Returns the amount of requests to keep in a cache until credit is available.
+     *
+     * @return the maximum amount of requests.
+     */
+    int getMaxPendingRequests();
+
+    /**
      * Enumeration of known config keys and default values for {@code CreditDecisionConfig}
      */
     enum ConfigValue implements KnownConfigValue {
@@ -73,7 +87,17 @@ public interface CreditDecisionConfig {
         /**
          * Amount of credit to give out per decision.
          */
-        CREDIT_PER_BATCH("credit-per-batch", 5);
+        CREDIT_PER_BATCH("credit-per-batch", 5),
+
+        /**
+         * How many background cleanup actions can be requested by persistence actors per interval.
+         */
+        CREDIT_FOR_REQUESTS("credit-for-requests", 10),
+
+        /**
+         * Number of thing IDs to keep in the pending cleanup cache waiting for credits.
+         */
+        MAX_PENDING_REQUESTS("max-pending-requests", 100_000);
 
         private final String path;
         private final Object defaultValue;

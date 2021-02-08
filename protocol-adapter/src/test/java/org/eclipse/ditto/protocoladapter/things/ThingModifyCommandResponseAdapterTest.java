@@ -78,7 +78,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
     }
 
     @Test(expected = UnknownCommandResponseException.class)
-    public void unknownCommandResponseResponseToAdaptable() {
+    public void unknownCommandResponseToAdaptable() {
 
         underTest.toAdaptable(new ThingModifyCommandResponse() {
             @Override
@@ -129,7 +129,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
     }
 
     @Test
-    public void createThingResponseResponseFromAdaptable() {
+    public void createThingResponseFromAdaptable() {
         final CreateThingResponse expected =
                 CreateThingResponse.of(TestConstants.THING, TestConstants.DITTO_HEADERS_V_2);
 
@@ -149,7 +149,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
     }
 
     @Test
-    public void createThingResponseResponseToAdaptable() {
+    public void createThingResponseToAdaptable() {
         final TopicPath topicPath = topicPath(TopicPath.Action.CREATE);
         final JsonPointer path = JsonPointer.empty();
 

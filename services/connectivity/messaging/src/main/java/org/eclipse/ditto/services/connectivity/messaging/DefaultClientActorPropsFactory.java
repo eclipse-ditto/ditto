@@ -37,7 +37,6 @@ public final class DefaultClientActorPropsFactory implements ClientActorPropsFac
     private static final DefaultClientActorPropsFactory INSTANCE = new DefaultClientActorPropsFactory();
 
     private DefaultClientActorPropsFactory() {
-        super();
     }
 
     /**

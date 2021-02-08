@@ -199,7 +199,7 @@ public final class MessageHeadersBuilderTest {
     @Test
     public void tryToRemoveMandatoryHeader() {
         final SoftAssertions softly = new SoftAssertions();
-        for(final MessageHeaderDefinition mandatoryHeaderDefinition : MessageHeadersBuilder.MANDATORY_HEADERS) {
+        for (final MessageHeaderDefinition mandatoryHeaderDefinition : MessageHeadersBuilder.MANDATORY_HEADERS) {
             final String key = mandatoryHeaderDefinition.getKey();
             softly.assertThatThrownBy(() -> underTest.removeHeader(key))
                     .isInstanceOf(IllegalArgumentException.class)
@@ -212,7 +212,7 @@ public final class MessageHeadersBuilderTest {
     @Test
     public void tryToRemoveMandatoryHeaderBySettingToNull() {
         final SoftAssertions softly = new SoftAssertions();
-        for(final MessageHeaderDefinition mandatoryHeaderDefinition : MessageHeadersBuilder.MANDATORY_HEADERS) {
+        for (final MessageHeaderDefinition mandatoryHeaderDefinition : MessageHeadersBuilder.MANDATORY_HEADERS) {
             final String key = mandatoryHeaderDefinition.getKey();
             softly.assertThatThrownBy(() -> underTest.putHeader(key, null))
                     .isInstanceOf(NullPointerException.class)
