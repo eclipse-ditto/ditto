@@ -24,21 +24,21 @@ import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingBuilder;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.events.base.Event;
 
 /**
  * Helpers and utils for converting {@link ThingEvent}s to {@link Thing}s.
  */
 public final class ThingEventToThingConverter {
 
-    private static final Map<Class<?>, BiFunction<ThingEvent, ThingBuilder.FromScratch, Thing>> EVENT_TO_THING_MAPPERS =
-            createEventToThingMappers();
+    private static final Map<Class<?>, BiFunction<ThingEvent<?>, ThingBuilder.FromScratch, Thing>>
+            EVENT_TO_THING_MAPPERS = createEventToThingMappers();
 
     private ThingEventToThingConverter() {
         throw new AssertionError();
@@ -90,14 +90,7 @@ public final class ThingEventToThingConverter {
             // merge
             final Thing baseThing = thingFromSignal.get();
             final JsonObject baseThingJson = baseThing.toJson(baseThing.getImplementedSchemaVersion());
-            final JsonObjectBuilder mergedThingBuilder = baseThingJson.toBuilder();
-            for (final JsonPointer pointer : extraFields) {
-                // set extra value only if absent in base thing: actual change data is more important than extra
-                extra.getValue(pointer)
-                        .filter(value -> !baseThingJson.getValue(pointer).isPresent())
-                        .ifPresent(value -> mergedThingBuilder.set(pointer, value));
-            }
-            thing = ThingsModelFactory.newThing(mergedThingBuilder.build());
+            thing = ThingsModelFactory.newThing(JsonFactory.newObject(baseThingJson, extra));
         } else if (thingFromSignal.isPresent()) {
             thing = thingFromSignal.get();
         } else if (hasExtra) {
@@ -106,11 +99,15 @@ public final class ThingEventToThingConverter {
             // no information; there is no thing.
             return Optional.empty();
         }
+
+        if (signal instanceof Event) {
+            return Optional.of(thing.toBuilder().setRevision(((Event<?>) signal).getRevision()).build());
+        }
         return Optional.of(thing);
     }
 
-    private static Map<Class<?>, BiFunction<ThingEvent, ThingBuilder.FromScratch, Thing>> createEventToThingMappers() {
-        final Map<Class<?>, BiFunction<ThingEvent, ThingBuilder.FromScratch, Thing>> mappers = new HashMap<>();
+    private static Map<Class<?>, BiFunction<ThingEvent<?>, ThingBuilder.FromScratch, Thing>> createEventToThingMappers() {
+        final Map<Class<?>, BiFunction<ThingEvent<?>, ThingBuilder.FromScratch, Thing>> mappers = new HashMap<>();
 
         mappers.put(ThingCreated.class,
                 (te, tb) -> ((ThingCreated) te).getThing().toBuilder().setRevision(te.getRevision()).build());
@@ -120,7 +117,7 @@ public final class ThingEventToThingConverter {
                 (te, tb) -> {
                     final ThingMerged thingMerged = (ThingMerged) te;
                     return ThingsModelFactory.newThing(JsonFactory.newObject(thingMerged.getResourcePath(),
-                                    filterNullValuesInJsonValue(thingMerged.getValue())));
+                            filterNullValuesInJsonValue(thingMerged.getValue())));
                 }
         );
         mappers.put(ThingDeleted.class,
