@@ -91,10 +91,11 @@
         <equals-verifier.version>3.1.10</equals-verifier.version>
         <mockito.version>3.1.0</mockito.version>
         <jsonassert.version>1.2.3</jsonassert.version>
-        <awaitility.version>3.1.0</awaitility.version>
+        <awaitility.version>4.0.3</awaitility.version>
+        <json.version>20180130</json.version>
         <akka-persistence-inmemory.version>2.5.15.2</akka-persistence-inmemory.version>
 
-        <jmh.version>1.21</jmh.version>
+        <jmh.version>1.27</jmh.version>
 
         <scalatest.version>3.1.2</scalatest.version>
         <docker-java.version>3.2.6</docker-java.version>
@@ -952,6 +953,13 @@
                 <groupId>org.awaitility</groupId>
                 <artifactId>awaitility</artifactId>
                 <version>${awaitility.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.json</groupId>
+                <artifactId>json</artifactId>
+                <version>${json.version}</version>
                 <scope>test</scope>
             </dependency>
 
