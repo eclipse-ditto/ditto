@@ -149,7 +149,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         final JsonPointer path = JsonPointer.empty();
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
+                        .withValue(TestConstants.THING.toJson(FieldType.regularOrSpecial()))
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -174,7 +174,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         final JsonPointer path = JsonPointer.empty();
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withValue(TestConstants.THING.toJson(FieldType.notHidden())
+                        .withValue(TestConstants.THING.toJson(FieldType.regularOrSpecial())
                                 .set(ModifyThing.JSON_COPY_POLICY_FROM, policyIdToCopy))
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -203,7 +203,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 (ThingModifyCommandResponse) underTest.fromAdaptable(Adaptable.newBuilder(topicPath)
                         .withPayload(Payload.newBuilder(path)
                                 .withStatus(HttpStatus.CREATED)
-                                .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
+                                .withValue(TestConstants.THING.toJson(FieldType.regularOrSpecial()))
                                 .build())
                         .withHeaders(TestConstants.HEADERS_V_2)
                         .build());
@@ -282,8 +282,12 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
 
     @Test
     public void thingQueryCommandResponseFromAdaptable() {
+        final JsonFieldSelector selectedFields =
+                JsonFieldSelector.newInstance("id", "definition", "attributes", "features", "_revision", "_modified",
+                        "_created");
+        final JsonObject expectedThing = TestConstants.THING.toJson(selectedFields);
         final RetrieveThingResponse retrieveThingResponse =
-                RetrieveThingResponse.of(TestConstants.THING_ID, TestConstants.THING, DITTO_HEADERS_V_2);
+                RetrieveThingResponse.of(TestConstants.THING_ID, expectedThing, DITTO_HEADERS_V_2);
 
         final TopicPath topicPath = TopicPath.newBuilder(THING_ID)
                 .things()
@@ -296,12 +300,12 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
                         .withStatus(HttpStatus.OK)
-                        .withValue(TestConstants.THING.toJson())
+                        .withValue(expectedThing)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
-        final ThingQueryCommandResponse actual = (ThingQueryCommandResponse) underTest.fromAdaptable(adaptable);
 
+        final ThingQueryCommandResponse actual = (ThingQueryCommandResponse) underTest.fromAdaptable(adaptable);
         assertWithExternalHeadersThat(actual).isEqualTo(retrieveThingResponse);
     }
 
@@ -382,7 +386,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
-                        .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
+                        .withValue(TestConstants.THING.toJson(FieldType.regularOrSpecial()))
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)

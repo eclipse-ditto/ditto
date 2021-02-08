@@ -12,9 +12,12 @@
  */
 package org.eclipse.ditto.signals.commands.live.query;
 
+import java.util.function.Predicate;
+
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.signals.commands.live.base.LiveCommandAnswerBuilder;
 import org.eclipse.ditto.signals.commands.live.base.LiveCommandResponseFactory;
@@ -33,6 +36,18 @@ public interface RetrieveThingLiveCommandAnswerBuilder extends
      */
     @ParametersAreNonnullByDefault
     interface ResponseFactory extends LiveCommandResponseFactory {
+
+        /**
+         * Creates a success response containing the retrieved value for the {@link RetrieveThing} command.
+         *
+         * @param thing the value of the requested Thing.
+         * @param predicate a predicate determining which fields from the provided Thing should be included in the
+         * response.
+         * @return the response.
+         * @throws NullPointerException if any argument is {@code null}.
+         */
+        @Nonnull
+        RetrieveThingResponse retrieved(Thing thing, Predicate<JsonField> predicate);
 
         /**
          * Creates a success response containing the retrieved value for the {@link RetrieveThing} command.
