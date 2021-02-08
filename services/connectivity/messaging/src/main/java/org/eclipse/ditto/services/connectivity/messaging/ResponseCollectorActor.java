@@ -26,6 +26,7 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
 import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 
 import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
@@ -162,15 +163,6 @@ public final class ResponseCollectorActor extends AbstractActor {
                     .collect(Collectors.toList());
         }
 
-        /**
-         * @return list of successful responses.
-         */
-        public List<CommandResponse<?>> getSuccessfulResponses() {
-            return commandResponses.stream()
-                    .filter(response -> !isFailedResponse(response))
-                    .collect(Collectors.toList());
-        }
-
         @Override
         public String toString() {
             return getClass().getSimpleName() +
@@ -192,9 +184,9 @@ public final class ResponseCollectorActor extends AbstractActor {
             }
         }
 
-        private static boolean isLiveResponse(final Signal<? extends CommandResponse<?>> response) {
+        private static boolean isLiveResponse(final CommandResponse<?> response) {
             return response instanceof MessageCommandResponse ||
-                    response instanceof ThingCommand && ProtocolAdapter.isLiveSignal(response);
+                    response instanceof ThingCommandResponse && ProtocolAdapter.isLiveSignal(response);
         }
     }
 
