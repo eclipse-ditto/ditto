@@ -69,11 +69,8 @@ import akka.actor.ActorRef;
 import akka.actor.ActorSystem;
 import akka.cluster.pubsub.DistributedPubSubMediator;
 import akka.japi.Pair;
-import akka.stream.ActorMaterializer;
 import akka.stream.Materializer;
 import akka.stream.SourceRef;
-import akka.stream.javadsl.Flow;
-import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
 import akka.testkit.javadsl.TestKit;
@@ -97,7 +94,7 @@ public final class BackgroundSyncActorTest {
     );
     private static final List<Metadata> THINGS_INDEXED =
             KNOWN_IDs.stream()
-                    .map(id -> Metadata.of(ThingId.of(id), REVISION_INDEXED, PolicyId.of(id), REVISION_INDEXED))
+                    .map(id -> Metadata.of(ThingId.of(id), REVISION_INDEXED, PolicyId.of(id), REVISION_INDEXED, null))
                     .collect(Collectors.toList());
     private static final List<StreamedSnapshot> THINGS_PERSISTED = KNOWN_IDs.stream()
             .map(id -> createStreamedSnapshot(id, REVISION_PERSISTED))
@@ -167,7 +164,7 @@ public final class BackgroundSyncActorTest {
 
     @Test
     public void providesHealthWarningWhenSameThingIsSynchronizedTwice() {
-        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, null);
+        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, null, null);
         final long persistedRevision = indexedThingMetadata.getThingRevision() + 1;
 
         new TestKit(actorSystem) {{
@@ -201,9 +198,9 @@ public final class BackgroundSyncActorTest {
 
     @Test
     public void staysHealthyWhenSameThingIsSynchronizedWithOtherRevision() {
-        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, null);
+        final Metadata indexedThingMetadata = Metadata.of(THING_ID, 2, null, null, null);
         final long persistedRevision = indexedThingMetadata.getThingRevision() + 1;
-        final Metadata nextThingMetadata = Metadata.of(THING_ID, persistedRevision, null, null);
+        final Metadata nextThingMetadata = Metadata.of(THING_ID, persistedRevision, null, null, null);
         final long nextRevision = nextThingMetadata.getThingRevision() + 1;
 
         new TestKit(actorSystem) {{

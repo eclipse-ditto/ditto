@@ -13,11 +13,9 @@
 package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
 
 import java.time.Duration;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
 import javax.annotation.Nullable;
@@ -57,6 +55,7 @@ import akka.NotUsed;
 import akka.actor.ActorRef;
 import akka.dispatch.MessageDispatcher;
 import akka.pattern.Patterns;
+import akka.stream.Attributes;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Keep;
 import akka.stream.javadsl.Source;
@@ -74,21 +73,18 @@ final class EnforcementFlow {
     private final Duration thingsTimeout;
     private final Duration cacheRetryDelay;
     private final int maxArraySize;
-    private final boolean deleteEvent;
 
     private EnforcementFlow(final ActorRef thingsShardRegion,
             final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
             final Duration thingsTimeout,
             final Duration cacheRetryDelay,
-            final int maxArraySize,
-            final boolean deleteEvent) {
+            final int maxArraySize) {
 
         this.thingsShardRegion = thingsShardRegion;
         this.policyEnforcerCache = policyEnforcerCache;
         this.thingsTimeout = thingsTimeout;
         this.cacheRetryDelay = cacheRetryDelay;
         this.maxArraySize = maxArraySize;
-        this.deleteEvent = deleteEvent;
     }
 
     /**
@@ -103,8 +99,7 @@ final class EnforcementFlow {
     public static EnforcementFlow of(final StreamConfig updaterStreamConfig,
             final ActorRef thingsShardRegion,
             final ActorRef policiesShardRegion,
-            final MessageDispatcher cacheDispatcher,
-            final boolean deleteEvent) {
+            final MessageDispatcher cacheDispatcher) {
 
         final Duration askTimeout = updaterStreamConfig.getAskTimeout();
         final StreamCacheConfig streamCacheConfig = updaterStreamConfig.getCacheConfig();
@@ -117,7 +112,7 @@ final class EnforcementFlow {
                         .projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
 
         return new EnforcementFlow(thingsShardRegion, policyEnforcerCache, askTimeout,
-                streamCacheConfig.getRetryDelay(), updaterStreamConfig.getMaxArraySize(), deleteEvent);
+                streamCacheConfig.getRetryDelay(), updaterStreamConfig.getMaxArraySize());
     }
 
     private static EntityIdWithResourceType getPolicyEntityId(final PolicyId policyId) {
@@ -160,26 +155,35 @@ final class EnforcementFlow {
     /**
      * Create a flow from Thing changes to write models by retrieving data from Things shard region and enforcer cache.
      *
+     * @param shouldAcknowledge defines whether for the created flow the requested ack
+     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#SEARCH_PERSISTED} was required or not.
      * @param parallelism how many SudoRetrieveThing commands to send in parallel.
      * @return the flow.
      */
-    public Flow<Map<ThingId, Metadata>, Source<AbstractWriteModel, NotUsed>, NotUsed> create(final int parallelism) {
-        return Flow.<Map<ThingId, Metadata>>create().map(changeMap -> {
-            log.info("Updating search index of <{}> things", changeMap.size());
-            final Set<ThingId> thingIds = changeMap.keySet();
-            return sudoRetrieveThingJsons(parallelism, thingIds).flatMapConcat(responseMap ->
-                    Source.fromIterator(changeMap.values()::iterator).flatMapMerge(parallelism, metadataRef ->
-                            computeWriteModel(metadataRef, responseMap.get(metadataRef.getThingId())))
-            );
-        });
+    public Flow<Map<ThingId, Metadata>, Source<AbstractWriteModel, NotUsed>, NotUsed> create(
+            final boolean shouldAcknowledge, final int parallelism) {
+        return Flow.<Map<ThingId, Metadata>>create()
+                .map(changeMap -> {
+                    log.info("Updating search index with <shouldAcknowledge={}> of <{}> things", shouldAcknowledge,
+                            changeMap.size());
+                    return sudoRetrieveThingJsons(parallelism, changeMap).flatMapConcat(responseMap ->
+                            Source.fromIterator(changeMap.values()::iterator)
+                                    .flatMapMerge(parallelism, metadataRef ->
+                                            computeWriteModel(metadataRef, responseMap.get(metadataRef.getThingId()))
+                                    )
+                                    .withAttributes(Attributes.inputBuffer(parallelism, parallelism))
+                    );
+                })
+                .withAttributes(Attributes.inputBuffer(1, 1));
 
     }
 
     private Source<Map<ThingId, SudoRetrieveThingResponse>, NotUsed> sudoRetrieveThingJsons(
-            final int parallelism, final Collection<ThingId> thingIds) {
+            final int parallelism, final Map<ThingId, Metadata> changeMap) {
 
-        return Source.fromIterator(thingIds::iterator)
+        return Source.fromIterator(changeMap.entrySet()::iterator)
                 .flatMapMerge(parallelism, this::sudoRetrieveThing)
+                .withAttributes(Attributes.inputBuffer(parallelism, parallelism))
                 .<Map<ThingId, SudoRetrieveThingResponse>>fold(new HashMap<>(), (map, response) -> {
                     map.put(getThingId(response), response);
                     return map;
@@ -190,7 +194,9 @@ final class EnforcementFlow {
                 });
     }
 
-    private Source<SudoRetrieveThingResponse, NotUsed> sudoRetrieveThing(final ThingId thingId) {
+    private Source<SudoRetrieveThingResponse, NotUsed> sudoRetrieveThing(final Map.Entry<ThingId, Metadata> entry) {
+        final ThingId thingId = entry.getKey();
+        ConsistencyLag.startS3RetrieveThing(entry.getValue());
         final SudoRetrieveThing command =
                 SudoRetrieveThing.withOriginalSchemaVersion(thingId, DittoHeaders.empty());
         final CompletionStage<Source<SudoRetrieveThingResponse, NotUsed>> responseFuture =
@@ -216,10 +222,9 @@ final class EnforcementFlow {
     private Source<AbstractWriteModel, NotUsed> computeWriteModel(final Metadata metadata,
             @Nullable final SudoRetrieveThingResponse sudoRetrieveThingResponse) {
 
+        ConsistencyLag.startS4GetEnforcer(metadata);
         if (sudoRetrieveThingResponse == null) {
-            return deleteEvent
-                    ? Source.single(ThingDeleteModel.of(metadata))
-                    : Source.empty();
+            return Source.single(ThingDeleteModel.of(metadata));
         } else {
             final JsonObject thing = sudoRetrieveThingResponse.getEntity().asObject();
 

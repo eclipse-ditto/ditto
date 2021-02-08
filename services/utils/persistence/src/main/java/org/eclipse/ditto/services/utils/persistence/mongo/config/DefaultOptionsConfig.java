@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import java.text.MessageFormat;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -21,6 +22,7 @@ import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
+import com.mongodb.WriteConcern;
 import com.typesafe.config.Config;
 
 /**
@@ -36,6 +38,9 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
 
     private final boolean sslEnabled;
     private final ReadPreference readPreference;
+    private final ReadConcern readConcern;
+    private final WriteConcern writeConcern;
+    private final boolean retryWrites;
 
     private DefaultOptionsConfig(final ScopedConfig config) {
         sslEnabled = config.getBoolean(OptionsConfigValue.SSL_ENABLED.getConfigPath());
@@ -47,7 +52,22 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
                                     readPreferenceString);
                     return new DittoConfigError(msg);
                 });
-
+        final String readConcernString = config.getString(OptionsConfigValue.READ_CONCERN.getConfigPath());
+        readConcern = ReadConcern.ofReadConcern(readConcernString)
+                .orElseThrow(() -> {
+                    final String msg =
+                            MessageFormat.format("Could not parse a ReadConcern from configured string <{0}>",
+                                    readConcernString);
+                    return new DittoConfigError(msg);
+                });
+        final String writeConcernString = config.getString(OptionsConfigValue.WRITE_CONCERN.getConfigPath());
+        writeConcern = Optional.ofNullable(WriteConcern.valueOf(writeConcernString)).orElseThrow(() -> {
+            final String msg =
+                    MessageFormat.format("Could not parse a WriteConcern from configured string <{0}>",
+                            writeConcernString);
+            return new DittoConfigError(msg);
+        });
+        retryWrites = config.getBoolean(OptionsConfigValue.RETRY_WRITES.getConfigPath());
     }
 
     /**
@@ -55,7 +75,7 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
      *
      * @param config is supposed to provide the settings of the options config at {@value #CONFIG_PATH}.
      * @return the instance.
-     * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
+     * @throws DittoConfigError if {@code config} is invalid.
      */
     public static DefaultOptionsConfig of(final Config config) {
         return new DefaultOptionsConfig(
@@ -73,6 +93,21 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
     }
 
     @Override
+    public ReadConcern readConcern() {
+        return readConcern;
+    }
+
+    @Override
+    public WriteConcern writeConcern() {
+        return writeConcern;
+    }
+
+    @Override
+    public boolean isRetryWrites() {
+        return retryWrites;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -81,19 +116,24 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
             return false;
         }
         final DefaultOptionsConfig that = (DefaultOptionsConfig) o;
-        return sslEnabled == that.sslEnabled;
+        return sslEnabled == that.sslEnabled && retryWrites == that.retryWrites &&
+                readPreference == that.readPreference &&
+                readConcern == that.readConcern && Objects.equals(writeConcern, that.writeConcern);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(sslEnabled);
+        return Objects.hash(sslEnabled, readPreference, readConcern, writeConcern, retryWrites);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 "sslEnabled=" + sslEnabled +
+                ", readPreference=" + readPreference +
+                ", readConcern=" + readConcern +
+                ", writeConcern=" + writeConcern +
+                ", retryWrites=" + retryWrites +
                 "]";
     }
-
 }

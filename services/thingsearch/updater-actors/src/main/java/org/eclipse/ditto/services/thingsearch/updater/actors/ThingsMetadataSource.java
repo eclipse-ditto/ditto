@@ -113,7 +113,7 @@ final class ThingsMetadataSource {
             final long thingRevision = snapshot.getValueOrThrow(Thing.JsonFields.REVISION);
             final Instant modified = snapshot.getValue(Thing.JsonFields.MODIFIED).map(Instant::parse).orElse(null);
             // policy revision is not known from thing snapshot
-            return Optional.of(Metadata.of(thingId, thingRevision, policyId, 0L, modified));
+            return Optional.of(Metadata.of(thingId, thingRevision, policyId, 0L, modified, null));
         } catch (PolicyIdInvalidException e) {
             return Optional.empty();
         }

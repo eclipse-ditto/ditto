@@ -17,6 +17,7 @@ import java.util.function.UnaryOperator;
 import org.eclipse.ditto.services.base.DittoService;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.utils.jsr305.annotations.AllParametersAndReturnValuesAreNonnullByDefault;
 import org.slf4j.Logger;
@@ -64,7 +65,8 @@ public final class ConnectivityService extends DittoService<ConnectivityConfig> 
     @Override
     protected Props getMainRootActorProps(final ConnectivityConfig connectivityConfig, final ActorRef pubSubMediator) {
 
-        return ConnectivityRootActor.props(connectivityConfig, pubSubMediator, UnaryOperator.identity());
+        return ConnectivityRootActor.props(connectivityConfig, pubSubMediator, UnaryOperator.identity(),
+                DefaultClientActorPropsFactory.getInstance());
     }
 
 }

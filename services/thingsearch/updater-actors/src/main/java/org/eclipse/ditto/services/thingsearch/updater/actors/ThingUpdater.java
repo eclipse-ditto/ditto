@@ -34,10 +34,13 @@ import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThing;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThingResponse;
 import org.eclipse.ditto.services.thingsearch.common.config.DittoSearchConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.Metadata;
+import org.eclipse.ditto.services.thingsearch.persistence.write.streaming.ConsistencyLag;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.AbstractActor;
@@ -113,16 +116,19 @@ final class ThingUpdater extends AbstractActor {
 
     /**
      * Export the metadata of this updater.
+     *
+     * @param timer an optional timer measuring the search updater's consistency lag.
      */
-    private Metadata exportMetadata() {
-        return Metadata.of(thingId, thingRevision, policyId, policyRevision);
+    private Metadata exportMetadata(@Nullable final StartedTimer timer) {
+        return Metadata.of(thingId, thingRevision, policyId, policyRevision, timer);
     }
 
-    private Metadata exportMetadataWithSender(final boolean shouldAcknowledge, final ActorRef sender) {
+    private Metadata exportMetadataWithSender(final boolean shouldAcknowledge, final ActorRef sender,
+            final StartedTimer consistencyLagTimer) {
         if (shouldAcknowledge) {
-            return Metadata.of(thingId, thingRevision, policyId, policyRevision, sender);
+            return Metadata.of(thingId, thingRevision, policyId, policyRevision, consistencyLagTimer, sender);
         } else {
-            return exportMetadata();
+            return exportMetadata(consistencyLagTimer);
         }
     }
 
@@ -130,7 +136,7 @@ final class ThingUpdater extends AbstractActor {
      * Push metadata of this updater to the queue of thing-changes to be streamed into the persistence.
      */
     private void enqueueMetadata() {
-        enqueueMetadata(exportMetadata());
+        enqueueMetadata(exportMetadata(null));
     }
 
     private void enqueueMetadata(final Metadata metadata) {
@@ -160,7 +166,7 @@ final class ThingUpdater extends AbstractActor {
 
     private void processUpdateThingResponse(final UpdateThingResponse response) {
         if (!response.isSuccess()) {
-            final Metadata metadata = exportMetadata();
+            final Metadata metadata = exportMetadata(null);
             log.warning("Got negative acknowledgement for <{}>; updating to <{}>.",
                     Metadata.fromResponse(response),
                     metadata);
@@ -189,20 +195,27 @@ final class ThingUpdater extends AbstractActor {
     }
 
     private void processThingEvent(final ThingEvent<?> thingEvent) {
-        log.withCorrelationId(thingEvent);
-        log.debug("Received new thing event for thing id <{}> with revision <{}>.", thingId, thingEvent.getRevision());
+        final DittoDiagnosticLoggingAdapter l = log.withCorrelationId(thingEvent);
+        l.debug("Received new thing event for thing id <{}> with revision <{}>.", thingId, thingEvent.getRevision());
         final boolean shouldAcknowledge =
                 thingEvent.getDittoHeaders().getAcknowledgementRequests().contains(SEARCH_PERSISTED_REQUEST);
 
         // check if the revision is valid (thingEvent.revision = 1 + sequenceNumber)
         if (thingEvent.getRevision() <= thingRevision && !shouldAcknowledge) {
-            log.debug("Dropped thing event for thing id <{}> with revision <{}> because it was older than or "
+            l.debug("Dropped thing event for thing id <{}> with revision <{}> because it was older than or "
                             + "equal to the current sequence number <{}> of the update actor.", thingId,
                     thingEvent.getRevision(), thingRevision);
         } else {
-            log.debug("Applying thing event <{}>.", thingEvent);
+            l.debug("Applying thing event <{}>.", thingEvent);
             thingRevision = thingEvent.getRevision();
-            enqueueMetadata(exportMetadataWithSender(shouldAcknowledge, getSender()));
+            final StartedTimer timer = DittoMetrics.expiringTimer(ConsistencyLag.TIMER_NAME)
+                    .tag(ConsistencyLag.TAG_SHOULD_ACK, Boolean.toString(shouldAcknowledge))
+                    .expirationHandling(startedTimer ->
+                            l.warning("Timer measuring consistency lag timed out for event <{}>",
+                            thingEvent))
+                    .build();
+            ConsistencyLag.startS0InUpdater(timer);
+            enqueueMetadata(exportMetadataWithSender(shouldAcknowledge, getSender(), timer));
         }
     }
 

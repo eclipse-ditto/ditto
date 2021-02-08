@@ -41,8 +41,6 @@ import akka.actor.Status;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.pattern.Patterns;
-import akka.stream.Attributes;
-import akka.stream.DelayOverflowStrategy;
 import akka.stream.KillSwitch;
 import akka.stream.KillSwitches;
 import akka.stream.javadsl.Keep;
@@ -78,7 +76,7 @@ final class PolicyEventForwarder extends AbstractActor {
         this.persistence = persistence;
         blockNamespaceBehavior = BlockNamespaceBehavior.of(blockedNamespaces);
         interval = DittoSearchConfig.of(DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
-                .getStreamConfig().getWriteInterval();
+                .getUpdaterConfig().getStreamConfig().getWriteInterval();
 
         pubSubMediator.tell(DistPubSubAccess.subscribeViaGroup(PolicyEvent.TYPE_PREFIX, ACTOR_NAME, getSelf()),
                 getSelf());
@@ -177,9 +175,15 @@ final class PolicyEventForwarder extends AbstractActor {
     private void restartPolicyReferenceTagStream() {
         terminateStream();
         final ActorRef self = getSelf();
-        killSwitch = Source.repeat(Control.DUMP_POLICY_REVISIONS)
-                .delay(interval, DelayOverflowStrategy.backpressure())
-                .withAttributes(Attributes.inputBuffer(1, 1))
+
+        final Source<Control, NotUsed> repeat;
+        if (!interval.isNegative() && !interval.isZero()) {
+            repeat = Source.repeat(Control.DUMP_POLICY_REVISIONS)
+                    .throttle(1, interval);
+        } else {
+            repeat = Source.repeat(Control.DUMP_POLICY_REVISIONS);
+        }
+        killSwitch = repeat
                 .viaMat(KillSwitches.single(), Keep.right())
                 .mapAsync(1, message ->
                         Patterns.ask(self, message, ASK_SELF_TIMEOUT).exceptionally(Function.identity()))
