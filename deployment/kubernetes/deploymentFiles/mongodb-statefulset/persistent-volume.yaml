@@ -9,7 +9,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: local-mongodb-storage
+  storageClassName: mongodb-storage
   local:
     path: /data/db
   nodeAffinity:
@@ -19,7 +19,7 @@ spec:
             - key: kubernetes.io/hostname
               operator: In
               values:
-                - <local-hostname>
+                - $HOSTNAME
 
 ---
 apiVersion: v1
@@ -29,7 +29,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
-  storageClassName: local-mongodb-storage
+  storageClassName: mongodb-storage
   resources:
     requests:
       storage: 5Gi
