@@ -90,9 +90,8 @@
         <mutability-detector.version>0.10.4</mutability-detector.version>
         <equals-verifier.version>3.1.10</equals-verifier.version>
         <mockito.version>3.1.0</mockito.version>
-        <jsonassert.version>1.2.3</jsonassert.version>
+        <jsonassert.version>1.5.0</jsonassert.version>
         <awaitility.version>4.0.3</awaitility.version>
-        <json.version>20180130</json.version>
         <akka-persistence-inmemory.version>2.5.15.2</akka-persistence-inmemory.version>
 
         <jmh.version>1.27</jmh.version>
@@ -957,13 +956,6 @@
             </dependency>
 
             <dependency>
-                <groupId>org.json</groupId>
-                <artifactId>json</artifactId>
-                <version>${json.version}</version>
-                <scope>test</scope>
-            </dependency>
-
-            <dependency>
                 <groupId>com.typesafe.akka</groupId>
                 <artifactId>akka-testkit_${scala.version}</artifactId>
                 <version>${akka.version}</version>
@@ -984,7 +976,7 @@
 
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>
-                <artifactId>jjwt-orgjson</artifactId>
+                <artifactId>jjwt-jackson</artifactId>
                 <version>${jjwt.version}</version>
                 <scope>test</scope>
             </dependency>
