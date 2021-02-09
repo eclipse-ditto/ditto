@@ -21,7 +21,9 @@ import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceCons
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_REVISION;
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.FIELD_SORTING;
 
+import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
@@ -103,7 +105,10 @@ public final class EnforcedThingMapper {
         final ThingId thingId = ThingId.of(extractedThing);
         final long thingRevision = thing.getValueOrThrow(Thing.JsonFields.REVISION);
         final PolicyId nullablePolicyId = thing.getValue(Thing.JsonFields.POLICY_ID).map(PolicyId::of).orElse(null);
-        final Metadata metadata = Metadata.of(thingId, thingRevision, nullablePolicyId, policyRevision);
+        final Metadata metadata = Metadata.of(thingId, thingRevision, nullablePolicyId, policyRevision,
+                Optional.ofNullable(oldMetadata).flatMap(Metadata::getModified).orElse(null),
+                Optional.ofNullable(oldMetadata).map(Metadata::getTimers).orElse(Collections.emptyList()),
+                Optional.ofNullable(oldMetadata).map(Metadata::getSenders).orElse(Collections.emptyList()));
 
         // hierarchical values for sorting
         final BsonValue thingCopyForSorting = JsonToBson.convert(pruneArrays(thing, maxArraySize));
@@ -121,7 +126,7 @@ public final class EnforcedThingMapper {
                         .append(FIELD_SORTING, thingCopyForSorting)
                         .append(FIELD_INTERNAL, flattenedValues);
 
-        final Metadata metadataToRetain = oldMetadata == null ? metadata : oldMetadata.prependSenders(metadata);
+        final Metadata metadataToRetain = oldMetadata == null ? metadata : oldMetadata.prependTimersAndSenders(metadata);
         return ThingWriteModel.of(metadataToRetain, thingDocument);
     }
 

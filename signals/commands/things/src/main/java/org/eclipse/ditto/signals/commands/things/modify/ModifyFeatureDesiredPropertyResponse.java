@@ -167,13 +167,13 @@ public final class ModifyFeatureDesiredPropertyResponse
 
         return new CommandResponseJsonDeserializer<ModifyFeatureDesiredPropertyResponse>(TYPE, jsonObject)
                 .deserialize(httpStatus -> new ModifyFeatureDesiredPropertyResponse(
-                        ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
-                        jsonObject.getValueOrThrow(JSON_FEATURE_ID),
-                        JsonFactory.newPointer(jsonObject.getValueOrThrow(JSON_DESIRED_PROPERTY)),
-                        jsonObject.getValue(JSON_DESIRED_VALUE).orElse(null),
-                        httpStatus,
-                        dittoHeaders
-                    )
+                                ThingId.of(jsonObject.getValueOrThrow(ThingCommandResponse.JsonFields.JSON_THING_ID)),
+                                jsonObject.getValueOrThrow(JSON_FEATURE_ID),
+                                JsonFactory.newPointer(jsonObject.getValueOrThrow(JSON_DESIRED_PROPERTY)),
+                                jsonObject.getValue(JSON_DESIRED_VALUE).orElse(null),
+                                httpStatus,
+                                dittoHeaders
+                        )
                 );
     }
 

@@ -60,22 +60,22 @@ public final class BackgroundSyncStreamTest {
         final Duration toleranceWindow = Duration.ofHours(1L);
 
         final Source<Metadata, NotUsed> persisted = Source.from(List.of(
-                Metadata.of(ThingId.of("x:0-only-persisted"), 1L, null, 0L),
-                Metadata.of(ThingId.of("x:2-within-tolerance"), 3L, null, 0L),
-                Metadata.of(ThingId.of("x:3-revision-mismatch"), 3L, PolicyId.of("x:3"), 0L),
-                Metadata.of(ThingId.of("x:4-policy-id-mismatch"), 3L, PolicyId.of("x:4"), 0L),
-                Metadata.of(ThingId.of("x:5-policy-revision-mismatch"), 3L, PolicyId.of("x:5"), 0L),
-                Metadata.of(ThingId.of("x:6-all-up-to-date"), 3L, PolicyId.of("x:6"), 0L),
-                Metadata.of(ThingId.of("x:7-policy-deleted"), 7L, PolicyId.of("x:7"), 0L)
+                Metadata.of(ThingId.of("x:0-only-persisted"), 1L, null, 0L, null),
+                Metadata.of(ThingId.of("x:2-within-tolerance"), 3L, null, 0L, null),
+                Metadata.of(ThingId.of("x:3-revision-mismatch"), 3L, PolicyId.of("x:3"), 0L, null),
+                Metadata.of(ThingId.of("x:4-policy-id-mismatch"), 3L, PolicyId.of("x:4"), 0L, null),
+                Metadata.of(ThingId.of("x:5-policy-revision-mismatch"), 3L, PolicyId.of("x:5"), 0L, null),
+                Metadata.of(ThingId.of("x:6-all-up-to-date"), 3L, PolicyId.of("x:6"), 0L, null),
+                Metadata.of(ThingId.of("x:7-policy-deleted"), 7L, PolicyId.of("x:7"), 0L, null)
         ));
 
         final Source<Metadata, NotUsed> indexed = Source.from(List.of(
-                Metadata.of(ThingId.of("x:1-only-indexed"), 1L, null, 0L),
-                Metadata.of(ThingId.of("x:2-within-tolerance"), 1L, null, 0L, Instant.now()),
-                Metadata.of(ThingId.of("x:3-revision-mismatch"), 2L, PolicyId.of("x:3"), 1L),
-                Metadata.of(ThingId.of("x:4-policy-id-mismatch"), 3L, PolicyId.of("x:mismatched"), 0L),
-                Metadata.of(ThingId.of("x:5-policy-revision-mismatch"), 3L, PolicyId.of("x:5"), 3L),
-                Metadata.of(ThingId.of("x:6-all-up-to-date"), 5L, PolicyId.of("x:6"), 6L)
+                Metadata.of(ThingId.of("x:1-only-indexed"), 1L, null, 0L, null),
+                Metadata.of(ThingId.of("x:2-within-tolerance"), 1L, null, 0L, Instant.now(), null),
+                Metadata.of(ThingId.of("x:3-revision-mismatch"), 2L, PolicyId.of("x:3"), 1L, null),
+                Metadata.of(ThingId.of("x:4-policy-id-mismatch"), 3L, PolicyId.of("x:mismatched"), 0L, null),
+                Metadata.of(ThingId.of("x:5-policy-revision-mismatch"), 3L, PolicyId.of("x:5"), 3L, null),
+                Metadata.of(ThingId.of("x:6-all-up-to-date"), 5L, PolicyId.of("x:6"), 6L, null)
         ));
 
         new TestKit(actorSystem) {{

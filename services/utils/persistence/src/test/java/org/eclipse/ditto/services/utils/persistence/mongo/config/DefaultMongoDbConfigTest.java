@@ -31,7 +31,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig}.
+ * Unit test for {@link DefaultMongoDbConfig}.
  */
 public final class DefaultMongoDbConfigTest {
 
@@ -71,7 +71,7 @@ public final class DefaultMongoDbConfigTest {
         final DefaultMongoDbConfig underTest = DefaultMongoDbConfig.of(rawMongoDbConfig);
 
         softly.assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName())
-                .contains("maxQueryTime", "mongoDbUri", "optionsConfig", "connectionPoolConfig",
+                .contains("mongoDbUri", "maxQueryTime", "optionsConfig", "connectionPoolConfig",
                         "circuitBreakerConfig", "monitoringConfig");
     }
 
@@ -81,7 +81,7 @@ public final class DefaultMongoDbConfigTest {
 
         softly.assertThat(underTest.getMaxQueryTime()).isEqualTo(Duration.ofSeconds(10));
         softly.assertThat(underTest.getMongoDbUri())
-                .isEqualTo("mongodb://foo:bar@mongodb:27017/test?w=1&readPreference=secondaryPreferred&ssl=false");
+                .isEqualTo("mongodb://foo:bar@mongodb:27017/test");
         softly.assertThat(underTest.getOptionsConfig()).satisfies(optionsConfig -> {
             softly.assertThat(optionsConfig.isSslEnabled()).isFalse();
         });
@@ -106,7 +106,7 @@ public final class DefaultMongoDbConfigTest {
     @Test
     public void defaultMongodbConfigContainsExactlyFallBackValuesIfEmptyResourceConfigFile() {
         final String absoluteMongoDbUriPath =
-                DefaultMongoDbConfig.CONFIG_PATH + "." + MongoDbUriSupplier.URI_CONFIG_PATH;
+                DefaultMongoDbConfig.CONFIG_PATH + "." + MongoDbConfig.MongoDbConfigValue.URI.getConfigPath();
         final String sourceMongoDbUri = "mongodb://foo:bar@mongodb:27017/test";
         final Config originalMongoDbConfig =
                 ConfigFactory.parseMap(Collections.singletonMap(absoluteMongoDbUriPath, sourceMongoDbUri));

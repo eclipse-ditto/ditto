@@ -242,7 +242,7 @@ public final class StreamingSessionActorHeaderInteractionTest {
         public Receive createReceive() {
             return ReceiveBuilder.create().matchAny(msg -> testProbe.ref().forward(msg, getContext())).build();
         }
-      
+
     }
-  
+
 }

@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.gateway.starter;
 
+import org.eclipse.ditto.services.models.things.DittoThingSnapshotTaken;
 import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.signals.events.policies.ResourceDeleted;
@@ -25,7 +26,8 @@ public final class GatewayServiceGlobalEventRegistryTest extends GlobalEventRegi
                 ConnectionCreated.class,
                 ResourceDeleted.class,
                 FeatureDeleted.class,
-                SubscriptionCreated.class
+                SubscriptionCreated.class,
+                DittoThingSnapshotTaken.class
         );
     }
 

@@ -29,6 +29,7 @@ import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 
@@ -306,6 +307,18 @@ public final class ProtocolFactory {
     public static DittoHeaders newHeadersWithDittoContentType(final Map<String, String> headers) {
         return DittoHeaders.newBuilder(headers)
                 .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
+                .build();
+    }
+
+    /**
+     * Returns new {@code Headers} for the specified {@code headers} map with Json merge patch content-type.
+     *
+     * @param headers the headers map.
+     * @return the headers.
+     */
+    public static DittoHeaders newHeadersWithJsonMergePatchContentType(final Map<String, String> headers) {
+        return DittoHeaders.newBuilder(headers)
+                .contentType(ContentType.APPLICATION_MERGE_PATCH_JSON)
                 .build();
     }
 

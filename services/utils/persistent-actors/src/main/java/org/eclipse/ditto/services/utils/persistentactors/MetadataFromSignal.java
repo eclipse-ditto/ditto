@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
@@ -118,17 +119,21 @@ public final class MetadataFromSignal implements Supplier<Metadata> {
 
         final Consumer<MetadataHeader> addMetadataToBuilder = metadataHeader -> {
             final MetadataHeaderKey metadataHeaderKey = metadataHeader.getKey();
-            if (entity.isObject() && entity.asObject().getField(metadataHeaderKey.getPath()).isPresent()) {
-                // ignore metadata that has the same path as a property.
-                return;
+            final JsonValue metadataHeaderValue = metadataHeader.getValue();
+            if (entity.isObject()) {
+                final Optional<JsonField> field = entity.asObject().getField(metadataHeaderKey.getPath());
+                if (field.isPresent() && !metadataHeaderValue.isObject()) {
+                    // ignore metadata header value that isn't an object.
+                    return;
+                }
             }
             final JsonPointer attachedPropertyPath = metadataHeaderKey.getPath().cutLeaf();
             if (metadataHeaderKey.appliesToAllLeaves()) {
                 addMetadataToLeaf(JsonPointer.empty(), metadataHeader, metadataBuilder, entity);
             } else if (entity.isObject() && entity.asObject().getField(attachedPropertyPath).isPresent()) {
-                metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeader.getValue());
+                metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
             } else if (attachedPropertyPath.isEmpty()) {
-                metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeader.getValue());
+                metadataBuilder.set(metadataHeaderKey.getPath(), metadataHeaderValue);
             }
         };
 

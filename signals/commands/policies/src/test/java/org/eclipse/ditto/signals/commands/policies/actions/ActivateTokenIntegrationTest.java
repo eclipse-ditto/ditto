@@ -79,13 +79,15 @@ public final class ActivateTokenIntegrationTest {
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullPolicyId() {
         ActivateTokenIntegration.of(null, TestConstants.Policy.LABEL,
-                Collections.singleton(TestConstants.Policy.SUBJECT_ID), Instant.EPOCH, TestConstants.EMPTY_DITTO_HEADERS);
+                Collections.singleton(TestConstants.Policy.SUBJECT_ID), Instant.EPOCH,
+                TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullLabel() {
         ActivateTokenIntegration.of(TestConstants.Policy.POLICY_ID, null,
-                Collections.singleton(TestConstants.Policy.SUBJECT_ID), Instant.EPOCH, TestConstants.EMPTY_DITTO_HEADERS);
+                Collections.singleton(TestConstants.Policy.SUBJECT_ID), Instant.EPOCH,
+                TestConstants.EMPTY_DITTO_HEADERS);
     }
 
 
@@ -98,14 +100,16 @@ public final class ActivateTokenIntegrationTest {
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullExpiry() {
         ActivateTokenIntegration.of(TestConstants.Policy.POLICY_ID,
-                TestConstants.Policy.LABEL, Collections.singleton(TestConstants.Policy.SUBJECT_ID), null, TestConstants.EMPTY_DITTO_HEADERS);
+                TestConstants.Policy.LABEL, Collections.singleton(TestConstants.Policy.SUBJECT_ID), null,
+                TestConstants.EMPTY_DITTO_HEADERS);
     }
 
     @Test
     public void toJsonReturnsExpected() {
         final ActivateTokenIntegration underTest =
                 ActivateTokenIntegration.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
-                        Collections.singleton(TestConstants.Policy.SUBJECT_ID), Instant.EPOCH, TestConstants.EMPTY_DITTO_HEADERS);
+                        Collections.singleton(TestConstants.Policy.SUBJECT_ID), Instant.EPOCH,
+                        TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
         assertThat(actualJson).isEqualTo(KNOWN_JSON);
@@ -129,7 +133,8 @@ public final class ActivateTokenIntegrationTest {
 
         final ActivateTokenIntegration expectedCommand =
                 ActivateTokenIntegration.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
-                        Collections.singleton(TestConstants.Policy.SUBJECT_ID), Instant.EPOCH, TestConstants.EMPTY_DITTO_HEADERS);
+                        Collections.singleton(TestConstants.Policy.SUBJECT_ID), Instant.EPOCH,
+                        TestConstants.EMPTY_DITTO_HEADERS);
         assertThat(underTest).isEqualTo(expectedCommand);
     }
 

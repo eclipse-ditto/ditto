@@ -52,6 +52,29 @@ public interface Enforcer {
     }
 
     /**
+     * Checks whether for the {@code authorizationContext} either implicitly or explicitly
+     * has "GRANT" for the {@code permissions} on the specified set of {@code resourceKeys} considering "REVOKE"s
+     * down in the hierarchy, so if there is a REVOKE for the {@code authorizationContext} somewhere down the hierarchy
+     * of any of the {@code resourceKeys}, the result will be {@code false}.
+     *
+     * @param resourceKeys the ResourceKeys (containing Resource type and path) to check the permission(s) for.
+     * @param authorizationContext the authorization context to check.
+     * @param permission the permission to check.
+     * @param furtherPermissions further permissions to check.
+     * @return {@code true} if {@code authorizationContext} has the given permission(s), {@code false} otherwise.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    default boolean hasUnrestrictedPermissions(final Set<ResourceKey> resourceKeys,
+            final AuthorizationContext authorizationContext,
+            final String permission,
+            final String... furtherPermissions) {
+
+        return resourceKeys.stream()
+                .allMatch(resourceKey -> hasUnrestrictedPermissions(resourceKey, authorizationContext,
+                        Permissions.newInstance(permission, furtherPermissions)));
+    }
+
+    /**
      * Checks whether the {@code authorizationContext} either implicitly or explicitly
      * has "GRANT" for the {@code permissions} on the specified {@code resourceKey} considering "REVOKE"s down in the
      * hierarchy, so if there is a REVOKE for the {@code authorizationContext} somewhere down the hierarchy of the

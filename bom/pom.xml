@@ -45,7 +45,7 @@
         <kafka-clients.version>2.5.0</kafka-clients.version>
 
         <!-- Keep these version consistent with akka-persistence-mongo.version's build.sbt -->
-        <mongo-java-driver.version>4.1.0</mongo-java-driver.version>
+        <mongo-java-driver.version>4.1.1</mongo-java-driver.version>
 
         <jjwt.version>0.10.7</jjwt.version>
         <asm.version>7.2</asm.version>
@@ -54,7 +54,7 @@
         <amqp-client.version>5.7.3</amqp-client.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
         <netty.version>4.1.59.Final</netty.version>
-        <cloundevents.version>2.0.0.RC1</cloundevents.version>
+        <cloundevents.version>2.0.0.RC2</cloundevents.version>
 
         <slf4j.version>1.7.28</slf4j.version>
         <logback.version>1.2.3</logback.version>
@@ -85,15 +85,16 @@
 
         <!-- ### Testing dependencies versions -->
         <junit.version>4.13.1</junit.version>
-        <assertj.version>3.12.0</assertj.version>
+        <junit-jupiter.version>5.7.0</junit-jupiter.version>
+        <assertj.version>3.19.0</assertj.version>
         <mutability-detector.version>0.10.4</mutability-detector.version>
         <equals-verifier.version>3.1.10</equals-verifier.version>
         <mockito.version>3.1.0</mockito.version>
-        <jsonassert.version>1.2.3</jsonassert.version>
-        <awaitility.version>3.1.0</awaitility.version>
+        <jsonassert.version>1.5.0</jsonassert.version>
+        <awaitility.version>4.0.3</awaitility.version>
         <akka-persistence-inmemory.version>2.5.15.2</akka-persistence-inmemory.version>
 
-        <jmh.version>1.21</jmh.version>
+        <jmh.version>1.27</jmh.version>
 
         <scalatest.version>3.1.2</scalatest.version>
         <docker-java.version>3.2.6</docker-java.version>
@@ -272,6 +273,16 @@
                 <version>${akka-management.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.mongodb</groupId>
+                <artifactId>mongodb-bson</artifactId>
+                <version>${mongo-java-driver.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mongodb</groupId>
+                <artifactId>mongodb-driver-core</artifactId>
+                <version>${mongo-java-driver.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.mongodb</groupId>
                 <artifactId>mongodb-driver-reactivestreams</artifactId>
@@ -896,6 +907,18 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-engine</artifactId>
+                <version>${junit-jupiter.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-params</artifactId>
+                <version>${junit-jupiter.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
                 <version>${assertj.version}</version>
@@ -953,7 +976,7 @@
 
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>
-                <artifactId>jjwt-orgjson</artifactId>
+                <artifactId>jjwt-jackson</artifactId>
                 <version>${jjwt.version}</version>
                 <scope>test</scope>
             </dependency>

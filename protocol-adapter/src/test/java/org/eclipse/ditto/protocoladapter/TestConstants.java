@@ -15,8 +15,11 @@ package org.eclipse.ditto.protocoladapter;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -59,6 +62,7 @@ import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 
 /**
@@ -75,6 +79,11 @@ public final class TestConstants {
 
     public static final String CORRELATION_ID = "dittoCorrelationId";
 
+    public static final long REVISION = 1337;
+
+    public static final Instant CREATED = Instant.now().minus(Duration.ofDays(100));
+    public static final Instant MODIFIED = Instant.now().minus(Duration.ofDays(50));
+
     public static final ThingId THING_ID = ThingId.of(NAMESPACE, NAME);
     public static final ThingId THING_ID2 = ThingId.of(NAMESPACE, NAME2);
 
@@ -88,14 +97,7 @@ public final class TestConstants {
 
     public static final AccessControlList ACL = AccessControlListModelFactory.newAcl(ACL_ENTRY);
 
-    public static final JsonPointer ATTRIBUTE_POINTER = JsonPointer.of("/foo");
-
     public static final JsonValue ATTRIBUTE_VALUE = JsonValue.of("bar");
-
-    public static final JsonObject ATTRIBUTES_JSON =
-            JsonObject.newBuilder().set(ATTRIBUTE_POINTER, ATTRIBUTE_VALUE).build();
-
-    public static final Attributes ATTRIBUTES = ThingsModelFactory.newAttributes(ATTRIBUTES_JSON);
 
     public static final ThingDefinition THING_DEFINITION = ThingsModelFactory.newDefinition("example:test:definition");
 
@@ -105,8 +107,37 @@ public final class TestConstants {
 
     public static final String SUBJECT = "message:subject";
 
+    public static final JsonPointer THING_POINTER = JsonPointer.of("/");
+    public static final JsonPointer POLICY_ID_POINTER = JsonPointer.of("/policyId");
+    public static final JsonPointer THING_DEFINITION_POINTER = JsonPointer.of("/definition");
+    public static final JsonPointer THING_ATTRIBUTES_POINTER = JsonPointer.of("/attributes");
+    public static final JsonPointer FEATURES_POINTER = JsonPointer.of("/features");
+
     public static final JsonPointer FEATURE_PROPERTY_POINTER = JsonPointer.of("/baz");
     public static final JsonPointer FEATURE_DESIRED_PROPERTY_POINTER = JsonPointer.of("/bar");
+
+    public static final JsonPointer ATTRIBUTE_POINTER = JsonPointer.of("/foo");
+    public static final JsonPointer THING_ATTRIBUTE_POINTER =
+            THING_ATTRIBUTES_POINTER.append(ATTRIBUTE_POINTER);
+    public static final JsonPointer FEATURE_POINTER = JsonPointer.of(FEATURES_POINTER + "/" + FEATURE_ID);
+    public static final JsonPointer FEATURE_PROPERTIES_POINTER = JsonPointer.of(FEATURES_POINTER + "/" + FEATURE_ID +
+            "/properties");
+    public static final JsonPointer FEATURE_DEFINITION_POINTER = JsonPointer.of(FEATURES_POINTER + "/" + FEATURE_ID +
+            "/definition");
+    public static final JsonPointer FEATURE_DESIRED_PROPERTIES_POINTER =
+            JsonPointer.of(FEATURES_POINTER + "/" + FEATURE_ID +
+                    "/desiredProperties");
+    public static final JsonPointer FEATURE_PROPERTY_POINTER_ABSOLUTE =
+            JsonPointer.of(FEATURES_POINTER + "/" + FEATURE_ID + "/properties" + FEATURE_PROPERTY_POINTER);
+    public static final JsonPointer FEATURE_DESIRED_PROPERTIES_POINTER_ABSOLUTE =
+            JsonPointer.of(
+                    FEATURES_POINTER + "/" + FEATURE_ID + "/desiredProperties" + FEATURE_DESIRED_PROPERTY_POINTER);
+    public static final TopicPath TOPIC_PATH_MERGE_THING =
+            TopicPath.newBuilder(TestConstants.THING_ID).things().twin().commands().merge().build();
+
+    public static final JsonObject ATTRIBUTES_JSON =
+            JsonObject.newBuilder().set(ATTRIBUTE_POINTER, ATTRIBUTE_VALUE).build();
+    public static final Attributes ATTRIBUTES = ThingsModelFactory.newAttributes(ATTRIBUTES_JSON);
 
     public static final JsonValue FEATURE_PROPERTY_VALUE = JsonValue.of(42);
     public static final JsonValue FEATURE_DESIRED_PROPERTY_VALUE = JsonValue.of(41);
@@ -135,7 +166,17 @@ public final class TestConstants {
 
     public static final Features FEATURES = Features.newBuilder().set(FEATURE).build();
 
-    public static final Thing THING = Thing.newBuilder().setId(THING_ID).build();
+    public static final Thing THING = Thing.newBuilder()
+            .setId(THING_ID)
+            .setAttributes(ATTRIBUTES)
+            .setDefinition(THING_DEFINITION)
+            .setFeatures(FEATURES)
+            .setLifecycle(ThingLifecycle.ACTIVE)
+            .setPolicyId(POLICY_ID)
+            .setRevision(REVISION)
+            .setModified(MODIFIED)
+            .setCreated(CREATED)
+            .build();
 
     public static final Thing THING2 = Thing.newBuilder().setId(THING_ID2).build();
 
@@ -160,7 +201,13 @@ public final class TestConstants {
 
     public static final DittoHeaders HEADERS_V_1 = ProtocolFactory.newHeadersWithDittoContentType(DITTO_HEADERS_V_1);
 
+    public static final DittoHeaders HEADERS_V_1_FOR_MERGE_COMMANDS =
+            ProtocolFactory.newHeadersWithJsonMergePatchContentType(DITTO_HEADERS_V_1);
+
     public static final DittoHeaders HEADERS_V_2 = ProtocolFactory.newHeadersWithDittoContentType(DITTO_HEADERS_V_2);
+
+    public static final DittoHeaders HEADERS_V_2_FOR_MERGE_COMMANDS =
+            ProtocolFactory.newHeadersWithJsonMergePatchContentType(DITTO_HEADERS_V_2);
 
     public static final DittoHeaders HEADERS_V_1_NO_CONTENT_TYPE = DittoHeaders.newBuilder(HEADERS_V_1).removeHeader(
             DittoHeaderDefinition.CONTENT_TYPE.getKey()).build();
@@ -168,7 +215,19 @@ public final class TestConstants {
     public static final DittoHeaders HEADERS_V_2_NO_CONTENT_TYPE = DittoHeaders.newBuilder(HEADERS_V_2).removeHeader(
             DittoHeaderDefinition.CONTENT_TYPE.getKey()).build();
 
-    public static final long REVISION = 1337;
+    public static final List<JsonPointer> THING_POINTERS = Arrays.asList(
+            JsonPointer.empty(),
+            TestConstants.POLICY_ID_POINTER,
+            TestConstants.THING_ATTRIBUTES_POINTER,
+            TestConstants.THING_DEFINITION_POINTER,
+            TestConstants.FEATURES_POINTER,
+            TestConstants.FEATURE_PROPERTIES_POINTER,
+            TestConstants.FEATURE_DESIRED_PROPERTIES_POINTER,
+            TestConstants.FEATURE_DEFINITION_POINTER,
+            TestConstants.FEATURE_PROPERTY_POINTER_ABSOLUTE,
+            TestConstants.FEATURE_DESIRED_PROPERTIES_POINTER_ABSOLUTE,
+            TestConstants.THING_ATTRIBUTE_POINTER
+    );
 
     public static Adaptable adaptable(final TopicPath topicPath, final JsonPointer path) {
         return adaptable(topicPath, path, null, null);
@@ -187,6 +246,7 @@ public final class TestConstants {
             @Nullable final JsonValue value,
             final HttpStatus status) {
 
+        final DittoHeaders dittoHeaders;
         final PayloadBuilder payloadBuilder = Payload.newBuilder(path);
 
         if (value != null) {
@@ -196,9 +256,15 @@ public final class TestConstants {
             payloadBuilder.withStatus(status);
         }
 
+        if (topicPath.getAction().filter(topicPath1 -> topicPath1.equals(TopicPath.Action.MERGE)).isPresent()) {
+           dittoHeaders  = TestConstants.HEADERS_V_2_FOR_MERGE_COMMANDS;
+        } else {
+            dittoHeaders  = TestConstants.HEADERS_V_2;
+        }
+
         return Adaptable.newBuilder(topicPath)
                 .withPayload(payloadBuilder.build())
-                .withHeaders(TestConstants.HEADERS_V_2)
+                .withHeaders(dittoHeaders)
                 .build();
     }
 
@@ -254,6 +320,7 @@ public final class TestConstants {
         public static final Subjects SUBJECTS = Subjects.newInstance(SUBJECT1, SUBJECT2);
 
         public static class TopicPaths {
+
             public static final TopicPath CREATE =
                     TopicPath.newBuilder(POLICY_ID).policies().commands().create().build();
             public static final TopicPath MODIFY =

@@ -22,7 +22,6 @@ import org.eclipse.ditto.services.base.actors.DittoRootActor;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectivityProxyActor;
-import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceOperationsActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
@@ -74,7 +73,8 @@ public final class ConnectivityRootActor extends DittoRootActor {
     private ConnectivityRootActor(final ConnectivityConfig connectivityConfig,
             final ActorRef pubSubMediator,
             final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer,
-            @Nullable final ConnectivityCommandInterceptor commandValidator) {
+            @Nullable final ConnectivityCommandInterceptor commandValidator,
+            final ClientActorPropsFactory clientActorPropsFactory) {
 
         final ClusterConfig clusterConfig = connectivityConfig.getClusterConfig();
         final ActorSystem actorSystem = getContext().system();
@@ -86,7 +86,7 @@ public final class ConnectivityRootActor extends DittoRootActor {
                 startChildActor(ConnectivityProxyActor.ACTOR_NAME, ConnectivityProxyActor.props(conciergeForwarder));
 
         final Props connectionSupervisorProps =
-                getConnectionSupervisorProps(proxyActor, commandValidator, pubSubMediator);
+                ConnectionSupervisorActor.props(proxyActor, clientActorPropsFactory, commandValidator, pubSubMediator);
 
         // Create persistence streaming actor (with no cache) and make it known to pubSubMediator.
         final ActorRef persistenceStreamingActor =
@@ -115,15 +115,17 @@ public final class ConnectivityRootActor extends DittoRootActor {
      * @param conciergeForwarderSignalTransformer a function which transforms signals before forwarding them to the
      * concierge service
      * @param commandValidator custom command validator for connectivity commands
+     * @param clientActorPropsFactory props factory of the client actors
      * @return the Akka configuration Props object.
      */
     public static Props props(final ConnectivityConfig connectivityConfig,
             final ActorRef pubSubMediator,
             final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer,
-            final ConnectivityCommandInterceptor commandValidator) {
+            final ConnectivityCommandInterceptor commandValidator,
+            final ClientActorPropsFactory clientActorPropsFactory) {
 
         return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator,
-                conciergeForwarderSignalTransformer, commandValidator);
+                conciergeForwarderSignalTransformer, commandValidator, clientActorPropsFactory);
     }
 
     /**
@@ -133,13 +135,15 @@ public final class ConnectivityRootActor extends DittoRootActor {
      * @param pubSubMediator the PubSub mediator Actor.
      * @param conciergeForwarderSignalTransformer a function which transforms signals before forwarding them to the
      * concierge service
+     * @param clientActorPropsFactory props factory of the client actors.
      * @return the Akka configuration Props object.
      */
     public static Props props(final ConnectivityConfig connectivityConfig, final ActorRef pubSubMediator,
-            final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer) {
+            final UnaryOperator<Signal<?>> conciergeForwarderSignalTransformer,
+            final ClientActorPropsFactory clientActorPropsFactory) {
 
         return Props.create(ConnectivityRootActor.class, connectivityConfig, pubSubMediator,
-                conciergeForwarderSignalTransformer, null);
+                conciergeForwarderSignalTransformer, null, clientActorPropsFactory);
     }
 
     @Override
@@ -191,15 +195,6 @@ public final class ConnectivityRootActor extends DittoRootActor {
         return startChildActor(ConciergeForwarderActor.ACTOR_NAME,
                 ConciergeForwarderActor.props(pubSubMediator, conciergeEnforcerRouter,
                         conciergeForwarderSignalTransformer));
-    }
-
-    private static Props getConnectionSupervisorProps(final ActorRef proxyActor,
-            @Nullable final ConnectivityCommandInterceptor commandValidator,
-            final ActorRef pubSubMediator) {
-
-        final ClientActorPropsFactory clientActorPropsFactory = DefaultClientActorPropsFactory.getInstance();
-
-        return ConnectionSupervisorActor.props(proxyActor, clientActorPropsFactory, commandValidator, pubSubMediator);
     }
 
     private static ActorRef getConnectionShardRegion(final ActorSystem actorSystem,

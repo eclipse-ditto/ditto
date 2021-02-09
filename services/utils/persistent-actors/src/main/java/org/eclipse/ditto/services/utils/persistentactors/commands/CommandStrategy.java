@@ -78,7 +78,8 @@ public interface CommandStrategy<C extends Command<?>, S, K, E extends Event<?>>
      * @param command the command of unknown type.
      * @return the result of the strategy if the strategy is defined for the command, or an empty optional otherwise.
      */
-    default Optional<Result<E>> typeCheckAndApply(final Context<K> context, @Nullable final S entity, final long nextRevision,
+    default Optional<Result<E>> typeCheckAndApply(final Context<K> context, @Nullable final S entity,
+            final long nextRevision,
             final Object command) {
 
         if (getMatchingClass().isInstance(command)) {

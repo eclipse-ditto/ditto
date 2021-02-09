@@ -62,7 +62,7 @@ public final class ThingsService extends DittoService<ThingsConfig> {
     protected Props getMainRootActorProps(final ThingsConfig thingsConfig, final ActorRef pubSubMediator) {
 
         return ThingsRootActor.props(thingsConfig, pubSubMediator,
-                DefaultThingPersistenceActorPropsFactory.getInstance());
+                DefaultThingPersistenceActorPropsFactory.of(pubSubMediator));
     }
 
 }

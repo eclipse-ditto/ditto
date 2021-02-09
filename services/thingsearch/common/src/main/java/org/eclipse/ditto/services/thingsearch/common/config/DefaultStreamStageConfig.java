@@ -48,9 +48,9 @@ public final class DefaultStreamStageConfig implements StreamStageConfig {
      * @throws org.eclipse.ditto.services.utils.config.DittoConfigError if {@code config} is invalid.
      */
     public static DefaultStreamStageConfig getInstance(final Config config, final String configPath) {
-        return new DefaultStreamStageConfig(
-                ConfigWithFallback.newInstance(config, configPath, StreamStageConfigValue.values()),
-                DefaultExponentialBackOffConfig.of(config));
+        final ConfigWithFallback configWithFallback =
+                ConfigWithFallback.newInstance(config, configPath, StreamStageConfigValue.values());
+        return new DefaultStreamStageConfig(configWithFallback, DefaultExponentialBackOffConfig.of(configWithFallback));
     }
 
     @Override

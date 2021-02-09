@@ -142,7 +142,8 @@ public final class SendThingMessageResponse<T> extends AbstractMessageCommandRes
      */
     public static SendThingMessageResponse<?> fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<SendThingMessageResponse<?>>(TYPE, jsonObject).deserialize(
-                httpStatus -> of(ThingId.of(jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID)),
+                httpStatus -> of(
+                        ThingId.of(jsonObject.getValueOrThrow(MessageCommandResponse.JsonFields.JSON_THING_ID)),
                         deserializeMessageFromJson(jsonObject),
                         httpStatus,
                         dittoHeaders));

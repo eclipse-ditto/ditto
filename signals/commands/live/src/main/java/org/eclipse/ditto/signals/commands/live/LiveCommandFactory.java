@@ -36,6 +36,7 @@ import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperties;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatureProperty;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteFeatures;
 import org.eclipse.ditto.signals.commands.things.modify.DeleteThing;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttribute;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyAttributes;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
@@ -88,6 +89,7 @@ public final class LiveCommandFactory {
         result.put(ModifyFeatureProperty.TYPE, ModifyLiveCommandFactory::modifyFeatureProperty);
         result.put(ModifyFeatures.TYPE, ModifyLiveCommandFactory::modifyFeatures);
         result.put(ModifyThing.TYPE, ModifyLiveCommandFactory::modifyThing);
+        result.put(MergeThing.TYPE, ModifyLiveCommandFactory::mergeThing);
 
         result.put(RetrieveAttribute.TYPE, QueryLiveCommandFactory::retrieveAttribute);
         result.put(RetrieveAttributes.TYPE, QueryLiveCommandFactory::retrieveAttributes);

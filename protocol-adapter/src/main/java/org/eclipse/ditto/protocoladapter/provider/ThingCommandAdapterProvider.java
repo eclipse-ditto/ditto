@@ -27,9 +27,11 @@ import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
 public interface ThingCommandAdapterProvider
         extends QueryCommandAdapterProvider<ThingQueryCommand<?>, ThingQueryCommandResponse<?>>,
         ModifyCommandAdapterProvider<ThingModifyCommand<?>, ThingModifyCommandResponse<?>>,
+        MergeCommandAdapterProvider,
         MessageCommandAdapterProvider,
         ErrorResponseAdapterProvider<ThingErrorResponse>,
         EventAdapterProvider<ThingEvent<?>>,
+        MergeEventAdapterProvider,
         SubscriptionEventAdapterProvider<SubscriptionEvent<?>>,
         ThingSearchCommandAdapterProvider<ThingSearchCommand<?>>,
         AdapterProvider {

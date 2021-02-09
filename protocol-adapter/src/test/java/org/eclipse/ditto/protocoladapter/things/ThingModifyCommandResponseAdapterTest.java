@@ -78,7 +78,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
     }
 
     @Test(expected = UnknownCommandResponseException.class)
-    public void unknownCommandResponseResponseToAdaptable() {
+    public void unknownCommandResponseToAdaptable() {
 
         underTest.toAdaptable(new ThingModifyCommandResponse() {
             @Override
@@ -129,7 +129,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
     }
 
     @Test
-    public void createThingResponseResponseFromAdaptable() {
+    public void createThingResponseFromAdaptable() {
         final CreateThingResponse expected =
                 CreateThingResponse.of(TestConstants.THING, TestConstants.DITTO_HEADERS_V_2);
 
@@ -139,7 +139,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
         final Adaptable adaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
                         .withStatus(HttpStatus.CREATED)
-                        .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
+                        .withValue(TestConstants.THING.toJson(FieldType.regularOrSpecial()))
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();
@@ -149,13 +149,15 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
     }
 
     @Test
-    public void createThingResponseResponseToAdaptable() {
+    public void createThingResponseToAdaptable() {
         final TopicPath topicPath = topicPath(TopicPath.Action.CREATE);
         final JsonPointer path = JsonPointer.empty();
 
         final Adaptable expected = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
                         .withStatus(HttpStatus.CREATED)
+                        // CreateThingResponse contains no special fields for thing
+                        // because Thing#getEntity() calls toJson(FieldType.notHidden())
                         .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
@@ -179,7 +181,7 @@ public final class ThingModifyCommandResponseAdapterTest extends LiveTwinTest im
         final Adaptable adaptableCreated = Adaptable.newBuilder(topicPath)
                 .withPayload(Payload.newBuilder(path)
                         .withStatus(HttpStatus.CREATED)
-                        .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
+                        .withValue(TestConstants.THING.toJson(FieldType.regularOrSpecial()))
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)
                 .build();

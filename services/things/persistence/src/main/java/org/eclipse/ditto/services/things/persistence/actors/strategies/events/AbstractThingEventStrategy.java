@@ -50,18 +50,17 @@ abstract class AbstractThingEventStrategy<T extends ThingEvent<T>> implements Ev
     @Override
     public Thing handle(final T event, @Nullable final Thing thing, final long revision) {
         if (null != thing) {
-            ThingBuilder.FromCopy thingBuilder = thing.toBuilder()
+            final ThingBuilder.FromCopy thingBuilder = thing.toBuilder()
                     .setRevision(revision)
                     .setModified(event.getTimestamp().orElse(null))
                     .setMetadata(mergeMetadata(thing, event));
-            thingBuilder = applyEvent(event, thingBuilder);
-            return thingBuilder.build();
+            return applyEvent(event, thingBuilder).build();
         }
         return null;
     }
 
     @Nullable
-    private Metadata mergeMetadata(@Nullable final Thing thing, final T event) {
+    protected Metadata mergeMetadata(@Nullable final Thing thing, final T event) {
 
         final JsonPointer eventMetadataResourcePath = event.getResourcePath();
         final Optional<Metadata> eventMetadataOpt = event.getMetadata();

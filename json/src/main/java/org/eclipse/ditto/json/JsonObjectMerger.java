@@ -18,10 +18,10 @@ import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Package-private function to merge 2 Json objects into 1.
+ * Package-private function to merge 2 {@link org.eclipse.ditto.json.JsonObject}s into 1.
  */
 @Immutable
-final class JsonObjectMerger {
+final class JsonObjectMerger extends AbstractJsonMerger {
 
     /**
      * Merge 2 JSON objects recursively into one. In case of conflict, the first object is more important.
@@ -60,19 +60,6 @@ final class JsonObjectMerger {
         return builder.build();
     }
 
-    /**
-     * Merge 2 JSON objects recursively into one and filter null values and empty objects.
-     * In case of conflict, the first object is more important.
-     *
-     * @param jsonObject1 the first json object to merge, overrides conflicting fields.
-     * @param jsonObject2 the second json object to merge.
-     * @return the merged json object.
-     */
-    public static JsonObject mergeJsonObjectsAndFilterNullValuesAndEmptyObjects(final JsonObject jsonObject1, final JsonObject jsonObject2) {
-
-        return filterNullValuesAndEmptyObjects(mergeJsonObjects(jsonObject1, jsonObject2));
-    }
-
     private static JsonValue mergeJsonValues(final JsonValue value1, final JsonValue value2) {
         final JsonValue result;
         if (areJsonObjects(value1, value2)) {
@@ -84,14 +71,6 @@ final class JsonObjectMerger {
         }
 
         return result;
-    }
-
-    private static boolean areJsonObjects(final JsonValue value1, final JsonValue value2) {
-        return value1.isObject() && value2.isObject();
-    }
-
-    private static boolean areJsonArrays(final JsonValue value1, final JsonValue value2) {
-        return value1.isArray() && value2.isArray();
     }
 
     private static JsonArray mergeJsonArrays(final JsonArray array1, final JsonArray array2) {
@@ -113,30 +92,6 @@ final class JsonObjectMerger {
             final String msgPattern = "JsonArray did not contain a value for index <{0}>!";
             return new NullPointerException(MessageFormat.format(msgPattern, index));
         });
-    }
-
-    private static JsonObject filterNullValuesAndEmptyObjects(final JsonObject jsonObject) {
-        final JsonObjectBuilder builder = JsonFactory.newObjectBuilder();
-
-        jsonObject.forEach(jsonField -> {
-            final JsonKey key = jsonField.getKey();
-            final JsonValue value = jsonField.getValue();
-            final JsonValue result;
-
-            if (value.isNull()) {
-                return;
-            } else if (value.isObject()) {
-                result = filterNullValuesAndEmptyObjects(value.asObject());
-                if (result.asObject().isEmpty()) {
-                    return;
-                }
-            } else {
-                result = value;
-            }
-            builder.set(key, result);
-        });
-
-        return builder.build();
     }
 
 }

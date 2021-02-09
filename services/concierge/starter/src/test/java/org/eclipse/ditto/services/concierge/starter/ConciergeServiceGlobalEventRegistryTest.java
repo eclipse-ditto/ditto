@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.concierge.starter;
 
+import org.eclipse.ditto.services.models.things.DittoThingSnapshotTaken;
 import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
 import org.eclipse.ditto.signals.events.policies.ResourceDeleted;
@@ -25,7 +26,8 @@ public final class ConciergeServiceGlobalEventRegistryTest extends GlobalEventRe
                 ConnectionCreated.class,
                 ResourceDeleted.class,
                 SubscriptionComplete.class,
-                FeatureDeleted.class
+                FeatureDeleted.class,
+                DittoThingSnapshotTaken.class
         );
     }
 

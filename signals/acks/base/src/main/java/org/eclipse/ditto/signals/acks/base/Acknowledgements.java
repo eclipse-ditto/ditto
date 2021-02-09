@@ -191,20 +191,20 @@ public interface Acknowledgements
     /**
      * Returns the HTTP status of the Acknowledgements:
      * <ul>
-     *     <li>If only one acknowledgement is included, its status is returned.</li>
-     *     <li>
-     *         If several acknowledgements are included:
-     *         <ul>
-     *             <li>
-     *                 If all contained acknowledgements are successful, the overall HTTP status is
-     *                 {@link HttpStatus#OK}.
-     *             </li>
-     *             <li>
-     *                 If at least one acknowledgement failed, the overall HTTP status is
-     *                 {@link HttpStatus#FAILED_DEPENDENCY}.
-     *             </li>
-     *         </ul>
-     *     </li>
+     * <li>If only one acknowledgement is included, its status is returned.</li>
+     * <li>
+     * If several acknowledgements are included:
+     * <ul>
+     * <li>
+     * If all contained acknowledgements are successful, the overall HTTP status is
+     * {@link HttpStatus#OK}.
+     * </li>
+     * <li>
+     * If at least one acknowledgement failed, the overall HTTP status is
+     * {@link HttpStatus#FAILED_DEPENDENCY}.
+     * </li>
+     * </ul>
+     * </li>
      * </ul>
      *
      * @return the HTTP status.

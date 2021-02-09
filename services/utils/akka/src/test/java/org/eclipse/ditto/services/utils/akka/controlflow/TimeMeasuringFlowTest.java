@@ -43,6 +43,9 @@ import akka.stream.testkit.TestSubscriber;
 import akka.stream.testkit.javadsl.TestSink;
 import akka.testkit.javadsl.TestKit;
 
+/**
+ * Unit tests for {@link TimeMeasuringFlow}.
+ */
 public final class TimeMeasuringFlowTest {
 
     private ActorSystem system;

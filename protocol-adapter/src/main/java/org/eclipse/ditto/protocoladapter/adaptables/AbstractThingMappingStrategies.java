@@ -72,6 +72,12 @@ abstract class AbstractThingMappingStrategies<T extends Jsonifiable.WithPredicat
         return TopicPath.ID_PLACEHOLDER.equals(namespace) ? null : namespace;
     }
 
+    protected static JsonObject payloadValueAsJsonObjectFrom(final Adaptable adaptable) {
+        return adaptable.getPayload().getValue()
+                .map(JsonValue::asObject)
+                .orElseThrow(() -> JsonParseException.newBuilder().build());
+    }
+
     protected static Thing thingFrom(final Adaptable adaptable) {
         return adaptable.getPayload().getValue()
                 .map(JsonValue::asObject)

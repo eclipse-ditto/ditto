@@ -63,7 +63,7 @@ public final class TimeMeasuringFlow {
      *   |                         +------+   +--------------+  +-------------------------------->
      *   |                                                                                    |
      *   +------------------------------------------------------------------------------------+
-     *</pre>
+     * </pre>
      *
      * @param flow the flow that should be measured.
      * @param timer the timer that should be used to measure the time.

@@ -34,7 +34,7 @@ import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
  */
 public class ThingSearchCommandAdapter extends AbstractThingAdapter<ThingSearchCommand<?>> {
 
-    private SignalMapper<ThingSearchCommand<?>> signalMapper = SignalMapperFactory.newThingSearchSignalMapper();
+    private final SignalMapper<ThingSearchCommand<?>> signalMapper = SignalMapperFactory.newThingSearchSignalMapper();
 
     private ThingSearchCommandAdapter(final HeaderTranslator headerTranslator) {
         super(MappingStrategiesFactory.getThingSearchCommandMappingStrategies(), headerTranslator);

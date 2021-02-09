@@ -21,6 +21,7 @@ import org.eclipse.ditto.signals.commands.base.assertions.CommandAssertions;
 import org.eclipse.ditto.signals.commands.base.assertions.CommandResponseAssert;
 import org.eclipse.ditto.signals.commands.live.base.LiveCommandAnswer;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommandResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.signals.events.base.Event;
@@ -86,6 +87,22 @@ public class LiveCommandAnswerAssert extends AbstractAssert<LiveCommandAnswerAss
                 .isInstanceOf(ThingModifyCommandResponse.class);
 
         return CommandAssertions.assertThat((ThingModifyCommandResponse) commandResponse);
+    }
+
+    public CommandResponseAssert hasThingMergeCommandResponse() {
+        isNotNull();
+        final Optional<CommandResponse> actualResponse = actual.getResponse();
+        Assertions.assertThat(actualResponse)
+                .overridingErrorMessage("Expected LiveCommandAnswer to have a response but it had none")
+                .isPresent();
+
+        final CommandResponse commandResponse = actualResponse.orElse(null);
+        Assertions.assertThat(commandResponse)
+                .overridingErrorMessage("Expected LiveCommandAnswer has a\n<MergeThingResponse> but it " +
+                        "had a\n<%s>", commandResponse.getClass().getSimpleName())
+                .isInstanceOf(MergeThingResponse.class);
+
+        return CommandAssertions.assertThat((MergeThingResponse) commandResponse);
     }
 
     public ThingErrorResponseAssert hasThingErrorResponse() {

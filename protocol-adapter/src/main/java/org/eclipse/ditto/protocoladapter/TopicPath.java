@@ -316,12 +316,16 @@ public interface TopicPath {
 
         MODIFY("modify"),
 
+        MERGE("merge"),
+
         DELETE("delete"),
 
 
         CREATED("created"),
 
         MODIFIED("modified"),
+
+        MERGED("merged"),
 
         DELETED("deleted");
 
