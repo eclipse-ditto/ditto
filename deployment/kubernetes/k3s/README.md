@@ -57,13 +57,6 @@ ditto:A6BgmB8IEtPTs
 
 ## Start Eclipse Ditto
 
-### Apply the pod reader role 
-This is necessary for the pods to access the Kubernetes API and then build the akka cluster.
-```bash
-cd <DITTO_PATH>
-kubectl apply -f deployment/kubernetes/deploymentFiles/pod-reader-role.yaml
-```
-
 ### Create configuration mappings
 ```bash
 kubectl create configmap nginx-conf --from-file=deployment/kubernetes/deploymentFiles/nginx/nginx.conf
@@ -95,7 +88,7 @@ Other MongoDB settings can be set via env variables.
 ### Start Eclipse Ditto
 
 ```bash
-kubectl apply -f deployment/kubernetes/deploymentFiles/ditto/ditto-cluster.yaml
+kubectl apply -f deployment/kubernetes/deploymentFiles/ditto/
 # Start ditto services with an alternative version e.g. 0-SNAPSHOT
 # cat kubernetes/ditto/ditto-cluster.yaml | sed s/latest/0-SNAPSHOT/ | kubectl apply -f -
 ```
