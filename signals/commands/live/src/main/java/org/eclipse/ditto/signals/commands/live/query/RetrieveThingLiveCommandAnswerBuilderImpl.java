@@ -13,13 +13,18 @@
 package org.eclipse.ditto.signals.commands.live.query;
 
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import javax.annotation.Nonnull;
 import javax.annotation.ParametersAreNonnullByDefault;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.Thing;
+import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.live.base.LiveCommandAnswer;
 import org.eclipse.ditto.signals.commands.live.query.RetrieveThingLiveCommandAnswerBuilder.ResponseFactory;
@@ -63,15 +68,29 @@ final class RetrieveThingLiveCommandAnswerBuilderImpl
 
         @Nonnull
         @Override
+        public RetrieveThingResponse retrieved(final Thing thing, final Predicate<JsonField> predicate) {
+            final DittoHeaders dittoHeaders = command.getDittoHeaders();
+            final ThingId thingId = command.getThingEntityId();
+            final Function<JsonFieldSelector, RetrieveThingResponse> fieldSelectorToResponse =
+                    fieldSelector -> RetrieveThingResponse.of(thingId, thing, fieldSelector, predicate, dittoHeaders);
+
+            return command.getSelectedFields()
+                    .map(fieldSelectorToResponse)
+                    .orElse(RetrieveThingResponse.of(thingId, thing, null, predicate, dittoHeaders));
+        }
+
+        @Nonnull
+        @Override
         public RetrieveThingResponse retrieved(final Thing thing) {
-            return RetrieveThingResponse.of(command.getThingEntityId(), thing, command.getDittoHeaders());
+            return retrieved(thing, jsonField -> true);
         }
 
         @Nonnull
         @Override
         public ThingErrorResponse thingNotAccessibleError() {
-            return errorResponse(command.getThingEntityId(), ThingNotAccessibleException.newBuilder(command.getThingEntityId())
-                    .dittoHeaders(command.getDittoHeaders())
+            return errorResponse(command.getThingEntityId(),
+                    ThingNotAccessibleException.newBuilder(command.getThingEntityId())
+                            .dittoHeaders(command.getDittoHeaders())
                     .build());
         }
     }

@@ -57,7 +57,7 @@ final class ThingQueryCommandResponseMappingStrategies
 
         final Map<String, JsonifiableMapper<ThingQueryCommandResponse<?>>> mappingStrategies = new HashMap<>();
         mappingStrategies.put(RetrieveThingResponse.TYPE,
-                adaptable -> RetrieveThingResponse.of(thingIdFrom(adaptable), thingFrom(adaptable),
+                adaptable -> RetrieveThingResponse.of(thingIdFrom(adaptable), payloadValueAsJsonObjectFrom(adaptable),
                         dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(RetrieveThingsResponse.TYPE,
