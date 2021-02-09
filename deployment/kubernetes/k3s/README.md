@@ -50,7 +50,7 @@ openssl passwd -quiet
 ```
 
 Append the printed hash in the `nginx.httpasswd` file placing the username who shall receive this
-password in front like this:
+password in front of Ditto like this:
 ```
 ditto:A6BgmB8IEtPTs
 ```
@@ -74,20 +74,23 @@ kubectl create configmap swagger-ui-api --from-file=$PWD/documentation/src/main/
 ```
 
 #### MongoDB
-There are two ways starting a mongodb instance.
-Either use a simple Mongodb container without persistence.
+There are two ways starting a MongoDB instance.
+Either use a simple MongoDB container without persistence.
 ```bash
 kubectl apply -f deployment/kubernetes/deploymentFiles/mongodb/mongodb.yaml
 ```
 
-Or use the stateful Mongodb set with a local persistent volume.
+Or use the stateful MongoDB set with a local persistent volume.
 ```bash
 kubectl apply -f deployment/kubernetes/deploymentFiles/mongodb-statefulset/storage-class.yaml
 envsubst < deployment/kubernetes/deploymentFiles/mongodb-statefulset/persistent-volume.yaml | kubectl apply -f -
 kubectl apply -f deployment/kubernetes/deploymentFiles/mongodb-statefulset/mongodb-statefulset.yaml
 ```
 
-Another option is to configure the MongoDb endpoint by setting the MongoDb URI via env variable "MONGO_DB_URI".
+##### Dedicated MongoDB
+In case you already have a MongoDB in the cloud or elsewhere it is possible to connect Ditto to this MongoDB. 
+This can be done by setting the MongoDB URI via env variable "MONGO_DB_URI".
+Other MongoDB settings can be set via env variables.
 
 ### Start Eclipse Ditto
 
