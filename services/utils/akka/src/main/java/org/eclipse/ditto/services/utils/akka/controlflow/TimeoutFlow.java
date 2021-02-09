@@ -14,26 +14,22 @@ package org.eclipse.ditto.services.utils.akka.controlflow;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
-import akka.Done;
 import akka.NotUsed;
-import akka.actor.ActorRef;
-import akka.actor.Cancellable;
-import akka.japi.Pair;
-import akka.stream.FanInShape2;
+import akka.japi.function.Function;
 import akka.stream.FlowShape;
-import akka.stream.Graph;
-import akka.stream.Materializer;
-import akka.stream.UniformFanOutShape;
-import akka.stream.javadsl.Broadcast;
+import akka.stream.SourceShape;
+import akka.stream.UniformFanInShape;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
-import akka.stream.javadsl.Sink;
-import akka.stream.javadsl.Zip;
-import scala.concurrent.duration.FiniteDuration;
+import akka.stream.javadsl.Merge;
+import akka.stream.javadsl.Source;
 
+/**
+ * Factory to create flows that emit a timeout element if it took longer than the given timeout to process an input
+ * element.
+ */
 public final class TimeoutFlow {
 
     private TimeoutFlow() {
@@ -41,76 +37,59 @@ public final class TimeoutFlow {
     }
 
     /**
-     * Builds a flow that issues a message to the given receiver if it took longer than the given timeout to process
+     * Builds a flow that emits a timeout element if it took longer than the given timeout to process
      * the input of the flow to the output.
      *
-     * <pre>
-     *   +------------------------------------------------------------------------------------+
-     *   |                                                                                    |
-     *   |                         +--------------+                                           |
-     *   |                     +-->+ startTimer   +-------------+   +-----+   +-----------+   |
-     * IN|  +---------------+  |   +--------------+             +-->+ zip +-->+ stopTimer |   |
-     * +--->+ beforeTimerBC +--+                                |   +-----+   +-----------+   |
-     *   |  +---------------+  |   +------+   +--------------+  |                             |
-     *   |                     +-->+ flow +-->+ afterTimerBC +--+                             |OUT
-     *   |                         +------+   +--------------+  +-------------------------------->
-     *   |                                                                                    |
-     *   +------------------------------------------------------------------------------------+
-     * </pre>
-     *
-     * @param flow the flow that should be observed.
-     * @param timeoutInSeconds the maximum processing time of a single stream element in this flow.
-     * @param message the message that should be issued if processing time of a single stream element in this flow
-     * @param receiver the actor that should receive the message.
-     * @param materializer the materializer that is used to schedule the message for the given timeout.
+     * @param flow the flow that produces an output element for each input element.
+     * @param timeout the maximum processing time of a single stream element in this flow.
+     * @param onTimeout the function to generate timeout elements from input elements.
      * @param <I> the type of the Flow input.
      * @param <O> the type of the Flow output.
-     * @param <M> the type of the materialized value.
-     * @return a Flow wrapping the given flow to measure the time.
+     * @return a Flow wrapping the given flow that can produce timeout elements.
      */
-    public static <I, O, M> Flow<I, O, M> of(final Flow<I, O, M> flow, final long timeoutInSeconds,
-            final Object message, final ActorRef receiver, final Materializer materializer) {
+    public static <I, O> Flow<I, O, NotUsed> of(
+            final Flow<I, O, ?> flow,
+            final Duration timeout,
+            final Function<I, O> onTimeout) {
         checkNotNull(flow, "flow");
-        checkNotNull(message, "message");
-        checkNotNull(receiver, "receiver");
-        checkNotNull(materializer, "materializer");
-        if (timeoutInSeconds <= 0) {
-            throw new IllegalArgumentException("Timeout must be greater than 0 seconds.");
-        }
+        checkNotNull(onTimeout, "onTimeout");
 
-        final Graph<FlowShape<I, O>, M> graph = GraphDSL.create(flow, (builder, flowShape) -> {
+        return Flow.<I>create()
+                .flatMapConcat(input -> single(input, flow, timeout, onTimeout));
+    }
 
-            final UniformFanOutShape<I, I> beforeTimerBroadcast = builder.add(Broadcast.create(2));
+    /**
+     * Builds a source that emits a timeout element if it took longer than the given timeout to process
+     * the given input element.
+     *
+     * @param input the input element.
+     * @param flow the flow with which the input element is processed.
+     * @param timeoutDuration the maximum processing time of a single stream element in this flow.
+     * @param onTimeout the function to generate timeout elements from input elements.
+     * @param <I> the type of the Flow input.
+     * @param <O> the type of the Flow output.
+     * @return a source that emits the output element or a timeout element if the given flow took too long.
+     */
+    @SuppressWarnings("unchecked") // due to GraphDSL
+    public static <I, O> Source<O, NotUsed> single(final I input, final Flow<I, O, ?> flow,
+            final Duration timeoutDuration, final Function<I, O> onTimeout) {
 
-            final UniformFanOutShape<O, O> afterTimerBroadcast = builder.add(Broadcast.create(2));
+        final Source<O, ?> timeoutSource = Source.single(input).initialDelay(timeoutDuration).map(onTimeout);
 
-            final FanInShape2<Cancellable, O, Pair<Cancellable, O>> zip = builder.add(Zip.create());
+        final Source<O, ?> outputSource = Source.single(input).via(flow);
 
-            final Sink<Pair<Cancellable, O>, CompletionStage<Done>> stopTimeoutSink =
-                    Sink.<Pair<Cancellable, O>>foreach(pair -> pair.first().cancel());
+        return Source.fromGraph(GraphDSL.create(builder -> {
+            final SourceShape<O> timeout = builder.add(timeoutSource);
+            final SourceShape<O> output = builder.add(outputSource);
+            final UniformFanInShape<O, O> merge = builder.add(Merge.create(2, true));
+            final FlowShape<O, O> take1 = builder.add(Flow.<O>create().take(1));
 
-            final Flow<I, Cancellable, NotUsed> startTimeoutFlow = Flow.fromFunction(request -> materializer
-                    .scheduleOnce(FiniteDuration.apply(timeoutInSeconds, TimeUnit.SECONDS),
-                            () -> receiver.tell(message, ActorRef.noSender())));
+            builder.from(timeout).toFanIn(merge);
+            builder.from(output).toFanIn(merge);
+            builder.from(merge).via(take1);
 
-            // its important that outlet 0 is connected to the timers, to guarantee that the timer is started first
-            builder.from(beforeTimerBroadcast.out(0))
-                    .via(builder.add(startTimeoutFlow))
-                    .toInlet(zip.in0());
-
-            builder.from(afterTimerBroadcast.out(0))
-                    .toInlet(zip.in1());
-
-            builder.from(zip.out())
-                    .to(builder.add(stopTimeoutSink));
-
-            builder.from(beforeTimerBroadcast.out(1))
-                    .via(flowShape)
-                    .viaFanOut(afterTimerBroadcast);
-
-            return FlowShape.of(beforeTimerBroadcast.in(), afterTimerBroadcast.out(1));
-        });
-        return Flow.fromGraph(graph);
+            return SourceShape.of(take1.out());
+        }));
     }
 
 }

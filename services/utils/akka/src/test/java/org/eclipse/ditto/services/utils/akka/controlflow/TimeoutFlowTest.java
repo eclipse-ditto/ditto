@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.utils.akka.controlflow;
 
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Before;
@@ -22,12 +21,12 @@ import org.junit.Test;
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.japi.Pair;
-import akka.stream.Materializer;
 import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
 import akka.stream.testkit.TestSubscriber;
 import akka.stream.testkit.javadsl.TestSink;
+import akka.stream.testkit.javadsl.TestSource;
 import akka.testkit.javadsl.TestKit;
 
 public final class TimeoutFlowTest {
@@ -54,22 +53,15 @@ public final class TimeoutFlowTest {
     }
 
     @Test
-    public void expectTimeoutMessage() {
-        final Duration timeout = Duration.ofSeconds(1);
-        final Duration sleepDuration = timeout.plusSeconds(1);
-        final Flow<String, String, NotUsed> flowThatNeedsSomeTime = Flow.fromFunction(x -> {
-            TimeUnit.MILLISECONDS.sleep(sleepDuration.toMillis());
-            return x;
-        });
-
+    public void expectTimeout() {
         new TestKit(system) {{
+            final Duration timeout = dilated(Duration.ofMillis(10));
+            final Duration sleepDuration = dilated(Duration.ofSeconds(3));
+            final Flow<String, String, NotUsed> flowThatNeedsSomeTime = Flow.<String>create()
+                    .flatMapConcat(element -> Source.single(element).initialDelay(sleepDuration));
 
             final Flow<String, String, NotUsed> withTimeoutFLow =
-                    TimeoutFlow.of(flowThatNeedsSomeTime,
-                            timeout.toSeconds(),
-                            "Hello",
-                            getRef(),
-                            Materializer.apply(system));
+                    TimeoutFlow.of(flowThatNeedsSomeTime, timeout, input -> "Timeout");
 
             Source.repeat("Test")
                     .via(withTimeoutFLow)
@@ -77,29 +69,21 @@ public final class TimeoutFlowTest {
                     .run(system);
 
             sinkProbe.request(1L);
-            sinkProbe.expectNext("Test");
-
-            expectMsg("Hello");
+            sinkProbe.expectNext("Timeout");
         }};
     }
 
     @Test
-    public void expectNoTimeoutMessage() {
-        final Duration timeout = Duration.ofSeconds(1);
-        final Duration sleepDuration = timeout.dividedBy(2);
-        final Flow<String, String, NotUsed> flowThatNeedsSomeTime = Flow.fromFunction(x -> {
-            TimeUnit.MILLISECONDS.sleep(sleepDuration.toMillis());
-            return x;
-        });
+    public void expectNoTimeout() {
 
         new TestKit(system) {{
+            final Duration timeout = dilated(Duration.ofSeconds(3));
+            final Duration sleepDuration = dilated(Duration.ofMillis(10));
+            final Flow<String, String, NotUsed> flowThatNeedsSomeTime = Flow.<String>create()
+                    .flatMapConcat(element -> Source.single(element).initialDelay(sleepDuration));
 
             final Flow<String, String, NotUsed> withTimeoutFLow =
-                    TimeoutFlow.of(flowThatNeedsSomeTime,
-                            timeout.toSeconds(),
-                            "Hello",
-                            getRef(),
-                            Materializer.apply(system));
+                    TimeoutFlow.of(flowThatNeedsSomeTime, timeout, input -> "Timeout");
 
             Source.repeat("Test")
                     .via(withTimeoutFLow)
@@ -108,8 +92,37 @@ public final class TimeoutFlowTest {
 
             sinkProbe.request(1L);
             sinkProbe.expectNext("Test");
+        }};
+    }
 
-            expectNoMessage();
+    @Test
+    public void cancelFlow() {
+
+        new TestKit(system) {{
+            final Duration timeout = dilated(Duration.ofMillis(10));
+            final Duration sleepDuration = dilated(Duration.ofMinutes(3));
+            final Flow<String, String, NotUsed> flowThatNeedsSomeTime = Flow.<String>create()
+                    .flatMapConcat(element -> Source.single(element).initialDelay(sleepDuration));
+
+            final Flow<String, String, NotUsed> withTimeoutFLow =
+                    TimeoutFlow.of(flowThatNeedsSomeTime, timeout, input -> "Timeout");
+
+            final var testSourcePair = TestSource.<String>probe(system).preMaterialize(system);
+            final var sourceProbe = testSourcePair.first();
+
+            testSourcePair.second().via(withTimeoutFLow).to(testSink).run(system);
+
+            sinkProbe.request(2L);
+            sourceProbe.ensureSubscription();
+            sourceProbe.sendNext("Test");
+            sinkProbe.expectNext("Timeout");
+
+            // WHEN: downstream cancelled before all demands are fulfilled
+            sinkProbe.cancel();
+
+            // THEN: cancellation should propagate upstream
+            sourceProbe.sendNext("Test");
+            sourceProbe.expectCancellation();
         }};
     }
 

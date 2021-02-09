@@ -12,9 +12,11 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeoutException;
 
 import javax.annotation.Nullable;
 import javax.net.ssl.SSLContext;
@@ -25,6 +27,7 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.services.connectivity.config.HttpPushConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.utils.akka.controlflow.TimeoutFlow;
 
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
@@ -41,8 +44,8 @@ import akka.http.javadsl.settings.ClientConnectionSettings;
 import akka.http.javadsl.settings.ConnectionPoolSettings;
 import akka.http.javadsl.settings.ParserSettings;
 import akka.japi.Pair;
-import akka.stream.OverflowStrategy;
 import akka.stream.javadsl.Flow;
+import scala.util.Failure;
 import scala.util.Try;
 
 /**
@@ -140,7 +143,7 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
 
     @Override
     public <T> Flow<Pair<HttpRequest, T>, Pair<Try<HttpResponse>, T>, ?> createFlow(final ActorSystem system,
-            final LoggingAdapter log) {
+            final LoggingAdapter log, final Duration requestTimeout) {
 
         final Http http = Http.get(system);
         final ConnectionPoolSettings poolSettings = getConnectionPoolSettings(system);
@@ -155,7 +158,10 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
             // no SSL, hence no need for SSLContextCreator
             flow = http.<T>cachedHostConnectionPool(ConnectHttp.toHost(baseUri), poolSettings, log);
         }
-        return flow.buffer(parallelism, OverflowStrategy.backpressure());
+
+        // make requests in parallel
+        return Flow.<Pair<HttpRequest, T>>create().flatMapMerge(parallelism, request ->
+                TimeoutFlow.single(request, flow, requestTimeout, DefaultHttpPushFactory::onRequestTimeout));
     }
 
     private ConnectionPoolSettings getConnectionPoolSettings(final ActorSystem system) {
@@ -164,6 +170,12 @@ final class DefaultHttpPushFactory implements HttpPushFactory {
         return clientTransport == null
                 ? settings
                 : settings.withTransport(clientTransport);
+    }
+
+    private static <T> Pair<Try<HttpResponse>, T> onRequestTimeout(final Pair<HttpRequest, T> requestPair) {
+        final Try<HttpResponse> failure =
+                new Failure<>(new TimeoutException("Request timed out: " + requestPair.first().getUri()));
+        return Pair.create(failure, requestPair.second());
     }
 
     /**
