@@ -29,7 +29,7 @@ import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Zip;
 
-final class TimeMeasuringFlow {
+public final class TimeMeasuringFlow {
 
     private TimeMeasuringFlow() {
         //No-Op because this is a factory.

@@ -53,7 +53,8 @@ import org.eclipse.ditto.services.connectivity.messaging.BasePublisherActor;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
-import org.eclipse.ditto.services.utils.akka.controlflow.DittoFlowEnhancement;
+import org.eclipse.ditto.services.utils.akka.controlflow.TimeMeasuringFlow;
+import org.eclipse.ditto.services.utils.akka.controlflow.TimeoutFlow;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
@@ -162,14 +163,13 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             connectionLogger.success("HTTP request took <{0}> ms.", duration.toMillis());
         });
 
-        return DittoFlowEnhancement
-                .enhanceFlow(factory.<HttpPushContext>createFlow(getContext().getSystem(), logger))
-                .measureTime(timer, logRequestTimes)
-                .onTimeoutOfSeconds(requestTimeout.toSeconds())
-                .sendMessage(buildRequestTimeoutFailure(requestTimeout))
-                .toRef(getSelf())
-                .usingMaterializer(materializer)
-                .getEnhancedFlow();
+        final var httpPushFlow = factory.<HttpPushContext>createFlow(getContext().getSystem(), logger);
+
+        final var timeMeasuredFlow = TimeMeasuringFlow.measureTimeOf(httpPushFlow, timer, logRequestTimes);
+
+        return TimeoutFlow.of(timeMeasuredFlow, requestTimeout.toSeconds(),
+                buildRequestTimeoutFailure(requestTimeout),
+                getSelf(), materializer);
     }
 
     private ConnectionFailure buildRequestTimeoutFailure(final Duration requestTimeout) {

@@ -34,7 +34,7 @@ import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Zip;
 import scala.concurrent.duration.FiniteDuration;
 
-final class TimeoutFlow {
+public final class TimeoutFlow {
 
     private TimeoutFlow() {
         //No-Op because this is a factory.

@@ -64,13 +64,15 @@ public final class TimeoutFlowTest {
 
         new TestKit(system) {{
 
+            final Flow<String, String, NotUsed> withTimeoutFLow =
+                    TimeoutFlow.of(flowThatNeedsSomeTime,
+                            timeout.toSeconds(),
+                            "Hello",
+                            getRef(),
+                            Materializer.apply(system));
+
             Source.repeat("Test")
-                    .via(DittoFlowEnhancement.enhanceFlow(flowThatNeedsSomeTime)
-                            .onTimeoutOfSeconds(timeout.toSeconds())
-                            .sendMessage("Hello")
-                            .toRef(getRef())
-                            .usingMaterializer(Materializer.apply(system))
-                            .getEnhancedFlow())
+                    .via(withTimeoutFLow)
                     .to(testSink)
                     .run(system);
 
@@ -92,13 +94,15 @@ public final class TimeoutFlowTest {
 
         new TestKit(system) {{
 
+            final Flow<String, String, NotUsed> withTimeoutFLow =
+                    TimeoutFlow.of(flowThatNeedsSomeTime,
+                            timeout.toSeconds(),
+                            "Hello",
+                            getRef(),
+                            Materializer.apply(system));
+
             Source.repeat("Test")
-                    .via(DittoFlowEnhancement.enhanceFlow(flowThatNeedsSomeTime)
-                            .onTimeoutOfSeconds(timeout.toSeconds())
-                            .sendMessage("Hello")
-                            .toRef(getRef())
-                            .usingMaterializer(Materializer.apply(system))
-                            .getEnhancedFlow())
+                    .via(withTimeoutFLow)
                     .to(testSink)
                     .run(system);
 

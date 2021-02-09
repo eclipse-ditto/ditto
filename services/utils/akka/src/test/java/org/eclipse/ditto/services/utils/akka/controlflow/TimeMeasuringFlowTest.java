@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.utils.akka.controlflow;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -76,13 +75,13 @@ public final class TimeMeasuringFlowTest {
         });
 
         final PreparedTimer timer = DittoMetrics.timer("test-time-measuring-flow");
-        final PreparedTimer timerSpy = mock(PreparedTimer.class);
-        when(timerSpy.start()).thenAnswer(AdditionalAnswers.delegatesTo(timer));
+        final PreparedTimer timerMock = mock(PreparedTimer.class);
+        when(timerMock.start()).thenAnswer(AdditionalAnswers.delegatesTo(timer));
         final List<Duration> durations = new ArrayList<>();
         final Sink<Duration, CompletionStage<Done>> rememberDurations = Sink.<Duration>foreach(durations::add);
         new TestKit(system) {{
             Source.repeat("Test")
-                    .via(TimeMeasuringFlow.measureTimeOf(flowThatNeedsSomeTime, timerSpy,rememberDurations))
+                    .via(TimeMeasuringFlow.measureTimeOf(flowThatNeedsSomeTime, timerMock, rememberDurations))
                     .via(flowThatNeedsSomeTime) // This should not influence the time measuring above
                     .to(testSink)
                     .run(system);
@@ -98,7 +97,7 @@ public final class TimeMeasuringFlowTest {
                     .orElseThrow();
             final Offset<Double> twoMsOffset = Offset.offset((double) Duration.ofMillis(2).toNanos());
             assertThat(averageDurationInNanos).isCloseTo(sleepDuration.toNanos(), twoMsOffset);
-            verify(timerSpy, times(10)).start();
+            verify(timerMock, times(10)).start();
         }};
     }
 
