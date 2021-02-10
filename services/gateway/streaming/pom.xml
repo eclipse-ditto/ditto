@@ -26,9 +26,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-gateway-security</artifactId>
-            <version>${project.version}</version>
         </dependency>
 
         <dependency>

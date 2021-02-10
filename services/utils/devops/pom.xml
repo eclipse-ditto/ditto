@@ -28,12 +28,10 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>ditto-services-utils-akka</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>ditto-services-utils-cluster</artifactId>
-            <version>${project.version}</version>
         </dependency>
 
         <dependency>

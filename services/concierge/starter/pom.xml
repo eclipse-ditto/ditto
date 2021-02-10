@@ -33,17 +33,14 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-concierge-common</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-concierge-enforcement</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-concierge-actors</artifactId>
-            <version>${project.version}</version>
         </dependency>
 
         <dependency>

@@ -35,14 +35,12 @@
             <artifactId>ditto-services-base</artifactId>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-policies-common</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-policies-persistence</artifactId>
-            <version>${project.version}</version>
         </dependency>
 
         <dependency>
