@@ -26,15 +26,15 @@
 
     <dependencies>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-events-base</artifactId>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-namespaces</artifactId>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-akka</artifactId>
         </dependency>
         <dependency>
@@ -42,11 +42,11 @@
             <artifactId>ditto-services-utils-config</artifactId>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-metrics</artifactId>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-health</artifactId>
         </dependency>
         <dependency>

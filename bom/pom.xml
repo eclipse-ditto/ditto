@@ -806,12 +806,12 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>${project.groupId}</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-things-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>${project.groupId}</groupId>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-services-things-persistence</artifactId>
                 <version>${project.version}</version>
             </dependency>

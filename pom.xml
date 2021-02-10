@@ -396,7 +396,7 @@
                     <configuration>
                         <oldVersion>
                             <dependency>
-                                <groupId>${project.groupId}</groupId>
+                                <groupId>org.eclipse.ditto</groupId>
                                 <artifactId>${project.artifactId}</artifactId>
                                 <version>${binary-compatibility-check.version}</version>
                                 <type>${project.packaging}</type>
