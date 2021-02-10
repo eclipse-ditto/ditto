@@ -49,7 +49,6 @@ import org.eclipse.ditto.protocoladapter.ProtocolAdapterTest;
 import org.eclipse.ditto.protocoladapter.TestConstants;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
-import org.eclipse.ditto.signals.commands.messages.MessageDeserializer;
 import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.eclipse.ditto.signals.commands.messages.SendFeatureMessage;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
@@ -168,17 +167,6 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
         }
     }
 
-    private MessageHeaders messageHeaders(final CharSequence subject, final CharSequence contentType) {
-        return MessageHeaders.newBuilder(direction, TestConstants.THING_ID, subject)
-                .correlationId(TestConstants.CORRELATION_ID)
-                .schemaVersion(version)
-                .contentType(contentType)
-                .channel(TopicPath.Channel.LIVE.getName())
-                .featureId(SendFeatureMessage.TYPE.equals(type) ? FEATURE_ID : null)
-                .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), TestConstants.THING_ID)
-                .build();
-    }
-
     @Test
     public void testMessageToAdaptable() {
         final String subject = subject();
@@ -199,7 +187,7 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
 
         final Adaptable expectedAdaptable = Adaptable.newBuilder(topicPath)
                 .withPayload(payloadBuilder.build())
-                .withHeaders(expectedAdaptableHeaders(contentType))
+                .withHeaders(expectedAdaptableHeaders(subject, contentType))
                 .build();
 
         // build the message that will be converted to an adaptable
@@ -246,20 +234,39 @@ public final class MessageCommandAdapterTest implements ProtocolAdapterTest {
     }
 
     private DittoHeaders expectedDittoHeaders(final CharSequence contentType) {
-        return expectedAdaptableHeaders(contentType).toBuilder()
-                .channel(TopicPath.Channel.LIVE.getName())
+        final DittoHeadersBuilder<?, ?> headersBuilder = DittoHeaders.newBuilder()
+                .correlationId(TestConstants.CORRELATION_ID)
+                .schemaVersion(version);
+        if (contentType != null) {
+            headersBuilder.putHeader(DittoHeaderDefinition.CONTENT_TYPE.getKey(), contentType);
+        }
+        return headersBuilder.channel(TopicPath.Channel.LIVE.getName())
                 .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), TestConstants.THING_ID)
                 .build();
     }
 
-    private DittoHeaders expectedAdaptableHeaders(final CharSequence contentType) {
-        final DittoHeadersBuilder headersBuilder = DittoHeaders.newBuilder();
+    private DittoHeaders expectedAdaptableHeaders(final CharSequence subject, final CharSequence contentType) {
+        final DittoHeadersBuilder<?, ?> headersBuilder = DittoHeaders.newBuilder();
+        headersBuilder.putHeaders(MessageHeaders.newBuilder(direction, TestConstants.THING_ID, subject)
+                .featureId(SendFeatureMessage.TYPE.equals(type) ? FEATURE_ID : null)
+                .build());
         headersBuilder.correlationId(TestConstants.CORRELATION_ID);
         headersBuilder.schemaVersion(version);
         if (contentType != null) {
             headersBuilder.putHeader(DittoHeaderDefinition.CONTENT_TYPE.getKey(), contentType);
         }
         return headersBuilder.build();
+    }
+
+    private MessageHeaders messageHeaders(final CharSequence subject, final CharSequence contentType) {
+        return MessageHeaders.newBuilder(direction, TestConstants.THING_ID, subject)
+                .correlationId(TestConstants.CORRELATION_ID)
+                .schemaVersion(version)
+                .contentType(contentType)
+                .channel(TopicPath.Channel.LIVE.getName())
+                .featureId(SendFeatureMessage.TYPE.equals(type) ? FEATURE_ID : null)
+                .putHeader(DittoHeaderDefinition.ENTITY_ID.getKey(), TestConstants.THING_ID)
+                .build();
     }
 
 
