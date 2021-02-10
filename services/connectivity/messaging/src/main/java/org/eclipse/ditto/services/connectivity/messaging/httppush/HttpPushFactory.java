@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
+import java.time.Duration;
+
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.services.connectivity.config.HttpPushConfig;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
@@ -46,12 +48,14 @@ public interface HttpPushFactory {
     /**
      * Create a flow to send HTTP(S) requests.
      *
+     * @param <T> type of additional object flowing through flow.
      * @param system the actor system with the default Akka HTTP configuration.
      * @param log logger for the flow.
-     * @param <T> type of additional object flowing through flow.
+     * @param requestTimeout timeout of each request.
      * @return flow from request-correlationId pairs to response-correlationId pairs.
      */
-    <T> Flow<Pair<HttpRequest, T>, Pair<Try<HttpResponse>, T>, ?> createFlow(ActorSystem system, LoggingAdapter log);
+    <T> Flow<Pair<HttpRequest, T>, Pair<Try<HttpResponse>, T>, ?> createFlow(ActorSystem system, LoggingAdapter log,
+            final Duration requestTimeout);
 
     /**
      * Create an HTTP-push-factory from a valid HTTP-push connection

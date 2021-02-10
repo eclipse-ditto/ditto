@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.connectivity.config;
 
+import java.time.Duration;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -19,6 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.services.base.config.http.DefaultHttpProxyConfig;
 import org.eclipse.ditto.services.base.config.http.HttpProxyConfig;
 import org.eclipse.ditto.services.utils.config.ConfigWithFallback;
+import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 
 import com.typesafe.config.Config;
@@ -32,10 +34,15 @@ final class DefaultHttpPushConfig implements HttpPushConfig {
     private static final String CONFIG_PATH = "http-push";
 
     private final int maxQueueSize;
+    private final Duration requestTimeout;
     private final HttpProxyConfig httpProxyConfig;
 
     private DefaultHttpPushConfig(final ScopedConfig config) {
         maxQueueSize = config.getInt(ConfigValue.MAX_QUEUE_SIZE.getConfigPath());
+        requestTimeout = config.getDuration(ConfigValue.REQUEST_TIMEOUT.getConfigPath());
+        if (requestTimeout.isNegative() || requestTimeout.isZero()) {
+            throw new DittoConfigError("Request timeout must be greater than 0");
+        }
         httpProxyConfig = DefaultHttpProxyConfig.ofProxy(config);
     }
 
@@ -46,6 +53,11 @@ final class DefaultHttpPushConfig implements HttpPushConfig {
     @Override
     public int getMaxQueueSize() {
         return maxQueueSize;
+    }
+
+    @Override
+    public Duration getRequestTimeout() {
+        return requestTimeout;
     }
 
     @Override
