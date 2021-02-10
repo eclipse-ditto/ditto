@@ -37,7 +37,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ditto-message-direction"}, Java type: String.
      * </p>
      */
-    DIRECTION("ditto-message-direction", String.class, false, false, DittoMessageDirectionValueValidator.getInstance()),
+    DIRECTION("ditto-message-direction", String.class, false, true, DittoMessageDirectionValueValidator.getInstance()),
 
     /**
      * Header definitions for the subject of a message.
@@ -45,7 +45,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ditto-message-subject"}, Java type: String.
      * </p>
      */
-    SUBJECT("ditto-message-subject", String.class, false, false, DittoMessageSubjectValueValidator.getInstance()),
+    SUBJECT("ditto-message-subject", String.class, false, true, DittoMessageSubjectValueValidator.getInstance()),
 
     /**
      * Header definition for the Thing ID of a message.
@@ -53,7 +53,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ditto-message-thing-id"}, Java type: String.
      * </p>
      */
-    THING_ID("ditto-message-thing-id", String.class, false, false, DittoMessageThingIdValueValidator.getInstance()),
+    THING_ID("ditto-message-thing-id", String.class, false, true, DittoMessageThingIdValueValidator.getInstance()),
 
     /**
      * Header definition for the Feature ID of a message, if sent to a Feature.
@@ -61,7 +61,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * Key: {@code "ditto-message-feature-id"}, Java type: String.
      * </p>
      */
-    FEATURE_ID("ditto-message-feature-id", String.class, false, false, HeaderValueValidators.getNoOpValidator()),
+    FEATURE_ID("ditto-message-feature-id", String.class, false, true, HeaderValueValidators.getNoOpValidator()),
 
     /**
      * Header definition for the timeout in seconds of a message.
@@ -88,7 +88,7 @@ public enum MessageHeaderDefinition implements HeaderDefinition {
      * Key: {@code "status"}, Java type: {@code int}.
      * </p>
      */
-    STATUS_CODE("status", int.class, true, false, HttpStatusCodeValueValidator.getInstance());
+    STATUS_CODE("status", int.class, true, true, HttpStatusCodeValueValidator.getInstance());
 
     /**
      * Map to speed up lookup of header definition by key.

@@ -16,6 +16,8 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
+import java.time.Duration;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
@@ -23,6 +25,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionType;
@@ -154,6 +158,11 @@ public final class HttpPushFactoryTest {
             }
 
             @Override
+            public Duration getRequestTimeout() {
+                return Duration.ofSeconds(10);
+            }
+
+            @Override
             public HttpProxyConfig getHttpProxyConfig() {
                 return getEnabledProxyConfig(binding);
             }
@@ -223,6 +232,68 @@ public final class HttpPushFactoryTest {
         }};
     }
 
+    @Test
+    public void sendRequestsInParallel() throws Exception {
+        // GIVEN: the connection has the specific config parallelism=3
+        connection = connection.toBuilder()
+                .uri("http://127.0.0.1:" + binding.localAddress().getPort())
+                .specificConfig(Map.of("parallelism", "3"))
+                .build();
+        final HttpPushFactory underTest = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
+                mock(ConnectionLogger.class));
+        final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
+                newSourceSinkQueues(underTest);
+        final SourceQueueWithComplete<HttpRequest> sourceQueue = pair.first();
+        final SinkQueueWithCancel<Try<HttpResponse>> sinkQueue = pair.second();
+        final HttpRequest request = underTest.newRequest(HttpPublishTarget.of("PUT:/path/appendage/"));
+        final HttpResponse response = HttpResponse.create().withStatus(StatusCodes.OK);
+
+        // WHEN: 3 requests are sent in parallel
+        sourceQueue.offer(request);
+        sourceQueue.offer(request);
+        sourceQueue.offer(request);
+
+        // THEN: all 3 requests are sent to the server before the first response comes back
+        assertThat(requestQueue.poll(10L, TimeUnit.SECONDS)).isNotNull();
+        assertThat(requestQueue.poll(10L, TimeUnit.SECONDS)).isNotNull();
+        assertThat(requestQueue.poll(10L, TimeUnit.SECONDS)).isNotNull();
+        responseQueue.offer(CompletableFuture.completedFuture(response));
+        responseQueue.offer(CompletableFuture.completedFuture(response));
+        responseQueue.offer(CompletableFuture.completedFuture(response));
+        sinkQueue.pull();
+        sinkQueue.pull();
+        sinkQueue.pull();
+    }
+
+    @Test
+    public void emitFailureOnTimeout() {
+        connection = connection.toBuilder().uri("http://127.0.0.1:" + binding.localAddress().getPort()).build();
+        final HttpPushFactory underTest = HttpPushFactory.of(connection, connectionConfig.getHttpPushConfig(),
+                mock(ConnectionLogger.class));
+
+        // GIVEN: the HTTP client flow is configured with very short timeout
+        final Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> pair =
+                newSourceSinkQueues(underTest.createFlow(actorSystem, actorSystem.log(), Duration.ofMillis(10)));
+        final SourceQueueWithComplete<HttpRequest> sourceQueue = pair.first();
+        final SinkQueueWithCancel<Try<HttpResponse>> sinkQueue = pair.second();
+        final HttpRequest request = underTest.newRequest(HttpPublishTarget.of("PUT:/path/appendage/"));
+
+        for (int i = 0; i < 3; ++i) {
+            // WHEN: A request is made
+            sourceQueue.offer(request);
+
+            // THEN: A timeout failure is emitted
+            final Try<HttpResponse> tryResponse = sinkQueue.pull().toCompletableFuture().join().orElseThrow();
+
+            assertThat(tryResponse.isFailure()).describedAs("expect timeout response").isTrue();
+            assertThat(tryResponse.failed().get()).isInstanceOf(TimeoutException.class);
+
+            // Offer a response to unblock the test server stream.
+            responseQueue.offer(CompletableFuture.completedFuture(HttpResponse.create()));
+        }
+        sinkQueue.cancel();
+    }
+
     private void newBinding() {
         requestQueue = new LinkedBlockingQueue<>();
         responseQueue = new LinkedBlockingQueue<>();
@@ -251,14 +322,21 @@ public final class HttpPushFactoryTest {
     }
 
     private Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> newSourceSinkQueues(
-            final HttpPushFactory underTest) {
+            final Flow<Pair<HttpRequest, Object>, Pair<Try<HttpResponse>, Object>, ?> flow) {
 
         return Source.<HttpRequest>queue(10, OverflowStrategy.dropNew())
                 .map(r -> Pair.create(r, null))
-                .viaMat(underTest.createFlow(actorSystem, actorSystem.log()), Keep.left())
+                .viaMat(flow, Keep.left())
                 .map(Pair::first)
                 .toMat(Sink.queue(), Keep.both())
                 .run(actorSystem);
+    }
+
+    private Pair<SourceQueueWithComplete<HttpRequest>, SinkQueueWithCancel<Try<HttpResponse>>> newSourceSinkQueues(
+            final HttpPushFactory underTest) {
+
+        final Duration requestTimeout = Duration.ofMinutes(2);
+        return newSourceSinkQueues(underTest.createFlow(actorSystem, actorSystem.log(), requestTimeout));
     }
 
     private static Try<HttpResponse> pullResponse(final SinkQueueWithCancel<Try<HttpResponse>> responseQueue) {

@@ -17,12 +17,13 @@ import java.util.function.Consumer;
 /**
  * Contains {@code stoppedTimerConsumer} to be invoked when a Timer stops.
  */
-public class OnStopHandler {
+final class OnStopHandler {
 
     private final Consumer<StoppedTimer> stoppedTimerConsumer;
 
     /**
      * Creates a new OnStopHandler instance.
+     *
      * @param stoppedTimerConsumer the Consumer to register.
      */
     public OnStopHandler(final Consumer<StoppedTimer> stoppedTimerConsumer) {
@@ -31,6 +32,7 @@ public class OnStopHandler {
 
     /**
      * Handles the passed {@code stoppedTimer} by passing it to the registered {@code stoppedTimerConsumer}.
+     *
      * @param stoppedTimer the StoppedTimer to pass along.
      */
     public void handleStoppedTimer(final StoppedTimer stoppedTimer) {

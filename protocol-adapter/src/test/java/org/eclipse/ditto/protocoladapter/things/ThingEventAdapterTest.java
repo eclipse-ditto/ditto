@@ -110,7 +110,7 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPathCreated())
                 .withPayload(Payload.newBuilder(path)
-                        .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
+                        .withValue(TestConstants.THING.toJson(FieldType.regularOrSpecial()))
                         .withRevision(TestConstants.REVISION)
                         .withTimestamp(now)
                         .build())
@@ -153,7 +153,7 @@ public final class ThingEventAdapterTest extends LiveTwinTest implements Protoco
 
         final Adaptable adaptable = Adaptable.newBuilder(topicPathModified())
                 .withPayload(Payload.newBuilder(path)
-                        .withValue(TestConstants.THING.toJson(FieldType.notHidden()))
+                        .withValue(TestConstants.THING.toJson(FieldType.regularOrSpecial()))
                         .withRevision(TestConstants.REVISION)
                         .build())
                 .withHeaders(TestConstants.HEADERS_V_2)

@@ -76,7 +76,7 @@ public final class RequestTimeoutHandlingDirective {
      */
     public Route handleRequestTimeout(final CharSequence correlationId, final Supplier<Route> inner) {
         return Directives.extractActorSystem(actorSystem -> extractRequestContext(requestContext -> {
-                    final StartedTimer timer = TraceUtils.newHttpRoundTripTimer(requestContext.getRequest()).build();
+                    final StartedTimer timer = TraceUtils.newHttpRoundTripTimer(requestContext.getRequest()).start();
 
             final ThreadSafeDittoLogger logger = LOGGER.withCorrelationId(correlationId);
             logger.debug("Started mutable timer <{}>.", timer);

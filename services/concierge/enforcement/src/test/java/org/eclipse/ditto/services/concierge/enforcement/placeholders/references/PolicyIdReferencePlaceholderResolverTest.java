@@ -82,7 +82,7 @@ public class PolicyIdReferencePlaceholderResolverTest {
                 Thing.newBuilder().setPolicyId("namespace:myPolicy").build(), DittoHeaders.empty()));
 
         Awaitility.await()
-                .atMost(org.awaitility.Duration.ONE_SECOND)
+                .atMost(Duration.ofSeconds(1))
                 .until(() -> policyIdCS.toCompletableFuture().isDone());
         assertThat(policyIdCS.toCompletableFuture())
                 .isCompletedWithValue("namespace:myPolicy");
@@ -106,7 +106,7 @@ public class PolicyIdReferencePlaceholderResolverTest {
                 DittoHeaders.empty()));
 
         Awaitility.await()
-                .atMost(org.awaitility.Duration.ONE_SECOND)
+                .atMost(Duration.ofSeconds(1))
                 .until(() -> policyIdCS.toCompletableFuture().isDone());
         assertThat(policyIdCS.toCompletableFuture())
                 .isCompletedWithValue("namespace:myPolicy");
@@ -131,7 +131,7 @@ public class PolicyIdReferencePlaceholderResolverTest {
                 DittoHeaders.empty()));
 
         Awaitility.await()
-                .atMost(org.awaitility.Duration.ONE_SECOND)
+                .atMost(Duration.ofSeconds(1))
                 .until(() -> policyIdCS.toCompletableFuture().isDone());
         assertThat(policyIdCS.toCompletableFuture())
                 .hasFailedWithThrowableThat()
@@ -155,7 +155,7 @@ public class PolicyIdReferencePlaceholderResolverTest {
                 RetrieveThingResponse.of(THING_ID, Thing.newBuilder().build(), DittoHeaders.empty()));
 
         Awaitility.await()
-                .atMost(org.awaitility.Duration.ONE_SECOND)
+                .atMost(Duration.ofSeconds(1))
                 .until(() -> policyIdCS.toCompletableFuture().isDone());
         assertThat(policyIdCS.toCompletableFuture())
                 .hasFailedWithThrowableThat()
@@ -179,7 +179,7 @@ public class PolicyIdReferencePlaceholderResolverTest {
         conciergeForwarderActorProbe.reply(ThingErrorResponse.of(dre));
 
         Awaitility.await()
-                .atMost(org.awaitility.Duration.ONE_SECOND)
+                .atMost(Duration.ofSeconds(1))
                 .until(() -> policyIdCS.toCompletableFuture().isDone());
         assertThat(policyIdCS.toCompletableFuture())
                 .hasFailedWithThrowableThat()
@@ -202,7 +202,7 @@ public class PolicyIdReferencePlaceholderResolverTest {
         conciergeForwarderActorProbe.reply("someThingUnexpected");
 
         Awaitility.await()
-                .atMost(org.awaitility.Duration.ONE_SECOND)
+                .atMost(Duration.ofSeconds(1))
                 .until(() -> policyIdCS.toCompletableFuture().isDone());
         assertThat(policyIdCS.toCompletableFuture())
                 .hasFailedWithThrowableThat()

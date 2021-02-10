@@ -25,8 +25,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Kamon based implementation of {@link StartedTimer}.
  */
-public class StartedKamonTimer implements StartedTimer {
-
+final class StartedKamonTimer implements StartedTimer {
 
     private static final String SEGMENT_TAG = "segment";
     private static final Logger LOGGER = LoggerFactory.getLogger(StartedKamonTimer.class);

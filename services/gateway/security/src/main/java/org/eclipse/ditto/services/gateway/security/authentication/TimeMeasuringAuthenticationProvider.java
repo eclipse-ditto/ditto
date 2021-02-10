@@ -59,7 +59,7 @@ public abstract class TimeMeasuringAuthenticationProvider<R extends Authenticati
     public final CompletableFuture<R> authenticate(final RequestContext requestContext,
             final DittoHeaders dittoHeaders) {
         final AuthorizationContextType authorizationContextType = getType(requestContext);
-        final StartedTimer timer = TraceUtils.newAuthFilterTimer(authorizationContextType).build();
+        final StartedTimer timer = TraceUtils.newAuthFilterTimer(authorizationContextType).start();
         CompletableFuture<R> resultFuture;
         try {
             resultFuture = tryToAuthenticate(requestContext, dittoHeaders);

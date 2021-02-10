@@ -24,6 +24,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
@@ -172,11 +173,47 @@ public final class RetrieveThingResponse extends AbstractCommandResponse<Retriev
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if any argument is {@code null}.
+     * @deprecated use
+     * {@link #of(org.eclipse.ditto.model.things.ThingId, org.eclipse.ditto.model.things.Thing, org.eclipse.ditto.json.JsonFieldSelector, java.util.function.Predicate, org.eclipse.ditto.model.base.headers.DittoHeaders)}
+     * to optionally specify a predicate or field selector
      */
+    @Deprecated
     public static RetrieveThingResponse of(final ThingId thingId, final Thing thing, final DittoHeaders dittoHeaders) {
         final JsonObject thingJson = checkNotNull(thing, "Thing")
                 .toJson(dittoHeaders.getSchemaVersion().orElse(thing.getLatestSchemaVersion()));
         return new RetrieveThingResponse(thingId, HttpStatus.OK, thingJson, thingJson.toString(), dittoHeaders);
+    }
+
+    /**
+     * Creates a response to a {@link RetrieveThing} command.
+     *
+     * @param thingId the Thing ID of the retrieved Thing.
+     * @param thing the retrieved Thing.
+     * @param fieldSelector the JsonFieldSelector to apply to the passed thing when transforming to JSON.
+     * @param predicate the predicate to apply to the things when transforming to JSON.
+     * @param dittoHeaders the headers of the preceding command.
+     * @return the response.
+     * @throws NullPointerException if any argument is {@code null}.
+     */
+    public static RetrieveThingResponse of(final ThingId thingId, final Thing thing,
+            @Nullable final JsonFieldSelector fieldSelector, @Nullable final Predicate<JsonField> predicate,
+            final DittoHeaders dittoHeaders) {
+        final JsonObject thingJson = toThingJson(checkNotNull(thing, "Thing"), fieldSelector, predicate, dittoHeaders);
+        return new RetrieveThingResponse(thingId, HttpStatus.OK, thingJson, thingJson.toString(), dittoHeaders);
+    }
+
+    private static JsonObject toThingJson(final Thing thing, @Nullable final JsonFieldSelector fieldSelector,
+            @Nullable final Predicate<JsonField> predicate, final DittoHeaders dittoHeaders) {
+        final JsonSchemaVersion schemaVersion = dittoHeaders.getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
+        if (fieldSelector != null) {
+            return predicate != null
+                    ? thing.toJson(schemaVersion, fieldSelector, predicate)
+                    : thing.toJson(schemaVersion, fieldSelector);
+        } else {
+            return predicate != null
+                    ? thing.toJson(schemaVersion, predicate)
+                    : thing.toJson(schemaVersion);
+        }
     }
 
     /**

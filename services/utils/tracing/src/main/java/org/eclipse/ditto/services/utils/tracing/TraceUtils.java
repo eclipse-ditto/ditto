@@ -18,7 +18,7 @@ import java.util.Map;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
-import org.eclipse.ditto.services.utils.metrics.instruments.timer.ExpiringTimerBuilder;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.base.Command;
 
@@ -41,12 +41,12 @@ public final class TraceUtils {
     }
 
     /**
-     * Prepares an {@link ExpiringTimerBuilder} with default {@link #HTTP_ROUNDTRIP_METRIC_NAME} and tags.
+     * Prepares an {@link PreparedTimer} with default {@link #HTTP_ROUNDTRIP_METRIC_NAME} and tags.
      *
      * @param request The request to extract tags and request method.
-     * @return The prepared {@link ExpiringTimerBuilder}
+     * @return The prepared {@link PreparedTimer}
      */
-    public static ExpiringTimerBuilder newHttpRoundTripTimer(final HttpRequest request) {
+    public static PreparedTimer newHttpRoundTripTimer(final HttpRequest request) {
         final String requestMethod = request.method().name();
         final String requestPath = request.getUri().toRelative().path();
 
@@ -58,12 +58,12 @@ public final class TraceUtils {
     }
 
     /**
-     * Prepares an {@link ExpiringTimerBuilder} with default {@link #AMQP_ROUNDTRIP_METRIC_NAME} and tags.
+     * Prepares an {@link PreparedTimer} with default {@link #AMQP_ROUNDTRIP_METRIC_NAME} and tags.
      *
      * @param command The command to extract tags.
-     * @return The prepared {@link ExpiringTimerBuilder}
+     * @return The prepared {@link PreparedTimer}
      */
-    public static ExpiringTimerBuilder newAmqpRoundTripTimer(final Command<?> command) {
+    public static PreparedTimer newAmqpRoundTripTimer(final Command<?> command) {
         return newExpiringTimer(AMQP_ROUNDTRIP_METRIC_NAME)
                 .tag(TracingTags.COMMAND_TYPE, command.getType())
                 .tag(TracingTags.COMMAND_TYPE_PREFIX, command.getTypePrefix())
@@ -71,12 +71,12 @@ public final class TraceUtils {
     }
 
     /**
-     * Prepares an {@link ExpiringTimerBuilder} with default {@link #AMQP_ROUNDTRIP_METRIC_NAME} and tags.
+     * Prepares an {@link PreparedTimer} with default {@link #AMQP_ROUNDTRIP_METRIC_NAME} and tags.
      *
      * @param command The command to extract tags.
-     * @return The prepared {@link ExpiringTimerBuilder}
+     * @return The prepared {@link PreparedTimer}
      */
-    public static ExpiringTimerBuilder newAmqpRoundTripTimer(final Signal<?> command) {
+    public static PreparedTimer newAmqpRoundTripTimer(final Signal<?> command) {
         if (command instanceof Command) {
             return newAmqpRoundTripTimer((Command) command);
         }
@@ -87,23 +87,23 @@ public final class TraceUtils {
     }
 
     /**
-     * Prepares an {@link ExpiringTimerBuilder} with default {@link #FILTER_AUTH_METRIC_NAME} and tags.
+     * Prepares an {@link PreparedTimer} with default {@link #FILTER_AUTH_METRIC_NAME} and tags.
      *
      * @param authenticationType The name of the authentication type (i.e. jwt, ..)
-     * @return The prepared {@link ExpiringTimerBuilder}
+     * @return The prepared {@link PreparedTimer}
      */
-    public static ExpiringTimerBuilder newAuthFilterTimer(final CharSequence authenticationType) {
+    public static PreparedTimer newAuthFilterTimer(final CharSequence authenticationType) {
         return newAuthFilterTimer(authenticationType, new HashMap<>());
     }
 
     /**
-     * Prepares an {@link ExpiringTimerBuilder} with default {@link #FILTER_AUTH_METRIC_NAME} and tags.
+     * Prepares an {@link PreparedTimer} with default {@link #FILTER_AUTH_METRIC_NAME} and tags.
      *
      * @param authenticationType The name of the authentication type (i.e. jwt,...)
      * @param request The HttpRequest used to extract required tags.
-     * @return The prepared {@link ExpiringTimerBuilder}
+     * @return The prepared {@link PreparedTimer}
      */
-    public static ExpiringTimerBuilder newAuthFilterTimer(final CharSequence authenticationType,
+    public static PreparedTimer newAuthFilterTimer(final CharSequence authenticationType,
             final HttpRequest request) {
         final String requestPath = request.getUri().toRelative().path();
 
@@ -112,7 +112,7 @@ public final class TraceUtils {
         return newAuthFilterTimer(authenticationType, traceInformation.getTags());
     }
 
-    private static ExpiringTimerBuilder newAuthFilterTimer(final CharSequence authenticationType,
+    private static PreparedTimer newAuthFilterTimer(final CharSequence authenticationType,
             final Map<String, String> requestTags) {
 
         Map<String, String> defaultTags = new HashMap<>();
@@ -123,14 +123,14 @@ public final class TraceUtils {
                 .tags(requestTags)
                 .tags(defaultTags)
                 .tag(TracingTags.AUTH_TYPE, authenticationType.toString())
-                .expirationHandling(expiredTimer ->
+                .onExpiration(expiredTimer ->
                         expiredTimer
                                 .tag(TracingTags.AUTH_SUCCESS, false)
                                 .tag(TracingTags.AUTH_ERROR, true));
     }
 
-    private static ExpiringTimerBuilder newExpiringTimer(final String tracingFilter) {
-        return DittoMetrics.expiringTimer(metricizeTraceUri(tracingFilter));
+    private static PreparedTimer newExpiringTimer(final String tracingFilter) {
+        return DittoMetrics.timer(metricizeTraceUri(tracingFilter));
     }
 
     private static TraceInformation determineTraceInformation(final String requestPath) {

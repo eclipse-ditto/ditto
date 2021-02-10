@@ -20,9 +20,8 @@ import org.eclipse.ditto.services.utils.metrics.instruments.gauge.Gauge;
 import org.eclipse.ditto.services.utils.metrics.instruments.gauge.KamonGauge;
 import org.eclipse.ditto.services.utils.metrics.instruments.histogram.Histogram;
 import org.eclipse.ditto.services.utils.metrics.instruments.histogram.KamonHistogram;
-import org.eclipse.ditto.services.utils.metrics.instruments.timer.DefaultTimerBuilder;
-import org.eclipse.ditto.services.utils.metrics.instruments.timer.ExpiringTimerBuilder;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.Timers;
 
 /**
  * Contains static method factories in order to build Ditto MetricInstruments.
@@ -38,17 +37,7 @@ public final class DittoMetrics {
      * @return The new timer.
      */
     public static PreparedTimer timer(final String name) {
-        return new DefaultTimerBuilder(name).build();
-    }
-
-    /**
-     * Creates an {@link ExpiringTimerBuilder} that allows to customize the timer before it will be started.
-     *
-     * @param name The name of the timer.
-     * @return The {@link ExpiringTimerBuilder}.
-     */
-    public static ExpiringTimerBuilder expiringTimer(final String name) {
-        return new ExpiringTimerBuilder(name);
+        return Timers.newTimer(name);
     }
 
     /**

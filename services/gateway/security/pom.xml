@@ -92,7 +92,7 @@
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-orgjson</artifactId>
+            <artifactId>jjwt-jackson</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

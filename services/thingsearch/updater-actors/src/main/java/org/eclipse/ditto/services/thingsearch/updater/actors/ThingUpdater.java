@@ -208,12 +208,12 @@ final class ThingUpdater extends AbstractActor {
         } else {
             l.debug("Applying thing event <{}>.", thingEvent);
             thingRevision = thingEvent.getRevision();
-            final StartedTimer timer = DittoMetrics.expiringTimer(ConsistencyLag.TIMER_NAME)
+            final StartedTimer timer = DittoMetrics.timer(ConsistencyLag.TIMER_NAME)
                     .tag(ConsistencyLag.TAG_SHOULD_ACK, Boolean.toString(shouldAcknowledge))
-                    .expirationHandling(startedTimer ->
+                    .onExpiration(startedTimer ->
                             l.warning("Timer measuring consistency lag timed out for event <{}>",
                             thingEvent))
-                    .build();
+                    .start();
             ConsistencyLag.startS0InUpdater(timer);
             enqueueMetadata(exportMetadataWithSender(shouldAcknowledge, getSender(), timer));
         }

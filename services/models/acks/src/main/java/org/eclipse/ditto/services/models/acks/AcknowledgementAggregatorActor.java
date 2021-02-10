@@ -22,6 +22,7 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
@@ -154,15 +155,45 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
     private void addCommandResponse(final CommandResponse<?> commandResponse, final WithThingId withThingId,
             final boolean isLiveResponse) {
         log.withCorrelationId(correlationId).debug("Received command response <{}>.", commandResponse);
-        final DittoHeaders dittoHeaders = commandResponse.getDittoHeaders();
-        ackregator.addReceivedAcknowledgment(ThingAcknowledgementFactory.newAcknowledgement(
-                isLiveResponse ? LIVE_RESPONSE : TWIN_PERSISTED,
+        final Acknowledgement acknowledgement;
+        if (isLiveResponse) {
+            acknowledgement = toLiveResponseAcknowledgement(commandResponse, withThingId);
+        } else {
+            acknowledgement = toTwinPersistedAcknowledgement(commandResponse, withThingId);
+        }
+        ackregator.addReceivedAcknowledgment(acknowledgement);
+        potentiallyCompleteAcknowledgements(commandResponse);
+    }
+
+    private static Acknowledgement toLiveResponseAcknowledgement(final CommandResponse<?> commandResponse,
+            final WithThingId withThingId) {
+
+        final DittoHeaders liveResponseAckHeaders;
+        if (commandResponse instanceof MessageCommandResponse) {
+            liveResponseAckHeaders = commandResponse.getDittoHeaders().toBuilder()
+                    .putHeaders(((MessageCommandResponse<?, ?>) commandResponse).getMessage().getHeaders())
+                    .build();
+        } else {
+            liveResponseAckHeaders = commandResponse.getDittoHeaders();
+        }
+
+        return ThingAcknowledgementFactory.newAcknowledgement(
+                LIVE_RESPONSE,
                 withThingId.getThingEntityId(),
                 commandResponse.getHttpStatus(),
-                dittoHeaders,
+                liveResponseAckHeaders,
+                getPayload(commandResponse).orElse(null));
+    }
+
+    private static Acknowledgement toTwinPersistedAcknowledgement(final CommandResponse<?> commandResponse,
+            final WithThingId withThingId) {
+        return ThingAcknowledgementFactory.newAcknowledgement(
+                TWIN_PERSISTED,
+                withThingId.getThingEntityId(),
+                commandResponse.getHttpStatus(),
+                commandResponse.getDittoHeaders(),
                 getPayload(commandResponse).orElse(null)
-        ));
-        potentiallyCompleteAcknowledgements(commandResponse);
+        );
     }
 
     private static Optional<JsonValue> getPayload(final CommandResponse<?> response) {
@@ -170,7 +201,8 @@ public final class AcknowledgementAggregatorActor extends AbstractActor {
         if (response instanceof WithOptionalEntity) {
             result = ((WithOptionalEntity) response).getEntity(response.getImplementedSchemaVersion());
         } else if (response instanceof MessageCommandResponse) {
-            result = response.toJson().getValue(MessageCommandResponse.JsonFields.JSON_MESSAGE).map(x -> x);
+            result = response.toJson().getValue(MessageCommandResponse.JsonFields.JSON_MESSAGE.getPointer()
+                    .append(MessageCommandResponse.JsonFields.JSON_MESSAGE_PAYLOAD.getPointer()));
         } else {
             result = Optional.empty();
         }

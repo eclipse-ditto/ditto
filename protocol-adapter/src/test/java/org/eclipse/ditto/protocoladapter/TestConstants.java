@@ -15,6 +15,8 @@ package org.eclipse.ditto.protocoladapter;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -60,6 +62,7 @@ import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 
 /**
@@ -75,6 +78,11 @@ public final class TestConstants {
     public static final String NAME2 = "myThing2";
 
     public static final String CORRELATION_ID = "dittoCorrelationId";
+
+    public static final long REVISION = 1337;
+
+    public static final Instant CREATED = Instant.now().minus(Duration.ofDays(100));
+    public static final Instant MODIFIED = Instant.now().minus(Duration.ofDays(50));
 
     public static final ThingId THING_ID = ThingId.of(NAMESPACE, NAME);
     public static final ThingId THING_ID2 = ThingId.of(NAMESPACE, NAME2);
@@ -158,7 +166,17 @@ public final class TestConstants {
 
     public static final Features FEATURES = Features.newBuilder().set(FEATURE).build();
 
-    public static final Thing THING = Thing.newBuilder().setId(THING_ID).build();
+    public static final Thing THING = Thing.newBuilder()
+            .setId(THING_ID)
+            .setAttributes(ATTRIBUTES)
+            .setDefinition(THING_DEFINITION)
+            .setFeatures(FEATURES)
+            .setLifecycle(ThingLifecycle.ACTIVE)
+            .setPolicyId(POLICY_ID)
+            .setRevision(REVISION)
+            .setModified(MODIFIED)
+            .setCreated(CREATED)
+            .build();
 
     public static final Thing THING2 = Thing.newBuilder().setId(THING_ID2).build();
 
@@ -196,8 +214,6 @@ public final class TestConstants {
 
     public static final DittoHeaders HEADERS_V_2_NO_CONTENT_TYPE = DittoHeaders.newBuilder(HEADERS_V_2).removeHeader(
             DittoHeaderDefinition.CONTENT_TYPE.getKey()).build();
-
-    public static final long REVISION = 1337;
 
     public static final List<JsonPointer> THING_POINTERS = Arrays.asList(
             JsonPointer.empty(),

@@ -106,7 +106,7 @@ public interface ClientConfig {
         /**
          * See documentation on {@link ClientConfig#getConnectingMaxTimeout()}.
          */
-        CONNECTING_MAX_TIMEOUT("connecting-max-timeout", Duration.ofSeconds(60L)),
+        CONNECTING_MAX_TIMEOUT("connecting-max-timeout", Duration.ofMinutes(60L)),
 
         /**
          * See documentation on {@link ClientConfig#getSubscriptionManagerTimeout()}.
@@ -131,7 +131,7 @@ public interface ClientConfig {
         /**
          * See documentation on {@link ClientConfig#getConnectingMaxTries()}.
          */
-        MAX_BACKOFF("max-backoff", Duration.ofHours(1L)),
+        MAX_BACKOFF("max-backoff", Duration.ofMinutes(60L)),
 
         /**
          * See documentation on {@link ClientConfig#getClientActorRefsNotificationDelay()}.

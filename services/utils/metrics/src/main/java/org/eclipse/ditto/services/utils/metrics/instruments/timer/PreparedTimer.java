@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.services.utils.metrics.instruments.timer;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import org.eclipse.ditto.services.utils.metrics.instruments.ResettableMetricInstrument;
 import org.eclipse.ditto.services.utils.metrics.instruments.TaggedMetricInstrument;
@@ -23,7 +25,7 @@ import org.eclipse.ditto.services.utils.metrics.instruments.TaggedMetricInstrume
 public interface PreparedTimer extends Timer, ResettableMetricInstrument, TaggedMetricInstrument<PreparedTimer> {
 
     /**
-     * Starts the Timer. This method is package private so only {@link DefaultTimerBuilder} can start
+     * Starts the Timer. This method is package private so only {@link Timers} can start
      * this timer.
      *
      * @return The started {@link StartedTimer timer}.
@@ -52,4 +54,22 @@ public interface PreparedTimer extends Timer, ResettableMetricInstrument, Tagged
      * @return The number of records for this timer.
      */
     Long getNumberOfRecords();
+
+    /**
+     * Specifies the maximum duration this timer should be running. It will expire after this time.
+     *
+     * @param maximumDuration The maximum duration.
+     * @return A new prepared timer with the new maximum duration.
+     */
+    PreparedTimer maximumDuration(Duration maximumDuration);
+
+    /**
+     * Sets the handling of a timer after expiration. This will be executed in addition to a default handling which
+     * stops the started timer.
+     *
+     * @param additionalExpirationHandling custom handling of timer expiration.
+     * @return A new prepared timer with the new expiration handling.
+     */
+    PreparedTimer onExpiration(final Consumer<StartedTimer> additionalExpirationHandling);
+
 }

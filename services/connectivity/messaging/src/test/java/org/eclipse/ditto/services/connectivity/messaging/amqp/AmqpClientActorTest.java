@@ -32,6 +32,7 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 import java.net.URI;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -932,8 +933,8 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
     private MessageProducer getProducerForAddress(final String address) {
         // it may take some time until the producers have been created
         return Awaitility.await()
-                .atMost(org.awaitility.Duration.TWO_SECONDS)
-                .pollInterval(org.awaitility.Duration.TWO_HUNDRED_MILLISECONDS)
+                .atMost(Duration.ofSeconds(2))
+                .pollInterval(Duration.ofMillis(200))
                 .until(() -> mockProducers.stream()
                         .filter(p -> address.equals(wrapThrowable(p::getDestination).toString()))
                         // we only want the latest producer (required to test session recovery)

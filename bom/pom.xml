@@ -53,7 +53,7 @@
         <newmotion-akka-rabbitmq.version>5.1.2</newmotion-akka-rabbitmq.version>
         <amqp-client.version>5.7.3</amqp-client.version>
         <reactive-streams.version>1.0.3</reactive-streams.version>
-        <netty.version>4.1.50.Final</netty.version>
+        <netty.version>4.1.59.Final</netty.version>
         <cloundevents.version>2.0.0.RC2</cloundevents.version>
 
         <slf4j.version>1.7.28</slf4j.version>
@@ -86,15 +86,15 @@
         <!-- ### Testing dependencies versions -->
         <junit.version>4.13.1</junit.version>
         <junit-jupiter.version>5.7.0</junit-jupiter.version>
-        <assertj.version>3.12.0</assertj.version>
+        <assertj.version>3.19.0</assertj.version>
         <mutability-detector.version>0.10.4</mutability-detector.version>
         <equals-verifier.version>3.1.10</equals-verifier.version>
         <mockito.version>3.1.0</mockito.version>
-        <jsonassert.version>1.2.3</jsonassert.version>
-        <awaitility.version>3.1.0</awaitility.version>
+        <jsonassert.version>1.5.0</jsonassert.version>
+        <awaitility.version>4.0.3</awaitility.version>
         <akka-persistence-inmemory.version>2.5.15.2</akka-persistence-inmemory.version>
 
-        <jmh.version>1.21</jmh.version>
+        <jmh.version>1.27</jmh.version>
 
         <scalatest.version>3.1.2</scalatest.version>
         <docker-java.version>3.2.6</docker-java.version>
@@ -976,7 +976,7 @@
 
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>
-                <artifactId>jjwt-orgjson</artifactId>
+                <artifactId>jjwt-jackson</artifactId>
                 <version>${jjwt.version}</version>
                 <scope>test</scope>
             </dependency>
