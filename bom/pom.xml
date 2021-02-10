@@ -679,6 +679,17 @@
 
             <dependency>
                 <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-signals-notifications-base</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
+                <artifactId>ditto-signals-notifications-policies</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.eclipse.ditto</groupId>
                 <artifactId>ditto-protocol-adapter</artifactId>
                 <version>${project.version}</version>
             </dependency>
