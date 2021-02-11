@@ -54,6 +54,7 @@ import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProvider
 import org.eclipse.ditto.services.connectivity.config.mapping.MapperLimitsConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
+import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectionIdPlaceholder;
 
 import akka.actor.ActorSystem;
 import akka.event.LoggingAdapter;
@@ -128,7 +129,7 @@ public final class ConnectionValidator {
             final ConnectionId connectionId,
             final Collection<Source> sources) {
         final ExpressionResolver connectionIdResolver = PlaceholderFactory.newExpressionResolver(
-                PlaceholderFactory.newConnectionIdPlaceholder(), connectionId);
+                ConnectionIdPlaceholder.newConnectionIdPlaceholder(), connectionId);
         return sources.stream()
                 .flatMap(source -> source.getDeclaredAcknowledgementLabels().stream())
                 .map(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
@@ -148,7 +149,7 @@ public final class ConnectionValidator {
             final Collection<Target> targets) {
 
         final ExpressionResolver connectionIdResolver = PlaceholderFactory.newExpressionResolver(
-                PlaceholderFactory.newConnectionIdPlaceholder(), connectionId);
+                ConnectionIdPlaceholder.newConnectionIdPlaceholder(), connectionId);
         return targets.stream()
                 .map(Target::getIssuedAcknowledgementLabel)
                 .flatMap(Optional::stream)

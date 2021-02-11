@@ -19,7 +19,6 @@ import java.util.Arrays;
 import java.util.Map;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -37,7 +36,6 @@ public class ImmutableExpressionResolverTest {
     private static final String THING_NAME = "foobar199";
     private static final String THING_NAMESPACE = "org.eclipse.ditto";
     private static final ThingId THING_ID = ThingId.of(THING_NAMESPACE, THING_NAME);
-    private static final ConnectionId CONNECTION_ID = ConnectionId.generateRandom();
     private static final Map<String, String> KNOWN_HEADERS =
             DittoHeaders.newBuilder().putHeader("one", "1").putHeader("two", "2").build();
     private static final String UNKNOWN_HEADER_EXPRESSION = "{{ header:missing }}";
@@ -67,11 +65,8 @@ public class ImmutableExpressionResolverTest {
                 new ImmutablePlaceholderResolver<>(PlaceholderFactory.newHeadersPlaceholder(), KNOWN_HEADERS);
         final ImmutablePlaceholderResolver<CharSequence> thingResolver = new ImmutablePlaceholderResolver<>(
                 PlaceholderFactory.newThingPlaceholder(), THING_ID);
-        final ImmutablePlaceholderResolver<ConnectionId> connectionIdResolver = new ImmutablePlaceholderResolver<>(
-                PlaceholderFactory.newConnectionIdPlaceholder(), CONNECTION_ID);
 
-        underTest =
-                new ImmutableExpressionResolver(Arrays.asList(headersResolver, thingResolver, connectionIdResolver));
+        underTest = new ImmutableExpressionResolver(Arrays.asList(headersResolver, thingResolver));
     }
 
     @Test
@@ -83,8 +78,6 @@ public class ImmutableExpressionResolverTest {
                 .contains(KNOWN_HEADERS.get("two"));
         assertThat(underTest.resolve("{{ thing:id }}"))
                 .contains(THING_ID.toString());
-        assertThat(underTest.resolve("{{ connection:id }}"))
-                .contains(CONNECTION_ID.toString());
         assertThat(underTest.resolve("{{ thing:name }}"))
                 .contains(THING_NAME);
     }

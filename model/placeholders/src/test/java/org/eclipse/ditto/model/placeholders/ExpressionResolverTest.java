@@ -28,7 +28,6 @@ public class ExpressionResolverTest {
 
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
     private static final ThingPlaceholder THING_PLACEHOLDER = PlaceholderFactory.newThingPlaceholder();
-//    private static final TopicPathPlaceholder TOPIC_PLACEHOLDER = PlaceholderFactory.newTopicPathPlaceholder();
 
     private static final String THING_NS = "the.thing";
     private static final String THING_NAME = "the.id:the-rest";
@@ -44,7 +43,6 @@ public class ExpressionResolverTest {
         expressionResolver = PlaceholderFactory.newExpressionResolver(
                 PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, headersMap),
                 PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, THING_ID)
-//                PlaceholderFactory.newPlaceholderResolver(TOPIC_PLACEHOLDER, null)
         );
     }
 

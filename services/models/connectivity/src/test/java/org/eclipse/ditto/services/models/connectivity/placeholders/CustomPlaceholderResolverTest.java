@@ -10,20 +10,21 @@
   *
   * SPDX-License-Identifier: EPL-2.0
   */
- package org.eclipse.ditto.services.models.connectivity.placeholder;
+ package org.eclipse.ditto.services.models.connectivity.placeholders;
 
  import static org.assertj.core.api.Assertions.assertThat;
 
+ import org.eclipse.ditto.model.connectivity.ConnectionId;
  import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
  import org.eclipse.ditto.model.placeholders.PlaceholderResolver;
  import org.eclipse.ditto.protocoladapter.ProtocolFactory;
  import org.eclipse.ditto.protocoladapter.TopicPath;
  import org.junit.Test;
 
- public final class TopicPathPlaceholderResolverTest {
+ public final class CustomPlaceholderResolverTest {
 
      @Test
-     public void testPlaceholderResolvementBasedOnTopic() {
+     public void testPlaceholderResolutionBasedOnTopic() {
          final String fullPath = "org.eclipse.ditto/foo23/things/twin/commands/modify";
          final TopicPath topic = ProtocolFactory.newTopicPath(fullPath);
 
@@ -44,6 +45,17 @@
                  .contains("commands");
          assertThat(underTest.resolve("action"))
                  .contains("modify");
+     }
+
+     @Test
+     public void testPlaceholderResolutionBasedOnConnectionId() {
+         final ConnectionId connectionId = ConnectionId.generateRandom();
+
+         final PlaceholderResolver<ConnectionId> underTest = PlaceholderFactory.newPlaceholderResolver(
+                 ConnectionIdPlaceholder.newConnectionIdPlaceholder(), connectionId);
+
+         assertThat(underTest.resolve("id"))
+                 .contains(connectionId.toString());
      }
 
  }

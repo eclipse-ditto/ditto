@@ -170,14 +170,6 @@ public final class PlaceholderFactory {
     }
 
     /**
-     * @return the singleton instance of {@link ConnectionIdPlaceholder}.
-     * @since 1.4.0
-     */
-    public static ConnectionIdPlaceholder newConnectionIdPlaceholder() {
-        return ImmutableConnectionIdPlaceholder.INSTANCE;
-    }
-
-    /**
      * @return new instance of the {@link PolicyEntryPlaceholder}
      * @since 2.0.0
      */

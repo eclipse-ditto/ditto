@@ -15,7 +15,6 @@ package org.eclipse.ditto.services.policies.starter;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
-import org.eclipse.ditto.model.connectivity.ConnectionIdInvalidException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
 import org.eclipse.ditto.model.placeholders.PlaceholderFunctionUnknownException;
@@ -57,8 +56,7 @@ public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorReg
                 PathUnknownException.class,
 
                 // added due to ditto-model-placeholders
-                PlaceholderFunctionUnknownException.class,
-                ConnectionIdInvalidException.class
+                PlaceholderFunctionUnknownException.class
         );
     }
 

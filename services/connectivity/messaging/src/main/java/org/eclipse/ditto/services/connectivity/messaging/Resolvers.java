@@ -31,7 +31,8 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
-import org.eclipse.ditto.services.models.connectivity.placeholder.TopicPathPlaceholder;
+import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectionIdPlaceholder;
+import org.eclipse.ditto.services.models.connectivity.placeholders.TopicPathPlaceholder;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 
@@ -66,7 +67,7 @@ public final class Resolvers {
             }),
             ResolverCreator.of(TopicPathPlaceholder.newTopicPathPlaceholder(), (e, s, t, a, c) -> t),
             ResolverCreator.of(PlaceholderFactory.newRequestPlaceholder(), (e, s, t, a, c) -> a),
-            ResolverCreator.of(PlaceholderFactory.newConnectionIdPlaceholder(), (e, s, t, a, c) -> c)
+            ResolverCreator.of(ConnectionIdPlaceholder.newConnectionIdPlaceholder(), (e, s, t, a, c) -> c)
     );
 
     private static final List<Placeholder> PLACEHOLDERS = Collections.unmodifiableList(

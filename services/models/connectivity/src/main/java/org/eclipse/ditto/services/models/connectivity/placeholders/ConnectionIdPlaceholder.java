@@ -10,14 +10,23 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.placeholders;
+package org.eclipse.ditto.services.models.connectivity.placeholders;
 
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.placeholders.Placeholder;
 
 /**
- * A {@link Placeholder} that requires a {@code String} (a valid Connection ID) to resolve its placeholders.
+ * A {@link org.eclipse.ditto.model.placeholders.Placeholder} that requires a {@code String} (a valid Connection ID) to resolve its placeholders.
  *
  * @since 1.4.0
  */
 public interface ConnectionIdPlaceholder extends Placeholder<ConnectionId> {
+
+    /**
+     * @return the singleton instance of {@link ConnectionIdPlaceholder}.
+     * @since 1.4.0
+     */
+    static ConnectionIdPlaceholder newConnectionIdPlaceholder() {
+        return ImmutableConnectionIdPlaceholder.INSTANCE;
+    }
 }

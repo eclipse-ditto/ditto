@@ -32,6 +32,7 @@ import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapper;
 import org.eclipse.ditto.services.connectivity.mapping.MessageMapperRegistry;
 import org.eclipse.ditto.services.connectivity.messaging.mappingoutcome.MappingOutcome;
+import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectionIdPlaceholder;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 
 /**
@@ -58,8 +59,9 @@ abstract class AbstractMappingProcessor<I, O> {
         this.connectionId = checkNotNull(connectionId, "connectionId");
         this.connectionType = checkNotNull(connectionType, "connectionType");
         this.registry = checkNotNull(registry, "registry");
-        connectionIdResolver = PlaceholderFactory.newExpressionResolver(PlaceholderFactory.newConnectionIdPlaceholder(),
-                connectionId);
+        connectionIdResolver = PlaceholderFactory.newExpressionResolver(
+                        ConnectionIdPlaceholder.newConnectionIdPlaceholder(),
+                        connectionId);
         logger.info("Configured for processing messages with the following MessageMapperRegistry: <{}>", registry);
     }
 

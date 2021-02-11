@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.placeholders;
+package org.eclipse.ditto.services.models.connectivity.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -21,7 +21,7 @@ import java.util.Optional;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.junit.Test;
 
-public final class ImmutableConnectionPlaceholderTest {
+public final class ImmutableConnectionIdPlaceholderTest {
 
     private final ImmutableConnectionIdPlaceholder underTest = ImmutableConnectionIdPlaceholder.INSTANCE;
     private final List<String> SUPPORTED_PLACEHOLDERS = Collections.singletonList("id");
