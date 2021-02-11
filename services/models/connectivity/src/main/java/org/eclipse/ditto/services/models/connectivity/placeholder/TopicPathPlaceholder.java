@@ -10,12 +10,20 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.placeholders;
+package org.eclipse.ditto.services.models.connectivity.placeholder;
 
+import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 
 /**
- * A {@link Placeholder} that requires the {@link TopicPath} to resolve its placeholders.
+ * A {@link org.eclipse.ditto.model.placeholders.Placeholder} that requires the {@link TopicPath} to resolve its placeholders.
  */
 public interface TopicPathPlaceholder extends Placeholder<TopicPath> {
+
+    /**
+     * @return new instance of the {@link TopicPathPlaceholder}
+     */
+    public static TopicPathPlaceholder newTopicPathPlaceholder() {
+        return ImmutableTopicPathPlaceholder.INSTANCE;
+    }
 }

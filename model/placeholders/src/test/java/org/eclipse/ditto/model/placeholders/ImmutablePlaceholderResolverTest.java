@@ -18,8 +18,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.protocoladapter.ProtocolFactory;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
@@ -76,27 +74,5 @@ public class ImmutablePlaceholderResolverTest {
                 .contains("foobar199");
     }
 
-    @Test
-    public void testPlaceholderResolvementBasedOnTopic() {
-        final String fullPath = "org.eclipse.ditto/foo23/things/twin/commands/modify";
-        final TopicPath topic = ProtocolFactory.newTopicPath(fullPath);
 
-        final ImmutablePlaceholderResolver<TopicPath> underTest = new ImmutablePlaceholderResolver<>(
-                PlaceholderFactory.newTopicPathPlaceholder(), topic);
-
-        assertThat(underTest.resolve("full"))
-                .contains(fullPath);
-        assertThat(underTest.resolve("namespace"))
-                .contains("org.eclipse.ditto");
-        assertThat(underTest.resolve("entityId"))
-                .contains("foo23");
-        assertThat(underTest.resolve("group"))
-                .contains("things");
-        assertThat(underTest.resolve("channel"))
-                .contains("twin");
-        assertThat(underTest.resolve("criterion"))
-                .contains("commands");
-        assertThat(underTest.resolve("action"))
-                .contains("modify");
-    }
 }

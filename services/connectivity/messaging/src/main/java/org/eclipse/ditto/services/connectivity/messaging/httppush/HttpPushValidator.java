@@ -14,7 +14,8 @@ package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newHeadersPlaceholder;
 import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPlaceholder;
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newTopicPathPlaceholder;
+import static org.eclipse.ditto.services.models.connectivity.placeholder.TopicPathPlaceholder.newTopicPathPlaceholder;
+
 
 import java.util.Arrays;
 import java.util.Collection;

@@ -63,13 +63,6 @@ public final class PlaceholderFactory {
     }
 
     /**
-     * @return new instance of the {@link TopicPathPlaceholder}
-     */
-    public static TopicPathPlaceholder newTopicPathPlaceholder() {
-        return ImmutableTopicPathPlaceholder.INSTANCE;
-    }
-
-    /**
      * @return the unique instance of the placeholder with prefix {@code request}.
      */
     public static Placeholder<AuthorizationContext> newRequestPlaceholder() {

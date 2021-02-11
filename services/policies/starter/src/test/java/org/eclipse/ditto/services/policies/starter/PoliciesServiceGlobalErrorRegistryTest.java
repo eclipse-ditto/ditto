@@ -23,7 +23,6 @@ import org.eclipse.ditto.model.policies.PolicyEntryInvalidException;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.things.AclEntryInvalidException;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
-import org.eclipse.ditto.protocoladapter.UnknownTopicPathException;
 import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
@@ -34,7 +33,6 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationF
 import org.eclipse.ditto.signals.commands.base.exceptions.PathUnknownException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
-import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 
 public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
@@ -60,9 +58,7 @@ public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorReg
 
                 // added due to ditto-model-placeholders
                 PlaceholderFunctionUnknownException.class,
-                ConnectionIdInvalidException.class,
-                UnknownTopicPathException.class,
-                InvalidOptionException.class
+                ConnectionIdInvalidException.class
         );
     }
 

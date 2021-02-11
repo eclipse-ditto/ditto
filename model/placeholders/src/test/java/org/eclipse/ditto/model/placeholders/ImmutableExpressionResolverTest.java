@@ -21,8 +21,6 @@ import java.util.Map;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.protocoladapter.ProtocolFactory;
-import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
@@ -40,7 +38,6 @@ public class ImmutableExpressionResolverTest {
     private static final String THING_NAMESPACE = "org.eclipse.ditto";
     private static final ThingId THING_ID = ThingId.of(THING_NAMESPACE, THING_NAME);
     private static final ConnectionId CONNECTION_ID = ConnectionId.generateRandom();
-    private static final String KNOWN_TOPIC = "org.eclipse.ditto/" + THING_NAME + "/things/twin/commands/modify";
     private static final Map<String, String> KNOWN_HEADERS =
             DittoHeaders.newBuilder().putHeader("one", "1").putHeader("two", "2").build();
     private static final String UNKNOWN_HEADER_EXPRESSION = "{{ header:missing }}";
@@ -66,19 +63,15 @@ public class ImmutableExpressionResolverTest {
 
     @BeforeClass
     public static void setupClass() {
-        final TopicPath topic = ProtocolFactory.newTopicPath(KNOWN_TOPIC);
-
         final ImmutablePlaceholderResolver<Map<String, String>> headersResolver =
                 new ImmutablePlaceholderResolver<>(PlaceholderFactory.newHeadersPlaceholder(), KNOWN_HEADERS);
         final ImmutablePlaceholderResolver<CharSequence> thingResolver = new ImmutablePlaceholderResolver<>(
                 PlaceholderFactory.newThingPlaceholder(), THING_ID);
-        final ImmutablePlaceholderResolver<TopicPath> topicPathResolver = new ImmutablePlaceholderResolver<>(
-                PlaceholderFactory.newTopicPathPlaceholder(), topic);
         final ImmutablePlaceholderResolver<ConnectionId> connectionIdResolver = new ImmutablePlaceholderResolver<>(
                 PlaceholderFactory.newConnectionIdPlaceholder(), CONNECTION_ID);
 
-        underTest = new ImmutableExpressionResolver(
-                Arrays.asList(headersResolver, thingResolver, topicPathResolver, connectionIdResolver));
+        underTest =
+                new ImmutableExpressionResolver(Arrays.asList(headersResolver, thingResolver, connectionIdResolver));
     }
 
     @Test
@@ -93,18 +86,6 @@ public class ImmutableExpressionResolverTest {
         assertThat(underTest.resolve("{{ connection:id }}"))
                 .contains(CONNECTION_ID.toString());
         assertThat(underTest.resolve("{{ thing:name }}"))
-                .contains(THING_NAME);
-        assertThat(underTest.resolve("{{ topic:full }}"))
-                .contains(KNOWN_TOPIC);
-        assertThat(underTest.resolve("{{ topic:entityId }}"))
-                .contains(THING_NAME);
-
-        // verify different whitespace
-        assertThat(underTest.resolve("{{topic:entityId }}"))
-                .contains(THING_NAME);
-        assertThat(underTest.resolve("{{topic:entityName}}"))
-                .contains(THING_NAME);
-        assertThat(underTest.resolve("{{        topic:entityId}}"))
                 .contains(THING_NAME);
     }
 
