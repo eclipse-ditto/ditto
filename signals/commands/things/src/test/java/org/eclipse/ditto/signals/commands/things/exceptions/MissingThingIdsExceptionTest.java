@@ -76,12 +76,4 @@ public final class MissingThingIdsExceptionTest {
         assertThat(actual).isEqualTo(MISSING_THING_IDS_EXCEPTION);
     }
 
-
-    @Test
-    public void copy() {
-        final DittoRuntimeException copy = DittoRuntimeException.newBuilder(MISSING_THING_IDS_EXCEPTION).build();
-
-        assertThat(copy).isEqualTo(MISSING_THING_IDS_EXCEPTION);
-    }
-
 }

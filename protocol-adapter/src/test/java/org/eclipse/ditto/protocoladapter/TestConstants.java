@@ -62,6 +62,7 @@ import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingDefinition;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingIdInvalidException;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
 
@@ -282,7 +283,7 @@ public final class TestConstants {
             JsonArray.of(THING.toJson(), THING2.toJson());
 
     public static final DittoRuntimeException EXCEPTION =
-            DittoRuntimeException.newBuilder("TestException", HttpStatus.BAD_REQUEST).build();
+            ThingIdInvalidException.newBuilder("TestException").build();
 
     public static class Policies {
 

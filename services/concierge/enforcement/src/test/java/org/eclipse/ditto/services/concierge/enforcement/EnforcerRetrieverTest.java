@@ -23,7 +23,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 
-import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
@@ -31,6 +30,7 @@ import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
+import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -54,9 +54,7 @@ public class EnforcerRetrieverTest {
 
     @Test
     public void verifyLookupRevealsInnerException() throws ExecutionException, InterruptedException {
-        final DittoRuntimeException expectedException =
-                DittoRuntimeException.newBuilder("this should be happening", HttpStatus.HTTPVERSION_NOT_SUPPORTED)
-                        .build();
+        final DittoRuntimeException expectedException = GatewayInternalErrorException.newBuilder().build();
         final EntityIdWithResourceType entityId = EntityIdWithResourceType.of("any", DefaultEntityId.of("id"));
         when(idCache.get(any(EntityIdWithResourceType.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));
@@ -73,9 +71,7 @@ public class EnforcerRetrieverTest {
 
     @Test
     public void verifyLookupRevealsInnermostException() throws ExecutionException, InterruptedException {
-        final DittoRuntimeException expectedException =
-                DittoRuntimeException.newBuilder("this should be happening", HttpStatus.HTTPVERSION_NOT_SUPPORTED)
-                        .build();
+        final DittoRuntimeException expectedException = GatewayInternalErrorException.newBuilder().build();
         final EntityIdWithResourceType entityId = EntityIdWithResourceType.of("any", DefaultEntityId.of("id"));
         final EntityIdWithResourceType innerEntityId =
                 EntityIdWithResourceType.of("other", DefaultEntityId.of("randomId"));
@@ -95,9 +91,7 @@ public class EnforcerRetrieverTest {
 
     @Test
     public void verifyLookupEnforcerRevealsException() throws ExecutionException, InterruptedException {
-        final DittoRuntimeException expectedException =
-                DittoRuntimeException.newBuilder("this should be happening", HttpStatus.HTTPVERSION_NOT_SUPPORTED)
-                        .build();
+        final DittoRuntimeException expectedException = GatewayInternalErrorException.newBuilder().build();
         final EntityIdWithResourceType entityId = EntityIdWithResourceType.of("any", DefaultEntityId.of("id"));
         when(enforcerCache.get(any(EntityIdWithResourceType.class))).thenReturn(
                 CompletableFuture.completedFuture(Optional.of(Entry.nonexistent())));

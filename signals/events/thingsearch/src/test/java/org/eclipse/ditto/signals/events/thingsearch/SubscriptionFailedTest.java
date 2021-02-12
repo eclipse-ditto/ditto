@@ -23,6 +23,7 @@ import java.util.UUID;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.InvalidRqlExpressionException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -46,10 +47,8 @@ public final class SubscriptionFailedTest {
     @Test
     public void serialization() {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
-        final DittoRuntimeException error =
-                DittoRuntimeException.fromUnknownErrorJson(
-                        InvalidRqlExpressionException.newBuilder().build().toJson(), dittoHeaders)
-                        .orElseThrow(NoSuchElementException::new);
+        final DittoRuntimeException error = GlobalErrorRegistry.getInstance()
+                .parse(InvalidRqlExpressionException.newBuilder().build().toJson(), dittoHeaders);
         final SubscriptionFailed underTest = SubscriptionFailed.of(UUID.randomUUID().toString(), error, dittoHeaders);
         final SubscriptionFailed deserialized = SubscriptionFailed.fromJson(underTest.toJson(), dittoHeaders);
         assertThat(deserialized).isEqualTo(underTest);

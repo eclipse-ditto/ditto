@@ -28,7 +28,6 @@ public abstract class AbstractErrorResponse<T extends AbstractErrorResponse<T>>
         extends AbstractCommandResponse<T> implements ErrorResponse<T> {
 
     protected static final String FALLBACK_ID = "unknown:unknown";
-    private static final String FALLBACK_ERROR_CODE = FALLBACK_ID;
 
     /**
      * Constructs a new {@code AbstractErrorResponse} object.
@@ -65,22 +64,7 @@ public abstract class AbstractErrorResponse<T extends AbstractErrorResponse<T>>
             final ErrorRegistry<DittoRuntimeException> errorRegistry, final JsonObject payload,
             final DittoHeaders dittoHeaders) {
 
-        try {
-            return errorRegistry.parse(payload, dittoHeaders);
-        } catch (final Exception e) {
-            final int status = payload.getValue(CommandResponse.JsonFields.STATUS).orElse(500);
-            final String errorCode =
-                    payload.getValue(DittoRuntimeException.JsonFields.ERROR_CODE).orElse(FALLBACK_ERROR_CODE);
-            final String errorMessage =
-                    payload.getValue(DittoRuntimeException.JsonFields.MESSAGE).orElse("An unknown error occurred");
-            final String errorDescription = payload.getValue(DittoRuntimeException.JsonFields.DESCRIPTION).orElse("");
-            return DittoRuntimeException.newBuilder(errorCode,
-                    HttpStatus.tryGetInstance(status).orElse(HttpStatus.INTERNAL_SERVER_ERROR))
-                    .message(errorMessage)
-                    .description(errorDescription)
-                    .dittoHeaders(dittoHeaders)
-                    .build();
-        }
+        return errorRegistry.parse(payload, dittoHeaders);
     }
 
 }

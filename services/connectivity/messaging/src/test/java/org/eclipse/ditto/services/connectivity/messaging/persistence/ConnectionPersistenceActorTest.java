@@ -31,7 +31,6 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 
 import org.awaitility.Awaitility;
-import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -39,6 +38,7 @@ import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.model.connectivity.ConnectionIdInvalidException;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
@@ -226,8 +226,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
             underTest.tell(testConnectionCausingFailure, getRef());
 
-            final DittoRuntimeException exception =
-                    DittoRuntimeException.newBuilder("some.error", HttpStatus.BAD_REQUEST).build();
+            final DittoRuntimeException exception = ConnectionIdInvalidException.newBuilder("invalid").build();
             expectMsg(exception);
         }};
     }
@@ -241,8 +240,7 @@ public final class ConnectionPersistenceActorTest extends WithMockServers {
 
             underTest.tell(testConnectionCausingException, getRef());
 
-            final DittoRuntimeException exception =
-                    DittoRuntimeException.newBuilder("some.error", HttpStatus.BAD_REQUEST).build();
+            final DittoRuntimeException exception = ConnectionIdInvalidException.newBuilder("invalid").build();
             expectMsg(exception);
         }};
     }

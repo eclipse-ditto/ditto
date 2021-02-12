@@ -128,9 +128,7 @@ public final class JsonExamplesProducer {
         final CountThingsResponse countThingsResponse = CountThingsResponse.of(42, DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("count-things-response.json")), countThingsResponse);
 
-        final DittoRuntimeException e =
-                DittoRuntimeException.newBuilder("search.filter.invalid", HttpStatus.BAD_REQUEST)
-                        .build();
+        final DittoRuntimeException e =InvalidOptionException.newBuilder().build();
         final SearchErrorResponse errorResponse = SearchErrorResponse.of(e, DittoHeaders.empty());
         writeJson(commandsDir.resolve(Paths.get("query-things-error-response.json")), errorResponse);
     }

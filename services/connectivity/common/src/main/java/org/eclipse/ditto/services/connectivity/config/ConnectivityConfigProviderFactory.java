@@ -53,8 +53,6 @@ public final class ConnectivityConfigProviderFactory implements Extension {
      */
     private static final Class<DittoConnectivityConfigProvider>
             DEFAULT_CONNECTIVITY_CONFIG_PROVIDER_CLASS = DittoConnectivityConfigProvider.class;
-    private static final String CONNECTIVITY_CONFIG_PROVIDER_MISSING = "connectivity.config.provider.missing";
-    private static final String CONNECTIVITY_CONFIG_PROVIDER_FAILED = "connectivity.config.provider.failed";
 
     /**
      * Holds the instance of the {@link ConnectivityConfigProvider}.
@@ -130,20 +128,12 @@ public final class ConnectivityConfigProviderFactory implements Extension {
 
     private static DittoRuntimeException configProviderNotFound(
             final List<Class<? extends ConnectivityConfigProvider>> candidates) {
-
-        final String message =
-                String.format("Failed to find a suitable ConnectivityConfigProvider implementation in candidates: %s.",
-                        candidates);
-        return DittoRuntimeException.newBuilder(CONNECTIVITY_CONFIG_PROVIDER_MISSING, HttpStatus.INTERNAL_SERVER_ERROR)
-                .message(message)
-                .build();
+        return ConnectivityConfigProviderMissingException.newBuilder(candidates).build();
     }
 
     private static DittoRuntimeException configProviderInstantiationFailed(final Class<?
             extends ConnectivityConfigProvider> c, final Exception cause) {
-
-        return DittoRuntimeException.newBuilder(CONNECTIVITY_CONFIG_PROVIDER_FAILED, HttpStatus.INTERNAL_SERVER_ERROR)
-                .message(String.format("Failed to instantiate %s.", c.getName()))
+        return ConnectivityConfigProviderFailedException.newBuilder(c)
                 .cause(cause)
                 .build();
     }
