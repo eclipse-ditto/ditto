@@ -57,7 +57,7 @@ public abstract class AbstractGlobalJsonParsableRegistry<T, A extends Annotation
      * Annotation based strategies will be overridden if they have the same key.
      */
     protected AbstractGlobalJsonParsableRegistry(
-            final Class<T> parsedClass,
+            final Class<?> parsedClass,
             final Class<A> annotationClass,
             final AbstractAnnotationBasedJsonParsableFactory<T, A> annotationBasedJsonParsableFactory,
             final Map<String, JsonParsable<T>> parseStrategies) {
@@ -80,7 +80,7 @@ public abstract class AbstractGlobalJsonParsableRegistry<T, A extends Annotation
 
     @SuppressWarnings("unchecked") //Suppressed because the cast of cls is ensured by the two filters before.
     private static <T, A extends Annotation> Map<String, JsonParsable<T>> initAnnotationBasedParseStrategies(
-            final Class<T> baseClass,
+            final Class<?> baseClass,
             final Class<A> annotationClass,
             final AbstractAnnotationBasedJsonParsableFactory<T, A> annotationBasedJsonParsableFactory) {
 

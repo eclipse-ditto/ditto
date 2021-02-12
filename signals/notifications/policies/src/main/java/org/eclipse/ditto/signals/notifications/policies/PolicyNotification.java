@@ -12,10 +12,31 @@
  */
 package org.eclipse.ditto.signals.notifications.policies;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.policies.PolicyConstants;
 import org.eclipse.ditto.signals.notifications.base.Notification;
 
 /**
  * Notifications from policies.
  */
 public interface PolicyNotification<T extends PolicyNotification<T>> extends Notification<T> {
+
+    /**
+     * Type prefix of policy notifications.
+     */
+    String TYPE_PREFIX = "policies." + TYPE_QUALIFIER + ":";
+
+    /**
+     * Policy resource type.
+     */
+    String RESOURCE_TYPE = PolicyConstants.ENTITY_TYPE.toString();
+
+    /**
+     * Json field for the policy ID.
+     */
+    JsonFieldDefinition<String> JSON_POLICY_ID =
+            JsonFactory.newStringFieldDefinition("policyId", JsonSchemaVersion.V_2, FieldType.REGULAR);
 }

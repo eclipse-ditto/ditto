@@ -12,6 +12,11 @@
  */
 package org.eclipse.ditto.signals.notifications.base;
 
+import org.atteo.classindex.IndexSubclasses;
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.signals.base.Signal;
 
 /**
@@ -19,5 +24,17 @@ import org.eclipse.ditto.signals.base.Signal;
  *
  * @param <T> the concrete type of notification.
  */
+@IndexSubclasses
 public interface Notification<T extends Notification<T>> extends Signal<T> {
+
+    /**
+     * Type qualifier of notifications.
+     */
+    String TYPE_QUALIFIER = "notification";
+
+    /**
+     * Json field containing the type of this signal.
+     */
+    JsonFieldDefinition<String> JSON_TYPE =
+            JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_2);
 }

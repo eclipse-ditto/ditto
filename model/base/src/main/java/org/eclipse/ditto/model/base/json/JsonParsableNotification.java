@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -20,35 +20,30 @@ import java.lang.annotation.Target;
 import org.atteo.classindex.IndexAnnotated;
 
 /**
- * This annotated marks a class as deserializable from Json when calling the specified
- * {@link JsonParsableEvent#method()} with {@link org.eclipse.ditto.json.JsonObject} as first
+ * This annotated marks a notification as deserializable from Json when calling the specified
+ * {@link org.eclipse.ditto.model.base.json.JsonParsableNotification#method()} with {@link org.eclipse.ditto.json.JsonObject} as first
  * and {@link org.eclipse.ditto.model.base.headers.DittoHeaders} as second argument.
+ * The {@link org.eclipse.ditto.model.base.json.JsonParsableNotification#type()} is used as identifier of this notification.
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @IndexAnnotated
-public @interface JsonParsableEvent {
+public @interface JsonParsableNotification {
 
     /**
-     * Returns the name of the event.
+     * Used as identifier of the exception.
      *
-     * @return the name.
+     * @return the error code.
      */
-    String name();
-
-    /**
-     * Returns the type prefix of the event.
-     *
-     * @return the prefix.
-     */
-    String typePrefix();
+    String type();
 
     /**
      * The name of the method accepting a {@link org.eclipse.ditto.json.JsonObject} as first argument and
      * {@link org.eclipse.ditto.model.base.headers.DittoHeaders} as seconds argument.
-     * The Method must return an instance of the event annotated with this annotation.
+     * The Method must return an instance of the exception annotated with this annotation.
      *
      * @return the name of this method.
      */
     String method() default "fromJson";
+
 }
