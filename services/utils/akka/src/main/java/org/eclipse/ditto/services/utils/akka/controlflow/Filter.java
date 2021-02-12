@@ -14,9 +14,6 @@ package org.eclipse.ditto.services.utils.akka.controlflow;
 
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Predicate;
-
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 
 import akka.NotUsed;
 import akka.stream.FanOutShape2;

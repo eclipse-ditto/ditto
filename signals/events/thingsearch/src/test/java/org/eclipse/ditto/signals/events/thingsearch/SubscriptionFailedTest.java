@@ -17,7 +17,6 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
-import java.util.NoSuchElementException;
 import java.util.UUID;
 
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;

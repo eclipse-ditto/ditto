@@ -29,7 +29,6 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeadersSettable;
-import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 
 /**
  * This UnaryOperator sets the headers of response-required and requested-acknowledgements in a command

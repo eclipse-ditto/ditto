@@ -19,8 +19,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.eclipse.ditto.services.gateway.util.config.health.DefaultHealthCheckConfig;
-import org.eclipse.ditto.services.gateway.util.config.health.HealthCheckConfig;
 import org.eclipse.ditto.services.gateway.util.config.health.HealthCheckConfig.ClusterRolesConfig.ClusterRolesConfigValue;
 import org.eclipse.ditto.services.utils.health.config.BasicHealthCheckConfig;
 import org.junit.BeforeClass;
@@ -38,7 +36,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultHealthCheckConfigTest {
 
     private static Config healthCheckTestConfig;
-    
+
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 

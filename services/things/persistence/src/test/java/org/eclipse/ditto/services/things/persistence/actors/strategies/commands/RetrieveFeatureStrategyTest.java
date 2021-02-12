@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_ID;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_V2;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;

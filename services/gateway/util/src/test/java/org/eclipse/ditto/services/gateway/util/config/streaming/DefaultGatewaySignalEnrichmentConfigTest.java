@@ -19,8 +19,6 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Duration;
 
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.eclipse.ditto.services.gateway.util.config.streaming.DefaultGatewaySignalEnrichmentConfig;
-import org.eclipse.ditto.services.gateway.util.config.streaming.GatewaySignalEnrichmentConfig;
 import org.eclipse.ditto.services.utils.cache.config.CacheConfig;
 import org.junit.BeforeClass;
 import org.junit.Rule;
