@@ -34,7 +34,7 @@
 
         <!-- ### Compile dependencies versions -->
         <minimal-json.version>0.9.5</minimal-json.version>
-        <jackson-core.version>2.12.1</jackson-core.version>
+        <jackson-bom.version>2.11.4</jackson-bom.version>
         <typesafe-config.version>1.4.0</typesafe-config.version>
         <ssl-config-core.version>0.4.1</ssl-config-core.version>
         <akka.version>2.6.12</akka.version>
@@ -47,7 +47,7 @@
         <!-- Keep these version consistent with akka-persistence-mongo.version's build.sbt -->
         <mongo-java-driver.version>4.1.1</mongo-java-driver.version>
 
-        <jjwt.version>0.10.7</jjwt.version>
+        <jjwt.version>0.11.2</jjwt.version>
         <asm.version>7.2</asm.version>
         <qpid-jms-client.version>0.54.0</qpid-jms-client.version>
         <newmotion-akka-rabbitmq.version>5.1.2</newmotion-akka-rabbitmq.version>
@@ -111,15 +111,11 @@
             </dependency>
 
             <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-core</artifactId>
-                <version>${jackson-core.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.fasterxml.jackson.dataformat</groupId>
-                <artifactId>jackson-dataformat-cbor</artifactId>
-                <version>${jackson-core.version}</version>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson-bom.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
 
             <dependency>
@@ -1100,12 +1096,6 @@
                 <scope>test</scope>
             </dependency>
 
-            <dependency>
-                <groupId>io.jsonwebtoken</groupId>
-                <artifactId>jjwt-jackson</artifactId>
-                <version>${jjwt.version}</version>
-                <scope>test</scope>
-            </dependency>
             <!-- scalatest dependency leaked from akka-http-testkit -->
             <dependency>
                 <groupId>org.scalatest</groupId>
