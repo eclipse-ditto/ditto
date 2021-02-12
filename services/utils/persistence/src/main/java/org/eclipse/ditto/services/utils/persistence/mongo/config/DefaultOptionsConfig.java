@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import java.text.MessageFormat;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -41,6 +42,7 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
     private final ReadConcern readConcern;
     private final WriteConcern writeConcern;
     private final boolean retryWrites;
+    private final Map<String, Object> extraUriOptions;
 
     private DefaultOptionsConfig(final ScopedConfig config) {
         sslEnabled = config.getBoolean(OptionsConfigValue.SSL_ENABLED.getConfigPath());
@@ -68,6 +70,7 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
             return new DittoConfigError(msg);
         });
         retryWrites = config.getBoolean(OptionsConfigValue.RETRY_WRITES.getConfigPath());
+        extraUriOptions = configToMap(config.getConfig(OptionsConfigValue.EXTRA_URI_OPTIONS.getConfigPath()));
     }
 
     /**
@@ -80,6 +83,10 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
     public static DefaultOptionsConfig of(final Config config) {
         return new DefaultOptionsConfig(
                 ConfigWithFallback.newInstance(config, CONFIG_PATH, OptionsConfigValue.values()));
+    }
+
+    private static Map<String, Object> configToMap(final Config config) {
+        return config.root().unwrapped();
     }
 
     @Override
@@ -108,6 +115,11 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
     }
 
     @Override
+    public Map<String, Object> extraUriOptions() {
+        return extraUriOptions;
+    }
+
+    @Override
     public boolean equals(final Object o) {
         if (this == o) {
             return true;
@@ -118,12 +130,14 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
         final DefaultOptionsConfig that = (DefaultOptionsConfig) o;
         return sslEnabled == that.sslEnabled && retryWrites == that.retryWrites &&
                 readPreference == that.readPreference &&
-                readConcern == that.readConcern && Objects.equals(writeConcern, that.writeConcern);
+                readConcern == that.readConcern &&
+                Objects.equals(writeConcern, that.writeConcern) &&
+                Objects.equals(extraUriOptions, that.extraUriOptions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(sslEnabled, readPreference, readConcern, writeConcern, retryWrites);
+        return Objects.hash(sslEnabled, readPreference, readConcern, writeConcern, retryWrites, extraUriOptions);
     }
 
     @Override
@@ -134,6 +148,7 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
                 ", readConcern=" + readConcern +
                 ", writeConcern=" + writeConcern +
                 ", retryWrites=" + retryWrites +
+                ", extraUriOptions=" + extraUriOptions +
                 "]";
     }
 }
