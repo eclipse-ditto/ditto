@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -12,14 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.persistence;
 
-import java.util.Collection;
 import java.util.Collections;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 
-import javax.annotation.Nullable;
-
-import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
@@ -33,8 +27,6 @@ import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
 import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
-import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
-import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.services.utils.persistence.mongo.ops.eventsource.MongoEventSourceITAssertions;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
@@ -66,6 +58,7 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
 
     @Override
     protected String getServiceName() {
+        // this loads the connectivity.conf from module "ditto-services-connectivity-config" as ActorSystem conf
         return "connectivity";
     }
 
@@ -135,46 +128,6 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
                         dummyInterceptor, pubSubMediator);
 
         return system.actorOf(props, String.valueOf(id));
-    }
-
-    private static DittoProtocolSub nopSub() {
-        return new DittoProtocolSub() {
-            @Override
-            public CompletionStage<Void> subscribe(final Collection<StreamingType> types,
-                    final Collection<String> topics, final ActorRef subscriber, @Nullable final String group) {
-                return CompletableFuture.completedFuture(null);
-            }
-
-            @Override
-            public void removeSubscriber(final ActorRef subscriber) {
-
-            }
-
-            @Override
-            public CompletionStage<Void> updateLiveSubscriptions(
-                    final Collection<StreamingType> types,
-                    final Collection<String> topics, final ActorRef subscriber) {
-                return CompletableFuture.completedFuture(null);
-            }
-
-            @Override
-            public CompletionStage<Void> removeTwinSubscriber(final ActorRef subscriber,
-                    final Collection<String> topics) {
-                return CompletableFuture.completedFuture(null);
-            }
-
-            @Override
-            public CompletionStage<Void> declareAcknowledgementLabels(
-                    final Collection<AcknowledgementLabel> acknowledgementLabels, final ActorRef subscriber,
-                    @Nullable final String group) {
-                return CompletableFuture.completedFuture(null);
-            }
-
-            @Override
-            public void removeAcknowledgementLabelDeclaration(final ActorRef subscriber) {
-                // do nothing
-            }
-        };
     }
 
 }

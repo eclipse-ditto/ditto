@@ -24,8 +24,6 @@
 
     <artifactId>ditto-signals</artifactId>
     <packaging>pom</packaging>
-    <version>${revision}</version>
-
     <name>Eclipse Ditto :: Signals</name>
 
     <modules>
