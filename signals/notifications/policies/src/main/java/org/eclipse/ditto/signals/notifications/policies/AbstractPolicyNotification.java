@@ -28,6 +28,7 @@ import org.eclipse.ditto.signals.notifications.base.AbstractNotification;
  * Abstract superclass of policy notifications.
  *
  * @param <T> type of a concrete subclass.
+ * @since 2.0.0
  */
 public abstract class AbstractPolicyNotification<T extends AbstractPolicyNotification<T>>
         extends AbstractNotification<T>

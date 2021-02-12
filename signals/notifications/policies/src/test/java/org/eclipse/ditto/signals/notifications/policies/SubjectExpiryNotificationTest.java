@@ -22,9 +22,9 @@ import java.time.Instant;
 import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.SubjectId;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -39,7 +39,7 @@ public final class SubjectExpiryNotificationTest {
         assertInstancesOf(SubjectExpiryNotification.class,
                 areImmutable(),
                 provided(PolicyId.class).areAlsoImmutable(),
-                assumingFields("expiringSubjects").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
+                assumingFields("expiringSubjectIds").areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test
@@ -76,12 +76,12 @@ public final class SubjectExpiryNotificationTest {
         final SubjectExpiryNotification underTest = SubjectExpiryNotification.of(
                 PolicyId.of("policy:id"),
                 expiry,
-                Collections.singleton(AuthorizationSubject.newInstance("ditto:ditto")),
+                Collections.singleton(SubjectId.newInstance("ditto:ditto")),
                 dittoHeaders
         );
 
         final JsonObject expected = JsonObject.of(String.format("{\n" +
-                "  \"type\": \"policies.notification:subject.expiry\",\n" +
+                "  \"type\": \"policies.notifications:subjectExpiry\",\n" +
                 "  \"policyId\": \"policy:id\",\n" +
                 "  \"expiry\": \"%s\",\n" +
                 "  \"expiringSubjects\": [\"ditto:ditto\"]\n" +
@@ -96,7 +96,7 @@ public final class SubjectExpiryNotificationTest {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
 
         final JsonObject json = JsonObject.of(String.format("{\n" +
-                "  \"type\": \"policies.notification:subject.expiry\",\n" +
+                "  \"type\": \"policies.notifications:subjectExpiry\",\n" +
                 "  \"policyId\": \"policy:id\",\n" +
                 "  \"expiry\": \"%s\",\n" +
                 "  \"expiringSubjects\": [\"ditto:ditto\"]\n" +
@@ -107,7 +107,7 @@ public final class SubjectExpiryNotificationTest {
         final SubjectExpiryNotification expected = SubjectExpiryNotification.of(
                 PolicyId.of("policy:id"),
                 expiry,
-                Collections.singleton(AuthorizationSubject.newInstance("ditto:ditto")),
+                Collections.singleton(SubjectId.newInstance("ditto:ditto")),
                 dittoHeaders
         );
 

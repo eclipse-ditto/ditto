@@ -25,9 +25,10 @@ import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
+import org.eclipse.ditto.signals.notifications.policies.PolicyNotification;
 
 /**
- * Instantiates and provides {@link Adapter}s used to process Policy commands, responses and errors.
+ * Instantiates and provides {@link Adapter}s used to process Policy commands, responses and errors and notifications.
  *
  * @since 1.1.0
  */
@@ -38,6 +39,7 @@ public final class DefaultPolicyCommandAdapterProvider implements PolicyCommandA
     private final PolicyQueryCommandAdapter policyQueryCommandAdapter;
     private final PolicyModifyCommandResponseAdapter policyModifyCommandResponseAdapter;
     private final PolicyQueryCommandResponseAdapter policyQueryCommandResponseAdapter;
+    private final PolicyNotificationAdapter policyNotificationAdapter;
 
     public DefaultPolicyCommandAdapterProvider(final ErrorRegistry<DittoRuntimeException> errorRegistry,
             final HeaderTranslator headerTranslator) {
@@ -46,6 +48,7 @@ public final class DefaultPolicyCommandAdapterProvider implements PolicyCommandA
         policyQueryCommandAdapter = PolicyQueryCommandAdapter.of(headerTranslator);
         policyModifyCommandResponseAdapter = PolicyModifyCommandResponseAdapter.of(headerTranslator);
         policyQueryCommandResponseAdapter = PolicyQueryCommandResponseAdapter.of(headerTranslator);
+        policyNotificationAdapter = PolicyNotificationAdapter.of(headerTranslator);
     }
 
     public Adapter<PolicyErrorResponse> getErrorResponseAdapter() {
@@ -60,6 +63,18 @@ public final class DefaultPolicyCommandAdapterProvider implements PolicyCommandA
         return policyModifyCommandResponseAdapter;
     }
 
+    public Adapter<PolicyQueryCommand<?>> getQueryCommandAdapter() {
+        return policyQueryCommandAdapter;
+    }
+
+    public Adapter<PolicyQueryCommandResponse<?>> getQueryCommandResponseAdapter() {
+        return policyQueryCommandResponseAdapter;
+    }
+
+    public Adapter<PolicyNotification<?>> getNotificationAdapter() {
+        return policyNotificationAdapter;
+    }
+
     @Override
     public List<Adapter<?>> getAdapters() {
         return Arrays.asList(
@@ -67,15 +82,8 @@ public final class DefaultPolicyCommandAdapterProvider implements PolicyCommandA
                 policyModifyCommandAdapter,
                 policyQueryCommandAdapter,
                 policyModifyCommandResponseAdapter,
-                policyQueryCommandResponseAdapter
+                policyQueryCommandResponseAdapter,
+                policyNotificationAdapter
         );
-    }
-
-    public Adapter<PolicyQueryCommand<?>> getQueryCommandAdapter() {
-        return policyQueryCommandAdapter;
-    }
-
-    public Adapter<PolicyQueryCommandResponse<?>> getQueryCommandResponseAdapter() {
-        return policyQueryCommandResponseAdapter;
     }
 }

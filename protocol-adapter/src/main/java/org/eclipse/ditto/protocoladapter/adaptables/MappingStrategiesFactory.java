@@ -35,6 +35,10 @@ public final class MappingStrategiesFactory {
         return PolicyQueryCommandResponseMappingStrategies.getInstance();
     }
 
+    public static PolicyNotificationMappingStrategies getPolicyNotificationMappingStrategies() {
+        return PolicyNotificationMappingStrategies.getInstance();
+    }
+
     public static ThingMergeCommandMappingStrategies getThingMergeCommandMappingStrategies() {
         return ThingMergeCommandMappingStrategies.getInstance();
     }

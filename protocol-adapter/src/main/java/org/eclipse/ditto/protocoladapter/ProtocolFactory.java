@@ -159,7 +159,8 @@ public final class ProtocolFactory {
                     return ImmutableTopicPath.of(namespace, id, group, channel, criterion);
                 case MESSAGES:
                 case ACKS:
-                    // messages should always contain a non-empty subject:
+                case NOTIFICATIONS:
+                    // messages and notifications should always contain a non-empty subject:
                     // ACK Paths contain a custom acknowledgement label or an empty subject for aggregated ACKs:
                     final String subject = String.join(TopicPath.PATH_DELIMITER, parts);
                     if (subject.isEmpty()) {
@@ -167,6 +168,7 @@ public final class ProtocolFactory {
                     } else {
                         return ImmutableTopicPath.of(namespace, id, group, channel, criterion, subject);
                     }
+
                 default:
                     throw UnknownTopicPathException.newBuilder(path).build();
             }

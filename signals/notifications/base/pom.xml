@@ -23,6 +23,7 @@
 
     <artifactId>ditto-signals-notifications-base</artifactId>
     <name>Eclipse Ditto :: Signals :: Notifications :: Base</name>
+    <packaging>bundle</packaging>
 
     <dependencies>
         <dependency>
@@ -30,5 +31,21 @@
             <artifactId>ditto-signals-base</artifactId>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Export-Package>org.eclipse.ditto.signals.notifications.base</Export-Package>
+                        <Import-Package>org.eclipse.ditto.signals</Import-Package>
+                    </instructions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

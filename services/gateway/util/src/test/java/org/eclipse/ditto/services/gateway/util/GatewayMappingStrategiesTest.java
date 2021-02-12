@@ -21,7 +21,6 @@ import java.util.Map;
 import org.assertj.core.api.AbstractMapAssert;
 import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
@@ -31,6 +30,7 @@ import org.eclipse.ditto.model.messages.MessageTimeoutException;
 import org.eclipse.ditto.model.messages.SubjectInvalidException;
 import org.eclipse.ditto.model.messages.TimeoutInvalidException;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategies;
 import org.eclipse.ditto.services.models.things.ThingsMappingStrategies;
 import org.eclipse.ditto.services.models.thingsearch.ThingSearchMappingStrategies;
@@ -117,7 +117,7 @@ public final class GatewayMappingStrategiesTest {
         final SubjectExpiryNotification notification = SubjectExpiryNotification.of(
                 PolicyId.of("policy:id"),
                 expiry,
-                Collections.singleton(AuthorizationSubject.newInstance("ditto:ditto")),
+                Collections.singleton(SubjectId.newInstance("ditto:ditto")),
                 dittoHeaders
         );
 

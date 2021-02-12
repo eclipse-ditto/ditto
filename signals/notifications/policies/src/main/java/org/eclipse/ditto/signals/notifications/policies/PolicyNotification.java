@@ -17,10 +17,12 @@ import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyConstants;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.notifications.base.Notification;
 
 /**
  * Notifications from policies.
+ * @since 2.0.0
  */
 public interface PolicyNotification<T extends PolicyNotification<T>> extends Notification<T> {
 
@@ -39,4 +41,8 @@ public interface PolicyNotification<T extends PolicyNotification<T>> extends Not
      */
     JsonFieldDefinition<String> JSON_POLICY_ID =
             JsonFactory.newStringFieldDefinition("policyId", JsonSchemaVersion.V_2, FieldType.REGULAR);
+
+
+    @Override
+    PolicyId getEntityId();
 }

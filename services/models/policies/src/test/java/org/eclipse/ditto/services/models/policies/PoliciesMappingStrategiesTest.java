@@ -18,10 +18,10 @@ import java.time.Instant;
 import java.util.Collections;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.notifications.policies.SubjectExpiryNotification;
 import org.junit.Test;
 
@@ -37,7 +37,7 @@ public final class PoliciesMappingStrategiesTest {
         final SubjectExpiryNotification notification = SubjectExpiryNotification.of(
                 PolicyId.of("policy:id"),
                 expiry,
-                Collections.singleton(AuthorizationSubject.newInstance("ditto:ditto")),
+                Collections.singleton(SubjectId.newInstance("ditto:ditto")),
                 dittoHeaders
         );
 

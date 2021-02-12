@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.utils.cluster;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Map;
+
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
@@ -21,8 +23,10 @@ import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.signals.base.JsonParsable;
 import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
 import org.eclipse.ditto.signals.commands.things.exceptions.ThingNotAccessibleException;
@@ -63,10 +67,7 @@ public final class ShardRegionExtractorTest {
 
     @Test
     public void testHashCodeAndEquals() {
-        EqualsVerifier.forClass(ShardRegionExtractor.class)
-                .usingGetClass()
-                .withRedefinedSuperclass()
-                .verify();
+        EqualsVerifier.forClass(ShardRegionExtractor.class).verify();
     }
 
     @Test
@@ -113,6 +114,22 @@ public final class ShardRegionExtractorTest {
         final Object actual = underTest.entityMessage(messageEnvelope);
 
         assertThat(actual).isEqualTo(errorResponse);
+    }
+
+    private static final class TestMappingStrategies extends MappingStrategies {
+
+        private TestMappingStrategies(final Map<String, JsonParsable<Jsonifiable<?>>> strategies) {
+            super(strategies);
+        }
+
+        public boolean equals(final Object other) {
+            return super.equals(other);
+        }
+
+        public TestMappingStrategies replicate() {
+            return new TestMappingStrategies(this);
+        }
+
     }
 
 }

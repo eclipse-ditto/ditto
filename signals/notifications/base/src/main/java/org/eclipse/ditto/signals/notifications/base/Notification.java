@@ -23,6 +23,7 @@ import org.eclipse.ditto.signals.base.Signal;
  * Notifications are subscribable signals that are not persisted.
  *
  * @param <T> the concrete type of notification.
+ * @since 2.0.0
  */
 @IndexSubclasses
 public interface Notification<T extends Notification<T>> extends Signal<T> {
@@ -30,11 +31,18 @@ public interface Notification<T extends Notification<T>> extends Signal<T> {
     /**
      * Type qualifier of notifications.
      */
-    String TYPE_QUALIFIER = "notification";
+    String TYPE_QUALIFIER = "notifications";
 
     /**
      * Json field containing the type of this signal.
      */
     JsonFieldDefinition<String> JSON_TYPE =
             JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+    /**
+     * Retrieve the name of the notification. Used as a part of the topic path in Ditto protocol.
+     *
+     * @return name of the notification.
+     */
+    String getName();
 }

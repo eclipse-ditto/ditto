@@ -224,7 +224,14 @@ public interface TopicPath {
          *
          * @since 1.1.0
          */
-        ACKS("acks");
+        ACKS("acks"),
+
+        /**
+         * Criterion for notifications.
+         *
+         * @since 2.0.0
+         */
+        NOTIFICATIONS("notifications");
 
         private final String name;
 

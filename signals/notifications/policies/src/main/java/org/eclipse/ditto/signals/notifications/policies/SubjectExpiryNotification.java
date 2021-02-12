@@ -35,43 +35,39 @@ import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonParseException;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableNotification;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.SubjectId;
 
 /**
  * Notification that some subjects of a policy are about to expire.
+ *
+ * @since 2.0.0
  */
 @Immutable
 @JsonParsableNotification(type = SubjectExpiryNotification.TYPE)
 public final class SubjectExpiryNotification extends AbstractPolicyNotification<SubjectExpiryNotification> {
 
-    private static final String NAME = "subject.expiry";
+    private static final String NAME = "subjectExpiry";
 
     /**
      * Type of this notification.
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private static final JsonFieldDefinition<String> JSON_EXPIRY =
-            JsonFactory.newStringFieldDefinition("expiry", JsonSchemaVersion.V_2, FieldType.REGULAR);
-
-    private static final JsonFieldDefinition<JsonArray> JSON_EXPIRING_SUBJECTS =
-            JsonFactory.newJsonArrayFieldDefinition("expiringSubjects", JsonSchemaVersion.V_2, FieldType.REGULAR);
-
     private final Instant expiry;
-    private final Collection<AuthorizationSubject> expiringSubjects;
+    private final Collection<SubjectId> expiringSubjectIds;
 
     private SubjectExpiryNotification(final PolicyId policyId, final Instant expiry,
-            final Collection<AuthorizationSubject> expiringSubjects,
+            final Collection<SubjectId> expiringSubjectIds,
             final DittoHeaders dittoHeaders) {
         super(policyId, dittoHeaders);
         this.expiry = checkNotNull(expiry, "expiry");
-        this.expiringSubjects =
-                Collections.unmodifiableList(new ArrayList<>(checkNotNull(expiringSubjects, "expiringSubjects")));
+        this.expiringSubjectIds =
+                Collections.unmodifiableList(new ArrayList<>(checkNotNull(expiringSubjectIds, "expiringSubjects")));
     }
 
     /**
@@ -84,7 +80,7 @@ public final class SubjectExpiryNotification extends AbstractPolicyNotification<
      * @return the notification.
      */
     public static SubjectExpiryNotification of(final PolicyId policyId, final Instant expiry,
-            final Collection<AuthorizationSubject> expiringSubjects, final DittoHeaders dittoHeaders) {
+            final Collection<SubjectId> expiringSubjects, final DittoHeaders dittoHeaders) {
 
         return new SubjectExpiryNotification(policyId, expiry, expiringSubjects, dittoHeaders);
     }
@@ -98,25 +94,26 @@ public final class SubjectExpiryNotification extends AbstractPolicyNotification<
      */
     public static SubjectExpiryNotification fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         final PolicyId policyId = PolicyId.of(jsonObject.getValueOrThrow(JSON_POLICY_ID));
-        final Instant expiry = parseExpiry(jsonObject.getValueOrThrow(JSON_EXPIRY));
-        final Collection<AuthorizationSubject> expiringSubjects = jsonObject.getValueOrThrow(JSON_EXPIRING_SUBJECTS)
+        final Instant expiry = parseExpiry(jsonObject.getValueOrThrow(JsonFields.EXPIRY));
+        final Collection<SubjectId> expiringSubjects = jsonObject.getValueOrThrow(
+                JsonFields.EXPIRING_SUBJECTS)
                 .stream()
-                .map(value -> AuthorizationSubject.newInstance(value.asString()))
+                .map(value -> SubjectId.newInstance(value.asString()))
                 .collect(Collectors.toList());
         return of(policyId, expiry, expiringSubjects, dittoHeaders);
     }
 
     @Override
     public SubjectExpiryNotification setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new SubjectExpiryNotification(getEntityId(), expiry, expiringSubjects, dittoHeaders);
+        return new SubjectExpiryNotification(getEntityId(), expiry, expiringSubjectIds, dittoHeaders);
     }
 
     @Override
     protected void appendPolicyNotificationPayload(final JsonObjectBuilder jsonObjectBuilder,
             final Predicate<JsonField> predicate) {
 
-        jsonObjectBuilder.set(JSON_EXPIRY, expiry.toString(), predicate);
-        jsonObjectBuilder.set(JSON_EXPIRING_SUBJECTS, toArray(expiringSubjects), predicate);
+        jsonObjectBuilder.set(JsonFields.EXPIRY, expiry.toString(), predicate);
+        jsonObjectBuilder.set(JsonFields.EXPIRING_SUBJECTS, toArray(expiringSubjectIds), predicate);
     }
 
     @Override
@@ -134,18 +131,38 @@ public final class SubjectExpiryNotification extends AbstractPolicyNotification<
         return TYPE;
     }
 
-    private static JsonArray toArray(final Collection<AuthorizationSubject> collection) {
-        return collection.stream()
-                .map(AuthorizationSubject::getId)
-                .map(JsonValue::of)
-                .collect(JsonCollectors.valuesToArray());
+    @Override
+    public String getName() {
+        return NAME;
+    }
+
+    /**
+     * Get the timestamp where the subjects will expire.
+     *
+     * @return the expiry.
+     */
+    public Instant getExpiry() {
+        return expiry;
+    }
+
+    /**
+     * Get the IDs of the subjects that will expire.
+     *
+     * @return the expiring subject IDs.
+     */
+    public Collection<SubjectId> getExpiringSubjectIds() {
+        return expiringSubjectIds;
+    }
+
+    private static JsonArray toArray(final Collection<SubjectId> collection) {
+        return collection.stream().map(JsonValue::of).collect(JsonCollectors.valuesToArray());
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" + super.toString() +
                 ", expiry=" + expiry +
-                ", expiringSubjects=" + expiringSubjects +
+                ", expiringSubjects=" + expiringSubjectIds +
                 "]";
     }
 
@@ -153,7 +170,7 @@ public final class SubjectExpiryNotification extends AbstractPolicyNotification<
     public boolean equals(final Object other) {
         if (super.equals(other)) {
             final SubjectExpiryNotification that = (SubjectExpiryNotification) other;
-            return Objects.equals(expiry, that.expiry) && Objects.equals(expiringSubjects, that.expiringSubjects);
+            return Objects.equals(expiry, that.expiry) && Objects.equals(expiringSubjectIds, that.expiringSubjectIds);
         } else {
             return false;
         }
@@ -161,7 +178,7 @@ public final class SubjectExpiryNotification extends AbstractPolicyNotification<
 
     @Override
     public int hashCode() {
-        return Objects.hash(expiry, expiringSubjects, super.hashCode());
+        return Objects.hash(expiry, expiringSubjectIds, super.hashCode());
     }
 
     private static Instant parseExpiry(final String expiryString) {
@@ -173,5 +190,23 @@ public final class SubjectExpiryNotification extends AbstractPolicyNotification<
                             "It must be provided as ISO-8601 formatted char sequence.", expiryString))
                     .build();
         }
+    }
+
+    /**
+     * JSON fields of this notification's payload for use in the Ditto protocol.
+     */
+    public static final class JsonFields {
+
+        /**
+         * JSON field for the expiry timestamp of the subjects.
+         */
+        public static final JsonFieldDefinition<String> EXPIRY =
+                JsonFactory.newStringFieldDefinition("expiry", JsonSchemaVersion.V_2, FieldType.REGULAR);
+
+        /**
+         * JSON field for the subjects that will expire.
+         */
+        public static final JsonFieldDefinition<JsonArray> EXPIRING_SUBJECTS =
+                JsonFactory.newJsonArrayFieldDefinition("expiringSubjects", JsonSchemaVersion.V_2, FieldType.REGULAR);
     }
 }

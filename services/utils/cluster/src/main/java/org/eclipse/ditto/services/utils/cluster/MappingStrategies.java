@@ -155,15 +155,11 @@ public abstract class MappingStrategies implements Map<String, JsonParsable<Json
     public boolean equals(@Nullable final Object o) {
         if (this == o) {
             return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
+        } else if (o instanceof Map) {
+            return strategies.equals(o);
+        } else {
             return false;
         }
-        if (!super.equals(o)) {
-            return false;
-        }
-        final MappingStrategies that = (MappingStrategies) o;
-        return strategies.equals(that.strategies);
     }
 
     @Override

@@ -19,12 +19,18 @@ import static org.eclipse.ditto.protocoladapter.TestConstants.DITTO_HEADERS_V_2_
 import static org.eclipse.ditto.protocoladapter.TestConstants.POLICY_ID;
 import static org.eclipse.ditto.protocoladapter.TestConstants.THING_ID;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.UUID;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatus;
@@ -32,6 +38,8 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
@@ -56,6 +64,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
+import org.eclipse.ditto.signals.notifications.policies.SubjectExpiryNotification;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -418,7 +427,8 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 "org.eclipse.ditto.client.test/7a96e7a4-b20c-43eb-b669-f75514af30d0/things/twin/commands/modify";
         final TopicPath topicPath = ProtocolFactory.newTopicPath(topicPathString);
 
-        final String jsonString = "{\"path\":\"/features/feature_id_2/desiredProperties/complex/bum\",\"value\":\"bar\"}";
+        final String jsonString =
+                "{\"path\":\"/features/feature_id_2/desiredProperties/complex/bum\",\"value\":\"bar\"}";
         final Payload payload = ProtocolFactory.newPayload(jsonString);
 
         final Adaptable adaptable = ProtocolFactory.newAdaptableBuilder(topicPath).withPayload(payload).build();
@@ -524,6 +534,62 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         final Adaptable reverseAdaptable =
                 ProtocolFactory.wrapAsJsonifiableAdaptable(underTest.toAdaptable(acknowledgement));
         assertThat(reverseAdaptable).isEqualTo(adaptable);
+    }
+
+    @Test
+    public void policyNotificationToAdaptable() {
+        final PolicyId policyId = PolicyId.of("policy:id");
+        final Instant expiry = Instant.now();
+        final List<SubjectId> expiringSubjects =
+                Arrays.asList(SubjectId.newInstance("ditto:sub1"), SubjectId.newInstance("ditto:sub2"));
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
+        final SubjectExpiryNotification notification =
+                SubjectExpiryNotification.of(policyId, expiry, expiringSubjects, dittoHeaders);
+
+        final Adaptable adaptable = underTest.toAdaptable(notification);
+
+        assertThat(adaptable.getTopicPath().getPath()).isEqualTo("policy/id/policies/notifications/subjectExpiry");
+        assertThat(adaptable.getDittoHeaders().getCorrelationId()).isEqualTo(dittoHeaders.getCorrelationId());
+        assertThat(adaptable.getPayload().getPath().isEmpty()).isTrue();
+
+        final JsonValue payload = adaptable.getPayload().getValue().orElseThrow(NoSuchElementException::new);
+        final JsonValue expectedPayload = JsonObject.newBuilder()
+                .set(SubjectExpiryNotification.JsonFields.EXPIRY, expiry.toString())
+                .set(SubjectExpiryNotification.JsonFields.EXPIRING_SUBJECTS,
+                        JsonArray.of("[\"ditto:sub1\",\"ditto:sub2\"]"))
+                .build();
+
+        assertThat(payload).isEqualTo(expectedPayload);
+    }
+
+    @Test
+    public void policyNotificationFromAdaptable() {
+        final Instant expiry = Instant.now();
+        final String correlationId = UUID.randomUUID().toString();
+        final JsonObject json = JsonObject.of(String.format("{\n" +
+                        "  \"topic\": \"policy/id/policies/notifications/subjectExpiry\",\n" +
+                        "  \"headers\": {\"correlation-id\": \"%s\"},\n" +
+                        "  \"path\": \"/\",\n" +
+                        "  \"value\": {\n" +
+                        "    \"expiry\": \"%s\",\n" +
+                        "    \"expiringSubjects\": [\n" +
+                        "      \"ditto:sub1\",\n" +
+                        "      \"ditto:sub2\"\n" +
+                        "    ]\n" +
+                        "  }\n" +
+                        "}",
+                correlationId,
+                expiry
+        ));
+
+        final Adaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(json);
+        final SubjectExpiryNotification notification = (SubjectExpiryNotification) underTest.fromAdaptable(adaptable);
+
+        assertThat((CharSequence) notification.getEntityId()).isEqualTo(PolicyId.of("policy:id"));
+        assertThat(notification.getExpiry()).isEqualTo(expiry);
+        assertThat(notification.getExpiringSubjectIds())
+                .isEqualTo(Arrays.asList(SubjectId.newInstance("ditto:sub1"), SubjectId.newInstance("ditto:sub2")));
+        assertThat(notification.getDittoHeaders().getCorrelationId()).contains(correlationId);
     }
 
 }

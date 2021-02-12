@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
  * Superclass of implementations of notification.
  *
  * @param <T> type of a concrete subclass.
+ * @since 2.0.0
  */
 public abstract class AbstractNotification<T extends AbstractNotification<T>> implements Notification<T> {
 
