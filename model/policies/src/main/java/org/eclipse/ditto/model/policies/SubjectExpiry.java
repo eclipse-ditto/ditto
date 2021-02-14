@@ -16,6 +16,12 @@ import java.time.Instant;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+
 /**
  * Represents a {@link Subject} expiry timestamp indicating the instant when a Subject is automatically removed from a
  * Policy entry.
@@ -48,6 +54,10 @@ public interface SubjectExpiry extends CharSequence, Comparable<SubjectExpiry> {
         return PoliciesModelFactory.newSubjectExpiry(expiry);
     }
 
+    static SubjectExpiry fromJson(final JsonValue jsonValue) {
+        return ImmutableSubjectExpiry.fromJson(jsonValue);
+    }
+
     /**
      * Returns the timestamp of the expiry as Instant.
      *
@@ -63,6 +73,14 @@ public interface SubjectExpiry extends CharSequence, Comparable<SubjectExpiry> {
     boolean isExpired();
 
     /**
+     * Returns a JSON representation of the subject expiry.
+     *
+     * @return the JSON representation.
+     * @since 2.0.0
+     */
+    JsonValue toJson();
+
+    /**
      * Returns the ISO-8601 representation of this expiry timestamp.
      *
      * @return the ISO-8601 representation of this expiry timestamp.
@@ -73,5 +91,21 @@ public interface SubjectExpiry extends CharSequence, Comparable<SubjectExpiry> {
     @Override
     default int compareTo(final SubjectExpiry o) {
         return getTimestamp().compareTo(o.getTimestamp());
+    }
+
+    final class JsonFields {
+
+        public static final JsonFieldDefinition<String> TIMESTAMP =
+                JsonFactory.newStringFieldDefinition("timestamp", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
+         * JSON field containing the duration before the subject's expiration when a notification is sent to
+         * the expiring subjects.
+         *
+         * @since 2.0.0
+         */
+        public static final JsonFieldDefinition<String> NOTIFY_BEFORE =
+                JsonFactory.newStringFieldDefinition("notifyBefore", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
     }
 }

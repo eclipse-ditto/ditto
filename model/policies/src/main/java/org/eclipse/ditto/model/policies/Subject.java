@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonFieldSelector;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -178,10 +179,11 @@ public interface Subject extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
 
         /**
          * JSON field containing the Subject's expiry time.
+         *
          * @since 2.0.0
          */
-        public static final JsonFieldDefinition<String> EXPIRY =
-                JsonFactory.newStringFieldDefinition("expiry", FieldType.REGULAR, JsonSchemaVersion.V_2);
+        public static final JsonFieldDefinition<JsonValue> EXPIRY =
+                JsonFactory.newJsonValueFieldDefinition("expiry", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();
