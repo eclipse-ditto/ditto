@@ -27,7 +27,6 @@ import org.eclipse.ditto.model.connectivity.ConnectionId;
  * Placeholder implementation that replaces {@code connection:id}.
  * The input value is a String and must be a valid connection ID.
  *
- * @since 1.4.0
  */
 @Immutable
 final class ImmutableConnectionIdPlaceholder implements ConnectionIdPlaceholder {

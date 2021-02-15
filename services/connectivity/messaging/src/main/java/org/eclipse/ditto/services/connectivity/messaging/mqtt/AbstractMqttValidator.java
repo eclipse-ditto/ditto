@@ -46,7 +46,7 @@ import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
-import org.eclipse.ditto.model.placeholders.SourceAddressPlaceholder;
+import org.eclipse.ditto.services.models.connectivity.placeholders.SourceAddressPlaceholder;
 import org.eclipse.ditto.model.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.ThingId;
@@ -152,7 +152,8 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
 
     protected static void validateEnforcementInput(final Enforcement enforcement,
             final Supplier<String> sourceDescription, final DittoHeaders dittoHeaders) {
-        final SourceAddressPlaceholder sourceAddressPlaceholder = PlaceholderFactory.newSourceAddressPlaceholder();
+        final SourceAddressPlaceholder sourceAddressPlaceholder =
+                SourceAddressPlaceholder.newSourceAddressPlaceholder();
         try {
             EnforcementFactoryFactory
                     .newEnforcementFilterFactory(enforcement, sourceAddressPlaceholder)

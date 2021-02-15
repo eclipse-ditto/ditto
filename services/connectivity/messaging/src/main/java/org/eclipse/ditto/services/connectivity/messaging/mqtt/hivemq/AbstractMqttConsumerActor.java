@@ -37,6 +37,7 @@ import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholders.SourceAddressPlaceholder;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 
@@ -73,7 +74,8 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
         this.reconnectForRedelivery = reconnectForRedelivery;
         topicEnforcementFilterFactory = source.getEnforcement()
                 .map(enforcement -> EnforcementFactoryFactory
-                        .newEnforcementFilterFactory(enforcement, PlaceholderFactory.newSourceAddressPlaceholder()))
+                        .newEnforcementFilterFactory(enforcement,
+                                SourceAddressPlaceholder.newSourceAddressPlaceholder()))
                 .orElse(null);
     }
 

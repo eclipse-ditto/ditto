@@ -162,14 +162,6 @@ public final class PlaceholderFactory {
     }
 
     /**
-     * @return new instance of the {@link SourceAddressPlaceholder}
-     * @since 1.4.0
-     */
-    public static SourceAddressPlaceholder newSourceAddressPlaceholder() {
-        return ImmutableSourceAddressPlaceholder.INSTANCE;
-    }
-
-    /**
      * @return new instance of the {@link PolicyEntryPlaceholder}
      * @since 2.0.0
      */

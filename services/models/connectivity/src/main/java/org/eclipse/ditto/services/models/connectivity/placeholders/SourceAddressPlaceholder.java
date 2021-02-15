@@ -10,12 +10,21 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.placeholders;
+package org.eclipse.ditto.services.models.connectivity.placeholders;
 
+
+import org.eclipse.ditto.model.placeholders.Placeholder;
 
 /**
- * A {@link Placeholder} that requires a {@code String}
+ * A {@link org.eclipse.ditto.model.placeholders.Placeholder} that requires a {@code String}
  * (a {@link org.eclipse.ditto.model.connectivity.Source} {@code address}) to resolve its placeholders.
  */
 public interface SourceAddressPlaceholder extends Placeholder<String> {
+
+    /**
+     * @return new instance of the {@link SourceAddressPlaceholder}
+     */
+    static SourceAddressPlaceholder newSourceAddressPlaceholder() {
+        return ImmutableSourceAddressPlaceholder.INSTANCE;
+    }
 }
