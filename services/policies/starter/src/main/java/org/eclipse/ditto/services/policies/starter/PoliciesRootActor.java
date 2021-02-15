@@ -34,6 +34,7 @@ import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
+import org.eclipse.ditto.services.utils.pubsub.PolicyNotificationPubSubFactory;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
 import akka.actor.ActorRef;
@@ -67,6 +68,10 @@ public final class PoliciesRootActor extends DittoRootActor {
         final ActorSystem actorSystem = getContext().system();
         final ClusterShardingSettings shardingSettings =
                 ClusterShardingSettings.create(actorSystem).withRole(CLUSTER_ROLE);
+
+        // Start distributed data replicator even though it is not used for now.
+        // TODO: use the DistributedSub for notification publication
+        PolicyNotificationPubSubFactory.of(actorSystem).startDistributedPub();
 
         final Props policySupervisorProps = PolicySupervisorActor.props(pubSubMediator, snapshotAdapter);
 

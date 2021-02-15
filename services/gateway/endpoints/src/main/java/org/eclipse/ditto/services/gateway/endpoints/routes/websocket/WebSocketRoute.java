@@ -18,10 +18,12 @@ import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.Prot
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SEND_LIVE_COMMANDS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SEND_LIVE_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SEND_MESSAGES;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SEND_POLICY_NOTIFICATIONS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_LIVE_COMMANDS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_LIVE_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_MESSAGES;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_POLICY_NOTIFICATIONS;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -764,6 +766,11 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
                 break;
             case LIVE_EVENTS:
                 protocolMessage = subscribed ? START_SEND_LIVE_EVENTS.toString() : STOP_SEND_LIVE_EVENTS.toString();
+                break;
+            case POLICY_NOTIFICATIONS:
+                protocolMessage = subscribed
+                        ? START_SEND_POLICY_NOTIFICATIONS.toString()
+                        : STOP_SEND_POLICY_NOTIFICATIONS.toString();
                 break;
             default:
                 throw new IllegalArgumentException("Unknown streamingType: " + streamingType);

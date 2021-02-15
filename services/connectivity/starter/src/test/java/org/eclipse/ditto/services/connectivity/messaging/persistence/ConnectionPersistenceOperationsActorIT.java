@@ -154,13 +154,19 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
             public CompletionStage<Void> updateLiveSubscriptions(
                     final Collection<StreamingType> types,
                     final Collection<String> topics, final ActorRef subscriber) {
-                return CompletableFuture.completedFuture(null);
+                return CompletableFuture.completedStage(null);
             }
 
             @Override
             public CompletionStage<Void> removeTwinSubscriber(final ActorRef subscriber,
                     final Collection<String> topics) {
-                return CompletableFuture.completedFuture(null);
+                return CompletableFuture.completedStage(null);
+            }
+
+            @Override
+            public CompletionStage<Void> removePolicyNotificationSubscriber(final ActorRef subscriber,
+                    final Collection<String> topics) {
+                return CompletableFuture.completedStage(null);
             }
 
             @Override

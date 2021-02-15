@@ -250,14 +250,20 @@ public final class TestConstants {
             public CompletionStage<Void> updateLiveSubscriptions(final Collection<StreamingType> types,
                     final Collection<String> topics, final ActorRef subscriber) {
                 doDelegate(d -> d.updateLiveSubscriptions(types, topics, subscriber));
-                return CompletableFuture.completedFuture(null);
+                return CompletableFuture.completedStage(null);
             }
 
             @Override
             public CompletionStage<Void> removeTwinSubscriber(final ActorRef subscriber,
                     final Collection<String> topics) {
                 doDelegate(d -> d.removeTwinSubscriber(subscriber, topics));
-                return CompletableFuture.completedFuture(null);
+                return CompletableFuture.completedStage(null);
+            }
+
+            @Override
+            public CompletionStage<Void> removePolicyNotificationSubscriber(final ActorRef subscriber,
+                    final Collection<String> topics) {
+                return CompletableFuture.completedStage(null);
             }
 
             @Override

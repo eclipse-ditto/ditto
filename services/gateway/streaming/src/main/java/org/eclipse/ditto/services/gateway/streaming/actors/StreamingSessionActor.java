@@ -331,14 +331,24 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                     final ConfirmUnsubscription unsubscribeConfirmation =
                             new ConfirmUnsubscription(stopStreaming.getStreamingType());
                     final Collection<StreamingType> currentStreamingTypes = streamingSessions.keySet();
-                    if (stopStreaming.getStreamingType() != StreamingType.EVENTS) {
-                        dittoProtocolSub.updateLiveSubscriptions(currentStreamingTypes,
-                                authorizationContext.getAuthorizationSubjectIds(), getSelf())
-                                .thenAccept(ack -> getSelf().tell(unsubscribeConfirmation, getSelf()));
-                    } else {
-                        dittoProtocolSub.removeTwinSubscriber(getSelf(),
-                                authorizationContext.getAuthorizationSubjectIds())
-                                .thenAccept(ack -> getSelf().tell(unsubscribeConfirmation, getSelf()));
+                    switch (stopStreaming.getStreamingType()) {
+                        case EVENTS:
+                            dittoProtocolSub.removeTwinSubscriber(getSelf(),
+                                    authorizationContext.getAuthorizationSubjectIds())
+                                    .thenAccept(ack -> getSelf().tell(unsubscribeConfirmation, getSelf()));
+                            break;
+                        case POLICY_NOTIFICATIONS:
+                            dittoProtocolSub.removePolicyNotificationSubscriber(getSelf(),
+                                    authorizationContext.getAuthorizationSubjectIds())
+                                    .thenAccept(ack -> getSelf().tell(unsubscribeConfirmation, getSelf()));
+                            break;
+                        case LIVE_COMMANDS:
+                        case LIVE_EVENTS:
+                        case MESSAGES:
+                        default:
+                            dittoProtocolSub.updateLiveSubscriptions(currentStreamingTypes,
+                                    authorizationContext.getAuthorizationSubjectIds(), getSelf())
+                                    .thenAccept(ack -> getSelf().tell(unsubscribeConfirmation, getSelf()));
                     }
                 })
                 .match(ConfirmSubscription.class, msg -> confirmSubscription(msg.getStreamingType()))
