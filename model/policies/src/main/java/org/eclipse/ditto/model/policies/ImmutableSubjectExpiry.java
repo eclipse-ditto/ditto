@@ -19,6 +19,7 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.EnumSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -78,7 +79,11 @@ final class ImmutableSubjectExpiry implements SubjectExpiry {
      * @throws NullPointerException if {@code expiry} is {@code null}.
      */
     public static SubjectExpiry of(final Instant expiry) {
-        return new ImmutableSubjectExpiry(checkNotNull(expiry, "expiry"), null);
+        return of(expiry, null);
+    }
+
+    static SubjectExpiry of(final Instant expiry, @Nullable final DittoDuration notifyBefore) {
+        return new ImmutableSubjectExpiry(checkNotNull(expiry, "expiry"), notifyBefore);
     }
 
     static SubjectExpiry fromJson(final JsonValue jsonValue) {
@@ -100,6 +105,11 @@ final class ImmutableSubjectExpiry implements SubjectExpiry {
     @Override
     public boolean isExpired() {
         return timestamp.isBefore(Instant.now());
+    }
+
+    @Override
+    public Optional<DittoDuration> getNotifyBefore() {
+        return Optional.ofNullable(notifyBefore);
     }
 
     @Override

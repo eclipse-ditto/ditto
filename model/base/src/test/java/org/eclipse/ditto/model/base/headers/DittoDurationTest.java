@@ -191,4 +191,19 @@ public final class DittoDurationTest {
                 .withNoCause();
     }
 
+    @Test
+    public void testSetAmount() {
+        final DittoDuration hours = DittoDuration.parseDuration("1h");
+        final DittoDuration minutes = DittoDuration.parseDuration("1m");
+        final DittoDuration seconds = DittoDuration.parseDuration("1s");
+        final DittoDuration millis = DittoDuration.parseDuration("1ms");
+
+        final Duration duration = Duration.ofHours(10).plus(Duration.ofMillis(2030));
+
+        assertThat(hours.setAmount(duration)).isEqualTo(DittoDuration.parseDuration("10h"));
+        assertThat(minutes.setAmount(duration)).isEqualTo(DittoDuration.parseDuration("600m"));
+        assertThat(seconds.setAmount(duration)).isEqualTo(DittoDuration.parseDuration("36002s"));
+        assertThat(millis.setAmount(duration)).isEqualTo(DittoDuration.parseDuration("36002030ms"));
+    }
+
 }

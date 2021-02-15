@@ -142,6 +142,28 @@ public final class DittoDuration implements CharSequence {
         return dittoTimeUnit.getChronoUnit();
     }
 
+    /**
+     * Set the duration according to a Java duration keeping the time unit.
+     *
+     * @param duration the duration.
+     * @return the new duration with adjusted amount.
+     */
+    public DittoDuration setAmount(final Duration duration) {
+        final Duration unit = dittoTimeUnit.getChronoUnit().getDuration();
+        final long seconds = duration.getSeconds();
+        final long nanoseconds = duration.getNano();
+        final long unitSeconds = unit.getSeconds();
+        final long unitNanoseconds = unit.getNano();
+        final long amount;
+        if (unitSeconds != 0) {
+            amount = Math.max(1L, seconds / unitSeconds);
+        } else {
+            final long withOverflow = seconds * (1_000_000_000L / unitNanoseconds) + (nanoseconds / unitNanoseconds);
+            amount = Math.max(1L, withOverflow);
+        }
+        return new DittoDuration(amount, dittoTimeUnit);
+    }
+
     @Override
     public int length() {
         return toString().length();

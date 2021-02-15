@@ -73,7 +73,7 @@ final class ActivateTokenIntegrationStrategy
         final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyId policyId = context.getState();
         final Label label = command.getLabel();
-        final SubjectExpiry commandSubjectExpiry = SubjectExpiry.newInstance(command.getExpiry());
+        final SubjectExpiry commandSubjectExpiry = command.getSubjectExpiry();
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(label)

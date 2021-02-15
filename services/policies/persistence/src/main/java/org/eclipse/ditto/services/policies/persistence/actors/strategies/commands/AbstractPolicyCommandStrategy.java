@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoDuration;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Policy;
@@ -62,10 +63,12 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
         extends AbstractConditionHeaderCheckingCommandStrategy<C, Policy, PolicyId, E> {
 
     private final PolicyExpiryGranularity policyExpiryGranularity;
+    private final Duration policyExpiryNotificationGranularity;
 
     AbstractPolicyCommandStrategy(final Class<C> theMatchingClass, final PolicyConfig policyConfig) {
         super(theMatchingClass);
         policyExpiryGranularity = calculateTemporalUnitAndAmount(policyConfig);
+        policyExpiryNotificationGranularity = policyConfig.getSubjectExpiryNotificationGranularity();
     }
 
     static PolicyExpiryGranularity calculateTemporalUnitAndAmount(final PolicyConfig policyConfig) {
@@ -222,7 +225,15 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
         final long toAdd = policyExpiryGranularity.amount - deltaModulo;
         final Instant roundedUp = truncated.plus(toAdd, policyExpiryGranularity.temporalUnit);
 
-        return SubjectExpiry.newInstance(roundedUp);
+        final var roundedUpNotifyBefore = expiry.getNotifyBefore()
+                .map(notifyBefore -> {
+                    final var roundedUpDuration =
+                            roundUpDuration(notifyBefore.getDuration(), policyExpiryNotificationGranularity);
+                    return notifyBefore.setAmount(roundedUpDuration);
+                })
+                .orElse(null);
+
+        return SubjectExpiry.newInstance(roundedUp, roundedUpNotifyBefore);
     }
 
     /**
@@ -295,6 +306,14 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
                 .description(description)
                 .dittoHeaders(dittoHeaders)
                 .build();
+    }
+
+    private static Duration roundUpDuration(final Duration duration, final Duration granularity) {
+        final long granularitySeconds = Math.max(1L, granularity.getSeconds());
+        final long durationSeconds = Math.max(granularitySeconds, duration.getSeconds());
+        final long roundedUpSeconds =
+                ((durationSeconds + granularitySeconds - 1L) / granularitySeconds) * granularitySeconds;
+        return Duration.ofSeconds(roundedUpSeconds);
     }
 
     private static class PolicyExpiryGranularity {

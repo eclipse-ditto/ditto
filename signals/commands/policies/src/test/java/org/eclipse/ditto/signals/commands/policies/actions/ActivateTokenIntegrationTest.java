@@ -24,11 +24,13 @@ import java.util.Collections;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonParseException;
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.SubjectExpiry;
+import org.eclipse.ditto.model.policies.SubjectExpiryInvalidException;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
@@ -49,7 +51,7 @@ public final class ActivateTokenIntegrationTest {
             .set(ActivateTokenIntegration.JSON_SUBJECT_IDS, JsonArray.newBuilder()
                     .add(TestConstants.Policy.SUBJECT_ID.toString())
                     .build())
-            .set(ActivateTokenIntegration.JSON_EXPIRY, Instant.EPOCH.toString())
+            .set(ActivateTokenIntegration.JSON_EXPIRY, JsonValue.of(Instant.EPOCH.toString()))
             .build();
 
     private static final SubjectId KNOWN_SECOND_SUBJECT =
@@ -66,7 +68,7 @@ public final class ActivateTokenIntegrationTest {
     public void assertImmutability() {
         assertInstancesOf(ActivateTokenIntegration.class,
                 areImmutable(),
-                provided(Label.class, SubjectId.class, PolicyId.class).areAlsoImmutable());
+                provided(Label.class, SubjectId.class, PolicyId.class, SubjectExpiry.class).areAlsoImmutable());
     }
 
     @Test
@@ -100,7 +102,7 @@ public final class ActivateTokenIntegrationTest {
     @Test(expected = NullPointerException.class)
     public void tryToCreateInstanceWithNullExpiry() {
         ActivateTokenIntegration.of(TestConstants.Policy.POLICY_ID,
-                TestConstants.Policy.LABEL, Collections.singleton(TestConstants.Policy.SUBJECT_ID), null,
+                TestConstants.Policy.LABEL, Collections.singleton(TestConstants.Policy.SUBJECT_ID), (Instant) null,
                 TestConstants.EMPTY_DITTO_HEADERS);
     }
 
@@ -150,10 +152,10 @@ public final class ActivateTokenIntegrationTest {
         assertThat(underTest).isEqualTo(expectedCommand);
     }
 
-    @Test(expected = JsonParseException.class)
+    @Test(expected = SubjectExpiryInvalidException.class)
     public void tryToCreateInstanceFromInvalidTimestampInJson() {
         final JsonObject jsonWithInvalidTimestamp = KNOWN_JSON.toBuilder()
-                .set(ActivateTokenIntegration.JSON_EXPIRY, "not-a-timestamp")
+                .set(ActivateTokenIntegration.JSON_EXPIRY, JsonValue.of("not-a-timestamp"))
                 .build();
 
         ActivateTokenIntegration.fromJson(jsonWithInvalidTimestamp, TestConstants.EMPTY_DITTO_HEADERS);

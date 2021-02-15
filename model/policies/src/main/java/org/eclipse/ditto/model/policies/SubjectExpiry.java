@@ -13,12 +13,15 @@
 package org.eclipse.ditto.model.policies;
 
 import java.time.Instant;
+import java.util.Optional;
 
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.headers.DittoDuration;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
@@ -54,6 +57,18 @@ public interface SubjectExpiry extends CharSequence, Comparable<SubjectExpiry> {
         return PoliciesModelFactory.newSubjectExpiry(expiry);
     }
 
+    /**
+     * Returns a new {@link SubjectExpiry} with the specified {@code expiry} Instant.
+     *
+     * @param expiry the expiry Instant.
+     * @param notifyBefore the duration before the subject expiration when a notification should be sent.
+     * @return the new {@link SubjectExpiry}.
+     * @throws NullPointerException if {@code expiry} is {@code null}.
+     */
+    static SubjectExpiry newInstance(final Instant expiry, @Nullable final DittoDuration notifyBefore) {
+        return ImmutableSubjectExpiry.of(expiry, notifyBefore);
+    }
+
     static SubjectExpiry fromJson(final JsonValue jsonValue) {
         return ImmutableSubjectExpiry.fromJson(jsonValue);
     }
@@ -71,6 +86,13 @@ public interface SubjectExpiry extends CharSequence, Comparable<SubjectExpiry> {
      * @return whether the expiry is expired or not.
      */
     boolean isExpired();
+
+    /**
+     * Returns the duration before expiration when a notification should be sent.
+     *
+     * @return the notify-before duration.
+     */
+    Optional<DittoDuration> getNotifyBefore();
 
     /**
      * Returns a JSON representation of the subject expiry.
