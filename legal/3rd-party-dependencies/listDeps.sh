@@ -23,10 +23,10 @@ find . -name dependencies.txt|while read i; do rm $i;done
 cd legal/3rd-party-dependencies/
 
 # exclude compile dependencies from provided.txt + sort + remove duplicates
-cat compile.txt|cut -d':' -f1-4|while read i; do grep -h $i provided.txt;done|sort|uniq|while read x; do sed -i.bak -e s/$x// provided.txt ;done
+cat compile.txt runtime.txt|cut -d':' -f1-4|while read i; do grep -h $i provided.txt;done|sort|uniq|while read x; do sed -i.bak -e s/$x// provided.txt ;done
 sed -i.bak '/^[[:space:]]*$/d' provided.txt
 # exclude compile+provided dependencies from test.txt + sort + remove duplicates
-cat compile.txt provided.txt|cut -d':' -f1-4|while read i; do grep -h $i test.txt;done|sort|uniq|while read x; do sed -i.bak -e s/$x// test.txt ;done
+cat compile.txt provided.txt runtime.txt|cut -d':' -f1-4|while read i; do grep -h $i test.txt;done|sort|uniq|while read x; do sed -i.bak -e s/$x// test.txt ;done
 sed -i.bak '/^[[:space:]]*$/d' test.txt
 rm *.bak
 
