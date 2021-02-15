@@ -13,6 +13,8 @@
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.Map;
 
 import javax.annotation.concurrent.Immutable;
 
@@ -144,6 +146,8 @@ public interface MongoDbConfig {
          */
         boolean isRetryWrites();
 
+        Map<String, Object> extraUriOptions();
+
         /**
          * An enumeration of known value paths and associated default values of the OptionsConfig.
          */
@@ -173,7 +177,12 @@ public interface MongoDbConfig {
             /**
              * Determines the "retryWrites" setting used for MongoDB connections.
              */
-            RETRY_WRITES("retryWrites", true);
+            RETRY_WRITES("retryWrites", true),
+
+            /**
+             * The extra options to add to the configured MongoDB {@code uri}.
+             */
+            EXTRA_URI_OPTIONS("extra-uri-options", Collections.<String, Object>emptyMap());
 
             private final String path;
             private final Object defaultValue;

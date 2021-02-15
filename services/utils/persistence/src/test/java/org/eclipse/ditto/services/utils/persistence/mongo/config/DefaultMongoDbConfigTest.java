@@ -80,8 +80,9 @@ public final class DefaultMongoDbConfigTest {
         final DefaultMongoDbConfig underTest = DefaultMongoDbConfig.of(rawMongoDbConfig);
 
         softly.assertThat(underTest.getMaxQueryTime()).isEqualTo(Duration.ofSeconds(10));
+        // query options from the configured Mongo URI in "mongodb_test.conf" must be preserved
         softly.assertThat(underTest.getMongoDbUri())
-                .isEqualTo("mongodb://foo:bar@mongodb:27017/test");
+                .isEqualTo("mongodb://foo:bar@mongodb:27017/test?w=1&ssl=true&sslInvalidHostNameAllowed=true");
         softly.assertThat(underTest.getOptionsConfig()).satisfies(optionsConfig -> {
             softly.assertThat(optionsConfig.isSslEnabled()).isFalse();
         });

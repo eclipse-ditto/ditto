@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
+import static org.mutabilitydetector.unittesting.AllowedReason.assumingFields;
 import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -49,7 +50,9 @@ public final class DefaultOptionsConfigTest {
     public void assertImmutability() {
         assertInstancesOf(DefaultOptionsConfig.class,
                 areImmutable(),
-                provided(ReadPreference.class, ReadConcern.class, WriteConcern.class).areAlsoImmutable());
+                provided(ReadPreference.class, ReadConcern.class, WriteConcern.class).areAlsoImmutable(),
+                assumingFields("extraUriOptions")
+                        .areSafelyCopiedUnmodifiableCollectionsWithImmutableElements());
     }
 
     @Test
