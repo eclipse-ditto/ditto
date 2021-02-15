@@ -13,6 +13,8 @@
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import java.text.MessageFormat;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -70,7 +72,9 @@ public final class DefaultOptionsConfig implements MongoDbConfig.OptionsConfig {
             return new DittoConfigError(msg);
         });
         retryWrites = config.getBoolean(OptionsConfigValue.RETRY_WRITES.getConfigPath());
-        extraUriOptions = configToMap(config.getConfig(OptionsConfigValue.EXTRA_URI_OPTIONS.getConfigPath()));
+        extraUriOptions = Collections.unmodifiableMap(new HashMap<>(
+                configToMap(config.getConfig(OptionsConfigValue.EXTRA_URI_OPTIONS.getConfigPath()))
+        ));
     }
 
     /**
