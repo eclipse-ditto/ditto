@@ -56,7 +56,8 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
                 LiveSignalPubSubFactory.of(system, distributedAcks).startDistributedSub();
         final DistributedSub twinEventSub =
                 ThingEventPubSubFactory.readSubjectsOnly(system, distributedAcks).startDistributedSub();
-        final DistributedSub policyNotificationSub = PolicyNotificationPubSubFactory.of(system).startDistributedSub();
+        final DistributedSub policyNotificationSub =
+                PolicyNotificationPubSubFactory.of(system, system).startDistributedSub();
         return new DittoProtocolSubImpl(liveSignalSub, twinEventSub, policyNotificationSub, distributedAcks);
     }
 

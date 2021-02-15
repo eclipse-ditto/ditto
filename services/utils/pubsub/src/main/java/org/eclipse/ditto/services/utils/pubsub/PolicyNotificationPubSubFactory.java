@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.utils.pubsub;
 import org.eclipse.ditto.services.utils.pubsub.extractors.AckExtractor;
 import org.eclipse.ditto.signals.notifications.policies.PolicyNotification;
 
+import akka.actor.ActorRefFactory;
 import akka.actor.ActorSystem;
 
 /**
@@ -28,18 +29,19 @@ public final class PolicyNotificationPubSubFactory extends AbstractPubSubFactory
             AckExtractor.of(PolicyNotification::getEntityId, PolicyNotification::getDittoHeaders);
 
     @SuppressWarnings({"unchecked"})
-    private PolicyNotificationPubSubFactory(final ActorSystem actorSystem) {
-        super(actorSystem, actorSystem, (Class<PolicyNotification<?>>) (Object) PolicyNotification.class,
+    private PolicyNotificationPubSubFactory(final ActorRefFactory actorRefFactory, final ActorSystem actorSystem) {
+        super(actorRefFactory, actorSystem, (Class<PolicyNotification<?>>) (Object) PolicyNotification.class,
                 new PolicyNotificationTopicExtractor(), PROVIDER, ACK_EXTRACTOR, DistributedAcks.empty());
     }
 
     /**
      * Create a pubsub factory for thing events ignoring shard ID topics.
      *
+     * @param actorRefFactory the factory with which to create the sub-supervisor actor.l
      * @param system the actor system.
      * @return the thing event pub-sub factory.
      */
-    public static PolicyNotificationPubSubFactory of(final ActorSystem system) {
-        return new PolicyNotificationPubSubFactory(system);
+    public static PolicyNotificationPubSubFactory of(final ActorRefFactory actorRefFactory, final ActorSystem system) {
+        return new PolicyNotificationPubSubFactory(actorRefFactory, system);
     }
 }

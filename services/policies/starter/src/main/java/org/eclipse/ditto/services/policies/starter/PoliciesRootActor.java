@@ -71,7 +71,7 @@ public final class PoliciesRootActor extends DittoRootActor {
 
         // Start distributed data replicator even though it is not used for now.
         // TODO: use the DistributedSub for notification publication
-        PolicyNotificationPubSubFactory.of(actorSystem).startDistributedPub();
+        PolicyNotificationPubSubFactory.of(getContext(), actorSystem).startDistributedPub();
 
         final Props policySupervisorProps = PolicySupervisorActor.props(pubSubMediator, snapshotAdapter);
 
