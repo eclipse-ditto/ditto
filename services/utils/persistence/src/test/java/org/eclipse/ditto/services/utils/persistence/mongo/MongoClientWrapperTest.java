@@ -26,7 +26,9 @@ import org.junit.Test;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoCredential;
+import com.mongodb.ReadPreference;
 import com.mongodb.ServerAddress;
+import com.mongodb.WriteConcern;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -50,18 +52,23 @@ public final class MongoClientWrapperTest {
     private static final String MONGO_URI_CONFIG_KEY = "mongodb.uri";
     private static final String MONGO_SSL_CONFIG_KEY = "mongodb.options.ssl";
     private static final String MONGO_MAX_QUERY_TIME_CONFIG_KEY = "mongodb.maxQueryTime";
+    private static final String APPLICATION_NAME = "my-ditto";
 
     @Test
     public void createFromConfig() {
         final boolean sslEnabled = false;
-        final String uri = createUri(sslEnabled);
-        final Config config = CONFIG.withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uri))
+        final String uri = createUri(sslEnabled, APPLICATION_NAME);
+        final Config config = CONFIG.getConfig("ditto")
+                .withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uri))
                 .withValue(MONGO_MAX_QUERY_TIME_CONFIG_KEY, ConfigValueFactory.fromAnyRef(KNOWN_MAX_QUERY_TIME));
         final DefaultMongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(config);
         final MongoClientWrapper underTest = MongoClientWrapper.newInstance(mongoDbConfig);
 
         assertWithExpected(underTest, sslEnabled, true);
         assertThat(underTest.getDittoSettings().getMaxQueryTime()).isEqualTo(KNOWN_MAX_QUERY_TIME);
+        assertThat(underTest.getClientSettings().getApplicationName()).isEqualTo(APPLICATION_NAME);
+        assertThat(underTest.getClientSettings().getReadPreference()).isEqualTo(ReadPreference.secondary());
+        assertThat(underTest.getClientSettings().getSslSettings().isInvalidHostNameAllowed()).isTrue();
     }
 
     @Test
@@ -70,7 +77,7 @@ public final class MongoClientWrapperTest {
         final boolean sslEnabled = false;
         final Duration maxIdleTime = Duration.ofMinutes(10);
         final Duration maxLifeTime = Duration.ofMinutes(25);
-        final String uri = createUri(sslEnabled) + "&maxIdleTimeMS=" + maxIdleTime.toMillis()
+        final String uri = createUri(sslEnabled, APPLICATION_NAME) + "&maxIdleTimeMS=" + maxIdleTime.toMillis()
                 + "&maxLifeTimeMS=" + maxLifeTime.toMillis();
 
         final Config config = CONFIG.withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uri));
@@ -87,10 +94,22 @@ public final class MongoClientWrapperTest {
     }
 
     @Test
+    public void uriWithExtraSettingsHasNoPriorityOverDittoConfig() {
+        final boolean sslEnabled = false;
+        final String uri = createUri(sslEnabled, APPLICATION_NAME) + "&writeConcern=acknowledged";
+        final Config config = CONFIG.getConfig("ditto")
+                .withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uri));
+        final DefaultMongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(config);
+        final MongoClientWrapper underTest = MongoClientWrapper.newInstance(mongoDbConfig);
+
+        assertThat(underTest.getClientSettings().getWriteConcern()).isEqualTo(WriteConcern.MAJORITY);
+    }
+
+    @Test
     public void createByUriWithSslDisabled() {
         // prepare
         final boolean sslEnabled = false;
-        final String uri = createUri(sslEnabled);
+        final String uri = createUri(sslEnabled, APPLICATION_NAME);
         final Config config = CONFIG.withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uri));
         final DefaultMongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(config);
 
@@ -104,7 +123,7 @@ public final class MongoClientWrapperTest {
     @Test
     public void createByUriWithSslEnabled() {
         // prepare
-        final String uriWithSslEnabled = createUri(true);
+        final String uriWithSslEnabled = createUri(true, APPLICATION_NAME);
         final Config config = CONFIG.withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uriWithSslEnabled));
         final DefaultMongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(config);
 
@@ -118,7 +137,7 @@ public final class MongoClientWrapperTest {
     @Test
     public void createWithSslEnabled() {
         // prepare
-        final String uriWithSslEnabled = createUri(true);
+        final String uriWithSslEnabled = createUri(true, APPLICATION_NAME);
 
         final Config config = CONFIG.withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uriWithSslEnabled))
                 .withValue(MONGO_SSL_CONFIG_KEY, ConfigValueFactory.fromAnyRef("true"));
@@ -160,10 +179,10 @@ public final class MongoClientWrapperTest {
         assertWithExpected(underTest, true, false);
     }
 
-    private static String createUri(final boolean sslEnabled) {
+    private static String createUri(final boolean sslEnabled, final String applicationName) {
         final ConnectionString connectionString = new ConnectionString(
                 "mongodb://" + KNOWN_USER + ":" + KNOWN_PASSWORD + "@" + KNOWN_SERVER_ADDRESS + "/" + KNOWN_DB_NAME +
-                        "?ssl=" + sslEnabled);
+                        "?ssl=" + sslEnabled + "&appName=" + applicationName);
         return connectionString.getConnectionString();
     }
 

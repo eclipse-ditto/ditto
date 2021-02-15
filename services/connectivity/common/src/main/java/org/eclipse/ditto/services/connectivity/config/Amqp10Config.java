@@ -194,7 +194,7 @@ public interface Amqp10Config {
         /**
          * Send timeout for the AMQP 1.0 client.
          */
-        GLOBAL_SEND_TIMEOUT("global-send-timeout", Duration.ofSeconds(2)),
+        GLOBAL_SEND_TIMEOUT("global-send-timeout", Duration.ofSeconds(60)),
 
         /**
          * Input buffer size for AMQP 1.0 consumers. Set to a small value to prevent flooding.

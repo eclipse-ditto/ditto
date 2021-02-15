@@ -66,6 +66,9 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+
 import akka.Done;
 import akka.actor.ActorRef;
 import akka.actor.FSM;
@@ -83,6 +86,8 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
 
     private static final String SPEC_CONFIG_RECOVER_ON_SESSION_CLOSED = "recover.on-session-closed";
     private static final String SPEC_CONFIG_RECOVER_ON_CONNECTION_RESTORED = "recover.on-connection-restored";
+
+    private static final String AMQP_10_CONFIG_PATH = "ditto.connectivity.connection.amqp10";
 
     private final JmsConnectionFactory jmsConnectionFactory;
 
@@ -107,14 +112,16 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     @SuppressWarnings("unused")
     private AmqpClientActor(final Connection connection,
             @Nullable final ActorRef proxyActor,
-            final ActorRef connectionActor) {
+            final ActorRef connectionActor,
+            final Config amqp10configOverride) {
 
         super(connection, proxyActor, connectionActor);
 
-        final ConnectionConfig connectionConfig =
-                DittoConnectivityConfig.of(
-                        DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config()))
-                        .getConnectionConfig();
+        final Config systemConfig = getContext().getSystem().settings().config();
+        final Config mergedConfig = systemConfig.withValue(AMQP_10_CONFIG_PATH,
+                amqp10configOverride.withFallback(systemConfig.getConfig(AMQP_10_CONFIG_PATH)).root());
+        final ConnectionConfig connectionConfig = DittoConnectivityConfig.of(
+                DefaultScopedConfig.dittoScoped(mergedConfig)).getConnectionConfig();
         final Amqp10Config amqp10Config = connectionConfig.getAmqp10Config();
 
         this.jmsConnectionFactory =
@@ -156,7 +163,25 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
     public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor) {
 
-        return Props.create(AmqpClientActor.class, validateConnection(connection), proxyActor, connectionActor);
+        return Props.create(AmqpClientActor.class, validateConnection(connection), proxyActor, connectionActor,
+                ConfigFactory.empty());
+    }
+
+    /**
+     * Creates Akka configuration object for this actor.
+     *
+     * @param connection the connection.
+     * @param proxyActor the actor used to send signals into the ditto cluster.
+     * @param connectionActor the connectionPersistenceActor which created this client.
+     * @param amqp10configOverride an override for Amqp10Config values -
+     * as Typesafe {@code Config} because this one is serializable in Akka by default.
+     * @return the Akka configuration Props object.
+     */
+    public static Props props(final Connection connection, final ActorRef proxyActor, final ActorRef connectionActor,
+            final Config amqp10configOverride) {
+
+        return Props.create(AmqpClientActor.class, validateConnection(connection), proxyActor, connectionActor,
+                amqp10configOverride);
     }
 
     /**
@@ -168,7 +193,7 @@ public final class AmqpClientActor extends BaseClientActor implements ExceptionL
      * @param jmsConnectionFactory the JMS connection factory.
      * @return the Akka configuration Props object.
      */
-    public static Props props(final Connection connection, @Nullable final ActorRef proxyActor,
+    static Props propsForTest(final Connection connection, @Nullable final ActorRef proxyActor,
             final ActorRef connectionActor, final JmsConnectionFactory jmsConnectionFactory) {
 
         return Props.create(AmqpClientActor.class, validateConnection(connection),
