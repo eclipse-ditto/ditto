@@ -110,7 +110,7 @@ public final class DittoDurationValueValidatorTest {
 
     @Test
     public void acceptDittoDurationStringWithInvalidTimeUnit() {
-        final String invalidDittoDurationString = "1h";
+        final String invalidDittoDurationString = "1d";
 
         assertThatExceptionOfType(DittoHeaderInvalidException.class)
                 .isThrownBy(() -> underTest.accept(DittoHeaderDefinition.TIMEOUT, invalidDittoDurationString))

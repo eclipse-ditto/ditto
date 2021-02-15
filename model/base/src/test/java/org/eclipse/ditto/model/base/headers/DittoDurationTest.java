@@ -114,12 +114,6 @@ public final class DittoDurationTest {
     }
 
     @Test
-    public void createDittoDurationFromStringHoursFails() {
-        assertThatExceptionOfType(NumberFormatException.class)
-                .isThrownBy(() -> DittoDuration.parseDuration("1h"));
-    }
-
-    @Test
     public void tryToParseEmptyString() {
         assertThatExceptionOfType(NumberFormatException.class)
                 .isThrownBy(() -> DittoDuration.parseDuration(""))
