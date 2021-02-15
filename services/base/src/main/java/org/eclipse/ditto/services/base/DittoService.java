@@ -36,6 +36,7 @@ import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
+import org.eclipse.ditto.services.utils.devops.DittoDevOpsCommandsActor;
 import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.services.utils.health.status.StatusSupplierActor;
 import org.eclipse.ditto.services.utils.metrics.config.MetricsConfig;
@@ -61,7 +62,6 @@ import akka.actor.CoordinatedShutdown;
 import akka.actor.Props;
 import akka.cluster.Cluster;
 import akka.cluster.pubsub.DistributedPubSub;
-import akka.http.javadsl.ConnectHttp;
 import akka.http.javadsl.Http;
 import akka.http.javadsl.model.Uri;
 import akka.http.javadsl.server.Route;
@@ -363,7 +363,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         startActor(actorSystem, StatusSupplierActor.props(rootActorName), StatusSupplierActor.ACTOR_NAME);
     }
 
-    private ActorRef startActor(final ActorSystem actorSystem, final Props actorProps, final String actorName) {
+    protected ActorRef startActor(final ActorSystem actorSystem, final Props actorProps, final String actorName) {
         logStartingActor(actorName);
         return actorSystem.actorOf(actorProps, actorName);
     }
@@ -373,13 +373,13 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     }
 
     /**
-     * Starts the {@link org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor}.
+     * Starts the {@link org.eclipse.ditto.services.utils.devops.DittoDevOpsCommandsActor}.
      * May be overridden to change the way how the actor is started.
      *
      * @param actorSystem Akka actor system for starting actors.
      */
     protected void startDevOpsCommandsActor(final ActorSystem actorSystem) {
-        startActor(actorSystem, DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), serviceName,
+        startActor(actorSystem, DittoDevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), serviceName,
                 InstanceIdentifierSupplier.getInstance().get()), DevOpsCommandsActor.ACTOR_NAME);
     }
 

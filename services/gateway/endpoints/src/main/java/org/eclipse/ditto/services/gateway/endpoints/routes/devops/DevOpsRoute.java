@@ -33,7 +33,7 @@ import org.eclipse.ditto.services.gateway.endpoints.routes.AbstractRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.QueryParametersToHeadersMap;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
-import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
+import org.eclipse.ditto.services.utils.devops.DittoDevOpsCommandsActor;
 import org.eclipse.ditto.signals.commands.common.RetrieveConfig;
 import org.eclipse.ditto.signals.commands.devops.ChangeLogLevel;
 import org.eclipse.ditto.signals.commands.devops.DevOpsCommand;
@@ -269,7 +269,7 @@ public final class DevOpsRoute extends AbstractRoute {
             final DittoHeaders dittoHeaders) {
 
         final DittoHeaders headersWithAggregate = dittoHeaders.toBuilder()
-                .putHeader(DevOpsCommandsActor.AGGREGATE_HEADER,
+                .putHeader(DittoDevOpsCommandsActor.AGGREGATE_HEADER,
                         String.valueOf(serviceName == null || instance == null))
                 .build();
 
