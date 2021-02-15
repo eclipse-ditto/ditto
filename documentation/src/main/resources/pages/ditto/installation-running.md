@@ -28,6 +28,8 @@ docker-compose logs -f
 You have now running:
 * a MongoDB as backing datastore of Ditto (not part of Ditto but started via Docker),
 * Ditto microservices:
+   * Concierge,
+   * Connectivity,  
    * Policies,
    * Things,
    * Thing-Search,
@@ -57,3 +59,6 @@ For removing the stack and clearing the MongoDB completely, execute:
 ```bash
 docker-compose down
 ```
+
+## Runtime configuration
+
