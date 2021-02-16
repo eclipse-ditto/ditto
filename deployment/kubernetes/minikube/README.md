@@ -52,8 +52,17 @@ kubectl create configmap swagger-ui-api --from-file=$PWD/documentation/src/main/
 ### Start Eclipse Ditto
 
 #### Start MongoDB
+There are two ways starting a MongoDB instance.
+Either use a simple MongoDB container without persistence.
 ```bash
 kubectl apply -f deployment/kubernetes/deploymentFiles/mongodb/mongodb.yaml
+```
+
+Or use the stateful MongoDB set with a local persistent volume.
+```bash
+kubectl apply -f deployment/kubernetes/deploymentFiles/mongodb-statefulset/storage-class.yaml
+envsubst < deployment/kubernetes/deploymentFiles/mongodb-statefulset/persistent-volume.yaml | kubectl apply -f -
+kubectl apply -f deployment/kubernetes/deploymentFiles/mongodb-statefulset/mongodb-statefulset.yaml
 ```
 
 #### Start Ditto services
