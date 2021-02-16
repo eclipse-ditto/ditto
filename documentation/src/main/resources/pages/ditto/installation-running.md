@@ -26,7 +26,9 @@ Now you have running:
    * Things,
    * Thing-Search,
    * Gateway,
-* an instance of nginx acting as a reverse proxy performing a simple "basic authentication" listening on port `8080`
-   * including some static HTTP + API documentation on [http://localhost:8080](http://localhost:8080).
+* an instance of nginx acting as a reverse proxy performing a simple "basic authentication" listening on a local port 
+   * including some static HTTP + API documentation
+
+The running port on which Ditto can be accessed is described in the Readme of the respective deployment section.
 
 If you want to change the MongoDB config or Ditto config please have a look here: [Operating Ditto](installation-operating.html)
