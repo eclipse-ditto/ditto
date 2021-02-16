@@ -34,11 +34,13 @@ public final class DefaultReconnectConfig implements ReconnectConfig {
     private final Duration interval;
     private final RateConfig rateConfig;
     private final int readJournalBatchSize;
+    private final int readSnapBatchSize;
 
     private DefaultReconnectConfig(final ScopedConfig config, final RateConfig theRateConfig) {
         initialDelay = config.getDuration(ReconnectConfigValue.INITIAL_DELAY.getConfigPath());
         interval = config.getDuration(ReconnectConfigValue.INTERVAL.getConfigPath());
         readJournalBatchSize = config.getInt(ReconnectConfigValue.READ_JOURNAL_BATCH_SIZE.getConfigPath());
+        readSnapBatchSize = config.getInt(ReconnectConfigValue.READ_SNAP_BATCH_SIZE.getConfigPath());
         rateConfig = theRateConfig;
     }
 
@@ -69,6 +71,11 @@ public final class DefaultReconnectConfig implements ReconnectConfig {
     @Override
     public int getReadJournalBatchSize() {
         return readJournalBatchSize;
+    }
+
+    @Override
+    public int getReadSnapBatchSize() {
+        return readSnapBatchSize;
     }
 
     @Override

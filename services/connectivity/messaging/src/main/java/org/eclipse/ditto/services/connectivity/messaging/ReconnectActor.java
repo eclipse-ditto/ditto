@@ -96,7 +96,7 @@ public final class ReconnectActor extends AbstractActor {
                 readJournal.getJournalPids(reconnectConfig.getReadJournalBatchSize(), reconnectConfig.getInterval(),
                         materializer);
         currentPersistenceFromSnapIdsSourceSupplier = () ->
-                readJournal.getNewestSnapshotsAbove("", 4, materializer);
+                readJournal.getNewestSnapshotsAbove("", reconnectConfig.getReadSnapBatchSize(), materializer);
 
     }
 
