@@ -54,7 +54,6 @@ import org.eclipse.ditto.services.connectivity.config.ConnectivityConfigProvider
 import org.eclipse.ditto.services.connectivity.config.mapping.MapperLimitsConfig;
 import org.eclipse.ditto.services.connectivity.messaging.internal.ssl.SSLContextCreator;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.ConnectionLogger;
-import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectionIdPlaceholder;
 import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders;
 
 import akka.actor.ActorSystem;

@@ -65,7 +65,6 @@ import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActorStar
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.InboundSignal;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
-import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectionIdPlaceholder;
 import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;

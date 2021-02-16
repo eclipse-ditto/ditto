@@ -50,12 +50,12 @@ import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
-import org.eclipse.ditto.services.models.connectivity.placeholders.SourceAddressPlaceholder;
-import org.eclipse.ditto.services.models.connectivity.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholders.SourceAddressPlaceholder;
+import org.eclipse.ditto.services.models.connectivity.placeholders.ThingPlaceholder;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
