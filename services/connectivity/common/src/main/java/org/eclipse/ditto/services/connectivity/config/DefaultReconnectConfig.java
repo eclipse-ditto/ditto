@@ -95,12 +95,13 @@ public final class DefaultReconnectConfig implements ReconnectConfig {
         return Objects.equals(initialDelay, that.initialDelay) &&
                 Objects.equals(interval, that.interval) &&
                 readJournalBatchSize == that.readJournalBatchSize &&
+                readSnapBatchSize == that.readSnapBatchSize &&
                 Objects.equals(rateConfig, that.rateConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(initialDelay, interval, readJournalBatchSize, rateConfig);
+        return Objects.hash(initialDelay, interval, readJournalBatchSize, readSnapBatchSize, rateConfig);
     }
 
     @Override
@@ -109,6 +110,7 @@ public final class DefaultReconnectConfig implements ReconnectConfig {
                 "initialDelay=" + initialDelay +
                 ", interval=" + interval +
                 ", readJournalBatchSize=" + readJournalBatchSize +
+                ", readSnapBatchSize=" + readSnapBatchSize +
                 ", rateConfig=" + rateConfig +
                 "]";
     }
