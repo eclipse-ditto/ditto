@@ -417,13 +417,11 @@ public final class MongoClientWrapper implements DittoMongoClient {
                         .eventLoopGroup(eventLoopGroup).build())
                         .applyToSslSettings(builder -> builder
                                 .context(tryToCreateAndInitSslContext())
-                                .enabled(true)
-                                .build());
+                                .enabled(true));
             } else if (null != connectionString) {
                 eventLoopGroup = null;
                 mongoClientSettingsBuilder.applyToSslSettings(builder -> builder
-                        .applyConnectionString(connectionString)
-                        .build());
+                        .applyConnectionString(connectionString));
             }
         }
 
