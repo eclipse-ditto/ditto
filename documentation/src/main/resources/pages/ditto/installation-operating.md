@@ -13,6 +13,23 @@ This page shows the basics for operating Ditto.
 
 ## Configuration
 
+Ditto has many config parameters which can be set in the config files or via environment variables.
+This section will cover some of Ditto's config parameters.
+
+### MongoDB configuration
+If you choose not to use the MongoDB container and instead use a dedicated MongoDB you can use
+the following environment variables in order to configure the connection to the MongoDB.
+
+* MONGO_DB_URI: Connection string to MongoDB
+* MONGO_DB_SSL_ENABLED: Enabled SSL connection to MongoDB
+* MONGO_DB_CONNECTION_POOL_SIZE: Configure MongoDB connection pool size
+* MONGO_DB_READ_PREFERENCE: Configure MongoDB read preference
+* MONGO_DB_WRITE_CONCERN: Configure MongoDB write concern
+* AKKA_PERSISTENCE_MONGO_JOURNAL_WRITE_CONCERN: Configure Akka Persistence MongoDB journal write concern
+* AKKA_PERSISTENCE_MONGO_SNAPS_WRITE_CONCERN: Configure Akka Persistence MongoDB snapshot write concern
+
+### Ditto configuration
+
 Each of Ditto's microservice has many options for configuration, e.g. timeouts, cache sizes, etc.
 
 In order to have a look at all possible configuration options and what default values they have, here are the configuration
@@ -35,9 +52,9 @@ to supply additional configuration one has to add the variable in the correspond
 `docker-compose.yml` file.
 
 ```yml
-    ...
-    # Alternative approach for configuration of the service
-    command: java -Dditto.gateway.authentication.devops.password=foobar -jar starter.jar
+...
+# Alternative approach for configuration of the service
+command: java -Dditto.gateway.authentication.devops.password=foobar -jar starter.jar
 ```
 
 The executable for the microservice is called `starter.jar`. The configuration variables have to be set before
