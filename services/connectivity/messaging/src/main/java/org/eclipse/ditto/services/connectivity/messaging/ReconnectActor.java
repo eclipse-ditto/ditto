@@ -14,9 +14,14 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import org.bson.Document;
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
@@ -27,6 +32,8 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionNotAccessibleException;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveAllConnectionIds;
+import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveAllConnectionIdsResponse;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
 
@@ -37,6 +44,7 @@ import akka.actor.Cancellable;
 import akka.actor.Props;
 import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
+import akka.pattern.Patterns;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Source;
 import scala.concurrent.duration.FiniteDuration;
@@ -54,10 +62,13 @@ public final class ReconnectActor extends AbstractActor {
 
     private static final String CORRELATION_ID_PREFIX = "reconnect-actor-triggered:";
 
+    private static final String DOCUMENT_FIELD_TO_FILTER = "_id";
+
     private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
 
     private final ActorRef connectionShardRegion;
     private final Supplier<Source<String, NotUsed>> currentPersistenceIdsSourceSupplier;
+    private final Supplier<Source<Document, NotUsed>> currentPersistenceFromSnapIdsSourceSupplier;
     private final ReconnectConfig reconnectConfig;
     private final Materializer materializer;
 
@@ -70,6 +81,7 @@ public final class ReconnectActor extends AbstractActor {
 
         this.connectionShardRegion = connectionShardRegion;
         this.currentPersistenceIdsSourceSupplier = currentPersistenceIdsSourceSupplier;
+        this.currentPersistenceFromSnapIdsSourceSupplier = null;
         materializer = Materializer.createMaterializer(this::getContext);
         reconnectConfig = getReconnectConfig(getContext());
     }
@@ -83,6 +95,9 @@ public final class ReconnectActor extends AbstractActor {
         currentPersistenceIdsSourceSupplier = () ->
                 readJournal.getJournalPids(reconnectConfig.getReadJournalBatchSize(), reconnectConfig.getInterval(),
                         materializer);
+        currentPersistenceFromSnapIdsSourceSupplier = () ->
+                readJournal.getNewestSnapshotsAbove("", 4, materializer);
+
     }
 
     /**
@@ -164,12 +179,27 @@ public final class ReconnectActor extends AbstractActor {
                                 exception.getClass().getSimpleName(),
                                 exception.getDittoHeaders().getCorrelationId().orElse("<unknown>"),
                                 exception.getMessage()))
+                .match(RetrieveAllConnectionIds.class, this::getAllConnectionIDs)
                 .matchEquals(ReconnectMessages.START_RECONNECT, msg -> handleStartReconnect())
                 .matchEquals(ReconnectMessages.END_RECONNECT, msg -> handleEndReconnect())
                 .matchAny(m -> {
                     log.warning("Unknown message: {}", m);
                     unhandled(m);
                 }).build();
+    }
+
+    private void getAllConnectionIDs(final RetrieveAllConnectionIds cmd) {
+        Set<String> connectionIds = ConcurrentHashMap.newKeySet();
+        final CompletionStage<RetrieveAllConnectionIdsResponse> retrieveAllConnectionIdsResponse =
+                currentPersistenceFromSnapIdsSourceSupplier.get()
+                        .map(document -> document.getString(DOCUMENT_FIELD_TO_FILTER))
+                        .runForeach(connectionIds::add, materializer)
+                        .thenCompose(aVoid -> currentPersistenceIdsSourceSupplier.get() //Das wird nicht mehr
+                                .runForeach(connectionIds::add, materializer))
+                        .thenApply(aVoid -> RetrieveAllConnectionIdsResponse.of(JsonArray.of(connectionIds),
+                                cmd.getDittoHeaders()));
+
+        Patterns.pipe(retrieveAllConnectionIdsResponse, getContext().dispatcher()).to(getSender());
     }
 
     private void handleStartReconnect() {
