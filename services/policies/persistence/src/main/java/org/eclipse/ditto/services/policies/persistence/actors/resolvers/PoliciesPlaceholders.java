@@ -10,14 +10,16 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.placeholders;
+package org.eclipse.ditto.services.policies.persistence.actors.resolvers;
 
-import org.eclipse.ditto.model.policies.PolicyEntry;
+public final class PoliciesPlaceholders {
 
-/**
- * A {@link Placeholder} requiring a {@link PolicyEntry} to resolve information of an policy entry.
- *
- * @since 2.0.0
- */
-public interface PolicyEntryPlaceholder extends Placeholder<PolicyEntry> {
+    private PoliciesPlaceholders() {
+        // This is a class providing static factory methods.
+    }
+
+    public static PolicyEntryPlaceholder newPolicyEntryPlaceholder() {
+        return ImmutablePolicyEntryPlaceholder.INSTANCE;
+    }
+
 }

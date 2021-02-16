@@ -21,7 +21,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
 import org.mutabilitydetector.unittesting.MutabilityMatchers;
@@ -44,18 +43,13 @@ public class ImmutableFunctionExpressionTest {
             "delete"
     )));
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
-    private static final ThingPlaceholder THING_PLACEHOLDER = PlaceholderFactory.newThingPlaceholder();
-
-    private static final String THING_NAME = "test-id";
-    private static final ThingId THING_ID = ThingId.of("test.namespace", THING_NAME);
 
     private static final String HEADER_KEY = "foo1";
     private static final String HEADER_VAL = "caMelCasedStuffFOOO";
     private static final Map<String, String> HEADERS = Collections.singletonMap(HEADER_KEY, HEADER_VAL);
 
     private static final ExpressionResolver EXPRESSION_RESOLVER = PlaceholderFactory.newExpressionResolver(
-            PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, HEADERS),
-            PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, THING_ID)
+            PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, HEADERS)
     );
 
     private static final ImmutableFunctionExpression UNDER_TEST = ImmutableFunctionExpression.INSTANCE;
@@ -89,19 +83,19 @@ public class ImmutableFunctionExpressionTest {
     @Test
     public void testUnknownFunction() {
         assertThatExceptionOfType(PlaceholderFunctionUnknownException.class).isThrownBy(() ->
-                UNDER_TEST.resolve("fn:unknown", PipelineElement.resolved(THING_ID.toString()), EXPRESSION_RESOLVER));
+                UNDER_TEST.resolve("fn:unknown", PipelineElement.resolved(HEADER_VAL), EXPRESSION_RESOLVER));
     }
 
     @Test
     public void testFunctionUpper() {
-        assertThat(UNDER_TEST.resolve("fn:upper()", PipelineElement.resolved(THING_ID.toString()), EXPRESSION_RESOLVER))
-                .contains(THING_ID.toString().toUpperCase());
+        assertThat(UNDER_TEST.resolve("fn:upper()", PipelineElement.resolved(HEADER_VAL), EXPRESSION_RESOLVER))
+                .contains(HEADER_VAL.toUpperCase());
     }
 
     @Test
     public void testFunctionUpperWrongSignature() {
         assertThatExceptionOfType(PlaceholderFunctionSignatureInvalidException.class).isThrownBy(() ->
-                UNDER_TEST.resolve("fn:upper('foo')", PipelineElement.resolved(THING_ID.toString()),
+                UNDER_TEST.resolve("fn:upper('foo')", PipelineElement.resolved(HEADER_VAL),
                         EXPRESSION_RESOLVER));
     }
 
@@ -114,7 +108,7 @@ public class ImmutableFunctionExpressionTest {
     @Test
     public void testFunctionLowerWrongSignature() {
         assertThatExceptionOfType(PlaceholderFunctionUnknownException.class).isThrownBy(() ->
-                UNDER_TEST.resolve("fn:lower", PipelineElement.resolved(THING_ID.toString()), EXPRESSION_RESOLVER));
+                UNDER_TEST.resolve("fn:lower", PipelineElement.resolved(HEADER_VAL), EXPRESSION_RESOLVER));
     }
 
     @Test
@@ -138,8 +132,8 @@ public class ImmutableFunctionExpressionTest {
 
     @Test
     public void testFunctionDefaultWhenInputEmptyWithPlaceholder() {
-        assertThat(UNDER_TEST.resolve("fn:default(thing:id)", PipelineElement.unresolved(), EXPRESSION_RESOLVER))
-                .contains(THING_ID.toString());
+        assertThat(UNDER_TEST.resolve("fn:default(header:foo1)", PipelineElement.unresolved(), EXPRESSION_RESOLVER))
+                .contains(HEADER_VAL);
     }
 
     @Test
@@ -150,16 +144,15 @@ public class ImmutableFunctionExpressionTest {
 
     @Test
     public void testFunctionSubstringBefore() {
-        assertThat(UNDER_TEST.resolve("fn:substring-before(\"-\")", PipelineElement.resolved(THING_NAME),
-                EXPRESSION_RESOLVER))
-                .contains("test");
+        assertThat(UNDER_TEST.resolve("fn:substring-before(\"s\")", PipelineElement.resolved(HEADER_VAL),
+                EXPRESSION_RESOLVER)).contains("caMelCa");
     }
 
     @Test
     public void testFunctionSubstringAfter() {
-        assertThat(UNDER_TEST.resolve("fn:substring-after(\"-\")", PipelineElement.resolved(THING_NAME),
+        assertThat(UNDER_TEST.resolve("fn:substring-after(\"s\")", PipelineElement.resolved(HEADER_VAL),
                 EXPRESSION_RESOLVER))
-                .contains("id");
+                .contains("edStuffFOOO");
     }
 
     @Test
@@ -178,7 +171,7 @@ public class ImmutableFunctionExpressionTest {
 
     @Test
     public void testFunctionFilterWhenConditionSucceedsWithPlaceholder() {
-        assertThat(UNDER_TEST.resolve(String.format("fn:filter(thing:id,'eq','%s')", THING_ID.toString()),
+        assertThat(UNDER_TEST.resolve(String.format("fn:filter(header:foo1,'eq','%s')", HEADER_VAL),
                 PipelineElement.resolved(HEADER_VAL), EXPRESSION_RESOLVER))
                 .contains(HEADER_VAL);
     }

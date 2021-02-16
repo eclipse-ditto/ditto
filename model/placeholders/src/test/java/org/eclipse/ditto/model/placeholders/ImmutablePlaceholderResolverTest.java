@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
 import org.mutabilitydetector.unittesting.MutabilityAssert;
@@ -58,21 +57,5 @@ public class ImmutablePlaceholderResolverTest {
         assertThat(underTest.resolve("two"))
                 .contains("2");
     }
-
-    @Test
-    public void testPlaceholderResolvementBasedOnThingId() {
-        final ThingId thingId = ThingId.of("org.eclipse.ditto", "foobar199");
-
-        final ImmutablePlaceholderResolver<CharSequence> underTest = new ImmutablePlaceholderResolver<>(
-                PlaceholderFactory.newThingPlaceholder(), thingId);
-
-        assertThat(underTest.resolve("id"))
-                .contains(thingId.toString());
-        assertThat(underTest.resolve("namespace"))
-                .contains("org.eclipse.ditto");
-        assertThat(underTest.resolve("name"))
-                .contains("foobar199");
-    }
-
 
 }

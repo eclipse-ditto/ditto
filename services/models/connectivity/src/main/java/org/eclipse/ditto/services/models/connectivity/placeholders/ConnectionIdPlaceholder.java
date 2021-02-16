@@ -22,11 +22,4 @@ import org.eclipse.ditto.model.placeholders.Placeholder;
  */
 public interface ConnectionIdPlaceholder extends Placeholder<ConnectionId> {
 
-    /**
-     * @return the singleton instance of {@link ConnectionIdPlaceholder}.
-     * @since 1.4.0
-     */
-    static ConnectionIdPlaceholder newConnectionIdPlaceholder() {
-        return ImmutableConnectionIdPlaceholder.INSTANCE;
-    }
 }

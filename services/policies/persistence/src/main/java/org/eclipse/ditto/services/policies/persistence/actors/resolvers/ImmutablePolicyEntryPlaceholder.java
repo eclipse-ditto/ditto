@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.placeholders;
+package org.eclipse.ditto.services.policies.persistence.actors.resolvers;
 
 import java.util.Collections;
 import java.util.List;

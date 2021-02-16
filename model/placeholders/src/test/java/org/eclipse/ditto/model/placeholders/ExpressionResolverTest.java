@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -27,11 +26,6 @@ import org.junit.Test;
 public class ExpressionResolverTest {
 
     private static final HeadersPlaceholder HEADERS_PLACEHOLDER = PlaceholderFactory.newHeadersPlaceholder();
-    private static final ThingPlaceholder THING_PLACEHOLDER = PlaceholderFactory.newThingPlaceholder();
-
-    private static final String THING_NS = "the.thing";
-    private static final String THING_NAME = "the.id:the-rest";
-    private static final ThingId THING_ID = ThingId.of(THING_NS, THING_NAME);
 
     private ExpressionResolver expressionResolver;
 
@@ -41,8 +35,7 @@ public class ExpressionResolverTest {
         headersMap.put("header-name", "header-val");
         headersMap.put("header:with:colon", "value:with:colon");
         expressionResolver = PlaceholderFactory.newExpressionResolver(
-                PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, headersMap),
-                PlaceholderFactory.newPlaceholderResolver(THING_PLACEHOLDER, THING_ID)
+                PlaceholderFactory.newPlaceholderResolver(HEADERS_PLACEHOLDER, headersMap)
         );
     }
 
@@ -73,21 +66,22 @@ public class ExpressionResolverTest {
 
     @Test
     public void testPlaceholderFunctionSubstringBefore() {
-        assertThat(expressionResolver.resolve("{{ thing:namespace }}:{{thing:name | fn:substring-before(':') }}"))
-                .contains(THING_NS + ":" + "the.id");
+        assertThat(expressionResolver.resolve(
+                "{{ header:header:with:colon }}:{{header:header:with:colon| fn:substring-before(':') }}"))
+                .contains("value:with:colon:value");
     }
 
     @Test
     public void testPlaceholderFunctionSubstringBeforeWithDefaultFallback() {
         assertThat(expressionResolver.resolve(
-                "{{ thing:namespace }}:{{thing:name | fn:substring-before('_') | fn:default(thing:name)}}"))
-                .contains(THING_ID.toString());
+                "{{ header:header-name }}:{{header:header-name | fn:substring-before('_') | fn:default(header:header-name)}}"))
+                .contains("header-val:header-val");
     }
 
     @Test
     public void testPlaceholderFunctionSubstringAfterWithUpper() {
-        assertThat(expressionResolver.resolve("{{ thing:name | fn:substring-after(':') | fn:upper() }}"))
-                .contains("the-rest".toUpperCase());
+        assertThat(expressionResolver.resolve("{{ header:header:with:colon | fn:substring-after(':') | fn:upper() }}"))
+                .contains("WITH:COLON");
     }
 
     @Test

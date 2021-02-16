@@ -12,6 +12,8 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.mqtt.hivemq;
 
+import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newSourceAddressPlaceholder;
+
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
@@ -74,8 +76,7 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
         this.reconnectForRedelivery = reconnectForRedelivery;
         topicEnforcementFilterFactory = source.getEnforcement()
                 .map(enforcement -> EnforcementFactoryFactory
-                        .newEnforcementFilterFactory(enforcement,
-                                SourceAddressPlaceholder.newSourceAddressPlaceholder()))
+                        .newEnforcementFilterFactory(enforcement, newSourceAddressPlaceholder()))
                 .orElse(null);
     }
 

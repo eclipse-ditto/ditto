@@ -10,11 +10,13 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.placeholders;
+package org.eclipse.ditto.services.models.connectivity.placeholders;
 
+
+import org.eclipse.ditto.model.placeholders.Placeholder;
 
 /**
- * A {@link Placeholder} that requires a {@code String} (a valid Thing ID) to resolve its placeholders.
+ * A {@link org.eclipse.ditto.model.placeholders.Placeholder} that requires a {@code String} (a valid Thing ID) to resolve its placeholders.
  */
 public interface ThingPlaceholder extends Placeholder<CharSequence> {
 }

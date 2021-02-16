@@ -32,10 +32,6 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-base</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-things</artifactId>
-        </dependency>
 
         <!-- ### Testing ### -->
         <dependency>
@@ -75,6 +71,14 @@
                             <!--<exclude></exclude>-->
                         </excludes>
                     </parameter>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>9</source>
+                    <target>9</target>
                 </configuration>
             </plugin>
         </plugins>

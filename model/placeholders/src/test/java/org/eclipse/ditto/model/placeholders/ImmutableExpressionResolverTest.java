@@ -15,11 +15,10 @@ package org.eclipse.ditto.model.placeholders;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.things.ThingId;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mutabilitydetector.unittesting.AllowedReason;
@@ -33,9 +32,6 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public class ImmutableExpressionResolverTest {
 
-    private static final String THING_NAME = "foobar199";
-    private static final String THING_NAMESPACE = "org.eclipse.ditto";
-    private static final ThingId THING_ID = ThingId.of(THING_NAMESPACE, THING_NAME);
     private static final Map<String, String> KNOWN_HEADERS =
             DittoHeaders.newBuilder().putHeader("one", "1").putHeader("two", "2").build();
     private static final String UNKNOWN_HEADER_EXPRESSION = "{{ header:missing }}";
@@ -63,23 +59,13 @@ public class ImmutableExpressionResolverTest {
     public static void setupClass() {
         final ImmutablePlaceholderResolver<Map<String, String>> headersResolver =
                 new ImmutablePlaceholderResolver<>(PlaceholderFactory.newHeadersPlaceholder(), KNOWN_HEADERS);
-        final ImmutablePlaceholderResolver<CharSequence> thingResolver = new ImmutablePlaceholderResolver<>(
-                PlaceholderFactory.newThingPlaceholder(), THING_ID);
-
-        underTest = new ImmutableExpressionResolver(Arrays.asList(headersResolver, thingResolver));
+        underTest = new ImmutableExpressionResolver(Collections.singletonList(headersResolver));
     }
 
     @Test
     public void testSuccessfulPlaceholderResolution() {
-
-        assertThat(underTest.resolve("{{ header:one }}"))
-                .contains(KNOWN_HEADERS.get("one"));
-        assertThat(underTest.resolve("{{ header:two }}"))
-                .contains(KNOWN_HEADERS.get("two"));
-        assertThat(underTest.resolve("{{ thing:id }}"))
-                .contains(THING_ID.toString());
-        assertThat(underTest.resolve("{{ thing:name }}"))
-                .contains(THING_NAME);
+        assertThat(underTest.resolve("{{ header:one }}")).contains(KNOWN_HEADERS.get("one"));
+        assertThat(underTest.resolve("{{ header:two }}")).contains(KNOWN_HEADERS.get("two"));
     }
 
     @Test
@@ -107,12 +93,6 @@ public class ImmutableExpressionResolverTest {
                 .contains("fallback");
         assertThat(underTest.resolve("{{ header:unknown | fn:default('bar') | fn:upper() }}"))
                 .contains("BAR");
-        assertThat(underTest.resolve("{{ thing:id | fn:substring-before(':') }}"))
-                .contains(THING_NAMESPACE);
-        assertThat(underTest.resolve("{{ thing:id | fn:substring-before(':') | fn:default('foo') }}"))
-                .contains(THING_NAMESPACE);
-        assertThat(underTest.resolve("any/prefix/{{ thing:id | fn:substring-before(':') | fn:default('foo') }}"))
-                .contains("any/prefix/" + THING_NAMESPACE);
         assertThat(underTest.resolve("{{ header:unknown | fn:default(' fallback-spaces  ') }}"))
                 .contains(" fallback-spaces  ");
 
@@ -123,9 +103,6 @@ public class ImmutableExpressionResolverTest {
                 .contains("BAR");
         assertThat(underTest.resolve("{{ header:unknown | fn:default(  'bar'  ) |fn:upper(  ) }}"))
                 .contains("BAR");
-        assertThat(underTest.resolve(
-                "{{ thing:id | fn:substring-before(\"|\") | fn:default('bAz') | fn:lower() }}"))
-                .contains("baz");
     }
 
     @Test
@@ -151,10 +128,7 @@ public class ImmutableExpressionResolverTest {
 
     @Test
     public void testSuccessfulSinglePlaceholderResolution() {
-        assertThat(underTest.resolveAsPipelineElement("header:one"))
-                .contains(KNOWN_HEADERS.get("one"));
-        assertThat(underTest.resolveAsPipelineElement("thing:id"))
-                .contains(THING_ID.toString());
+        assertThat(underTest.resolveAsPipelineElement("header:one")).contains(KNOWN_HEADERS.get("one"));
     }
 
     @Test

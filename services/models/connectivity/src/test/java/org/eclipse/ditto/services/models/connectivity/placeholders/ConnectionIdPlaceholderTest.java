@@ -31,7 +31,7 @@
          final ConnectionId connectionId = ConnectionId.generateRandom();
 
          final PlaceholderResolver<ConnectionId> connectionIdResolver = PlaceholderFactory.newPlaceholderResolver(
-                 ConnectionIdPlaceholder.newConnectionIdPlaceholder(), connectionId);
+                 ConnectivityPlaceholders.newConnectionIdPlaceholder(), connectionId);
 
          final ExpressionResolver underTest =
                  PlaceholderFactory.newExpressionResolver(Collections.singletonList(connectionIdResolver));
@@ -45,7 +45,7 @@
          final ConnectionId connectionId = ConnectionId.generateRandom();
 
          final PlaceholderResolver<ConnectionId> underTest = PlaceholderFactory.newPlaceholderResolver(
-                 ConnectionIdPlaceholder.newConnectionIdPlaceholder(), connectionId);
+                 ConnectivityPlaceholders.newConnectionIdPlaceholder(), connectionId);
 
          assertThat(underTest.resolve("id"))
                  .contains(connectionId.toString());

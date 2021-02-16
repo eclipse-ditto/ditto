@@ -19,8 +19,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
-
 /**
  * Factory that creates instances of {@link Placeholder}, {@link PlaceholderResolver}s and {@link ExpressionResolver}s.
  */
@@ -31,42 +29,6 @@ public final class PlaceholderFactory {
      */
     public static HeadersPlaceholder newHeadersPlaceholder() {
         return ImmutableHeadersPlaceholder.INSTANCE;
-    }
-
-    /**
-     * @return new instance of the {@link ThingPlaceholder}
-     */
-    public static ThingPlaceholder newThingPlaceholder() {
-        return ImmutableThingPlaceholder.INSTANCE;
-    }
-
-    /**
-     * @return new instance of the {@link PolicyPlaceholder}
-     */
-    public static PolicyPlaceholder newPolicyPlaceholder() {
-        return ImmutablePolicyPlaceholder.INSTANCE;
-    }
-
-    /**
-     * @return new instance of the {@link FeaturePlaceholder}
-     * @since 1.5.0
-     */
-    public static FeaturePlaceholder newFeaturePlaceholder() {
-        return ImmutableFeaturePlaceholder.INSTANCE;
-    }
-
-    /**
-     * @return new instance of the {@link EntityPlaceholder}
-     */
-    public static EntityPlaceholder newEntityPlaceholder() {
-        return ImmutableEntityPlaceholder.INSTANCE;
-    }
-
-    /**
-     * @return the unique instance of the placeholder with prefix {@code request}.
-     */
-    public static Placeholder<AuthorizationContext> newRequestPlaceholder() {
-        return ImmutableRequestPlaceholder.INSTANCE;
     }
 
     /**
@@ -159,14 +121,6 @@ public final class PlaceholderFactory {
     private static ExpressionResolver newExpressionResolver(final List<PlaceholderResolver<?>> placeholderResolvers,
             final String stringUsedInPlaceholderValidation) {
         return new ImmutableExpressionResolver(placeholderResolvers, stringUsedInPlaceholderValidation);
-    }
-
-    /**
-     * @return new instance of the {@link PolicyEntryPlaceholder}
-     * @since 2.0.0
-     */
-    public static PolicyEntryPlaceholder newPolicyEntryPlaceholder() {
-        return ImmutablePolicyEntryPlaceholder.INSTANCE;
     }
 
     private PlaceholderFactory() {

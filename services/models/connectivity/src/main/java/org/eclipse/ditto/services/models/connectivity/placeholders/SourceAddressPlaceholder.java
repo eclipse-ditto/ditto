@@ -21,10 +21,4 @@ import org.eclipse.ditto.model.placeholders.Placeholder;
  */
 public interface SourceAddressPlaceholder extends Placeholder<String> {
 
-    /**
-     * @return new instance of the {@link SourceAddressPlaceholder}
-     */
-    static SourceAddressPlaceholder newSourceAddressPlaceholder() {
-        return ImmutableSourceAddressPlaceholder.INSTANCE;
-    }
 }

@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.placeholders;
+package org.eclipse.ditto.services.models.connectivity.placeholders;
 
 import java.util.Collections;
 import java.util.List;
@@ -21,6 +21,7 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
+import org.eclipse.ditto.model.placeholders.Placeholder;
 
 /**
  * Placeholder implementation that replaces {@code request} related things based on an {@link AuthorizationContext}.

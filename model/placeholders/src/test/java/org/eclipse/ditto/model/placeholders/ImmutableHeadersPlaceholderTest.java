@@ -13,6 +13,7 @@
 package org.eclipse.ditto.model.placeholders;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -69,4 +70,15 @@ public class ImmutableHeadersPlaceholderTest {
     public void testUnresolvableHeaderReturnsEmpty() {
         assertThat(UNDER_TEST.resolve(HEADERS, "thing_id")).isEmpty();
     }
+
+    @Test
+    public void testResolvingWithNull() {
+        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> UNDER_TEST.resolve(HEADERS, null));
+    }
+
+    @Test
+    public void testResolvingWithEmptyString() {
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> UNDER_TEST.resolve(HEADERS, ""));
+    }
+
 }

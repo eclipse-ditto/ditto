@@ -14,13 +14,13 @@ package org.eclipse.ditto.model.placeholders;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import org.eclipse.ditto.model.things.ThingId;
 import org.junit.Test;
 
 /**
@@ -30,19 +30,13 @@ public class PlaceholderFilterTest {
 
     private static final Map<String, String> HEADERS = new HashMap<>();
     private static final String DEVICE_ID = "device-12345";
-    private static final ThingId THING_ID = ThingId.of("eclipse", "ditto");
 
     private static final HeadersPlaceholder headersPlaceholder = PlaceholderFactory.newHeadersPlaceholder();
-    private static final ThingPlaceholder thingPlaceholder = PlaceholderFactory.newThingPlaceholder();
 
     private static final PlaceholderResolver[] filterChain = new PlaceholderResolver[]{
-            PlaceholderFactory.newPlaceholderResolver(headersPlaceholder, HEADERS),
-            PlaceholderFactory.newPlaceholderResolver(thingPlaceholder, THING_ID)
+            PlaceholderFactory.newPlaceholderResolver(headersPlaceholder, HEADERS)
     };
-    private static final Placeholder[] placeholders = new Placeholder[]{
-            headersPlaceholder,
-            thingPlaceholder
-    };
+    private static final Placeholder[] placeholders = new Placeholder[]{headersPlaceholder};
 
     static {
         HEADERS.put("device-id", DEVICE_ID);
@@ -60,77 +54,48 @@ public class PlaceholderFilterTest {
                 () -> PlaceholderFilter.apply("{{ header:unknown }}", HEADERS, headersPlaceholder));
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
                 () -> PlaceholderFilter.apply("{{ {{  header:device-id  }} }}", HEADERS, headersPlaceholder));
-        assertThat(PlaceholderFilter.apply(THING_ID.toString(), HEADERS, headersPlaceholder))
-                .isEqualTo(THING_ID.toString());
+        assertThat(PlaceholderFilter.apply(HEADERS.get("device-id"), HEADERS, headersPlaceholder))
+                .isEqualTo(DEVICE_ID);
         assertThat(
-                PlaceholderFilter.apply("eclipse:ditto:{{ header:device-id }}", HEADERS, headersPlaceholder)).isEqualTo(
-                "eclipse:ditto:device-12345");
-    }
-
-    @Test
-    public void testThingPlaceholder() {
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(
-                () -> thingPlaceholder.resolve(THING_ID, null));
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(
-                () -> thingPlaceholder.resolve(THING_ID, ""));
-        assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> PlaceholderFilter.apply("{{ header:unknown }}", THING_ID, thingPlaceholder));
-        assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> PlaceholderFilter.apply("{{ {{  thing:name  }} }}", THING_ID, thingPlaceholder));
-        assertThat(PlaceholderFilter.apply(THING_ID.toString(), THING_ID, thingPlaceholder))
-                .isEqualTo(THING_ID.toString());
-        assertThat(PlaceholderFilter.apply("prefix:{{ thing:namespace }}:{{ thing:name }}:suffix", THING_ID,
-                thingPlaceholder)).isEqualTo("prefix:eclipse:ditto:suffix");
-        assertThat(PlaceholderFilter.apply("testTargetAmqpCon4_{{thing:namespace}}:{{thing:name}}", THING_ID,
-                thingPlaceholder))
-                .isEqualTo("testTargetAmqpCon4_eclipse:ditto");
-
-        assertThat(PlaceholderFilter.apply("testTargetAmqpCon4_{{thing:id}}", THING_ID, thingPlaceholder)).isEqualTo(
-                "testTargetAmqpCon4_eclipse:ditto");
-    }
-
-
-    @Test
-    public void testThingPlaceholderDebug() {
-        assertThat(PlaceholderFilter.apply("testTargetAmqpCon4_{{thing:namespace}}:{{thing:name}}", THING_ID,
-                thingPlaceholder))
-                .isEqualTo("testTargetAmqpCon4_eclipse:ditto");
+                PlaceholderFilter.apply("http-protocol-adapter:commands:{{ header:device-id }}", HEADERS,
+                        headersPlaceholder)).isEqualTo(
+                "http-protocol-adapter:commands:device-12345");
     }
 
     @Test
     public void testValidPlaceholderVariations() {
 
         // no whitespace
-        assertThat(filterChain("{{thing:namespace}}/{{thing:name}}:{{header:device-id}}",
-                filterChain)).isEqualTo("eclipse/ditto:" + DEVICE_ID);
+        assertThat(filterChain("{{header:gateway-id}}/{{header:source}}:{{header:device-id}}",
+                filterChain)).isEqualTo("http-protocol-adapter/commands:" + DEVICE_ID);
 
         // multi whitespace
-        assertThat(filterChain("{{  thing:namespace  }}/{{  thing:name  }}:{{  header:device-id  }}",
-                filterChain)).isEqualTo("eclipse/ditto:" + DEVICE_ID);
+        assertThat(filterChain("{{  header:gateway-id  }}/{{  header:source  }}:{{  header:device-id  }}",
+                filterChain)).isEqualTo("http-protocol-adapter/commands:" + DEVICE_ID);
 
         // mixed whitespace
-        assertThat(filterChain("{{thing:namespace }}/{{  thing:name }}:{{header:device-id }}",
-                filterChain)).isEqualTo("eclipse/ditto:" + DEVICE_ID);
+        assertThat(filterChain("{{header:gateway-id }}/{{  header:source }}:{{header:device-id }}",
+                filterChain)).isEqualTo("http-protocol-adapter/commands:" + DEVICE_ID);
 
         // no separators
-        assertThat(filterChain("{{thing:namespace }}{{  thing:name }}{{header:device-id }}",
-                filterChain)).isEqualTo("eclipseditto" + DEVICE_ID);
+        assertThat(filterChain("{{header:gateway-id }}{{  header:source }}{{header:device-id }}",
+                filterChain)).isEqualTo("http-protocol-adaptercommands" + DEVICE_ID);
 
         // whitespace separators
-        assertThat(filterChain("{{thing:namespace }}  {{  thing:name }}  {{header:device-id }}",
-                filterChain)).isEqualTo("eclipse  ditto  " + DEVICE_ID);
+        assertThat(filterChain("{{header:gateway-id }}  {{  header:source }}  {{header:device-id }}",
+                filterChain)).isEqualTo("http-protocol-adapter  commands  " + DEVICE_ID);
 
         // pre/postfix whitespace
-        assertThat(filterChain("  {{thing:namespace }}{{  thing:name }}{{header:device-id }}  ",
-                filterChain)).isEqualTo("  eclipseditto" + DEVICE_ID + "  ");
+        assertThat(filterChain("  {{header:gateway-id }}{{  header:source }}{{header:device-id }}  ",
+                filterChain)).isEqualTo("  http-protocol-adaptercommands" + DEVICE_ID + "  ");
 
         // pre/postfix
-        assertThat(filterChain("-----{{thing:namespace }}{{  thing:name }}{{header:device-id }}-----",
-                filterChain)).isEqualTo("-----eclipseditto" + DEVICE_ID + "-----");
+        assertThat(filterChain("-----{{header:gateway-id }}{{  header:source }}{{header:device-id }}-----",
+                filterChain)).isEqualTo("-----http-protocol-adaptercommands" + DEVICE_ID + "-----");
 
         // pre/postfix and separators
-        assertThat(filterChain("-----{{thing:namespace }}///{{  thing:name }}///{{header:device-id }}-----",
-                filterChain)).isEqualTo("-----eclipse///ditto///" + DEVICE_ID + "-----");
+        assertThat(filterChain("-----{{header:gateway-id }}///{{  header:source }}///{{header:device-id }}-----",
+                filterChain)).isEqualTo("-----http-protocol-adapter///commands///" + DEVICE_ID + "-----");
     }
 
     @Test
@@ -138,52 +103,53 @@ public class PlaceholderFilterTest {
 
         // illegal braces combinations
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> filterChain("{{th{{ing:namespace }}{{  thing:name }}{{header:device-id }}",
+                () -> filterChain("{{he{{ader:namespace }}{{  header:source }}{{header:device-id }}",
                         filterChain));
 
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> filterChain("{{th}}ing:namespace }}{{  thing:name }}{{header:device-id }}",
+                () -> filterChain("{{he}}ader:namespace }}{{  header:source }}{{header:device-id }}",
                         filterChain));
 
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> filterChain("{{thing:nam{{espace }}{{  thing:name }}{{header:device-id }}",
+                () -> filterChain("{{header:nam{{espace }}{{  header:source }}{{header:device-id }}",
                         filterChain));
 
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> filterChain("{{thing:nam}}espace }}{{  thing:name }}{{header:device-id }}",
+                () -> filterChain("{{header:nam}}espace }}{{  header:source }}{{header:device-id }}",
                         filterChain));
     }
 
     @Test
     public void testValidate() {
         // no whitespace
-        PlaceholderFilter.validate("{{thing:namespace}}/{{thing:name}}:{{header:device-id}}", placeholders);
+        PlaceholderFilter.validate("{{header:gateway-id}}/{{header:source}}:{{header:device-id}}", placeholders);
 
         // multi whitespace
-        PlaceholderFilter.validate("{{  thing:namespace  }}/{{  thing:name  }}:{{  header:device-id  }}", placeholders);
+        PlaceholderFilter.validate("{{  header:gateway-id  }}/{{  header:source  }}:{{  header:device-id  }}",
+                placeholders);
 
         // mixed whitespace
-        PlaceholderFilter.validate("{{thing:namespace }}/{{  thing:name }}:{{header:device-id }}", placeholders);
+        PlaceholderFilter.validate("{{header:gateway-id }}/{{  header:source }}:{{header:device-id }}", placeholders);
 
         // no separators
-        PlaceholderFilter.validate("{{thing:namespace }}{{  thing:name }}{{header:device-id }}", placeholders);
+        PlaceholderFilter.validate("{{header:gateway-id }}{{  header:source }}{{header:device-id }}", placeholders);
 
         // whitespace separators
-        PlaceholderFilter.validate("{{thing:namespace }}  {{  thing:name }}  {{header:device-id }}", placeholders);
+        PlaceholderFilter.validate("{{header:gateway-id }}  {{  header:source }}  {{header:device-id }}", placeholders);
 
         // pre/postfix whitespace
-        PlaceholderFilter.validate("  {{thing:namespace }}{{  thing:name }}{{header:device-id }}  ", placeholders);
+        PlaceholderFilter.validate("  {{header:gateway-id }}{{  header:source }}{{header:device-id }}  ", placeholders);
 
         // pre/postfix
-        PlaceholderFilter.validate("-----{{thing:namespace }}{{  thing:name }}{{header:device-id }}-----",
+        PlaceholderFilter.validate("-----{{header:gateway-id }}{{  header:source }}{{header:device-id }}-----",
                 placeholders);
 
         // pre/postfix and separators
-        PlaceholderFilter.validate("-----{{thing:namespace }}///{{  thing:name }}///{{header:device-id }}-----",
+        PlaceholderFilter.validate("-----{{header:gateway-id }}///{{  header:source }}///{{header:device-id }}-----",
                 placeholders);
 
         // placeholders with pipeline functions
-        PlaceholderFilter.validate("{{ thing:namespace }}:{{thing:id | fn:substring-after(':')}}",
+        PlaceholderFilter.validate("{{ header:gateway-id }}:{{header:device-id | fn:substring-after(':')}}",
                 placeholders);
     }
 
@@ -196,20 +162,23 @@ public class PlaceholderFilterTest {
 
         // illegal braces combinations
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> PlaceholderFilter.validate("{{th{{ing:namespace }}{{  thing:name }}{{header:device-id }}",
+                () -> PlaceholderFilter.validate("{{he{{ader:gateway-id }}{{  header:source }}{{header:device-id }}",
                         placeholders));
 
         assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> PlaceholderFilter.validate("{{th}}ing:namespace }}{{  thing:name }}{{header:device-id }}",
+                () -> PlaceholderFilter.validate("{{he}}ader:gateway-id }}{{  header:source }}{{header:device-id }}",
                         placeholders));
 
-        assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> PlaceholderFilter.validate("{{thing:nam{{espace }}{{  thing:name }}{{header:device-id }}",
-                        placeholders));
+        // All header names are supported.
+        assertThatCode(
+                () -> PlaceholderFilter.validate("{{header:gat{{eway-id }}{{  header:source }}{{header:device-id }}",
+                        placeholders))
+                .doesNotThrowAnyException();
 
-        assertThatExceptionOfType(UnresolvedPlaceholderException.class).isThrownBy(
-                () -> PlaceholderFilter.validate("{{thing:nam}}espace }}{{  thing:name }}{{header:device-id }}",
-                        placeholders));
+        assertThatCode(
+                () -> PlaceholderFilter.validate("{{header:gat}}eway-id }}{{  header:source }}{{header:device-id }}",
+                        placeholders))
+                .doesNotThrowAnyException();
 
         assertThatExceptionOfType(PlaceholderFunctionTooComplexException.class).isThrownBy(
                 () -> PlaceholderFilter.validate(
@@ -221,45 +190,49 @@ public class PlaceholderFilterTest {
     public void testValidateAndReplace() {
         final String replacement = UUID.randomUUID().toString();
         // no whitespace
-        assertThat(PlaceholderFilter.validateAndReplace("{{thing:namespace}}/{{thing:name}}:{{header:device-id}}",
+        assertThat(PlaceholderFilter.validateAndReplace("{{header:gateway-id}}/{{header:source}}:{{header:device-id}}",
                 replacement, placeholders))
                 .isEqualTo(String.format("%s/%s:%s", replacement, replacement, replacement));
 
         // multi whitespace
         assertThat(PlaceholderFilter.validateAndReplace(
-                "{{  thing:namespace  }}/{{  thing:name  }}:{{  header:device-id  }}", replacement, placeholders))
+                "{{  header:gateway-id  }}/{{  header:source  }}:{{  header:device-id  }}", replacement, placeholders))
                 .isEqualTo(String.format("%s/%s:%s", replacement, replacement, replacement));
 
         // mixed whitespace
-        assertThat(PlaceholderFilter.validateAndReplace("{{thing:namespace }}/{{  thing:name }}:{{header:device-id }}",
+        assertThat(PlaceholderFilter.validateAndReplace(
+                "{{header:gateway-id }}/{{  header:source }}:{{header:device-id }}",
                 replacement, placeholders))
                 .isEqualTo(String.format("%s/%s:%s", replacement, replacement, replacement));
 
         // no separators
-        assertThat(PlaceholderFilter.validateAndReplace("{{thing:namespace }}{{  thing:name }}{{header:device-id }}",
-                replacement, placeholders))
+        assertThat(
+                PlaceholderFilter.validateAndReplace("{{header:gateway-id }}{{  header:source }}{{header:device-id }}",
+                        replacement, placeholders))
                 .isEqualTo(String.format("%s%s%s", replacement, replacement, replacement));
 
         // whitespace separators
         assertThat(
-                PlaceholderFilter.validateAndReplace("{{thing:namespace }}  {{  thing:name }}  {{header:device-id }}",
+                PlaceholderFilter.validateAndReplace(
+                        "{{header:gateway-id }}  {{  header:source }}  {{header:device-id }}",
                         replacement, placeholders))
                 .isEqualTo(String.format("%s  %s  %s", replacement, replacement, replacement));
 
         // pre/postfix whitespace
         assertThat(
-                PlaceholderFilter.validateAndReplace("  {{thing:namespace }}{{  thing:name }}{{header:device-id }}  ",
+                PlaceholderFilter.validateAndReplace(
+                        "  {{header:gateway-id }}{{  header:source }}{{header:device-id }}  ",
                         replacement, placeholders))
                 .isEqualTo(String.format("  %s%s%s  ", replacement, replacement, replacement));
 
         // pre/postfix
         assertThat(PlaceholderFilter.validateAndReplace(
-                "-----{{thing:namespace }}{{  thing:name }}{{header:device-id }}-----", replacement, placeholders))
+                "-----{{header:gateway-id }}{{  header:source }}{{header:device-id }}-----", replacement, placeholders))
                 .isEqualTo(String.format("-----%s%s%s-----", replacement, replacement, replacement));
 
         // pre/postfix and separators
         assertThat(PlaceholderFilter.validateAndReplace(
-                "-----{{thing:namespace }}///{{  thing:name }}///{{header:device-id }}-----", replacement,
+                "-----{{header:gateway-id }}///{{  header:source }}///{{header:device-id }}-----", replacement,
                 placeholders))
                 .isEqualTo(String.format("-----%s///%s///%s-----", replacement, replacement, replacement));
     }

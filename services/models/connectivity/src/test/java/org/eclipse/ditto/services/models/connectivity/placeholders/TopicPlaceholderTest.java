@@ -37,7 +37,7 @@
          final TopicPath topic = ProtocolFactory.newTopicPath(knownTopic);
 
          final PlaceholderResolver<TopicPath> topicPathResolver = PlaceholderFactory.newPlaceholderResolver(
-                 TopicPathPlaceholder.newTopicPathPlaceholder(), topic);
+                 ConnectivityPlaceholders.newTopicPathPlaceholder(), topic);
 
          final ExpressionResolver underTest =
                  PlaceholderFactory.newExpressionResolver(Collections.singletonList(topicPathResolver));
@@ -62,7 +62,7 @@
          final TopicPath topic = ProtocolFactory.newTopicPath(fullPath);
 
          final PlaceholderResolver<TopicPath> underTest = PlaceholderFactory.newPlaceholderResolver(
-                 TopicPathPlaceholder.newTopicPathPlaceholder(), topic);
+                 ConnectivityPlaceholders.newTopicPathPlaceholder(), topic);
 
          assertThat(underTest.resolve("full"))
                  .contains(fullPath);
@@ -94,7 +94,7 @@
          final TopicPath knownTopicPathSubject2 = TopicPath.newBuilder(ThingId.of(knownNamespace, knownId))
                  .live().things().messages().subject(knownSubject2).build();
 
-         final TopicPathPlaceholder topicPlaceholder = TopicPathPlaceholder.newTopicPathPlaceholder();
+         final TopicPathPlaceholder topicPlaceholder = ConnectivityPlaceholders.newTopicPathPlaceholder();
 
 
          assertThatExceptionOfType(NullPointerException.class).isThrownBy(

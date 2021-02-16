@@ -20,10 +20,4 @@ import org.eclipse.ditto.protocoladapter.TopicPath;
  */
 public interface TopicPathPlaceholder extends Placeholder<TopicPath> {
 
-    /**
-     * @return new instance of the {@link TopicPathPlaceholder}
-     */
-    static TopicPathPlaceholder newTopicPathPlaceholder() {
-        return ImmutableTopicPathPlaceholder.INSTANCE;
-    }
 }
