@@ -61,7 +61,6 @@ import org.eclipse.ditto.signals.commands.base.exceptions.GatewayQueryTimeExceed
 import org.reactivestreams.Publisher;
 
 import com.mongodb.MongoExecutionTimeoutException;
-import com.mongodb.ReadPreference;
 import com.mongodb.client.model.CountOptions;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
@@ -101,11 +100,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
      */
     public MongoThingsSearchPersistence(final DittoMongoClient mongoClient, final ActorSystem actorSystem) {
         final MongoDatabase database = mongoClient.getDefaultDatabase();
-        // configure search persistence to stress the primary as little as possible and tolerate inconsistency
-        collection = database
-                .getCollection(PersistenceConstants.THINGS_COLLECTION_NAME)
-                .withReadPreference(ReadPreference.secondaryPreferred());
-
+        collection = database.getCollection(PersistenceConstants.THINGS_COLLECTION_NAME);
         log = Logging.getLogger(actorSystem, getClass());
         indexInitializer = IndexInitializer.of(database, SystemMaterializer.get(actorSystem).materializer());
         maxQueryTime = mongoClient.getDittoSettings().getMaxQueryTime();
