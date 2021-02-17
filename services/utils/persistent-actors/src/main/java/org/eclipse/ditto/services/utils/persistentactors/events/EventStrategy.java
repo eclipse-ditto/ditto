@@ -23,7 +23,7 @@ import org.eclipse.ditto.signals.events.base.Event;
  * @param <S> the type of the entity
  */
 @FunctionalInterface
-public interface EventStrategy<E extends Event, S> {
+public interface EventStrategy<E extends Event<?>, S> {
 
     /**
      * Applies an event to an entity.

@@ -93,8 +93,8 @@ public final class SudoIT extends AbstractReadPersistenceITBase {
 
     @Test
     public void sudoStreamMetadata() {
-        final Metadata metadata1 = Metadata.of(THING1_ID, 1L, PolicyId.of(THING1_ID), 0L, TIMESTAMP1);
-        final Metadata metadata2 = Metadata.of(THING2_ID, 2L, PolicyId.of(THING2_ID), 0L, TIMESTAMP2);
+        final Metadata metadata1 = Metadata.of(THING1_ID, 1L, PolicyId.of(THING1_ID), 0L, TIMESTAMP1, null);
+        final Metadata metadata2 = Metadata.of(THING2_ID, 2L, PolicyId.of(THING2_ID), 0L, TIMESTAMP2, null);
         assertThat(waitFor(readPersistence.sudoStreamMetadata(ThingId.dummy())))
                 .containsExactly(metadata1, metadata2);
 

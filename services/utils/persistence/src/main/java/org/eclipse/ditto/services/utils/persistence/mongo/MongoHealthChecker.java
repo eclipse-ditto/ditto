@@ -27,7 +27,9 @@ import org.eclipse.ditto.services.utils.health.StatusInfo;
 import org.eclipse.ditto.services.utils.health.mongo.CurrentMongoStatus;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 
+import com.mongodb.ReadConcern;
 import com.mongodb.ReadPreference;
+import com.mongodb.WriteConcern;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.reactivestreams.client.MongoCollection;
 
@@ -64,7 +66,9 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
          * the inserted document from a secondary directly after inserting it on the primary.
          */
         collection = mongoClient.getCollection(TEST_COLLECTION_NAME)
-                .withReadPreference(ReadPreference.primaryPreferred());
+                .withReadPreference(ReadPreference.primary())
+                .withReadConcern(ReadConcern.LOCAL)
+                .withWriteConcern(WriteConcern.ACKNOWLEDGED);
 
         materializer = Materializer.createMaterializer(this::getContext);
     }
@@ -104,6 +108,7 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
                 final Throwable error = errorOpt.get();
                 mongoStatus = new CurrentMongoStatus(false,
                         error.getClass().getCanonicalName() + ": " + error.getMessage());
+                log.error(error, error.getMessage());
             } else {
                 mongoStatus = new CurrentMongoStatus(true);
             }
@@ -128,6 +133,7 @@ public final class MongoHealthChecker extends AbstractHealthCheckingActor {
                         return Optional.of(error);
                     } else if (!Objects.equals(result, Collections.singletonList(1L))) {
                         final String message = "Expect 1 document inserted and deleted. Found: " + result;
+                        log.error(message);
                         return Optional.of(new IllegalStateException(message));
                     } else {
                         return Optional.empty();

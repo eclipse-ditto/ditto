@@ -38,8 +38,8 @@ public final class ResultFactory {
      * @param <E> type of the event.
      * @return the result.
      */
-    public static <E extends Event> Result<E> newMutationResult(final Command command, final E eventToPersist,
-            final WithDittoHeaders response) {
+    public static <E extends Event<?>> Result<E> newMutationResult(final Command<?> command, final E eventToPersist,
+            final WithDittoHeaders<?> response) {
 
         return new MutationResult<>(command, eventToPersist, response, false, false);
     }
@@ -55,9 +55,9 @@ public final class ResultFactory {
      * @param <E> type of the event.
      * @return the result.
      */
-    public static <E extends Event> Result<E> newMutationResult(final Command command,
+    public static <E extends Event<?>> Result<E> newMutationResult(final Command<?> command,
             final E eventToPersist,
-            final WithDittoHeaders response,
+            final WithDittoHeaders<?> response,
             final boolean becomeCreated,
             final boolean becomeDeleted) {
 
@@ -72,8 +72,8 @@ public final class ResultFactory {
      * @param <E> type of events (irrelevant).
      * @return the result.
      */
-    public static <E extends Event> Result<E> newErrorResult(final DittoRuntimeException dittoRuntimeException,
-            final Command errorCausingCommand) {
+    public static <E extends Event<?>> Result<E> newErrorResult(final DittoRuntimeException dittoRuntimeException,
+            final Command<?> errorCausingCommand) {
         return new ErrorResult<>(dittoRuntimeException, errorCausingCommand);
     }
 
@@ -85,7 +85,8 @@ public final class ResultFactory {
      * @param <E> type of events (irrelevant).
      * @return the result.
      */
-    public static <E extends Event> Result<E> newQueryResult(final Command command, final WithDittoHeaders response) {
+    public static <E extends Event<?>> Result<E> newQueryResult(final Command<?> command,
+            final WithDittoHeaders<?> response) {
         return new QueryResult<>(command, response);
     }
 
@@ -95,7 +96,7 @@ public final class ResultFactory {
      * @param <E> type of events (irrelevant).
      * @return the empty result.
      */
-    public static <E extends Event> Result<E> emptyResult() {
+    public static <E extends Event<?>> Result<E> emptyResult() {
         return EmptyResult.getInstance();
     }
 

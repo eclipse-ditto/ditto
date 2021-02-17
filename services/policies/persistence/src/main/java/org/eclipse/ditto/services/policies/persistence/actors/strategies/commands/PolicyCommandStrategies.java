@@ -25,16 +25,20 @@ import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 
+import akka.actor.ActorSystem;
+
 /**
  * Command strategies of {@code PolicyPersistenceActor}.
  */
 public final class PolicyCommandStrategies
-        extends AbstractCommandStrategies<Command, Policy, PolicyId, Result<PolicyEvent>> {
+        extends AbstractCommandStrategies<Command<?>, Policy, PolicyId, PolicyEvent<?>> {
 
+    @SuppressWarnings("java:S3077") // volatile because of double checked locking pattern
     @Nullable private static volatile PolicyCommandStrategies instance;
+    @SuppressWarnings("java:S3077") // volatile because of double checked locking pattern
     @Nullable private static volatile CreatePolicyStrategy createPolicyStrategy;
 
-    private PolicyCommandStrategies(final PolicyConfig policyConfig) {
+    private PolicyCommandStrategies(final PolicyConfig policyConfig, final ActorSystem system) {
         super(Command.class);
 
         // Policy level
@@ -42,6 +46,7 @@ public final class PolicyCommandStrategies
         addStrategy(new ModifyPolicyStrategy(policyConfig));
         addStrategy(new RetrievePolicyStrategy(policyConfig));
         addStrategy(new DeletePolicyStrategy(policyConfig));
+        addStrategy(new TopLevelPolicyActionCommandStrategy(policyConfig, system));
 
         // Policy Entries
         addStrategy(new ModifyPolicyEntriesStrategy(policyConfig));
@@ -51,6 +56,8 @@ public final class PolicyCommandStrategies
         addStrategy(new ModifyPolicyEntryStrategy(policyConfig));
         addStrategy(new RetrievePolicyEntryStrategy(policyConfig));
         addStrategy(new DeletePolicyEntryStrategy(policyConfig));
+        addStrategy(new ActivateTokenIntegrationStrategy(policyConfig, system));
+        addStrategy(new DeactivateTokenIntegrationStrategy(policyConfig, system));
 
         // Subjects
         addStrategy(new ModifySubjectsStrategy(policyConfig));
@@ -73,15 +80,17 @@ public final class PolicyCommandStrategies
 
     /**
      * @param policyConfig the PolicyConfig of the Policy service to apply.
+     * @param system the Akka ActorSystem to use in order to e.g. dynamically load classes.
      * @return command strategies for policy persistence actor.
      */
-    public static PolicyCommandStrategies getInstance(final PolicyConfig policyConfig) {
+    public static PolicyCommandStrategies getInstance(final PolicyConfig policyConfig,
+            final ActorSystem system) {
         PolicyCommandStrategies localInstance = instance;
         if (null == localInstance) {
             synchronized (PolicyCommandStrategies.class) {
                 localInstance = instance;
                 if (null == localInstance) {
-                    instance = localInstance = new PolicyCommandStrategies(policyConfig);
+                    instance = localInstance = new PolicyCommandStrategies(policyConfig, system);
                 }
             }
         }
@@ -92,7 +101,7 @@ public final class PolicyCommandStrategies
      * @param policyConfig the PolicyConfig of the Policy service to apply.
      * @return command strategy to create a policy.
      */
-    public static CommandStrategy<CreatePolicy, Policy, PolicyId, Result<PolicyEvent>> getCreatePolicyStrategy(
+    public static CommandStrategy<CreatePolicy, Policy, PolicyId, PolicyEvent<?>> getCreatePolicyStrategy(
             final PolicyConfig policyConfig) {
         CreatePolicyStrategy localCreatePolicyStrategy = createPolicyStrategy;
         if (null == localCreatePolicyStrategy) {
@@ -107,7 +116,7 @@ public final class PolicyCommandStrategies
     }
 
     @Override
-    protected Result<PolicyEvent> getEmptyResult() {
+    protected Result<PolicyEvent<?>> getEmptyResult() {
         return ResultFactory.emptyResult();
     }
 

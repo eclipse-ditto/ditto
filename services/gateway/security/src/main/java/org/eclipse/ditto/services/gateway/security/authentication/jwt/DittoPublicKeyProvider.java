@@ -69,7 +69,6 @@ public final class DittoPublicKeyProvider implements PublicKeyProvider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(DittoPublicKeyProvider.class);
 
-    private static final long JWK_REQUEST_TIMEOUT_MILLISECONDS = 5000;
     private static final String OPENID_CONNECT_DISCOVERY_PATH = "/.well-known/openid-configuration";
     private static final JsonFieldDefinition<String> JSON_JWKS_URI = JsonFieldDefinition.ofString("jwks_uri");
 

@@ -82,7 +82,7 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final CreateThing command,
@@ -101,7 +101,7 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
         }
 
         // before persisting, check if the Thing is valid and reject if not:
-        final Result validateThingError =
+        final Result<ThingEvent<?>> validateThingError =
                 validateThing(context, command.getImplementedSchemaVersion(), newThing, command);
         if (validateThingError != null) {
             return validateThingError;
@@ -188,8 +188,8 @@ final class CreateThingStrategy extends AbstractThingCommandStrategy<CreateThing
     }
 
     @Nullable
-    private Result validateThing(final Context<ThingId> context, final JsonSchemaVersion version, final Thing thing,
-            final CreateThing command) {
+    private Result<ThingEvent<?>> validateThing(final Context<ThingId> context, final JsonSchemaVersion version,
+            final Thing thing, final CreateThing command) {
         final DittoHeaders headers = command.getDittoHeaders();
         final Optional<AccessControlList> accessControlList = thing.getAccessControlList();
         if (JsonSchemaVersion.V_1.equals(version)) {

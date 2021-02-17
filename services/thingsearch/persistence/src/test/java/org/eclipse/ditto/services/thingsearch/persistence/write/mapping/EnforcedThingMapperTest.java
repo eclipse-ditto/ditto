@@ -66,11 +66,11 @@ public final class EnforcedThingMapperTest {
 
         final JsonObject expectedJson = JsonFactory.newObject("{\n" +
                 "  \"_id\": \"hello:world\",\n" +
-                "  \"_revision\": { \"$numberLong\": \"1024\" },\n" +
+                "  \"_revision\": 1024,\n" +
                 "  \"_namespace\": \"hello\",\n" +
                 "  \"gr\":[\"g:0\",\"g:1\"],\n"+
                 "  \"policyId\": \"hello:world\",\n" +
-                "  \"__policyRev\": { \"$numberLong\": \"56\" },\n" +
+                "  \"__policyRev\": 56,\n" +
                 "  \"s\": {\n" +
                 "    \"thingId\": \"hello:world\",\n" +
                 "    \"_namespace\": \"hello\",\n" +

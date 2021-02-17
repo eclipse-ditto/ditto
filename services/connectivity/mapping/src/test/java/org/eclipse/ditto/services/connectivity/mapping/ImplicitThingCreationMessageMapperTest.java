@@ -27,7 +27,6 @@ import java.util.Map;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
@@ -324,7 +323,6 @@ public final class ImplicitThingCreationMessageMapperTest {
         final Map<String, String> validHeader = new HashMap<>();
         validHeader.put(HEADER_HONO_DEVICE_ID, DEVICE_ID);
         validHeader.put(HEADER_HONO_GATEWAY_ID, GATEWAY_ID);
-        validHeader.put(DittoHeaderDefinition.CONTENT_TYPE.getKey(), "application/vnd.eclipse-hono-empty-notification");
         return validHeader;
     }
 

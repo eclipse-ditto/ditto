@@ -87,7 +87,7 @@ public final class BlockedNamespaces extends DistributedData<ORSet<String>> {
      * @return whether the local replica is retrieved successfully and contains the namespace.
      */
     public CompletionStage<Boolean> contains(final String namespace) {
-        return get(Replicator.readLocal())
+        return get((Replicator.ReadConsistency) Replicator.readLocal())
                 .thenApply(maybeORSet -> maybeORSet.orElse(ORSet.empty()).contains(namespace))
                 .exceptionally(error -> false);
     }

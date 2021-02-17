@@ -17,7 +17,6 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -64,9 +63,8 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityI
             final Map<String, BiFunction<Object, CacheLookupContext, Entry<V>>> responseTransformerMap) {
         this.askTimeout = requireNonNull(askTimeout);
         this.entityRegionProvider = requireNonNull(entityRegionProvider);
-        this.commandCreatorMap = Collections.unmodifiableMap(new HashMap<>(requireNonNull(commandCreatorMap)));
-        this.responseTransformerMap =
-                Collections.unmodifiableMap(new HashMap<>(requireNonNull(responseTransformerMap)));
+        this.commandCreatorMap = Map.copyOf(requireNonNull(commandCreatorMap));
+        this.responseTransformerMap = Map.copyOf(requireNonNull(responseTransformerMap));
     }
 
     /**
@@ -78,9 +76,9 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityI
      * type).
      * @param responseTransformerMap functions per resource type for mapping a load-response to an {@link Entry}.
      */
-    public static <V> ActorAskCacheLoader<V, Command> forShard(final Duration askTimeout,
+    public static <V> ActorAskCacheLoader<V, Command<?>> forShard(final Duration askTimeout,
             final Function<String, ActorRef> entityRegionProvider,
-            final Map<String, BiFunction<EntityId, CacheLookupContext, Command>> commandCreatorMap,
+            final Map<String, BiFunction<EntityId, CacheLookupContext, Command<?>>> commandCreatorMap,
             final Map<String, BiFunction<Object, CacheLookupContext, Entry<V>>> responseTransformerMap) {
         return new ActorAskCacheLoader<>(askTimeout, entityRegionProvider, commandCreatorMap, responseTransformerMap);
     }
@@ -94,10 +92,10 @@ public final class ActorAskCacheLoader<V, T> implements AsyncCacheLoader<EntityI
      * @param commandCreator function for creating a load-command by an entity id (without resource type).
      * @param responseTransformer function for mapping a load-response to an {@link Entry}.
      */
-    public static <V> ActorAskCacheLoader<V, Command> forShard(final Duration askTimeout,
+    public static <V> ActorAskCacheLoader<V, Command<?>> forShard(final Duration askTimeout,
             final String resourceType,
             final ActorRef entityRegion,
-            final BiFunction<EntityId, CacheLookupContext, Command> commandCreator,
+            final BiFunction<EntityId, CacheLookupContext, Command<?>> commandCreator,
             final BiFunction<Object, CacheLookupContext, Entry<V>> responseTransformer) {
         requireNonNull(askTimeout);
         requireNonNull(resourceType);

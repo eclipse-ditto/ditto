@@ -116,8 +116,8 @@ import akka.routing.Pool;
  * remote server is delegated to a child actor that uses a specific client (AMQP 1.0 or 0.9.1).
  */
 public final class ConnectionPersistenceActor
-        extends AbstractShardedPersistenceActor<ConnectivityCommand, Connection, ConnectionId, ConnectionState,
-        ConnectivityEvent> {
+        extends AbstractShardedPersistenceActor<ConnectivityCommand<?>, Connection, ConnectionId, ConnectionState,
+        ConnectivityEvent<?>> {
 
     /**
      * Prefix to prepend to the connection ID to construct the persistence ID.
@@ -254,7 +254,7 @@ public final class ConnectionPersistenceActor
     }
 
     @Override
-    protected Class<ConnectivityEvent> getEventClass() {
+    protected Class<?> getEventClass() {
         return ConnectivityEvent.class;
     }
 
@@ -274,7 +274,7 @@ public final class ConnectionPersistenceActor
     }
 
     @Override
-    protected EventStrategy<ConnectivityEvent, Connection> getEventStrategy() {
+    protected EventStrategy<ConnectivityEvent<?>, Connection> getEventStrategy() {
         return ConnectionEventStrategies.getInstance();
     }
 
@@ -295,12 +295,12 @@ public final class ConnectionPersistenceActor
     }
 
     @Override
-    protected DittoRuntimeExceptionBuilder newNotAccessibleExceptionBuilder() {
+    protected DittoRuntimeExceptionBuilder<?> newNotAccessibleExceptionBuilder() {
         return ConnectionNotAccessibleException.newBuilder(entityId);
     }
 
     @Override
-    protected void publishEvent(final ConnectivityEvent event) {
+    protected void publishEvent(final ConnectivityEvent<?> event) {
         // Do nothing because nobody subscribes for connectivity events.
     }
 
@@ -341,8 +341,8 @@ public final class ConnectionPersistenceActor
     }
 
     @Override
-    public void onMutation(final Command command, final ConnectivityEvent event, final WithDittoHeaders response,
-            final boolean becomeCreated, final boolean becomeDeleted) {
+    public void onMutation(final Command<?> command, final ConnectivityEvent<?> event,
+            final WithDittoHeaders<?> response, final boolean becomeCreated, final boolean becomeDeleted) {
         if (command instanceof StagedCommand) {
             interpretStagedCommand(((StagedCommand) command).withSenderUnlessDefined(getSender()));
         } else {
@@ -381,9 +381,7 @@ public final class ConnectionPersistenceActor
                 interpretStagedCommand(command.next());
                 break;
             case PERSIST_AND_APPLY_EVENT:
-                persistAndApplyEvent(command.getEvent(), (event, connection) -> {
-                    interpretStagedCommand(command.next());
-                });
+                persistAndApplyEvent(command.getEvent(), (event, connection) -> interpretStagedCommand(command.next()));
                 break;
             case SEND_RESPONSE:
                 command.getSender().tell(command.getResponse(), getSelf());

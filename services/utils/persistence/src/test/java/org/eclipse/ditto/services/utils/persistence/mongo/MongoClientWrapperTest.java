@@ -16,16 +16,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.junit.Test;
 
 import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoCredential;
+import com.mongodb.ReadPreference;
 import com.mongodb.ServerAddress;
-import com.mongodb.async.client.MongoClientSettings;
+import com.mongodb.WriteConcern;
 import com.mongodb.reactivestreams.client.MongoDatabase;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -37,7 +40,6 @@ import com.typesafe.config.ConfigValueFactory;
 public final class MongoClientWrapperTest {
 
     private static final int KNOWN_MAX_POOL_SIZE = 100;
-    private static final int KNOWN_MAX_POOL_WAIT_QUEUE_SIZE = 5000;
     private static final long KNOWN_MAX_POOL_WAIT_SECS = 10L;
     private static final String KNOWN_DB_NAME = "someGeneratedName";
     private static final String KNOWN_USER = "theUser";
@@ -50,18 +52,23 @@ public final class MongoClientWrapperTest {
     private static final String MONGO_URI_CONFIG_KEY = "mongodb.uri";
     private static final String MONGO_SSL_CONFIG_KEY = "mongodb.options.ssl";
     private static final String MONGO_MAX_QUERY_TIME_CONFIG_KEY = "mongodb.maxQueryTime";
+    private static final String APPLICATION_NAME = "my-ditto";
 
     @Test
     public void createFromConfig() {
         final boolean sslEnabled = false;
-        final String uri = createUri(sslEnabled);
-        final Config config = CONFIG.withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uri))
+        final String uri = createUri(sslEnabled, APPLICATION_NAME);
+        final Config config = CONFIG.getConfig("ditto")
+                .withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uri))
                 .withValue(MONGO_MAX_QUERY_TIME_CONFIG_KEY, ConfigValueFactory.fromAnyRef(KNOWN_MAX_QUERY_TIME));
         final DefaultMongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(config);
         final MongoClientWrapper underTest = MongoClientWrapper.newInstance(mongoDbConfig);
 
         assertWithExpected(underTest, sslEnabled, true);
         assertThat(underTest.getDittoSettings().getMaxQueryTime()).isEqualTo(KNOWN_MAX_QUERY_TIME);
+        assertThat(underTest.getClientSettings().getApplicationName()).isEqualTo(APPLICATION_NAME);
+        assertThat(underTest.getClientSettings().getReadPreference()).isEqualTo(ReadPreference.secondary());
+        assertThat(underTest.getClientSettings().getSslSettings().isInvalidHostNameAllowed()).isTrue();
     }
 
     @Test
@@ -70,7 +77,7 @@ public final class MongoClientWrapperTest {
         final boolean sslEnabled = false;
         final Duration maxIdleTime = Duration.ofMinutes(10);
         final Duration maxLifeTime = Duration.ofMinutes(25);
-        final String uri = createUri(sslEnabled) + "&maxIdleTimeMS=" + maxIdleTime.toMillis()
+        final String uri = createUri(sslEnabled, APPLICATION_NAME) + "&maxIdleTimeMS=" + maxIdleTime.toMillis()
                 + "&maxLifeTimeMS=" + maxLifeTime.toMillis();
 
         final Config config = CONFIG.withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uri));
@@ -80,17 +87,29 @@ public final class MongoClientWrapperTest {
         final MongoClientWrapper underTest = MongoClientWrapper.newInstance(mongoDbConfig);
 
         // verify
-        assertThat(underTest.getSettings().getConnectionPoolSettings().
+        assertThat(underTest.getClientSettings().getConnectionPoolSettings().
                  getMaxConnectionIdleTime(TimeUnit.MILLISECONDS)).isEqualTo(maxIdleTime.toMillis());
-        assertThat(underTest.getSettings().getConnectionPoolSettings().
+        assertThat(underTest.getClientSettings().getConnectionPoolSettings().
                 getMaxConnectionLifeTime(TimeUnit.MILLISECONDS)).isEqualTo(maxLifeTime.toMillis());
+    }
+
+    @Test
+    public void uriWithExtraSettingsHasNoPriorityOverDittoConfig() {
+        final boolean sslEnabled = false;
+        final String uri = createUri(sslEnabled, APPLICATION_NAME) + "&writeConcern=acknowledged";
+        final Config config = CONFIG.getConfig("ditto")
+                .withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uri));
+        final DefaultMongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(config);
+        final MongoClientWrapper underTest = MongoClientWrapper.newInstance(mongoDbConfig);
+
+        assertThat(underTest.getClientSettings().getWriteConcern()).isEqualTo(WriteConcern.MAJORITY);
     }
 
     @Test
     public void createByUriWithSslDisabled() {
         // prepare
         final boolean sslEnabled = false;
-        final String uri = createUri(sslEnabled);
+        final String uri = createUri(sslEnabled, APPLICATION_NAME);
         final Config config = CONFIG.withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uri));
         final DefaultMongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(config);
 
@@ -104,7 +123,7 @@ public final class MongoClientWrapperTest {
     @Test
     public void createByUriWithSslEnabled() {
         // prepare
-        final String uriWithSslEnabled = createUri(true);
+        final String uriWithSslEnabled = createUri(true, APPLICATION_NAME);
         final Config config = CONFIG.withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uriWithSslEnabled));
         final DefaultMongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(config);
 
@@ -118,10 +137,10 @@ public final class MongoClientWrapperTest {
     @Test
     public void createWithSslEnabled() {
         // prepare
-        final String uriWithSslEnabled = createUri(true);
+        final String uriWithSslEnabled = createUri(true, APPLICATION_NAME);
 
         final Config config = CONFIG.withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uriWithSslEnabled))
-                                 .withValue(MONGO_SSL_CONFIG_KEY, ConfigValueFactory.fromAnyRef("true"));
+                .withValue(MONGO_SSL_CONFIG_KEY, ConfigValueFactory.fromAnyRef("true"));
         final DefaultMongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(config);
 
         // test
@@ -138,7 +157,6 @@ public final class MongoClientWrapperTest {
                 .hostnameAndPort(KNOWN_HOST, KNOWN_PORT)
                 .defaultDatabaseName(KNOWN_DB_NAME)
                 .connectionPoolMaxSize(KNOWN_MAX_POOL_SIZE)
-                .connectionPoolMaxWaitQueueSize(KNOWN_MAX_POOL_WAIT_QUEUE_SIZE)
                 .connectionPoolMaxWaitTime(Duration.ofSeconds(KNOWN_MAX_POOL_WAIT_SECS))
                 .build();
 
@@ -153,7 +171,6 @@ public final class MongoClientWrapperTest {
                 .hostnameAndPort(KNOWN_HOST, KNOWN_PORT)
                 .defaultDatabaseName(KNOWN_DB_NAME)
                 .connectionPoolMaxSize(KNOWN_MAX_POOL_SIZE)
-                .connectionPoolMaxWaitQueueSize(KNOWN_MAX_POOL_WAIT_QUEUE_SIZE)
                 .connectionPoolMaxWaitTime(Duration.ofSeconds(KNOWN_MAX_POOL_WAIT_SECS))
                 .enableSsl(true)
                 .build();
@@ -162,25 +179,26 @@ public final class MongoClientWrapperTest {
         assertWithExpected(underTest, true, false);
     }
 
-    private static String createUri(final boolean sslEnabled) {
+    private static String createUri(final boolean sslEnabled, final String applicationName) {
         final ConnectionString connectionString = new ConnectionString(
                 "mongodb://" + KNOWN_USER + ":" + KNOWN_PASSWORD + "@" + KNOWN_SERVER_ADDRESS + "/" + KNOWN_DB_NAME +
-                        "?ssl=" + sslEnabled);
+                        "?ssl=" + sslEnabled + "&appName=" + applicationName);
         return connectionString.getConnectionString();
     }
 
     private static void assertWithExpected(final DittoMongoClient mongoClient, final boolean sslEnabled,
             final boolean withCredentials) {
 
-        final MongoClientSettings mongoClientSettings = mongoClient.getSettings();
+        final MongoClientSettings mongoClientSettings = mongoClient.getClientSettings();
         assertThat(mongoClientSettings.getClusterSettings().getHosts())
                 .isEqualTo(Collections.singletonList(new ServerAddress(KNOWN_SERVER_ADDRESS)));
 
-        final List<MongoCredential> expectedCredentials = withCredentials ? Collections.singletonList(
-                MongoCredential.createCredential(KNOWN_USER, KNOWN_DB_NAME, KNOWN_PASSWORD.toCharArray())) :
-                Collections.emptyList();
-        assertThat(mongoClientSettings.getCredentialList()).isEqualTo(
-                expectedCredentials);
+        @Nullable
+        final MongoCredential expectedCredential = withCredentials ?
+                MongoCredential.createCredential(KNOWN_USER, KNOWN_DB_NAME, KNOWN_PASSWORD.toCharArray()) :
+                null;
+
+        assertThat(mongoClientSettings.getCredential()).isEqualTo(expectedCredential);
         assertThat(mongoClientSettings.getSslSettings().isEnabled()).isEqualTo(sslEnabled);
 
         final MongoDatabase mongoDatabase = mongoClient.getDefaultDatabase();

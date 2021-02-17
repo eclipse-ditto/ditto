@@ -14,17 +14,15 @@ package org.eclipse.ditto.services.thingsearch.persistence.write.streaming;
 
 import static org.eclipse.ditto.services.thingsearch.persistence.PersistenceConstants.THINGS_COLLECTION_NAME;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.bson.Document;
+import org.eclipse.ditto.services.thingsearch.common.config.PersistenceStreamConfig;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.AbstractWriteModel;
 import org.eclipse.ditto.services.thingsearch.persistence.write.model.WriteResultAndErrors;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.mongodb.MongoBulkWriteException;
 import com.mongodb.client.model.BulkWriteOptions;
@@ -36,7 +34,6 @@ import akka.NotUsed;
 import akka.japi.Pair;
 import akka.japi.pf.PFBuilder;
 import akka.stream.Attributes;
-import akka.stream.DelayOverflowStrategy;
 import akka.stream.FanInShape2;
 import akka.stream.FlowShape;
 import akka.stream.Graph;
@@ -46,7 +43,6 @@ import akka.stream.javadsl.Flow;
 import akka.stream.javadsl.GraphDSL;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.Zip;
-import kamon.Kamon;
 
 /**
  * Flow mapping write models to write results via the search persistence.
@@ -57,22 +53,26 @@ final class MongoSearchUpdaterFlow {
     private static final String COUNT_THING_BULK_UPDATES_PER_BULK = "things_search_thing_bulkUpdate_updates_per_bulk";
     private static final String UPDATE_TYPE_TAG = "update_type";
 
-    private Logger log = LoggerFactory.getLogger(MongoSearchUpdaterFlow.class);
-
     private final MongoCollection<Document> collection;
+    private final MongoCollection<Document> collectionWithAcknowledgements;
 
-    private MongoSearchUpdaterFlow(final MongoCollection<Document> collection) {
+    private MongoSearchUpdaterFlow(final MongoCollection<Document> collection,
+            final PersistenceStreamConfig persistenceConfig) {
         this.collection = collection;
+        this.collectionWithAcknowledgements = collection.withWriteConcern(
+                persistenceConfig.getWithAcknowledgementsWriteConcern());
     }
 
     /**
      * Create a MongoSearchUpdaterFlow object.
      *
      * @param database the MongoDB database.
+     * @param persistenceConfig the persistence configuration for the search updater stream.
      * @return the MongoSearchUpdaterFlow object.
      */
-    public static MongoSearchUpdaterFlow of(final MongoDatabase database) {
-        return new MongoSearchUpdaterFlow(database.getCollection(THINGS_COLLECTION_NAME));
+    public static MongoSearchUpdaterFlow of(final MongoDatabase database,
+            final PersistenceStreamConfig persistenceConfig) {
+        return new MongoSearchUpdaterFlow(database.getCollection(THINGS_COLLECTION_NAME), persistenceConfig);
     }
 
 
@@ -80,44 +80,47 @@ final class MongoSearchUpdaterFlow {
      * Create a new flow through the search persistence.
      * No logging or recovery is attempted.
      *
+     * @param shouldAcknowledge defines whether for this source the requested ack
+     * {@link org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel#SEARCH_PERSISTED} was required or not.
      * @param parallelism How many write operations may run in parallel for this sink.
      * @param maxBulkSize How many writes to perform in one bulk.
-     * @param writeInterval Delay between bulk operation requests. MongoDB backpressure is insufficient.
      * @return the sink.
      */
     public Flow<Source<AbstractWriteModel, NotUsed>, WriteResultAndErrors, NotUsed> start(
+            final boolean shouldAcknowledge,
             final int parallelism,
-            final int maxBulkSize,
-            final Duration writeInterval) {
-
-        final Flow<List<AbstractWriteModel>, List<AbstractWriteModel>, NotUsed> throttleFlow;
-        if (Duration.ZERO.minus(writeInterval).isNegative()) {
-            throttleFlow = Flow.<List<AbstractWriteModel>>create()
-                    .delay(writeInterval, DelayOverflowStrategy.backpressure());
-        } else {
-            throttleFlow = Flow.create();
-        }
+            final int maxBulkSize) {
 
         final Flow<Source<AbstractWriteModel, NotUsed>, List<AbstractWriteModel>, NotUsed> batchFlow =
                 Flow.<Source<AbstractWriteModel, NotUsed>>create()
-                        .flatMapConcat(source -> source.grouped(maxBulkSize))
-                        .via(throttleFlow);
+                        .flatMapConcat(source -> source.grouped(maxBulkSize));
 
         final Flow<List<AbstractWriteModel>, WriteResultAndErrors, NotUsed> writeFlow =
                 Flow.<List<AbstractWriteModel>>create()
-                        .flatMapMerge(parallelism, this::executeBulkWrite)
+                        .flatMapMerge(parallelism, writeModels -> executeBulkWrite(shouldAcknowledge, writeModels))
                         // never initiate more than "parallelism" writes against the persistence
                         .withAttributes(Attributes.inputBuffer(parallelism, parallelism));
 
         return Flow.fromGraph(assembleFlows(batchFlow, writeFlow, createStartTimerFlow(), createStopTimerFlow()));
     }
 
-    private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(
+    private Source<WriteResultAndErrors, NotUsed> executeBulkWrite(final boolean shouldAcknowledge,
             final List<AbstractWriteModel> abstractWriteModels) {
         final List<WriteModel<Document>> writeModels = abstractWriteModels.stream()
-                .map(AbstractWriteModel::toMongo)
+                .map(writeModel -> {
+                    ConsistencyLag.startS5MongoBulkWrite(writeModel.getMetadata());
+                    return writeModel.toMongo();
+                })
                 .collect(Collectors.toList());
-        return Source.fromPublisher(collection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false)))
+
+        final MongoCollection<Document> theCollection;
+        if (shouldAcknowledge) {
+            theCollection = this.collection;
+        } else {
+            theCollection = this.collectionWithAcknowledgements;
+        }
+
+        return Source.fromPublisher(theCollection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false)))
                 .map(bulkWriteResult -> WriteResultAndErrors.success(abstractWriteModels, bulkWriteResult))
                 .recoverWithRetries(1, new PFBuilder<Throwable, Source<WriteResultAndErrors, NotUsed>>()
                         .match(MongoBulkWriteException.class, bulkWriteException ->
@@ -127,13 +130,18 @@ final class MongoSearchUpdaterFlow {
                                 Source.single(WriteResultAndErrors.unexpectedError(abstractWriteModels, error))
                         )
                         .build()
-                );
+                )
+                .map(resultAndErrors -> {
+                    abstractWriteModels.forEach(writeModel ->
+                            ConsistencyLag.startS6Acknowledge(writeModel.getMetadata()));
+                    return resultAndErrors;
+                });
     }
 
     private static <T> Flow<List<T>, StartedTimer, NotUsed> createStartTimerFlow() {
         return Flow.fromFunction(writeModels -> {
             DittoMetrics.histogram(COUNT_THING_BULK_UPDATES_PER_BULK).record((long) writeModels.size());
-            return DittoMetrics.expiringTimer(TRACE_THING_BULK_UPDATE).tag(UPDATE_TYPE_TAG, "bulkUpdate").build();
+            return DittoMetrics.timer(TRACE_THING_BULK_UPDATE).tag(UPDATE_TYPE_TAG, "bulkUpdate").start();
         });
     }
 
@@ -152,21 +160,22 @@ final class MongoSearchUpdaterFlow {
     private static <A, B, C, D> Graph<FlowShape<A, C>, NotUsed> assembleFlows(
             final Flow<A, B, NotUsed> stage1Flow,
             final Flow<B, C, NotUsed> stage2Flow,
-            final Flow<B, D, NotUsed> sideChannelFlow,
+            final Flow<B, D, NotUsed> startTimerFlow,
             final Flow<Pair<C, D>, C, NotUsed> resultProcessorFlow) {
 
         return GraphDSL.create(builder -> {
             final FlowShape<A, B> stage1 = builder.add(stage1Flow);
             final FlowShape<B, C> stage2 = builder.add(stage2Flow);
-            final FlowShape<B, D> sideChannel = builder.add(sideChannelFlow);
+            final FlowShape<B, D> sideChannel = builder.add(startTimerFlow);
             final FlowShape<Pair<C, D>, C> resultProcessor = builder.add(resultProcessorFlow);
 
             final UniformFanOutShape<B, B> broadcast = builder.add(Broadcast.create(2));
             final FanInShape2<C, D, Pair<C, D>> zip = builder.add(Zip.create());
 
             builder.from(stage1.out()).toInlet(broadcast.in());
-            builder.from(broadcast.out(0)).toInlet(stage2.in());
-            builder.from(broadcast.out(1)).toInlet(sideChannel.in());
+            // its important that outlet 0 is connected to the timers, to guarantee that the timer is started first
+            builder.from(broadcast.out(0)).toInlet(sideChannel.in());
+            builder.from(broadcast.out(1)).toInlet(stage2.in());
             builder.from(stage2.out()).toInlet(zip.in0());
             builder.from(sideChannel.out()).toInlet(zip.in1());
             builder.from(zip.out()).toInlet(resultProcessor.in());

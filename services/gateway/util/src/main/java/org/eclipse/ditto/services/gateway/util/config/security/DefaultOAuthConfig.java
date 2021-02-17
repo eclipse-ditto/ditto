@@ -48,12 +48,15 @@ public final class DefaultOAuthConfig implements OAuthConfig {
     private final String protocol;
     private final Map<SubjectIssuer, String> openIdConnectIssuers;
     private final Map<SubjectIssuer, String> openIdConnectIssuersExtension;
+    private final String tokenIntegrationSubject;
 
     private DefaultOAuthConfig(final ConfigWithFallback configWithFallback) {
         protocol = configWithFallback.getString(OAuthConfigValue.PROTOCOL.getConfigPath());
         openIdConnectIssuers = loadIssuers(configWithFallback, OAuthConfigValue.OPENID_CONNECT_ISSUERS);
         openIdConnectIssuersExtension =
                 loadIssuers(configWithFallback, OAuthConfigValue.OPENID_CONNECT_ISSUERS_EXTENSION);
+        tokenIntegrationSubject =
+                configWithFallback.getString(OAuthConfigValue.TOKEN_INTEGRATION_SUBJECT.getConfigPath());
     }
 
     private static Map<SubjectIssuer, String> loadIssuers(final ConfigWithFallback config,
@@ -89,26 +92,33 @@ public final class DefaultOAuthConfig implements OAuthConfig {
     }
 
     @Override
+    public String getTokenIntegrationSubject() {
+        return tokenIntegrationSubject;
+    }
+
+    @Override
     public boolean equals(@Nullable final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final DefaultOAuthConfig that = (DefaultOAuthConfig) o;
         return Objects.equals(protocol, that.protocol)
                 && Objects.equals(openIdConnectIssuers, that.openIdConnectIssuers)
-                && Objects.equals(openIdConnectIssuersExtension, that.openIdConnectIssuersExtension);
+                && Objects.equals(openIdConnectIssuersExtension, that.openIdConnectIssuersExtension)
+                && Objects.equals(tokenIntegrationSubject, that.tokenIntegrationSubject);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(protocol, openIdConnectIssuers, openIdConnectIssuersExtension);
+        return Objects.hash(protocol, openIdConnectIssuers, openIdConnectIssuersExtension, tokenIntegrationSubject);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                ", protocol=" + protocol +
+                "protocol=" + protocol +
                 ", openIdConnectIssuers=" + openIdConnectIssuers +
                 ", openIdConnectIssuersExtension=" + openIdConnectIssuersExtension +
+                ", tokenIntegrationSubject=" + tokenIntegrationSubject +
                 "]";
     }
 

@@ -15,19 +15,26 @@ package org.eclipse.ditto.services.policies.starter;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabelInvalidException;
 import org.eclipse.ditto.model.base.entity.id.NamespacedEntityIdInvalidException;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
+import org.eclipse.ditto.model.connectivity.ConnectionIdInvalidException;
 import org.eclipse.ditto.model.messages.AuthorizationSubjectBlockedException;
 import org.eclipse.ditto.model.namespaces.NamespaceBlockedException;
+import org.eclipse.ditto.model.placeholders.PlaceholderFunctionUnknownException;
 import org.eclipse.ditto.model.policies.PolicyEntryInvalidException;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
 import org.eclipse.ditto.model.things.AclEntryInvalidException;
 import org.eclipse.ditto.model.things.ThingIdInvalidException;
+import org.eclipse.ditto.protocoladapter.UnknownTopicPathException;
 import org.eclipse.ditto.services.utils.test.GlobalErrorRegistryTestCases;
 import org.eclipse.ditto.signals.acks.base.AcknowledgementCorrelationIdMissingException;
 import org.eclipse.ditto.signals.base.JsonTypeNotParsableException;
+import org.eclipse.ditto.signals.base.UnsupportedSchemaVersionException;
+import org.eclipse.ditto.signals.base.UnsupportedSignalException;
 import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayAuthenticationFailedException;
+import org.eclipse.ditto.signals.commands.base.exceptions.PathUnknownException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyConflictException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
+import org.eclipse.ditto.signals.commands.thingsearch.exceptions.InvalidOptionException;
 
 public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorRegistryTestCases {
 
@@ -36,6 +43,8 @@ public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorReg
                 PolicyEntryInvalidException.class,
                 AclEntryInvalidException.class,
                 CommandNotSupportedException.class,
+                UnsupportedSchemaVersionException.class,
+                UnsupportedSignalException.class,
                 GatewayAuthenticationFailedException.class,
                 PolicyConflictException.class,
                 AclModificationInvalidException.class,
@@ -46,7 +55,15 @@ public final class PoliciesServiceGlobalErrorRegistryTest extends GlobalErrorReg
                 ThingIdInvalidException.class,
                 PolicyIdInvalidException.class,
                 AcknowledgementLabelInvalidException.class,
-                AcknowledgementCorrelationIdMissingException.class);
+                AcknowledgementCorrelationIdMissingException.class,
+                PathUnknownException.class,
+
+                // added due to ditto-model-placeholders
+                PlaceholderFunctionUnknownException.class,
+                ConnectionIdInvalidException.class,
+                UnknownTopicPathException.class,
+                InvalidOptionException.class
+        );
     }
 
 }

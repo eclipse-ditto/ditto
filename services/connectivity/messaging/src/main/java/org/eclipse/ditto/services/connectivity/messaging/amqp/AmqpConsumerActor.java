@@ -18,6 +18,7 @@ import static org.apache.qpid.jms.message.JmsMessageSupport.REJECTED;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.nio.ByteBuffer;
+import java.text.MessageFormat;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
@@ -41,8 +42,6 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
-import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.ConnectivityStatus;
 import org.eclipse.ditto.model.connectivity.Enforcement;
@@ -61,12 +60,13 @@ import org.eclipse.ditto.services.connectivity.messaging.internal.ConnectionFail
 import org.eclipse.ditto.services.connectivity.messaging.internal.ImmutableConnectionFailure;
 import org.eclipse.ditto.services.connectivity.messaging.internal.RetrieveAddressStatus;
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoProviderFactory;
+import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 
 import akka.actor.ActorRef;
@@ -86,7 +86,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
      */
     static final String ACTOR_NAME_PREFIX = "amqpConsumerActor-";
 
-    private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+    private final ThreadSafeDittoLoggingAdapter log;
     private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
 
     private MessageRateLimiter<String> messageRateLimiter;
@@ -107,6 +107,9 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
                 checkNotNull(consumerData, "consumerData").getAddress(),
                 inboundMappingProcessor,
                 consumerData.getSource());
+
+        log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
+                .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connectionId);
 
         final ConnectivityConfigProvider connectivityConfigProvider =
                 ConnectivityConfigProviderFactory.getInstance(getContext().getSystem());
@@ -372,11 +375,14 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
             }
             final String jmsCorrelationID = message.getJMSCorrelationID();
             log.withCorrelationId(correlationId.orElse(jmsCorrelationID))
-                    .info("Acking <{}> with original external message headers=<{}>, isSuccess=<{}>, ackType=<{} {}>",
+                    .info(MessageFormat.format(
+                            "Acking <{0}> with original external message headers=<{1}>, isSuccess=<{2}>, ackType=<{3} {4}>",
                             messageId,
                             externalMessageHeaders,
                             isSuccess,
-                            ackType, ackTypeName);
+                            ackType,
+                            ackTypeName)
+                    );
             message.getAcknowledgeCallback().setAckType(ackType);
             message.acknowledge();
             if (isSuccess) {
@@ -423,7 +429,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     }
 
     @Override
-    public DittoDiagnosticLoggingAdapter log() {
+    public ThreadSafeDittoLoggingAdapter log() {
         return log;
     }
 

@@ -43,7 +43,7 @@ final class RetrievePolicyIdStrategy extends AbstractThingCommandStrategy<Retrie
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final RetrievePolicyId command,
@@ -52,7 +52,7 @@ final class RetrievePolicyIdStrategy extends AbstractThingCommandStrategy<Retrie
         return extractPolicyId(thing)
                 .map(policyId -> RetrievePolicyIdResponse.of(context.getState(), policyId,
                         command.getDittoHeaders()))
-                .<Result<ThingEvent>>map(response ->
+                .<Result<ThingEvent<?>>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         PolicyIdNotAccessibleException.newBuilder(context.getState())

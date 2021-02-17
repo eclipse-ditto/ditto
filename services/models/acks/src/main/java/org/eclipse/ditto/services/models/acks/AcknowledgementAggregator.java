@@ -184,7 +184,7 @@ public final class AcknowledgementAggregator {
     }
 
     private DittoHeaders filterHeaders(final DittoHeaders dittoHeaders) {
-        return DittoHeaders.of(headerTranslator.toExternalAndRetainKnownHeaders(dittoHeaders));
+        return DittoHeaders.of(headerTranslator.toExternalHeaders(dittoHeaders));
     }
 
     /**

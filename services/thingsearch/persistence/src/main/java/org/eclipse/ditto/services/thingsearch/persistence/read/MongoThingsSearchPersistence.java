@@ -336,7 +336,7 @@ public class MongoThingsSearchPersistence implements ThingsSearchPersistence {
         final long policyRevision = Optional.ofNullable(document.getLong(FIELD_POLICY_REVISION)).orElse(0L);
         final String nullableTimestamp = document.getEmbedded(List.of(FIELD_SORTING, FIELD_MODIFIED), String.class);
         final Instant modified = Optional.ofNullable(nullableTimestamp).map(Instant::parse).orElse(null);
-        return Metadata.of(thingId, thingRevision, policyId, policyRevision, modified);
+        return Metadata.of(thingId, thingRevision, policyId, policyRevision, modified, null);
     }
 
 }

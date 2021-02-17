@@ -17,6 +17,7 @@ import java.util.function.UnaryOperator;
 import org.eclipse.ditto.services.base.actors.AbstractDittoRootActorTest;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.config.DittoConnectivityConfig;
+import org.eclipse.ditto.services.connectivity.messaging.DefaultClientActorPropsFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 
 import akka.actor.ActorSystem;
@@ -36,7 +37,8 @@ public final class ConnectivityRootActorTest extends AbstractDittoRootActorTest 
     protected Props getRootActorProps(final ActorSystem system) {
         final ConnectivityConfig config =
                 DittoConnectivityConfig.of(DefaultScopedConfig.dittoScoped(system.settings().config()));
-        return ConnectivityRootActor.props(config, system.deadLetters(), UnaryOperator.identity());
+        return ConnectivityRootActor.props(config, system.deadLetters(), UnaryOperator.identity(),
+                DefaultClientActorPropsFactory.getInstance());
     }
 
 }

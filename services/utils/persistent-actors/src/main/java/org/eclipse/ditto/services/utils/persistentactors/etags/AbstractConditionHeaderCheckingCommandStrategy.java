@@ -40,10 +40,10 @@ import org.eclipse.ditto.signals.events.base.Event;
  */
 @Immutable
 public abstract class AbstractConditionHeaderCheckingCommandStrategy<
-        C extends Command,
-        S extends Entity,
+        C extends Command<?>,
+        S extends Entity<?>,
         K,
-        E extends Event> extends AbstractCommandStrategy<C, S, K, Result<E>> implements ETagEntityProvider<C, S> {
+        E extends Event<?>> extends AbstractCommandStrategy<C, S, K, E> implements ETagEntityProvider<C, S> {
 
     /**
      * Construct a command-strategy with condition header checking..
@@ -61,7 +61,8 @@ public abstract class AbstractConditionHeaderCheckingCommandStrategy<
 
     /**
      * Checks conditional headers on the (sub-)entity determined by the given {@code command} and {@code thing}.
-     * Currently supports only {@link org.eclipse.ditto.services.utils.headers.conditional.IfMatchPreconditionHeader} and {@link org.eclipse.ditto.services.utils.headers.conditional.IfNoneMatchPreconditionHeader}
+     * Currently supports only {@link org.eclipse.ditto.services.utils.headers.conditional.IfMatchPreconditionHeader}
+     * and {@link org.eclipse.ditto.services.utils.headers.conditional.IfNoneMatchPreconditionHeader}
      *
      * @param context the context.
      * @param entity the entity, may be {@code null}.

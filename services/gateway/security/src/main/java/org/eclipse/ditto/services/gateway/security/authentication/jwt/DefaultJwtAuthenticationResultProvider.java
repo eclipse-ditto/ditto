@@ -23,8 +23,6 @@ import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
-import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
-import org.eclipse.ditto.services.gateway.security.authentication.DefaultAuthenticationResult;
 
 /**
  * Default implementation of {@link JwtAuthenticationResultProvider}.
@@ -42,7 +40,7 @@ public final class DefaultJwtAuthenticationResultProvider implements JwtAuthenti
      * Creates a new instance of the default JWT context provider with the given authorization subjects provider.
      *
      * @param authorizationSubjectsProvider used to extract authorization subjects from each {@link JsonWebToken JWT}
-     * passed to {@link #getAuthenticationResult(JsonWebToken,DittoHeaders)}.
+     * passed to {@link #getAuthenticationResult(JsonWebToken, DittoHeaders)}.
      * @return the created instance.
      * @throws NullPointerException if {@code authorizationSubjectsProvider} is {@code null}.
      */
@@ -54,10 +52,11 @@ public final class DefaultJwtAuthenticationResultProvider implements JwtAuthenti
     }
 
     @Override
-    public AuthenticationResult getAuthenticationResult(final JsonWebToken jwt, final DittoHeaders dittoHeaders) {
+    public JwtAuthenticationResult getAuthenticationResult(final JsonWebToken jwt, final DittoHeaders dittoHeaders) {
         final List<AuthorizationSubject> authSubjects = authSubjectsProvider.getAuthorizationSubjects(jwt);
-        return DefaultAuthenticationResult.successful(dittoHeaders,
-                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.JWT, authSubjects));
+        return JwtAuthenticationResult.successful(dittoHeaders,
+                AuthorizationModelFactory.newAuthContext(DittoAuthorizationContextType.JWT, authSubjects),
+                jwt);
     }
 
 }

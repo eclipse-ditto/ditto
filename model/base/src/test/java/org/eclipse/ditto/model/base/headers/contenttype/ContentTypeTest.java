@@ -57,4 +57,9 @@ public final class ContentTypeTest {
         assertThat(applicationJson.getParsingStrategy()).isEqualTo(ContentType.ParsingStrategy.BINARY);
     }
 
+    @Test
+    public void applicationMergePatchJsonIsMergePatchJson() {
+        final ContentType applicationMergePatchJson = ContentType.of("application/merge-patch+json");
+        assertThat(applicationMergePatchJson.getParsingStrategy()).isEqualTo(ContentType.ParsingStrategy.JSON_MERGE_PATCH);
+    }
 }

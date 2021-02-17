@@ -50,10 +50,18 @@ public interface OAuthConfig {
      */
     Map<SubjectIssuer, String> getOpenIdConnectIssuersExtension();
 
+    /**
+     * Returns the template of the subject activated via token integration. May contain placeholders.
+     *
+     * @return the token integration subject.
+     */
+    String getTokenIntegrationSubject();
+
     enum OAuthConfigValue implements KnownConfigValue {
         PROTOCOL("protocol", "https"),
         OPENID_CONNECT_ISSUERS("openid-connect-issuers", Collections.emptyMap()),
-        OPENID_CONNECT_ISSUERS_EXTENSION("openid-connect-issuers-extension", Collections.emptyMap());
+        OPENID_CONNECT_ISSUERS_EXTENSION("openid-connect-issuers-extension", Collections.emptyMap()),
+        TOKEN_INTEGRATION_SUBJECT("token-integration-subject", "integration:{{policy-entry:label}}:{{jwt:aud}}");
 
         private final String path;
         private final Object defaultValue;

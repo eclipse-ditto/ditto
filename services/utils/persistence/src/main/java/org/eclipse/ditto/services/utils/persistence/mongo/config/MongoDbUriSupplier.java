@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -14,11 +14,13 @@ package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -29,10 +31,6 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.services.utils.config.DittoConfigError;
-
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValue;
 
 /**
  * Supplies the MongoDB URI with additional options specified in the Config.
@@ -47,36 +45,34 @@ final class MongoDbUriSupplier implements Supplier<String> {
      */
     static final String URI_CONFIG_PATH = "uri";
 
-    private final Config mongoDbConfig;
-    private final URI mongoDbSourceUri;
+    static final String EXTRA_URI_OPTIONS_PATH = DefaultOptionsConfig.CONFIG_PATH + "." +
+            MongoDbConfig.OptionsConfig.OptionsConfigValue.EXTRA_URI_OPTIONS.getConfigPath();
 
-    private MongoDbUriSupplier(final Config theMongoDbConfig, final URI theMongoDbSourceUri) {
-        mongoDbConfig = theMongoDbConfig;
-        mongoDbSourceUri = theMongoDbSourceUri;
+    private final URI mongoDbSourceUri;
+    private final Map<String, Object> extraUriOptions;
+
+    private MongoDbUriSupplier(final URI mongoDbSourceUri, final Map<String, Object> extraUriOptions) {
+        this.mongoDbSourceUri = mongoDbSourceUri;
+        this.extraUriOptions = Collections.unmodifiableMap(new HashMap<>(extraUriOptions));
     }
 
     /**
-     * Returns an instance of {@code MongoDbUriSupplier} based on the given MongoDB config object.
+     * Returns an instance of {@code MongoDbUriSupplier} based on the given MongoDB URI and extra-uri-options.
      *
-     * @param mongoDbConfig a ConfigObject containing the settings for MongoDB.
+     * @param configuredMongoUri the configured connection URI.
+     * @param extraUriOptions additional options to add to the URI.
      * @return the instance.
-     * @throws DittoConfigError if {@code mongoDbConfig} is {@code null}, did either not have path
-     * {@value #URI_CONFIG_PATH} or the value at this path was not a suitable MongoDB URI.
+     * @throws DittoConfigError if any argument is {@code null} or if {@code configuredMongoUri} was not a suitable
+     * MongoDB URI.
      */
-    static MongoDbUriSupplier of(final Config mongoDbConfig) {
-        validate(mongoDbConfig);
-
-        return new MongoDbUriSupplier(mongoDbConfig, tryToGetMongoDbSourceUri(mongoDbConfig.getString(URI_CONFIG_PATH)));
-    }
-
-    private static void validate(@Nullable final Config mongoDbConfig) {
-        if (null == mongoDbConfig) {
-            throw new DittoConfigError(new NullPointerException("The MongoDB Config must not be null!"));
+    static MongoDbUriSupplier of(final String configuredMongoUri, final Map<String, Object> extraUriOptions) {
+        try {
+            checkNotNull(configuredMongoUri, "configuredMongoUri");
+            checkNotNull(extraUriOptions, "extraUriOptions");
+        } catch (final NullPointerException e) {
+            throw new DittoConfigError(e.getMessage(), e);
         }
-        if (!mongoDbConfig.hasPath(URI_CONFIG_PATH)) {
-            final String msgPattern = "MongoDB Config did not have path <{0}>!";
-            throw new DittoConfigError(MessageFormat.format(msgPattern, URI_CONFIG_PATH));
-        }
+        return new MongoDbUriSupplier(tryToGetMongoDbSourceUri(configuredMongoUri), extraUriOptions);
     }
 
     private static URI tryToGetMongoDbSourceUri(final String mongoDbUriString) {
@@ -114,11 +110,7 @@ final class MongoDbUriSupplier implements Supplier<String> {
 
     @Nullable
     private String getTargetQueryComponent() {
-        final Config mongoDbConnectionOptions = mongoDbConfig.hasPath(DefaultOptionsConfig.CONFIG_PATH)
-                ? mongoDbConfig.getConfig(DefaultOptionsConfig.CONFIG_PATH)
-                : ConfigFactory.empty();
-
-        return MongoDbUriEnhancer.of(mongoDbConnectionOptions).apply(mongoDbSourceUri);
+        return MongoDbUriEnhancer.of(extraUriOptions).apply(mongoDbSourceUri);
     }
 
     /**
@@ -129,22 +121,22 @@ final class MongoDbUriSupplier implements Supplier<String> {
     @Immutable
     static final class MongoDbUriEnhancer implements Function<URI, String> {
 
-        private final Config connectionOptions;
+        private final Map<String, Object> extraUriOptions;
 
-        private MongoDbUriEnhancer(final Config theConnectionOptions) {
-            connectionOptions = theConnectionOptions;
+        private MongoDbUriEnhancer(final Map<String, Object> extraUriOptions) {
+            this.extraUriOptions = extraUriOptions;
         }
 
         /**
          * Returns an instance of {@code MongoDbUriEnhancer} for the given MongoDB connection options Config.
          *
-         * @param connectionOptions Config which provides the MongoDB connection options.
+         * @param extraUriOptions Map which provides the extra MongoDB connection options to add to the URI.
          * @return the instance.
-         * @throws NullPointerException if {@code connectionOptions} is {@code null}.
+         * @throws NullPointerException if {@code extraUriOptions} is {@code null}.
          */
-        static MongoDbUriEnhancer of(final Config connectionOptions) {
-            checkNotNull(connectionOptions, "The MongoDB connection options config must not be null!");
-            return new MongoDbUriEnhancer(connectionOptions);
+        static MongoDbUriEnhancer of(final Map<String, Object> extraUriOptions) {
+            checkNotNull(extraUriOptions, "The MongoDB extraUriOptions config must not be null!");
+            return new MongoDbUriEnhancer(extraUriOptions);
         }
 
         @Nullable
@@ -161,13 +153,9 @@ final class MongoDbUriSupplier implements Supplier<String> {
 
         private Map<String, String> putMongoDbConnectionOptions(final Map<String, String> queryParameters) {
             // null values are not present in the entry set, the values of those parameters are unchanged.
-            for (final Map.Entry<String, ConfigValue> connectionOptionEntry : connectionOptions.entrySet()) {
-                final ConfigValue connectionOptionValue = connectionOptionEntry.getValue();
-                final Object rawConnectionOptionValue = connectionOptionValue.unwrapped();
-
-                queryParameters.put(connectionOptionEntry.getKey(), rawConnectionOptionValue.toString());
+            for (final Map.Entry<String, Object> connectionOptionEntry : extraUriOptions.entrySet()) {
+                queryParameters.put(connectionOptionEntry.getKey(), String.valueOf(connectionOptionEntry.getValue()));
             }
-
             return queryParameters;
         }
 
@@ -185,23 +173,14 @@ final class MongoDbUriSupplier implements Supplier<String> {
 
         private static String getEncodeQueryParameterString(final Map.Entry<String, String> entry) {
             // using deprecated URL encode method because the recommended method throws UnsupportedEncodingException
-            final String encodedParameterName = tryToEncodeWithUtf8(entry.getKey());
-            final String encodedParameterValue = tryToEncodeWithUtf8(entry.getValue());
+            final String encodedParameterName = encodeWithUtf8(entry.getKey());
+            final String encodedParameterValue = encodeWithUtf8(entry.getValue());
 
             return String.format("%s=%s", encodedParameterName, encodedParameterValue);
         }
 
-        private static String tryToEncodeWithUtf8(final String s) {
-            try {
-                return encodeWithUtf8(s);
-            } catch (final UnsupportedEncodingException e) {
-                final String msgTemplate = "Failed to URL-encode <{0}> with UTF-8!";
-                throw new IllegalStateException(MessageFormat.format(msgTemplate, s), e);
-            }
-        }
-
-        private static String encodeWithUtf8(final String s) throws UnsupportedEncodingException {
-            return URLEncoder.encode(s, "UTF-8");
+        private static String encodeWithUtf8(final String s) {
+            return URLEncoder.encode(s, StandardCharsets.UTF_8);
         }
 
     }

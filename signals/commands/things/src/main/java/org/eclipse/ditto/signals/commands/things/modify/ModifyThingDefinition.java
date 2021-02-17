@@ -173,11 +173,7 @@ public final class ModifyThingDefinition extends AbstractCommand<ModifyThingDefi
             final Predicate<JsonField> thePredicate) {
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(ThingCommand.JsonFields.JSON_THING_ID, thingId.toString(), predicate);
-        if (definition.equals(ThingsModelFactory.nullDefinition())) {
-            jsonObjectBuilder.set(JSON_DEFINITION, JsonValue.nullLiteral(), predicate);
-        } else {
-            jsonObjectBuilder.set(JSON_DEFINITION, JsonValue.of(String.valueOf(definition)), predicate);
-        }
+        jsonObjectBuilder.set(JSON_DEFINITION, definition.toJson(), predicate);
     }
 
     @Override

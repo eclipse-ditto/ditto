@@ -22,6 +22,7 @@ import org.eclipse.ditto.services.things.persistence.actors.ThingPersistenceActo
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.events.things.ThingEvent;
 
+import akka.actor.ActorRef;
 import akka.actor.Props;
 
 /**
@@ -30,24 +31,26 @@ import akka.actor.Props;
 @Immutable
 final class DefaultThingPersistenceActorPropsFactory implements ThingPersistenceActorPropsFactory {
 
-    private static final DefaultThingPersistenceActorPropsFactory INSTANCE =
-            new DefaultThingPersistenceActorPropsFactory();
+    private final ActorRef pubSubMediator;
 
-    private DefaultThingPersistenceActorPropsFactory() {}
+    private DefaultThingPersistenceActorPropsFactory(final ActorRef pubSubMediator) {
+        this.pubSubMediator = pubSubMediator;
+    }
 
     /**
      * Returns an instance of {@code ThingPersistenceActorPropsFactory}.
      *
+     * @param pubSubMediator the Akka pub-sub mediator with which to
      * @return the instance.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    static DefaultThingPersistenceActorPropsFactory getInstance() {
-        return INSTANCE;
+    static DefaultThingPersistenceActorPropsFactory of(final ActorRef pubSubMediator) {
+        return new DefaultThingPersistenceActorPropsFactory(pubSubMediator);
     }
 
     @Override
     public Props props(final ThingId thingId, final DistributedPub<ThingEvent<?>> distributedPub) {
         argumentNotEmpty(thingId);
-        return ThingPersistenceActor.props(thingId, distributedPub);
+        return ThingPersistenceActor.props(thingId, distributedPub, pubSubMediator);
     }
 }

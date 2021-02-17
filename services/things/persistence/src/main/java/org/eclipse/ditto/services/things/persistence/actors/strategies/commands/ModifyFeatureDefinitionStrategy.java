@@ -46,7 +46,7 @@ final class ModifyFeatureDefinitionStrategy extends AbstractThingCommandStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final ModifyFeatureDefinition command,
@@ -66,7 +66,7 @@ final class ModifyFeatureDefinitionStrategy extends AbstractThingCommandStrategy
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getModifyOrCreateResult(final Feature feature, final Context<ThingId> context,
+    private Result<ThingEvent<?>> getModifyOrCreateResult(final Feature feature, final Context<ThingId> context,
             final long nextRevision, final ModifyFeatureDefinition command, @Nullable final Thing thing,
             @Nullable final Metadata metadata) {
 
@@ -75,7 +75,7 @@ final class ModifyFeatureDefinitionStrategy extends AbstractThingCommandStrategy
                 .orElseGet(() -> getCreateResult(context, nextRevision, command, thing, metadata));
     }
 
-    private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
+    private Result<ThingEvent<?>> getModifyResult(final Context<ThingId> context, final long nextRevision,
             final ModifyFeatureDefinition command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
 
         final ThingId thingId = context.getState();
@@ -91,7 +91,7 @@ final class ModifyFeatureDefinitionStrategy extends AbstractThingCommandStrategy
         return ResultFactory.newMutationResult(command, event, response);
     }
 
-    private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
+    private Result<ThingEvent<?>> getCreateResult(final Context<ThingId> context, final long nextRevision,
             final ModifyFeatureDefinition command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
 
         final ThingId thingId = context.getState();

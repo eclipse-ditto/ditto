@@ -27,6 +27,7 @@ import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
@@ -36,8 +37,12 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.DittoProtocolAdapter;
 import org.eclipse.ditto.protocoladapter.Payload;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
+import org.eclipse.ditto.signals.base.WithResource;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.things.ThingErrorResponse;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThing;
+import org.eclipse.ditto.signals.commands.things.modify.MergeThingResponse;
+import org.eclipse.ditto.signals.events.things.ThingMerged;
 
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.PrettyPrintEmptyElementsWriter;
@@ -143,16 +148,15 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
     }
 
     private void writeJson(final Path path, final String title, final Optional<Adaptable> adaptable,
-            final Class theClass) {
-
+            final Class<?> theClass, final List<DittoHeaderDefinition> excludedHeaders) {
         if (adaptable.isPresent()) {
-            final String jsonString =
-                    adaptable.map(adaptable1 -> {
-                                final JsonObject adaptableJson = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable1)
-                                        .toJson();
-                                return removeNonRegularFieldsFromValue(adaptableJson).toString();
-                            }
-                    ).get();
+            final String jsonString = adaptable.map(adaptable1 -> {
+                        final JsonObject adaptableJson = ProtocolFactory.wrapAsJsonifiableAdaptable(adaptable1).toJson();
+                        final JsonObject nonRegularFieldsFromValueRemoved = removeNonRegularFieldsFromValue(adaptableJson);
+                        final JsonObject headersExcluded = excludeHeaders(nonRegularFieldsFromValueRemoved, excludedHeaders);
+                        return headersExcluded.toString();
+                    }
+            ).get();
 
             try {
                 final String markdown = wrapCodeSnippet(title, jsonString);
@@ -167,6 +171,7 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
 
     private JsonObject removeNonRegularFieldsFromValue(final JsonObject initialObject) {
         return initialObject.getValue(Payload.JsonFields.VALUE)
+                .filter(v -> !v.isNull())
                 .filter(JsonValue::isObject)
                 .map(JsonValue::asObject)
                 .map(value -> value.stream()
@@ -197,6 +202,14 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
         if (jsonifiable instanceof DittoRuntimeException) {
             // use the error code for exception
             return ((DittoRuntimeException) jsonifiable).getErrorCode();
+        } else if (jsonifiable instanceof MergeThing && !((MergeThing) jsonifiable).getValue().isNull()) {
+            return "Merge thing command at " + ((WithResource) jsonifiable).getResourcePath();
+        } else if (jsonifiable instanceof MergeThing && ((MergeThing) jsonifiable).getValue().isNull()) {
+            return "Merge thing command deleting " + ((WithResource) jsonifiable).getResourcePath();
+        } else if (jsonifiable instanceof MergeThingResponse) {
+            return "Merge thing command response at " + ((WithResource) jsonifiable).getResourcePath();
+        } else if (jsonifiable instanceof ThingMerged) {
+            return "Thing merged event at " + ((WithResource) jsonifiable).getResourcePath();
         } else {
             // by default use class name
             return jsonifiable.getClass().getSimpleName();
@@ -217,19 +230,12 @@ public final class PublicJsonExamplesProducer extends JsonExamplesProducer {
     }
 
     @Override
-    protected void writeJson(final Path path, final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable) {
-        final Path dowikPath = resolveFileName(path, jsonifiable);
-        final String dowikTitle = resolveTitle(jsonifiable);
-        writeJson(dowikPath, dowikTitle, toAdaptable(jsonifiable), jsonifiable.getClass());
-    }
-
-    @Override
     protected void writeJson(final Path path, final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable,
-            final JsonSchemaVersion schemaVersion) throws IOException {
+            final JsonSchemaVersion schemaVersion, final List<DittoHeaderDefinition> excludedHeaders) {
 
         final Path dowikPath = resolveFileName(path, jsonifiable);
         final String dowikTitle = resolveTitle(jsonifiable);
-        writeJson(dowikPath, dowikTitle, toAdaptable(jsonifiable), jsonifiable.getClass());
+        writeJson(dowikPath, dowikTitle, toAdaptable(jsonifiable), jsonifiable.getClass(), excludedHeaders);
     }
 
 }

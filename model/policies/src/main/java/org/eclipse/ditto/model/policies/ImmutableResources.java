@@ -16,9 +16,9 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.text.MessageFormat;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -49,7 +49,7 @@ final class ImmutableResources implements Resources {
 
     private ImmutableResources(final Map<ResourceKey, Resource> theResources) {
         checkNotNull(theResources, "Resources");
-        resources = Collections.unmodifiableMap(new HashMap<>(theResources));
+        resources = Collections.unmodifiableMap(new LinkedHashMap<>(theResources));
     }
 
     /**
@@ -62,7 +62,7 @@ final class ImmutableResources implements Resources {
     public static ImmutableResources of(final Iterable<Resource> resources) {
         checkNotNull(resources, "resources");
 
-        final Map<ResourceKey, Resource> resourcesMap = new HashMap<>();
+        final Map<ResourceKey, Resource> resourcesMap = new LinkedHashMap<>();
         resources.forEach(resource -> {
             final Resource existingResource = resourcesMap.put(resource.getResourceKey(), resource);
             if (null != existingResource) {
@@ -119,7 +119,7 @@ final class ImmutableResources implements Resources {
     }
 
     private Map<ResourceKey, Resource> copyResources() {
-        return new HashMap<>(resources);
+        return new LinkedHashMap<>(resources);
     }
 
     @Override
@@ -173,7 +173,7 @@ final class ImmutableResources implements Resources {
 
     @Override
     public Iterator<Resource> iterator() {
-        return new HashSet<>(resources.values()).iterator();
+        return new LinkedHashSet<>(resources.values()).iterator();
     }
 
     @Override

@@ -31,7 +31,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 import nl.jqno.equalsverifier.Warning;
 
 /**
- * Unit test for {@link org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig}.
+ * Unit test for {@link DefaultMongoDbConfig}.
  */
 public final class DefaultMongoDbConfigTest {
 
@@ -71,7 +71,7 @@ public final class DefaultMongoDbConfigTest {
         final DefaultMongoDbConfig underTest = DefaultMongoDbConfig.of(rawMongoDbConfig);
 
         softly.assertThat(underTest.toString()).contains(underTest.getClass().getSimpleName())
-                .contains("maxQueryTime", "mongoDbUri", "optionsConfig", "connectionPoolConfig",
+                .contains("mongoDbUri", "maxQueryTime", "optionsConfig", "connectionPoolConfig",
                         "circuitBreakerConfig", "monitoringConfig");
     }
 
@@ -80,14 +80,14 @@ public final class DefaultMongoDbConfigTest {
         final DefaultMongoDbConfig underTest = DefaultMongoDbConfig.of(rawMongoDbConfig);
 
         softly.assertThat(underTest.getMaxQueryTime()).isEqualTo(Duration.ofSeconds(10));
+        // query options from the configured Mongo URI in "mongodb_test.conf" must be preserved
         softly.assertThat(underTest.getMongoDbUri())
-                .isEqualTo("mongodb://foo:bar@mongodb:27017/test?w=1&readPreference=secondaryPreferred&ssl=false");
+                .isEqualTo("mongodb://foo:bar@mongodb:27017/test?w=1&ssl=true&sslInvalidHostNameAllowed=true");
         softly.assertThat(underTest.getOptionsConfig()).satisfies(optionsConfig -> {
             softly.assertThat(optionsConfig.isSslEnabled()).isFalse();
         });
         softly.assertThat(underTest.getConnectionPoolConfig()).satisfies(connectionPoolConfig -> {
             softly.assertThat(connectionPoolConfig.getMaxSize()).isEqualTo(1_000);
-            softly.assertThat(connectionPoolConfig.getMaxWaitQueueSize()).isEqualTo(1_000);
             softly.assertThat(connectionPoolConfig.getMaxWaitTime()).isEqualTo(Duration.ofSeconds(42L));
             softly.assertThat(connectionPoolConfig.isJmxListenerEnabled()).isTrue();
         });
@@ -107,7 +107,7 @@ public final class DefaultMongoDbConfigTest {
     @Test
     public void defaultMongodbConfigContainsExactlyFallBackValuesIfEmptyResourceConfigFile() {
         final String absoluteMongoDbUriPath =
-                DefaultMongoDbConfig.CONFIG_PATH + "." + MongoDbUriSupplier.URI_CONFIG_PATH;
+                DefaultMongoDbConfig.CONFIG_PATH + "." + MongoDbConfig.MongoDbConfigValue.URI.getConfigPath();
         final String sourceMongoDbUri = "mongodb://foo:bar@mongodb:27017/test";
         final Config originalMongoDbConfig =
                 ConfigFactory.parseMap(Collections.singletonMap(absoluteMongoDbUriPath, sourceMongoDbUri));
@@ -123,7 +123,6 @@ public final class DefaultMongoDbConfigTest {
         });
         softly.assertThat(underTest.getConnectionPoolConfig()).satisfies(connectionPoolConfig -> {
             softly.assertThat(connectionPoolConfig.getMaxSize()).as("maxSize").isEqualTo(100);
-            softly.assertThat(connectionPoolConfig.getMaxWaitQueueSize()).as("maxWaitQueueSize").isEqualTo(100);
             softly.assertThat(connectionPoolConfig.getMaxWaitTime())
                     .as("maxWaitTime")
                     .isEqualTo(Duration.ofSeconds(30L));

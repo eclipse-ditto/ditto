@@ -42,14 +42,14 @@ import org.eclipse.ditto.signals.events.policies.PolicyModified;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy} command for an
  * already existing Policy.
  */
-final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPolicy> {
+final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPolicy, PolicyEvent<?>> {
 
     ModifyPolicyStrategy(final PolicyConfig policyConfig) {
         super(ModifyPolicy.class, policyConfig);
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+    protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy entity,
             final long nextRevision,
             final ModifyPolicy command,
@@ -79,7 +79,7 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
             return ResultFactory.newErrorResult(e, adjustedCommand);
         }
 
-        final Optional<Result<PolicyEvent>> alreadyExpiredSubject =
+        final Optional<Result<PolicyEvent<?>>> alreadyExpiredSubject =
                 checkForAlreadyExpiredSubject(modifiedPolicyWithImplicits, dittoHeaders, command);
         if (alreadyExpiredSubject.isPresent()) {
             return alreadyExpiredSubject.get();

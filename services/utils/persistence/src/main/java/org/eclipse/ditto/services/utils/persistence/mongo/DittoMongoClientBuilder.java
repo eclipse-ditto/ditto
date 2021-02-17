@@ -17,7 +17,9 @@ import java.time.Duration;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 
+import com.mongodb.ReadConcern;
 import com.mongodb.ReadPreference;
+import com.mongodb.WriteConcern;
 import com.mongodb.event.CommandListener;
 import com.mongodb.event.ConnectionPoolListener;
 
@@ -108,16 +110,6 @@ public interface DittoMongoClientBuilder {
         GeneralPropertiesStep connectionPoolMaxSize(int maxSize);
 
         /**
-         * Sets the maximum number of waiters for a connection to become available from the pool.
-         * All further operations will get an exception immediately.
-         * Default is {@code 500} waiters.
-         *
-         * @param maxQueueSize the maximum number of waiters.
-         * @return this builder instance to allow method chaining.
-         */
-        GeneralPropertiesStep connectionPoolMaxWaitQueueSize(int maxQueueSize);
-
-        /**
          * Sets the maximum time that a thread may wait for a connection to become available.
          * Default is {@code 2} minutes.
          * A value of {@code 0} means that it will not wait.
@@ -160,6 +152,30 @@ public interface DittoMongoClientBuilder {
          * @return this builder instance with the updated read preference.
          */
         GeneralPropertiesStep setReadPreference(ReadPreference readPreference);
+
+        /**
+         * Sets the read concern that should be used for the mongo client.
+         *
+         * @param readConcern the read concern.
+         * @return this builder instance with the updated read concern.
+         */
+        GeneralPropertiesStep setReadConcern(ReadConcern readConcern);
+
+        /**
+         * Sets the write concern that should be used for the mongo client.
+         *
+         * @param writeConcern the write concern.
+         * @return this builder instance with the updated write concern.
+         */
+        GeneralPropertiesStep setWriteConcern(WriteConcern writeConcern);
+
+        /**
+         * Sets if "retryWrites" should be used for the mongo client.
+         *
+         * @param retryWrites the "retryWrites".
+         * @return this builder instance with the updated retryWrites.
+         */
+        GeneralPropertiesStep setRetryWrites(boolean retryWrites);
 
         /**
          * Creates a new instance of {@code DittoMongoClient} with the properties of this builder.

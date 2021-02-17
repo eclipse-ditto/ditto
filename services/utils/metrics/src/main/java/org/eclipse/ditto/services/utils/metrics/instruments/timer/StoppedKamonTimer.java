@@ -28,7 +28,7 @@ import kamon.tag.TagSet;
 /**
  * Kamon based implementation of {@link StoppedTimer}.
  */
-public class StoppedKamonTimer implements StoppedTimer {
+final class StoppedKamonTimer implements StoppedTimer {
 
     private static final String SEGMENT_TAG = "segment";
     private static final Logger LOGGER = LoggerFactory.getLogger(StoppedKamonTimer.class);

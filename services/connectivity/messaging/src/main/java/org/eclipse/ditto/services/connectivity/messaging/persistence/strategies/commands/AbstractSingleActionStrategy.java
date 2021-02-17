@@ -33,7 +33,7 @@ import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
  *
  * @param <C> the type of the handled command
  */
-abstract class AbstractSingleActionStrategy<C extends ConnectivityCommand>
+abstract class AbstractSingleActionStrategy<C extends ConnectivityCommand<?>>
         extends AbstractConnectivityCommandStrategy<C> {
 
     AbstractSingleActionStrategy(final Class<C> theMatchingClass) {
@@ -46,13 +46,13 @@ abstract class AbstractSingleActionStrategy<C extends ConnectivityCommand>
     abstract ConnectionAction getAction();
 
     @Override
-    protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
+    protected Result<ConnectivityEvent<?>> doApply(final Context<ConnectionState> context,
             @Nullable final Connection connection,
             final long nextRevision,
             final C command,
             @Nullable final Metadata metadata) {
 
-        final ConnectivityEvent event = StagedCommand.dummyEvent();
+        final ConnectivityEvent<?> event = StagedCommand.dummyEvent();
         final List<ConnectionAction> actions = Collections.singletonList(getAction());
         return newMutationResult(StagedCommand.of(command, event, command, actions), event, command);
     }

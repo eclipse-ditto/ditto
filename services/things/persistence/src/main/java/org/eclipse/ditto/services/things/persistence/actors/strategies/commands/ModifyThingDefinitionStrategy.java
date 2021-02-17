@@ -46,7 +46,7 @@ final class ModifyThingDefinitionStrategy extends AbstractThingCommandStrategy<M
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final ModifyThingDefinition command,
@@ -61,7 +61,7 @@ final class ModifyThingDefinitionStrategy extends AbstractThingCommandStrategy<M
         return getEntityOrThrow(thing).getDefinition();
     }
 
-    private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
+    private Result<ThingEvent<?>> getModifyResult(final Context<ThingId> context, final long nextRevision,
             final ModifyThingDefinition command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
 
         final ThingId thingId = context.getState();
@@ -76,7 +76,7 @@ final class ModifyThingDefinitionStrategy extends AbstractThingCommandStrategy<M
         return ResultFactory.newMutationResult(command, event, response);
     }
 
-    private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
+    private Result<ThingEvent<?>> getCreateResult(final Context<ThingId> context, final long nextRevision,
             final ModifyThingDefinition command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
 
         final ThingId thingId = context.getState();

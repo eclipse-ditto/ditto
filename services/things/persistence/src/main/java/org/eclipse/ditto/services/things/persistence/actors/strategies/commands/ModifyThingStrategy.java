@@ -55,7 +55,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final ModifyThing command,
@@ -78,7 +78,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
         return handleModifyExistingWithV2Command(context, nonNullThing, eventTs, nextRevision, command, metadata);
     }
 
-    private Result<ThingEvent> handleModifyExistingWithV1Command(final Context<ThingId> context, final Thing thing,
+    private Result<ThingEvent<?>> handleModifyExistingWithV1Command(final Context<ThingId> context, final Thing thing,
             final Instant eventTs, final long nextRevision, final ModifyThing command,
             @Nullable final Metadata metadata) {
 
@@ -89,7 +89,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
         }
     }
 
-    private Result<ThingEvent> handleModifyExistingV1WithV1Command(final Context<ThingId> context,
+    private Result<ThingEvent<?>> handleModifyExistingV1WithV1Command(final Context<ThingId> context,
             final Thing thing, final Instant eventTs, final long nextRevision, final ModifyThing command,
             @Nullable final Metadata metadata) {
 
@@ -111,9 +111,9 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
                 final Thing newThingWithoutAcl = command.getThing().toBuilder().removeAllPermissions().build();
                 final Thing mergedThing = mergeThingModifications(newThingWithoutAcl, thing, eventTs, nextRevision);
 
-                final ThingEvent thingModified =
+                final ThingEvent<?> thingModified =
                         ThingModified.of(mergedThing, nextRevision, eventTs, dittoHeaders, metadata);
-                final WithDittoHeaders response =
+                final WithDittoHeaders<?> response =
                         appendETagHeaderIfProvided(command, ModifyThingResponse.modified(thingId, dittoHeaders),
                                 mergedThing);
                 return ResultFactory.newMutationResult(command, thingModified, response);
@@ -126,9 +126,9 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
                         .setModified(eventTs)
                         .setRevision(nextRevision)
                         .build();
-                final ThingEvent thingModified =
+                final ThingEvent<?> thingModified =
                         ThingModified.of(modifiedThing, nextRevision, eventTs, dittoHeaders, metadata);
-                final WithDittoHeaders response =
+                final WithDittoHeaders<?> response =
                         appendETagHeaderIfProvided(command, ModifyThingResponse.modified(thingId, dittoHeaders),
                                 modifiedThing);
                 return ResultFactory.newMutationResult(command, thingModified, response);
@@ -136,7 +136,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
         }
     }
 
-    private Result<ThingEvent> handleModifyExistingV2WithV1Command(final Context<ThingId> context,
+    private Result<ThingEvent<?>> handleModifyExistingV2WithV1Command(final Context<ThingId> context,
             final Thing thing, final Instant eventTs, final long nextRevision,
             final ModifyThing command, @Nullable final Metadata metadata) {
 
@@ -158,7 +158,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
                 .build();
     }
 
-    private Result<ThingEvent> handleModifyExistingWithV2Command(final Context<ThingId> context, final Thing thing,
+    private Result<ThingEvent<?>> handleModifyExistingWithV2Command(final Context<ThingId> context, final Thing thing,
             final Instant eventTs, final long nextRevision, final ModifyThing command,
             @Nullable final Metadata metadata) {
 
@@ -172,7 +172,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
     /**
      * Handles a {@link ModifyThing} command that was sent via API v2 and targets a Thing with API version V1.
      */
-    private Result<ThingEvent> handleModifyExistingV1WithV2Command(final Context<ThingId> context,
+    private Result<ThingEvent<?>> handleModifyExistingV1WithV2Command(final Context<ThingId> context,
             final Thing thing, final Instant eventTs, final long nextRevision, final ModifyThing command,
             @Nullable final Metadata metadata) {
 
@@ -189,7 +189,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
     /**
      * Handles a {@link ModifyThing} command that was sent via API v2 and targets a Thing with API version V2.
      */
-    private Result<ThingEvent> handleModifyExistingV2WithV2Command(final Context<ThingId> context,
+    private Result<ThingEvent<?>> handleModifyExistingV2WithV2Command(final Context<ThingId> context,
             final Thing thing, final Instant eventTs, final long nextRevision,
             final ModifyThing command, @Nullable final Metadata metadata) {
 
@@ -203,7 +203,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
                 metadata);
     }
 
-    private Result<ThingEvent> applyModifyCommand(final Context<ThingId> context, final Thing thing,
+    private Result<ThingEvent<?>> applyModifyCommand(final Context<ThingId> context, final Thing thing,
             final Instant eventTs, final long nextRevision, final ModifyThing command,
             @Nullable final Metadata metadata) {
 
@@ -265,7 +265,7 @@ final class ModifyThingStrategy extends AbstractThingCommandStrategy<ModifyThing
     }
 
     @Override
-    public Result<ThingEvent> unhandled(final Context<ThingId> context, @Nullable final Thing thing,
+    public Result<ThingEvent<?>> unhandled(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final ModifyThing command) {
         return newErrorResult(new ThingNotAccessibleException(context.getState(), command.getDittoHeaders()), command);
     }

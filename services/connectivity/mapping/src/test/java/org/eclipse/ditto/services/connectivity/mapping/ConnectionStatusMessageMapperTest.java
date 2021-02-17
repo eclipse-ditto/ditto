@@ -30,6 +30,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.connectivity.MessageMapperConfigurationInvalidException;
 import org.eclipse.ditto.model.things.DefinitionIdentifier;
 import org.eclipse.ditto.model.things.FeatureDefinition;
@@ -110,6 +111,24 @@ public class ConnectionStatusMessageMapperTest {
                 JsonValue.of(CREATION_TIME.toString()));
         assertThat(extractProperty(modifyFeature, FEATURE_PROPERTY_READY_UNTIL)).contains(
                 JsonValue.of(CREATION_TIME.plusSeconds(Long.parseLong(TTD_STR)).toString()));
+    }
+
+    @Test
+    public void emittedCommandShouldExplicitlyRequestNoAcknowledgements() {
+        // GIVEN
+        underTest.configure(mappingConfig, validMapperConfig);
+        final ExternalMessage externalMessage = ExternalMessageFactory.newExternalMessageBuilder(validHeader).build();
+
+        // WHEN
+        final List<Adaptable> mappingResult = underTest.map(externalMessage);
+
+        // THEN
+        assertThat(mappingResult).isNotEmpty();
+        final Adaptable adaptable = mappingResult.get(0);
+        final Signal<?> signal = DittoProtocolAdapter.newInstance().fromAdaptable(adaptable);
+        assertThat(signal).isInstanceOf(ModifyFeature.class);
+        assertThat(signal.getDittoHeaders().containsKey(DittoHeaderDefinition.REQUESTED_ACKS.getKey())).isTrue();
+        assertThat(signal.getDittoHeaders().getAcknowledgementRequests().isEmpty()).isTrue();
     }
 
     @Test

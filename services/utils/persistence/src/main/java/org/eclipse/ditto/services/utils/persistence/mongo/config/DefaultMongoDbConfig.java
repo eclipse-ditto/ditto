@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import java.time.Duration;
+import java.util.Map;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -32,17 +33,18 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
      */
     static final String CONFIG_PATH = "mongodb";
 
-    private final Duration maxQueryTime;
     private final String mongoDbUri;
+    private final Duration maxQueryTime;
     private final DefaultOptionsConfig optionsConfig;
     private final DefaultConnectionPoolConfig connectionPoolConfig;
     private final DefaultCircuitBreakerConfig circuitBreakerConfig;
     private final DefaultMonitoringConfig monitoringConfig;
 
-    private DefaultMongoDbConfig(final ConfigWithFallback config, final String theMongoDbUri) {
+    private DefaultMongoDbConfig(final ConfigWithFallback config) {
         maxQueryTime = config.getDuration(MongoDbConfigValue.MAX_QUERY_TIME.getConfigPath());
-        mongoDbUri = theMongoDbUri;
         optionsConfig = DefaultOptionsConfig.of(config);
+        final String configuredUri = config.getString(MongoDbConfigValue.URI.getConfigPath());
+        mongoDbUri = determineMongoDbUri(configuredUri, optionsConfig.extraUriOptions());
         connectionPoolConfig = DefaultConnectionPoolConfig.of(config);
         circuitBreakerConfig = DefaultCircuitBreakerConfig.of(config);
         monitoringConfig = DefaultMonitoringConfig.of(config);
@@ -57,27 +59,27 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
      */
     public static DefaultMongoDbConfig of(final Config config) {
         final ConfigWithFallback configWithFallback = appendFallbackValues(config);
-
-        return new DefaultMongoDbConfig(configWithFallback, determineMongoDbUri(configWithFallback));
+        return new DefaultMongoDbConfig(configWithFallback);
     }
 
     private static ConfigWithFallback appendFallbackValues(final Config config) {
         return ConfigWithFallback.newInstance(config, CONFIG_PATH, MongoDbConfigValue.values());
     }
 
-    private static String determineMongoDbUri(final Config mongoDbConfig) {
-        final MongoDbUriSupplier mongoDbUriSupplier = MongoDbUriSupplier.of(mongoDbConfig);
+    private static String determineMongoDbUri(final String configuredMongoUri,
+            final Map<String, Object> extraUriOptions) {
+        final MongoDbUriSupplier mongoDbUriSupplier = MongoDbUriSupplier.of(configuredMongoUri, extraUriOptions);
         return mongoDbUriSupplier.get();
-    }
-
-    @Override
-    public Duration getMaxQueryTime() {
-        return maxQueryTime;
     }
 
     @Override
     public String getMongoDbUri() {
         return mongoDbUri;
+    }
+
+    @Override
+    public Duration getMaxQueryTime() {
+        return maxQueryTime;
     }
 
     @Override
@@ -109,8 +111,8 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
             return false;
         }
         final DefaultMongoDbConfig that = (DefaultMongoDbConfig) o;
-        return Objects.equals(maxQueryTime, that.maxQueryTime) &&
-                Objects.equals(mongoDbUri, that.mongoDbUri) &&
+        return Objects.equals(mongoDbUri, that.mongoDbUri) &&
+                Objects.equals(maxQueryTime, that.maxQueryTime) &&
                 Objects.equals(optionsConfig, that.optionsConfig) &&
                 Objects.equals(connectionPoolConfig, that.connectionPoolConfig) &&
                 Objects.equals(circuitBreakerConfig, that.circuitBreakerConfig) &&
@@ -119,15 +121,15 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
 
     @Override
     public int hashCode() {
-        return Objects.hash(maxQueryTime, mongoDbUri, optionsConfig, connectionPoolConfig, circuitBreakerConfig,
+        return Objects.hash(mongoDbUri, maxQueryTime, optionsConfig, connectionPoolConfig, circuitBreakerConfig,
                 monitoringConfig);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "maxQueryTime=" + maxQueryTime +
-                ", mongoDbUri=" + mongoDbUri +
+                "mongoDbUri=" + mongoDbUri +
+                ", maxQueryTime=" + maxQueryTime +
                 ", optionsConfig=" + optionsConfig +
                 ", connectionPoolConfig=" + connectionPoolConfig +
                 ", circuitBreakerConfig=" + circuitBreakerConfig +

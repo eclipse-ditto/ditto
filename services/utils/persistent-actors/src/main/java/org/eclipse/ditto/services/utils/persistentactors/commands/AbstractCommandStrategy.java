@@ -25,6 +25,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.signals.commands.base.Command;
+import org.eclipse.ditto.signals.events.base.Event;
 
 /**
  * Abstract base implementation of {@code CommandStrategy}.
@@ -32,11 +33,11 @@ import org.eclipse.ditto.signals.commands.base.Command;
  * @param <C> the type of the handled command
  * @param <S> the type of the managed entity
  * @param <K> the type of the context
- * @param <R> the type of the result
+ * @param <E> the type of the result's event
  */
 @Immutable
-public abstract class AbstractCommandStrategy<C extends Command, S, K, R extends Result>
-        implements CommandStrategy<C, S, K, R> {
+public abstract class AbstractCommandStrategy<C extends Command<?>, S, K, E extends Event<?>>
+        implements CommandStrategy<C, S, K, E> {
 
     private final Class<C> matchingClass;
 
@@ -46,12 +47,13 @@ public abstract class AbstractCommandStrategy<C extends Command, S, K, R extends
      * @param theMatchingClass the class.
      * @throws NullPointerException if {@code theMatchingClass} is {@code null}.
      */
-    protected AbstractCommandStrategy(final Class<C> theMatchingClass) {
-        matchingClass = checkNotNull(theMatchingClass, "matching Class");
+    @SuppressWarnings("unchecked")
+    protected AbstractCommandStrategy(final Class<?> theMatchingClass) {
+        matchingClass = (Class<C>) checkNotNull(theMatchingClass, "matching Class");
     }
 
     @Override
-    public R apply(final Context<K> context, @Nullable final S entity, final long nextRevision,
+    public Result<E> apply(final Context<K> context, @Nullable final S entity, final long nextRevision,
             final C command) {
         checkNotNull(context, "Context");
         checkNotNull(command, "Command");
@@ -87,7 +89,7 @@ public abstract class AbstractCommandStrategy<C extends Command, S, K, R extends
      * @param metadata the metadata extracted from the incoming command.
      * @return result of the command strategy.
      */
-    protected abstract R doApply(Context<K> context, @Nullable S entity, long nextRevision, C command,
+    protected abstract Result<E> doApply(Context<K> context, @Nullable S entity, long nextRevision, C command,
             @Nullable Metadata metadata);
 
     /**
@@ -100,7 +102,7 @@ public abstract class AbstractCommandStrategy<C extends Command, S, K, R extends
      * @return nothing.
      * @throws java.lang.IllegalArgumentException always.
      */
-    public R unhandled(final Context<K> context, @Nullable final S entity, final long nextRevision,
+    public Result<E> unhandled(final Context<K> context, @Nullable final S entity, final long nextRevision,
             final C command) {
         final String msgPattern = "Unhandled: <{0}>!";
         throw new IllegalArgumentException(MessageFormat.format(msgPattern, command));

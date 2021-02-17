@@ -37,7 +37,6 @@ import org.eclipse.ditto.protocoladapter.HeaderTranslator;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.services.gateway.endpoints.directives.HttpsEnsuringDirective;
-import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevOpsBasicAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirective;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DevopsAuthenticationDirectiveFactory;
 import org.eclipse.ditto.services.gateway.endpoints.directives.auth.DittoGatewayAuthenticationDirectiveFactory;
@@ -45,6 +44,7 @@ import org.eclipse.ditto.services.gateway.endpoints.directives.auth.GatewayAuthe
 import org.eclipse.ditto.services.gateway.endpoints.routes.cloudevents.CloudEventsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.devops.DevOpsRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.health.CachingHealthRoute;
+import org.eclipse.ditto.services.gateway.endpoints.routes.policies.OAuthTokenIntegrationSubjectIdFactory;
 import org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute;
 import org.eclipse.ditto.services.gateway.endpoints.routes.sse.ThingsSseRouteBuilder;
 import org.eclipse.ditto.services.gateway.endpoints.routes.stats.StatsRoute;
@@ -161,14 +161,17 @@ public final class RootRouteTest extends EndpointTestBase {
                 .cachingHealthRoute(new CachingHealthRoute(statusAndHealthProvider, publicHealthConfig))
                 .devopsRoute(new DevOpsRoute(proxyActor, actorSystem, httpConfig, commandConfig,
                         headerTranslator, devOpsAuthenticationDirective))
-                .policiesRoute(new PoliciesRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
+                .policiesRoute(new PoliciesRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator,
+                        OAuthTokenIntegrationSubjectIdFactory.of(authConfig.getOAuthConfig())))
                 .sseThingsRoute(ThingsSseRouteBuilder.getInstance(proxyActor, streamingConfig, proxyActor))
                 .thingsRoute(new ThingsRoute(proxyActor, actorSystem, httpConfig, commandConfig, messageConfig,
                         claimMessageConfig, headerTranslator))
                 .thingSearchRoute(
                         new ThingSearchRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
                 .whoamiRoute(new WhoamiRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator))
-                .cloudEventsRoute(new CloudEventsRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator, cloudEventsConfig))
+                .cloudEventsRoute(
+                        new CloudEventsRoute(proxyActor, actorSystem, httpConfig, commandConfig, headerTranslator,
+                                cloudEventsConfig))
                 .websocketRoute(WebSocketRoute.getInstance(proxyActor, streamingConfig, materializer))
                 .supportedSchemaVersions(httpConfig.getSupportedSchemaVersions())
                 .protocolAdapterProvider(protocolAdapterProvider)

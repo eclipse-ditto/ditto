@@ -31,12 +31,12 @@ import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubjects;
  * Registry to map policy commands to their according access exception.
  */
 public final class PolicyCommandToAccessExceptionRegistry
-        extends AbstractCommandToExceptionRegistry<PolicyCommand, DittoRuntimeException> {
+        extends AbstractCommandToExceptionRegistry<PolicyCommand<?>, DittoRuntimeException> {
 
     private static final PolicyCommandToAccessExceptionRegistry INSTANCE = createInstance();
 
     private PolicyCommandToAccessExceptionRegistry(
-            final Map<String, Function<PolicyCommand, DittoRuntimeException>> mappingStrategies) {
+            final Map<String, Function<PolicyCommand<?>, DittoRuntimeException>> mappingStrategies) {
         super(mappingStrategies);
     }
 
@@ -50,7 +50,7 @@ public final class PolicyCommandToAccessExceptionRegistry
     }
 
     private static PolicyCommandToAccessExceptionRegistry createInstance() {
-        final Map<String, Function<PolicyCommand, DittoRuntimeException>> mappingStrategies = new HashMap<>();
+        final Map<String, Function<PolicyCommand<?>, DittoRuntimeException>> mappingStrategies = new HashMap<>();
 
         mappingStrategies.put(RetrievePolicy.TYPE,
                 command -> PolicyNotAccessibleException.newBuilder(command.getEntityId())

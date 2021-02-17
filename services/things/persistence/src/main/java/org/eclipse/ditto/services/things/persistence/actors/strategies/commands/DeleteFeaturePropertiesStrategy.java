@@ -45,7 +45,7 @@ final class DeleteFeaturePropertiesStrategy extends AbstractThingCommandStrategy
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final DeleteFeatureProperties command,
@@ -66,7 +66,8 @@ final class DeleteFeaturePropertiesStrategy extends AbstractThingCommandStrategy
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getDeleteFeaturePropertiesResult(final Feature feature, final Context<ThingId> context,
+    private Result<ThingEvent<?>> getDeleteFeaturePropertiesResult(final Feature feature,
+            final Context<ThingId> context,
             final long nextRevision, final DeleteFeatureProperties command, @Nullable final Thing thing,
             @Nullable final Metadata metadata) {
         final DittoHeaders dittoHeaders = command.getDittoHeaders();
@@ -76,12 +77,12 @@ final class DeleteFeaturePropertiesStrategy extends AbstractThingCommandStrategy
 
         return feature.getProperties()
                 .map(featureProperties -> {
-                    final ThingEvent event =
+                    final ThingEvent<?> event =
                             FeaturePropertiesDeleted.of(thingId, featureId, nextRevision, getEventTimestamp(),
                                     dittoHeaders, metadata);
-                    final WithDittoHeaders response = appendETagHeaderIfProvided(command,
+                    final WithDittoHeaders<?> response = appendETagHeaderIfProvided(command,
                             DeleteFeaturePropertiesResponse.of(thingId, featureId, dittoHeaders), thing);
-                    return ResultFactory.newMutationResult(command, event, response);
+                    return ResultFactory.<ThingEvent<?>>newMutationResult(command, event, response);
                 })
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featurePropertiesNotFound(thingId, featureId, dittoHeaders), command));

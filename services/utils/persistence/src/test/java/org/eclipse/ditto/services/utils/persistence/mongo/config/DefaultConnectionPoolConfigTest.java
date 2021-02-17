@@ -34,7 +34,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 public final class DefaultConnectionPoolConfigTest {
 
     private static Config connectionPoolTestConfig;
-    
+
     @Rule
     public final JUnitSoftAssertions softly = new JUnitSoftAssertions();
 
@@ -62,9 +62,6 @@ public final class DefaultConnectionPoolConfigTest {
         softly.assertThat(underTest.getMaxSize())
                 .as(ConnectionPoolConfigValue.MAX_SIZE.getConfigPath())
                 .isEqualTo(ConnectionPoolConfigValue.MAX_SIZE.getDefaultValue());
-        softly.assertThat(underTest.getMaxWaitQueueSize())
-                .as(ConnectionPoolConfigValue.MAX_WAIT_QUEUE_SIZE.getConfigPath())
-                .isEqualTo(ConnectionPoolConfigValue.MAX_WAIT_QUEUE_SIZE.getDefaultValue());
         softly.assertThat(underTest.getMaxWaitTime())
                 .as(ConnectionPoolConfigValue.MAX_WAIT_TIME.getConfigPath())
                 .isEqualTo(ConnectionPoolConfigValue.MAX_WAIT_TIME.getDefaultValue());
@@ -79,9 +76,6 @@ public final class DefaultConnectionPoolConfigTest {
 
         softly.assertThat(underTest.getMaxSize())
                 .as(ConnectionPoolConfigValue.MAX_SIZE.getConfigPath())
-                .isEqualTo(1_000);
-        softly.assertThat(underTest.getMaxWaitQueueSize())
-                .as(ConnectionPoolConfigValue.MAX_WAIT_QUEUE_SIZE.getConfigPath())
                 .isEqualTo(1_000);
         softly.assertThat(underTest.getMaxWaitTime())
                 .as(ConnectionPoolConfigValue.MAX_WAIT_TIME.getConfigPath())

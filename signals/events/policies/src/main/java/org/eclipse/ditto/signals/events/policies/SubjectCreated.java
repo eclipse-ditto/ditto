@@ -15,9 +15,15 @@ package org.eclipse.ditto.signals.events.policies;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -43,8 +49,8 @@ import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
  * This event is emitted after a {@link Subject} was created.
  */
 @Immutable
-@JsonParsableEvent(name = SubjectCreated.NAME, typePrefix= SubjectCreated.TYPE_PREFIX)
-public final class SubjectCreated extends AbstractPolicyEvent<SubjectCreated> implements PolicyEvent<SubjectCreated> {
+@JsonParsableEvent(name = SubjectCreated.NAME, typePrefix = SubjectCreated.TYPE_PREFIX)
+public final class SubjectCreated extends AbstractPolicyActionEvent<SubjectCreated> {
 
     /**
      * Name of this event
@@ -197,15 +203,16 @@ public final class SubjectCreated extends AbstractPolicyEvent<SubjectCreated> im
     public static SubjectCreated fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         return new EventJsonDeserializer<SubjectCreated>(TYPE, jsonObject).deserialize(
                 (revision, timestamp, metadata) -> {
-            final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
-            final PolicyId policyId = PolicyId.of(extractedPolicyId);
-            final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
-            final String subjectId = jsonObject.getValueOrThrow(JSON_SUBJECT_ID);
-            final JsonObject subjectJsonObject = jsonObject.getValueOrThrow(JSON_SUBJECT);
-            final Subject extractedCreatedSubject = PoliciesModelFactory.newSubject(subjectId, subjectJsonObject);
+                    final String extractedPolicyId = jsonObject.getValueOrThrow(JsonFields.POLICY_ID);
+                    final PolicyId policyId = PolicyId.of(extractedPolicyId);
+                    final Label label = Label.of(jsonObject.getValueOrThrow(JSON_LABEL));
+                    final String subjectId = jsonObject.getValueOrThrow(JSON_SUBJECT_ID);
+                    final JsonObject subjectJsonObject = jsonObject.getValueOrThrow(JSON_SUBJECT);
+                    final Subject extractedCreatedSubject =
+                            PoliciesModelFactory.newSubject(subjectId, subjectJsonObject);
 
-            return of(policyId, label, extractedCreatedSubject, revision, timestamp, dittoHeaders);
-        });
+                    return of(policyId, label, extractedCreatedSubject, revision, timestamp, dittoHeaders);
+                });
     }
 
     /**
@@ -256,6 +263,17 @@ public final class SubjectCreated extends AbstractPolicyEvent<SubjectCreated> im
         jsonObjectBuilder.set(JSON_SUBJECT, subject.toJson(schemaVersion, thePredicate), predicate);
     }
 
+    @Override
+    public SubjectsModifiedPartially aggregateWith(final Collection<PolicyActionEvent<?>> otherPolicyActionEvents) {
+        final Map<Label, Collection<Subject>> initialCreatedSubjects =
+                Stream.of(0).collect(Collectors.toMap(i -> label, i -> Collections.singleton(subject),
+                        (u, v) -> {
+                            throw new IllegalStateException(String.format("Duplicate key %s", u));
+                        },
+                        LinkedHashMap::new));
+        return aggregateWithSubjectCreatedOrModified(initialCreatedSubjects, otherPolicyActionEvents);
+    }
+
     @SuppressWarnings("squid:S109")
     @Override
     public int hashCode() {
@@ -289,5 +307,4 @@ public final class SubjectCreated extends AbstractPolicyEvent<SubjectCreated> im
     public String toString() {
         return getClass().getSimpleName() + " [" + super.toString() + ", label=" + label + ", subject=" + subject + "]";
     }
-
 }

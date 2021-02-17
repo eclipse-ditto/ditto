@@ -24,7 +24,6 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
-import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
@@ -38,8 +37,8 @@ import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
-import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 
@@ -56,7 +55,7 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
     protected static final String MQTT_QOS_HEADER = "mqtt.qos";
     protected static final String MQTT_RETAIN_HEADER = "mqtt.retain";
 
-    protected final DittoDiagnosticLoggingAdapter logger;
+    protected final ThreadSafeDittoLoggingAdapter logger;
     protected final boolean dryRun;
     @Nullable protected final EnforcementFilterFactory<String, CharSequence> topicEnforcementFilterFactory;
     protected final PayloadMapping payloadMapping;
@@ -66,7 +65,7 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
             final Source source, final boolean dryRun, final boolean reconnectForRedelivery) {
         super(connection, String.join(";", source.getAddresses()), messageMappingProcessor, source);
 
-        logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this)
+        logger = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID.toString(), connection.getId());
 
         this.dryRun = dryRun;
@@ -158,7 +157,7 @@ abstract class AbstractMqttConsumerActor<P> extends BaseConsumerActor {
     }
 
     @Override
-    protected DittoDiagnosticLoggingAdapter log() {
+    protected ThreadSafeDittoLoggingAdapter log() {
         return logger;
     }
 

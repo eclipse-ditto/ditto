@@ -26,7 +26,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
  * The collection of the command strategies of {@code ThingPersistenceActor}.
  */
 public final class ThingCommandStrategies
-        extends AbstractCommandStrategies<Command, Thing, ThingId, Result<ThingEvent>> {
+        extends AbstractCommandStrategies<Command<?>, Thing, ThingId, ThingEvent<?>> {
 
     private static final ThingCommandStrategies INSTANCE = new ThingCommandStrategies();
 
@@ -61,7 +61,7 @@ public final class ThingCommandStrategies
      *
      * @return the instance.
      */
-    public static CommandStrategy<CreateThing, Thing, ThingId, Result<ThingEvent>> getCreateThingStrategy() {
+    public static CommandStrategy<CreateThing, Thing, ThingId, ThingEvent<?>> getCreateThingStrategy() {
         return CreateThingStrategy.getInstance();
     }
 
@@ -70,6 +70,7 @@ public final class ThingCommandStrategies
         addStrategy(new ModifyThingStrategy());
         addStrategy(new RetrieveThingStrategy());
         addStrategy(new DeleteThingStrategy());
+        addStrategy(new MergeThingStrategy());
     }
 
     private void addPolicyStrategies() {
@@ -138,7 +139,7 @@ public final class ThingCommandStrategies
     }
 
     @Override
-    protected Result<ThingEvent> getEmptyResult() {
+    protected Result<ThingEvent<?>> getEmptyResult() {
         return ResultFactory.emptyResult();
     }
 }

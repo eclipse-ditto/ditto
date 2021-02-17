@@ -199,26 +199,6 @@ public final class ImmutableAcknowledgementTest {
     }
 
     @Test
-    public void liveResponseAcknowledgementWithNonTimeoutIsSuccess() {
-        final HttpStatus httpStatus = HttpStatus.NOT_FOUND;
-        final ImmutableAcknowledgement<ThingId> underTest =
-                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.LIVE_RESPONSE, KNOWN_ENTITY_ID, httpStatus,
-                        dittoHeaders, KNOWN_PAYLOAD);
-
-        assertThat(underTest.isSuccess()).isTrue();
-    }
-
-    @Test
-    public void liveResponseAcknowledgementWithTimeoutIsFailed() {
-        final HttpStatus httpStatus = HttpStatus.REQUEST_TIMEOUT;
-        final ImmutableAcknowledgement<ThingId> underTest =
-                ImmutableAcknowledgement.of(DittoAcknowledgementLabel.LIVE_RESPONSE, KNOWN_ENTITY_ID, httpStatus,
-                        dittoHeaders, KNOWN_PAYLOAD);
-
-        assertThat(underTest.isSuccess()).isFalse();
-    }
-
-    @Test
     public void acknowledgementWithHttpStatusOkIsNotTimeout() {
         final HttpStatus httpStatus = HttpStatus.OK;
         final ImmutableAcknowledgement<ThingId> underTest =

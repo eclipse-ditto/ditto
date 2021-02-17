@@ -33,6 +33,14 @@ public interface EventsTopicPathBuilder extends TopicPathBuildable {
     EventsTopicPathBuilder modified();
 
     /**
+     * Sets the {@code Action} of this builder to {@link TopicPath.Action#MERGED}. A previously set action is
+     * replaced.
+     *
+     * @return this builder to allow method chaining.
+     */
+    EventsTopicPathBuilder merged();
+
+    /**
      * Sets the {@code Action} of this builder to {@link TopicPath.Action#DELETED}. A previously set action is replaced.
      *
      * @return this builder to allow method chaining.

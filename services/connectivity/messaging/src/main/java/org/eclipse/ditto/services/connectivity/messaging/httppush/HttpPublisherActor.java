@@ -126,25 +126,12 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
     private HttpPublisherActor(final Connection connection, final HttpPushFactory factory, final String clientId) {
         super(connection, clientId);
         this.factory = factory;
-
-        final HttpPushConfig config = connectionConfig.getHttpPushConfig();
-        final PreparedTimer timer = DittoMetrics.timer("http_publish_request_time")
-                .tag("id", connection.getId().toString());
-
         materializer = Materializer.createMaterializer(this::getContext);
-
-
-        final Sink<Duration, CompletionStage<Done>> logRequestTimes = Sink.<Duration>foreach(duration -> {
-            connectionLogger.success("HTTP request took <{0}> ms.", duration.toMillis());
-        });
-        final Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?>
-                performHttpRequestFlow = factory.createFlow(getContext().getSystem(), logger);
-        final Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?>
-                timedHttpRequestFlow = TimeMeasuringFlow.measureTimeOf(performHttpRequestFlow, timer, logRequestTimes);
+        final HttpPushConfig config = connectionConfig.getHttpPushConfig();
         final Pair<Pair<SourceQueueWithComplete<Pair<HttpRequest, HttpPushContext>>, UniqueKillSwitch>,
                 CompletionStage<Done>> materialized =
                 Source.<Pair<HttpRequest, HttpPushContext>>queue(config.getMaxQueueSize(), OverflowStrategy.dropNew())
-                        .viaMat(timedHttpRequestFlow, Keep.left())
+                        .viaMat(buildHttpRequestFlow(config), Keep.left())
                         .viaMat(KillSwitches.single(), Keep.both())
                         .toMat(Sink.foreach(HttpPublisherActor::processResponse), Keep.both())
                         .run(materializer);
@@ -159,6 +146,25 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
 
     static Props props(final Connection connection, final HttpPushFactory factory, final String clientId) {
         return Props.create(HttpPublisherActor.class, connection, factory, clientId);
+    }
+
+    private Flow<Pair<HttpRequest, HttpPushContext>, Pair<Try<HttpResponse>, HttpPushContext>, ?>
+    buildHttpRequestFlow(final HttpPushConfig config) {
+
+        final Duration requestTimeout = config.getRequestTimeout();
+
+        final PreparedTimer timer = DittoMetrics.timer("http_publish_request_time")
+                // Set maximum duration higher than request timeout to avoid race conditions
+                .maximumDuration(requestTimeout.plus(Duration.ofSeconds(5)))
+                .tag("id", connection.getId().toString());
+
+        final Sink<Duration, CompletionStage<Done>> logRequestTimes = Sink.<Duration>foreach(duration -> {
+            connectionLogger.success("HTTP request took <{0}> ms.", duration.toMillis());
+        });
+
+        final var httpPushFlow = factory.<HttpPushContext>createFlow(getContext().getSystem(), logger, requestTimeout);
+
+        return TimeMeasuringFlow.measureTimeOf(httpPushFlow, timer, logRequestTimes);
     }
 
     @Override

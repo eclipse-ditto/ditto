@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.thingsearch.persistence.write.model;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -20,14 +21,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
-import org.eclipse.ditto.model.base.common.HttpStatusCode;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.thingsearch.commands.sudo.UpdateThingResponse;
+import org.eclipse.ditto.services.utils.metrics.instruments.timer.StartedTimer;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 
 import akka.actor.ActorRef;
@@ -35,7 +36,6 @@ import akka.actor.ActorRef;
 /**
  * Data class holding information about a "thingEntities" database record.
  */
-@Immutable
 public final class Metadata {
 
     private final ThingId thingId;
@@ -43,6 +43,7 @@ public final class Metadata {
     @Nullable private final PolicyId policyId;
     @Nullable private final Long policyRevision;
     @Nullable final Instant modified;
+    private final List<StartedTimer> timers;
     private final List<ActorRef> senders;
 
     private Metadata(final ThingId thingId,
@@ -50,14 +51,16 @@ public final class Metadata {
             @Nullable final PolicyId policyId,
             @Nullable final Long policyRevision,
             @Nullable final Instant modified,
-            final List<ActorRef> senders) {
+            final Collection<StartedTimer> timers,
+            final Collection<ActorRef> senders) {
 
         this.thingId = thingId;
         this.thingRevision = thingRevision;
         this.policyId = policyId;
         this.policyRevision = policyRevision;
         this.modified = modified;
-        this.senders = senders; // does not need to be made unmodifiable as there is no getter returning that to the "outside world"
+        this.timers = List.copyOf(timers);
+        this.senders = List.copyOf(senders);
     }
 
     /**
@@ -67,14 +70,17 @@ public final class Metadata {
      * @param thingRevision the Thing revision.
      * @param policyId the Policy ID if the Thing has one.
      * @param policyRevision the Policy revision if the Thing has a policy, or null if it does not.
+     * @param timer an optional timer measuring the search updater's consistency lag.
      * @return the new Metadata object.
      */
     public static Metadata of(final ThingId thingId,
             final long thingRevision,
             @Nullable final PolicyId policyId,
-            @Nullable final Long policyRevision) {
+            @Nullable final Long policyRevision,
+            @Nullable final StartedTimer timer) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, null, List.of());
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, null,
+                null != timer ? List.of(timer) : List.of(), List.of());
     }
 
     /**
@@ -84,16 +90,42 @@ public final class Metadata {
      * @param thingRevision the Thing revision.
      * @param policyId the Policy ID if the Thing has one.
      * @param policyRevision the Policy revision if the Thing has a policy, or null if it does not.
-     * @param sender the sender
+     * @param timer an optional timer measuring the search updater's consistency lag.
+     * @param sender the sender.
      * @return the new Metadata object.
      */
     public static Metadata of(final ThingId thingId,
             final long thingRevision,
             @Nullable final PolicyId policyId,
             @Nullable final Long policyRevision,
+            @Nullable final StartedTimer timer,
             final ActorRef sender) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, null, List.of(sender));
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, null,
+                null != timer ? List.of(timer) : List.of(), List.of(sender));
+    }
+
+    /**
+     * Create an Metadata object retaining the original senders of an event.
+     *
+     * @param thingId the Thing ID.
+     * @param thingRevision the Thing revision.
+     * @param policyId the Policy ID if the Thing has one.
+     * @param policyRevision the Policy revision if the Thing has a policy, or null if it does not.
+     * @param modified the timestamp of the last change incorporated into the search index, or null if not known.
+     * @param timers the timers measuring the search updater's consistency lag.
+     * @param senders the senders.
+     * @return the new Metadata object.
+     */
+    public static Metadata of(final ThingId thingId,
+            final long thingRevision,
+            @Nullable final PolicyId policyId,
+            @Nullable final Long policyRevision,
+            @Nullable final Instant modified,
+            final Collection<StartedTimer> timers,
+            final Collection<ActorRef> senders) {
+
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, timers, senders);
     }
 
     /**
@@ -104,15 +136,18 @@ public final class Metadata {
      * @param policyId the Policy ID if the Thing has one.
      * @param policyRevision the Policy revision if the Thing has a policy, or null if it does not.
      * @param modified the timestamp of the last change incorporated into the search index, or null if not known.
+     * @param timer an optional timer measuring the search updater's consistency lag.
      * @return the new Metadata object.
      */
     public static Metadata of(final ThingId thingId,
             final long thingRevision,
             @Nullable final PolicyId policyId,
             @Nullable final Long policyRevision,
-            @Nullable final Instant modified) {
+            @Nullable final Instant modified,
+            @Nullable final StartedTimer timer) {
 
-        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified, List.of());
+        return new Metadata(thingId, thingRevision, policyId, policyRevision, modified,
+                null != timer ? List.of(timer) : List.of(), List.of());
     }
 
     /**
@@ -124,7 +159,8 @@ public final class Metadata {
     public static Metadata fromResponse(final UpdateThingResponse updateThingResponse) {
         return of(updateThingResponse.getThingId(), updateThingResponse.getThingRevision(),
                 updateThingResponse.getPolicyId().orElse(null),
-                updateThingResponse.getPolicyRevision().orElse(null));
+                updateThingResponse.getPolicyRevision().orElse(null),
+                null);
     }
 
     /**
@@ -183,16 +219,45 @@ public final class Metadata {
     }
 
     /**
-     * Prepend new senders to the senders stored in this object.
+     * Returns the timers measuring the consistency lag.
+     *
+     * @return the timers.
+     */
+    public List<StartedTimer> getTimers() {
+        return timers;
+    }
+
+    /**
+     * Return the senders of the originating event which should e.g. receive ACKs.
+     *
+     * @return the senders.
+     */
+    public List<ActorRef> getSenders() {
+        return senders;
+    }
+
+    /**
+     * Returns whether an acknowledgement for the successful adding to the search index is requested.
+     *
+     * @return whether {@code "search-persisted"} is requested.
+     */
+    public boolean isShouldAcknowledge() {
+        return !senders.isEmpty();
+    }
+
+    /**
+     * Prepend new timers and senders to the timers and senders stored in this object.
      *
      * @param newMetadata a previous metadata record.
      * @return the new metadata with concatenated senders.
      */
-    public Metadata prependSenders(final Metadata newMetadata) {
+    public Metadata prependTimersAndSenders(final Metadata newMetadata) {
+        final List<StartedTimer> newTimers =
+                Stream.concat(newMetadata.timers.stream(), timers.stream()).collect(Collectors.toList());
         final List<ActorRef> newSenders =
                 Stream.concat(newMetadata.senders.stream(), senders.stream()).collect(Collectors.toList());
         return new Metadata(newMetadata.thingId, newMetadata.thingRevision, newMetadata.policyId,
-                newMetadata.policyRevision, newMetadata.modified, newSenders);
+                newMetadata.policyRevision, newMetadata.modified, newTimers, newSenders);
     }
 
     /**
@@ -200,18 +265,23 @@ public final class Metadata {
      */
     public void sendNAck() {
         send(Acknowledgement.of(DittoAcknowledgementLabel.SEARCH_PERSISTED, thingId,
-                HttpStatusCode.INTERNAL_SERVER_ERROR, DittoHeaders.empty()));
+                HttpStatus.INTERNAL_SERVER_ERROR, DittoHeaders.empty()));
     }
 
     /**
      * Send positive acknowledgements to senders.
      */
     public void sendAck() {
-        send(Acknowledgement.of(DittoAcknowledgementLabel.SEARCH_PERSISTED, thingId, HttpStatusCode.NO_CONTENT,
+        send(Acknowledgement.of(DittoAcknowledgementLabel.SEARCH_PERSISTED, thingId, HttpStatus.NO_CONTENT,
                 DittoHeaders.empty()));
     }
 
     private void send(final Acknowledgement ack) {
+        timers.forEach(timer -> {
+            if (timer.isRunning()) {
+                timer.tag("success", ack.isSuccess()).stop();
+            }
+        });
         senders.forEach(sender -> sender.tell(ack, ActorRef.noSender()));
     }
 
@@ -229,12 +299,13 @@ public final class Metadata {
                 Objects.equals(thingId, that.thingId) &&
                 Objects.equals(policyId, that.policyId) &&
                 Objects.equals(modified, that.modified) &&
+                Objects.equals(timers, that.timers) &&
                 Objects.equals(senders, that.senders);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified, senders);
+        return Objects.hash(thingId, thingRevision, policyId, policyRevision, modified, timers, senders);
     }
 
     @Override
@@ -245,6 +316,7 @@ public final class Metadata {
                 ", policyId=" + policyId +
                 ", policyRevision=" + policyRevision +
                 ", modified=" + modified +
+                ", timers=" + timers +
                 ", senders=" + senders +
                 "]";
     }

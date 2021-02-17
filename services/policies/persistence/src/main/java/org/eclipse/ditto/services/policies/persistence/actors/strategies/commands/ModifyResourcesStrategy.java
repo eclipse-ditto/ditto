@@ -46,14 +46,14 @@ import org.eclipse.ditto.signals.events.policies.ResourcesModified;
 /**
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.modify.ModifyResources} command.
  */
-final class ModifyResourcesStrategy extends AbstractPolicyCommandStrategy<ModifyResources> {
+final class ModifyResourcesStrategy extends AbstractPolicyCommandStrategy<ModifyResources, PolicyEvent<?>> {
 
     ModifyResourcesStrategy(final PolicyConfig policyConfig) {
         super(ModifyResources.class, policyConfig);
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+    protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy policy,
             final long nextRevision,
             final ModifyResources command,

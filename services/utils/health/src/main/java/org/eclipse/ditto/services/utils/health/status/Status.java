@@ -17,6 +17,7 @@ import java.util.Scanner;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.services.utils.config.DittoConfigError;
 import org.eclipse.ditto.services.utils.config.HostNameSupplier;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.config.LocalHostAddressSupplier;
@@ -32,6 +33,9 @@ public final class Status {
 
     static {
         final InputStream versionsInputStream = Status.class.getClassLoader().getResourceAsStream(VERSIONS_FILE_NAME);
+        if (versionsInputStream == null) {
+            throw new DittoConfigError("Missing required file in classpath: " + VERSIONS_FILE_NAME);
+        }
         VERSIONS_JSON = JsonFactory.readFrom(new Scanner(versionsInputStream).useDelimiter("\\Z").next()).asObject()
                 .setValue("hostname", HostNameSupplier.getInstance().get())
                 .setValue("local-address", LocalHostAddressSupplier.getInstance().get())

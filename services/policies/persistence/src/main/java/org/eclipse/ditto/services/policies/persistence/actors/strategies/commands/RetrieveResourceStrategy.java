@@ -41,7 +41,7 @@ final class RetrieveResourceStrategy extends AbstractPolicyQueryCommandStrategy<
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+    protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy policy,
             final long nextRevision,
             final RetrieveResource command,

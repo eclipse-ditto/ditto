@@ -267,6 +267,7 @@ public final class MessageHeadersBuilder extends AbstractDittoHeadersBuilder<Mes
     public MessageHeadersBuilder statusCode(@Nullable final HttpStatusCode statusCode) {
         return httpStatus(null != statusCode ? statusCode.getAsHttpStatus() : null);
     }
+
     /**
      * Sets the Http status of the Message to build.
      *

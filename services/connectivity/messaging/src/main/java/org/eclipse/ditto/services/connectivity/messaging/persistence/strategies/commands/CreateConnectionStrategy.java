@@ -21,7 +21,6 @@ import static org.eclipse.ditto.services.connectivity.messaging.persistence.stag
 import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newErrorResult;
 import static org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory.newMutationResult;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -51,7 +50,7 @@ final class CreateConnectionStrategy extends AbstractConnectivityCommandStrategy
     }
 
     @Override
-    protected Result<ConnectivityEvent> doApply(final Context<ConnectionState> context,
+    protected Result<ConnectivityEvent<?>> doApply(final Context<ConnectionState> context,
             @Nullable final Connection entity,
             final long nextRevision,
             final CreateConnection command,

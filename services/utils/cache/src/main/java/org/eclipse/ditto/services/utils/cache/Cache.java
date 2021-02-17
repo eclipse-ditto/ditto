@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 
 /**
  * A general purpose cache for items which are associated with a key.
@@ -90,5 +91,19 @@ public interface Cache<K, V> {
      */
     default void invalidateAll(final Collection<K> keys) {
         keys.forEach(this::invalidate);
+    }
+
+    /**
+     * Builds a cache containing projected values of provided type {@code <U>} on this cache using the passed in
+     * functions in order to transform between the value of type {@code <V>} this cache instance manages and the value
+     * of type {@code <U>} the returned cache projection holds.
+     *
+     * @param project the projection of a value {@code this} cache manages to a value of the returned cache
+     * @param embed the function of a value added to the returned cache to a value of {@code this} cache
+     * @param <U> the type of the projected cache's values
+     * @return the cache with projected values.
+     */
+    default <U> Cache<K, U> projectValues(final Function<V, U> project, final Function<U, V> embed) {
+        return new ProjectedCache<>(this, project, embed);
     }
 }

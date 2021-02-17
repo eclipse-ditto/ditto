@@ -56,7 +56,7 @@ final class SudoRetrieveThingStrategy extends AbstractThingCommandStrategy<SudoR
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final SudoRetrieveThing command,
@@ -81,7 +81,7 @@ final class SudoRetrieveThingStrategy extends AbstractThingCommandStrategy<SudoR
     }
 
     @Override
-    public Result<ThingEvent> unhandled(final Context<ThingId> context, @Nullable final Thing thing,
+    public Result<ThingEvent<?>> unhandled(final Context<ThingId> context, @Nullable final Thing thing,
             final long nextRevision, final SudoRetrieveThing command) {
         return ResultFactory.newErrorResult(
                 new ThingNotAccessibleException(context.getState(), command.getDittoHeaders()), command);

@@ -50,7 +50,7 @@ final class ModifyFeaturePropertyStrategy extends AbstractThingCommandStrategy<M
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final ModifyFeatureProperty command,
@@ -88,7 +88,7 @@ final class ModifyFeaturePropertyStrategy extends AbstractThingCommandStrategy<M
                 .flatMap(features -> features.getFeature(command.getFeatureId()));
     }
 
-    private Result<ThingEvent> getModifyOrCreateResult(final Feature feature, final Context<ThingId> context,
+    private Result<ThingEvent<?>> getModifyOrCreateResult(final Feature feature, final Context<ThingId> context,
             final long nextRevision, final ModifyFeatureProperty command, @Nullable final Thing thing,
             @Nullable final Metadata metadata) {
 
@@ -98,7 +98,7 @@ final class ModifyFeaturePropertyStrategy extends AbstractThingCommandStrategy<M
                 .orElseGet(() -> getCreateResult(context, nextRevision, command, thing, metadata));
     }
 
-    private Result<ThingEvent> getModifyResult(final Context<ThingId> context, final long nextRevision,
+    private Result<ThingEvent<?>> getModifyResult(final Context<ThingId> context, final long nextRevision,
             final ModifyFeatureProperty command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
 
         final String featureId = command.getFeatureId();
@@ -115,7 +115,7 @@ final class ModifyFeaturePropertyStrategy extends AbstractThingCommandStrategy<M
         return ResultFactory.newMutationResult(command, event, response);
     }
 
-    private Result<ThingEvent> getCreateResult(final Context<ThingId> context, final long nextRevision,
+    private Result<ThingEvent<?>> getCreateResult(final Context<ThingId> context, final long nextRevision,
             final ModifyFeatureProperty command, @Nullable final Thing thing, @Nullable final Metadata metadata) {
 
         final String featureId = command.getFeatureId();

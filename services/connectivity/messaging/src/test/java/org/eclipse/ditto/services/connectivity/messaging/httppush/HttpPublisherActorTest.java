@@ -14,6 +14,7 @@ package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -701,7 +702,7 @@ public final class HttpPublisherActorTest extends AbstractPublisherActorTest {
 
         @Override
         public <T> Flow<Pair<HttpRequest, T>, Pair<Try<HttpResponse>, T>, ?> createFlow(final ActorSystem system,
-                final LoggingAdapter log) {
+                final LoggingAdapter log, final Duration requestTimeout) {
             return Flow.<Pair<HttpRequest, T>>create()
                     .map(pair -> Pair.create(Try.apply(() -> mapper.apply(pair.first())), pair.second()));
         }

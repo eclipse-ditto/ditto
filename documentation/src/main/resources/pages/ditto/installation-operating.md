@@ -50,14 +50,14 @@ HTTP API calls to Ditto may be authenticated with a reverse proxy (e.g. a nginx)
 * passes the authenticated username as HTTP header
 * ensures that this HTTP header can never be written by the end-user
 
-By default, `pre-authentication` is **disabled** in the Ditto [gateway](architecture-services-gateway.html) services.<br/>
+By default, `pre-authentication` is **disabled** in the Ditto [gateway](architecture-services-gateway.html) services.  
 It can however be enabled by configuring the environment variable `ENABLE_PRE_AUTHENTICATION` to the value `true`.
 
 When it is enabled, the reverse proxy has to set the HTTP header `x-ditto-pre-authenticated`.<br/>
 The format of the "pre-authenticated" string is: `<issuer>:<subject>`. The issuer defines which system authenticated the
 user and the subject contains e.g. the user-id or -name.
 
-This string must then be used in [policies](basic-policy.html#who-can-be-addressed) as "Subject ID".
+This string must then be used in [policies](basic-policy.html#subjects) as "Subject ID".
 
 Example for a nginx "proxy" configuration: 
 ```

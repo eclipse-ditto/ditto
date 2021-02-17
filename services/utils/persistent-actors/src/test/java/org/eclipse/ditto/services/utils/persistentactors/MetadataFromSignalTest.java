@@ -20,6 +20,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.util.Optional;
 
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
@@ -39,6 +40,7 @@ import org.eclipse.ditto.signals.commands.things.modify.ModifyFeature;
 import org.eclipse.ditto.signals.commands.things.modify.ThingModifyCommand;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -223,6 +225,30 @@ public final class MetadataFromSignalTest {
                 thingWithoutMetadata.getMetadata().orElse(null));
 
         assertThat(underTest.get()).isEqualTo(expected);
+    }
+
+    @Test
+    public void ensureThatLeafsCanOnlyBeObjects() {
+        final Feature modifiedFeature = fluxCapacitor.toBuilder()
+                .properties(fluxCapacitorProperties.toBuilder()
+                        .set("capacitorNr", 99)
+                        .build())
+                .definition(FeatureDefinition.fromIdentifier("foo:bar:1"))
+                .build();
+        final DittoHeaders dittoHeaders = DittoHeaders.newBuilder()
+                .putMetadata(MetadataHeaderKey.parse("/scruplusFine"), JsonValue.of("^6,00.32"))
+                .putMetadata(MetadataHeaderKey.parse("/properties/capacitorNr"), JsonValue.of("unlimited"))
+                .putMetadata(MetadataHeaderKey.parse("/*/lastSeen"), JsonValue.of(1955))
+                .build();
+        final ModifyFeature modifyFeature = ModifyFeature.of(thingWithoutMetadata.getEntityId().orElseThrow(),
+                modifiedFeature,
+                dittoHeaders);
+
+        final MetadataFromSignal underTest = MetadataFromSignal.of(modifyFeature, modifyFeature, null);
+
+        assertThat(underTest.get())
+                .isNotEmpty()
+                .doesNotContain(JsonField.newInstance("/properties/capacitorNr", JsonValue.of("unlimited")));
     }
 
 }

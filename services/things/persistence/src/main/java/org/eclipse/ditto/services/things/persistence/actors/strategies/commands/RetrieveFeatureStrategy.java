@@ -45,7 +45,7 @@ final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<Retriev
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final RetrieveFeature command,
@@ -63,7 +63,7 @@ final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<Retriev
         return getEntityOrThrow(thing).getFeatures();
     }
 
-    private Result<ThingEvent> getFeatureResult(final Features features, final ThingId thingId,
+    private Result<ThingEvent<?>> getFeatureResult(final Features features, final ThingId thingId,
             final RetrieveFeature command, @Nullable final Thing thing) {
 
         final String featureId = command.getFeatureId();
@@ -72,7 +72,7 @@ final class RetrieveFeatureStrategy extends AbstractThingCommandStrategy<Retriev
         return features.getFeature(featureId)
                 .map(feature -> getFeatureJson(feature, command))
                 .map(featureJson -> RetrieveFeatureResponse.of(thingId, featureId, featureJson, dittoHeaders))
-                .<Result<ThingEvent>>map(response ->
+                .<Result<ThingEvent<?>>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.featureNotFound(thingId, featureId, dittoHeaders), command));

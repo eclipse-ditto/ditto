@@ -14,6 +14,8 @@ package org.eclipse.ditto.services.utils.cache.entry;
 
 /**
  * Cache entry for authorization.
+ *
+ * @param <T> the type of the cache entry's value
  */
 public interface Entry<T> {
 

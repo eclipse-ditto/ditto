@@ -32,7 +32,7 @@ import org.eclipse.ditto.model.messages.MessageHeaders;
 /**
  * (De-)Serializes message payloads of {@code MessageCommand}s and {@code MessageCommandResponse}s.
  */
-class MessagePayloadSerializer {
+public class MessagePayloadSerializer {
 
     private static final Base64.Encoder BASE64_ENCODER = Base64.getEncoder();
     private static final Base64.Decoder BASE64_DECODER = Base64.getDecoder();
@@ -94,7 +94,7 @@ class MessagePayloadSerializer {
     }
 
     // also validate message size
-    static void deserialize(@Nullable final JsonValue payload, final MessageBuilder<Object> messageBuilder,
+    public static void deserialize(@Nullable final JsonValue payload, final MessageBuilder<Object> messageBuilder,
             final MessageHeaders messageHeaders) {
 
         final ContentType contentType = messageHeaders.getDittoContentType().orElse(ContentType.of(""));

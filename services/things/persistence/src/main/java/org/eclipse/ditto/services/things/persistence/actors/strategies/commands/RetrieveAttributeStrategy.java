@@ -45,7 +45,7 @@ final class RetrieveAttributeStrategy extends AbstractThingCommandStrategy<Retri
     }
 
     @Override
-    protected Result<ThingEvent> doApply(final Context<ThingId> context,
+    protected Result<ThingEvent<?>> doApply(final Context<ThingId> context,
             @Nullable final Thing thing,
             final long nextRevision,
             final RetrieveAttribute command,
@@ -61,7 +61,7 @@ final class RetrieveAttributeStrategy extends AbstractThingCommandStrategy<Retri
         return getEntityOrThrow(thing).getAttributes();
     }
 
-    private Result<ThingEvent> getAttributeValueResult(final JsonObject attributes, final ThingId thingId,
+    private Result<ThingEvent<?>> getAttributeValueResult(final JsonObject attributes, final ThingId thingId,
             final RetrieveAttribute command, @Nullable final Thing thing) {
 
         final JsonPointer attributePointer = command.getAttributePointer();
@@ -69,7 +69,7 @@ final class RetrieveAttributeStrategy extends AbstractThingCommandStrategy<Retri
 
         return attributes.getValue(attributePointer)
                 .map(value -> RetrieveAttributeResponse.of(thingId, attributePointer, value, dittoHeaders))
-                .<Result<ThingEvent>>map(response ->
+                .<Result<ThingEvent<?>>>map(response ->
                         ResultFactory.newQueryResult(command, appendETagHeaderIfProvided(command, response, thing)))
                 .orElseGet(() -> ResultFactory.newErrorResult(
                         ExceptionFactory.attributeNotFound(thingId, attributePointer, dittoHeaders), command));

@@ -15,10 +15,12 @@ package org.eclipse.ditto.services.concierge.enforcement;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -34,8 +36,9 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
+import org.eclipse.ditto.model.policies.Label;
+import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
@@ -52,8 +55,13 @@ import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
+import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
+import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.actions.TopLevelPolicyActionCommand;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotModifiableException;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyPreconditionNotModifiedException;
@@ -93,6 +101,8 @@ public final class PolicyCommandEnforcementTest {
 
     private static final SubjectId AUTH_SUBJECT_ID = SubjectId.newInstance(SubjectIssuer.GOOGLE, "someId");
     private static final Subject AUTH_SUBJECT = Subject.newInstance(AUTH_SUBJECT_ID);
+    private static final Subject AUTH_SUBJECT_2 =
+            Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, "secondId"));
 
     private static final String NAMESPACE = "my.namespace";
     private static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE, "policyId");
@@ -133,7 +143,7 @@ public final class PolicyCommandEnforcementTest {
 
     private ActorSystem system;
     private TestProbe policiesShardRegionProbe;
-    private Cache<EntityIdWithResourceType, Entry<Enforcer>> enforcerCache;
+    private Cache<EntityIdWithResourceType, Entry<PolicyEnforcer>> enforcerCache;
     private ActorRef enforcer;
 
     @Before
@@ -547,6 +557,164 @@ public final class PolicyCommandEnforcementTest {
         testCreatePolicy(Collections.emptyList(), true, false);
     }
 
+    @Test
+    public void activateTopLevelTokenIntegrationWithoutPermission() {
+        new TestKit(system) {{
+            final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
+            final Instant expiry = Instant.now();
+            final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
+                    ActivateTokenIntegration.of(POLICY_ID, Label.of("-"), Collections.singleton(subjectId), expiry,
+                            DITTO_HEADERS),
+                    List.of());
+
+            enforcer.tell(command, getRef());
+
+            policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policiesShardRegionProbe.reply(createDefaultPolicyResponse());
+            expectMsgClass(PolicyActionFailedException.class);
+        }};
+    }
+
+    @Test
+    public void deactivateTopLevelTokenIntegrationWithoutPermission() {
+        new TestKit(system) {{
+            final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
+            final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
+                    DeactivateTokenIntegration.of(POLICY_ID, Label.of("-"), Collections.singleton(subjectId),
+                            DITTO_HEADERS),
+                    List.of());
+
+            enforcer.tell(command, getRef());
+
+            policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policiesShardRegionProbe.reply(createDefaultPolicyResponse());
+            expectMsgClass(PolicyActionFailedException.class);
+        }};
+    }
+
+    @Test
+    public void activateTokenIntegrationWithoutPermission() {
+        new TestKit(system) {{
+            final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
+            final Instant expiry = Instant.now();
+            final ActivateTokenIntegration activateTokenIntegration =
+                    ActivateTokenIntegration.of(POLICY_ID, Label.of("forbidden"), Collections.singleton(subjectId),
+                            expiry, DITTO_HEADERS);
+
+            enforcer.tell(activateTokenIntegration, getRef());
+
+            policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policiesShardRegionProbe.reply(createPolicyResponseForActions());
+            expectMsgClass(PolicyActionFailedException.class);
+        }};
+    }
+
+    @Test
+    public void deactivateTokenIntegrationWithoutPermission() {
+        new TestKit(system) {{
+            final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
+            final DeactivateTokenIntegration deactivateTokenIntegration =
+                    DeactivateTokenIntegration.of(POLICY_ID, Label.of("forbidden"), Collections.singleton(subjectId),
+                            DITTO_HEADERS);
+
+            enforcer.tell(deactivateTokenIntegration, getRef());
+
+            policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policiesShardRegionProbe.reply(createDefaultPolicyResponse());
+            expectMsgClass(PolicyActionFailedException.class);
+        }};
+    }
+
+    @Test
+    public void activateTopLevelTokenIntegration() {
+        new TestKit(system) {{
+            final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
+            final Instant expiry = Instant.now();
+            final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
+                    ActivateTokenIntegration.of(POLICY_ID, Label.of("-"), Collections.singleton(subjectId), expiry,
+                            DITTO_HEADERS),
+                    List.of()
+            );
+
+            enforcer.tell(command, getRef());
+
+            policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policiesShardRegionProbe.reply(createPolicyResponseForActions());
+
+            final TopLevelPolicyActionCommand
+                    forwarded = policiesShardRegionProbe.expectMsgClass(TopLevelPolicyActionCommand.class);
+            assertThat(forwarded).isEqualTo(TopLevelPolicyActionCommand.of(
+                    ActivateTokenIntegration.of(POLICY_ID, Label.of("-"), Collections.singleton(subjectId), expiry,
+                            DITTO_HEADERS),
+                    List.of(Label.of("allowed"))
+            ));
+        }};
+    }
+
+    @Test
+    public void deactivateTopLevelTokenIntegration() {
+        new TestKit(system) {{
+            final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
+            final TopLevelPolicyActionCommand command = TopLevelPolicyActionCommand.of(
+                    DeactivateTokenIntegration.of(POLICY_ID, Label.of("-"), Collections.singleton(subjectId),
+                            DITTO_HEADERS),
+                    List.of()
+            );
+
+            enforcer.tell(command, getRef());
+
+            policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policiesShardRegionProbe.reply(createPolicyResponseForActions());
+
+            final TopLevelPolicyActionCommand
+                    forwarded = policiesShardRegionProbe.expectMsgClass(TopLevelPolicyActionCommand.class);
+            assertThat(forwarded).isEqualTo(TopLevelPolicyActionCommand.of(
+                    DeactivateTokenIntegration.of(POLICY_ID, Label.of("-"), Collections.singleton(subjectId),
+                            DITTO_HEADERS),
+                    List.of(Label.of("allowed"))
+            ));
+        }};
+    }
+
+    @Test
+    public void activateTokenIntegration() {
+        new TestKit(system) {{
+            final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
+            final Instant expiry = Instant.now();
+            final ActivateTokenIntegration activateTokenIntegration =
+                    ActivateTokenIntegration.of(POLICY_ID, Label.of("allowed"), Collections.singleton(subjectId),
+                            expiry, DITTO_HEADERS);
+
+            enforcer.tell(activateTokenIntegration, getRef());
+
+            policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policiesShardRegionProbe.reply(createPolicyResponseForActions());
+
+            final ActivateTokenIntegration forwarded =
+                    policiesShardRegionProbe.expectMsgClass(ActivateTokenIntegration.class);
+            assertThat(forwarded).isEqualTo(activateTokenIntegration);
+        }};
+    }
+
+    @Test
+    public void deactivateTokenIntegration() {
+        new TestKit(system) {{
+            final SubjectId subjectId = SubjectId.newInstance("issuer:{{policy-entry:label}}:subject");
+            final DeactivateTokenIntegration deactivateTokenIntegration =
+                    DeactivateTokenIntegration.of(POLICY_ID, Label.of("allowed"), Collections.singleton(subjectId),
+                            DITTO_HEADERS);
+
+            enforcer.tell(deactivateTokenIntegration, getRef());
+
+            policiesShardRegionProbe.expectMsgClass(SudoRetrievePolicy.class);
+            policiesShardRegionProbe.reply(createPolicyResponseForActions());
+
+            final DeactivateTokenIntegration
+                    forwarded = policiesShardRegionProbe.expectMsgClass(DeactivateTokenIntegration.class);
+            assertThat(forwarded).isEqualTo(deactivateTokenIntegration);
+        }};
+    }
+
     public void testCreatePolicy(final Iterable<String> grants, final boolean allowPolicyLockout,
             final boolean shouldFail) {
         new TestKit(system) {{
@@ -654,6 +822,33 @@ public final class PolicyCommandEnforcementTest {
                                 Collections.singleton(Permission.WRITE)))));
         final Policy policy = POLICY.toBuilder()
                 .set(revokeWriteEntry)
+                .build();
+
+        return SudoRetrievePolicyResponse.of(POLICY_ID, policy, DITTO_HEADERS_WITH_CORRELATION_ID);
+    }
+
+    private static SudoRetrievePolicyResponse createPolicyResponseForActions() {
+        final PolicyEntry adminEntry = PolicyEntry.newInstance("admin",
+                List.of(AUTH_SUBJECT_2),
+                Set.of(Resource.newInstance(POLICIES_ROOT_RESOURCE_KEY,
+                        EffectedPermissions.newInstance(Permission.DEFAULT_POLICY_PERMISSIONS, Set.of()))));
+        final PolicyEntry executeEntry = PolicyEntry.newInstance("execute",
+                List.of(AUTH_SUBJECT),
+                Set.of(Resource.newInstance(
+                        PoliciesResourceType.policyResource("/entries/allowed/actions/activateTokenIntegration"),
+                        EffectedPermissions.newInstance(Set.of(Permission.EXECUTE), Set.of())),
+                        Resource.newInstance(PoliciesResourceType.policyResource(
+                                "/entries/allowed/actions/deactivateTokenIntegration"),
+                                EffectedPermissions.newInstance(Set.of(Permission.EXECUTE), Set.of()))
+                ));
+        final PolicyEntry allowedEntry = PolicyEntry.newInstance("allowed", List.of(), Set.of());
+        final PolicyEntry forbiddenEntry = PolicyEntry.newInstance("forbidden", List.of(), Set.of());
+        final Policy policy = PoliciesModelFactory.newPolicyBuilder(POLICY_ID)
+                .setRevision(POLICY_REVISION)
+                .set(adminEntry)
+                .set(executeEntry)
+                .set(allowedEntry)
+                .set(forbiddenEntry)
                 .build();
 
         return SudoRetrievePolicyResponse.of(POLICY_ID, policy, DITTO_HEADERS_WITH_CORRELATION_ID);

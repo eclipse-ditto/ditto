@@ -31,7 +31,7 @@ import akka.pattern.Patterns;
  * @param <C> The command type.
  * @param <R> The response type.
  */
-public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends CommandResponse>
+public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends CommandResponse<?>>
         extends AbstractEnforcement<C> {
 
     private final Class<R> responseClass;
@@ -41,9 +41,10 @@ public abstract class AbstractEnforcementWithAsk<C extends Signal<?>, R extends 
      *
      * @param context the context of the enforcement step.
      */
-    protected AbstractEnforcementWithAsk(final Contextual<C> context, final Class<R> responseClass) {
+    @SuppressWarnings("unchecked")
+    protected AbstractEnforcementWithAsk(final Contextual<C> context, final Class<?> responseClass) {
         super(context);
-        this.responseClass = responseClass;
+        this.responseClass = (Class<R>) responseClass;
     }
 
     /**

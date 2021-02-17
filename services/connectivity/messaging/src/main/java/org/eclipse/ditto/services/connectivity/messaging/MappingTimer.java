@@ -123,14 +123,14 @@ final class MappingTimer {
 
     private static StartedTimer startNewTimer(final String connectionId, final ConnectionType connectionType) {
         return DittoMetrics
-                .expiringTimer(TIMER_NAME)
+                .timer(TIMER_NAME)
                 .tag(TracingTags.CONNECTION_ID, connectionId)
                 .tag(TracingTags.CONNECTION_TYPE, connectionType.getName())
-                .expirationHandling(expiredTimer -> {
+                .onExpiration(expiredTimer -> {
                     LOGGER.warn("Mapping timer expired. This should not happen. Timer: <{}>", expiredTimer);
                     expiredTimer.tag(TracingTags.MAPPING_SUCCESS, false);
                 })
-                .build();
+                .start();
     }
 
 }

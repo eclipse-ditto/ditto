@@ -1,0 +1,38 @@
+# Copyright (c) 2021 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+post:
+  summary: Deactivate subjects for this policy derived from the token
+  description: |-
+    **This action only works when authenticated with a Json Web Token (JWT).**
+
+    Based on the authenticated token (JWT), **for each policy entry** matching those conditions:
+    * the authenticated token is granted the `EXECUTE` permission to perform the `deactivateTokenIntegration` action
+    * one of the subject IDs is contained in the authenticated token
+
+    the calculated subject with information extracted from the authenticated JWT is **removed
+    from the matched policy entry**.
+  tags:
+    - Policies
+  parameters:
+    - $ref: '../../parameters/policyIdPathParam.yml'
+  responses:
+    '204':
+      description: The request was successful. Subjects were removed from authorized policy entries.
+    '400':
+      description: The request could not be completed because the authentication was not performed with a JWT.
+    '403':
+      description: |-
+        The request could not be completed because the authenticated JWT did not have the `EXECUTE` permission on any
+        entries of the policy.
+    '404':
+      description: |-
+        The request could not be completed because no policy entry matched the following conditions:
+        * containing a a subject ID matching the JWT's authenticated subject

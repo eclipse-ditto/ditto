@@ -31,14 +31,14 @@ import org.eclipse.ditto.signals.events.policies.PolicyEvent;
  * This strategy handles the {@link org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy} command for an
  * already existing Policy.
  */
-final class PolicyConflictStrategy extends AbstractPolicyCommandStrategy<CreatePolicy> {
+final class PolicyConflictStrategy extends AbstractPolicyCommandStrategy<CreatePolicy, PolicyEvent<?>> {
 
     PolicyConflictStrategy(final PolicyConfig policyConfig) {
         super(CreatePolicy.class, policyConfig);
     }
 
     @Override
-    protected Result<PolicyEvent> doApply(final Context<PolicyId> context,
+    protected Result<PolicyEvent<?>> doApply(final Context<PolicyId> context,
             @Nullable final Policy entity,
             final long nextRevision,
             final CreatePolicy command,

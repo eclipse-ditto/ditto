@@ -65,8 +65,9 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
      * @param matchClass the type of the message to be streamed if matched in this actor's receive handler.
      * @throws NullPointerException if {@code matchClass} is {@code null}.
      */
-    protected AbstractGraphActor(final Class<M> matchClass) {
-        this.matchClass = checkNotNull(matchClass, "matchClass");
+    @SuppressWarnings("unchecked")
+    protected AbstractGraphActor(final Class<?> matchClass) {
+        this.matchClass = checkNotNull((Class<M>) matchClass, "matchClass");
 
         final Map<String, String> tags = Collections.singletonMap("class", getClass().getSimpleName());
         receiveCounter = DittoMetrics.counter("graph_actor_receive", tags);
