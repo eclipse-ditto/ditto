@@ -12,8 +12,12 @@
  */
 package org.eclipse.ditto.signals.commands.connectivity.query;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
@@ -46,27 +50,26 @@ public final class RetrieveAllConnectionIdsResponse extends AbstractCommandRespo
      * Type of this response.
      */
     public static final String TYPE = TYPE_PREFIX + RetrieveAllConnectionIds.NAME;
-    private static final JsonFieldDefinition<JsonArray> CONNECTION_IDS =
+    static final JsonFieldDefinition<JsonArray> CONNECTION_IDS =
             JsonFactory.newJsonArrayFieldDefinition("connectionIds", FieldType.REGULAR, JsonSchemaVersion.V_1,
                     JsonSchemaVersion.V_2);
 
-    private final JsonArray connectionIds;
-    private final ConnectionId connectionId;
+    private final Set<String> connectionIds;
 
-    private RetrieveAllConnectionIdsResponse(final JsonArray connectionIds, final DittoHeaders dittoHeaders) {
+    private RetrieveAllConnectionIdsResponse(final Set<String> connectionIds, final DittoHeaders dittoHeaders) {
         super(TYPE, HttpStatus.OK, dittoHeaders);
-        this.connectionIds = connectionIds;
-        this.connectionId = ConnectionId.dummy();
+        this.connectionIds = Collections.unmodifiableSet(new HashSet<>(connectionIds));
     }
 
     /**
      * Returns a new instance of {@code RetrieveAllConnectionIdsResponse}.
      *
      * @param dittoHeaders the headers of the request.
+     * @param connectionIds the connection ids
      * @return a new RetrieveAllConnectionIdsResponse response.
      * @throws NullPointerException if any argument is {@code null}.
      */
-    public static RetrieveAllConnectionIdsResponse of(final JsonArray connectionIds,
+    public static RetrieveAllConnectionIdsResponse of(final Set<String> connectionIds,
             final DittoHeaders dittoHeaders) {
         return new RetrieveAllConnectionIdsResponse(connectionIds, dittoHeaders);
     }
@@ -99,7 +102,7 @@ public final class RetrieveAllConnectionIdsResponse extends AbstractCommandRespo
     public static RetrieveAllConnectionIdsResponse fromJson(final JsonObject jsonObject,
             final DittoHeaders dittoHeaders) {
         return new CommandResponseJsonDeserializer<RetrieveAllConnectionIdsResponse>(TYPE, jsonObject).deserialize(
-                httpStatus -> of(jsonObject.getValueOrThrow(CONNECTION_IDS), dittoHeaders));
+                httpStatus -> of(fromArray(jsonObject.getValueOrThrow(CONNECTION_IDS)), dittoHeaders));
     }
 
     @Override
@@ -107,27 +110,34 @@ public final class RetrieveAllConnectionIdsResponse extends AbstractCommandRespo
             final Predicate<JsonField> thePredicate) {
 
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
-        jsonObjectBuilder.set(CONNECTION_IDS, connectionIds, predicate);
+        jsonObjectBuilder.set(CONNECTION_IDS, JsonArray.of(connectionIds), predicate);
     }
 
     /**
-     * @return the {@code JsonArray} with all connectionIds.
+     * @return set of all connection ids.
      */
-    public JsonArray getJsonArray() { return connectionIds; }
+    public Set<String> getAllConnectionIds() { return connectionIds; }
 
     @Override
     public ConnectionId getConnectionEntityId() {
-        return connectionId;
+        return ConnectionId.dummy();
     }
 
     @Override
     public RetrieveAllConnectionIdsResponse setEntity(final JsonValue entity) {
-        return of(entity.asArray(), getDittoHeaders());
+        return of(fromArray(entity.asArray()), getDittoHeaders());
+    }
+
+    private static Set<String> fromArray(final JsonArray array) {
+        return array.stream()
+                .filter(JsonValue::isString)
+                .map(JsonValue::asString)
+                .collect(Collectors.toSet());
     }
 
     @Override
     public JsonValue getEntity(final JsonSchemaVersion schemaVersion) {
-        return connectionIds;
+        return JsonArray.of(connectionIds);
     }
 
     @Override
@@ -150,20 +160,19 @@ public final class RetrieveAllConnectionIdsResponse extends AbstractCommandRespo
         }
         if (!super.equals(o)) {return false;}
         final RetrieveAllConnectionIdsResponse that = (RetrieveAllConnectionIdsResponse) o;
-        return Objects.equals(connectionId, that.connectionId) && Objects.equals(connectionIds, that.connectionIds);
+        return Objects.equals(connectionIds, that.connectionIds);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), connectionId, connectionIds);
+        return Objects.hash(super.hashCode(), connectionIds);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 super.toString() +
-                ", connectionId=" + connectionId +
-                ", jsonArray=" + connectionIds +
+                ", connectionIds=" + connectionIds +
                 "]";
     }
 

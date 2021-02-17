@@ -34,13 +34,11 @@ public final class DefaultReconnectConfig implements ReconnectConfig {
     private final Duration interval;
     private final RateConfig rateConfig;
     private final int readJournalBatchSize;
-    private final int readSnapBatchSize;
 
     private DefaultReconnectConfig(final ScopedConfig config, final RateConfig theRateConfig) {
         initialDelay = config.getDuration(ReconnectConfigValue.INITIAL_DELAY.getConfigPath());
         interval = config.getDuration(ReconnectConfigValue.INTERVAL.getConfigPath());
         readJournalBatchSize = config.getInt(ReconnectConfigValue.READ_JOURNAL_BATCH_SIZE.getConfigPath());
-        readSnapBatchSize = config.getInt(ReconnectConfigValue.READ_SNAP_BATCH_SIZE.getConfigPath());
         rateConfig = theRateConfig;
     }
 
@@ -74,11 +72,6 @@ public final class DefaultReconnectConfig implements ReconnectConfig {
     }
 
     @Override
-    public int getReadSnapBatchSize() {
-        return readSnapBatchSize;
-    }
-
-    @Override
     public RateConfig getRateConfig() {
         return rateConfig;
     }
@@ -95,13 +88,12 @@ public final class DefaultReconnectConfig implements ReconnectConfig {
         return Objects.equals(initialDelay, that.initialDelay) &&
                 Objects.equals(interval, that.interval) &&
                 readJournalBatchSize == that.readJournalBatchSize &&
-                readSnapBatchSize == that.readSnapBatchSize &&
                 Objects.equals(rateConfig, that.rateConfig);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(initialDelay, interval, readJournalBatchSize, readSnapBatchSize, rateConfig);
+        return Objects.hash(initialDelay, interval, readJournalBatchSize, rateConfig);
     }
 
     @Override
@@ -110,7 +102,6 @@ public final class DefaultReconnectConfig implements ReconnectConfig {
                 "initialDelay=" + initialDelay +
                 ", interval=" + interval +
                 ", readJournalBatchSize=" + readJournalBatchSize +
-                ", readSnapBatchSize=" + readSnapBatchSize +
                 ", rateConfig=" + rateConfig +
                 "]";
     }

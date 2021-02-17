@@ -48,15 +48,13 @@ public final class RetrieveAllConnectionIds extends AbstractCommand<RetrieveAllC
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private final ConnectionId connectionId;
 
     private RetrieveAllConnectionIds(final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
-        this.connectionId = ConnectionId.dummy();
     }
 
     /**
-     * Returns a new instance of {@code RetrieveConnection}.
+     * Returns a new instance of {@code RetrieveAllConnectionIds}.
      *
      * @param dittoHeaders the headers of the request.
      * @return a new RetrieveAllConnectionIds command.
@@ -99,12 +97,12 @@ public final class RetrieveAllConnectionIds extends AbstractCommand<RetrieveAllC
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final JsonSchemaVersion schemaVersion,
             final Predicate<JsonField> thePredicate) {
-        //nothing to append
+        // nothing to append
     }
 
     @Override
     public ConnectionId getConnectionEntityId() {
-        return connectionId;
+        return ConnectionId.dummy();
     }
 
     @Override
@@ -130,23 +128,18 @@ public final class RetrieveAllConnectionIds extends AbstractCommand<RetrieveAllC
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        if (!super.equals(o)) {
-            return false;
-        }
-        final RetrieveAllConnectionIds that = (RetrieveAllConnectionIds) o;
-        return Objects.equals(connectionId, that.connectionId);
+        return super.equals(o);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), connectionId);
+        return Objects.hash(super.hashCode());
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
                 super.toString() +
-                ", connectionId=" + connectionId +
                 "]";
     }
 

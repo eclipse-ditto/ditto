@@ -46,13 +46,6 @@ public interface ReconnectConfig {
     int getReadJournalBatchSize();
 
     /**
-     * Returns the number of entries to read from the snap collection with one query.
-     *
-     * @return the number of entries to read with one query.
-     */
-    int getReadSnapBatchSize();
-
-    /**
      * Returns the config for recovery throttling.
      *
      * @return the config.
@@ -78,12 +71,7 @@ public interface ReconnectConfig {
         /**
          * The number of events to read in one query.
          */
-        READ_JOURNAL_BATCH_SIZE("read-journal-batch-size", 500),
-
-        /**
-         * The number of events to read in one query.
-         */
-        READ_SNAP_BATCH_SIZE("read-snap-batch-size", 50);
+        READ_JOURNAL_BATCH_SIZE("read-journal-batch-size", 500);
 
         private final String path;
         private final Object defaultValue;

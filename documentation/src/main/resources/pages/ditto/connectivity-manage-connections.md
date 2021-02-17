@@ -186,7 +186,7 @@ This command returns the ids of all connections.
 
 ```json
 {
-  "targetActorSelection": "/user/connectivityRoot/reconnect/singleton",
+  "targetActorSelection": "/user/connectivityRoot/connectionIdsRetrieval/singleton",
   "headers": {
     "aggregate": false
   },
