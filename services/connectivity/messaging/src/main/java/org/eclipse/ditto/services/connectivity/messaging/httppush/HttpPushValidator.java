@@ -13,8 +13,6 @@
 package org.eclipse.ditto.services.connectivity.messaging.httppush;
 
 import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newHeadersPlaceholder;
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPlaceholder;
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newTopicPathPlaceholder;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -30,8 +28,8 @@ import org.eclipse.ditto.model.connectivity.ConnectionConfigurationInvalidExcept
 import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.model.connectivity.Target;
-import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
+import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders;
 
 import akka.actor.ActorSystem;
 import akka.http.javadsl.model.HttpMethod;
@@ -91,8 +89,9 @@ public final class HttpPushValidator extends AbstractProtocolValidator {
     protected void validateTarget(final Target target, final DittoHeaders dittoHeaders,
             final Supplier<String> targetDescription) {
         target.getHeaderMapping().ifPresent(mapping -> validateHeaderMapping(mapping, dittoHeaders));
-        validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder(),
-                newHeadersPlaceholder(), PlaceholderFactory.newFeaturePlaceholder());
+        validateTemplate(target.getAddress(), dittoHeaders, ConnectivityPlaceholders.newThingPlaceholder(),
+                ConnectivityPlaceholders.newTopicPathPlaceholder(),
+                newHeadersPlaceholder(), ConnectivityPlaceholders.newFeaturePlaceholder());
         validateTargetAddress(target.getAddress(), dittoHeaders, targetDescription);
     }
 

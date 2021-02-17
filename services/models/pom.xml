@@ -35,6 +35,7 @@
         <module>streaming</module>
         <module>things</module>
         <module>thingsearch</module>
+        <module>placeholders</module>
     </modules>
 
     <dependencies>

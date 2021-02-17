@@ -31,6 +31,7 @@ import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
+import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 
@@ -49,23 +50,23 @@ public final class Resolvers {
     private static final List<ResolverCreator<?>> RESOLVER_CREATORS = Arrays.asList(
             // For incoming messages, header mapping injects headers of external messages into Ditto headers.
             ResolverCreator.of(PlaceholderFactory.newHeadersPlaceholder(), (e, s, t, a, c) -> e),
-            ResolverCreator.of(PlaceholderFactory.newThingPlaceholder(), (e, s, t, a, c) -> {
+            ResolverCreator.of(ConnectivityPlaceholders.newThingPlaceholder(), (e, s, t, a, c) -> {
                 if (s != null) {
                     return s.getEntityId();
                 } else {
                     return null;
                 }
             }),
-            ResolverCreator.of(PlaceholderFactory.newFeaturePlaceholder(), (e, s, t, a, c) -> {
+            ResolverCreator.of(ConnectivityPlaceholders.newFeaturePlaceholder(), (e, s, t, a, c) -> {
                 if (s instanceof WithFeatureId) {
                     return ((WithFeatureId) s).getFeatureId();
                 } else {
                     return null;
                 }
             }),
-            ResolverCreator.of(PlaceholderFactory.newTopicPathPlaceholder(), (e, s, t, a, c) -> t),
-            ResolverCreator.of(PlaceholderFactory.newRequestPlaceholder(), (e, s, t, a, c) -> a),
-            ResolverCreator.of(PlaceholderFactory.newConnectionIdPlaceholder(), (e, s, t, a, c) -> c)
+            ResolverCreator.of(ConnectivityPlaceholders.newTopicPathPlaceholder(), (e, s, t, a, c) -> t),
+            ResolverCreator.of(ConnectivityPlaceholders.newRequestPlaceholder(), (e, s, t, a, c) -> a),
+            ResolverCreator.of(ConnectivityPlaceholders.newConnectionIdPlaceholder(), (e, s, t, a, c) -> c)
     );
 
     private static final List<Placeholder> PLACEHOLDERS = Collections.unmodifiableList(
