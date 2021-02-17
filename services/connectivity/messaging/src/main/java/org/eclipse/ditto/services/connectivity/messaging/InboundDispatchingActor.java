@@ -65,6 +65,7 @@ import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActorStar
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.InboundSignal;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
+import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
@@ -140,7 +141,8 @@ public final class InboundDispatchingActor extends AbstractActor
         logger = DittoLoggerFactory.getDiagnosticLoggingAdapter(this)
                 .withMdcEntry(ConnectivityMdcEntryKey.CONNECTION_ID, connection.getId());
 
-        connectionIdResolver = PlaceholderFactory.newExpressionResolver(PlaceholderFactory.newConnectionIdPlaceholder(),
+        connectionIdResolver = PlaceholderFactory.newExpressionResolver(
+                ConnectivityPlaceholders.newConnectionIdPlaceholder(),
                 connection.getId());
 
         final DefaultScopedConfig dittoScoped =

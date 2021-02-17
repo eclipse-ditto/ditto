@@ -14,17 +14,11 @@ package org.eclipse.ditto.services.policies.starter;
 
 import org.eclipse.ditto.services.utils.test.GlobalEventRegistryTestCases;
 import org.eclipse.ditto.signals.events.policies.ResourceDeleted;
-import org.eclipse.ditto.signals.events.things.ThingDeleted;
-import org.eclipse.ditto.signals.events.thingsearch.SubscriptionComplete;
 
 public final class PoliciesServiceGlobalEventRegistryTest extends GlobalEventRegistryTestCases {
 
     public PoliciesServiceGlobalEventRegistryTest() {
-        super(ResourceDeleted.class,
-
-                // added due to ditto-model-placeholders
-                SubscriptionComplete.class,
-                ThingDeleted.class
+        super(ResourceDeleted.class
         );
     }
 

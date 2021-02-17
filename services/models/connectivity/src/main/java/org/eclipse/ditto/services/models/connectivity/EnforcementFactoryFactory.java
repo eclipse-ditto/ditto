@@ -18,7 +18,7 @@ import java.util.List;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.EnforcementFilterFactory;
 import org.eclipse.ditto.model.placeholders.Placeholder;
-import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders;
 
 /**
  * Factory class that creates instances of {@link EnforcementFilterFactory}s.
@@ -43,7 +43,7 @@ public final class EnforcementFactoryFactory {
 
     /**
      * Creates new instance of {@link EnforcementFilterFactory} that is preconfigured with a
-     * {@link org.eclipse.ditto.model.placeholders.ThingPlaceholder} for the filters.
+     * {@link org.eclipse.ditto.services.models.connectivity.placeholders.ThingPlaceholder} for the filters.
      *
      * @param <I> the type from which the input values are resolved
      * @param enforcement the enforcement options
@@ -54,9 +54,9 @@ public final class EnforcementFactoryFactory {
             final Enforcement enforcement,
             final Placeholder<I> inputFilter) {
         return newEnforcementFilterFactory(enforcement, inputFilter, Arrays.asList(
-                PlaceholderFactory.newThingPlaceholder(),
-                PlaceholderFactory.newPolicyPlaceholder(),
-                PlaceholderFactory.newEntityPlaceholder()
+                ConnectivityPlaceholders.newThingPlaceholder(),
+                ConnectivityPlaceholders.newPolicyPlaceholder(),
+                ConnectivityPlaceholders.newEntityPlaceholder()
         ));
     }
 
