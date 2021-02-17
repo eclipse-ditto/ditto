@@ -26,6 +26,7 @@ See [Basic Authentication](basic-auth.html#authorization-context-in-devops-comma
 
 The following commands are available in order to manage connections:
 
+
 * [create](#create-connection)
 * [modify](#modify-connection)
 * [retrieve](#retrieve-connection)
@@ -33,7 +34,7 @@ The following commands are available in order to manage connections:
 
 ### Create connection
 
-Create a new connection by sending the following DevOps command:
+Create a new connection by sending the following DevOps command.
 
 ```json
 {
@@ -55,7 +56,7 @@ For protocol specific examples, consult the [AMQP-0.9.1 binding](connectivity-pr
 
 ### Modify connection
 
-Modify an existing connection by sending the following DevOps command:
+Modify an existing connection by sending the following DevOps command.
 
 ```json
 {
@@ -72,9 +73,10 @@ Modify an existing connection by sending the following DevOps command:
 
 The connection with the specified ID needs to be created before one can modify it.
 
+
 ### Retrieve connection
 
-The only parameter necessary for retrieving a connection is the `connectionId`:
+The only parameter necessary for retrieving a connection is the `connectionId`.
 
 ```json
 {
@@ -91,7 +93,7 @@ The only parameter necessary for retrieving a connection is the `connectionId`:
 
 ### Open connection
 
-The only parameter necessary for opening a connection is the `connectionId`:
+The only parameter necessary for opening a connection is the `connectionId`.
 
 ```json
 {
@@ -108,7 +110,7 @@ The only parameter necessary for opening a connection is the `connectionId`:
 
 ### Close connection
 
-The only parameter necessary for closing a connection is the `connectionId`:
+The only parameter necessary for closing a connection is the `connectionId`.
 
 ```json
 {
@@ -125,7 +127,7 @@ The only parameter necessary for closing a connection is the `connectionId`:
 
 ### Delete connection
 
-The only parameter necessary for deleting a connection is the `connectionId`:
+The only parameter necessary for deleting a connection is the `connectionId`.
 
 ```json
 {
@@ -145,6 +147,7 @@ The only parameter necessary for deleting a connection is the `connectionId`:
 The following commands are available to help creating connections and retrieving the status of existing connections:
 
 * [test](#test-connection)
+* [Retrieve ids of all connections](#retrieve-ids-of-all-connections)
 * [retrieve connection status](#retrieve-connection-status)
 * [retrieve connection metrics](#retrieve-connection-metrics)
 * [reset connection metrics](#reset-connection-metrics)
@@ -174,12 +177,29 @@ command, it requires a full connection configuration in the piggyback command.
     }
   }
 }
+
+```
+
+### Retrieve ids of all connections
+
+This command returns the ids of all connections.
+
+```json
+{
+  "targetActorSelection": "/user/connectivityRoot/reconnect/singleton",
+  "headers": {
+    "aggregate": false
+  },
+  "piggybackCommand": {
+    "type": "connectivity.commands:retrieveAllConnectionIds"
+  }
+}
 ```
 
 ### Retrieve connection status
 
 This command returns the connection status by showing if a connection is currently enabled/disabled and if it is
-successfully established. The only parameter necessary for retrieving the connection status is the `connectionId`:
+successfully established. The only parameter necessary for retrieving the connection status is the `connectionId`.
 
 ```json
 {
@@ -198,12 +218,11 @@ successfully established. The only parameter necessary for retrieving the connec
 
 This command returns the connection metrics showing how many messages have been successfully or failingly `conusmed`,
 `filtered`, `mapped`, `published`, `dropped`. The metrics are collected and returned in different time intervals:
-
 * the last minute
 * the last hour
 * the last 24 hours
 
-The only parameter necessary for retrieving the connection metrics is the `connectionId`:
+The only parameter necessary for retrieving the connection metrics is the `connectionId`.
 
 ```json
 {
@@ -221,7 +240,7 @@ The only parameter necessary for retrieving the connection metrics is the `conne
 ### Reset connection metrics
 
 This command resets the connection metrics - all metrics are set to `0` again. The only parameter necessary for
-retrieving the connection metrics is the `connectionId`:
+retrieving the connection metrics is the `connectionId`.
 
 ```json
 {
@@ -301,22 +320,6 @@ Clears all currently stored connection logs.
 }
 ```
 
-### Retrieve ids of all connections
-
-This command returns the ids of all collections
-
-```json
-{
-  "targetActorSelection": "/user/connectivityRoot/reconnect/singleton",
-  "headers": {
-    "aggregate": false
-  },
-  "piggybackCommand": {
-    "type": "connectivity.commands:retrieveAllConnectionIds",
-    "connectionId": "{{connection.id}}"
-  }
-}
-```
 
 ## Payload mapping configuration
 
