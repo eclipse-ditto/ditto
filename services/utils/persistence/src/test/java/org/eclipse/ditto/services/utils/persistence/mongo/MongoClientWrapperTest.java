@@ -131,7 +131,8 @@ public final class MongoClientWrapperTest {
         final MongoClientWrapper underTest = MongoClientWrapper.newInstance(mongoDbConfig);
 
         // verify
-        assertWithExpected(underTest, true, true);
+        // sslEnabled=false because the default config of MongoDbConfig.OptionsConfig.isSslEnabled() is "false":
+        assertWithExpected(underTest, false, true);
     }
 
     @Test
@@ -148,6 +149,22 @@ public final class MongoClientWrapperTest {
 
         // verify
         assertWithExpected(underTest, true, true);
+    }
+
+    @Test
+    public void createWithSslEnabledInUriAndOverwriteToDisabled() {
+        // prepare
+        final String uriWithSslEnabled = createUri(true, APPLICATION_NAME);
+
+        final Config config = CONFIG.withValue(MONGO_URI_CONFIG_KEY, ConfigValueFactory.fromAnyRef(uriWithSslEnabled))
+                .withValue(MONGO_SSL_CONFIG_KEY, ConfigValueFactory.fromAnyRef(false));
+        final DefaultMongoDbConfig mongoDbConfig = DefaultMongoDbConfig.of(config);
+
+        // test
+        final MongoClientWrapper underTest = MongoClientWrapper.newInstance(mongoDbConfig);
+
+        // verify
+        assertWithExpected(underTest, false, true);
     }
 
     @Test
