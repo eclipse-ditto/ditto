@@ -22,43 +22,42 @@ public final class ConnectivityPlaceholders {
     }
 
     /**
-     * @return new instance of the {@link ThingPlaceholder}
+     * @return the singleton instance of {@link ThingPlaceholder}
      */
     public static ThingPlaceholder newThingPlaceholder() {
         return ImmutableThingPlaceholder.INSTANCE;
     }
 
     /**
-     * @return new instance of the {@link PolicyPlaceholder}
+     * @return the singleton instance of  {@link PolicyPlaceholder}
      */
     public static PolicyPlaceholder newPolicyPlaceholder() {
         return ImmutablePolicyPlaceholder.INSTANCE;
     }
 
     /**
-     * @return new instance of the {@link FeaturePlaceholder}
-     * @since 1.5.0
+     * @return the singleton instance of {@link FeaturePlaceholder}
      */
     public static FeaturePlaceholder newFeaturePlaceholder() {
         return ImmutableFeaturePlaceholder.INSTANCE;
     }
 
     /**
-     * @return new instance of the {@link EntityPlaceholder}
+     * @return the singleton instance of {@link EntityPlaceholder}
      */
     public static EntityPlaceholder newEntityPlaceholder() {
         return ImmutableEntityPlaceholder.INSTANCE;
     }
 
     /**
-     * @return the unique instance of the placeholder with prefix {@code request}.
+     * @return the singleton instance of the placeholder with prefix {@code request}.
      */
     public static Placeholder<AuthorizationContext> newRequestPlaceholder() {
         return ImmutableRequestPlaceholder.INSTANCE;
     }
 
     /**
-     * @return new instance of the {@link TopicPathPlaceholder}
+     * @return the singleton instance of {@link TopicPathPlaceholder}
      */
     public static TopicPathPlaceholder newTopicPathPlaceholder() {
         return ImmutableTopicPathPlaceholder.INSTANCE;
@@ -66,14 +65,13 @@ public final class ConnectivityPlaceholders {
 
     /**
      * @return the singleton instance of {@link ConnectionIdPlaceholder}.
-     * @since 1.4.0
      */
     public static ConnectionIdPlaceholder newConnectionIdPlaceholder() {
         return ImmutableConnectionIdPlaceholder.INSTANCE;
     }
 
     /**
-     * @return new instance of the {@link SourceAddressPlaceholder}
+     * @return the singleton instance of {@link SourceAddressPlaceholder}
      */
     public static SourceAddressPlaceholder newSourceAddressPlaceholder() {
         return ImmutableSourceAddressPlaceholder.INSTANCE;
