@@ -16,7 +16,7 @@ subscribed to via one of the APIs listed above, the data they contain may be as 
 Often it is helpful to additionally include some extra fields as context to be included when subscribing 
 (e.g. via WebSocket or a connection). For example in order to include static metadata stored in the `attributes`.
 
-Therefore it is possible to define `extraFields` to include when subscribing for:
+Therefore, it is possible to define `extraFields` to include when subscribing for:
 * [events/change notifications](basic-changenotifications.html)
 * [messages](basic-messages.html)
 * [live commands](protocol-twinlive.html)
