@@ -26,6 +26,7 @@
     <name>Eclipse Ditto :: Services :: Thing Search</name>
 
     <modules>
+        <module>config</module>
         <module>common</module>
         <module>persistence</module>
         <module>updater-actors</module>

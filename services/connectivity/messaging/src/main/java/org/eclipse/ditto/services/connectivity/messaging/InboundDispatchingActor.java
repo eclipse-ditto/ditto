@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.connectivity.messaging;
 
 import static org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionValidator.resolveConnectionIdPlaceholder;
 
-import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.HashSet;
@@ -61,6 +60,7 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.logs.InfoPro
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActor;
 import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActorStarter;
+import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.InboundSignal;
 import org.eclipse.ditto.services.models.connectivity.MappedInboundExternalMessage;
@@ -121,6 +121,7 @@ public final class InboundDispatchingActor extends AbstractActor
     private final AcknowledgementAggregatorActorStarter ackregatorStarter;
     private final ActorRef outboundMessageMappingProcessorActor;
     private final ExpressionResolver connectionIdResolver;
+    private final AcknowledgementConfig acknowledgementConfig;
 
     @SuppressWarnings("unused")
     private InboundDispatchingActor(
@@ -152,8 +153,9 @@ public final class InboundDispatchingActor extends AbstractActor
         connectionMonitorRegistry = DefaultConnectionMonitorRegistry.fromConfig(monitoringConfig);
         responseMappedMonitor = connectionMonitorRegistry.forResponseMapped(connection);
         toErrorResponseFunction = DittoRuntimeExceptionToErrorResponseFunction.of(limitsConfig.getHeadersMaxSize());
+        acknowledgementConfig = connectivityConfig.getConnectionConfig().getAcknowledgementConfig();
         ackregatorStarter = AcknowledgementAggregatorActorStarter.of(getContext(),
-                connectivityConfig.getConnectionConfig().getAcknowledgementConfig(),
+                acknowledgementConfig,
                 headerTranslator,
                 ThingModifyCommandAckRequestSetter.getInstance(),
                 ThingLiveCommandAckRequestSetter.getInstance(),
@@ -379,26 +381,27 @@ public final class InboundDispatchingActor extends AbstractActor
         } else {
             if (sender != null && isLive(signal)) {
                 final DittoHeaders originalHeaders = signal.getDittoHeaders();
-                Patterns.ask(proxyActor, signal, originalHeaders.getTimeout().orElse(Duration.ofSeconds(10)))
-                        .thenApply(response -> {
-                            if (response instanceof WithDittoHeaders<?>) {
-                                return AcknowledgementAggregatorActor.restoreCommandConnectivityHeaders(
-                                        (WithDittoHeaders<?>) response,
-                                        originalHeaders);
-                            } else {
-                                final String messageTemplate =
-                                        "Expected response <%s> to be of type <%s> but was of type <%s>.";
-                                final String errorMessage =
-                                        String.format(messageTemplate, response, WithDittoHeaders.class.getName(),
-                                                response.getClass().getName());
-                                final ConnectivityInternalErrorException dre =
-                                        ConnectivityInternalErrorException.newBuilder()
-                                                .cause(new ClassCastException(errorMessage))
-                                                .build();
-                                return ConnectivityErrorResponse.of(dre, originalHeaders);
-                            }
-                        })
-                        .thenAccept(response -> sender.tell(response, ActorRef.noSender()));
+                Patterns.ask(proxyActor, signal, originalHeaders.getTimeout()
+                        .orElse(acknowledgementConfig.getForwarderFallbackTimeout())
+                ).thenApply(response -> {
+                    if (response instanceof WithDittoHeaders<?>) {
+                        return AcknowledgementAggregatorActor.restoreCommandConnectivityHeaders(
+                                (WithDittoHeaders<?>) response,
+                                originalHeaders);
+                    } else {
+                        final String messageTemplate =
+                                "Expected response <%s> to be of type <%s> but was of type <%s>.";
+                        final String errorMessage =
+                                String.format(messageTemplate, response, WithDittoHeaders.class.getName(),
+                                        response.getClass().getName());
+                        final ConnectivityInternalErrorException dre =
+                                ConnectivityInternalErrorException.newBuilder()
+                                        .cause(new ClassCastException(errorMessage))
+                                        .build();
+                        return ConnectivityErrorResponse.of(dre, originalHeaders);
+                    }
+                })
+                .thenAccept(response -> sender.tell(response, ActorRef.noSender()));
             } else {
                 proxyActor.tell(signal, sender);
             }
