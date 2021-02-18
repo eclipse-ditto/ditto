@@ -23,6 +23,8 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
+import org.eclipse.ditto.model.placeholders.ExpressionResolver;
+import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayJwtIssuerNotSupportedException;
 
@@ -58,11 +60,15 @@ public final class DittoJwtAuthorizationSubjectsProvider implements JwtAuthoriza
         final JwtSubjectIssuerConfig jwtSubjectIssuerConfig = jwtSubjectIssuersConfig.getConfigItem(issuer)
                 .orElseThrow(() -> GatewayJwtIssuerNotSupportedException.newBuilder(issuer).build());
 
-        return jsonWebToken.getSubjects()
-                .stream()
-                .map(subject -> SubjectId.newInstance(jwtSubjectIssuerConfig.getSubjectIssuer(), subject))
-                .map(AuthorizationSubject::newInstance)
-                .collect(Collectors.toList());
+        final ExpressionResolver expressionResolver = PlaceholderFactory.newExpressionResolver(
+                PlaceholderFactory.newPlaceholderResolver(JwtPlaceholder.getInstance(), jsonWebToken));
+
+        return jwtSubjectIssuerConfig.getAuthorizationSubjectTemplates().stream()
+            .map(expressionResolver::resolvePartially)
+            .flatMap((issuerWithSubject) -> JwtPlaceholder.expandJsonArraysInResolvedSubject(issuerWithSubject))
+            .map(subject -> SubjectId.newInstance(jwtSubjectIssuerConfig.getSubjectIssuer(), subject))
+            .map(AuthorizationSubject::newInstance)
+            .collect(Collectors.toList());
     }
 
     @Override

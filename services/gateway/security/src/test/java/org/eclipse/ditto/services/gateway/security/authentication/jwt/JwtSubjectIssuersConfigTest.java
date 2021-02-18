@@ -18,6 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -41,8 +42,8 @@ public final class JwtSubjectIssuersConfigTest {
     private static final JwtSubjectIssuersConfig JWT_SUBJECT_ISSUERS_CONFIG;
 
     static {
-        JWT_SUBJECT_ISSUER_CONFIG_GOOGLE = new JwtSubjectIssuerConfig("accounts.google.com", SubjectIssuer.GOOGLE);
-        JWT_SUBJECT_ISSUER_CONFIG_GOOGLE_DE = new JwtSubjectIssuerConfig("accounts.google.de", SubjectIssuer.GOOGLE);
+        JWT_SUBJECT_ISSUER_CONFIG_GOOGLE = new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE, "accounts.google.com");
+        JWT_SUBJECT_ISSUER_CONFIG_GOOGLE_DE = new JwtSubjectIssuerConfig(SubjectIssuer.GOOGLE, "accounts.google.de");
         JWT_SUBJECT_ISSUER_CONFIGS = new HashSet<>();
         JWT_SUBJECT_ISSUER_CONFIGS.add(JWT_SUBJECT_ISSUER_CONFIG_GOOGLE);
         JWT_SUBJECT_ISSUER_CONFIGS.add(JWT_SUBJECT_ISSUER_CONFIG_GOOGLE_DE);
@@ -88,8 +89,20 @@ public final class JwtSubjectIssuersConfigTest {
 
     @Test
     public void fromOAuthConfig() {
-        final JwtSubjectIssuerConfig googleItem = new JwtSubjectIssuerConfig( "https://accounts.google.com", SubjectIssuer.GOOGLE);
-        final JwtSubjectIssuerConfig additionalItem = new JwtSubjectIssuerConfig("https://additional.google.com", SubjectIssuer.newInstance("additional"));
+        final JwtSubjectIssuerConfig googleItem = new JwtSubjectIssuerConfig(
+            SubjectIssuer.GOOGLE,
+            "https://accounts.google.com",
+            List.of(
+                "{{ jwt:sub }}",
+                "{{ jwt:sub }}/{{ jwt:scope }}",
+                "{{ jwt:sub }}/{{ jwt:scope }}@{{ jwt:client_id }}",
+                "{{ jwt:sub }}/{{ jwt:scope }}@{{ jwt:non_existing }}",
+                "{{ jwt:roles/support }}"
+            ));
+        final JwtSubjectIssuerConfig additionalItem = new JwtSubjectIssuerConfig(
+            SubjectIssuer.newInstance("additional"),
+            "https://additional.google.com",
+            List.of("{{ jwt:sub }}"));
         final OAuthConfig oAuthConfig = DefaultOAuthConfig.of(ConfigFactory.load("oauth-test.conf"));
 
         final JwtSubjectIssuersConfig jwtSubjectIssuersConfig = JwtSubjectIssuersConfig.fromOAuthConfig(oAuthConfig);

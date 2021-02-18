@@ -34,6 +34,8 @@ import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
+import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigValue;
 
 /**
@@ -46,8 +48,8 @@ public final class DefaultOAuthConfig implements OAuthConfig {
     private static final String CONFIG_PATH = "oauth";
 
     private final String protocol;
-    private final Map<SubjectIssuer, String> openIdConnectIssuers;
-    private final Map<SubjectIssuer, String> openIdConnectIssuersExtension;
+    private final Map<SubjectIssuer, SubjectIssuerConfig> openIdConnectIssuers;
+    private final Map<SubjectIssuer, SubjectIssuerConfig> openIdConnectIssuersExtension;
     private final String tokenIntegrationSubject;
 
     private DefaultOAuthConfig(final ConfigWithFallback configWithFallback) {
@@ -59,9 +61,9 @@ public final class DefaultOAuthConfig implements OAuthConfig {
                 configWithFallback.getString(OAuthConfigValue.TOKEN_INTEGRATION_SUBJECT.getConfigPath());
     }
 
-    private static Map<SubjectIssuer, String> loadIssuers(final ConfigWithFallback config,
+    private static Map<SubjectIssuer, SubjectIssuerConfig> loadIssuers(final ConfigWithFallback config,
             final KnownConfigValue configValue) {
-        final Config issuersConfig = config.getConfig(configValue.getConfigPath());
+        final ConfigObject issuersConfig = config.getObject(configValue.getConfigPath());
         return issuersConfig.entrySet().stream().collect(SubjectIssuerCollector.toSubjectIssuerMap());
     }
 
@@ -82,12 +84,12 @@ public final class DefaultOAuthConfig implements OAuthConfig {
     }
 
     @Override
-    public Map<SubjectIssuer, String> getOpenIdConnectIssuers() {
+    public Map<SubjectIssuer, SubjectIssuerConfig> getOpenIdConnectIssuers() {
         return openIdConnectIssuers;
     }
 
     @Override
-    public Map<SubjectIssuer, String> getOpenIdConnectIssuersExtension() {
+    public Map<SubjectIssuer, SubjectIssuerConfig> getOpenIdConnectIssuersExtension() {
         return openIdConnectIssuersExtension;
     }
 
@@ -123,32 +125,32 @@ public final class DefaultOAuthConfig implements OAuthConfig {
     }
 
     private static class SubjectIssuerCollector
-            implements Collector<Map.Entry<String, ConfigValue>, Map<SubjectIssuer, String>, Map<SubjectIssuer,
-            String>> {
+            implements Collector<Map.Entry<String, ConfigValue>, Map<SubjectIssuer, SubjectIssuerConfig>, Map<SubjectIssuer,
+                    SubjectIssuerConfig>> {
 
         private static SubjectIssuerCollector toSubjectIssuerMap() {
             return new SubjectIssuerCollector();
         }
 
         @Override
-        public Supplier<Map<SubjectIssuer, String>> supplier() {
+        public Supplier<Map<SubjectIssuer, SubjectIssuerConfig>> supplier() {
             return HashMap::new;
         }
 
         @Override
-        public BiConsumer<Map<SubjectIssuer, String>, Map.Entry<String, ConfigValue>> accumulator() {
+        public BiConsumer<Map<SubjectIssuer, SubjectIssuerConfig>, Map.Entry<String, ConfigValue>> accumulator() {
             return (map, entry) -> map.put(SubjectIssuer.newInstance(entry.getKey()),
-                    entry.getValue().unwrapped().toString());
+                    DefaultSubjectIssuerConfig.of(ConfigFactory.empty().withFallback(entry.getValue())));
         }
 
         @Override
-        public BinaryOperator<Map<SubjectIssuer, String>> combiner() {
+        public BinaryOperator<Map<SubjectIssuer, SubjectIssuerConfig>> combiner() {
             return (left, right) -> Stream.concat(left.entrySet().stream(), right.entrySet().stream())
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
         }
 
         @Override
-        public Function<Map<SubjectIssuer, String>, Map<SubjectIssuer, String>> finisher() {
+        public Function<Map<SubjectIssuer, SubjectIssuerConfig>, Map<SubjectIssuer, SubjectIssuerConfig>> finisher() {
             return map -> Collections.unmodifiableMap(new HashMap<>(map));
         }
 
