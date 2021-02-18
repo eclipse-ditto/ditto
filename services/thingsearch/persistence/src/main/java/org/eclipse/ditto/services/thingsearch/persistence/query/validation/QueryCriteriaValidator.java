@@ -36,6 +36,8 @@ import akka.actor.Extension;
  */
 public abstract class QueryCriteriaValidator implements Extension {
 
+    private static final ExtensionId EXTENSION_ID = new ExtensionId();
+
     protected final ActorSystem actorSystem;
 
     protected QueryCriteriaValidator(final ActorSystem actorSystem) {
@@ -57,7 +59,7 @@ public abstract class QueryCriteriaValidator implements Extension {
      * @return The validator.
      */
     public static QueryCriteriaValidator get(final ActorSystem actorSystem) {
-        return new ExtensionId().get(actorSystem);
+        return EXTENSION_ID.get(actorSystem);
     }
 
     /**
