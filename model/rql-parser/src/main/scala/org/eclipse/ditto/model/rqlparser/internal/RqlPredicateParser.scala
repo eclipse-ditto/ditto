@@ -18,8 +18,8 @@ import org.eclipse.ditto.model.rql.predicates.PredicateParser
 import org.eclipse.ditto.model.rql.predicates.ast.SingleComparisonNode.Type
 import org.eclipse.ditto.model.rql.predicates.ast._
 
-import scala.jdk.javaapi.CollectionConverters
 import scala.collection.immutable
+import scala.jdk.javaapi.CollectionConverters
 import scala.util.{Failure, Success}
 
 /**

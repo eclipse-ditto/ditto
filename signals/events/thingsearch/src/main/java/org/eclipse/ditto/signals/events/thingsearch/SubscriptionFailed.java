@@ -18,13 +18,13 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonParsableEvent;
+import org.eclipse.ditto.signals.base.GlobalErrorRegistry;
 import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 /**
@@ -87,8 +87,7 @@ public final class SubscriptionFailed extends AbstractSubscriptionEvent<Subscrip
                             jsonObject.getValueOrThrow(AbstractSubscriptionEvent.JsonFields.SUBSCRIPTION_ID);
                     final JsonObject errorJson = jsonObject.getValueOrThrow(JsonFields.ERROR);
                     final DittoRuntimeException error =
-                            DittoRuntimeException.fromUnknownErrorJson(errorJson, dittoHeaders)
-                                    .orElseThrow(() -> new JsonMissingFieldException(JsonFields.ERROR));
+                            GlobalErrorRegistry.getInstance().parse(errorJson, dittoHeaders);
                     return new SubscriptionFailed(subscriptionId, error, dittoHeaders);
                 });
     }

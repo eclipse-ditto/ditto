@@ -51,11 +51,6 @@ public class InvalidOptionException extends DittoRuntimeException implements Thi
         super(ERROR_CODE, HTTP_STATUS, dittoHeaders, message, description, cause, href);
     }
 
-    @Override
-    protected DittoRuntimeExceptionBuilder<? extends DittoRuntimeException> getEmptyBuilder() {
-        return new Builder();
-    }
-
     /**
      * A mutable builder for a {@code InvalidOptionException}.
      *

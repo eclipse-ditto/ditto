@@ -33,7 +33,6 @@ import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.services.policies.common.config.DefaultPolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
-import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryModificationInvalidException;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifySubjects;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifySubjectsResponse;
 import org.eclipse.ditto.signals.events.policies.SubjectsModified;

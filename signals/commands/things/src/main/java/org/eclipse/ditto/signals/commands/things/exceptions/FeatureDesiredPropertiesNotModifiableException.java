@@ -114,6 +114,17 @@ public class FeatureDesiredPropertiesNotModifiableException extends DittoRuntime
         return new JsonSchemaVersion[]{JsonSchemaVersion.V_2};
     }
 
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new Builder()
+                .message(getMessage())
+                .description(getDescription().orElse(DEFAULT_DESCRIPTION))
+                .cause(getCause())
+                .href(getHref().orElse(null))
+                .dittoHeaders(dittoHeaders)
+                .build();
+    }
+
     /**
      * A mutable builder with a fluent API for a {@link FeatureDesiredPropertiesNotModifiableException}.
      */

@@ -21,10 +21,9 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 import org.junit.Before;
 import org.junit.Test;
-
-import org.eclipse.ditto.services.thingsearch.persistence.TestConstants;
 
 /**
  * Tests whether there are also found things which have V1 and Things with V2 in one query.

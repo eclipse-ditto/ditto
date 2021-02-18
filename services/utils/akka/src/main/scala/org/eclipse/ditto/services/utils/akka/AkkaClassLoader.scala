@@ -12,10 +12,9 @@
  */
 package org.eclipse.ditto.services.utils.akka
 
-import java.util.Collections
-
 import akka.actor.{ActorSystem, DynamicAccess, ExtendedActorSystem}
 
+import java.util.Collections
 import scala.collection.JavaConverters.asScalaBuffer
 import scala.collection.immutable
 import scala.reflect.ClassTag

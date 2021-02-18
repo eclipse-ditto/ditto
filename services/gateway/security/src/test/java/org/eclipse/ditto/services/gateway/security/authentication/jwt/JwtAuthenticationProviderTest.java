@@ -180,8 +180,7 @@ public final class JwtAuthenticationProviderTest {
 
     @Test
     public void toFailedAuthenticationResultExtractsDittoRuntimeExceptionFromCause() {
-        final DittoRuntimeException dre =
-                DittoRuntimeException.newBuilder("none", HttpStatus.INTERNAL_SERVER_ERROR).build();
+        final DittoRuntimeException dre = PublicKeyProviderUnavailableException.newBuilder().build();
         final IllegalStateException illegalStateException = new IllegalStateException("notExpected", dre);
 
         final Throwable reasonOfFailure =
@@ -192,8 +191,7 @@ public final class JwtAuthenticationProviderTest {
 
     @Test
     public void toFailedAuthenticationResult() {
-        final DittoRuntimeException dre =
-                DittoRuntimeException.newBuilder("none", HttpStatus.INTERNAL_SERVER_ERROR).build();
+        final DittoRuntimeException dre = PublicKeyProviderUnavailableException.newBuilder().build();
 
         final AuthenticationResult authenticationResult =
                 underTest.toFailedAuthenticationResult(dre, knownDittoHeaders);

@@ -13,9 +13,10 @@
 package org.eclipse.ditto.services.utils.akka.logging
 
 import akka.event.LoggingAdapter
+import org.eclipse.ditto.model.base.headers.{DittoHeaders, WithDittoHeaders}
+
 import javax.annotation.Nullable
 import javax.annotation.concurrent.ThreadSafe
-import org.eclipse.ditto.model.base.headers.{DittoHeaders, WithDittoHeaders}
 
 /** A [[akka.event.LoggingAdapter]] with additional functionality.
  *

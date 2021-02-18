@@ -73,11 +73,6 @@ public class SubscriptionProtocolErrorException extends DittoRuntimeException im
         return new Builder();
     }
 
-    @Override
-    protected DittoRuntimeExceptionBuilder<? extends DittoRuntimeException> getEmptyBuilder() {
-        return new Builder();
-    }
-
     /**
      * Constructs a new {@code SubscriptionProtocolErrorException} object with the exception message extracted from the
      * given JSON object.
@@ -90,7 +85,8 @@ public class SubscriptionProtocolErrorException extends DittoRuntimeException im
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static SubscriptionProtocolErrorException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static SubscriptionProtocolErrorException fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 

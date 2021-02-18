@@ -12,9 +12,12 @@
  */
 package org.eclipse.ditto.model.base.exceptions;
 
+import java.net.URI;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonException;
 import org.eclipse.ditto.json.JsonRuntimeException;
@@ -41,22 +44,7 @@ public final class DittoJsonException extends DittoRuntimeException {
      * @param toWrap the {@link JsonRuntimeException} or {@code RuntimeException} to be wrapped.
      */
     public DittoJsonException(final RuntimeException toWrap) {
-        super(
-                (toWrap instanceof JsonRuntimeException)
-                        ? ((JsonException) toWrap).getErrorCode()
-                        : FALLBACK_ERROR_CODE,
-                HttpStatus.BAD_REQUEST,
-                DittoHeaders.empty(),
-                toWrap.getMessage(),
-                (toWrap instanceof JsonRuntimeException)
-                        ? ((JsonException) toWrap).getDescription().orElse(null)
-                        : null,
-                toWrap.getCause(),
-                (toWrap instanceof JsonRuntimeException)
-                        ? ((JsonException) toWrap).getHref().orElse(null)
-                        : null
-        );
-
+        this(toWrap, DittoHeaders.empty());
     }
 
     /**
@@ -67,16 +55,40 @@ public final class DittoJsonException extends DittoRuntimeException {
      * @param dittoHeaders the command headers to be added.
      */
     public DittoJsonException(final RuntimeException toWrap, final DittoHeaders dittoHeaders) {
-        super(
-                toWrap instanceof JsonRuntimeException ? ((JsonRuntimeException) toWrap).getErrorCode() :
-                        FALLBACK_ERROR_CODE,
+        this(extractErrorCode(toWrap),
                 HttpStatus.BAD_REQUEST,
                 dittoHeaders,
                 toWrap.getMessage(),
-                toWrap instanceof JsonRuntimeException ? ((JsonRuntimeException) toWrap).getDescription().orElse(null) :
-                        null,
+                extractDescription(toWrap),
                 toWrap.getCause(),
-                toWrap instanceof JsonRuntimeException ? ((JsonRuntimeException) toWrap).getHref().orElse(null) : null);
+                extractHref(toWrap)
+        );
+    }
+
+    private DittoJsonException(final String errorCode, final HttpStatus httpStatus,
+            final DittoHeaders dittoHeaders, @Nullable final String message, @Nullable final String description,
+            @Nullable final Throwable cause, @Nullable final URI href) {
+        super(errorCode, httpStatus, dittoHeaders, message, description, cause, href);
+    }
+
+    private static String extractErrorCode(final RuntimeException toWrap) {
+        return (toWrap instanceof JsonRuntimeException)
+                ? ((JsonException) toWrap).getErrorCode()
+                : FALLBACK_ERROR_CODE;
+    }
+
+    @Nullable
+    private static String extractDescription(final RuntimeException toWrap) {
+        return (toWrap instanceof JsonRuntimeException)
+                ? ((JsonException) toWrap).getDescription().orElse(null)
+                : null;
+    }
+
+    @Nullable
+    private static URI extractHref(final RuntimeException toWrap) {
+        return (toWrap instanceof JsonRuntimeException)
+                ? ((JsonException) toWrap).getHref().orElse(null)
+                : null;
     }
 
     /**
@@ -150,6 +162,12 @@ public final class DittoJsonException extends DittoRuntimeException {
         // "ditto-json" library also throws IllegalArgumentException when for example strings which may not be empty
         // (e.g. keys) are empty
         // "ditto-json" library also throws NullPointerException when for example non-nullable objects are null
+    }
+
+    @Override
+    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
+        return new DittoJsonException(getErrorCode(), getHttpStatus(), dittoHeaders, getMessage(),
+                getDescription().orElse(null), getCause(), getHref().orElse(null));
     }
 
 }
