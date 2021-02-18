@@ -74,6 +74,7 @@ kubectl apply -f deployment/kubernetes/deploymentFiles/mongodb/mongodb.yaml
 ```
 
 Or use the stateful MongoDB set with a local persistent volume.
+Before running the following commands be sure that the `/data/db/` directory is existing.
 ```bash
 kubectl apply -f deployment/kubernetes/deploymentFiles/mongodb-statefulset/storage-class.yaml
 envsubst < deployment/kubernetes/deploymentFiles/mongodb-statefulset/persistent-volume.yaml | kubectl apply -f -
@@ -82,15 +83,17 @@ kubectl apply -f deployment/kubernetes/deploymentFiles/mongodb-statefulset/mongo
 
 ##### Dedicated MongoDB
 In case you already have a MongoDB in the cloud or elsewhere it is possible to connect Ditto to this MongoDB. 
-This can be done by setting the MongoDB URI via env variable "MONGO_DB_URI".
-Other MongoDB settings can be set via env variables.
+This can be done by setting the MongoDB URI via env variable "MONGO_DB_URI" in the 
+`deployment/kubernetes/deploymentFiles/ditto/ditto-cluster.yml` for all services except the `gateway`.
+Other MongoDB settings can be set via env variables and are documented in [Operating Ditto](installation-operating.html) 
+section.
 
 ### Start Eclipse Ditto
 
 ```bash
 kubectl apply -f deployment/kubernetes/deploymentFiles/ditto/
 # Start ditto services with an alternative version e.g. 0-SNAPSHOT
-# cat kubernetes/ditto/ditto-cluster.yaml | sed s/latest/0-SNAPSHOT/ | kubectl apply -f -
+# cat deployment/kubernetes/ditto/ditto-cluster.yaml | sed s/latest/0-SNAPSHOT/ | kubectl apply -f -
 ```
 
 #### Start Swagger UI
