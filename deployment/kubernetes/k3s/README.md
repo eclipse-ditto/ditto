@@ -85,10 +85,13 @@ kubectl apply -f deployment/kubernetes/deploymentFiles/mongodb-statefulset/mongo
 In case you already have a MongoDB in the cloud or elsewhere it is possible to connect Ditto to this MongoDB. 
 This can be done by setting the MongoDB URI via env variable "MONGO_DB_URI" in the 
 `deployment/kubernetes/deploymentFiles/ditto/ditto-cluster.yml` for all services except the `gateway`.
-Other MongoDB settings can be set via env variables and are documented in [Operating Ditto](installation-operating.html) 
-section.
+Other MongoDB settings can be set via env variables and are documented in
+[Operating Ditto](https://www.eclipse.org/ditto/installation-operating.html) section.
 
 ### Start Eclipse Ditto
+
+Ditto uses the `latest` tag for its images. If you want to use a different version replace the `latest` tag in
+`deployment/kubernetes/deploymentFiles/ditto/ditto-cluster.yml` with the version you want to use.
 
 ```bash
 kubectl apply -f deployment/kubernetes/deploymentFiles/ditto/
