@@ -146,6 +146,11 @@ public interface MongoDbConfig {
          */
         boolean isRetryWrites();
 
+        /**
+         * Gets the extra options to add to the configured MongoDB {@code uri}.
+         *
+         * @return the extra options.
+         */
         Map<String, Object> extraUriOptions();
 
         /**
