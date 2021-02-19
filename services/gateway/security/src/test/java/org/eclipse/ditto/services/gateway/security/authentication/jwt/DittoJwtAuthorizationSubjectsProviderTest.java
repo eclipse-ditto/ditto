@@ -112,6 +112,25 @@ public final class DittoJwtAuthorizationSubjectsProviderTest {
         );
     }
 
+    @Test
+    public void verifyThatUnresolvablePlaceholdersAreDiscarded() {
+        final String subjectIssuer = "testIssuer";
+        final String tokenGroup = "any-group";
+
+        final JsonWebToken jsonWebToken = createToken(
+                "{\"grp\": \"" + tokenGroup + "\"}");
+
+        final JwtSubjectIssuersConfig subjectIssuersConfig = createSubjectIssuersConfig(subjectIssuer,
+                List.of("{{ jwt:aud }}"));
+
+        final DittoJwtAuthorizationSubjectsProvider underTest = DittoJwtAuthorizationSubjectsProvider
+                .of(subjectIssuersConfig);
+
+        final List<AuthorizationSubject> authSubjects = underTest.getAuthorizationSubjects(jsonWebToken);
+
+        assertThat(authSubjects.size()).isEqualTo(0);
+    }
+
     JsonWebToken createToken(final String body) {
         final JsonWebToken jsonWebToken = mock(JsonWebToken.class);
         when(jsonWebToken.getIssuer()).thenReturn(JwtTestConstants.ISSUER);
