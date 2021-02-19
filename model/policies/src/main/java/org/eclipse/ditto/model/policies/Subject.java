@@ -143,6 +143,13 @@ public interface Subject extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
     Optional<SubjectExpiry> getExpiry();
 
     /**
+     * Returns the configuration for announcements to send.
+     *
+     * @return the announcement config.
+     */
+    SubjectAnnouncement getAnnouncement();
+
+    /**
      * Returns all non hidden marked fields of this Subject.
      *
      * @return a JSON object representation of this Subject including only non hidden marked fields.
@@ -177,7 +184,14 @@ public interface Subject extends Jsonifiable.WithFieldSelectorAndPredicate<JsonF
                 JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
+         * JSON field containing configuration for announcements related to the subject.
+         */
+        public static final JsonFieldDefinition<JsonObject> ANNOUNCE =
+                JsonFactory.newJsonObjectFieldDefinition("announce", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        /**
          * JSON field containing the Subject's expiry time.
+         *
          * @since 2.0.0
          */
         public static final JsonFieldDefinition<String> EXPIRY =

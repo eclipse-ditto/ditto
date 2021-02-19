@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -28,30 +28,26 @@ import org.eclipse.ditto.model.base.json.JsonParsableException;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
- * Thrown if a Subject {@code expiry} timestamp is not valid (e.g. because the provided string could not be parsed
- * as ISO-8601 timestamp or the provided expiry timestamp was in the past).
+ * Thrown if a Subject announcement config is not valid (e.g. because the {@code beforeExpiry} duration could not be
+ * parsed or the provided expiry timestamp was in the past).
  *
  * @since 2.0.0
  */
 @Immutable
-@JsonParsableException(errorCode = SubjectExpiryInvalidException.ERROR_CODE)
-public final class SubjectExpiryInvalidException extends DittoRuntimeException implements PolicyException {
+@JsonParsableException(errorCode = SubjectAnnouncementInvalidException.ERROR_CODE)
+public final class SubjectAnnouncementInvalidException extends DittoRuntimeException implements PolicyException {
 
     /**
      * Error code of this exception.
      */
-    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "subjectexpiry.invalid";
+    public static final String ERROR_CODE = ERROR_CODE_PREFIX + "subjectannouncement.invalid";
 
-    private static final String MESSAGE_TEMPLATE = "Subject expiry timestamp ''{0}'' is not valid.";
+    private static final String MESSAGE_TEMPLATE = "The ''beforeExpiry'' duration ''{0}'' is not valid.";
 
-    private static final String NOT_PARSABLE_AS_ISO_DESCRIPTION = "It must be provided as ISO-8601 formatted char " +
-            "sequence.";
-    private static final String MUST_NOT_BE_PAST_DESCRIPTION = "It must not be in the past, please adjust to a " +
-            "timestamp in the future.";
+    private static final String DESCRIPTION =
+            "It must be a positive integer followed by 'h' (hours), 'm' (minutes) or 's' (seconds).";
 
-    private static final long serialVersionUID = 980234789562098342L;
-
-    private SubjectExpiryInvalidException(final DittoHeaders dittoHeaders,
+    private SubjectAnnouncementInvalidException(final DittoHeaders dittoHeaders,
             @Nullable final String message,
             @Nullable final String description,
             @Nullable final Throwable cause,
@@ -60,51 +56,42 @@ public final class SubjectExpiryInvalidException extends DittoRuntimeException i
     }
 
     /**
-     * A mutable builder for a {@code SubjectExpiryInvalidException}.
+     * A mutable builder for a {@code SubjectAnnouncementInvalidException}.
      *
-     * @param expiry the expiry of the subject.
+     * @param beforeExpiry the string in the "beforeExpiry" field.
      * @return the builder.
      */
-    public static Builder newBuilder(final CharSequence expiry) {
-        return new Builder(expiry, NOT_PARSABLE_AS_ISO_DESCRIPTION);
+    public static Builder newBuilder(final CharSequence beforeExpiry) {
+        return new Builder(beforeExpiry, DESCRIPTION);
     }
 
     /**
-     * A mutable builder for a {@code SubjectExpiryInvalidException} caused by the expiry being in the past.
-     *
-     * @param expiry the expiry of the subject.
-     * @return the builder.
-     */
-    public static Builder newBuilderTimestampInThePast(final CharSequence expiry) {
-        return new Builder(expiry, MUST_NOT_BE_PAST_DESCRIPTION);
-    }
-
-    /**
-     * Constructs a new {@code SubjectExpiryInvalidException} object with the given exception message.
+     * Constructs a new {@code SubjectAnnouncementInvalidException} object with the given exception message.
      *
      * @param message detail message. This message can be later retrieved by the {@link #getMessage()} method.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new SubjectExpiryInvalidException.
+     * @return the new SubjectAnnouncementInvalidException.
      * @throws NullPointerException if {@code dittoHeaders} is {@code null}.
      */
-    public static SubjectExpiryInvalidException fromMessage(@Nullable final String message,
+    public static SubjectAnnouncementInvalidException fromMessage(@Nullable final String message,
             final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromMessage(message, dittoHeaders, new Builder());
     }
 
     /**
-     * Constructs a new {@code SubjectExpiryInvalidException} object with the exception message extracted from the
+     * Constructs a new {@code SubjectAnnouncementInvalidException} object with the exception message extracted from the
      * given JSON object.
      *
      * @param jsonObject the JSON to read the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
-     * @return the new SubjectExpiryInvalidException.
+     * @return the new SubjectAnnouncementInvalidException.
      * @throws NullPointerException if any argument is {@code null}.
      * @throws org.eclipse.ditto.json.JsonMissingFieldException if this JsonObject did not contain an error message.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
      * format.
      */
-    public static SubjectExpiryInvalidException fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+    public static SubjectAnnouncementInvalidException fromJson(final JsonObject jsonObject,
+            final DittoHeaders dittoHeaders) {
         return DittoRuntimeException.fromJson(jsonObject, dittoHeaders, new Builder());
     }
 
@@ -125,13 +112,13 @@ public final class SubjectExpiryInvalidException extends DittoRuntimeException i
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link SubjectExpiryInvalidException}.
+     * A mutable builder with a fluent API for a {@link org.eclipse.ditto.model.policies.SubjectAnnouncementInvalidException}.
      */
     @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<SubjectExpiryInvalidException> {
+    public static final class Builder extends DittoRuntimeExceptionBuilder<SubjectAnnouncementInvalidException> {
 
         private Builder() {
-            description(NOT_PARSABLE_AS_ISO_DESCRIPTION);
+            description(DESCRIPTION);
         }
 
         private Builder(final CharSequence expiry, final String description) {
@@ -141,12 +128,12 @@ public final class SubjectExpiryInvalidException extends DittoRuntimeException i
         }
 
         @Override
-        protected SubjectExpiryInvalidException doBuild(final DittoHeaders dittoHeaders,
+        protected SubjectAnnouncementInvalidException doBuild(final DittoHeaders dittoHeaders,
                 @Nullable final String message,
                 @Nullable final String description,
                 @Nullable final Throwable cause,
                 @Nullable final URI href) {
-            return new SubjectExpiryInvalidException(dittoHeaders, message, description, cause, href);
+            return new SubjectAnnouncementInvalidException(dittoHeaders, message, description, cause, href);
         }
 
     }

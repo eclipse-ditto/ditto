@@ -23,8 +23,8 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 
 import java.time.Instant;
 
-import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.headers.DittoDuration;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -37,16 +37,18 @@ public final class ImmutableSubjectTest {
     private static final String KNOWN_SUBJECT_TYPE = "custom";
     private static final Instant KNOWN_SUBJECT_EXPIRY = Instant.now();
     private static final String KNOWN_SUBJECT_EXPIRY_STR = KNOWN_SUBJECT_EXPIRY.toString();
+    private static final JsonObject KNOWN_SUBJECT_ANNOUNCEMENT_JSON = ImmutableSubjectAnnouncementTest.KNOWN_JSON;
     private static final JsonObject KNOWN_SUBJECT_JSON = JsonObject.newBuilder()
             .set(Subject.JsonFields.TYPE, KNOWN_SUBJECT_TYPE)
             .set(Subject.JsonFields.EXPIRY, KNOWN_SUBJECT_EXPIRY_STR)
+            .set(Subject.JsonFields.ANNOUNCE, KNOWN_SUBJECT_ANNOUNCEMENT_JSON)
             .build();
 
     @Test
     public void assertImmutability() {
         assertInstancesOf(ImmutableSubject.class,
                 areImmutable(),
-                provided(SubjectId.class, SubjectType.class, SubjectExpiry.class, JsonFieldDefinition.class)
+                provided(SubjectId.class, SubjectType.class, SubjectExpiry.class, SubjectAnnouncement.class)
                         .areAlsoImmutable());
     }
 
@@ -71,8 +73,9 @@ public final class ImmutableSubjectTest {
     @Test
     public void testToAndFromJsonWithAllFields() {
         final Subject subject = ImmutableSubject.of(SubjectId.newInstance(SubjectIssuer.GOOGLE, "myself"),
-                        SubjectType.newInstance(KNOWN_SUBJECT_TYPE),
-                        SubjectExpiry.newInstance(KNOWN_SUBJECT_EXPIRY_STR));
+                SubjectType.newInstance(KNOWN_SUBJECT_TYPE),
+                SubjectExpiry.newInstance(KNOWN_SUBJECT_EXPIRY_STR),
+                SubjectAnnouncement.of(DittoDuration.parseDuration("5m"), true));
 
         final Subject subject1 = ImmutableSubject.fromJson(SubjectIssuer.GOOGLE + ":myself",
                 KNOWN_SUBJECT_JSON);
