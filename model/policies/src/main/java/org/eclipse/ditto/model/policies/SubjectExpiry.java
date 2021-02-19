@@ -13,17 +13,8 @@
 package org.eclipse.ditto.model.policies;
 
 import java.time.Instant;
-import java.util.Optional;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
-
-import org.eclipse.ditto.json.JsonFactory;
-import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.headers.DittoDuration;
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 
 /**
  * Represents a {@link Subject} expiry timestamp indicating the instant when a Subject is automatically removed from a
@@ -58,22 +49,6 @@ public interface SubjectExpiry extends CharSequence, Comparable<SubjectExpiry> {
     }
 
     /**
-     * Returns a new {@link SubjectExpiry} with the specified {@code expiry} Instant.
-     *
-     * @param expiry the expiry Instant.
-     * @param notifyBefore the duration before the subject expiration when a notification should be sent.
-     * @return the new {@link SubjectExpiry}.
-     * @throws NullPointerException if {@code expiry} is {@code null}.
-     */
-    static SubjectExpiry newInstance(final Instant expiry, @Nullable final DittoDuration notifyBefore) {
-        return ImmutableSubjectExpiry.of(expiry, notifyBefore);
-    }
-
-    static SubjectExpiry fromJson(final JsonValue jsonValue) {
-        return ImmutableSubjectExpiry.fromJson(jsonValue);
-    }
-
-    /**
      * Returns the timestamp of the expiry as Instant.
      *
      * @return the timestamp of the expiry.
@@ -88,21 +63,6 @@ public interface SubjectExpiry extends CharSequence, Comparable<SubjectExpiry> {
     boolean isExpired();
 
     /**
-     * Returns the duration before expiration when a notification should be sent.
-     *
-     * @return the notify-before duration.
-     */
-    Optional<DittoDuration> getNotifyBefore();
-
-    /**
-     * Returns a JSON representation of the subject expiry.
-     *
-     * @return the JSON representation.
-     * @since 2.0.0
-     */
-    JsonValue toJson();
-
-    /**
      * Returns the ISO-8601 representation of this expiry timestamp.
      *
      * @return the ISO-8601 representation of this expiry timestamp.
@@ -113,21 +73,5 @@ public interface SubjectExpiry extends CharSequence, Comparable<SubjectExpiry> {
     @Override
     default int compareTo(final SubjectExpiry o) {
         return getTimestamp().compareTo(o.getTimestamp());
-    }
-
-    final class JsonFields {
-
-        public static final JsonFieldDefinition<String> TIMESTAMP =
-                JsonFactory.newStringFieldDefinition("timestamp", FieldType.REGULAR, JsonSchemaVersion.V_2);
-
-        /**
-         * JSON field containing the duration before the subject's expiration when a notification is sent to
-         * the expiring subjects.
-         *
-         * @since 2.0.0
-         */
-        public static final JsonFieldDefinition<String> NOTIFY_BEFORE =
-                JsonFactory.newStringFieldDefinition("notifyBefore", FieldType.REGULAR, JsonSchemaVersion.V_2);
-
     }
 }

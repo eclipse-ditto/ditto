@@ -24,7 +24,6 @@ import java.util.Collections;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -51,7 +50,7 @@ public final class ActivateTokenIntegrationTest {
             .set(ActivateTokenIntegration.JSON_SUBJECT_IDS, JsonArray.newBuilder()
                     .add(TestConstants.Policy.SUBJECT_ID.toString())
                     .build())
-            .set(ActivateTokenIntegration.JSON_EXPIRY, JsonValue.of(Instant.EPOCH.toString()))
+            .set(ActivateTokenIntegration.JSON_EXPIRY, Instant.EPOCH.toString())
             .build();
 
     private static final SubjectId KNOWN_SECOND_SUBJECT =
@@ -155,7 +154,7 @@ public final class ActivateTokenIntegrationTest {
     @Test(expected = SubjectExpiryInvalidException.class)
     public void tryToCreateInstanceFromInvalidTimestampInJson() {
         final JsonObject jsonWithInvalidTimestamp = KNOWN_JSON.toBuilder()
-                .set(ActivateTokenIntegration.JSON_EXPIRY, JsonValue.of("not-a-timestamp"))
+                .set(ActivateTokenIntegration.JSON_EXPIRY, "not-a-timestamp")
                 .build();
 
         ActivateTokenIntegration.fromJson(jsonWithInvalidTimestamp, TestConstants.EMPTY_DITTO_HEADERS);

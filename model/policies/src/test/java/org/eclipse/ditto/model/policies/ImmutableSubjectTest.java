@@ -25,7 +25,6 @@ import java.time.Instant;
 
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.json.JsonValue;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -40,7 +39,7 @@ public final class ImmutableSubjectTest {
     private static final String KNOWN_SUBJECT_EXPIRY_STR = KNOWN_SUBJECT_EXPIRY.toString();
     private static final JsonObject KNOWN_SUBJECT_JSON = JsonObject.newBuilder()
             .set(Subject.JsonFields.TYPE, KNOWN_SUBJECT_TYPE)
-            .set(Subject.JsonFields.EXPIRY, JsonValue.of(KNOWN_SUBJECT_EXPIRY_STR))
+            .set(Subject.JsonFields.EXPIRY, KNOWN_SUBJECT_EXPIRY_STR)
             .build();
 
     @Test
@@ -72,8 +71,8 @@ public final class ImmutableSubjectTest {
     @Test
     public void testToAndFromJsonWithAllFields() {
         final Subject subject = ImmutableSubject.of(SubjectId.newInstance(SubjectIssuer.GOOGLE, "myself"),
-                SubjectType.newInstance(KNOWN_SUBJECT_TYPE),
-                SubjectExpiry.newInstance(KNOWN_SUBJECT_EXPIRY_STR));
+                        SubjectType.newInstance(KNOWN_SUBJECT_TYPE),
+                        SubjectExpiry.newInstance(KNOWN_SUBJECT_EXPIRY_STR));
 
         final Subject subject1 = ImmutableSubject.fromJson(SubjectIssuer.GOOGLE + ":myself",
                 KNOWN_SUBJECT_JSON);

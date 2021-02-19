@@ -20,7 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.NotThreadSafe;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.common.HttpStatus;
+import org.eclipse.ditto.model.base.common.HttpStatusCode;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -42,16 +42,12 @@ public final class SubjectExpiryInvalidException extends DittoRuntimeException i
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "subjectexpiry.invalid";
 
-    private static final String TIMESTAMP_INVALID_TEMPLATE = "Subject expiry timestamp ''{0}'' is not valid.";
-
-    private static final String NOTIFY_BEFORE_INVALID_TEMPLATE = "The notify-before duration ''{0}'' is not valid.";
+    private static final String MESSAGE_TEMPLATE = "Subject expiry timestamp ''{0}'' is not valid.";
 
     private static final String NOT_PARSABLE_AS_ISO_DESCRIPTION = "It must be provided as ISO-8601 formatted char " +
             "sequence.";
     private static final String MUST_NOT_BE_PAST_DESCRIPTION = "It must not be in the past, please adjust to a " +
             "timestamp in the future.";
-    private static final String MUST_BE_HOCON_DURATION_DESCRIPTION = "The notify-before duration must be a positive " +
-            "integer followed by 'h' (hours), 'm' (minutes) or 's' (seconds).";
 
     private static final long serialVersionUID = 980234789562098342L;
 
@@ -60,18 +56,17 @@ public final class SubjectExpiryInvalidException extends DittoRuntimeException i
             @Nullable final String description,
             @Nullable final Throwable cause,
             @Nullable final URI href) {
-        super(ERROR_CODE, HttpStatus.BAD_REQUEST, dittoHeaders, message, description, cause, href);
+        super(ERROR_CODE, HttpStatusCode.BAD_REQUEST, dittoHeaders, message, description, cause, href);
     }
 
     /**
-     * A mutable builder for a {@code SubjectExpiryInvalidException} caused by expiry timestamp not conforming to
-     * the ISO-8601 timestamp format.
+     * A mutable builder for a {@code SubjectExpiryInvalidException}.
      *
      * @param expiry the expiry of the subject.
      * @return the builder.
      */
     public static Builder newBuilder(final CharSequence expiry) {
-        return new Builder(MessageFormat.format(TIMESTAMP_INVALID_TEMPLATE, expiry), NOT_PARSABLE_AS_ISO_DESCRIPTION);
+        return new Builder(expiry, NOT_PARSABLE_AS_ISO_DESCRIPTION);
     }
 
     /**
@@ -81,12 +76,7 @@ public final class SubjectExpiryInvalidException extends DittoRuntimeException i
      * @return the builder.
      */
     public static Builder newBuilderTimestampInThePast(final CharSequence expiry) {
-        return new Builder(MessageFormat.format(TIMESTAMP_INVALID_TEMPLATE, expiry), MUST_NOT_BE_PAST_DESCRIPTION);
-    }
-
-    public static Builder newBuilderForNotifyBefore(final CharSequence notifyBefore) {
-        return new Builder(MessageFormat.format(NOTIFY_BEFORE_INVALID_TEMPLATE, notifyBefore),
-                MUST_BE_HOCON_DURATION_DESCRIPTION);
+        return new Builder(expiry, MUST_NOT_BE_PAST_DESCRIPTION);
     }
 
     /**
@@ -144,9 +134,9 @@ public final class SubjectExpiryInvalidException extends DittoRuntimeException i
             description(NOT_PARSABLE_AS_ISO_DESCRIPTION);
         }
 
-        private Builder(final String message, final String description) {
+        private Builder(final CharSequence expiry, final String description) {
             this();
-            message(message);
+            message(MessageFormat.format(MESSAGE_TEMPLATE, expiry));
             description(description);
         }
 

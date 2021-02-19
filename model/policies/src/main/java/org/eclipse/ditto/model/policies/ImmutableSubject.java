@@ -112,7 +112,7 @@ final class ImmutableSubject implements Subject {
                         .message("The 'type' for the 'subject' is missing.")
                         .build()));
         final SubjectExpiry subjectExpiry = jsonObject.getValue(JsonFields.EXPIRY)
-                .map(SubjectExpiry::fromJson)
+                .map(SubjectExpiry::newInstance)
                 .orElse(null);
 
         return of(SubjectId.newInstance(subjectIssuerWithId), ImmutableSubjectType.of(subjectTypeValue), subjectExpiry);
@@ -140,7 +140,7 @@ final class ImmutableSubject implements Subject {
                 .set(JsonFields.SCHEMA_VERSION, schemaVersion.toInt(), predicate)
                 .set(JsonFields.TYPE, subjectType.toString(), predicate);
         if (null != subjectExpiry) {
-            jsonObjectBuilder.set(JsonFields.EXPIRY, subjectExpiry.toJson());
+            jsonObjectBuilder.set(JsonFields.EXPIRY, subjectExpiry.toString());
         }
         return jsonObjectBuilder.build();
     }

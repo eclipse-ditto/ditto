@@ -82,8 +82,8 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
     static final JsonFieldDefinition<JsonArray> JSON_SUBJECT_IDS =
             JsonFactory.newJsonArrayFieldDefinition("subjectIds", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition<JsonValue> JSON_EXPIRY =
-            JsonFactory.newJsonValueFieldDefinition("expiry", FieldType.REGULAR, JsonSchemaVersion.V_2);
+    static final JsonFieldDefinition<String> JSON_EXPIRY =
+            JsonFactory.newStringFieldDefinition("expiry", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private static final String READ_PERMISSION = "READ";
 
@@ -157,7 +157,7 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
                     .map(JsonValue::asString)
                     .map(SubjectId::newInstance)
                     .collect(Collectors.toCollection(LinkedHashSet::new));
-            final SubjectExpiry subjectExpiry = SubjectExpiry.fromJson(jsonObject.getValueOrThrow(JSON_EXPIRY));
+            final SubjectExpiry subjectExpiry = SubjectExpiry.newInstance(jsonObject.getValueOrThrow(JSON_EXPIRY));
             return new ActivateTokenIntegration(policyId, label, subjectIds, subjectExpiry, dittoHeaders);
         });
     }
@@ -243,7 +243,7 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
                 .map(SubjectId::toString)
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray()), predicate);
-        jsonObjectBuilder.set(JSON_EXPIRY, subjectExpiry.toJson(), predicate);
+        jsonObjectBuilder.set(JSON_EXPIRY, subjectExpiry.toString(), predicate);
     }
 
     @Override
