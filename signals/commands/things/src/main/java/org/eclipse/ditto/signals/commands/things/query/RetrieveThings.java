@@ -256,6 +256,7 @@ public final class RetrieveThings extends AbstractCommand<RetrieveThings>
         return Optional.ofNullable(selectedFields);
     }
 
+    // TODO: <j.bartelheimer> remove SearchQueryCommand?
     @Override
     public ThingId getThingEntityId() {
         return ThingId.dummy();

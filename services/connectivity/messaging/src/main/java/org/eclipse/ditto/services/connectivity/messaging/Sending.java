@@ -39,6 +39,7 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**
@@ -200,7 +201,9 @@ final class Sending implements SendingOrDropped {
             // no ACK possible for non-twin-events, thus entityId must be ThingId
             final OutboundSignal.Mapped outboundSignal = sendingContext.getMappedOutboundSignal();
             final Signal<?> source = outboundSignal.getSource();
-            final ThingId entityId = ThingId.of(source.getEntityId());
+            final ThingId entityId = source instanceof WithEntityId
+                    ? ThingId.of(((WithEntityId) source).getEntityId())
+                    : ThingId.dummy();
 
             // assume DittoRuntimeException payload or exception message fits within quota
             result = exceptionConverter.convertException(exception, labelOptional.get(), entityId,

@@ -20,6 +20,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
 import org.eclipse.ditto.model.connectivity.ConnectivityConstants;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -28,7 +29,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ConnectivityCommand<T extends ConnectivityCommand<T>> extends Command<T> {
+public interface ConnectivityCommand<T extends ConnectivityCommand<T>> extends Command<T>, SignalWithEntityId<T> {
 
     /**
      * Type Prefix of Connectivity commands.

@@ -65,11 +65,6 @@ public final class AbstractCommandTest {
         }
 
         @Override
-        public EntityId getEntityId() {
-            return DefaultEntityId.dummy();
-        }
-
-        @Override
         public String getTypePrefix() {
             return "foo";
         }

@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.connectivity.HeaderMapping;
 import org.eclipse.ditto.model.connectivity.PayloadMapping;
 import org.eclipse.ditto.model.connectivity.Source;
 import org.eclipse.ditto.protocoladapter.TopicPath;
+import org.eclipse.ditto.signals.base.Signal;
 
 /**
  * Simple wrapper around the headers and the payload received from or sent to external AMQP (0.9 or 1.0)
@@ -133,7 +134,7 @@ public interface ExternalMessage {
     /**
      * @return the required data to apply the enforcement (if enforcement is enabled), empty otherwise
      */
-    Optional<EnforcementFilter<CharSequence>> getEnforcementFilter();
+    Optional<EnforcementFilter<Signal<?>>> getEnforcementFilter();
 
     /**
      * @return the optional header mapping

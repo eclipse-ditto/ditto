@@ -44,6 +44,7 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.services.utils.protocol.DittoProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.services.utils.protocol.config.ProtocolConfig;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -258,7 +259,9 @@ public final class InboundMappingProcessorTest {
                 assertThat(mapped.getSignal().getDittoHeaders()).containsEntry(
                         DittoHeaderDefinition.CORRELATION_ID.getKey(),
                         TestConstants.CORRELATION_ID);
-                assertThat((Object) mapped.getSignal().getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
+                assertThat(mapped.getSignal()).isInstanceOf(SignalWithEntityId.class);
+                Object actualId = ((SignalWithEntityId<?>) mapped.getSignal()).getEntityId();
+                assertThat(actualId).isEqualTo(TestConstants.Things.THING_ID);
                 assertThat(mapped.getSignal()).isInstanceOf(ModifyThing.class);
             });
         }};

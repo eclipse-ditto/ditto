@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.common.HttpStatusCodeOutOfRangeException;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityIdWithType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -59,6 +60,7 @@ import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.timer.PreparedTimer;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
 import org.eclipse.ditto.signals.commands.messages.MessageCommandResponse;
@@ -312,7 +314,9 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final int ackSizeQuota) {
 
         // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
-        final EntityIdWithType entityIdWithType = ThingId.of(signal.getEntityId());
+        final EntityIdWithType entityIdWithType = signal instanceof WithEntityId
+                ? ThingId.of(((WithEntityId) signal).getEntityId())
+                : ThingId.dummy();
         final AcknowledgementLabel label = getAcknowledgementLabel(autoAckTarget).orElse(NO_ACK_LABEL);
 
         final var statusCode = response.status().intValue();
@@ -383,7 +387,15 @@ final class HttpPublisherActor extends BasePublisherActor<HttpPublishTarget> {
             final MessageCommand<?, ?> messageCommand) {
 
         final ThingId messageThingId = messageCommand.getEntityId();
-        final EntityId responseThingId = commandResponse.getEntityId();
+        // TODO: <j.bartelheimer> not sure if this case can actually happen
+        if (!(commandResponse instanceof WithEntityId)) {
+            final String message = String.format(
+                    "Live response does not target the correct thing. Expected thing ID <%s>, but no ID found",
+                    messageThingId);
+            handleInvalidResponse(message, commandResponse);
+        }
+        final EntityId responseThingId = ((WithEntityId)commandResponse).getEntityId();
+
         if (!responseThingId.equals(messageThingId)) {
             final String message = String.format(
                     "Live response does not target the correct thing. Expected thing ID <%s>, but was <%s>.",

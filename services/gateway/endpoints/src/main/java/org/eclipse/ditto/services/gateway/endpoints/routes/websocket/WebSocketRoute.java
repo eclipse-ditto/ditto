@@ -92,6 +92,7 @@ import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
 import org.eclipse.ditto.services.utils.pubsub.StreamingType;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionClosedException;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayWebsocketSessionExpiredException;
@@ -675,8 +676,8 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             final Jsonifiable.WithPredicate<JsonObject, JsonField> jsonifiable =
                     sessionedJsonifiable.getJsonifiable();
             final ActorRef streamingSessionActor = session.getStreamingSessionActor();
-            if (jsonifiable instanceof Signal<?>) {
-                final EntityId entityId = ((Signal<?>) jsonifiable).getEntityId();
+            if (jsonifiable instanceof SignalWithEntityId<?>) {
+                final EntityId entityId = ((SignalWithEntityId<?>) jsonifiable).getEntityId();
                 if (entityId instanceof EntityIdWithType) {
                     dittoHeaders.getAcknowledgementRequests()
                             .stream()

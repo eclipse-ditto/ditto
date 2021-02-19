@@ -17,19 +17,7 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 /**
  * Implementations of this interface are associated to an entity identified by the value returned from {@link #getEntityId()}.
  */
-public interface WithId {
-
-    /**
-     * Returns the identifier of the entity.
-     *
-     * @return the identifier of the entity.
-     * @deprecated entity IDs are now typed. Use {@link #getEntityId()} instead.
-     */
-    @Deprecated
-    default String getId() {
-        return String.valueOf(getEntityId());
-    }
-
+public interface WithEntityId {
 
     /**
      * Returns the identifier of the entity.

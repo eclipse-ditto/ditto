@@ -233,7 +233,9 @@ public final class ThingsAggregatorProxyActor extends AbstractActor {
                 final SudoRetrieveThingResponse response = (SudoRetrieveThingResponse) jsonifiable;
                 final String json = response.getEntityPlainString().orElseGet(() ->
                         response.getEntity(response.getImplementedSchemaVersion()).toString());
-                return PlainJson.of(response.getEntityId(), json);
+                return response.getThing().getEntityId()
+                        .map(thingId -> PlainJson.of(thingId, json))
+                        .orElse(null);
             } else {
                 return null;
             }

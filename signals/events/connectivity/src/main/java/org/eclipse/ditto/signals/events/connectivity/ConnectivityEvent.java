@@ -23,6 +23,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.events.base.Event;
 
 /**
@@ -30,7 +31,7 @@ import org.eclipse.ditto.signals.events.base.Event;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ConnectivityEvent<T extends ConnectivityEvent<T>> extends Event<T> {
+public interface ConnectivityEvent<T extends ConnectivityEvent<T>> extends Event<T>, SignalWithEntityId<T> {
 
     /**
      * Type Prefix of Connectivity events.

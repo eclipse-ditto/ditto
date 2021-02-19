@@ -15,6 +15,7 @@ package org.eclipse.ditto.services.gateway.endpoints.actors;
 import java.util.function.Supplier;
 
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 import akka.http.javadsl.model.HttpMethod;
@@ -28,9 +29,9 @@ import akka.http.javadsl.model.Uri;
 final class UriForLocationHeaderSupplier implements Supplier<Uri> {
 
     private final HttpRequest httpRequest;
-    private final CommandResponse<?> commandResponse;
+    private final SignalWithEntityId<?> commandResponse;
 
-    UriForLocationHeaderSupplier(final HttpRequest httpRequest, final CommandResponse<?> commandResponse) {
+    UriForLocationHeaderSupplier(final HttpRequest httpRequest, final SignalWithEntityId<?> commandResponse) {
         this.httpRequest = httpRequest;
         this.commandResponse = commandResponse;
     }

@@ -23,7 +23,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.metrics.DittoMetrics;
 import org.eclipse.ditto.services.utils.metrics.instruments.counter.Counter;
-import org.eclipse.ditto.signals.base.WithId;
+import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
 
 import akka.actor.AbstractActor;
@@ -187,9 +187,9 @@ public abstract class AbstractGraphActor<T, M> extends AbstractActor {
         } else {
             loggerWithCID = logger;
         }
-        if (match instanceof WithId) {
+        if (match instanceof WithEntityId) {
             loggerWithCID.debug("Received <{}> with ID <{}>.", match.getClass().getSimpleName(),
-                    ((WithId) match).getEntityId());
+                    ((WithEntityId) match).getEntityId());
         } else {
             loggerWithCID.debug("Received match: <{}>.", match);
         }

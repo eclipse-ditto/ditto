@@ -33,6 +33,7 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
@@ -44,7 +45,7 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 @AllValuesAreNonnullByDefault
 @JsonParsableCommand(typePrefix = SudoRetrieveThing.TYPE_PREFIX, name = SudoRetrieveThing.NAME)
 public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing>
-        implements SudoCommand<SudoRetrieveThing> {
+        implements SudoCommand<SudoRetrieveThing>, SignalWithEntityId<SudoRetrieveThing> {
 
     /**
      * Name of the "Sudo Retrieve Thing" command.
@@ -170,11 +171,6 @@ public final class SudoRetrieveThing extends AbstractCommand<SudoRetrieveThing>
         final boolean isUseOriginalSchemaVersion = jsonObject.getValue(JSON_USE_ORIGINAL_SCHEMA_VERSION).orElse(false);
 
         return new SudoRetrieveThing(thingId, readFieldSelector, dittoHeaders, isUseOriginalSchemaVersion);
-    }
-
-    @Override
-    public String getId() {
-        return String.valueOf(getEntityId());
     }
 
     @Override

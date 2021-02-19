@@ -31,6 +31,7 @@ import org.eclipse.ditto.services.models.things.commands.sudo.SudoRetrieveThings
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThing;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveThings;
@@ -134,7 +135,7 @@ public final class ThingsAggregatorActor extends AbstractActor {
         final SourceRef<Jsonifiable> commandResponseSource = Source.from(thingIds)
                 .filter(Objects::nonNull)
                 .map(thingId -> {
-                    final Command<?> toBeWrapped;
+                    final SignalWithEntityId<?> toBeWrapped;
                     if (command instanceof RetrieveThings) {
                         toBeWrapped = Optional.ofNullable(selectedFields)
                                 .map(sf -> RetrieveThing.getBuilder(thingId, dittoHeaders)

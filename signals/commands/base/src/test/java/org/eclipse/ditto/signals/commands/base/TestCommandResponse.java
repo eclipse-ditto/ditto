@@ -41,11 +41,6 @@ public final class TestCommandResponse extends  AbstractCommandResponse<TestComm
     }
 
     @Override
-    public EntityId getEntityId() {
-        return DefaultEntityId.of("");
-    }
-
-    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.empty();
     }

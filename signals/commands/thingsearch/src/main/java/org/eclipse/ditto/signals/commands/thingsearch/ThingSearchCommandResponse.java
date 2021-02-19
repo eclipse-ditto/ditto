@@ -14,7 +14,6 @@ package org.eclipse.ditto.signals.commands.thingsearch;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**
@@ -22,8 +21,7 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ThingSearchCommandResponse<T extends ThingSearchCommandResponse<T>> extends CommandResponse<T>,
-        WithIdButActuallyNot {
+public interface ThingSearchCommandResponse<T extends ThingSearchCommandResponse<T>> extends CommandResponse<T> {
 
     /**
      * Type Prefix of Search command responses.

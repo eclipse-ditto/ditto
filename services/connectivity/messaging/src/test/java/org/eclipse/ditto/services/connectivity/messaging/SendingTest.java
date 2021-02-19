@@ -39,6 +39,7 @@ import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.junit.Before;
 import org.junit.Rule;
@@ -124,7 +125,7 @@ public final class SendingTest {
     @Test
     public void acknowledgeAndMonitorNullCommandResponseWhenShouldAcknowledge() {
         Mockito.when(autoAckTarget.getIssuedAcknowledgementLabel()).thenReturn(Optional.of(ACKNOWLEDGEMENT_LABEL));
-        final var source = Mockito.mock(Signal.class);
+        final var source = Mockito.mock(SignalWithEntityId.class);
         final var thingId = ThingId.generateRandom();
         Mockito.when(source.getEntityId()).thenReturn(thingId);
         Mockito.when(source.getDittoHeaders()).thenReturn(dittoHeaders);
@@ -195,7 +196,7 @@ public final class SendingTest {
 
     @Test
     public void monitorAcknowledgementSendFailureInCaseOfUnhandledException() {
-        final var source = Mockito.mock(Signal.class);
+        final var source = Mockito.mock(SignalWithEntityId.class);
         final var thingId = ThingId.generateRandom();
         Mockito.when(source.getEntityId()).thenReturn(thingId);
         Mockito.when(source.getDittoHeaders()).thenReturn(dittoHeaders);

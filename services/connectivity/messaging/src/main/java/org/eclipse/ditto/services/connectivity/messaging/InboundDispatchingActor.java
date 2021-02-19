@@ -32,6 +32,8 @@ import org.eclipse.ditto.model.base.acks.AcknowledgementLabelNotDeclaredExceptio
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.acks.FilteredAcknowledgementRequest;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -72,7 +74,7 @@ import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.WithId;
+import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.ErrorResponse;
@@ -515,8 +517,8 @@ public final class InboundDispatchingActor extends AbstractActor
         return newTopicPathBuilder(acks, acks).acks().aggregatedAcks().build();
     }
 
-    private TopicPathBuilder newTopicPathBuilder(final WithId withId, final WithDittoHeaders withDittoHeaders) {
-        final TopicPathBuilder builder = ProtocolFactory.newTopicPathBuilder(ThingId.of(withId.getEntityId()));
+    private TopicPathBuilder newTopicPathBuilder(final WithEntityId withEntityId, final WithDittoHeaders withDittoHeaders) {
+        final TopicPathBuilder builder = ProtocolFactory.newTopicPathBuilder(ThingId.of(withEntityId.getEntityId()));
         return withDittoHeaders.getDittoHeaders()
                 .getChannel()
                 .filter(TopicPath.Channel.LIVE.getName()::equals)
@@ -586,9 +588,9 @@ public final class InboundDispatchingActor extends AbstractActor
     private void applySignalIdEnforcement(final ExternalMessage externalMessage, final Signal<?> signal) {
         externalMessage.getEnforcementFilter().ifPresent(enforcementFilter -> {
             logger.withCorrelationId(signal)
-                    .debug("Connection Signal ID Enforcement enabled - matching Signal ID <{}> with filter <{}>.",
-                            signal.getEntityId(), enforcementFilter);
-            enforcementFilter.match(signal.getEntityId(), signal.getDittoHeaders());
+                    .debug("Connection Signal ID Enforcement enabled - matching Signal <{}> with filter <{}>.",
+                            signal, enforcementFilter);
+            enforcementFilter.match(signal);
         });
     }
 

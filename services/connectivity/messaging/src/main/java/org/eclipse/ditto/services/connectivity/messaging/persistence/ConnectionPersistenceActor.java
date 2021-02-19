@@ -79,6 +79,7 @@ import org.eclipse.ditto.services.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommand;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
@@ -701,7 +702,7 @@ public final class ConnectionPersistenceActor
         origin.tell(logsResponse, getSelf());
     }
 
-    private CompletionStage<Object> startAndAskClientActors(final Command<?> cmd, final int clientCount) {
+    private CompletionStage<Object> startAndAskClientActors(final SignalWithEntityId<?> cmd, final int clientCount) {
         startClientActorsIfRequired(clientCount);
         final Object msg = consistentHashableEnvelope(cmd, cmd.getEntityId().toString());
         return processClientAskResult(Patterns.ask(clientActorRouter, msg, clientActorAskTimeout));

@@ -54,6 +54,8 @@ import org.eclipse.ditto.services.utils.cluster.JsonValueSourceRef;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
+import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
@@ -237,8 +239,9 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private void rememberResponseLocationUri(final CommandResponse<?> commandResponse) {
-        if (HttpStatus.CREATED.equals(commandResponse.getHttpStatus())) {
-            responseLocationUri = getUriForLocationHeader(httpRequest, commandResponse);
+        if (HttpStatus.CREATED.equals(commandResponse.getHttpStatus())
+                && commandResponse instanceof SignalWithEntityId<?>) {
+            responseLocationUri = getUriForLocationHeader(httpRequest, (SignalWithEntityId<?>) commandResponse);
         }
     }
 
@@ -579,8 +582,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         }
     }
 
-    protected Uri getUriForLocationHeader(final HttpRequest request, final CommandResponse<?> commandResponse) {
-        final UriForLocationHeaderSupplier supplier = new UriForLocationHeaderSupplier(request, commandResponse);
+    protected Uri getUriForLocationHeader(final HttpRequest request, final SignalWithEntityId<?> signalWithEntityId) {
+        final UriForLocationHeaderSupplier supplier = new UriForLocationHeaderSupplier(request, signalWithEntityId);
         return supplier.get();
     }
 

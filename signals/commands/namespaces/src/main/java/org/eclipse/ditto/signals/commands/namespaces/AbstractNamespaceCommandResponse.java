@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 
 /**
@@ -36,7 +37,7 @@ import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
  */
 @Immutable
 abstract class AbstractNamespaceCommandResponse<T extends AbstractNamespaceCommandResponse<T>>
-        extends AbstractCommandResponse<T> implements NamespaceCommandResponse<T> {
+        extends AbstractCommandResponse<T> implements NamespaceCommandResponse<T>, SignalWithEntityId<T> {
 
     /**
      * Type prefix of NamespaceCommand responses.
@@ -71,14 +72,6 @@ abstract class AbstractNamespaceCommandResponse<T extends AbstractNamespaceComma
     @Override
     public String getNamespace() {
         return namespace;
-    }
-
-    /**
-     * Same as get {@link #getNamespace()}.
-     */
-    @Override
-    public String getId() {
-        return getNamespace();
     }
 
     @Override

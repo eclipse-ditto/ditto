@@ -33,6 +33,8 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
+import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommandResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommandResponse;
@@ -46,7 +48,8 @@ import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 @AllValuesAreNonnullByDefault
 @JsonParsableCommandResponse(type = UpdateThingResponse.TYPE)
 // When making this a ThingSearchCommand, beware that it is WithId but actually yes.
-public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThingResponse> {
+public final class UpdateThingResponse extends AbstractCommandResponse<UpdateThingResponse> implements
+        SignalWithEntityId<UpdateThingResponse> {
 
     /**
      * Type of this command.

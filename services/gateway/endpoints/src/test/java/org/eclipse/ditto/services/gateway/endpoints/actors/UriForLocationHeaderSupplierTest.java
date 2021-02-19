@@ -19,6 +19,7 @@ import static org.mockito.Mockito.when;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.junit.Test;
 
@@ -33,6 +34,9 @@ public final class UriForLocationHeaderSupplierTest {
 
     private static final EntityId KNOWN_ENTITY_ID = DefaultEntityId.of("Plumbus");
     private static final String KNOWN_RESOURCE_PATH = "Floob";
+
+    private interface CommandResponseWithEntityIdTest extends CommandResponse<CommandResponseWithEntityIdTest>
+            , SignalWithEntityId<CommandResponseWithEntityIdTest> {};
 
     @Test
     public void getUriForIdempotentRequest() {
@@ -53,7 +57,7 @@ public final class UriForLocationHeaderSupplierTest {
                 .withMethod(HttpMethods.PUT);
 
         final UriForLocationHeaderSupplier underTest =
-                new UriForLocationHeaderSupplier(httpRequest, mock(CommandResponse.class));
+                new UriForLocationHeaderSupplier(httpRequest, mock(CommandResponseWithEntityIdTest.class));
 
         assertThat(underTest.get()).isEqualTo(expectedUri);
     }
@@ -75,7 +79,7 @@ public final class UriForLocationHeaderSupplierTest {
         final HttpRequest httpRequest = HttpRequest.create()
                 .withUri(uri)
                 .withMethod(HttpMethods.POST);
-        final CommandResponse<?> commandResponse = mock(CommandResponse.class);
+        final CommandResponseWithEntityIdTest commandResponse = mock(CommandResponseWithEntityIdTest.class);
         when(commandResponse.getEntityId()).thenReturn(KNOWN_ENTITY_ID);
         when(commandResponse.getResourcePath()).thenReturn(JsonPointer.of(KNOWN_RESOURCE_PATH));
         final Uri expectedUri =
@@ -93,7 +97,7 @@ public final class UriForLocationHeaderSupplierTest {
         final HttpRequest httpRequest = HttpRequest.create()
                 .withUri(uri)
                 .withMethod(HttpMethods.POST);
-        final CommandResponse<?> commandResponse = mock(CommandResponse.class);
+        final CommandResponseWithEntityIdTest commandResponse = mock(CommandResponseWithEntityIdTest.class);
         when(commandResponse.getEntityId()).thenReturn(KNOWN_ENTITY_ID);
         when(commandResponse.getResourcePath()).thenReturn(JsonPointer.of(KNOWN_RESOURCE_PATH + "/"));
         final Uri expectedUri =
@@ -111,7 +115,7 @@ public final class UriForLocationHeaderSupplierTest {
         final HttpRequest httpRequest = HttpRequest.create()
                 .withUri(uri)
                 .withMethod(HttpMethods.POST);
-        final CommandResponse<?> commandResponse = mock(CommandResponse.class);
+        final CommandResponseWithEntityIdTest commandResponse = mock(CommandResponseWithEntityIdTest.class);
         when(commandResponse.getEntityId()).thenReturn(KNOWN_ENTITY_ID);
         when(commandResponse.getResourcePath()).thenReturn(JsonPointer.of(KNOWN_RESOURCE_PATH));
         final Uri expectedUri = Uri.create(host + commandResponse.getEntityId() + commandResponse.getResourcePath());

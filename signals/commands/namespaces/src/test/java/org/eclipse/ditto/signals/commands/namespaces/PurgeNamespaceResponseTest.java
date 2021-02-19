@@ -96,13 +96,6 @@ public final class PurgeNamespaceResponseTest {
     }
 
     @Test
-    public void getIdReturnsNamespace() {
-        final PurgeNamespaceResponse underTest = PurgeNamespaceResponse.failed(NAMESPACE, RESOURCE_TYPE, dittoHeaders);
-
-        assertThat(underTest.getId()).isEqualTo(underTest.getNamespace());
-    }
-
-    @Test
     public void getEntityIdReturnsNamespace() {
         final PurgeNamespaceResponse underTest = PurgeNamespaceResponse.failed(NAMESPACE, RESOURCE_TYPE, dittoHeaders);
 

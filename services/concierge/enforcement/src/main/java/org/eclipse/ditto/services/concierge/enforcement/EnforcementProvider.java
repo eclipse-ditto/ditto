@@ -107,7 +107,7 @@ public interface EnforcementProvider<T extends Signal<?>> {
     private EnforcementTask buildEnforcementTask(final Contextual<T> contextual, final PreEnforcer preEnforcer) {
         final T message = contextual.getMessage();
         final boolean changesAuthorization = changesAuthorization(message);
-        final EntityId entityId = message.getEntityId();
+        final EntityId entityId = contextual.getEntityId();
 
         return EnforcementTask.of(entityId, changesAuthorization, () ->
                 preEnforcer.withErrorHandlingAsync(contextual,

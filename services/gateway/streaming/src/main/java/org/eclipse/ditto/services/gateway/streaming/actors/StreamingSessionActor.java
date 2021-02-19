@@ -68,7 +68,8 @@ import org.eclipse.ditto.services.utils.search.SubscriptionManager;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.WithId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
+import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.base.exceptions.GatewayInternalErrorException;
@@ -657,8 +658,14 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
     }
 
     @Nullable
-    private static String namespaceFromId(final WithId withId) {
-        return NamespaceReader.fromEntityId(withId.getEntityId()).orElse(null);
+    private static String namespaceFromId(final Signal<?> signal) {
+        // TODO: <j.bartelheimer>
+        if (signal instanceof SignalWithEntityId<?>) {
+            final SignalWithEntityId<?> signalWithEntityId = (SignalWithEntityId<?>) signal;
+            return NamespaceReader.fromEntityId(signalWithEntityId.getEntityId()).orElse(null);
+        } else {
+            return null;
+        }
     }
 
     private static Criteria parseCriteria(final String filter, final DittoHeaders dittoHeaders) {

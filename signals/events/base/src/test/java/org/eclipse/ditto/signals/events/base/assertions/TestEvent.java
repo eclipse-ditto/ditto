@@ -53,11 +53,6 @@ public final class TestEvent implements Event<TestEvent> {
     }
 
     @Override
-    public EntityId getEntityId() {
-        return id;
-    }
-
-    @Override
     public JsonPointer getResourcePath() {
         return JsonPointer.empty();
     }

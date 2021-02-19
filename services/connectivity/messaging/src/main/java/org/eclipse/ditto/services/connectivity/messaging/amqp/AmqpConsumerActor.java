@@ -16,6 +16,8 @@ import static org.apache.qpid.jms.message.JmsMessageSupport.ACCEPTED;
 import static org.apache.qpid.jms.message.JmsMessageSupport.MODIFIED_FAILED;
 import static org.apache.qpid.jms.message.JmsMessageSupport.REJECTED;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
+import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newHeadersPlaceholder;
+import static org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory.newEnforcementFilterFactory;
 
 import java.nio.ByteBuffer;
 import java.text.MessageFormat;
@@ -68,6 +70,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
+import org.eclipse.ditto.signals.base.Signal;
 
 import akka.actor.ActorRef;
 import akka.actor.Props;
@@ -87,7 +90,7 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
     static final String ACTOR_NAME_PREFIX = "amqpConsumerActor-";
 
     private final ThreadSafeDittoLoggingAdapter log;
-    private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
+    private final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory;
 
     private MessageRateLimiter<String> messageRateLimiter;
 
@@ -124,9 +127,9 @@ final class AmqpConsumerActor extends BaseConsumerActor implements MessageListen
         messageRateLimiter = initMessageRateLimiter(amqp10Config);
 
         final Enforcement enforcement = consumerData.getSource().getEnforcement().orElse(null);
-        headerEnforcementFilterFactory = enforcement != null ? EnforcementFactoryFactory
-                .newEnforcementFilterFactory(enforcement, PlaceholderFactory.newHeadersPlaceholder()) :
-                input -> null;
+        headerEnforcementFilterFactory = enforcement != null
+                ? newEnforcementFilterFactory(enforcement, newHeadersPlaceholder())
+                : input -> null;
     }
 
     /**

@@ -44,6 +44,8 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
+import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 import akka.Done;
@@ -284,7 +286,11 @@ final class KafkaPublisherActor extends BasePublisherActor<KafkaPublishTarget> {
         }
 
         private Acknowledgement ackFromMetadata(@Nullable final RecordMetadata metadata) {
-            final ThingId id = ThingId.of(signal.getEntityId());
+            // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
+            final ThingId id = signal instanceof WithEntityId
+                    ? ThingId.of(((WithEntityId) signal).getEntityId())
+                    : ThingId.dummy();
+
             if (metadata == null || !isDebugEnabled()) {
                 return Acknowledgement.of(autoAckLabel, id, HttpStatus.NO_CONTENT, signal.getDittoHeaders());
             } else {

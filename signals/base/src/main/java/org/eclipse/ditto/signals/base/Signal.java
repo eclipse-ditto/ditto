@@ -24,7 +24,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * @param <T> the type of the implementing class.
  */
 public interface Signal<T extends Signal<T>> extends Jsonifiable.WithPredicate<JsonObject, JsonField>,
-        DittoHeadersSettable<T>, WithManifest, WithType, WithId, WithName, WithResource {
+        DittoHeadersSettable<T>, WithManifest, WithType, WithName, WithResource {
 
     /**
      * Returns the name of the signal. This is gathered by the type of the signal by default.

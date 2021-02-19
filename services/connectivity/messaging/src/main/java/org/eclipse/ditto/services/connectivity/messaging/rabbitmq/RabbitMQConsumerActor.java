@@ -40,6 +40,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessageBuilder;
 import org.eclipse.ditto.services.models.connectivity.ExternalMessageFactory;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
+import org.eclipse.ditto.signals.base.Signal;
 
 import com.rabbitmq.client.BasicProperties;
 import com.rabbitmq.client.Channel;
@@ -62,7 +63,7 @@ public final class RabbitMQConsumerActor extends BaseConsumerActor {
     private final ThreadSafeDittoLoggingAdapter log;
 
     @Nullable
-    private final EnforcementFilterFactory<Map<String, String>, CharSequence> headerEnforcementFilterFactory;
+    private final EnforcementFilterFactory<Map<String, String>, Signal<?>> headerEnforcementFilterFactory;
     private final PayloadMapping payloadMapping;
     private final Channel channel;
 

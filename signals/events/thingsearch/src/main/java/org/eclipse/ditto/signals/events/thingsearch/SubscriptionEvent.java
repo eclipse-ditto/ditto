@@ -15,7 +15,6 @@ package org.eclipse.ditto.signals.events.thingsearch;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.signals.base.WithIdButActuallyNot;
 import org.eclipse.ditto.signals.events.base.Event;
 
 /**
@@ -24,7 +23,7 @@ import org.eclipse.ditto.signals.events.base.Event;
  * @param <T> the type of the implementing class.
  * @since 1.1.0
  */
-public interface SubscriptionEvent<T extends SubscriptionEvent<T>> extends Event<T>, WithIdButActuallyNot {
+public interface SubscriptionEvent<T extends SubscriptionEvent<T>> extends Event<T> {
 
     /**
      * Resource type of subscription events.

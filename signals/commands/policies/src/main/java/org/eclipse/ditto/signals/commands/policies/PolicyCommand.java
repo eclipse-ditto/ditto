@@ -21,6 +21,8 @@ import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyConstants;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
+import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -28,7 +30,7 @@ import org.eclipse.ditto.signals.commands.base.Command;
  *
  * @param <T> the type of the implementing class.
  */
-public interface PolicyCommand<T extends PolicyCommand<T>> extends Command<T>, WithEntityType {
+public interface PolicyCommand<T extends PolicyCommand<T>> extends Command<T>, WithEntityType, SignalWithEntityId<T> {
 
     /**
      * Type Prefix of Policy commands.

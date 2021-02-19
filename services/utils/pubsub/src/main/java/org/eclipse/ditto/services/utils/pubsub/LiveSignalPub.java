@@ -12,9 +12,9 @@
  */
 package org.eclipse.ditto.services.utils.pubsub;
 
-import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.commands.base.Command;
-import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
+import org.eclipse.ditto.signals.commands.things.ThingCommand;
+import org.eclipse.ditto.signals.events.things.ThingEvent;
 
 import akka.actor.ActorContext;
 
@@ -36,15 +36,15 @@ public interface LiveSignalPub {
     /**
      * @return Distributed-pub access for live commands.
      */
-    DistributedPub<Command> command();
+    DistributedPub<ThingCommand<?>> command();
 
     /**
      * @return Distributed-pub access for live events.
      */
-    DistributedPub<Event> event();
+    DistributedPub<ThingEvent<?>> event();
 
     /**
      * @return Distributed-pub access for messages.
      */
-    DistributedPub<Signal> message();
+    DistributedPub<SignalWithEntityId<?>> message();
 }

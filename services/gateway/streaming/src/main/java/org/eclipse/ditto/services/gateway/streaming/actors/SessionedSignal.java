@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.signalenrichment.SignalEnrichmentFacade;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 
 /**
  * Sessioned Jsonifiable that supports signal enrichment.
@@ -58,7 +59,8 @@ final class SessionedSignal implements SessionedJsonifiable {
 
     @Override
     public CompletionStage<JsonObject> retrieveExtraFields(@Nullable final SignalEnrichmentFacade facade) {
-        final EntityId entityId = signal.getEntityId();
+        // TODO: jbartelh fix tha ugly/bad cast
+        final EntityId entityId = ((SignalWithEntityId<?>) signal).getEntityId();
         final Optional<JsonFieldSelector> extraFields = session.getExtraFields();
         if (extraFields.isPresent() && (facade == null || !(entityId instanceof ThingId))) {
             final CompletableFuture<JsonObject> future = new CompletableFuture<>();

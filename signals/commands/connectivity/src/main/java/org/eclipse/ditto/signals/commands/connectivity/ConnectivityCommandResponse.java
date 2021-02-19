@@ -19,6 +19,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.ConnectionId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 /**
@@ -27,7 +28,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  *
  * @param <T> the type of the implementing class.
  */
-public interface ConnectivityCommandResponse<T extends ConnectivityCommandResponse<T>> extends CommandResponse<T> {
+public interface ConnectivityCommandResponse<T extends ConnectivityCommandResponse<T>> extends CommandResponse<T>,
+        SignalWithEntityId<T> {
 
     /**
      * Type Prefix of Connectivity command responses.

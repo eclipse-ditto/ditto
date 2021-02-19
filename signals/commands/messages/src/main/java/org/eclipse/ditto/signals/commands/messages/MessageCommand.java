@@ -25,6 +25,7 @@ import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.model.messages.MessageDirection;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.WithThingId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -33,7 +34,8 @@ import org.eclipse.ditto.signals.commands.base.Command;
  * @param <P> the type of the message's payload.
  * @param <C> the type of the MessageCommand.
  */
-public interface MessageCommand<P, C extends MessageCommand<P, C>> extends Command<C>, WithThingId, WithMessage<P> {
+public interface MessageCommand<P, C extends MessageCommand<P, C>> extends Command<C>, WithThingId, WithMessage<P>,
+        SignalWithEntityId<C> {
 
     /**
      * Type Prefix of Message commands.

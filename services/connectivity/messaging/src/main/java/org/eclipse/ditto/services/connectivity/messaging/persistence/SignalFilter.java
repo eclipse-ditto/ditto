@@ -41,7 +41,8 @@ import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMo
 import org.eclipse.ditto.services.connectivity.messaging.monitoring.ConnectionMonitorRegistry;
 import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 import org.eclipse.ditto.signals.base.Signal;
-import org.eclipse.ditto.signals.base.WithId;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
+import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
@@ -133,13 +134,14 @@ public final class SignalFilter {
         return t -> t.getTopic().equals(topicFromSignal(signal).orElse(null));
     }
 
-    private static Predicate<FilteredTopic> applyNamespaceFilter(final WithId signal) {
-        return t -> t.getNamespaces().isEmpty() || t.getNamespaces().contains(namespaceFromId(signal));
+    private static Predicate<FilteredTopic> applyNamespaceFilter(final Signal<?> signal) {
+        return t -> t.getNamespaces().isEmpty() ||
+                (signal instanceof WithEntityId && t.getNamespaces().contains(namespaceFromId((WithEntityId)signal)));
     }
 
     @Nullable
-    private static String namespaceFromId(final WithId withId) {
-        return NamespaceReader.fromEntityId(withId.getEntityId()).orElse(null);
+    private static String namespaceFromId(final WithEntityId withEntityId) {
+        return NamespaceReader.fromEntityId(withEntityId.getEntityId()).orElse(null);
     }
 
     private static boolean matchesFilterBeforeEnrichment(final FilteredTopic filteredTopic, final Signal<?> signal) {

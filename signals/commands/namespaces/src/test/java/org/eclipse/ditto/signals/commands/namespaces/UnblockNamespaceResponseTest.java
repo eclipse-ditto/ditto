@@ -84,14 +84,6 @@ public final class UnblockNamespaceResponseTest {
     }
 
     @Test
-    public void getIdReturnsNamespace() {
-        final UnblockNamespaceResponse underTest =
-                UnblockNamespaceResponse.getInstance(NAMESPACE, RESOURCE_TYPE, dittoHeaders);
-
-        assertThat(underTest.getId()).isEqualTo(underTest.getNamespace());
-    }
-
-    @Test
     public void getEntityIdReturnsNamespace() {
         final UnblockNamespaceResponse underTest =
                 UnblockNamespaceResponse.getInstance(NAMESPACE, RESOURCE_TYPE, dittoHeaders);

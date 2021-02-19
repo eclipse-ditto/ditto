@@ -12,7 +12,9 @@
  */
 package org.eclipse.ditto.signals.commands.base.assertions;
 
+import org.assertj.core.api.Assertions;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 
 /**
@@ -30,7 +32,9 @@ public class CommandAssert extends AbstractCommandAssert<CommandAssert, Command>
     }
 
     public CommandAssert withId(final EntityId expectedId) {
-        return assertThatEquals(actual.getEntityId(), expectedId, "id");
+        Assertions.assertThat(actual).isInstanceOf(WithEntityId.class);
+        final WithEntityId actualWithEntityId = (WithEntityId) this.actual;
+        return assertThatEquals(actualWithEntityId.getEntityId(), expectedId, "id");
     }
 
 }

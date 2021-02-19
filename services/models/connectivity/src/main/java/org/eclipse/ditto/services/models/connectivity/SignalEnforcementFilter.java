@@ -17,9 +17,11 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException;
@@ -28,36 +30,52 @@ import org.eclipse.ditto.model.connectivity.EnforcementFilter;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
+import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.WithEntityId;
 
 /**
- * Immutable implementation of an {@link EnforcementFilter}.
+ * Implementation of an {@link EnforcementFilter} which is applicable to signals.
  *
- * @param <M> the type that is required to resolve the placeholders in the filters.
+ * This class can enforce that a Signal fulfils some needs or some requirements. These requirements are defined
+ * beforehand at creation time in form of placeholders and an input value. Typically they are specific to a connection
+ * type (mqtt, amqp, ...) and it is done where messages are received. That's why this step is separated from the actual
+ * match, which is usually done later, after mapping the message to ditto message, in the processing chain of an
+ * incoming message.
  */
 @Immutable
-final class ImmutableEnforcementFilter<M> implements EnforcementFilter<M> {
+final class SignalEnforcementFilter implements EnforcementFilter<Signal<?>> {
 
     private final Enforcement enforcement;
-    private final List<Placeholder<M>> filterPlaceholders;
+    private final List<Placeholder<CharSequence>> filterPlaceholders;
     private final String inputValue;
 
-    ImmutableEnforcementFilter(final Enforcement enforcement,
-            final List<Placeholder<M>> filterPlaceholders,
+    SignalEnforcementFilter(final Enforcement enforcement,
+            final List<Placeholder<CharSequence>> filterPlaceholders,
             final String inputValue) {
         this.enforcement = enforcement;
         this.filterPlaceholders = Collections.unmodifiableList(new ArrayList<>(filterPlaceholders));
         this.inputValue = inputValue;
     }
 
+    /**
+     * Matches the input (which must already be known to the {@link EnforcementFilter}) against the values that are
+     * resolved from the filterInput by applying the configured placeholder to it. A match in this context is
+     * successful if the
+     * resolved input is equal to one of the resolved filters.
+     *
+     * @param filterInput the source from which the the placeholders in the filters are resolved
+     * @throws org.eclipse.ditto.model.connectivity.ConnectionSignalIdEnforcementFailedException if none of the
+     */
     @Override
-    public void match(final M filterInput, final DittoHeaders dittoHeaders) {
-
+    public void match(final Signal<?> filterInput) {
+        final EntityId entityId = extractEntityId(filterInput)
+                        .orElseThrow(() -> getEnforcementFailedException(filterInput.getDittoHeaders()));
         final List<DittoRuntimeException> exceptions = new LinkedList<>();
 
-        for (final Placeholder<M> filterPlaceholder : filterPlaceholders) {
+        for (final Placeholder<CharSequence> filterPlaceholder : filterPlaceholders) {
             for (final String filter : enforcement.getFilters()) {
                 try {
-                    final String resolved = PlaceholderFilter.apply(filter, filterInput, filterPlaceholder);
+                    final String resolved = PlaceholderFilter.apply(filter, entityId, filterPlaceholder);
                     if (inputValue.equals(resolved)) {
                         return;
                     }
@@ -81,7 +99,7 @@ final class ImmutableEnforcementFilter<M> implements EnforcementFilter<M> {
                   at least one of the placeholder could resolve the filter but it did not match
                     -> throw ConnectionSignalIdEnforcementFailedException
          */
-        throw getEnforcementFailedException(dittoHeaders);
+        throw getEnforcementFailedException(filterInput.getDittoHeaders());
     }
 
     private ConnectionSignalIdEnforcementFailedException getEnforcementFailedException(
@@ -89,6 +107,12 @@ final class ImmutableEnforcementFilter<M> implements EnforcementFilter<M> {
         return ConnectionSignalIdEnforcementFailedException.newBuilder(inputValue)
                 .dittoHeaders(dittoHeaders)
                 .build();
+    }
+
+    private static Optional<EntityId> extractEntityId(final Signal<?> signal) {
+        return signal instanceof WithEntityId
+                ? Optional.of(((WithEntityId) signal).getEntityId())
+                : Optional.empty();
     }
 
     @Override
@@ -99,7 +123,7 @@ final class ImmutableEnforcementFilter<M> implements EnforcementFilter<M> {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final ImmutableEnforcementFilter<?> that = (ImmutableEnforcementFilter<?>) o;
+        final SignalEnforcementFilter that = (SignalEnforcementFilter) o;
         return Objects.equals(enforcement, that.enforcement) &&
                 Objects.equals(filterPlaceholders, that.filterPlaceholders) &&
                 Objects.equals(inputValue, that.inputValue);

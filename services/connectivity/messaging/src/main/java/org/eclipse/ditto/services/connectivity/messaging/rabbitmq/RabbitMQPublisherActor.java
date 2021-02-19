@@ -57,6 +57,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.config.DefaultScopedConfig;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 import com.newmotion.akka.rabbitmq.ChannelCreated;
@@ -318,8 +319,14 @@ public final class RabbitMQPublisherActor extends BasePublisherActor<RabbitMQTar
                 .flatMap(Target::getIssuedAcknowledgementLabel)
                 .flatMap(ackLabel -> resolveConnectionIdPlaceholder(connectionIdResolver, ackLabel))
                 .orElse(NO_ACK_LABEL);
+
+        // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
+        final ThingId id = signal instanceof WithEntityId
+                ? ThingId.of(((WithEntityId) signal).getEntityId())
+                : ThingId.dummy();
+
         return Acknowledgement.of(label,
-                ThingId.of(signal.getEntityId()),
+                id,
                 httpStatus,
                 signal.getDittoHeaders(),
                 message == null ? null : JsonValue.of(message));

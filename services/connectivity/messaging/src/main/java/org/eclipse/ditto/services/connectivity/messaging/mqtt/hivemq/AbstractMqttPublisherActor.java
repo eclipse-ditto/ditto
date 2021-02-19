@@ -34,6 +34,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
@@ -102,7 +103,9 @@ abstract class AbstractMqttPublisherActor<P, R> extends BasePublisherActor<MqttP
     protected Acknowledgement toAcknowledgement(final Signal<?> signal, @Nullable final Target target, final R result) {
 
         // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
-        final EntityIdWithType entityIdWithType = ThingId.of(signal.getEntityId());
+        final EntityIdWithType entityIdWithType = signal instanceof WithEntityId
+                ? ThingId.of(((WithEntityId) signal).getEntityId())
+                : ThingId.dummy();
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         final AcknowledgementLabel label = getAcknowledgementLabel(target).orElse(NO_ACK_LABEL);
 

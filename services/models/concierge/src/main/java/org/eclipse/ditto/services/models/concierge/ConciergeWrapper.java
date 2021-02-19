@@ -12,8 +12,12 @@
  */
 package org.eclipse.ditto.services.models.concierge;
 
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
+import org.eclipse.ditto.signals.base.WithEntityId;
 
 import akka.routing.ConsistentHashingRouter;
 
@@ -37,7 +41,12 @@ public final class ConciergeWrapper {
     }
 
     private static String hashFor(final Signal<?> signal) {
-        return EntityIdWithResourceType.of(signal.getResourceType(), signal.getEntityId()).toString();
+        // TODO: <j.bartelheimer> safe? better alternative
+        final EntityId entityId = signal instanceof WithEntityId
+                ? ((WithEntityId) signal).getEntityId()
+                : DefaultEntityId.generateRandom();
+
+        return EntityIdWithResourceType.of(signal.getResourceType(), entityId).toString();
     }
 
 }

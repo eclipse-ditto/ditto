@@ -59,6 +59,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.WithEntityId;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
 import akka.Done;
@@ -395,7 +396,10 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     private Acknowledgement toAcknowledgement(final Signal<?> signal, @Nullable final Target autoAckTarget) {
 
         // acks for non-thing-signals are for local diagnostics only, therefore it is safe to fix entity type to Thing.
-        final EntityIdWithType entityIdWithType = ThingId.of(signal.getEntityId());
+        // TODO: <j.bartelheimer>
+        final EntityIdWithType entityIdWithType = signal instanceof WithEntityId
+                ? ThingId.of(((WithEntityId) signal).getEntityId())
+                : ThingId.dummy();
         final DittoHeaders dittoHeaders = signal.getDittoHeaders();
         final AcknowledgementLabel label = getAcknowledgementLabel(autoAckTarget).orElse(NO_ACK_LABEL);
 

@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
@@ -48,7 +49,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  *
  * @since 1.1.0
  */
-public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithOptionalEntity, WithEntityType {
+public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithOptionalEntity, WithEntityType,
+        SignalWithEntityId<Acknowledgement> {
 
     /**
      * Returns the type of an Acknowledgement for the context of the given entity type.

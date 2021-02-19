@@ -33,6 +33,7 @@ import org.eclipse.ditto.services.models.connectivity.ExternalMessage;
 import org.eclipse.ditto.services.models.connectivity.OutboundSignal;
 import org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders;
 import org.eclipse.ditto.signals.base.Signal;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.base.WithFeatureId;
 
 /**
@@ -51,8 +52,8 @@ public final class Resolvers {
             // For incoming messages, header mapping injects headers of external messages into Ditto headers.
             ResolverCreator.of(PlaceholderFactory.newHeadersPlaceholder(), (e, s, t, a, c) -> e),
             ResolverCreator.of(ConnectivityPlaceholders.newThingPlaceholder(), (e, s, t, a, c) -> {
-                if (s != null) {
-                    return s.getEntityId();
+                if (s instanceof SignalWithEntityId<?>) {
+                    return ((SignalWithEntityId<?>) s).getEntityId();
                 } else {
                     return null;
                 }

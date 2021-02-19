@@ -37,6 +37,7 @@ import org.eclipse.ditto.model.base.entity.type.WithEntityType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.base.WithOptionalEntity;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 
@@ -49,7 +50,8 @@ import org.eclipse.ditto.signals.commands.base.CommandResponse;
  */
 @Immutable
 public interface Acknowledgements
-        extends Iterable<Acknowledgement>, CommandResponse<Acknowledgements>, WithOptionalEntity, WithEntityType {
+        extends Iterable<Acknowledgement>, CommandResponse<Acknowledgements>, WithOptionalEntity, WithEntityType,
+        SignalWithEntityId<Acknowledgements> {
 
 
     /**

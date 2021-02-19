@@ -94,6 +94,7 @@ import org.eclipse.ditto.services.connectivity.messaging.TestConstants.Authoriza
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
 import org.eclipse.ditto.services.utils.pubsub.DittoProtocolSub;
 import org.eclipse.ditto.services.utils.test.Retry;
+import org.eclipse.ditto.signals.base.SignalWithEntityId;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.base.CommandResponse;
 import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionFailedException;
@@ -578,8 +579,9 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             }
 
             for (int i = 0; i < consumers; i++) {
-                final Command command = expectMsgClass(Command.class);
-                assertThat((CharSequence) command.getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
+                final Command<?> command = expectMsgClass(Command.class);
+                assertThat(command).isInstanceOf(SignalWithEntityId.class);
+                assertThat((CharSequence) ((SignalWithEntityId<?>) command).getEntityId()).isEqualTo(TestConstants.Things.THING_ID);
                 assertThat(command.getDittoHeaders().getCorrelationId()).contains(TestConstants.CORRELATION_ID);
                 commandConsumer.accept(command);
             }
