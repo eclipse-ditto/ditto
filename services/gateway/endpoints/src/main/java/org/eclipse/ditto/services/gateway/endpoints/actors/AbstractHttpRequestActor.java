@@ -27,7 +27,6 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonRuntimeException;
-import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
@@ -335,7 +334,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                                 entityPlainStringOptional.get(), contentType);
                     } else {
                         response = addEntityAccordingToContentType(responseWithoutBody,
-                                withEntity.getEntity(commandResponse.getImplementedSchemaVersion()),
+                                withEntity.getEntity(commandResponse.getImplementedSchemaVersion()).toString(),
                                 contentType);
                     }
                     completeWithResult(response);
@@ -531,20 +530,6 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
         return response.withEntity(ContentTypes.parse(contentType.getValue()), byteString);
     }
 
-    private static HttpResponse addEntityAccordingToContentType(final HttpResponse response, final JsonValue entity,
-            final ContentType contentType) {
-
-        final String entityString;
-
-        if (contentType.isJson()) {
-            entityString = entity.toString();
-        } else {
-            entityString = entity.asString();
-        }
-
-        return addEntityAccordingToContentType(response, entityString, contentType);
-    }
-
     private static ContentType getContentType(final DittoHeaders dittoHeaders) {
         return dittoHeaders.getDittoContentType().orElse(ContentType.APPLICATION_JSON);
     }
@@ -570,7 +555,8 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
             final JsonSchemaVersion schemaVersion = dittoHeaders.getSchemaVersion()
                     .orElse(dittoHeaders.getImplementedSchemaVersion());
             return withOptionalEntity.getEntity(schemaVersion)
-                    .map(entity -> addEntityAccordingToContentType(response, entity, getContentType(dittoHeaders)))
+                    .map(entity -> addEntityAccordingToContentType(response, entity.toString(),
+                            getContentType(dittoHeaders)))
                     .orElse(response);
         };
     }

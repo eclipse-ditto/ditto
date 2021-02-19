@@ -49,7 +49,8 @@ public final class ConnectionSupervisorActor extends AbstractPersistenceSupervis
 
     private static final SupervisorStrategy SUPERVISOR_STRATEGY =
             new OneForOneStrategy(true,
-                    DeciderBuilder.match(JMSRuntimeException.class, e -> SupervisorStrategy.resume())
+                    DeciderBuilder.match(JMSRuntimeException.class, e ->
+                            (SupervisorStrategy.Directive) SupervisorStrategy.resume())
                             .build()
                             .orElse(SupervisorStrategy.stoppingStrategy().decider()));
 

@@ -26,6 +26,7 @@
     <name>Eclipse Ditto :: Services :: Gateway</name>
 
     <modules>
+        <module>config</module>
         <module>util</module>
         <module>health</module>
         <module>security</module>

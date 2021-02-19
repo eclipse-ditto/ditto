@@ -413,15 +413,16 @@ public final class MongoClientWrapper implements DittoMongoClient {
         private void buildAndApplySslSettings() {
             if (sslEnabled) {
                 eventLoopGroup = new NioEventLoopGroup();
-                mongoClientSettingsBuilder.streamFactoryFactory(NettyStreamFactoryFactory.builder()
-                        .eventLoopGroup(eventLoopGroup).build())
+                mongoClientSettingsBuilder
+                        .streamFactoryFactory(NettyStreamFactoryFactory.builder().eventLoopGroup(eventLoopGroup).build())
                         .applyToSslSettings(builder -> builder
                                 .context(tryToCreateAndInitSslContext())
-                                .enabled(true));
+                                .enabled(sslEnabled));
             } else if (null != connectionString) {
                 eventLoopGroup = null;
-                mongoClientSettingsBuilder.applyToSslSettings(builder -> builder
-                        .applyConnectionString(connectionString));
+                mongoClientSettingsBuilder
+                        .applyToSslSettings(builder -> builder
+                                .enabled(sslEnabled));
             }
         }
 

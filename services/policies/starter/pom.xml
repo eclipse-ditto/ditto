@@ -34,15 +34,18 @@
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-base</artifactId>
         </dependency>
+
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>ditto-services-policies-common</artifactId>
-            <version>${project.version}</version>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-policies-config</artifactId>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-services-policies-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-policies-persistence</artifactId>
-            <version>${project.version}</version>
         </dependency>
 
         <dependency>
@@ -114,22 +117,6 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-test</artifactId>
-            <scope>test</scope>
-            <type>test-jar</type>
-        </dependency>
-        <dependency>
-            <groupId>com.github.docker-java</groupId>
-            <artifactId>docker-java-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.github.docker-java</groupId>
-            <artifactId>docker-java-transport-zerodep</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-utils-persistence</artifactId>
             <scope>test</scope>
             <type>test-jar</type>
         </dependency>
