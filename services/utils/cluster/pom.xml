@@ -75,7 +75,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-notifications-base</artifactId>
+            <artifactId>ditto-signals-announcements-base</artifactId>
         </dependency>
 
         <dependency>

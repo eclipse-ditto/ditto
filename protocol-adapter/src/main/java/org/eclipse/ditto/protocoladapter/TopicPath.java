@@ -227,11 +227,11 @@ public interface TopicPath {
         ACKS("acks"),
 
         /**
-         * Criterion for notifications.
+         * Criterion for announcements.
          *
          * @since 2.0.0
          */
-        NOTIFICATIONS("notifications");
+        ANNOUNCEMENTS("announcements");
 
         private final String name;
 

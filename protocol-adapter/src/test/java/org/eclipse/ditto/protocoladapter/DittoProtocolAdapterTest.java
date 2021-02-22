@@ -64,7 +64,7 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
-import org.eclipse.ditto.signals.notifications.policies.SubjectExpiryNotification;
+import org.eclipse.ditto.signals.announcements.policies.SubjectDeletionAnnouncement;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -537,25 +537,25 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
     }
 
     @Test
-    public void policyNotificationToAdaptable() {
+    public void policyAnnouncementToAdaptable() {
         final PolicyId policyId = PolicyId.of("policy:id");
         final Instant expiry = Instant.now();
         final List<SubjectId> expiringSubjects =
                 Arrays.asList(SubjectId.newInstance("ditto:sub1"), SubjectId.newInstance("ditto:sub2"));
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
-        final SubjectExpiryNotification notification =
-                SubjectExpiryNotification.of(policyId, expiry, expiringSubjects, dittoHeaders);
+        final SubjectDeletionAnnouncement announcement =
+                SubjectDeletionAnnouncement.of(policyId, expiry, expiringSubjects, dittoHeaders);
 
-        final Adaptable adaptable = underTest.toAdaptable(notification);
+        final Adaptable adaptable = underTest.toAdaptable(announcement);
 
-        assertThat(adaptable.getTopicPath().getPath()).isEqualTo("policy/id/policies/notifications/subjectExpiry");
+        assertThat(adaptable.getTopicPath().getPath()).isEqualTo("policy/id/policies/announcements/subjectExpiry");
         assertThat(adaptable.getDittoHeaders().getCorrelationId()).isEqualTo(dittoHeaders.getCorrelationId());
         assertThat(adaptable.getPayload().getPath().isEmpty()).isTrue();
 
         final JsonValue payload = adaptable.getPayload().getValue().orElseThrow(NoSuchElementException::new);
         final JsonValue expectedPayload = JsonObject.newBuilder()
-                .set(SubjectExpiryNotification.JsonFields.EXPIRY, expiry.toString())
-                .set(SubjectExpiryNotification.JsonFields.EXPIRING_SUBJECTS,
+                .set(SubjectDeletionAnnouncement.JsonFields.DELETED_AT, expiry.toString())
+                .set(SubjectDeletionAnnouncement.JsonFields.SUBJECT_IDS,
                         JsonArray.of("[\"ditto:sub1\",\"ditto:sub2\"]"))
                 .build();
 
@@ -563,11 +563,11 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
     }
 
     @Test
-    public void policyNotificationFromAdaptable() {
+    public void policyAnnouncementFromAdaptable() {
         final Instant expiry = Instant.now();
         final String correlationId = UUID.randomUUID().toString();
         final JsonObject json = JsonObject.of(String.format("{\n" +
-                        "  \"topic\": \"policy/id/policies/notifications/subjectExpiry\",\n" +
+                        "  \"topic\": \"policy/id/policies/announcements/subjectExpiry\",\n" +
                         "  \"headers\": {\"correlation-id\": \"%s\"},\n" +
                         "  \"path\": \"/\",\n" +
                         "  \"value\": {\n" +
@@ -583,13 +583,13 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         ));
 
         final Adaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(json);
-        final SubjectExpiryNotification notification = (SubjectExpiryNotification) underTest.fromAdaptable(adaptable);
+        final SubjectDeletionAnnouncement announcement = (SubjectDeletionAnnouncement) underTest.fromAdaptable(adaptable);
 
-        assertThat((CharSequence) notification.getEntityId()).isEqualTo(PolicyId.of("policy:id"));
-        assertThat(notification.getExpiry()).isEqualTo(expiry);
-        assertThat(notification.getExpiringSubjectIds())
+        assertThat((CharSequence) announcement.getEntityId()).isEqualTo(PolicyId.of("policy:id"));
+        assertThat(announcement.getDeletedAt()).isEqualTo(expiry);
+        assertThat(announcement.getSubjectIds())
                 .isEqualTo(Arrays.asList(SubjectId.newInstance("ditto:sub1"), SubjectId.newInstance("ditto:sub2")));
-        assertThat(notification.getDittoHeaders().getCorrelationId()).contains(correlationId);
+        assertThat(announcement.getDittoHeaders().getCorrelationId()).contains(correlationId);
     }
 
 }

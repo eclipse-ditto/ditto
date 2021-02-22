@@ -18,12 +18,12 @@ import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.Prot
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SEND_LIVE_COMMANDS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SEND_LIVE_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SEND_MESSAGES;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SEND_POLICY_NOTIFICATIONS;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.START_SEND_POLICY_ANNOUNCEMENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_LIVE_COMMANDS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_LIVE_EVENTS;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_MESSAGES;
-import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_POLICY_NOTIFICATIONS;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.websocket.ProtocolMessageType.STOP_SEND_POLICY_ANNOUNCEMENTS;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -767,10 +767,10 @@ public final class WebSocketRoute implements WebSocketRouteBuilder {
             case LIVE_EVENTS:
                 protocolMessage = subscribed ? START_SEND_LIVE_EVENTS.toString() : STOP_SEND_LIVE_EVENTS.toString();
                 break;
-            case POLICY_NOTIFICATIONS:
+            case POLICY_ANNOUNCEMENTS:
                 protocolMessage = subscribed
-                        ? START_SEND_POLICY_NOTIFICATIONS.toString()
-                        : STOP_SEND_POLICY_NOTIFICATIONS.toString();
+                        ? START_SEND_POLICY_ANNOUNCEMENTS.toString()
+                        : STOP_SEND_POLICY_ANNOUNCEMENTS.toString();
                 break;
             default:
                 throw new IllegalArgumentException("Unknown streamingType: " + streamingType);

@@ -57,7 +57,7 @@
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-notifications-policies</artifactId>
+            <artifactId>ditto-signals-announcements-policies</artifactId>
         </dependency>
 
         <dependency>

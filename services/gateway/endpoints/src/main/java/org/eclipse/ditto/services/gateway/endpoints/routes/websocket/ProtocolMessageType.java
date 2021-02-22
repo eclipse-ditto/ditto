@@ -70,18 +70,18 @@ enum ProtocolMessageType {
     JWT("JWT-TOKEN", null),
 
     /**
-     * Message indicating that the Websocket should start emitting policy notifications.
+     * Message indicating that the Websocket should start emitting policy announcements.
      *
      * @since 2.0.0
      */
-    START_SEND_POLICY_NOTIFICATIONS("START-SEND-POLICY-NOTIFICATIONS", StreamingType.POLICY_NOTIFICATIONS),
+    START_SEND_POLICY_ANNOUNCEMENTS("START-SEND-POLICY-ANNOUNCEMENTS", StreamingType.POLICY_ANNOUNCEMENTS),
 
     /**
-     * Message indicating that the Websocket should stop emitting policy notifications.
+     * Message indicating that the Websocket should stop emitting policy announcements.
      *
      * @since 2.0.0
      */
-    STOP_SEND_POLICY_NOTIFICATIONS("STOP-SEND-POLICY-NOTIFICATIONS", StreamingType.POLICY_NOTIFICATIONS);
+    STOP_SEND_POLICY_ANNOUNCEMENTS("STOP-SEND-POLICY-ANNOUNCEMENTS", StreamingType.POLICY_ANNOUNCEMENTS);
 
     private final String identifier;
     @Nullable private final StreamingType streamingType;

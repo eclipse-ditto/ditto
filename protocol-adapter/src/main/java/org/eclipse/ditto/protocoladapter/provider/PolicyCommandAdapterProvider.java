@@ -18,7 +18,7 @@ import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommand;
 import org.eclipse.ditto.signals.commands.policies.modify.PolicyModifyCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommand;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
-import org.eclipse.ditto.signals.notifications.policies.PolicyNotification;
+import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 
 /**
  * Provider for all policy command adapters. This interface mainly defines the generic type arguments and adds
@@ -33,9 +33,9 @@ public interface PolicyCommandAdapterProvider
         AdapterProvider {
 
     /**
-     * Retrieve the notification adapter.
+     * Retrieve the announcement adapter.
      *
-     * @return the notification adapter.
+     * @return the announcement adapter.
      */
-    Adapter<PolicyNotification<?>> getNotificationAdapter();
+    Adapter<PolicyAnnouncement<?>> getAnnouncementAdapter();
 }

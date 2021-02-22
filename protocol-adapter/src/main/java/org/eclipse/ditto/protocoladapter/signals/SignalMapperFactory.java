@@ -27,7 +27,7 @@ import org.eclipse.ditto.signals.commands.things.query.RetrieveThingsResponse;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommand;
 import org.eclipse.ditto.signals.commands.things.query.ThingQueryCommandResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.ThingSearchCommand;
-import org.eclipse.ditto.signals.notifications.policies.PolicyNotification;
+import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 
 /**
  * Factory class that instantiates all available {@link SignalMapper}s.
@@ -88,8 +88,8 @@ public final class SignalMapperFactory {
         return new PolicyQueryResponseSignalMapper();
     }
 
-    public static SignalMapper<PolicyNotification<?>> newPolicyNotificationSignalMapper() {
-        return new PolicyNotificationSignalMapper();
+    public static SignalMapper<PolicyAnnouncement<?>> newPolicyAnnouncementSignalMapper() {
+        return new PolicyAnnouncementSignalMapper();
     }
 
     public static SignalMapper<MessageCommand<?, ?>> newMessageCommandSignalMapper() {

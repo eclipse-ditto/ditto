@@ -81,13 +81,13 @@ public interface DittoProtocolSub extends Extension {
     CompletionStage<Void> removeTwinSubscriber(ActorRef subscriber, Collection<String> topics);
 
     /**
-     * Remove a subscriber from the policy notifications only.
+     * Remove a subscriber from the policy announcements only.
      *
      * @param subscriber whom to remove.
      * @param topics what were the subscribed topics.
      * @return future that completes or fails according to the acknowledgement.
      */
-    CompletionStage<Void> removePolicyNotificationSubscriber(ActorRef subscriber, Collection<String> topics);
+    CompletionStage<Void> removePolicyAnnouncementSubscriber(ActorRef subscriber, Collection<String> topics);
 
     /**
      * Declare acknowledgement labels for a subscriber.

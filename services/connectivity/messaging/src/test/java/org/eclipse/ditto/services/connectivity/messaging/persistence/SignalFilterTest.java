@@ -58,7 +58,7 @@ import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.messages.SendThingMessage;
 import org.eclipse.ditto.signals.commands.things.modify.ModifyThing;
 import org.eclipse.ditto.signals.events.things.ThingModified;
-import org.eclipse.ditto.signals.notifications.policies.SubjectExpiryNotification;
+import org.eclipse.ditto.signals.announcements.policies.SubjectDeletionAnnouncement;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -258,8 +258,8 @@ public final class SignalFilterTest {
                 return SendThingMessage.of(thingId,
                         Message.newBuilder(MessageHeaders.newBuilder(MessageDirection.TO, thingId, "ditto").build())
                                 .build(), liveHeaders);
-            case POLICY_NOTIFICATIONS:
-                return SubjectExpiryNotification.of(PolicyId.of(thingId), Instant.now(), List.of(), dittoHeaders);
+            case POLICY_ANNOUNCEMENTS:
+                return SubjectDeletionAnnouncement.of(PolicyId.of(thingId), Instant.now(), List.of(), dittoHeaders);
             default:
                 throw new UnsupportedOperationException(topic + " not supported");
         }

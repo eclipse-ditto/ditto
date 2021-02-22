@@ -46,11 +46,11 @@ public enum StreamingType {
     LIVE_EVENTS("things-live-events"),
 
     /**
-     * Streaming type of policy notifications.
+     * Streaming type of policy announcements.
      *
      * @since 2.0.0
      */
-    POLICY_NOTIFICATIONS("policy-notifications");
+    POLICY_ANNOUNCEMENTS("policy-announcements");
 
     /**
      * Equal to TopicPath.Channel.LIVE.getName().

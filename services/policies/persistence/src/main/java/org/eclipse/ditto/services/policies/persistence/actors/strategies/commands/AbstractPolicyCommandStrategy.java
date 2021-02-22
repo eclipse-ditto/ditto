@@ -62,12 +62,12 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
         extends AbstractConditionHeaderCheckingCommandStrategy<C, Policy, PolicyId, E> {
 
     private final PolicyExpiryGranularity policyExpiryGranularity;
-    private final Duration policyExpiryNotificationGranularity;
+    private final Duration policyDeletionAnnouncementGranularity;
 
     AbstractPolicyCommandStrategy(final Class<C> theMatchingClass, final PolicyConfig policyConfig) {
         super(theMatchingClass);
         policyExpiryGranularity = calculateTemporalUnitAndAmount(policyConfig);
-        policyExpiryNotificationGranularity = policyConfig.getSubjectExpiryNotificationGranularity();
+        policyDeletionAnnouncementGranularity = policyConfig.getSubjectDeletionAnnouncementGranularity();
     }
 
     static PolicyExpiryGranularity calculateTemporalUnitAndAmount(final PolicyConfig policyConfig) {

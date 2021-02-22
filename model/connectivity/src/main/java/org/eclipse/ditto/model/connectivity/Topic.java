@@ -28,11 +28,11 @@ public enum Topic {
     LIVE_COMMANDS("_/_/things/live/commands", "things-live-commands"),
 
     /**
-     * Connection target topic for policy notifications.
+     * Connection target topic for policy announcements.
      *
      * @since 2.0.0
      */
-    POLICY_NOTIFICATIONS("_/_/policies/notifications", "policy-notifications");
+    POLICY_ANNOUNCEMENTS("_/_/policies/announcements", "policy-announcements");
 
     private final String name;
     private final String pubSubTopic;

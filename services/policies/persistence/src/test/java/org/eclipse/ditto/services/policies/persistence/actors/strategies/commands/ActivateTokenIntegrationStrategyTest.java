@@ -89,7 +89,7 @@ public final class ActivateTokenIntegrationStrategyTest extends AbstractPolicyCo
         final SubjectId subjectId = SubjectId.newInstance(SubjectIssuer.INTEGRATION, LABEL + ":this-is-me");
         final DittoHeaders dittoHeaders = buildActivateTokenIntegrationHeaders();
 
-        // notification duration is rounded up if it is not a multiple of the configured granularity (3s)
+        // announcement duration is rounded up if it is not a multiple of the configured granularity (3s)
         final ActivateTokenIntegration commandToRoundUp =
                 ActivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId),
                         SubjectExpiry.newInstance(expiry, duration), dittoHeaders);
@@ -97,7 +97,7 @@ public final class ActivateTokenIntegrationStrategyTest extends AbstractPolicyCo
                 applyStrategy(underTest, context, TestConstants.Policy.POLICY, commandToRoundUp));
         assertThat(event.getSubject().getExpiry().orElseThrow().getNotifyBefore()).contains(roundedUpDuration);
 
-        // notification duration is not rounded up if it is a multiple of the configured granularity (3s)
+        // announcement duration is not rounded up if it is a multiple of the configured granularity (3s)
         final ActivateTokenIntegration commandToNotRoundUp =
                 ActivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId),
                         SubjectExpiry.newInstance(expiry, roundedUpDuration), dittoHeaders);

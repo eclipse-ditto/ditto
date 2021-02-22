@@ -38,16 +38,16 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
 
     private final DistributedSub liveSignalSub;
     private final DistributedSub twinEventSub;
-    private final DistributedSub policyNotificationSub;
+    private final DistributedSub policyAnnouncementSub;
     private final DistributedAcks distributedAcks;
 
     private DittoProtocolSubImpl(final DistributedSub liveSignalSub,
             final DistributedSub twinEventSub,
-            final DistributedSub policyNotificationSub,
+            final DistributedSub policyAnnouncementSub,
             final DistributedAcks distributedAcks) {
         this.liveSignalSub = liveSignalSub;
         this.twinEventSub = twinEventSub;
-        this.policyNotificationSub = policyNotificationSub;
+        this.policyAnnouncementSub = policyAnnouncementSub;
         this.distributedAcks = distributedAcks;
     }
 
@@ -56,9 +56,9 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
                 LiveSignalPubSubFactory.of(system, distributedAcks).startDistributedSub();
         final DistributedSub twinEventSub =
                 ThingEventPubSubFactory.readSubjectsOnly(system, distributedAcks).startDistributedSub();
-        final DistributedSub policyNotificationSub =
-                PolicyNotificationPubSubFactory.of(system, system).startDistributedSub();
-        return new DittoProtocolSubImpl(liveSignalSub, twinEventSub, policyNotificationSub, distributedAcks);
+        final DistributedSub policyAnnouncementSub =
+                PolicyAnnouncementPubSubFactory.of(system, system).startDistributedSub();
+        return new DittoProtocolSubImpl(liveSignalSub, twinEventSub, policyAnnouncementSub, distributedAcks);
     }
 
     @Override
@@ -74,8 +74,8 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
                 hasTwinEvents -> hasTwinEvents
                         ? twinEventSub.subscribeWithFilterAndGroup(topics, subscriber, null, group)
                         : nop,
-                hasPolicyNotification -> hasPolicyNotification
-                        ? policyNotificationSub.subscribeWithFilterAndGroup(topics, subscriber, null, group)
+                hasPolicyAnnouncements -> hasPolicyAnnouncements
+                        ? policyAnnouncementSub.subscribeWithFilterAndGroup(topics, subscriber, null, group)
                         : nop
         );
     }
@@ -84,7 +84,7 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
     public void removeSubscriber(final ActorRef subscriber) {
         liveSignalSub.removeSubscriber(subscriber);
         twinEventSub.removeSubscriber(subscriber);
-        policyNotificationSub.removeSubscriber(subscriber);
+        policyAnnouncementSub.removeSubscriber(subscriber);
         distributedAcks.removeSubscriber(subscriber);
     }
 
@@ -98,7 +98,7 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
                         ? liveSignalSub.subscribeWithFilterAndGroup(topics, subscriber, toFilter(liveTypes), null)
                         : liveSignalSub.unsubscribeWithAck(topics, subscriber),
                 hasTwinEvents -> CompletableFuture.completedStage(null),
-                hasPolicyNotification -> CompletableFuture.completedStage(null)
+                hasPolicyAnnouncements -> CompletableFuture.completedStage(null)
         );
     }
 
@@ -108,9 +108,9 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
     }
 
     @Override
-    public CompletionStage<Void> removePolicyNotificationSubscriber(final ActorRef subscriber,
+    public CompletionStage<Void> removePolicyAnnouncementSubscriber(final ActorRef subscriber,
             final Collection<String> topics) {
-        return policyNotificationSub.unsubscribeWithAck(topics, subscriber).thenApply(ack -> null);
+        return policyAnnouncementSub.unsubscribeWithAck(topics, subscriber).thenApply(ack -> null);
     }
 
     @Override
@@ -149,24 +149,24 @@ final class DittoProtocolSubImpl implements DittoProtocolSub {
     private CompletionStage<Void> partitionByStreamingTypes(final Collection<StreamingType> types,
             final Function<Set<StreamingType>, CompletionStage<?>> onLiveSignals,
             final Function<Boolean, CompletionStage<?>> onTwinEvents,
-            final Function<Boolean, CompletionStage<?>> onPolicyNotifications) {
+            final Function<Boolean, CompletionStage<?>> onPolicyAnnouncement) {
         final Set<StreamingType> liveTypes;
         final boolean hasTwinEvents;
-        final boolean hasPolicyNotifications;
+        final boolean hasPolicyAnnouncements;
         if (types.isEmpty()) {
             liveTypes = Collections.emptySet();
             hasTwinEvents = false;
-            hasPolicyNotifications = false;
+            hasPolicyAnnouncements = false;
         } else {
             liveTypes = EnumSet.copyOf(types);
             hasTwinEvents = liveTypes.remove(StreamingType.EVENTS);
-            hasPolicyNotifications = liveTypes.remove(StreamingType.POLICY_NOTIFICATIONS);
+            hasPolicyAnnouncements = liveTypes.remove(StreamingType.POLICY_ANNOUNCEMENTS);
         }
         final CompletableFuture<?> liveStage = onLiveSignals.apply(liveTypes).toCompletableFuture();
         final CompletableFuture<?> twinStage = onTwinEvents.apply(hasTwinEvents).toCompletableFuture();
-        final CompletableFuture<?> policyNotificationStage =
-                onPolicyNotifications.apply(hasPolicyNotifications).toCompletableFuture();
-        return CompletableFuture.allOf(liveStage, twinStage, policyNotificationStage);
+        final CompletableFuture<?> policyAnnouncementStage =
+                onPolicyAnnouncement.apply(hasPolicyAnnouncements).toCompletableFuture();
+        return CompletableFuture.allOf(liveStage, twinStage, policyAnnouncementStage);
     }
 
     private static Predicate<Collection<String>> toFilter(final Collection<StreamingType> streamingTypes) {

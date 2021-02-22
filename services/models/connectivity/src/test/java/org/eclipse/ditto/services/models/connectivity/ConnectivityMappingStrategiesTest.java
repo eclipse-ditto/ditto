@@ -23,7 +23,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.services.models.policies.PoliciesMappingStrategies;
-import org.eclipse.ditto.signals.notifications.policies.SubjectExpiryNotification;
+import org.eclipse.ditto.signals.announcements.policies.SubjectDeletionAnnouncement;
 import org.junit.Test;
 
 /**
@@ -32,23 +32,23 @@ import org.junit.Test;
 public final class ConnectivityMappingStrategiesTest {
 
     @Test
-    public void deserializeSubjectExpiryNotification() {
+    public void deserializeSubjectDeletionAnnouncement() {
         final Instant expiry = Instant.now();
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
-        final SubjectExpiryNotification notification = SubjectExpiryNotification.of(
+        final SubjectDeletionAnnouncement announcement = SubjectDeletionAnnouncement.of(
                 PolicyId.of("policy:id"),
                 expiry,
                 Collections.singleton(SubjectId.newInstance("ditto:ditto")),
                 dittoHeaders
         );
 
-        final JsonObject json = notification.toJson();
+        final JsonObject json = announcement.toJson();
         final PoliciesMappingStrategies underTest = PoliciesMappingStrategies.getInstance();
-        final Jsonifiable<?> output = underTest.getMappingStrategy(notification.getManifest())
+        final Jsonifiable<?> output = underTest.getMappingStrategy(announcement.getManifest())
                 .orElseThrow()
                 .parse(json, dittoHeaders);
 
-        assertThat(output).isEqualTo(notification);
+        assertThat(output).isEqualTo(announcement);
     }
 
 }

@@ -71,7 +71,7 @@ public interface SubjectAnnouncement extends Jsonifiable<JsonObject> {
     boolean isEmpty();
 
     /**
-     * Returns the duration before expiry when an announcement should be sent, or an empty optional if no notification
+     * Returns the duration before expiry when an announcement should be sent, or an empty optional if no announcement
      * should be sent before expiry.
      *
      * @return duration of the optional announcement window.

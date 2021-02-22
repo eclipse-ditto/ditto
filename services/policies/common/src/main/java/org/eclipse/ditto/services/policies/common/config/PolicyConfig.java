@@ -49,7 +49,7 @@ public interface PolicyConfig extends WithSupervisorConfig, WithActivityCheckCon
      *
      * @return the granularity.
      */
-    Duration getSubjectExpiryNotificationGranularity();
+    Duration getSubjectDeletionAnnouncementGranularity();
 
     /**
      * Return the class responsible for placeholder resolution in the subject ID of policy action commands.
@@ -71,7 +71,7 @@ public interface PolicyConfig extends WithSupervisorConfig, WithActivityCheckCon
         /**
          * The granularity to round up notify-before duration of subject-expiry.
          */
-        SUBJECT_EXPIRY_NOTIFICATION_GRANULARITY("subject-expiry-notification-granularity", Duration.ofMinutes(1L)),
+        SUBJECT_DELETION_ANNOUNCEMENT_GRANULARITY("subject-deletion-announcement-granularity", Duration.ofMinutes(1L)),
 
         SUBJECT_ID_RESOLVER("subject-id-resolver",
                 "org.eclipse.ditto.services.policies.persistence.actors.resolvers.DefaultSubjectIdFromActionResolver");

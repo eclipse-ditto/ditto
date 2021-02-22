@@ -66,8 +66,8 @@ public final class DefaultPolicyConfigTest {
                 .as(PolicyConfig.PolicyConfigValue.SUBJECT_EXPIRY_GRANULARITY.getConfigPath())
                 .isEqualTo(Duration.ofHours(1L));
 
-        softly.assertThat(underTest.getSubjectExpiryNotificationGranularity())
-                .as(PolicyConfig.PolicyConfigValue.SUBJECT_EXPIRY_NOTIFICATION_GRANULARITY.getConfigPath())
+        softly.assertThat(underTest.getSubjectDeletionAnnouncementGranularity())
+                .as(PolicyConfig.PolicyConfigValue.SUBJECT_DELETION_ANNOUNCEMENT_GRANULARITY.getConfigPath())
                 .isEqualTo(Duration.ofMinutes(1L));
 
         softly.assertThat(underTest.getSubjectIdResolver())
@@ -83,8 +83,8 @@ public final class DefaultPolicyConfigTest {
                 .as(PolicyConfig.PolicyConfigValue.SUBJECT_EXPIRY_GRANULARITY.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(10));
 
-        softly.assertThat(underTest.getSubjectExpiryNotificationGranularity())
-                .as(PolicyConfig.PolicyConfigValue.SUBJECT_EXPIRY_NOTIFICATION_GRANULARITY.getConfigPath())
+        softly.assertThat(underTest.getSubjectDeletionAnnouncementGranularity())
+                .as(PolicyConfig.PolicyConfigValue.SUBJECT_DELETION_ANNOUNCEMENT_GRANULARITY.getConfigPath())
                 .isEqualTo(Duration.ofSeconds(11L));
 
         softly.assertThat(underTest.getSubjectIdResolver())

@@ -164,7 +164,7 @@ public final class ConnectionPersistenceOperationsActorIT extends MongoEventSour
             }
 
             @Override
-            public CompletionStage<Void> removePolicyNotificationSubscriber(final ActorRef subscriber,
+            public CompletionStage<Void> removePolicyAnnouncementSubscriber(final ActorRef subscriber,
                     final Collection<String> topics) {
                 return CompletableFuture.completedStage(null);
             }

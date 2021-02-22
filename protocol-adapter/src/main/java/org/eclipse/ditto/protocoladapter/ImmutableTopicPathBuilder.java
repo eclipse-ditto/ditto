@@ -28,7 +28,7 @@ import org.eclipse.ditto.model.things.ThingIdInvalidException;
 @NotThreadSafe
 final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopicPathBuilder, EventsTopicPathBuilder,
         CommandsTopicPathBuilder, AcknowledgementTopicPathBuilder, SearchTopicPathBuilder,
-        NotificationsTopicPathBuilder {
+        AnnouncementsTopicPathBuilder {
 
     private final String namespace;
     private final String name;
@@ -108,8 +108,8 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     @Override
-    public NotificationsTopicPathBuilder notifications() {
-        this.criterion = TopicPath.Criterion.NOTIFICATIONS;
+    public AnnouncementsTopicPathBuilder announcements() {
+        this.criterion = TopicPath.Criterion.ANNOUNCEMENTS;
         return this;
     }
 
@@ -258,7 +258,7 @@ final class ImmutableTopicPathBuilder implements TopicPathBuilder, MessagesTopic
     }
 
     @Override
-    public NotificationsTopicPathBuilder name(final String name) {
+    public AnnouncementsTopicPathBuilder name(final String name) {
         this.subject = checkNotNull(name, "name");
         return this;
     }

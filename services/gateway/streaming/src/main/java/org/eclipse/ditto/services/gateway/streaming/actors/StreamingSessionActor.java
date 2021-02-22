@@ -337,8 +337,8 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                                     authorizationContext.getAuthorizationSubjectIds())
                                     .thenAccept(ack -> getSelf().tell(unsubscribeConfirmation, getSelf()));
                             break;
-                        case POLICY_NOTIFICATIONS:
-                            dittoProtocolSub.removePolicyNotificationSubscriber(getSelf(),
+                        case POLICY_ANNOUNCEMENTS:
+                            dittoProtocolSub.removePolicyAnnouncementSubscriber(getSelf(),
                                     authorizationContext.getAuthorizationSubjectIds())
                                     .thenAccept(ack -> getSelf().tell(unsubscribeConfirmation, getSelf()));
                             break;

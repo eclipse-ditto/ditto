@@ -205,8 +205,8 @@ final class ImmutableFilteredTopic implements FilteredTopic {
 
         @Override
         public ImmutableFilteredTopicBuilder withFilter(@Nullable final CharSequence filter) {
-            // policy notifications do not support filter.
-            if (topic != Topic.POLICY_NOTIFICATIONS) {
+            // policy announcements do not support filter.
+            if (topic != Topic.POLICY_ANNOUNCEMENTS) {
                 this.filter = filter;
             }
             return this;
@@ -214,8 +214,8 @@ final class ImmutableFilteredTopic implements FilteredTopic {
 
         @Override
         public ImmutableFilteredTopicBuilder withExtraFields(@Nullable final JsonFieldSelector extraFields) {
-            // policy notifications do not support extra fields.
-            if (topic != Topic.POLICY_NOTIFICATIONS) {
+            // policy announcements do not support extra fields.
+            if (topic != Topic.POLICY_ANNOUNCEMENTS) {
                 this.extraFields = extraFields;
             }
             return this;
