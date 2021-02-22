@@ -25,9 +25,9 @@ import java.util.stream.StreamSupport;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.model.base.common.DittoDuration;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
-import org.eclipse.ditto.model.base.headers.DittoDuration;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Policy;
@@ -230,8 +230,9 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
     }
 
     @Nullable
-    protected SubjectAnnouncement roundSubjectAnnouncement(final SubjectAnnouncement subjectAnnouncement) {
-        final Optional<DittoDuration> beforeExpiry = subjectAnnouncement.getBeforeExpiry();
+    protected SubjectAnnouncement roundSubjectAnnouncement(@Nullable final SubjectAnnouncement subjectAnnouncement) {
+        final Optional<DittoDuration> beforeExpiry =
+                Optional.ofNullable(subjectAnnouncement).flatMap(SubjectAnnouncement::getBeforeExpiry);
         if (beforeExpiry.isPresent()) {
             final var dittoDuration = beforeExpiry.get();
             final var roundedUpDuration =

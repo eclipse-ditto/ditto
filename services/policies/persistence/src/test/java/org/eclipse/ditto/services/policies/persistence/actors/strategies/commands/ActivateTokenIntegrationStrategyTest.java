@@ -21,7 +21,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 
-import org.eclipse.ditto.model.base.headers.DittoDuration;
+import org.eclipse.ditto.model.base.common.DittoDuration;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.Label;
@@ -98,7 +98,7 @@ public final class ActivateTokenIntegrationStrategyTest extends AbstractPolicyCo
                         SubjectExpiry.newInstance(expiry), SubjectAnnouncement.of(duration, false), dittoHeaders);
         final SubjectCreated event = (SubjectCreated) getEvent(
                 applyStrategy(underTest, context, TestConstants.Policy.POLICY, commandToRoundUp));
-        assertThat(event.getSubject().getAnnouncement().getBeforeExpiry()).contains(roundedUpDuration);
+        assertThat(event.getSubject().getAnnouncement().orElseThrow().getBeforeExpiry()).contains(roundedUpDuration);
 
         // announcement duration is not rounded up if it is a multiple of the configured granularity (3s)
         final ActivateTokenIntegration commandToNotRoundUp =
@@ -107,7 +107,7 @@ public final class ActivateTokenIntegrationStrategyTest extends AbstractPolicyCo
                         dittoHeaders);
         final SubjectCreated notRoundedUpEvent = (SubjectCreated) getEvent(
                 applyStrategy(underTest, context, TestConstants.Policy.POLICY, commandToNotRoundUp));
-        assertThat(notRoundedUpEvent.getSubject().getAnnouncement().getBeforeExpiry())
+        assertThat(notRoundedUpEvent.getSubject().getAnnouncement().orElseThrow().getBeforeExpiry())
                 .contains(roundedUpDuration);
     }
 

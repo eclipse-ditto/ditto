@@ -91,7 +91,7 @@ final class ActivateTokenIntegrationStrategy
                     MessageFormat.format(MESSAGE_PATTERN_SUBJECT_TYPE, command.getName(), Instant.now().toString()));
             final SubjectExpiry adjustedSubjectExpiry = roundPolicySubjectExpiry(commandSubjectExpiry);
             final SubjectAnnouncement adjustedSubjectAnnouncement =
-                    roundSubjectAnnouncement(command.getSubjectAnnouncement());
+                    roundSubjectAnnouncement(command.getSubjectAnnouncement().orElse(null));
             final ActivateTokenIntegration adjustedCommand = ActivateTokenIntegration.of(
                     command.getEntityId(), command.getLabel(), subjectIds, adjustedSubjectExpiry.getTimestamp(),
                     dittoHeaders);
