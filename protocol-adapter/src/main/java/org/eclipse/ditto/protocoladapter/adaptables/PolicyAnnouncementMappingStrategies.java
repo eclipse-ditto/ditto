@@ -13,10 +13,10 @@
 package org.eclipse.ditto.protocoladapter.adaptables;
 
 import java.time.Instant;
-import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonObject;
@@ -61,18 +61,14 @@ final class PolicyAnnouncementMappingStrategies extends AbstractPolicyMappingStr
     private static SubjectDeletionAnnouncement toSubjectDeletionAnnouncement(final Adaptable adaptable) {
         final PolicyId policyId = policyIdFromTopicPath(adaptable.getTopicPath());
         final DittoHeaders dittoHeaders = dittoHeadersFrom(adaptable);
-        final JsonObject payload = adaptable.getPayload()
-                .getValue()
-                .filter(JsonValue::isObject)
-                .map(JsonValue::asObject)
-                .orElseThrow(NoSuchElementException::new);
+        final JsonObject payload = getValueFromPayload(adaptable);
         final Instant expiry = Instant.parse(payload.getValueOrThrow(SubjectDeletionAnnouncement.JsonFields.DELETED_AT));
-        final Collection<SubjectId> expiringSubjectIds =
+        final Set<SubjectId> expiringSubjectIds =
                 payload.getValueOrThrow(SubjectDeletionAnnouncement.JsonFields.SUBJECT_IDS)
                         .stream()
                         .map(JsonValue::asString)
                         .map(SubjectId::newInstance)
-                        .collect(Collectors.toList());
+                        .collect(Collectors.toCollection(LinkedHashSet::new));
         return SubjectDeletionAnnouncement.of(policyId, expiry, expiringSubjectIds, dittoHeaders);
     }
 

@@ -14,6 +14,7 @@ package org.eclipse.ditto.model.base.headers;
 
 import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.model.base.common.DittoDuration;
 import org.eclipse.ditto.model.base.exceptions.TimeoutInvalidException;
 
 /**

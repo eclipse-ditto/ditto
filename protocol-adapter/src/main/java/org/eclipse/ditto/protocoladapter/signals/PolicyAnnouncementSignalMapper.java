@@ -18,7 +18,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.protocoladapter.PayloadBuilder;
 import org.eclipse.ditto.protocoladapter.ProtocolFactory;
 import org.eclipse.ditto.protocoladapter.TopicPath;
-import org.eclipse.ditto.protocoladapter.UnknownSignalException;
 import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 import org.eclipse.ditto.signals.announcements.policies.SubjectDeletionAnnouncement;
 
@@ -39,11 +38,8 @@ final class PolicyAnnouncementSignalMapper extends AbstractSignalMapper<PolicyAn
             final SubjectDeletionAnnouncement announcement = (SubjectDeletionAnnouncement) signal;
             final JsonObject payload = getSubjectDeletionAnnouncementPayload(announcement);
             payloadBuilder.withValue(payload).build();
-        } else {
-            throw UnknownSignalException.newBuilder(signal.getType())
-                    .dittoHeaders(signal.getDittoHeaders())
-                    .build();
         }
+        // otherwise be tolerant and don't expand payload instead of throwing an exception
     }
 
     private static JsonObject getSubjectDeletionAnnouncementPayload(final SubjectDeletionAnnouncement announcement) {

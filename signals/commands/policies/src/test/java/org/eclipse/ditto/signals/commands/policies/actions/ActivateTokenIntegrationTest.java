@@ -24,7 +24,7 @@ import java.util.Collections;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.headers.DittoDuration;
+import org.eclipse.ditto.model.base.common.DittoDuration;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -53,7 +53,7 @@ public final class ActivateTokenIntegrationTest {
                     .add(TestConstants.Policy.SUBJECT_ID.toString())
                     .build())
             .set(ActivateTokenIntegration.JSON_EXPIRY, Instant.EPOCH.toString())
-            .set(ActivateTokenIntegration.JSON_ANNOUNCE, JsonObject.newBuilder()
+            .set(ActivateTokenIntegration.JSON_ANNOUNCEMENT, JsonObject.newBuilder()
                     .set(SubjectAnnouncement.JsonFields.BEFORE_EXPIRY, "1m")
                     .set(SubjectAnnouncement.JsonFields.WHEN_DELETED, true)
                     .build())

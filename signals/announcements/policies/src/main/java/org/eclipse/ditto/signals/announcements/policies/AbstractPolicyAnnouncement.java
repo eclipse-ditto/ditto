@@ -48,13 +48,13 @@ public abstract class AbstractPolicyAnnouncement<T extends AbstractPolicyAnnounc
     }
 
     /**
-     * Append policy-announcement-specific payload to the passed {@code jsonObjectBuilder}.
+     * Append {@code PolicyAnnouncement}-specific payload to the passed {@code jsonObjectBuilder}.
      *
      * @param jsonObjectBuilder the JsonObjectBuilder to add the payload to.
      * @param predicate the predicate to evaluate when adding the payload.
      */
-    protected abstract void appendPolicyAnnouncementPayload(final JsonObjectBuilder jsonObjectBuilder,
-            final Predicate<JsonField> predicate);
+    protected abstract void appendPolicyAnnouncementPayload(JsonObjectBuilder jsonObjectBuilder,
+            Predicate<JsonField> predicate);
 
     @Override
     public PolicyId getEntityId() {
@@ -73,7 +73,7 @@ public abstract class AbstractPolicyAnnouncement<T extends AbstractPolicyAnnounc
 
     @Override
     protected void appendPayload(final JsonObjectBuilder jsonObjectBuilder, final Predicate<JsonField> predicate) {
-        jsonObjectBuilder.set(JSON_POLICY_ID, policyId.toString());
+        jsonObjectBuilder.set(PolicyAnnouncement.JsonFields.JSON_POLICY_ID, policyId.toString());
         appendPolicyAnnouncementPayload(jsonObjectBuilder, predicate);
     }
 

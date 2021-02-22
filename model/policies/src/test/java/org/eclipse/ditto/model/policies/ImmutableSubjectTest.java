@@ -24,7 +24,7 @@ import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable
 import java.time.Instant;
 
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.headers.DittoDuration;
+import org.eclipse.ditto.model.base.common.DittoDuration;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -41,7 +41,7 @@ public final class ImmutableSubjectTest {
     private static final JsonObject KNOWN_SUBJECT_JSON = JsonObject.newBuilder()
             .set(Subject.JsonFields.TYPE, KNOWN_SUBJECT_TYPE)
             .set(Subject.JsonFields.EXPIRY, KNOWN_SUBJECT_EXPIRY_STR)
-            .set(Subject.JsonFields.ANNOUNCE, KNOWN_SUBJECT_ANNOUNCEMENT_JSON)
+            .set(Subject.JsonFields.ANNOUNCEMENT, KNOWN_SUBJECT_ANNOUNCEMENT_JSON)
             .build();
 
     @Test

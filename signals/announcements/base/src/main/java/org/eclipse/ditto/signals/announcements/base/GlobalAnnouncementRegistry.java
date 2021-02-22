@@ -25,6 +25,8 @@ import org.eclipse.ditto.signals.base.AbstractGlobalJsonParsableRegistry;
 /**
  * Contains all strategies to deserialize subclasses of {@code Announcement} from a combination of
  * {@link org.eclipse.ditto.json.JsonObject} and {@link org.eclipse.ditto.model.base.headers.DittoHeaders}.
+ *
+ * @since 2.0.0
  */
 @Immutable
 public final class GlobalAnnouncementRegistry
@@ -48,9 +50,9 @@ public final class GlobalAnnouncementRegistry
 
     @Override
     protected String resolveType(final JsonObject jsonObject) {
-        return jsonObject.getValue(Announcement.JSON_TYPE)
+        return jsonObject.getValue(Announcement.JsonFields.JSON_TYPE)
                 .orElseThrow(() -> JsonMissingFieldException.newBuilder()
-                        .fieldName(Announcement.JSON_TYPE.getPointer().toString())
+                        .fieldName(Announcement.JsonFields.JSON_TYPE.getPointer().toString())
                         .build());
     }
 

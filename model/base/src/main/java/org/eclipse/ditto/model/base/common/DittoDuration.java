@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.model.base.headers;
+package org.eclipse.ditto.model.base.common;
 
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkArgument;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
@@ -154,14 +154,14 @@ public final class DittoDuration implements CharSequence {
         final long nanoseconds = duration.getNano();
         final long unitSeconds = unit.getSeconds();
         final long unitNanoseconds = unit.getNano();
-        final long amount;
+        final long localAmount;
         if (unitSeconds != 0) {
-            amount = Math.max(1L, seconds / unitSeconds);
+            localAmount = Math.max(1L, seconds / unitSeconds);
         } else {
             final long withOverflow = seconds * (1_000_000_000L / unitNanoseconds) + (nanoseconds / unitNanoseconds);
-            amount = Math.max(1L, withOverflow);
+            localAmount = Math.max(1L, withOverflow);
         }
-        return new DittoDuration(amount, dittoTimeUnit);
+        return new DittoDuration(localAmount, dittoTimeUnit);
     }
 
     @Override

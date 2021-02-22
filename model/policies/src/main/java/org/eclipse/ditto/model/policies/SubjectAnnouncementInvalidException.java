@@ -42,7 +42,7 @@ public final class SubjectAnnouncementInvalidException extends DittoRuntimeExcep
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "subjectannouncement.invalid";
 
-    private static final String MESSAGE_TEMPLATE = "The ''beforeExpiry'' duration ''{0}'' is not valid.";
+    private static final String MESSAGE_TEMPLATE = "The 'beforeExpiry' duration ''{0}'' is not valid.";
 
     private static final String DESCRIPTION =
             "It must be a positive integer followed by 'h' (hours), 'm' (minutes) or 's' (seconds).";
@@ -82,7 +82,7 @@ public final class SubjectAnnouncementInvalidException extends DittoRuntimeExcep
      * Constructs a new {@code SubjectAnnouncementInvalidException} object with the exception message extracted from the
      * given JSON object.
      *
-     * @param jsonObject the JSON to read the {@link org.eclipse.ditto.model.base.exceptions.DittoRuntimeException.JsonFields#MESSAGE} field from.
+     * @param jsonObject the JSON to read the {@link DittoRuntimeException.JsonFields#MESSAGE} field from.
      * @param dittoHeaders the headers of the command which resulted in this exception.
      * @return the new SubjectAnnouncementInvalidException.
      * @throws NullPointerException if any argument is {@code null}.
@@ -112,7 +112,7 @@ public final class SubjectAnnouncementInvalidException extends DittoRuntimeExcep
     }
 
     /**
-     * A mutable builder with a fluent API for a {@link org.eclipse.ditto.model.policies.SubjectAnnouncementInvalidException}.
+     * A mutable builder with a fluent API for a {@link SubjectAnnouncementInvalidException}.
      */
     @NotThreadSafe
     public static final class Builder extends DittoRuntimeExceptionBuilder<SubjectAnnouncementInvalidException> {

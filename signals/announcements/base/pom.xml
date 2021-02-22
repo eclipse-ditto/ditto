@@ -25,13 +25,6 @@
     <name>Eclipse Ditto :: Signals :: Announcements :: Base</name>
     <packaging>bundle</packaging>
 
-    <dependencies>
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-signals-base</artifactId>
-        </dependency>
-    </dependencies>
-
     <build>
         <plugins>
             <plugin>
@@ -40,8 +33,14 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Export-Package>org.eclipse.ditto.signals.announcements.base</Export-Package>
-                        <Import-Package>org.eclipse.ditto.signals</Import-Package>
+                        <Import-Package>
+                            org.atteo.classindex,
+                            !org.eclipse.ditto.utils.jsr305.annotations,
+                            org.eclipse.ditto.*
+                        </Import-Package>
+                        <Export-Package>
+                            org.eclipse.ditto.signals.announcements.base
+                        </Export-Package>
                     </instructions>
                 </configuration>
             </plugin>

@@ -26,7 +26,7 @@ import org.eclipse.ditto.protocoladapter.signals.SignalMapperFactory;
 import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 
 /**
- * Adapter for mapping a {@link org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement} to and from an {@link org.eclipse.ditto.protocoladapter.Adaptable}.
+ * Adapter for mapping a {@link PolicyAnnouncement} to and from an {@link org.eclipse.ditto.protocoladapter.Adaptable}.
  */
 final class PolicyAnnouncementAdapter extends AbstractPolicyAdapter<PolicyAnnouncement<?>> {
 

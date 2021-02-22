@@ -23,17 +23,15 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
-import org.eclipse.ditto.model.base.headers.DittoDuration;
+import org.eclipse.ditto.model.base.common.DittoDuration;
 
 /**
- * Immutable implementation of {@link org.eclipse.ditto.model.policies.SubjectAnnouncement}.
+ * Immutable implementation of {@link SubjectAnnouncement}.
  *
  * @since 2.0.0
  */
 @Immutable
 final class ImmutableSubjectAnnouncement implements SubjectAnnouncement {
-
-    private static final ImmutableSubjectAnnouncement EMPTY = new ImmutableSubjectAnnouncement(null, false);
 
     private static final Set<ChronoUnit> BEFORE_EXPIRY_DURATION_UNITS =
             EnumSet.of(ChronoUnit.SECONDS, ChronoUnit.MINUTES, ChronoUnit.HOURS);
@@ -65,15 +63,6 @@ final class ImmutableSubjectAnnouncement implements SubjectAnnouncement {
         }
     }
 
-    static SubjectAnnouncement empty() {
-        return EMPTY;
-    }
-
-    @Override
-    public boolean isEmpty() {
-        return beforeExpiry == null && !whenDeleted;
-    }
-
     @Override
     public Optional<DittoDuration> getBeforeExpiry() {
         return Optional.ofNullable(beforeExpiry);
@@ -90,9 +79,7 @@ final class ImmutableSubjectAnnouncement implements SubjectAnnouncement {
         if (beforeExpiry != null) {
             builder.set(JsonFields.BEFORE_EXPIRY, beforeExpiry.toString());
         }
-        if (whenDeleted) {
-            builder.set(JsonFields.WHEN_DELETED, true);
-        }
+        builder.set(JsonFields.WHEN_DELETED, whenDeleted);
         return builder.build();
     }
 

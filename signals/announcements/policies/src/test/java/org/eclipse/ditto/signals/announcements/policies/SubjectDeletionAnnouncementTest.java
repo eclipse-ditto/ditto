@@ -96,7 +96,7 @@ public final class SubjectDeletionAnnouncementTest {
         final DittoHeaders dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
 
         final JsonObject json = JsonObject.of(String.format("{\n" +
-                "  \"type\": \"policies.announcements:subjectExpiry\",\n" +
+                "  \"type\": \"policies.announcements:subjectDeletion\",\n" +
                 "  \"policyId\": \"policy:id\",\n" +
                 "  \"deletedAt\": \"%s\",\n" +
                 "  \"subjectIds\": [\"ditto:ditto\"]\n" +

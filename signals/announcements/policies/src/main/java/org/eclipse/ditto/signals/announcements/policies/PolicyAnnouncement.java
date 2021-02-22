@@ -21,7 +21,8 @@ import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.signals.announcements.base.Announcement;
 
 /**
- * Announcements from policies.
+ * Announcements for policies.
+ *
  * @since 2.0.0
  */
 public interface PolicyAnnouncement<T extends PolicyAnnouncement<T>> extends Announcement<T> {
@@ -36,13 +37,23 @@ public interface PolicyAnnouncement<T extends PolicyAnnouncement<T>> extends Ann
      */
     String RESOURCE_TYPE = PolicyConstants.ENTITY_TYPE.toString();
 
-    /**
-     * Json field for the policy ID.
-     */
-    JsonFieldDefinition<String> JSON_POLICY_ID =
-            JsonFactory.newStringFieldDefinition("policyId", JsonSchemaVersion.V_2, FieldType.REGULAR);
-
 
     @Override
     PolicyId getEntityId();
+
+    /**
+     * Definition of fields of the JSON representation of a {@link PolicyAnnouncement}.
+     */
+    final class JsonFields {
+
+        /**
+         * Json field for the policy ID.
+         */
+        public static final JsonFieldDefinition<String> JSON_POLICY_ID =
+                JsonFactory.newStringFieldDefinition("policyId", JsonSchemaVersion.V_2, FieldType.REGULAR);
+
+        private JsonFields() {
+            throw new AssertionError();
+        }
+    }
 }

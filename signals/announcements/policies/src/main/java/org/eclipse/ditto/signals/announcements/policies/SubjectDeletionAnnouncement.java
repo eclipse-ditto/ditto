@@ -16,10 +16,11 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -54,12 +55,12 @@ public final class SubjectDeletionAnnouncement extends AbstractPolicyAnnouncemen
     private static final String NAME = "subjectDeletion";
 
     /**
-     * Type of this announcement..
+     * Type of this announcement.
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     private final Instant deletedAt;
-    private final Collection<SubjectId> subjectIds;
+    private final Set<SubjectId> subjectIds;
 
     private SubjectDeletionAnnouncement(final PolicyId policyId, final Instant deletedAt,
             final Collection<SubjectId> subjectIds,
@@ -67,7 +68,7 @@ public final class SubjectDeletionAnnouncement extends AbstractPolicyAnnouncemen
         super(policyId, dittoHeaders);
         this.deletedAt = checkNotNull(deletedAt, "deletedAt");
         this.subjectIds =
-                Collections.unmodifiableList(new ArrayList<>(checkNotNull(subjectIds, "subjectIds")));
+                Collections.unmodifiableSet(new LinkedHashSet<>(checkNotNull(subjectIds, "subjectIds")));
     }
 
     /**
@@ -90,10 +91,13 @@ public final class SubjectDeletionAnnouncement extends AbstractPolicyAnnouncemen
      *
      * @param jsonObject the serialized JSON.
      * @param dittoHeaders the Ditto headers.
-     * @return the deserialized announcement.
+     * @return the deserialized {@code SubjectDeletionAnnouncement}.
+     * @throws NullPointerException if any argument is {@code null}.
+     * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+     * 'SubjectDeletionAnnouncement' format.
      */
     public static SubjectDeletionAnnouncement fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
-        final PolicyId policyId = PolicyId.of(jsonObject.getValueOrThrow(JSON_POLICY_ID));
+        final PolicyId policyId = PolicyId.of(jsonObject.getValueOrThrow(PolicyAnnouncement.JsonFields.JSON_POLICY_ID));
         final Instant deletedAt = parseInstant(jsonObject.getValueOrThrow(JsonFields.DELETED_AT));
         final Collection<SubjectId> subjectIds = jsonObject.getValueOrThrow(
                 JsonFields.SUBJECT_IDS)
@@ -139,7 +143,7 @@ public final class SubjectDeletionAnnouncement extends AbstractPolicyAnnouncemen
     /**
      * Get the timestamp where the subjects will be deleted.
      *
-     * @return the subject deletion timestamp..
+     * @return the subject deletion timestamp.
      */
     public Instant getDeletedAt() {
         return deletedAt;
@@ -150,7 +154,7 @@ public final class SubjectDeletionAnnouncement extends AbstractPolicyAnnouncemen
      *
      * @return the subject IDs to be deleted.
      */
-    public Collection<SubjectId> getSubjectIds() {
+    public Set<SubjectId> getSubjectIds() {
         return subjectIds;
     }
 
@@ -208,5 +212,9 @@ public final class SubjectDeletionAnnouncement extends AbstractPolicyAnnouncemen
          */
         public static final JsonFieldDefinition<JsonArray> SUBJECT_IDS =
                 JsonFactory.newJsonArrayFieldDefinition("subjectIds", JsonSchemaVersion.V_2, FieldType.REGULAR);
+
+        private JsonFields() {
+            throw new AssertionError();
+        }
     }
 }

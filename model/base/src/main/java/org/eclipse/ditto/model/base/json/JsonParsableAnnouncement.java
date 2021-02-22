@@ -24,6 +24,8 @@ import org.atteo.classindex.IndexAnnotated;
  * {@link JsonParsableAnnouncement#method()} with {@link org.eclipse.ditto.json.JsonObject} as first
  * and {@link org.eclipse.ditto.model.base.headers.DittoHeaders} as second argument.
  * The {@link JsonParsableAnnouncement#type()} is used as identifier of this announcement.
+ *
+ * @since 2.0.0
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

@@ -38,16 +38,16 @@ final class ImmutableSubject implements Subject {
     private final SubjectId subjectId;
     private final SubjectType subjectType;
     @Nullable private final SubjectExpiry subjectExpiry;
-    private final SubjectAnnouncement subjectAnnouncement;
+    @Nullable private final SubjectAnnouncement subjectAnnouncement;
 
-    private ImmutableSubject(final SubjectId theSubjectId,
-            final SubjectType theSubjectType,
-            @Nullable final SubjectExpiry theSubjectExpiry,
-            final SubjectAnnouncement subjectAnnouncement) {
-        subjectId = checkNotNull(theSubjectId, "subjectId");
-        subjectType = checkNotNull(theSubjectType, "subjectType");
-        subjectExpiry = theSubjectExpiry;
-        this.subjectAnnouncement = checkNotNull(subjectAnnouncement, "subjectAnnouncement");
+    private ImmutableSubject(final SubjectId subjectId,
+            final SubjectType subjectType,
+            @Nullable final SubjectExpiry subjectExpiry,
+            @Nullable final SubjectAnnouncement subjectAnnouncement) {
+        this.subjectId = checkNotNull(subjectId, "subjectId");
+        this.subjectType = checkNotNull(subjectType, "subjectType");
+        this.subjectExpiry = subjectExpiry;
+        this.subjectAnnouncement = subjectAnnouncement;
     }
 
     /**
@@ -59,7 +59,7 @@ final class ImmutableSubject implements Subject {
      * @throws NullPointerException if {@code subjectId} is {@code null}.
      */
     public static Subject of(final SubjectId subjectId) {
-        return new ImmutableSubject(subjectId, SubjectType.GENERATED, null, SubjectAnnouncement.empty());
+        return new ImmutableSubject(subjectId, SubjectType.GENERATED, null, null);
     }
 
     /**
@@ -71,7 +71,7 @@ final class ImmutableSubject implements Subject {
      * @throws NullPointerException if any argument is {@code null}.
      */
     public static Subject of(final SubjectId subjectId, final SubjectType subjectType) {
-        return new ImmutableSubject(subjectId, subjectType, null, SubjectAnnouncement.empty());
+        return new ImmutableSubject(subjectId, subjectType, null, null);
     }
 
     /**
@@ -87,7 +87,7 @@ final class ImmutableSubject implements Subject {
      */
     public static Subject of(final SubjectId subjectId, final SubjectType subjectType,
             @Nullable final SubjectExpiry subjectExpiry) {
-        return new ImmutableSubject(subjectId, subjectType, subjectExpiry, SubjectAnnouncement.empty());
+        return new ImmutableSubject(subjectId, subjectType, subjectExpiry, null);
     }
 
     /**
@@ -103,7 +103,7 @@ final class ImmutableSubject implements Subject {
      * @since 2.0.0
      */
     public static Subject of(final SubjectId subjectId, final SubjectType subjectType,
-            @Nullable final SubjectExpiry subjectExpiry, final SubjectAnnouncement subjectAnnouncement) {
+            @Nullable final SubjectExpiry subjectExpiry, @Nullable final SubjectAnnouncement subjectAnnouncement) {
         return new ImmutableSubject(subjectId, subjectType, subjectExpiry, subjectAnnouncement);
     }
 
@@ -131,13 +131,13 @@ final class ImmutableSubject implements Subject {
                 .orElseThrow(() -> new DittoJsonException(JsonMissingFieldException.newBuilder()
                         .message("The 'type' for the 'subject' is missing.")
                         .build()));
+
         final SubjectExpiry subjectExpiry = jsonObject.getValue(JsonFields.EXPIRY)
                 .map(SubjectExpiry::newInstance)
                 .orElse(null);
-
-        final SubjectAnnouncement subjectAnnouncement = jsonObject.getValue(JsonFields.ANNOUNCE)
+        final SubjectAnnouncement subjectAnnouncement = jsonObject.getValue(JsonFields.ANNOUNCEMENT)
                 .map(SubjectAnnouncement::fromJson)
-                .orElse(SubjectAnnouncement.empty());
+                .orElse(null);
 
         return new ImmutableSubject(SubjectId.newInstance(subjectIssuerWithId),
                 ImmutableSubjectType.of(subjectTypeValue), subjectExpiry, subjectAnnouncement);
@@ -159,8 +159,8 @@ final class ImmutableSubject implements Subject {
     }
 
     @Override
-    public SubjectAnnouncement getAnnouncement() {
-        return subjectAnnouncement;
+    public Optional<SubjectAnnouncement> getAnnouncement() {
+        return Optional.ofNullable(subjectAnnouncement);
     }
 
     @Override
@@ -172,8 +172,8 @@ final class ImmutableSubject implements Subject {
         if (null != subjectExpiry) {
             jsonObjectBuilder.set(JsonFields.EXPIRY, subjectExpiry.toString());
         }
-        if (!subjectAnnouncement.isEmpty()) {
-            jsonObjectBuilder.set(JsonFields.ANNOUNCE, subjectAnnouncement.toJson());
+        if (null != subjectAnnouncement) {
+            jsonObjectBuilder.set(JsonFields.ANNOUNCEMENT, subjectAnnouncement.toJson());
         }
         return jsonObjectBuilder.build();
     }
@@ -187,8 +187,9 @@ final class ImmutableSubject implements Subject {
             return false;
         }
         final ImmutableSubject that = (ImmutableSubject) o;
-        return Objects.equals(subjectId, that.subjectId) && Objects.equals(subjectType, that.subjectType)
-                && Objects.equals(subjectExpiry, that.subjectExpiry) &&
+        return Objects.equals(subjectId, that.subjectId) &&
+                Objects.equals(subjectType, that.subjectType) &&
+                Objects.equals(subjectExpiry, that.subjectExpiry) &&
                 Objects.equals(subjectAnnouncement, that.subjectAnnouncement);
     }
 

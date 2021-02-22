@@ -20,7 +20,7 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.headers.DittoDuration;
+import org.eclipse.ditto.model.base.common.DittoDuration;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
@@ -32,43 +32,27 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 public interface SubjectAnnouncement extends Jsonifiable<JsonObject> {
 
     /**
-     * Returns a new {@link org.eclipse.ditto.model.policies.SubjectAnnouncement} with the given configuration.
+     * Returns a new {@link SubjectAnnouncement} with the given configuration.
      *
      * @param beforeExpiry duration before expiry when an announcement should be sent, or null if no announcement should
      * be sent.
      * @param whenDeleted whether an announcement should be sent when the subject is deleted.
-     * @return the new {@link org.eclipse.ditto.model.policies.SubjectAnnouncement}.
+     * @return the new {@link SubjectAnnouncement}.
      */
     static SubjectAnnouncement of(@Nullable final DittoDuration beforeExpiry, final boolean whenDeleted) {
         return new ImmutableSubjectAnnouncement(beforeExpiry, whenDeleted);
     }
 
     /**
-     * Returns a new {@link org.eclipse.ditto.model.policies.SubjectAnnouncement} with the configuration given in the
+     * Returns a new {@link SubjectAnnouncement} with the configuration given in the
      * JSON object.
      *
      * @param jsonObject the JSON representation.
-     * @return the new {@link org.eclipse.ditto.model.policies.SubjectAnnouncement}.
+     * @return the new {@link SubjectAnnouncement}.
      */
     static SubjectAnnouncement fromJson(final JsonObject jsonObject) {
         return ImmutableSubjectAnnouncement.fromJson(jsonObject);
     }
-
-    /**
-     * Returns a {@link org.eclipse.ditto.model.policies.SubjectAnnouncement} that does not expect any announcement.
-     *
-     * @return the empty {@link org.eclipse.ditto.model.policies.SubjectAnnouncement}.
-     */
-    static SubjectAnnouncement empty() {
-        return ImmutableSubjectAnnouncement.empty();
-    }
-
-    /**
-     * Return whether no announcement is expected.
-     *
-     * @return whether no announcement is expected.
-     */
-    boolean isEmpty();
 
     /**
      * Returns the duration before expiry when an announcement should be sent, or an empty optional if no announcement

@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -48,7 +49,6 @@ import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectAnnouncement;
 import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectId;
@@ -87,7 +87,8 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
     static final JsonFieldDefinition<String> JSON_EXPIRY =
             JsonFactory.newStringFieldDefinition("expiry", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
-    static final JsonFieldDefinition<JsonObject> JSON_ANNOUNCE = Subject.JsonFields.ANNOUNCE;
+    static final JsonFieldDefinition<JsonObject> JSON_ANNOUNCEMENT =
+            JsonFactory.newJsonObjectFieldDefinition("announcement", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private static final String READ_PERMISSION = "READ";
 
@@ -95,16 +96,16 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
     private final Label label;
     private final Set<SubjectId> subjectIds;
     private final SubjectExpiry subjectExpiry;
-    private final SubjectAnnouncement subjectAnnouncement;
+    @Nullable private final SubjectAnnouncement subjectAnnouncement;
 
     private ActivateTokenIntegration(final PolicyId policyId, final Label label, final Collection<SubjectId> subjectIds,
-            final SubjectExpiry subjectExpiry, final SubjectAnnouncement subjectAnnouncement,
+            final SubjectExpiry subjectExpiry, @Nullable final SubjectAnnouncement subjectAnnouncement,
             final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policyId");
         this.label = checkNotNull(label, "label");
         this.subjectIds = Collections.unmodifiableSet(new LinkedHashSet<>(checkNotNull(subjectIds, "subjectIds")));
-        this.subjectExpiry = checkNotNull(subjectExpiry, "expiry");
+        this.subjectExpiry = checkNotNull(subjectExpiry, "subjectExpiry");
         this.subjectAnnouncement = subjectAnnouncement;
     }
 
@@ -123,7 +124,7 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
             final Collection<SubjectId> subjectIds, final Instant expiry, final DittoHeaders dittoHeaders) {
 
         final SubjectExpiry subjectExpiry = SubjectExpiry.newInstance(expiry);
-        return new ActivateTokenIntegration(policyId, label, subjectIds, subjectExpiry, SubjectAnnouncement.empty(),
+        return new ActivateTokenIntegration(policyId, label, subjectIds, subjectExpiry, null,
                 dittoHeaders);
     }
 
@@ -140,7 +141,7 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
      */
     public static ActivateTokenIntegration of(final PolicyId policyId, final Label label,
             final Collection<SubjectId> subjectIds, final SubjectExpiry subjectExpiry,
-            final SubjectAnnouncement subjectAnnouncement, final DittoHeaders dittoHeaders) {
+            @Nullable final SubjectAnnouncement subjectAnnouncement, final DittoHeaders dittoHeaders) {
 
         return new ActivateTokenIntegration(policyId, label, subjectIds, subjectExpiry, subjectAnnouncement,
                 dittoHeaders);
@@ -167,9 +168,9 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
                     .map(SubjectId::newInstance)
                     .collect(Collectors.toCollection(LinkedHashSet::new));
             final SubjectExpiry subjectExpiry = SubjectExpiry.newInstance(jsonObject.getValueOrThrow(JSON_EXPIRY));
-            final SubjectAnnouncement subjectAnnouncement = jsonObject.getValue(JSON_ANNOUNCE)
+            final SubjectAnnouncement subjectAnnouncement = jsonObject.getValue(JSON_ANNOUNCEMENT)
                     .map(SubjectAnnouncement::fromJson)
-                    .orElse(SubjectAnnouncement.empty());
+                    .orElse(null);
             return new ActivateTokenIntegration(policyId, label, subjectIds, subjectExpiry, subjectAnnouncement,
                     dittoHeaders);
         });
@@ -182,15 +183,6 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
      */
     public Label getLabel() {
         return label;
-    }
-
-    /**
-     * Returns settings for announcements to be made for the activated subjects.
-     *
-     * @return the subject-announcement settings.
-     */
-    public SubjectAnnouncement getSubjectAnnouncement() {
-        return subjectAnnouncement;
     }
 
     @Override
@@ -242,6 +234,15 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
         return subjectExpiry;
     }
 
+    /**
+     * Returns settings for announcements to be made for the activated subjects.
+     *
+     * @return the subject-announcement settings.
+     */
+    public Optional<SubjectAnnouncement> getSubjectAnnouncement() {
+        return Optional.ofNullable(subjectAnnouncement);
+    }
+
     @Override
     public PolicyId getEntityId() {
         return policyId;
@@ -267,8 +268,8 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray()), predicate);
         jsonObjectBuilder.set(JSON_EXPIRY, subjectExpiry.toString(), predicate);
-        if (!subjectAnnouncement.isEmpty()) {
-            jsonObjectBuilder.set(JSON_ANNOUNCE, subjectAnnouncement.toJson());
+        if (null != subjectAnnouncement) {
+            jsonObjectBuilder.set(JSON_ANNOUNCEMENT, subjectAnnouncement.toJson());
         }
     }
 

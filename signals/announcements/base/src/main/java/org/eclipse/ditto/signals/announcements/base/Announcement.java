@@ -34,15 +34,26 @@ public interface Announcement<T extends Announcement<T>> extends Signal<T> {
     String TYPE_QUALIFIER = "announcements";
 
     /**
-     * Json field containing the type of this signal.
-     */
-    JsonFieldDefinition<String> JSON_TYPE =
-            JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_2);
-
-    /**
      * Retrieve the name of the announcement. Used as a part of the topic path in Ditto protocol.
      *
      * @return name of the announcement.
      */
+    @Override
     String getName();
+
+    /**
+     * Definition of fields of the JSON representation of an {@link Announcement}.
+     */
+    final class JsonFields {
+
+        /**
+         * Json field containing the type of this signal.
+         */
+        public static final JsonFieldDefinition<String> JSON_TYPE =
+                JsonFactory.newStringFieldDefinition("type", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        private JsonFields() {
+            throw new AssertionError();
+        }
+    }
 }

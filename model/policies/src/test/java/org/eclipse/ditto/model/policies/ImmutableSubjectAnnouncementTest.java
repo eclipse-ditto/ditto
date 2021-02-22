@@ -18,8 +18,10 @@ import static org.mutabilitydetector.unittesting.AllowedReason.provided;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
+import org.eclipse.ditto.json.JsonField;
 import org.eclipse.ditto.json.JsonObject;
-import org.eclipse.ditto.model.base.headers.DittoDuration;
+import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.DittoDuration;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
@@ -60,13 +62,14 @@ public final class ImmutableSubjectAnnouncementTest {
     }
 
     @Test
-    public void testToAndFromEmptyJson() {
-        final SubjectAnnouncement underTest = SubjectAnnouncement.empty();
+    public void testToAndFromSubjectAnnoucementWithoutExpiryAndNotWhenDeleted() {
+        final SubjectAnnouncement underTest = SubjectAnnouncement.of(null, false);
         final JsonObject emptyJson = underTest.toJson();
         final SubjectAnnouncement emptyAnnouncement = SubjectAnnouncement.fromJson(emptyJson);
-        assertThat(emptyJson).isEmpty();
+        assertThat(emptyJson).containsExactly(
+                JsonField.newInstance(SubjectAnnouncement.JsonFields.WHEN_DELETED.getPointer().getRoot().get(),
+                        JsonValue.of(false)));
         assertThat(emptyAnnouncement).isEqualTo(underTest);
-        assertThat(underTest.isEmpty()).isTrue();
     }
 
     @Test

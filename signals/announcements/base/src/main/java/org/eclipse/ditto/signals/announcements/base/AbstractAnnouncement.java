@@ -73,7 +73,7 @@ public abstract class AbstractAnnouncement<T extends AbstractAnnouncement<T>> im
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder();
 
-        jsonObjectBuilder.set(JSON_TYPE, getType(), predicate);
+        jsonObjectBuilder.set(JsonFields.JSON_TYPE, getType(), predicate);
 
         appendPayload(jsonObjectBuilder, predicate);
 
