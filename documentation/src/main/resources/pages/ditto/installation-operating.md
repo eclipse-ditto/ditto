@@ -92,7 +92,7 @@ The authentication provider must be added to the ditto-gateway configuration.
 evaluated against incoming JWT's.
 For each entry in `auth-subjects` and authorization subject will be generated.
 If the entry contains unresolvable placeholders, it will be ignored in full.
-When `auth-subjects` is not provided, the “sub” claim (`{{ jwt:sub }}`) is used by default.
+When `auth-subjects` is not provided, the “sub” claim (`{%raw%}{{ jwt:sub }}{%endraw%}`) is used by default.
 
 
 ```
@@ -102,11 +102,11 @@ ditto.gateway.authentication {
         myprovider = {
           issuer = "localhost:9000"
           auth-subjects = [
-            "{{ jwt:sub }}",
-            "{{ jwt:sub }}/{{ jwt:scp }}",
-            "{{ jwt:sub }}/{{ jwt:scp }}@{{ jwt:client_id }}",
-            "{{ jwt:sub }}/{{ jwt:scp }}@{{ jwt:non_existing }}",
-            "{{ jwt:roles/support }}"
+            "{%raw%}{{ jwt:sub }}{%endraw%}",
+            "{%raw%}{{ jwt:sub }}/{{ jwt:scp }}{%endraw%}",
+            "{%raw%}{{ jwt:sub }}/{{ jwt:scp }}@{{ jwt:client_id }}{%endraw%}",
+            "{%raw%}{{ jwt:sub }}/{{ jwt:scp }}@{{ jwt:non_existing }}{%endraw%}",
+            "{%raw%}{{ jwt:roles/support }}{%endraw%}"
           ]
         }
       }
@@ -118,7 +118,7 @@ In order to do this by specifying a Java system property, use the following:
 
 ```shell
 -Dditto.gateway.authentication.oauth.openid-connect-issuers.myprovider.issuer=localhost:9000
--Dditto.gateway.authentication.oauth.openid-connect-issuers.myprovider.auth-subjects.0='{{ jwt:sub }}/{{ jwt:scp }}'
+-Dditto.gateway.authentication.oauth.openid-connect-issuers.myprovider.auth-subjects.0='{%raw%}{{ jwt:sub }}/{{ jwt:scp }}{%endraw%}'
 
 ```
 
