@@ -24,10 +24,12 @@ import java.util.Collections;
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.headers.DittoDuration;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.SubjectAnnouncement;
 import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectExpiryInvalidException;
 import org.eclipse.ditto.model.policies.SubjectId;
@@ -51,6 +53,10 @@ public final class ActivateTokenIntegrationTest {
                     .add(TestConstants.Policy.SUBJECT_ID.toString())
                     .build())
             .set(ActivateTokenIntegration.JSON_EXPIRY, Instant.EPOCH.toString())
+            .set(ActivateTokenIntegration.JSON_ANNOUNCE, JsonObject.newBuilder()
+                    .set(SubjectAnnouncement.JsonFields.BEFORE_EXPIRY, "1m")
+                    .set(SubjectAnnouncement.JsonFields.WHEN_DELETED, true)
+                    .build())
             .build();
 
     private static final SubjectId KNOWN_SECOND_SUBJECT =
@@ -63,11 +69,15 @@ public final class ActivateTokenIntegrationTest {
                     .build())
             .build();
 
+    private static final SubjectAnnouncement KNOWN_SUBJECT_ANNOUNCEMENT =
+            SubjectAnnouncement.of(DittoDuration.parseDuration("1m"), true);
+
     @Test
     public void assertImmutability() {
         assertInstancesOf(ActivateTokenIntegration.class,
                 areImmutable(),
-                provided(Label.class, SubjectId.class, PolicyId.class, SubjectExpiry.class).areAlsoImmutable());
+                provided(Label.class, SubjectId.class, PolicyId.class, SubjectExpiry.class, SubjectAnnouncement.class)
+                        .areAlsoImmutable());
     }
 
     @Test
@@ -109,7 +119,9 @@ public final class ActivateTokenIntegrationTest {
     public void toJsonReturnsExpected() {
         final ActivateTokenIntegration underTest =
                 ActivateTokenIntegration.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
-                        Collections.singleton(TestConstants.Policy.SUBJECT_ID), Instant.EPOCH,
+                        Collections.singleton(TestConstants.Policy.SUBJECT_ID),
+                        SubjectExpiry.newInstance(Instant.EPOCH),
+                        KNOWN_SUBJECT_ANNOUNCEMENT,
                         TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
@@ -120,7 +132,9 @@ public final class ActivateTokenIntegrationTest {
     public void toJsonWithSeveralSubjectsReturnsExpected() {
         final ActivateTokenIntegration underTest =
                 ActivateTokenIntegration.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
-                        Arrays.asList(TestConstants.Policy.SUBJECT_ID, KNOWN_SECOND_SUBJECT), Instant.EPOCH,
+                        Arrays.asList(TestConstants.Policy.SUBJECT_ID, KNOWN_SECOND_SUBJECT),
+                        SubjectExpiry.newInstance(Instant.EPOCH),
+                        KNOWN_SUBJECT_ANNOUNCEMENT,
                         TestConstants.EMPTY_DITTO_HEADERS);
         final JsonObject actualJson = underTest.toJson(FieldType.regularOrSpecial());
 
@@ -133,8 +147,11 @@ public final class ActivateTokenIntegrationTest {
                 ActivateTokenIntegration.fromJson(KNOWN_JSON, TestConstants.EMPTY_DITTO_HEADERS);
 
         final ActivateTokenIntegration expectedCommand =
-                ActivateTokenIntegration.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
-                        Collections.singleton(TestConstants.Policy.SUBJECT_ID), Instant.EPOCH,
+                ActivateTokenIntegration.of(TestConstants.Policy.POLICY_ID,
+                        TestConstants.Policy.LABEL,
+                        Collections.singleton(TestConstants.Policy.SUBJECT_ID),
+                        SubjectExpiry.newInstance(Instant.EPOCH),
+                        KNOWN_SUBJECT_ANNOUNCEMENT,
                         TestConstants.EMPTY_DITTO_HEADERS);
         assertThat(underTest).isEqualTo(expectedCommand);
     }
@@ -146,8 +163,11 @@ public final class ActivateTokenIntegrationTest {
 
         final ActivateTokenIntegration expectedCommand =
                 ActivateTokenIntegration.of(TestConstants.Policy.POLICY_ID, TestConstants.Policy.LABEL,
-                        Arrays.asList(TestConstants.Policy.SUBJECT_ID, KNOWN_SECOND_SUBJECT), Instant.EPOCH,
+                        Arrays.asList(TestConstants.Policy.SUBJECT_ID, KNOWN_SECOND_SUBJECT),
+                        SubjectExpiry.newInstance(Instant.EPOCH),
+                        KNOWN_SUBJECT_ANNOUNCEMENT,
                         TestConstants.EMPTY_DITTO_HEADERS);
+
         assertThat(underTest).isEqualTo(expectedCommand);
     }
 

@@ -48,6 +48,8 @@ import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.SubjectAnnouncement;
 import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
@@ -85,20 +87,25 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
     static final JsonFieldDefinition<String> JSON_EXPIRY =
             JsonFactory.newStringFieldDefinition("expiry", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
+    static final JsonFieldDefinition<JsonObject> JSON_ANNOUNCE = Subject.JsonFields.ANNOUNCE;
+
     private static final String READ_PERMISSION = "READ";
 
     private final PolicyId policyId;
     private final Label label;
     private final Set<SubjectId> subjectIds;
     private final SubjectExpiry subjectExpiry;
+    private final SubjectAnnouncement subjectAnnouncement;
 
     private ActivateTokenIntegration(final PolicyId policyId, final Label label, final Collection<SubjectId> subjectIds,
-            final SubjectExpiry subjectExpiry, final DittoHeaders dittoHeaders) {
+            final SubjectExpiry subjectExpiry, final SubjectAnnouncement subjectAnnouncement,
+            final DittoHeaders dittoHeaders) {
         super(TYPE, dittoHeaders);
         this.policyId = checkNotNull(policyId, "policyId");
         this.label = checkNotNull(label, "label");
         this.subjectIds = Collections.unmodifiableSet(new LinkedHashSet<>(checkNotNull(subjectIds, "subjectIds")));
         this.subjectExpiry = checkNotNull(subjectExpiry, "expiry");
+        this.subjectAnnouncement = subjectAnnouncement;
     }
 
     /**
@@ -116,7 +123,8 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
             final Collection<SubjectId> subjectIds, final Instant expiry, final DittoHeaders dittoHeaders) {
 
         final SubjectExpiry subjectExpiry = SubjectExpiry.newInstance(expiry);
-        return new ActivateTokenIntegration(policyId, label, subjectIds, subjectExpiry, dittoHeaders);
+        return new ActivateTokenIntegration(policyId, label, subjectIds, subjectExpiry, SubjectAnnouncement.empty(),
+                dittoHeaders);
     }
 
     /**
@@ -132,9 +140,10 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
      */
     public static ActivateTokenIntegration of(final PolicyId policyId, final Label label,
             final Collection<SubjectId> subjectIds, final SubjectExpiry subjectExpiry,
-            final DittoHeaders dittoHeaders) {
+            final SubjectAnnouncement subjectAnnouncement, final DittoHeaders dittoHeaders) {
 
-        return new ActivateTokenIntegration(policyId, label, subjectIds, subjectExpiry, dittoHeaders);
+        return new ActivateTokenIntegration(policyId, label, subjectIds, subjectExpiry, subjectAnnouncement,
+                dittoHeaders);
     }
 
     /**
@@ -158,7 +167,11 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
                     .map(SubjectId::newInstance)
                     .collect(Collectors.toCollection(LinkedHashSet::new));
             final SubjectExpiry subjectExpiry = SubjectExpiry.newInstance(jsonObject.getValueOrThrow(JSON_EXPIRY));
-            return new ActivateTokenIntegration(policyId, label, subjectIds, subjectExpiry, dittoHeaders);
+            final SubjectAnnouncement subjectAnnouncement = jsonObject.getValue(JSON_ANNOUNCE)
+                    .map(SubjectAnnouncement::fromJson)
+                    .orElse(SubjectAnnouncement.empty());
+            return new ActivateTokenIntegration(policyId, label, subjectIds, subjectExpiry, subjectAnnouncement,
+                    dittoHeaders);
         });
     }
 
@@ -171,6 +184,15 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
         return label;
     }
 
+    /**
+     * Returns settings for announcements to be made for the activated subjects.
+     *
+     * @return the subject-announcement settings.
+     */
+    public SubjectAnnouncement getSubjectAnnouncement() {
+        return subjectAnnouncement;
+    }
+
     @Override
     public Set<SubjectId> getSubjectIds() {
         return subjectIds;
@@ -178,7 +200,8 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
 
     @Override
     public ActivateTokenIntegration setLabel(final Label label) {
-        return new ActivateTokenIntegration(policyId, label, subjectIds, subjectExpiry, getDittoHeaders());
+        return new ActivateTokenIntegration(policyId, label, subjectIds, subjectExpiry, subjectAnnouncement,
+                getDittoHeaders());
     }
 
     @Override
@@ -244,11 +267,15 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
                 .map(JsonValue::of)
                 .collect(JsonCollectors.valuesToArray()), predicate);
         jsonObjectBuilder.set(JSON_EXPIRY, subjectExpiry.toString(), predicate);
+        if (!subjectAnnouncement.isEmpty()) {
+            jsonObjectBuilder.set(JSON_ANNOUNCE, subjectAnnouncement.toJson());
+        }
     }
 
     @Override
     public ActivateTokenIntegration setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new ActivateTokenIntegration(policyId, label, subjectIds, subjectExpiry, dittoHeaders);
+        return new ActivateTokenIntegration(policyId, label, subjectIds, subjectExpiry, subjectAnnouncement,
+                dittoHeaders);
     }
 
     @Override
@@ -270,12 +297,13 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
                 Objects.equals(label, that.label) &&
                 Objects.equals(subjectIds, that.subjectIds) &&
                 Objects.equals(subjectExpiry, that.subjectExpiry) &&
+                Objects.equals(subjectAnnouncement, that.subjectAnnouncement) &&
                 super.equals(obj);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), policyId, label, subjectIds, subjectExpiry);
+        return Objects.hash(super.hashCode(), policyId, label, subjectIds, subjectExpiry, subjectAnnouncement);
     }
 
     @Override
@@ -285,6 +313,7 @@ public final class ActivateTokenIntegration extends AbstractCommand<ActivateToke
                 ", label=" + label +
                 ", subjectIds=" + subjectIds +
                 ", subjectExpiry=" + subjectExpiry +
+                ", subjectAnnouncement=" + subjectAnnouncement +
                 "]";
     }
 }
