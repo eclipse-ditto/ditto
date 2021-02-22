@@ -548,7 +548,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
 
         final Adaptable adaptable = underTest.toAdaptable(announcement);
 
-        assertThat(adaptable.getTopicPath().getPath()).isEqualTo("policy/id/policies/announcements/subjectExpiry");
+        assertThat(adaptable.getTopicPath().getPath()).isEqualTo("policy/id/policies/announcements/subjectDeletion");
         assertThat(adaptable.getDittoHeaders().getCorrelationId()).isEqualTo(dittoHeaders.getCorrelationId());
         assertThat(adaptable.getPayload().getPath().isEmpty()).isTrue();
 
@@ -567,12 +567,12 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         final Instant expiry = Instant.now();
         final String correlationId = UUID.randomUUID().toString();
         final JsonObject json = JsonObject.of(String.format("{\n" +
-                        "  \"topic\": \"policy/id/policies/announcements/subjectExpiry\",\n" +
+                        "  \"topic\": \"policy/id/policies/announcements/subjectDeletion\",\n" +
                         "  \"headers\": {\"correlation-id\": \"%s\"},\n" +
                         "  \"path\": \"/\",\n" +
                         "  \"value\": {\n" +
-                        "    \"expiry\": \"%s\",\n" +
-                        "    \"expiringSubjects\": [\n" +
+                        "    \"deletedAt\": \"%s\",\n" +
+                        "    \"subjectIds\": [\n" +
                         "      \"ditto:sub1\",\n" +
                         "      \"ditto:sub2\"\n" +
                         "    ]\n" +
