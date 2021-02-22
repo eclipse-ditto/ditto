@@ -36,7 +36,6 @@ import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import org.eclipse.ditto.services.utils.config.raw.RawConfigSupplier;
 import org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor;
-import org.eclipse.ditto.services.utils.devops.DittoDevOpsCommandsActor;
 import org.eclipse.ditto.services.utils.devops.LogbackLoggingFacade;
 import org.eclipse.ditto.services.utils.health.status.StatusSupplierActor;
 import org.eclipse.ditto.services.utils.metrics.config.MetricsConfig;
@@ -364,7 +363,7 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
         startActor(actorSystem, StatusSupplierActor.props(rootActorName), StatusSupplierActor.ACTOR_NAME);
     }
 
-    protected ActorRef startActor(final ActorSystem actorSystem, final Props actorProps, final String actorName) {
+    private ActorRef startActor(final ActorSystem actorSystem, final Props actorProps, final String actorName) {
         logStartingActor(actorName);
         return actorSystem.actorOf(actorProps, actorName);
     }
@@ -374,13 +373,13 @@ public abstract class DittoService<C extends ServiceSpecificConfig> {
     }
 
     /**
-     * Starts the {@link org.eclipse.ditto.services.utils.devops.DittoDevOpsCommandsActor}.
+     * Starts the {@link org.eclipse.ditto.services.utils.devops.DevOpsCommandsActor}.
      * May be overridden to change the way how the actor is started.
      *
      * @param actorSystem Akka actor system for starting actors.
      */
     protected void startDevOpsCommandsActor(final ActorSystem actorSystem) {
-        startActor(actorSystem, DittoDevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), serviceName,
+        startActor(actorSystem, DevOpsCommandsActor.props(LogbackLoggingFacade.newInstance(), serviceName,
                 InstanceIdentifierSupplier.getInstance().get()), DevOpsCommandsActor.ACTOR_NAME);
     }
 

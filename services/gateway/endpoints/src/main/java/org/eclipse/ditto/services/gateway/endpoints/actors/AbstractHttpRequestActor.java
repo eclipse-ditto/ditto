@@ -51,6 +51,7 @@ import org.eclipse.ditto.services.models.acks.AcknowledgementAggregatorActorStar
 import org.eclipse.ditto.services.models.acks.config.AcknowledgementConfig;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.cluster.JsonValueSourceRef;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
 import org.eclipse.ditto.signals.base.Signal;
@@ -178,6 +179,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
 
     private void handleCommand(final Command<?> command) {
         try {
+            logger.setCorrelationId(command);
             incomingCommandHeaders = command.getDittoHeaders();
             ackregatorStarter.start(command,
                     this::onAggregatedResponseOrError,
@@ -200,7 +202,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private Void handleCommandWithAckregator(final Signal<?> command, final ActorRef aggregator) {
-        logger.withCorrelationId(command).debug("Got <{}>. Telling the target actor about it.", command);
+        logger.debug("Got <{}>. Telling the target actor about it.", command);
         proxyActor.tell(command, aggregator);
         return null;
     }
@@ -220,8 +222,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private void handleCommandAndAcceptImmediately(final Signal<?> command) {
-        logger.withCorrelationId(command)
-                .debug("Received <{}> that doesn't expect a response. Answering with status code 202 ..", command);
+        logger.debug("Received <{}> that doesn't expect a response. Answering with status code 202 ...", command);
         proxyActor.tell(command, getSelf());
         completeWithResult(createHttpResponse(HttpStatus.ACCEPTED));
     }
@@ -287,7 +288,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     }
 
     private void handleCommandWithResponse(final Signal<?> command, final Receive awaitCommandResponseBehavior) {
-        logger.withCorrelationId(command).debug("Got <{}>. Telling the target actor about it.", command);
+        logger.debug("Got <{}>. Telling the target actor about it.", command);
         proxyActor.tell(command, getSelf());
 
         final ActorContext context = getContext();
@@ -355,6 +356,7 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
                                     " 'WithOptionalEntity': <{}>!", commandResponse);
                     completeWithResult(createHttpResponse(HttpStatus.INTERNAL_SERVER_ERROR));
                 })
+                .match(JsonValueSourceRef.class, this::handleJsonValueSourceRef)
                 .match(Status.Failure.class, f -> f.cause() instanceof AskTimeoutException, failure -> {
                     final Throwable cause = failure.cause();
                     logger.error(cause, "Got <{}> when a command response was expected: <{}>!",
@@ -639,6 +641,14 @@ public abstract class AbstractHttpRequestActor extends AbstractActor {
     private static boolean shallAcceptImmediately(final WithDittoHeaders<?> withDittoHeaders) {
         final DittoHeaders dittoHeaders = withDittoHeaders.getDittoHeaders();
         return !dittoHeaders.isResponseRequired() && dittoHeaders.getAcknowledgementRequests().isEmpty();
+    }
+
+    private void handleJsonValueSourceRef(final JsonValueSourceRef jsonValueSourceRef) {
+        logger.debug("Received <{}> from <{}>.", jsonValueSourceRef.getClass().getSimpleName(), getSender());
+        final var jsonValueSourceToHttpResponse = JsonValueSourceToHttpResponse.getInstance();
+        final var httpResponse = jsonValueSourceToHttpResponse.apply(jsonValueSourceRef.getSource());
+        enhanceResponseWithExternalDittoHeaders(httpResponse, incomingCommandHeaders);
+        completeWithResult(httpResponse);
     }
 
     private static final class HttpAcknowledgementConfig implements AcknowledgementConfig {
