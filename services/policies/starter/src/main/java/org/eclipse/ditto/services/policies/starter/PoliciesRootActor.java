@@ -34,7 +34,9 @@ import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
+import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.services.utils.pubsub.PolicyAnnouncementPubSubFactory;
+import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
 import akka.actor.ActorRef;
@@ -69,11 +71,11 @@ public final class PoliciesRootActor extends DittoRootActor {
         final ClusterShardingSettings shardingSettings =
                 ClusterShardingSettings.create(actorSystem).withRole(CLUSTER_ROLE);
 
-        // Start distributed data replicator even though it is not used for now.
-        // TODO: use the DistributedSub for announcement publication
-        PolicyAnnouncementPubSubFactory.of(getContext(), actorSystem).startDistributedPub();
+        final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub =
+                PolicyAnnouncementPubSubFactory.of(getContext(), actorSystem).startDistributedPub();
 
-        final Props policySupervisorProps = PolicySupervisorActor.props(pubSubMediator, snapshotAdapter);
+        final Props policySupervisorProps =
+                PolicySupervisorActor.props(pubSubMediator, snapshotAdapter, policyAnnouncementPub);
 
         final TagsConfig tagsConfig = policiesConfig.getTagsConfig();
         final ActorRef persistenceStreamingActor = startChildActor(PoliciesPersistenceStreamingActorCreator.ACTOR_NAME,

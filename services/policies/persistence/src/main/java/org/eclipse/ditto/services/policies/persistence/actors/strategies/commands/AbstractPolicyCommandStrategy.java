@@ -27,6 +27,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
+import org.eclipse.ditto.model.base.headers.DittoDuration;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Policy;
@@ -34,6 +35,7 @@ import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.SubjectAnnouncement;
 import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectExpiryInvalidException;
 import org.eclipse.ditto.model.policies.Subjects;
@@ -224,17 +226,21 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
         final long toAdd = policyExpiryGranularity.amount - deltaModulo;
         final Instant roundedUp = truncated.plus(toAdd, policyExpiryGranularity.temporalUnit);
 
-        /** TODO: replace by announcement
-         final var roundedUpNotifyBefore = expiry.getNotifyBefore()
-         .map(notifyBefore -> {
-         final var roundedUpDuration =
-         roundUpDuration(notifyBefore.getDuration(), policyExpiryNotificationGranularity);
-         return notifyBefore.setAmount(roundedUpDuration);
-         })
-         .orElse(null);
-         return SubjectExpiry.newInstance(roundedUp, roundedUpNotifyBefore);
-         */
         return SubjectExpiry.newInstance(roundedUp);
+    }
+
+    @Nullable
+    protected SubjectAnnouncement roundSubjectAnnouncement(final SubjectAnnouncement subjectAnnouncement) {
+        final Optional<DittoDuration> beforeExpiry = subjectAnnouncement.getBeforeExpiry();
+        if (beforeExpiry.isPresent()) {
+            final var dittoDuration = beforeExpiry.get();
+            final var roundedUpDuration =
+                    roundUpDuration(dittoDuration.getDuration(), policyDeletionAnnouncementGranularity);
+            final var roundedUpDittoDuration = dittoDuration.setAmount(roundedUpDuration);
+            return SubjectAnnouncement.of(roundedUpDittoDuration, subjectAnnouncement.isWhenDeleted());
+        } else {
+            return subjectAnnouncement;
+        }
     }
 
     /**

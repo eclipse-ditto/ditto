@@ -41,7 +41,9 @@ import org.eclipse.ditto.services.policies.persistence.testhelper.PoliciesJourna
 import org.eclipse.ditto.services.policies.persistence.testhelper.PoliciesSnapshotTestHelper;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoBsonJson;
+import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.services.utils.test.Retry;
+import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.commands.policies.modify.CreatePolicy;
@@ -57,6 +59,7 @@ import org.eclipse.ditto.signals.events.policies.PolicyCreated;
 import org.eclipse.ditto.signals.events.policies.PolicyDeleted;
 import org.eclipse.ditto.signals.events.policies.PolicyModified;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigValueFactory;
@@ -83,6 +86,7 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
     private PoliciesJournalTestHelper<Event> journalTestHelper;
     private PoliciesSnapshotTestHelper<Policy> snapshotTestHelper;
     private Map<Class<? extends Command>, BiFunction<Command, Long, Event>> commandToEventMapperRegistry;
+    private DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub = Mockito.mock(DistributedPub.class);
 
     @Override
     protected void setup(final Config customConfig) {
@@ -406,7 +410,8 @@ public final class PolicyPersistenceActorSnapshottingTest extends PersistenceAct
 
     private ActorRef createPersistenceActorFor(final PolicyId policyId) {
         final SnapshotAdapter<Policy> snapshotAdapter = new PolicyMongoSnapshotAdapter();
-        final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator);
+        final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator,
+                policyAnnouncementPub);
         return actorSystem.actorOf(props);
     }
 

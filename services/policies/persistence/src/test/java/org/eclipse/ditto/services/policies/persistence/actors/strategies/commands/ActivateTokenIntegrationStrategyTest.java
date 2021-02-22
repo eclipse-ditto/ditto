@@ -12,6 +12,7 @@
  */
 package org.eclipse.ditto.services.policies.persistence.actors.strategies.commands;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.ditto.services.policies.persistence.TestConstants.Policy.LABEL;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
@@ -20,12 +21,15 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
 
+import org.eclipse.ditto.model.base.headers.DittoDuration;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.ResourceKey;
+import org.eclipse.ditto.model.policies.SubjectAnnouncement;
+import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIdInvalidException;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
@@ -79,7 +83,6 @@ public final class ActivateTokenIntegrationStrategyTest extends AbstractPolicyCo
                         dittoHeaders));
     }
 
-    /* TODO: replace by announcement
     @Test
     public void roundUpNotifyBeforeDuration() {
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
@@ -92,21 +95,21 @@ public final class ActivateTokenIntegrationStrategyTest extends AbstractPolicyCo
         // announcement duration is rounded up if it is not a multiple of the configured granularity (3s)
         final ActivateTokenIntegration commandToRoundUp =
                 ActivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId),
-                        SubjectExpiry.newInstance(expiry, duration), dittoHeaders);
+                        SubjectExpiry.newInstance(expiry), SubjectAnnouncement.of(duration, false), dittoHeaders);
         final SubjectCreated event = (SubjectCreated) getEvent(
                 applyStrategy(underTest, context, TestConstants.Policy.POLICY, commandToRoundUp));
-        assertThat(event.getSubject().getExpiry().orElseThrow().getNotifyBefore()).contains(roundedUpDuration);
+        assertThat(event.getSubject().getAnnouncement().getBeforeExpiry()).contains(roundedUpDuration);
 
         // announcement duration is not rounded up if it is a multiple of the configured granularity (3s)
         final ActivateTokenIntegration commandToNotRoundUp =
                 ActivateTokenIntegration.of(context.getState(), LABEL, Collections.singleton(subjectId),
-                        SubjectExpiry.newInstance(expiry, roundedUpDuration), dittoHeaders);
+                        SubjectExpiry.newInstance(expiry), SubjectAnnouncement.of(roundedUpDuration, false),
+                        dittoHeaders);
         final SubjectCreated notRoundedUpEvent = (SubjectCreated) getEvent(
                 applyStrategy(underTest, context, TestConstants.Policy.POLICY, commandToNotRoundUp));
-        assertThat(notRoundedUpEvent.getSubject().getExpiry().orElseThrow().getNotifyBefore())
+        assertThat(notRoundedUpEvent.getSubject().getAnnouncement().getBeforeExpiry())
                 .contains(roundedUpDuration);
     }
-     */
 
     @Test
     public void activateInvalidTokenIntegration() {

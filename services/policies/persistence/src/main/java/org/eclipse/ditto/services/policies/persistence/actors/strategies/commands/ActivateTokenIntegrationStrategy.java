@@ -35,6 +35,7 @@ import org.eclipse.ditto.model.policies.PolicyBuilder;
 import org.eclipse.ditto.model.policies.PolicyEntry;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.SubjectAnnouncement;
 import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectType;
@@ -89,12 +90,15 @@ final class ActivateTokenIntegrationStrategy
             final SubjectType subjectType = PoliciesModelFactory.newSubjectType(
                     MessageFormat.format(MESSAGE_PATTERN_SUBJECT_TYPE, command.getName(), Instant.now().toString()));
             final SubjectExpiry adjustedSubjectExpiry = roundPolicySubjectExpiry(commandSubjectExpiry);
+            final SubjectAnnouncement adjustedSubjectAnnouncement =
+                    roundSubjectAnnouncement(command.getSubjectAnnouncement());
             final ActivateTokenIntegration adjustedCommand = ActivateTokenIntegration.of(
                     command.getEntityId(), command.getLabel(), subjectIds, adjustedSubjectExpiry.getTimestamp(),
                     dittoHeaders);
 
             final Set<Subject> adjustedSubjects = subjectIds.stream()
-                    .map(subjectId -> Subject.newInstance(subjectId, subjectType, adjustedSubjectExpiry))
+                    .map(subjectId -> Subject.newInstance(subjectId, subjectType, adjustedSubjectExpiry,
+                            adjustedSubjectAnnouncement))
                     .collect(Collectors.toCollection(LinkedHashSet::new));
 
             final PolicyBuilder policyBuilder = nonNullPolicy.toBuilder();

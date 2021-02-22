@@ -67,6 +67,8 @@ import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSna
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersistenceActor;
+import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
@@ -105,6 +107,7 @@ import org.eclipse.ditto.signals.events.policies.SubjectCreated;
 import org.eclipse.ditto.signals.events.policies.SubjectDeleted;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import akka.actor.AbstractActor;
 import akka.actor.Actor;
@@ -130,6 +133,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
     private static final long POLICY_SIZE_LIMIT_BYTES = Long.parseLong(
             System.getProperty(PolicyCommandSizeValidator.DITTO_LIMITS_POLICIES_MAX_SIZE_BYTES, "-1"));
+
+    @SuppressWarnings("unchecked")
+    private final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub = Mockito.mock(DistributedPub.class);
 
     @Before
     public void setup() {
@@ -1195,7 +1201,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final ClusterShardingSettings shardingSettings =
                         ClusterShardingSettings.apply(actorSystem).withRole("policies");
                 final Props props =
-                        PolicyPersistenceActor.props(policyId, new PolicyMongoSnapshotAdapter(), pubSubMediator);
+                        PolicyPersistenceActor.props(policyId, new PolicyMongoSnapshotAdapter(), pubSubMediator,
+                                policyAnnouncementPub);
                 final Cluster cluster = Cluster.get(actorSystem);
                 cluster.join(cluster.selfAddress());
                 final ActorRef underTest = ClusterSharding.get(actorSystem)
@@ -1426,7 +1433,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 // GIVEN: a PolicyPersistenceActor is created in a parent that forwards all messages to us
                 final PolicyId policyId = PolicyId.of("test.ns", "nonexistent.policy");
                 final Props persistentActorProps =
-                        PolicyPersistenceActor.props(policyId, new PolicyMongoSnapshotAdapter(), pubSubMediator);
+                        PolicyPersistenceActor.props(policyId, new PolicyMongoSnapshotAdapter(), pubSubMediator,
+                                policyAnnouncementPub);
 
                 final TestProbe errorsProbe = TestProbe.apply(actorSystem);
 
@@ -1484,7 +1492,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
     private ActorRef createPersistenceActorFor(final TestKit testKit, final PolicyId policyId) {
         final SnapshotAdapter<Policy> snapshotAdapter = new PolicyMongoSnapshotAdapter();
-        final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator);
+        final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator,
+                policyAnnouncementPub);
         return testKit.watch(actorSystem.actorOf(props));
     }
 

@@ -22,8 +22,10 @@ import static org.eclipse.ditto.protocoladapter.TestConstants.THING_ID;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.UUID;
 
 import org.eclipse.ditto.json.JsonArray;
@@ -43,6 +45,7 @@ import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.signals.acks.base.Acknowledgement;
 import org.eclipse.ditto.signals.acks.base.Acknowledgements;
+import org.eclipse.ditto.signals.announcements.policies.SubjectDeletionAnnouncement;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.policies.PolicyErrorResponse;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
@@ -64,7 +67,6 @@ import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionCreated;
 import org.eclipse.ditto.signals.events.thingsearch.SubscriptionEvent;
-import org.eclipse.ditto.signals.announcements.policies.SubjectDeletionAnnouncement;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -583,12 +585,14 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
         ));
 
         final Adaptable adaptable = ProtocolFactory.jsonifiableAdaptableFromJson(json);
-        final SubjectDeletionAnnouncement announcement = (SubjectDeletionAnnouncement) underTest.fromAdaptable(adaptable);
+        final SubjectDeletionAnnouncement announcement =
+                (SubjectDeletionAnnouncement) underTest.fromAdaptable(adaptable);
+        final Set<SubjectId> expectedSubjectIds = new LinkedHashSet<>(
+                Arrays.asList(SubjectId.newInstance("ditto:sub1"), SubjectId.newInstance("ditto:sub2")));
 
         assertThat((CharSequence) announcement.getEntityId()).isEqualTo(PolicyId.of("policy:id"));
         assertThat(announcement.getDeletedAt()).isEqualTo(expiry);
-        assertThat(announcement.getSubjectIds())
-                .isEqualTo(Arrays.asList(SubjectId.newInstance("ditto:sub1"), SubjectId.newInstance("ditto:sub2")));
+        assertThat(announcement.getSubjectIds()).isEqualTo(expectedSubjectIds);
         assertThat(announcement.getDittoHeaders().getCorrelationId()).contains(correlationId);
     }
 

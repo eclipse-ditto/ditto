@@ -48,6 +48,8 @@ import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersiste
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
+import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
+import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyNotAccessibleException;
 import org.eclipse.ditto.signals.events.policies.PolicyEvent;
@@ -83,13 +85,16 @@ public final class PolicyPersistenceActor
     private static final String NEXT_SUBJECT_EXPIRY_TIMER = "next-subject-expiry-timer";
 
     private final ActorRef pubSubMediator;
+    private final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub;
     private final PolicyConfig policyConfig;
 
     PolicyPersistenceActor(final PolicyId policyId,
             final SnapshotAdapter<Policy> snapshotAdapter,
-            final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator,
+            final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub) {
         super(policyId, snapshotAdapter);
         this.pubSubMediator = pubSubMediator;
+        this.policyAnnouncementPub = policyAnnouncementPub;
         final DittoPoliciesConfig policiesConfig = DittoPoliciesConfig.of(
                 DefaultScopedConfig.dittoScoped(getContext().getSystem().settings().config())
         );
@@ -102,13 +107,16 @@ public final class PolicyPersistenceActor
      * @param policyId the ID of the Policy this Actor manages.
      * @param snapshotAdapter the adapter to serialize Policy snapshots.
      * @param pubSubMediator the PubSub mediator actor.
+     * @param policyAnnouncementPub the publisher interface for policy announcements.
      * @return the Akka configuration Props object
      */
     public static Props props(final PolicyId policyId,
             final SnapshotAdapter<Policy> snapshotAdapter,
-            final ActorRef pubSubMediator) {
+            final ActorRef pubSubMediator,
+            final DistributedPub<PolicyAnnouncement<?>> policyAnnouncementPub) {
 
-        return Props.create(PolicyPersistenceActor.class, policyId, snapshotAdapter, pubSubMediator);
+        return Props.create(PolicyPersistenceActor.class, policyId, snapshotAdapter, pubSubMediator,
+                policyAnnouncementPub);
     }
 
     @Override
