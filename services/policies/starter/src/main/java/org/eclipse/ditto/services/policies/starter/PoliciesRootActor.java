@@ -32,7 +32,6 @@ import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
 import org.eclipse.ditto.services.utils.health.config.MetricsReporterConfig;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
 import org.eclipse.ditto.signals.commands.devops.RetrieveStatisticsDetails;
 
@@ -100,12 +99,7 @@ public final class PoliciesRootActor extends DittoRootActor {
         final MetricsReporterConfig metricsReporterConfig =
                 healthCheckConfig.getPersistenceConfig().getMetricsReporterConfig();
         final Props healthCheckingActorProps = DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
-                MongoHealthChecker.props(),
-                MongoMetricsReporter.props(
-                        metricsReporterConfig.getResolution(),
-                        metricsReporterConfig.getHistory(),
-                        pubSubMediator
-                )
+                MongoHealthChecker.props()
         );
         final ActorRef healthCheckingActor =
                 startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME, healthCheckingActorProps);
