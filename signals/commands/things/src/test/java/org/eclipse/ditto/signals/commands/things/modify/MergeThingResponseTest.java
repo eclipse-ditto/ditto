@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.signals.commands.things.modify;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.ditto.signals.commands.things.TestConstants.Thing.ABSOLUTE_LOCATION_ATTRIBUTE_POINTER;
 import static org.eclipse.ditto.signals.commands.things.TestConstants.Thing.THING_ID;
 import static org.eclipse.ditto.signals.commands.things.assertions.ThingCommandAssertions.assertThat;
@@ -29,9 +28,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.signals.commands.base.CommandNotSupportedException;
 import org.eclipse.ditto.signals.commands.things.ThingCommandResponse;
 import org.junit.Test;
 
@@ -80,11 +77,4 @@ public class MergeThingResponseTest {
         DittoJsonAssertions.assertThat(actual).isEqualTo(KNOWN_JSON);
     }
 
-    @Test
-    public void ensureSchemaVersion() {
-        final ThingId thingId = ThingId.of("foo", "bar");
-        assertThatThrownBy(() -> MergeThingResponse.of(thingId, JsonPointer.empty(),
-                DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_1).build()))
-                .isInstanceOf(CommandNotSupportedException.class);
-    }
 }

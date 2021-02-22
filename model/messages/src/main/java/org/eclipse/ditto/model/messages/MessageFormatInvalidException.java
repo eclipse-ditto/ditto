@@ -54,7 +54,7 @@ public final class MessageFormatInvalidException extends DittoRuntimeException i
             "Please make sure that the message has the correct format or change the used json schema for validation.";
 
     private static final JsonFieldDefinition<JsonArray> VALIDATION_ERRORS =
-            JsonFactory.newJsonArrayFieldDefinition("validationErrors", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("validationErrors", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private static final long serialVersionUID = -7767643705375184157L;

@@ -98,8 +98,6 @@ public abstract class AbstractMessageMappingProcessorActorTest {
     static final String FAULTY_MAPPER = FaultyMessageMapper.ALIAS;
     static final String ADD_HEADER_MAPPER = AddHeaderMessageMapper.ALIAS;
     static final String DUPLICATING_MAPPER = DuplicatingMessageMapper.ALIAS;
-    static final AuthorizationContext AUTHORIZATION_CONTEXT_WITH_DUPLICATES =
-            TestConstants.Authorization.withUnprefixedSubjects(AUTHORIZATION_CONTEXT);
     static final DittoHeaders HEADERS_WITH_REPLY_INFORMATION = DittoHeaders.newBuilder()
             .replyTarget(0)
             .expectedResponseTypes(ResponseType.RESPONSE, ResponseType.ERROR, ResponseType.NACK)
@@ -212,7 +210,7 @@ public abstract class AbstractMessageMappingProcessorActorTest {
                 assertThat(modifyAttribute.getDittoHeaders().getCorrelationId()).contains(
                         modifyCommand.getDittoHeaders().getCorrelationId().orElse(null));
                 assertThat(modifyAttribute.getDittoHeaders().getAuthorizationContext())
-                        .isEqualTo(AUTHORIZATION_CONTEXT_WITH_DUPLICATES);
+                        .isEqualTo(AUTHORIZATION_CONTEXT);
                 // thing ID is included in the header for error reporting
                 assertThat(modifyAttribute.getDittoHeaders())
                         .extracting(headers -> headers.get(DittoHeaderDefinition.ENTITY_ID.getKey()))

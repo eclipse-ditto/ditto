@@ -74,7 +74,7 @@ public final class RetrieveFeatureDesiredPropertiesStrategyTest extends Abstract
     }
 
     @Test
-    public void getNonExistingProperties() {
+    public void getNonExistingDesiredProperties() {
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final RetrieveFeatureDesiredProperties command =
                 RetrieveFeatureDesiredProperties.of(context.getState(), FLUX_CAPACITOR_ID, DittoHeaders.empty());
@@ -82,7 +82,7 @@ public final class RetrieveFeatureDesiredPropertiesStrategyTest extends Abstract
                 ExceptionFactory.featureDesiredPropertiesNotFound(command.getThingEntityId(), command.getFeatureId(),
                         command.getDittoHeaders());
 
-        assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR.removeProperties()), command,
+        assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR.removeDesiredProperties()), command,
                 expectedException);
     }
 

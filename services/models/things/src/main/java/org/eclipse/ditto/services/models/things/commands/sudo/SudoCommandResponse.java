@@ -63,7 +63,7 @@ public interface SudoCommandResponse<T extends SudoCommandResponse<T>> extends C
          * JSON field containing the Thing ID.
          */
         public static final JsonFieldDefinition<String> JSON_THING_ID =
-                JsonFactory.newStringFieldDefinition("payload/thingId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("payload/thingId", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

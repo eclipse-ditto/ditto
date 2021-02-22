@@ -81,7 +81,7 @@ public interface ThingCommand<T extends ThingCommand<T>> extends Command<T>, Wit
          * JSON field containing the ThingCommand's thingId.
          */
         public static final JsonFieldDefinition<String> JSON_THING_ID =
-                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
     }

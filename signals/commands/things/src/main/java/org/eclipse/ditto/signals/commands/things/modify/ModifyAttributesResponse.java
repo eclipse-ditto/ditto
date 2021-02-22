@@ -54,7 +54,7 @@ public final class ModifyAttributesResponse extends AbstractCommandResponse<Modi
     public static final String TYPE = TYPE_PREFIX + ModifyAttributes.NAME;
 
     static final JsonFieldDefinition<JsonObject> JSON_ATTRIBUTES =
-            JsonFactory.newJsonObjectFieldDefinition("attributes", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("attributes", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;

@@ -52,7 +52,7 @@ public final class ChangeLogLevel extends AbstractDevOpsCommand<ChangeLogLevel> 
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     public static final JsonFieldDefinition<JsonObject> JSON_LOGGER_CONFIG =
-            JsonFactory.newJsonObjectFieldDefinition("loggerConfig", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("loggerConfig", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final LoggerConfig loggerConfig;

@@ -15,10 +15,14 @@ package org.eclipse.ditto.model.enforcers.testbench.scenarios.scenario4;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.testbench.algorithms.PolicyAlgorithm;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
+import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
@@ -51,11 +55,11 @@ public class Scenario4MultipleSubjects1 implements Scenario4MultipleSubjects {
                 getPolicy(),
                 Scenario.newAuthorizationContext(SUBJECT_1, SUBJECT_3, SUBJECT_5),
                 "/",
-                Collections.singleton(createSubjectString(SUBJECT_1)),
+                Collections.singleton(AuthorizationSubject.newInstance(createSubjectString(SUBJECT_1))),
                 policyAlgorithm -> // as those subjects have some READ granted somewhere they shall be able to read "/" partially
-                        policyAlgorithm.getSubjectIdsWithPartialPermission(
-                                PoliciesResourceType.thingResource("/"), "READ")
-                                .containsAll(Arrays.asList(
+                        policyAlgorithm.getSubjectsWithPartialPermission(
+                                PoliciesResourceType.thingResource("/"), Permissions.newInstance("READ"))
+                                .containsAll(Stream.of(
                                         createSubjectString(SUBJECT_1),
                                         createSubjectString(SUBJECT_2),
                                         createSubjectString(SUBJECT_3),
@@ -65,7 +69,7 @@ public class Scenario4MultipleSubjects1 implements Scenario4MultipleSubjects {
 //                                        createSubjectString(SUBJECT_7), // no READ granted
                                         createSubjectString(SUBJECT_8)
 //                                        createSubjectString(SUBJECT_9) // no READ granted
-                                        )
+                                        ).map(AuthorizationSubject::newInstance).collect(Collectors.toList())
                                 ),
                 "READ");
     }

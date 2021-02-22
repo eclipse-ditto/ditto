@@ -102,14 +102,6 @@ public interface Event<T extends Event<T>> extends Signal<T>, WithOptionalEntity
     class JsonFields {
 
         /**
-         * JSON field containing the event's identifier - was used in SchemaVersion 1 instead of "type".
-         * @deprecated was replaced by {@link #TYPE} in Schema Version 2
-         */
-        @Deprecated
-        public static final JsonFieldDefinition<String> ID =
-                JsonFactory.newStringFieldDefinition("event", FieldType.REGULAR, JsonSchemaVersion.V_1);
-
-        /**
          * JSON field containing the event's type. Always included in new events.
          */
         public static final JsonFieldDefinition<String> TYPE = JsonFactory.newStringFieldDefinition("type");
@@ -118,14 +110,14 @@ public interface Event<T extends Event<T>> extends Signal<T>, WithOptionalEntity
          * JSON field containing the event's revision.
          */
         public static final JsonFieldDefinition<Long> REVISION =
-                JsonFactory.newLongFieldDefinition("revision", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newLongFieldDefinition("revision", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the event's timestamp.
          */
         public static final JsonFieldDefinition<String> TIMESTAMP =
-                JsonFactory.newStringFieldDefinition("_timestamp", FieldType.SPECIAL, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("_timestamp", FieldType.SPECIAL,
                         JsonSchemaVersion.V_2);
 
         /**
@@ -134,7 +126,7 @@ public interface Event<T extends Event<T>> extends Signal<T>, WithOptionalEntity
          * @since 1.3.0
          */
         public static final JsonFieldDefinition<JsonObject> METADATA =
-                JsonFactory.newJsonObjectFieldDefinition("_metadata", FieldType.SPECIAL, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("_metadata", FieldType.SPECIAL,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

@@ -67,14 +67,14 @@ public interface Enforcement extends Jsonifiable.WithFieldSelectorAndPredicate<J
          * JSON field containing the input of the enforcement.
          */
         public static final JsonFieldDefinition<String> INPUT =
-                JsonFactory.newStringFieldDefinition("input", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("input", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Enforcement} filters.
          */
         public static final JsonFieldDefinition<JsonArray> FILTERS =
-                JsonFactory.newJsonArrayFieldDefinition("filters", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonArrayFieldDefinition("filters", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

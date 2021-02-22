@@ -15,9 +15,11 @@ package org.eclipse.ditto.model.enforcers.testbench.scenarios.scenario3;
 import java.util.Collections;
 import java.util.function.Function;
 
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.testbench.algorithms.PolicyAlgorithm;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
+import org.eclipse.ditto.model.policies.Permissions;
 import org.eclipse.ditto.model.policies.PoliciesResourceType;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
@@ -43,9 +45,9 @@ public class Scenario3Revoke7 implements Scenario3Revoke {
                 "/",
                 Collections.emptySet(),
                 policyAlgorithm -> // as the subject has READ granted on "/features" he shall be able to read "/" partially
-                        policyAlgorithm.getSubjectIdsWithPartialPermission(
-                                PoliciesResourceType.thingResource("/features"), "READ")
-                                .contains(EXPECTED_GRANTED_SUBJECT),
+                        policyAlgorithm.getSubjectsWithPartialPermission(
+                                PoliciesResourceType.thingResource("/features"), Permissions.newInstance("READ"))
+                                .contains(AuthorizationSubject.newInstance(EXPECTED_GRANTED_SUBJECT)),
                 "READ");
     }
 

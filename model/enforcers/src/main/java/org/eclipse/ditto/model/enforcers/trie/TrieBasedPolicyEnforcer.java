@@ -22,7 +22,6 @@ import org.eclipse.ditto.json.JsonKey;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
 import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.Permissions;
@@ -145,17 +144,6 @@ public final class TrieBasedPolicyEnforcer implements Enforcer {
     }
 
     @Override
-    public EffectedSubjectIds getSubjectIdsWithPermission(final ResourceKey resourceKey,
-            final Permissions permissions) {
-
-        checkResourceKey(resourceKey);
-        checkPermissions(permissions);
-        return inheritedTrie.seekToLeastAncestor(PolicyTrie.getJsonKeyIterator(resourceKey))
-                .getGrantRevokeIndex()
-                .getEffectedSubjectIds(permissions);
-    }
-
-    @Override
     public EffectedSubjects getSubjectsWithPermission(final ResourceKey resourceKey, final Permissions permissions) {
         checkResourceKey(resourceKey);
         checkPermissions(permissions);
@@ -170,17 +158,6 @@ public final class TrieBasedPolicyEnforcer implements Enforcer {
 
     private static void checkPermissions(final Permissions permissions) {
         checkNotNull(permissions, "permissions to check");
-    }
-
-    @Override
-    public Set<String> getSubjectIdsWithPartialPermission(final ResourceKey resourceKey,
-            final Permissions permissions) {
-
-        checkResourceKey(resourceKey);
-        checkPermissions(permissions);
-        final PolicyTrie policyTrie = seekWithFallback(resourceKey, bottomUpGrantTrie, inheritedTrie);
-        final GrantRevokeIndex grantRevokeIndex = policyTrie.getGrantRevokeIndex();
-        return grantRevokeIndex.getGrantedSubjectIds(permissions);
     }
 
     @Override

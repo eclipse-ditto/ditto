@@ -43,9 +43,6 @@ public final class ThingNotDeletableException extends DittoRuntimeException impl
      */
     public static final String ERROR_CODE = ERROR_CODE_PREFIX + "thing.notdeletable";
 
-    private static final String MESSAGE_TEMPLATE_V1 = "The Thing with ID ''{0}'' could not be deleted as the requester "
-            + "had insufficient permissions ( 'WRITE' and 'ADMINISTRATE' are required).";
-
     private static final String MESSAGE_TEMPLATE = "The Thing with ID ''{0}'' could not be deleted as the requester "
             + "had insufficient permissions ( 'WRITE' on root resource is required).";
 
@@ -140,15 +137,9 @@ public final class ThingNotDeletableException extends DittoRuntimeException impl
                     checkNotNull(dittoHeaders, "command headers").getSchemaVersion().orElse(JsonSchemaVersion.LATEST);
 
             if (message == null) {
-                if (schemaVersion.equals(JsonSchemaVersion.V_1)) {
-                    return new ThingNotDeletableException(dittoHeaders,
-                            MessageFormat.format(MESSAGE_TEMPLATE_V1, String.valueOf(thingId)),
-                            description, cause, href);
-                } else {
-                    return new ThingNotDeletableException(dittoHeaders,
-                            MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(thingId)),
-                            description, cause, href);
-                }
+                return new ThingNotDeletableException(dittoHeaders,
+                        MessageFormat.format(MESSAGE_TEMPLATE, String.valueOf(thingId)),
+                        description, cause, href);
             }
 
             return new ThingNotDeletableException(dittoHeaders, message, description, cause, href);

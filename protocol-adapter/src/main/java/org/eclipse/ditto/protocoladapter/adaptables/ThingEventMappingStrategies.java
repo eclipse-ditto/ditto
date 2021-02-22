@@ -23,10 +23,6 @@ import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
 import org.eclipse.ditto.protocoladapter.Payload;
-import org.eclipse.ditto.signals.events.things.AclEntryCreated;
-import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
-import org.eclipse.ditto.signals.events.things.AclEntryModified;
-import org.eclipse.ditto.signals.events.things.AclModified;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
 import org.eclipse.ditto.signals.events.things.AttributeDeleted;
 import org.eclipse.ditto.signals.events.things.AttributeModified;
@@ -54,7 +50,6 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
 import org.eclipse.ditto.signals.events.things.FeaturesCreated;
 import org.eclipse.ditto.signals.events.things.FeaturesDeleted;
 import org.eclipse.ditto.signals.events.things.FeaturesModified;
-import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
 import org.eclipse.ditto.signals.events.things.PolicyIdModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingDefinitionCreated;
@@ -82,7 +77,6 @@ final class ThingEventMappingStrategies extends AbstractThingMappingStrategies<T
     private static Map<String, JsonifiableMapper<ThingEvent<?>>> initMappingStrategies() {
         final Map<String, JsonifiableMapper<ThingEvent<?>>> mappingStrategies = new HashMap<>();
         addTopLevelEvents(mappingStrategies);
-        addAclEvents(mappingStrategies);
         addAttributeEvents(mappingStrategies);
         addDefinitionEvents(mappingStrategies);
         addFeatureEvents(mappingStrategies);
@@ -117,13 +111,6 @@ final class ThingEventMappingStrategies extends AbstractThingMappingStrategies<T
 
     private static void addPolicyIdEvents(
             final Map<String, JsonifiableMapper<ThingEvent<?>>> mappingStrategies) {
-        mappingStrategies.put(PolicyIdCreated.TYPE,
-                adaptable -> PolicyIdCreated.of(thingIdFrom(adaptable),
-                        policyIdFrom(adaptable),
-                        revisionFrom(adaptable),
-                        timestampFrom(adaptable),
-                        dittoHeadersFrom(adaptable),
-                        metadataFrom(adaptable)));
         mappingStrategies.put(PolicyIdModified.TYPE,
                 adaptable -> PolicyIdModified.of(thingIdFrom(adaptable),
                         policyIdFrom(adaptable),
@@ -240,7 +227,6 @@ final class ThingEventMappingStrategies extends AbstractThingMappingStrategies<T
                         dittoHeadersFrom(adaptable),
                         metadataFrom(adaptable)));
     }
-
 
 
     private static void addFeatureDefinitionEvents(
@@ -381,39 +367,6 @@ final class ThingEventMappingStrategies extends AbstractThingMappingStrategies<T
         mappingStrategies.put(AttributeDeleted.TYPE,
                 adaptable -> AttributeDeleted.of(thingIdFrom(adaptable),
                         attributePointerFrom(adaptable),
-                        revisionFrom(adaptable),
-                        timestampFrom(adaptable),
-                        dittoHeadersFrom(adaptable),
-                        metadataFrom(adaptable)));
-    }
-
-    private static void addAclEvents(
-            final Map<String, JsonifiableMapper<ThingEvent<?>>> mappingStrategies) {
-        mappingStrategies.put(AclModified.TYPE,
-                adaptable -> AclModified.of(thingIdFrom(adaptable),
-                        aclFrom(adaptable),
-                        revisionFrom(adaptable),
-                        timestampFrom(adaptable),
-                        dittoHeadersFrom(adaptable),
-                        metadataFrom(adaptable)));
-
-        mappingStrategies.put(AclEntryCreated.TYPE,
-                adaptable -> AclEntryCreated.of(thingIdFrom(adaptable),
-                        aclEntryFrom(adaptable),
-                        revisionFrom(adaptable),
-                        timestampFrom(adaptable),
-                        dittoHeadersFrom(adaptable),
-                        metadataFrom(adaptable)));
-        mappingStrategies.put(AclEntryModified.TYPE,
-                adaptable -> AclEntryModified.of(thingIdFrom(adaptable),
-                        aclEntryFrom(adaptable),
-                        revisionFrom(adaptable),
-                        timestampFrom(adaptable),
-                        dittoHeadersFrom(adaptable),
-                        metadataFrom(adaptable)));
-        mappingStrategies.put(AclEntryDeleted.TYPE,
-                adaptable -> AclEntryDeleted.of(thingIdFrom(adaptable),
-                        authorizationSubjectFrom(adaptable),
                         revisionFrom(adaptable),
                         timestampFrom(adaptable),
                         dittoHeadersFrom(adaptable),

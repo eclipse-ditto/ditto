@@ -19,8 +19,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.policies.EffectedPermissions;
@@ -33,8 +31,6 @@ import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.query.criteria.Criteria;
-import org.eclipse.ditto.model.things.AclEntry;
-import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
@@ -62,16 +58,8 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
         return findAll(qbf.newBuilder(criteria).build());
     }
 
-    boolean isV1() {
-        return getVersion() == JsonSchemaVersion.V_1;
-    }
-
     Thing persistThing(final Thing thing) {
-        if (isV1()) {
-            return persistThingV1(thing);
-        } else {
-            return persistThingV2(thing);
-        }
+        return persistThingV2(thing);
     }
 
     Thing createThing(final String thingId) {
@@ -79,11 +67,7 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
     }
 
     Thing createThing(final ThingId thingId) {
-        if (isV1()) {
-            return createThingV1(thingId);
-        } else {
-            return createThingV2(thingId);
-        }
+        return createThingV2(thingId);
     }
 
     List<Thing> createThings(final Collection<ThingId> thingIds) {
@@ -109,34 +93,6 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
         runBlockingWithReturn(writePersistence.delete(thingId, revision, policyId, policyRevision));
     }
 
-
-    /**
-     * Create a thing v1 with {@link Permission#READ} for {@link #KNOWN_SUBJECTS}.
-     *
-     * @param id The id of the thing.
-     * @return The created (not persisted) Thing object.
-     */
-    Thing createThingV1(final ThingId id) {
-        return createThingV1(id, KNOWN_SUBJECTS);
-    }
-
-    Thing createThingV1(final ThingId id, final Collection<String> subjects) {
-        final List<AclEntry> aclEntries = subjects.stream()
-                .map(subject -> AclEntry.newInstance(AuthorizationSubject.newInstance(subject),
-                        Collections.singletonList(Permission.READ)))
-                .collect(Collectors.toList());
-        return Thing.newBuilder()
-                .setId(id)
-                .setRevision(0L)
-                .setPermissions(aclEntries)
-                .build();
-    }
-
-    Thing persistThingV1(final Thing thingV1) {
-        log.info("EXECUTED {}", runBlockingWithReturn(writePersistence.writeThingWithAcl(thingV1)));
-        return thingV1;
-    }
-
     Thing createThingV2(final ThingId id) {
         return Thing.newBuilder()
                 .setId(id)
@@ -149,16 +105,6 @@ public abstract class AbstractReadPersistenceITBase extends AbstractThingSearchP
         final Enforcer enforcer = getPolicyEnforcer(thingV2.getEntityId().orElseThrow(IllegalStateException::new));
         log.info("EXECUTED {}", runBlockingWithReturn(writePersistence.write(thingV2, enforcer, 0L)));
         return thingV2;
-    }
-
-    /**
-     * Get the {@link JsonSchemaVersion} with which the Test is executed. If not overridden by subclass, it will return
-     * {@link JsonSchemaVersion#LATEST}.
-     *
-     * @return {@link JsonSchemaVersion#LATEST}
-     */
-    JsonSchemaVersion getVersion() {
-        return JsonSchemaVersion.LATEST;
     }
 
     /**

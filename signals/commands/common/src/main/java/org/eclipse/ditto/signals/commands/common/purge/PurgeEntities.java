@@ -192,13 +192,13 @@ public final class PurgeEntities extends CommonCommand<PurgeEntities> implements
          */
         public static final JsonFieldDefinition<String> ENTITY_TYPE =
                 JsonFactory.newStringFieldDefinition("entityType",
-                        FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        FieldType.REGULAR, JsonSchemaVersion.V_2);
         /**
          * The entityIDs.
          */
         public static final JsonFieldDefinition<JsonArray> ENTITY_IDS =
                 JsonFactory.newJsonArrayFieldDefinition("entityIds",
-                        FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     }
 

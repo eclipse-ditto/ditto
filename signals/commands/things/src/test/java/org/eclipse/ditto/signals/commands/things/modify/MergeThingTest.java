@@ -39,8 +39,6 @@ import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.things.AccessControlListModelFactory;
-import org.eclipse.ditto.model.things.AclNotAllowedException;
 import org.eclipse.ditto.model.things.AttributesModelFactory;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Thing;
@@ -410,17 +408,6 @@ public final class MergeThingTest {
         assertThat(entity).contains(LOCATION_ATTRIBUTE_VALUE);
     }
 
-    @Test(expected = AclNotAllowedException.class)
-    public void ensuresNoACLInV2Command() {
-        final DittoHeaders v2Headers = DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.LATEST).build();
-        final Thing thingWithAcl = TestConstants.Thing.THING.toBuilder()
-                .setPermissions(AuthorizationModelFactory.newAuthSubject("any"),
-                        AccessControlListModelFactory.allPermissions())
-                .removePolicyId()
-                .build();
-        MergeThing.withThing(TestConstants.Thing.THING_ID, thingWithAcl, v2Headers);
-    }
-
     @Test
     public void mergeTooLargeThing() {
         final StringBuilder sb = new StringBuilder();
@@ -440,13 +427,4 @@ public final class MergeThingTest {
                 .isInstanceOf(ThingTooLargeException.class);
     }
 
-    @Test
-    public void ensureSchemaVersion() {
-        final ThingId thingId = ThingId.of("foo", "bar");
-        final PolicyId policyId = PolicyId.of("foo", "bar");
-
-        assertThatThrownBy(() -> MergeThing.withPolicyId(thingId, policyId,
-                DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_1).build()))
-                .isInstanceOf(UnsupportedSchemaVersionException.class);
-    }
 }

@@ -331,35 +331,35 @@ public interface Acknowledgements
          * Definition of the JSON field for the Acknowledgements' entity ID.
          */
         static final JsonFieldDefinition<String> ENTITY_ID =
-                JsonFactory.newStringFieldDefinition("entityId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("entityId", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Definition of the JSON field for the Acknowledgements' entity type.
          */
         static final JsonFieldDefinition<String> ENTITY_TYPE =
-                JsonFactory.newStringFieldDefinition("entityType", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("entityType", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Definition of the JSON field for the Acknowledgements' statusCode.
          */
         static final JsonFieldDefinition<Integer> STATUS_CODE =
-                JsonFactory.newIntFieldDefinition("statusCode", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newIntFieldDefinition("statusCode", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Definition of the JSON field for the Acknowledgements' acknowledgements.
          */
         static final JsonFieldDefinition<JsonObject> ACKNOWLEDGEMENTS =
-                JsonFactory.newJsonObjectFieldDefinition("acknowledgements", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("acknowledgements", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Definition of the JSON field for the Acknowledgements' DittoHeaders.
          */
         static final JsonFieldDefinition<JsonObject> DITTO_HEADERS =
-                JsonFactory.newJsonObjectFieldDefinition("dittoHeaders", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("dittoHeaders", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
     }

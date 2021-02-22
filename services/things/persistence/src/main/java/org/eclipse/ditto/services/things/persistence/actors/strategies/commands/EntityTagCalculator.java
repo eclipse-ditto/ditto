@@ -18,8 +18,6 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.auth.AuthorizationModelFactory;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.things.Feature;
@@ -54,23 +52,6 @@ class EntityTagCalculator implements ThingResourceVisitor<Thing, Optional<Entity
     @Override
     public Optional<EntityTag> visitPolicyId(final JsonPointer path, @Nullable final Thing thing) {
         return EntityTag.fromEntity(thing);
-    }
-
-    @Override
-    @Deprecated
-    public Optional<EntityTag> visitAcl(final JsonPointer path, @Nullable final Thing thing) {
-        return Optional.ofNullable(thing).flatMap(Thing::getAccessControlList).flatMap(EntityTag::fromEntity);
-    }
-
-    @Override
-    @Deprecated
-    public Optional<EntityTag> visitAclEntry(final JsonPointer path, @Nullable final Thing thing) {
-        final AuthorizationSubject authSubject =
-                AuthorizationModelFactory.newAuthSubject(extractSubjectId(path));
-        return Optional.ofNullable(thing)
-                .flatMap(Thing::getAccessControlList)
-                .flatMap(acl -> acl.getEntryFor(authSubject))
-                .flatMap(EntityTag::fromEntity);
     }
 
     @Override

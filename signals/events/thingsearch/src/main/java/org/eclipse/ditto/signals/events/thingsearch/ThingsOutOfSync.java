@@ -65,7 +65,7 @@ public final class ThingsOutOfSync implements Event<ThingsOutOfSync>, WithIdButA
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     private static final JsonFieldDefinition<JsonArray> JSON_THING_IDS =
-            JsonFactory.newJsonArrayFieldDefinition("thingIds", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("thingIds", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final Collection<NamespacedEntityId> thingIds;

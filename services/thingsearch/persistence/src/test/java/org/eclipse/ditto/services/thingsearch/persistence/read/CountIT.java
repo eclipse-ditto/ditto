@@ -122,7 +122,7 @@ public final class CountIT extends AbstractReadPersistenceITBase {
     }
 
     private void insertThingWithAttribute(final ThingId thingId, final String attributeValue) {
-        final Thing thing = createThingV1(thingId, KNOWN_SUBJECTS);
+        final Thing thing = createThingV2(thingId);
 
         persistThing(thing
                 .setAttribute(KNOWN_ATTRIBUTE_KEY_1, attributeValue)

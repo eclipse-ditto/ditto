@@ -63,13 +63,13 @@ public interface LoggerConfig extends Jsonifiable.WithPredicate<JsonObject, Json
          * JSON field containing the {@link LogLevel} to set.
          */
         public static final JsonFieldDefinition<String> LEVEL = JsonFactory.newStringFieldDefinition("level",
-                FieldType.REGULAR, JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                FieldType.REGULAR, JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the logger to change.
          */
         public static final JsonFieldDefinition<String> LOGGER =
-                JsonFactory.newStringFieldDefinition("logger", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("logger", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

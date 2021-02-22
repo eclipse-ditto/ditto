@@ -57,11 +57,11 @@ public final class CountThings extends AbstractCommand<CountThings> implements T
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_FILTER =
-            JsonFactory.newStringFieldDefinition("filter", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("filter", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonArray> JSON_NAMESPACES =
-            JsonFactory.newJsonArrayFieldDefinition("namespaces", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("namespaces", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     @Nullable private final String filter;

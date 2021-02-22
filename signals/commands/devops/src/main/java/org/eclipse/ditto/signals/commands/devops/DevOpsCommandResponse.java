@@ -68,7 +68,7 @@ public interface DevOpsCommandResponse<T extends DevOpsCommandResponse<T>> exten
          * JSON field containing the serviceName from which the DevOpsCommandResponse originates.
          */
         public static final JsonFieldDefinition<String> JSON_SERVICE_NAME =
-                JsonFactory.newStringFieldDefinition("serviceName", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("serviceName", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
@@ -76,7 +76,7 @@ public interface DevOpsCommandResponse<T extends DevOpsCommandResponse<T>> exten
          * originates.
          */
         public static final JsonFieldDefinition<String> JSON_INSTANCE =
-                JsonFactory.newStringFieldDefinition("instance", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("instance", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
     }

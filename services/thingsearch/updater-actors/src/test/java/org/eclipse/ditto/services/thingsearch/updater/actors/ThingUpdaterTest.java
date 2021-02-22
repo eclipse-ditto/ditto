@@ -13,13 +13,8 @@
 package org.eclipse.ditto.services.thingsearch.updater.actors;
 
 import org.assertj.core.api.Assertions;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.model.things.AccessControlListModelFactory;
-import org.eclipse.ditto.model.things.AclEntry;
-import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -32,7 +27,6 @@ import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.signals.commands.common.Shutdown;
 import org.eclipse.ditto.signals.commands.common.ShutdownReasonFactory;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
-import org.eclipse.ditto.signals.events.things.ThingEvent;
 import org.eclipse.ditto.signals.events.things.ThingModified;
 import org.junit.After;
 import org.junit.Before;
@@ -55,17 +49,14 @@ public final class ThingUpdaterTest {
     private static final String NAMESPACE = "abc";
 
     private static final ThingId THING_ID = ThingId.of(NAMESPACE, "myId");
+    private static final PolicyId POLICY_ID = PolicyId.of(THING_ID);
 
     private static final long REVISION = 1L;
 
-    private static final AuthorizationSubject AUTHORIZATION_SUBJECT = AuthorizationSubject.newInstance("sid");
-
-    private static final AclEntry ACL_ENTRY =
-            AclEntry.newInstance(AUTHORIZATION_SUBJECT, AccessControlListModelFactory.allPermissions());
-
-    private static final AccessControlList ACL = AccessControlListModelFactory.newAcl(ACL_ENTRY);
-
-    private final Thing thing = ThingsModelFactory.newThingBuilder().setId(THING_ID).setRevision(REVISION).build();
+    private final Thing thing = ThingsModelFactory.newThingBuilder()
+            .setId(THING_ID)
+            .setPolicyId(POLICY_ID)
+            .setRevision(REVISION).build();
 
     private ActorSystem actorSystem;
     private TestProbe pubSubTestProbe;
@@ -100,17 +91,12 @@ public final class ThingUpdaterTest {
 
     @Test
     public void createThing() {
-        // disable policy load
         final DittoHeaders dittoHeaders = DittoHeaders.empty();
         new TestKit(actorSystem) {
             {
-                final Thing thingWithAcl =
-                        thing.setAclEntry(AclEntry.newInstance(AuthorizationSubject.newInstance("user1"),
-                                Permission.READ)).toBuilder().setRevision(1L).build();
-
                 final ActorRef underTest = createThingUpdaterActor();
 
-                final ThingEvent thingCreated = ThingCreated.of(thingWithAcl, 1L, dittoHeaders);
+                final ThingCreated thingCreated = ThingCreated.of(thing, 1L, dittoHeaders);
                 underTest.tell(thingCreated, getRef());
 
                 final Metadata metadata = changeQueueTestProbe.expectMsgClass(Metadata.class);
@@ -127,8 +113,8 @@ public final class ThingUpdaterTest {
         final long revision = 7L;
         final Thing currentThing = ThingsModelFactory.newThingBuilder()
                 .setId(THING_ID)
+                .setPolicyId(POLICY_ID)
                 .setRevision(revision)
-                .setPermissions(ACL)
                 .build();
         final long thingTagRevision = revision + 9L;
         final ThingTag thingTag = ThingTag.of(THING_ID, thingTagRevision);
@@ -159,8 +145,8 @@ public final class ThingUpdaterTest {
         final long revision = 7L;
         final Thing currentThing = ThingsModelFactory.newThingBuilder()
                 .setId(THING_ID)
+                .setPolicyId(POLICY_ID)
                 .setRevision(revision)
-                .setPermissions(ACL)
                 .build();
         final long thingTagRevision = revision - 2L;
         final ThingTag thingTag = ThingTag.of(THING_ID, thingTagRevision);
@@ -225,14 +211,6 @@ public final class ThingUpdaterTest {
     @Test
     public void acknowledgesSuccessfulSync() {
         final long thingTagRevision = 7L;
-        final long thingRevision = 20L;
-
-        final Thing currentThing = ThingsModelFactory.newThingBuilder()
-                .setId(THING_ID)
-                .setRevision(thingRevision)
-                .setPermissions(ACL)
-                .build();
-
         new TestKit(actorSystem) {
             {
                 final ActorRef underTest = createThingUpdaterActor();

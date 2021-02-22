@@ -34,15 +34,10 @@ import nl.jqno.equalsverifier.EqualsVerifier;
  */
 public final class SudoRetrieveNamespaceReportTest {
 
-    private static final String JSON_V1 = JsonFactory.newObjectBuilder()
-            .set(ThingSearchCommand.JsonFields.ID, SudoRetrieveNamespaceReport.NAME)
-            .build().toString();
-
     private static final String JSON_V2 = JsonFactory.newObjectBuilder()
             .set(ThingSearchCommand.JsonFields.TYPE, SudoRetrieveNamespaceReport.TYPE)
             .build().toString();
 
-    /** */
     @Test
     public void assertImmutability() {
         assertInstancesOf(SudoRetrieveNamespaceReport.class,
@@ -50,7 +45,6 @@ public final class SudoRetrieveNamespaceReportTest {
                 provided(AuthorizationContext.class, JsonFieldSelector.class).isAlsoImmutable());
     }
 
-    /** */
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(SudoRetrieveNamespaceReport.class)
@@ -59,16 +53,6 @@ public final class SudoRetrieveNamespaceReportTest {
                 .verify();
     }
 
-    /** */
-    @Test
-    public void toJsonWithSchemaVersion1ReturnsExpected() {
-        final SudoRetrieveNamespaceReport underTest = SudoRetrieveNamespaceReport.of(DittoHeaders.empty());
-        final JsonValue jsonValue = underTest.toJson(JsonSchemaVersion.V_1, FieldType.regularOrSpecial());
-
-        assertThat(jsonValue.toString()).isEqualTo(JSON_V1);
-    }
-
-    /** */
     @Test
     public void toJsonWithSchemaVersion2ReturnsExpected() {
         final SudoRetrieveNamespaceReport underTest = SudoRetrieveNamespaceReport.of(DittoHeaders.empty());

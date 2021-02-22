@@ -97,7 +97,6 @@ public abstract class AbstractGlobalJsonParsableRegistry<T, A extends Annotation
                     final AnnotationBasedJsonParsable<T> strategy =
                             annotationBasedJsonParsableFactory.fromAnnotation(fromJsonAnnotation, classToParse);
                     parseRegistries.put(strategy.getKey(), strategy);
-                    parseRegistries.put(strategy.getV1FallbackKey(), strategy);
                 });
 
         return parseRegistries;

@@ -414,7 +414,7 @@ public final class ImmutableFeatureTest {
                 .withId(TestConstants.Feature.FLUX_CAPACITOR_ID)
                 .build();
 
-        assertThat(feature).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR_V2);
+        assertThat(feature).isEqualTo(TestConstants.Feature.FLUX_CAPACITOR);
     }
 
     @Test

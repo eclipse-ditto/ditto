@@ -58,15 +58,15 @@ public final class ModifyFeatureProperty extends AbstractCommand<ModifyFeaturePr
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<String> JSON_PROPERTY =
-            JsonFactory.newStringFieldDefinition("property", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("property", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonValue> JSON_PROPERTY_VALUE =
-            JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;

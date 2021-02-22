@@ -176,7 +176,7 @@ public final class PurgeNamespaceResponse extends AbstractNamespaceCommandRespon
          * This JSON field indicates whether the namespace was purged successfully.
          */
         public static final JsonFieldDefinition<Boolean> SUCCESSFUL =
-                JsonFactory.newBooleanFieldDefinition("successful", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newBooleanFieldDefinition("successful", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

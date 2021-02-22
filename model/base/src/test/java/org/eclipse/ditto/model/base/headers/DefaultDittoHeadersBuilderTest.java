@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
@@ -36,9 +35,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.acks.AcknowledgementLabel;
 import org.eclipse.ditto.model.base.acks.AcknowledgementRequest;
 import org.eclipse.ditto.model.base.assertions.DittoBaseAssertions;
-import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
-import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.exceptions.DittoHeaderInvalidException;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTagMatchers;
 import org.eclipse.ditto.model.base.headers.metadata.MetadataHeader;
@@ -55,7 +52,7 @@ public final class DefaultDittoHeadersBuilderTest {
 
     private static final List<String> AUTHORIZATION_SUBJECTS = Arrays.asList("Foo", "Bar");
     private static final String CORRELATION_ID = "correlationId";
-    private static final JsonSchemaVersion JSON_SCHEMA_VERSION = JsonSchemaVersion.V_1;
+    private static final JsonSchemaVersion JSON_SCHEMA_VERSION = JsonSchemaVersion.V_2;
     private static final String CHANNEL = "twin";
     private static final Collection<String> READ_SUBJECTS = Arrays.asList("read", "subjects");
 
@@ -74,7 +71,7 @@ public final class DefaultDittoHeadersBuilderTest {
                 .hasNoCorrelationId()
                 .hasNoSchemaVersion()
                 .hasNoAuthorizationSubjects()
-                .hasNoReadSubjects();
+                .hasNoReadGrantedSubjects();
     }
 
     @Test
@@ -130,7 +127,8 @@ public final class DefaultDittoHeadersBuilderTest {
         DittoBaseAssertions.assertThat(dittoHeaders)
                 .hasCorrelationId(CORRELATION_ID)
                 .hasSchemaVersion(JSON_SCHEMA_VERSION)
-                .hasReadSubject("read", "subjects");
+                .hasReadGrantedSubject(AuthorizationSubject.newInstance("read"),
+                        AuthorizationSubject.newInstance("subjects"));
     }
 
     @Test
@@ -351,26 +349,6 @@ public final class DefaultDittoHeadersBuilderTest {
 
         assertThat(dittoHeaders)
                 .containsEntry(DittoHeaderDefinition.RESPONSE_REQUIRED.getKey(), Boolean.FALSE.toString());
-    }
-
-    @Test
-    public void removesDuplicatedAuthSubjects() {
-        final Collection<String> authSubjectsWithDuplicates = Arrays.asList("test:sub", "sub");
-        final AuthorizationContext authorizationContextWithDuplicates =
-                AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                        authSubjectsWithDuplicates.stream()
-                                .map(AuthorizationSubject::newInstance)
-                                .collect(Collectors.toList()));
-        final AuthorizationContext authorizationContextWithoutDuplicates =
-                AuthorizationContext.newInstance(DittoAuthorizationContextType.UNSPECIFIED,
-                        AuthorizationSubject.newInstance("test:sub"));
-        final DittoHeaders dittoHeaders = underTest
-                .authorizationContext(authorizationContextWithDuplicates)
-                .build();
-
-        assertThat(dittoHeaders.getAuthorizationContext()).isEqualTo(authorizationContextWithDuplicates);
-        assertThat(dittoHeaders.get(DittoHeaderDefinition.AUTHORIZATION_CONTEXT.getKey()))
-                .isEqualTo(authorizationContextWithoutDuplicates.toJsonString());
     }
 
     @Test

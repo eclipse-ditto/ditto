@@ -59,7 +59,7 @@ public final class FeatureCreated extends AbstractThingEvent<FeatureCreated> imp
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<JsonObject> JSON_FEATURE =
-            JsonFactory.newJsonObjectFieldDefinition("feature", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonObjectFieldDefinition("feature", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final Feature feature;

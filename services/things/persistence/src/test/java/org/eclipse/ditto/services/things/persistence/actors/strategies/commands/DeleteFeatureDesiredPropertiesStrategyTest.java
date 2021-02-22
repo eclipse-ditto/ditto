@@ -84,8 +84,8 @@ public final class DeleteFeatureDesiredPropertiesStrategyTest extends AbstractCo
     }
 
     @Test
-    public void deleteFeatureDesiredPropertiesFromFeatureWithoutProperties() {
-        final Feature feature = FLUX_CAPACITOR.removeProperties();
+    public void deleteFeatureDesiredPropertiesFromFeatureWithoutDesiredProperties() {
+        final Feature feature = FLUX_CAPACITOR.removeDesiredProperties();
         final CommandStrategy.Context<ThingId> context = getDefaultContext();
         final DeleteFeatureDesiredProperties command =
                 DeleteFeatureDesiredProperties.of(context.getState(), feature.getId(), DittoHeaders.empty());

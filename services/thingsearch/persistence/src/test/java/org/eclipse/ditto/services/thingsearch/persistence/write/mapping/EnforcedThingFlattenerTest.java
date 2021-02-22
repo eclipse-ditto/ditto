@@ -27,7 +27,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.json.assertions.DittoJsonAssertions;
-import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.PolicyEnforcers;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
@@ -41,89 +40,6 @@ import org.junit.Test;
  * Tests {@link EnforcedThingFlattener}
  */
 public final class EnforcedThingFlattenerTest {
-
-    @Test
-    public void testWithAclEnforcer() {
-        final JsonObject inputJson = JsonFactory.newObject("{\n" +
-                "  \"a\": [ {\"b\": \"c\"}, true ],\n" +
-                "  \"d\": {\n" +
-                "    \"e\": {\n" +
-                "      \"f\": \"g\",\n" +
-                "      \"h\": \"i\"\n" +
-                "    },\n" +
-                "    \"j\": true,\n" +
-                "    \"k\": 6.0,\n" +
-                "    \"l\": 123456789012\n" +
-                "  }\n" +
-                "}");
-
-        final Enforcer enforcer = AclEnforcer.of(ThingsModelFactory.newAcl("{\n" +
-                "  \"grant:read-only\": {\n" +
-                "    \"READ\": true,\n" +
-                "    \"WRITE\": false,\n" +
-                "    \"ADMINISTRATE\": false\n" +
-                "  },\n" +
-                "  \"grant:write-only\": {\n" +
-                "    \"READ\": false,\n" +
-                "    \"WRITE\": true,\n" +
-                "    \"ADMINISTRATE\": false\n" +
-                "  }\n" +
-                "}"));
-
-        final JsonArray expectedOutputJson = JsonFactory.newArray("[\n" +
-                "  {\n" +
-                "    \"k\": \"/a/b\",\n" +
-                "    \"v\": \"c\",\n" +
-                "    \"g\": [ \"grant:read-only\" ],\n" +
-                "    \"r\": []\n" +
-                "  },\n" +
-                "  {\n" +
-                "    \"k\": \"/a\",\n" +
-                "    \"v\": true,\n" +
-                "    \"g\": [ \"grant:read-only\" ],\n" +
-                "    \"r\": []\n" +
-                "  },\n" +
-                "  {\n" +
-                "    \"k\": \"/d/e/f\",\n" +
-                "    \"v\": \"g\",\n" +
-                "    \"g\": [ \"grant:read-only\" ],\n" +
-                "    \"r\": []\n" +
-                "  },\n" +
-                "  {\n" +
-                "    \"k\": \"/d/e/h\",\n" +
-                "    \"v\": \"i\",\n" +
-                "    \"g\": [ \"grant:read-only\" ],\n" +
-                "    \"r\": []\n" +
-                "  },\n" +
-                "  {\n" +
-                "    \"k\": \"/d/j\",\n" +
-                "    \"v\": true,\n" +
-                "    \"g\": [ \"grant:read-only\" ],\n" +
-                "    \"r\": []\n" +
-                "  },\n" +
-                "  {\n" +
-                "    \"k\": \"/d/k\",\n" +
-                "    \"v\": 6,\n" +
-                "    \"g\": [ \"grant:read-only\" ],\n" +
-                "    \"r\": []\n" +
-                "  },\n" +
-                "  {\n" +
-                "    \"k\": \"/d/l\",\n" +
-                "    \"v\": 123456789012,\n" +
-                "    \"g\": [ \"grant:read-only\" ],\n" +
-                "    \"r\": []\n" +
-                "  }\n" +
-                "]");
-
-        final EnforcedThingFlattener underTest = new EnforcedThingFlattener("thing:id", enforcer, -1);
-
-        final String result = underTest.eval(inputJson)
-                .map(Document::toJson)
-                .collect(Collectors.joining(",", "[", "]"));
-
-        assertThat(JsonFactory.newArray(result)).isEqualTo(expectedOutputJson);
-
-    }
 
     @Test
     public void testWithPolicyEnforcer() {
@@ -234,7 +150,8 @@ public final class EnforcedThingFlattenerTest {
                 "  }\n" +
                 "}");
 
-        final Enforcer emptyEnforcer = AclEnforcer.of(ThingsModelFactory.newAclBuilder().build());
+        final Enforcer emptyEnforcer =
+                PolicyEnforcers.defaultEvaluator(PoliciesModelFactory.newPolicyBuilder(PolicyId.of("foo:bar")).build());
 
         final JsonArray expectedOutputJson = JsonFactory.newArray("[\n" +
                 "  {\n" +
@@ -317,7 +234,8 @@ public final class EnforcedThingFlattenerTest {
 
     @Test
     public void testNullOrEmptyAttributes() {
-        final Enforcer emptyEnforcer = AclEnforcer.of(ThingsModelFactory.newAclBuilder().build());
+        final Enforcer emptyEnforcer =
+                PolicyEnforcers.defaultEvaluator(PoliciesModelFactory.newPolicyBuilder(PolicyId.of("foo:bar")).build());
         final EnforcedThingFlattener underTest = new EnforcedThingFlattener("thing:id", emptyEnforcer, -1);
 
         final JsonObject inputJson = newObjectBuilder()
@@ -347,7 +265,8 @@ public final class EnforcedThingFlattenerTest {
 
     @Test
     public void testZeroMaxArraySize() {
-        final Enforcer emptyEnforcer = AclEnforcer.of(ThingsModelFactory.newAclBuilder().build());
+        final Enforcer emptyEnforcer =
+                PolicyEnforcers.defaultEvaluator(PoliciesModelFactory.newPolicyBuilder(PolicyId.of("foo:bar")).build());
         final EnforcedThingFlattener underTest = new EnforcedThingFlattener("thing:id", emptyEnforcer, 0);
 
         final JsonObject inputJson = newObjectBuilder()

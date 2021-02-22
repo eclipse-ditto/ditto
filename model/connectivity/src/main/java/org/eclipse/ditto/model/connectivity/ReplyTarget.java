@@ -151,7 +151,7 @@ public interface ReplyTarget extends Jsonifiable.WithFieldSelectorAndPredicate<J
          * JSON field containing the target address.
          */
         public static final JsonFieldDefinition<String> ADDRESS =
-                JsonFactory.newStringFieldDefinition("address", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("address", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
@@ -159,7 +159,7 @@ public interface ReplyTarget extends Jsonifiable.WithFieldSelectorAndPredicate<J
          */
         public static final JsonFieldDefinition<JsonObject> HEADER_MAPPING =
                 JsonFactory.newJsonObjectFieldDefinition("headerMapping", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the expected response types of this reply target.
@@ -168,7 +168,7 @@ public interface ReplyTarget extends Jsonifiable.WithFieldSelectorAndPredicate<J
          */
         public static final JsonFieldDefinition<JsonArray> EXPECTED_RESPONSE_TYPES =
                 JsonFactory.newJsonArrayFieldDefinition("expectedResponseTypes", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         JsonFields() {
             throw new AssertionError();

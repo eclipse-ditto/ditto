@@ -64,7 +64,7 @@ public interface ThingEvent<T extends ThingEvent<T>> extends Event<T>, WithThing
          * Payload JSON field containing the Thing ID.
          */
         public static final JsonFieldDefinition<String> THING_ID =
-                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("thingId", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
 
@@ -72,14 +72,14 @@ public interface ThingEvent<T extends ThingEvent<T>> extends Event<T>, WithThing
          * Payload JSON field containing the Feature ID.
          */
         public static final JsonFieldDefinition<String> FEATURE_ID =
-                JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Payload JSON field containing the Thing.
          */
         public static final JsonFieldDefinition<JsonObject> THING =
-                JsonFactory.newJsonObjectFieldDefinition("thing", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("thing", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

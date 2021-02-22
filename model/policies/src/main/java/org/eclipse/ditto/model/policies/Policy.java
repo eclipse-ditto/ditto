@@ -454,7 +454,7 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
          */
         public static final JsonFieldDefinition<String> MODIFIED =
                 JsonFactory.newStringFieldDefinition("_modified", FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Policy's created timestamp in ISO-8601 format.
@@ -463,7 +463,7 @@ public interface Policy extends Iterable<PolicyEntry>, Entity<PolicyRevision> {
          */
         public static final JsonFieldDefinition<String> CREATED =
                 JsonFactory.newStringFieldDefinition("_created", FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the Policy's ID.

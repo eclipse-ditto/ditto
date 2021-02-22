@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.eclipse.ditto.json.JsonFieldSelector;
+import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.ScenarioSetup;
 import org.eclipse.ditto.model.policies.SubjectId;
@@ -40,9 +41,8 @@ public class JsonViewScenario5 implements JsonViewScenario {
                 "/", //
                 THING, //
                 THING.toJson(JsonFieldSelector.newInstance("/features/foo/properties/ordinary")), //
-                Stream.of(
-                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED).toString())
-                        .collect(Collectors.toSet()),
+                Stream.of(AuthorizationSubject.newInstance(
+                        SubjectId.newInstance(SubjectIssuer.GOOGLE, SUBJECT_ALL_GRANTED))).collect(Collectors.toSet()),
                 "READ");
     }
 

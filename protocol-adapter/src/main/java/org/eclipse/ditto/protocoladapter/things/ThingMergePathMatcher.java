@@ -28,7 +28,7 @@ import org.eclipse.ditto.signals.commands.things.ThingResource;
 final class ThingMergePathMatcher implements PayloadPathMatcher {
 
     /**
-     * Merge supports only a subset of resources e.g. no acl or inlined policy.
+     * Merge supports only a subset of resources e.g. no inlined policy.
      */
     private static final Map<ThingResource, String> MERGE_RESOURCE_NAMES = ThingResourceNames.get(
             ThingResource.THING,

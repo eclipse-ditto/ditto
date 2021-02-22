@@ -16,7 +16,6 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -31,7 +30,6 @@ import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.things.AccessControlListModelFactory;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
@@ -81,9 +79,9 @@ public abstract class PersistenceActorTestBase {
             .orElse(false);
 
     protected static final JsonFieldSelector ALL_FIELDS_SELECTOR = JsonFactory.newFieldSelector(
-            Thing.JsonFields.ATTRIBUTES, Thing.JsonFields.ACL,
-            Thing.JsonFields.FEATURES, Thing.JsonFields.ID, Thing.JsonFields.MODIFIED, Thing.JsonFields.CREATED,
-            Thing.JsonFields.REVISION, Thing.JsonFields.POLICY_ID, Thing.JsonFields.LIFECYCLE);
+            Thing.JsonFields.ATTRIBUTES, Thing.JsonFields.FEATURES, Thing.JsonFields.ID, Thing.JsonFields.MODIFIED,
+            Thing.JsonFields.CREATED, Thing.JsonFields.REVISION, Thing.JsonFields.POLICY_ID,
+            Thing.JsonFields.LIFECYCLE);
 
     private static final FeatureDefinition FEATURE_DEFINITION = FeatureDefinition.fromIdentifier("ns:name:version");
     private static final FeatureProperties FEATURE_PROPERTIES =
@@ -102,7 +100,6 @@ public abstract class PersistenceActorTestBase {
     protected ActorSystem actorSystem = null;
     protected TestProbe pubSubTestProbe = null;
     protected ActorRef pubSubMediator = null;
-    protected DittoHeaders dittoHeadersV1;
     protected DittoHeaders dittoHeadersV2;
 
     @BeforeClass
@@ -144,20 +141,6 @@ public abstract class PersistenceActorTestBase {
                 .build();
     }
 
-    protected static Thing createThingV1WithRandomId() {
-        return createThingV1WithId(ThingId.of(THING_ID.getNamespace(), THING_ID.getName() + new Random().nextInt()));
-    }
-
-    protected static Thing createThingV1WithId(final ThingId thingId) {
-        return ThingsModelFactory.newThingBuilder()
-                .setLifecycle(THING_LIFECYCLE)
-                .setAttributes(THING_ATTRIBUTES)
-                .setFeatures(THING_FEATURES)
-                .setRevision(THING_REVISION)
-                .setId(thingId)
-                .setPermissions(AUTHORIZED_SUBJECT, AccessControlListModelFactory.allPermissions()).build();
-    }
-
     protected void setup(final Config customConfig) {
         requireNonNull(customConfig, "Consider to use ConfigFactory.empty()");
         final Config config = customConfig.withFallback(ConfigFactory.load("test"));
@@ -166,7 +149,6 @@ public abstract class PersistenceActorTestBase {
         pubSubTestProbe = TestProbe.apply("mock-pubSub-mediator", actorSystem);
         pubSubMediator = pubSubTestProbe.ref();
 
-        dittoHeadersV1 = createDittoHeadersMock(JsonSchemaVersion.V_1, "test:" + AUTH_SUBJECT);
         dittoHeadersV2 = createDittoHeadersMock(JsonSchemaVersion.V_2, "test:" + AUTH_SUBJECT);
     }
 

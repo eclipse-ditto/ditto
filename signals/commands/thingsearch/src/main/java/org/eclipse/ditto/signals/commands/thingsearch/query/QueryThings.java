@@ -61,19 +61,19 @@ public final class QueryThings extends AbstractCommand<QueryThings> implements T
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_FILTER =
-            JsonFactory.newStringFieldDefinition("filter", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("filter", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonArray> JSON_OPTIONS =
-            JsonFactory.newJsonArrayFieldDefinition("options", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("options", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<String> JSON_FIELDS =
-            JsonFactory.newStringFieldDefinition("fields", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("fields", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonArray> JSON_NAMESPACES =
-            JsonFactory.newJsonArrayFieldDefinition("namespaces", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("namespaces", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     @Nullable private final String filter;

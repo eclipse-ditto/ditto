@@ -145,27 +145,27 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          */
         public static final JsonFieldDefinition<Integer> SCHEMA_VERSION =
                 JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, FieldType.HIDDEN,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Source} addresses.
          */
         public static final JsonFieldDefinition<JsonArray> ADDRESSES =
-                JsonFactory.newJsonArrayFieldDefinition("addresses", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonArrayFieldDefinition("addresses", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Source} consumer count.
          */
         public static final JsonFieldDefinition<Integer> CONSUMER_COUNT =
-                JsonFactory.newIntFieldDefinition("consumerCount", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newIntFieldDefinition("consumerCount", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Source} qos.
          */
         public static final JsonFieldDefinition<Integer> QOS =
-                JsonFactory.newIntFieldDefinition("qos", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newIntFieldDefinition("qos", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
@@ -173,14 +173,14 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          */
         public static final JsonFieldDefinition<JsonArray> AUTHORIZATION_CONTEXT =
                 JsonFactory.newJsonArrayFieldDefinition("authorizationContext", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Source} enforcement options.
          */
         public static final JsonFieldDefinition<JsonObject> ENFORCEMENT =
                 JsonFactory.newJsonObjectFieldDefinition("enforcement", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Source} acknowledgements that are requested from messages consumed in this
@@ -190,28 +190,28 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          */
         public static final JsonFieldDefinition<JsonObject> ACKNOWLEDGEMENT_REQUESTS =
                 JsonFactory.newJsonObjectFieldDefinition("acknowledgementRequests", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Source} header mapping.
          */
         public static final JsonFieldDefinition<JsonObject> HEADER_MAPPING =
                 JsonFactory.newJsonObjectFieldDefinition("headerMapping", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the {@code Source} payload mapping.
          */
         public static final JsonFieldDefinition<JsonArray> PAYLOAD_MAPPING =
                 JsonFactory.newJsonArrayFieldDefinition("payloadMapping", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the reply-target.
          */
         public static final JsonFieldDefinition<JsonObject> REPLY_TARGET =
                 JsonFactory.newJsonObjectFieldDefinition("replyTarget", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field for whether reply-target is enabled. Set to false explicitly to disable reply sending.
@@ -221,7 +221,7 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          */
         public static final JsonFieldDefinition<Boolean> REPLY_TARGET_ENABLED =
                 JsonFactory.newBooleanFieldDefinition("replyTarget/enabled", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         /**
          * JSON field for declared acknowledgement labels, namely the labels of acknowledgements the connection
@@ -231,7 +231,7 @@ public interface Source extends Jsonifiable.WithFieldSelectorAndPredicate<JsonFi
          */
         public static final JsonFieldDefinition<JsonArray> DECLARED_ACKS =
                 JsonFactory.newJsonArrayFieldDefinition("declaredAcks", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         JsonFields() {
             throw new AssertionError();

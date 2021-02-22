@@ -55,11 +55,11 @@ public final class RetrieveLoggerConfig extends AbstractDevOpsCommand<RetrieveLo
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<Boolean> JSON_ALL_KNOWN_LOGGERS =
-            JsonFactory.newBooleanFieldDefinition("allKnownLoggers", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newBooleanFieldDefinition("allKnownLoggers", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonArray> JSON_SPECIFIC_LOGGERS =
-            JsonFactory.newJsonArrayFieldDefinition("specificLoggers", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("specificLoggers", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final boolean allKnownLoggers;

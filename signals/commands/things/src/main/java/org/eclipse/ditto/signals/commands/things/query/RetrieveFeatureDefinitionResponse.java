@@ -54,11 +54,11 @@ public final class RetrieveFeatureDefinitionResponse extends AbstractCommandResp
     public static final String TYPE = TYPE_PREFIX + RetrieveFeatureDefinition.NAME;
 
     static final JsonFieldDefinition<String> JSON_FEATURE_ID =
-            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("featureId", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonArray> JSON_DEFINITION =
-            JsonFactory.newJsonArrayFieldDefinition("definition", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("definition", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;

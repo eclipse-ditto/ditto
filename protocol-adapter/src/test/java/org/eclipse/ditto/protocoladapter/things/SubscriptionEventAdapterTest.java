@@ -313,7 +313,7 @@ public final class SubscriptionEventAdapterTest implements ProtocolAdapterTest {
 
         @Override
         public DittoHeaders getDittoHeaders() {
-            return TestConstants.DITTO_HEADERS_V_1;
+            return TestConstants.DITTO_HEADERS_V_2;
         }
 
         @Override

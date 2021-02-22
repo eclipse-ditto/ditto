@@ -60,7 +60,7 @@ public final class FeatureDefinitionCreated extends AbstractThingEvent<FeatureDe
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<JsonArray> JSON_DEFINITION =
-            JsonFactory.newJsonArrayFieldDefinition("definition", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonArrayFieldDefinition("definition", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final String featureId;

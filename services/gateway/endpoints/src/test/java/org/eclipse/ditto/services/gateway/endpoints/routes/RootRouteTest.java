@@ -98,8 +98,6 @@ public final class RootRouteTest extends EndpointTestBase {
     private static final String HEALTH_PATH = ROOT_PATH + CachingHealthRoute.PATH_HEALTH;
     private static final String STATUS_CLUSTER_PATH = ROOT_PATH + STATUS_SUB_PATH + "/" + CLUSTER_SUB_PATH;
     private static final String STATUS_HEALTH_PATH = ROOT_PATH + STATUS_SUB_PATH + "/" + HEALTH_SUB_PATH;
-    private static final String THINGS_1_PATH = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
-            JsonSchemaVersion.V_1.toInt() + "/" + ThingsRoute.PATH_THINGS;
     private static final String THINGS_2_PATH = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
             JsonSchemaVersion.V_2.toInt() + "/" + ThingsRoute.PATH_THINGS;
     private static final String THING_SEARCH_2_PATH = ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" +
@@ -109,8 +107,8 @@ public final class RootRouteTest extends EndpointTestBase {
     private static final String UNKNOWN_SEARCH_PATH =
             ROOT_PATH + RootRoute.HTTP_PATH_API_PREFIX + "/" + JsonSchemaVersion.V_2.toInt() + "/" +
                     ThingSearchRoute.PATH_SEARCH + "/foo";
-    private static final String THINGS_1_PATH_WITH_IDS =
-            THINGS_1_PATH + "?" + ThingsParameter.IDS + "=namespace:bumlux";
+    private static final String THINGS_2_PATH_WITH_IDS =
+            THINGS_2_PATH + "?" + ThingsParameter.IDS + "=namespace:bumlux";
     private static final String WS_2_PATH = ROOT_PATH + RootRoute.WS_PATH_PREFIX + "/" + JsonSchemaVersion.V_2.toInt();
 
     private static final String HTTPS = "https";
@@ -283,7 +281,7 @@ public final class RootRouteTest extends EndpointTestBase {
     @Test
     public void getThingsUrlWithoutIds() {
         final TestRouteResult result =
-                rootTestRoute.run(withHttps(withPreAuthenticatedAuthentication(HttpRequest.GET(THINGS_1_PATH))));
+                rootTestRoute.run(withHttps(withPreAuthenticatedAuthentication(HttpRequest.GET(THINGS_2_PATH))));
 
         result.assertStatusCode(StatusCodes.BAD_REQUEST);
     }
@@ -292,14 +290,14 @@ public final class RootRouteTest extends EndpointTestBase {
     public void getThingsUrlWithIds() {
         final TestRouteResult result =
                 rootTestRoute.run(
-                        withHttps(withPreAuthenticatedAuthentication(HttpRequest.GET(THINGS_1_PATH_WITH_IDS))));
+                        withHttps(withPreAuthenticatedAuthentication(HttpRequest.GET(THINGS_2_PATH_WITH_IDS))));
 
         result.assertStatusCode(EndpointTestConstants.DUMMY_COMMAND_SUCCESS);
     }
 
     @Test
     public void getThings1UrlWithoutHttps() {
-        final TestRouteResult result = rootTestRoute.run(HttpRequest.GET(THINGS_1_PATH));
+        final TestRouteResult result = rootTestRoute.run(HttpRequest.GET(THINGS_2_PATH));
 
         result.assertStatusCode(StatusCodes.NOT_FOUND);
     }
@@ -414,7 +412,7 @@ public final class RootRouteTest extends EndpointTestBase {
 
     @Test
     public void getExceptionForDuplicateHeaderFields() {
-        final HttpRequest httpRequest = HttpRequest.GET(THINGS_1_PATH_WITH_IDS)
+        final HttpRequest httpRequest = HttpRequest.GET(THINGS_2_PATH_WITH_IDS)
                 .addHeader(RawHeader.create("x-correlation-id", UUID.randomUUID().toString()))
                 .addHeader(RawHeader.create("x-correlation-id", UUID.randomUUID().toString()));
 
@@ -426,7 +424,7 @@ public final class RootRouteTest extends EndpointTestBase {
     @Test
     public void getExceptionForDuplicationHeaderAndQueryParameter() {
         final String headerKey = DittoHeaderDefinition.TIMEOUT.getKey();
-        HttpRequest httpRequest = HttpRequest.GET(THINGS_1_PATH_WITH_IDS + "&" + headerKey + "=32s");
+        HttpRequest httpRequest = HttpRequest.GET(THINGS_2_PATH_WITH_IDS + "&" + headerKey + "=32s");
         httpRequest = httpRequest.addHeader(akka.http.javadsl.model.HttpHeader.parse(headerKey, "23s"));
         final GatewayDuplicateHeaderException expectedException = GatewayDuplicateHeaderException.newBuilder()
                 .message(() -> MessageFormat.format(
@@ -441,7 +439,7 @@ public final class RootRouteTest extends EndpointTestBase {
 
     @Test
     public void getExceptionDueToTooManyAuthSubjects() {
-        final String hugeSubjects = IntStream.range(0, 22)
+        final String hugeSubjects = IntStream.range(0, 41)
                 .mapToObj(i -> "i:foo" + i)
                 .collect(Collectors.joining(","));
         final HttpRequest request =

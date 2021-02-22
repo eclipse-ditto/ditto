@@ -13,9 +13,9 @@
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_ID;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_PROPERTIES;
-import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_V2;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.LOCATION_ATTRIBUTE;
 
 import org.eclipse.ditto.json.JsonPointer;
@@ -51,21 +51,6 @@ class EntityTagCalculatorTest {
     }
 
     @Test
-    void testVisitAcl() {
-        assertThat(underTest.visitAcl(Thing.JsonFields.ACL.getPointer(), TestConstants.Thing.THING_V1))
-                .isEqualTo(EntityTag.fromEntity(TestConstants.Thing.ACL));
-    }
-
-    @Test
-    void testVisitAclEntry() {
-        final JsonPointer aclEntryPath = Thing.JsonFields.ACL.getPointer().append(JsonPointer.of(
-                TestConstants.Authorization.AUTH_SUBJECT_OLDMAN.getId()));
-        assertThat(underTest.visitAclEntry(aclEntryPath, TestConstants.Thing.THING_V1))
-                .isEqualTo(EntityTag.fromEntity(
-                        TestConstants.Thing.ACL.getEntryFor(TestConstants.Authorization.AUTH_SUBJECT_OLDMAN)));
-    }
-
-    @Test
     void testVisitPolicyId() {
         assertThat(underTest.visitPolicyId(Thing.JsonFields.POLICY_ID.getPointer(), TestConstants.Thing.THING_V2))
                 .isEqualTo(EntityTag.fromEntity(TestConstants.Thing.THING_V2));
@@ -87,14 +72,14 @@ class EntityTagCalculatorTest {
     @Test
     void testVisitFeatures() {
         assertThat(underTest.visitFeatures(Thing.JsonFields.FEATURES.getPointer(), TestConstants.Thing.THING_V2))
-                .isEqualTo(EntityTag.fromEntity(TestConstants.Feature.FEATURES_V2));
+                .isEqualTo(EntityTag.fromEntity(TestConstants.Feature.FEATURES));
     }
 
     @Test
     void testVisitFeature() {
         final JsonPointer pointer = JsonPointer.of("features/" + FLUX_CAPACITOR_ID);
         assertThat(underTest.visitFeature(pointer, TestConstants.Thing.THING_V2))
-                .isEqualTo(EntityTag.fromEntity(FLUX_CAPACITOR_V2));
+                .isEqualTo(EntityTag.fromEntity(FLUX_CAPACITOR));
     }
 
     @Test

@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.services.utils.cache;
 
-import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_1;
 import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
 
 import java.util.Objects;
@@ -26,13 +25,13 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 
 /**
  * Concierge-service internal command signaling that the cache for a specific {@link EntityIdWithResourceType} should be invalidated.
- * Is emitted via Pub/Sub when for example a Policy is modified or a Thing's ACL changes.
+ * Is emitted via Pub/Sub when for example a Policy is modified.
  */
 @Immutable
 public final class InvalidateCacheEntry implements Jsonifiable<JsonObject> {
 
     private static final JsonFieldDefinition<String> JSON_ENTITY_ID =
-            JsonFactory.newStringFieldDefinition("entityId", V_1, V_2);
+            JsonFactory.newStringFieldDefinition("entityId", V_2);
 
     private final EntityIdWithResourceType entityId;
 

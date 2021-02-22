@@ -55,7 +55,7 @@ public final class RetrieveAttributes extends AbstractCommand<RetrieveAttributes
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_SELECTED_FIELDS =
-            JsonFactory.newStringFieldDefinition("selectedFields", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("selectedFields", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;

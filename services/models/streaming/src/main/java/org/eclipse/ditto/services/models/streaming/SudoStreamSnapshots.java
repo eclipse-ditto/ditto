@@ -13,7 +13,6 @@
 package org.eclipse.ditto.services.models.streaming;
 
 import static org.eclipse.ditto.model.base.json.FieldType.REGULAR;
-import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_1;
 import static org.eclipse.ditto.model.base.json.JsonSchemaVersion.V_2;
 
 import java.util.List;
@@ -241,15 +240,15 @@ public final class SudoStreamSnapshots extends AbstractCommand<SudoStreamSnapsho
     static final class JsonFields {
 
         static final JsonFieldDefinition<Integer> JSON_BURST =
-                JsonFactory.newIntFieldDefinition("payload/burst", REGULAR, V_1, V_2);
+                JsonFactory.newIntFieldDefinition("payload/burst", REGULAR, V_2);
 
         static final JsonFieldDefinition<Long> JSON_TIMEOUT_MILLIS =
-                JsonFactory.newLongFieldDefinition("payload/timeoutMillis", REGULAR, V_1, V_2);
+                JsonFactory.newLongFieldDefinition("payload/timeoutMillis", REGULAR, V_2);
 
         static final JsonFieldDefinition<String> JSON_LOWER_BOUND =
-                JsonFactory.newStringFieldDefinition("payload/lowerBound", REGULAR, V_1, V_2);
+                JsonFactory.newStringFieldDefinition("payload/lowerBound", REGULAR, V_2);
 
         static final JsonFieldDefinition<JsonArray> JSON_SNAPSHOT_FIELDS =
-                JsonFactory.newJsonArrayFieldDefinition("payload/fields", REGULAR, V_1, V_2);
+                JsonFactory.newJsonArrayFieldDefinition("payload/fields", REGULAR, V_2);
     }
 }

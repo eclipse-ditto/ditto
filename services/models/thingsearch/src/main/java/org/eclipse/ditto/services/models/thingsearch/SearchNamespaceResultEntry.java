@@ -32,14 +32,14 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
 @Immutable
 public final class SearchNamespaceResultEntry implements Jsonifiable.WithPredicate<JsonObject, JsonField> {
 
-    private final static JsonFieldDefinition<Integer> SCHEMA_VERSION_JSON_FIELD =
-            JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, JsonSchemaVersion.V_1);
+    private static final JsonFieldDefinition<Integer> SCHEMA_VERSION_JSON_FIELD =
+            JsonFactory.newIntFieldDefinition(JsonSchemaVersion.getJsonKey(), FieldType.SPECIAL, JsonSchemaVersion.V_2);
 
     private static final JsonFieldDefinition<String> NAMESPACE_JSON_FIELD =
-            JsonFactory.newStringFieldDefinition("namespace", FieldType.REGULAR, JsonSchemaVersion.V_1);
+            JsonFactory.newStringFieldDefinition("namespace", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private static final JsonFieldDefinition<Long> COUNT_JSON_FIELD =
-            JsonFactory.newLongFieldDefinition("count", FieldType.REGULAR, JsonSchemaVersion.V_1);
+            JsonFactory.newLongFieldDefinition("count", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final String namespace;
     private final long count;
@@ -89,17 +89,6 @@ public final class SearchNamespaceResultEntry implements Jsonifiable.WithPredica
         final long count = jsonObject.getValueOrThrow(COUNT_JSON_FIELD);
 
         return new SearchNamespaceResultEntry(namespace, count);
-    }
-
-    @Override
-    public JsonObject toJson(final Predicate<JsonField> predicate) {
-        final JsonSchemaVersion jsonSchemaVersion = JsonSchemaVersion.V_1;
-
-        return JsonFactory.newObjectBuilder()
-                .set(SCHEMA_VERSION_JSON_FIELD, jsonSchemaVersion.toInt(), predicate)
-                .set(NAMESPACE_JSON_FIELD, namespace, predicate)
-                .set(COUNT_JSON_FIELD, count, predicate)
-                .build();
     }
 
     @Override

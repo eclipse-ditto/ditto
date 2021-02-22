@@ -61,26 +61,6 @@ public abstract class AbstractFieldBsonCreator {
                 ));
     }
 
-    /**
-     * Deprecate ACL expressions.
-     *
-     * @return nothing
-     * @throws InvalidRqlExpressionException always
-     */
-    public final Bson visitAcl() {
-        throw invalidRql("Unsupported path 'acl'");
-    }
-
-    /**
-     * Deprecate global-reads expressions.
-     *
-     * @return nothing
-     * @throws InvalidRqlExpressionException always
-     */
-    public final Bson visitGlobalReads() {
-        throw invalidRql("Unsupported path 'gr'");
-    }
-
     public final Bson visitSimple(final String fieldName) {
         return fieldName.startsWith(SLASH)
                 ? visitPointer(fieldName)

@@ -36,8 +36,6 @@ import org.eclipse.ditto.protocoladapter.TestConstants;
 import org.eclipse.ditto.protocoladapter.TopicPath;
 import org.eclipse.ditto.protocoladapter.TopicPathBuilder;
 import org.eclipse.ditto.protocoladapter.UnknownCommandException;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
@@ -144,112 +142,6 @@ public final class ThingQueryCommandAdapterTest extends LiveTwinTest implements 
                         .withSelectedFields(selectedFields)
                         .build();
         final Adaptable actual = underTest.toAdaptable(retrieveThing, channel);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void retrieveAclFromAdaptable() {
-        final RetrieveAcl expected = RetrieveAcl.of(TestConstants.THING_ID, TestConstants.DITTO_HEADERS_V_1);
-
-        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
-        final JsonPointer path = JsonPointer.of("/acl");
-
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder(path).build())
-                .withHeaders(TestConstants.HEADERS_V_1)
-                .build();
-        final ThingQueryCommand<?> actual = underTest.fromAdaptable(adaptable);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void retrieveAclToAdaptable() {
-        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
-        final JsonPointer path = JsonPointer.of("/acl");
-
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder(path).build())
-                .withHeaders(TestConstants.HEADERS_V_1)
-                .build();
-
-        final RetrieveAcl retrieveAcl =
-                RetrieveAcl.of(TestConstants.THING_ID, TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(retrieveAcl, channel);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void retrieveAclEntryFromAdaptable() {
-        final RetrieveAclEntry expected = RetrieveAclEntry
-                .of(TestConstants.THING_ID, TestConstants.AUTHORIZATION_SUBJECT, TestConstants.DITTO_HEADERS_V_1);
-
-        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
-        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT);
-
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder(path).build())
-                .withHeaders(TestConstants.HEADERS_V_1)
-                .build();
-        final ThingQueryCommand<?> actual = underTest.fromAdaptable(adaptable);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void retrieveAclEntryToAdaptable() {
-        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
-        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT);
-
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder(path).build())
-                .withHeaders(TestConstants.HEADERS_V_1)
-                .build();
-
-        final RetrieveAclEntry retrieveAclEntry =
-                RetrieveAclEntry.of(TestConstants.THING_ID, TestConstants.AUTHORIZATION_SUBJECT,
-                        TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(retrieveAclEntry, channel);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void retrieveAclEntryWithFieldsFromAdaptable() {
-        final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("READ");
-        final RetrieveAclEntry expected =
-                RetrieveAclEntry.of(TestConstants.THING_ID, TestConstants.AUTHORIZATION_SUBJECT, selectedFields,
-                        TestConstants.DITTO_HEADERS_V_1);
-
-        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
-        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT);
-
-        final Adaptable adaptable = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder(path).withFields(selectedFields).build())
-                .withHeaders(TestConstants.HEADERS_V_1)
-                .build();
-        final ThingQueryCommand<?> actual = underTest.fromAdaptable(adaptable);
-
-        assertWithExternalHeadersThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void retrieveAclEntryWithFieldsToAdaptable() {
-        final JsonFieldSelector selectedFields = JsonFieldSelector.newInstance("READ");
-        final TopicPath topicPath = topicPath(TopicPath.Action.RETRIEVE);
-        final JsonPointer path = JsonPointer.of("/acl/" + TestConstants.AUTHORIZATION_SUBJECT);
-
-        final Adaptable expected = Adaptable.newBuilder(topicPath)
-                .withPayload(Payload.newBuilder(path).withFields(selectedFields).build())
-                .withHeaders(TestConstants.HEADERS_V_1)
-                .build();
-
-        final RetrieveAclEntry retrieveAclEntry =
-                RetrieveAclEntry.of(TestConstants.THING_ID, TestConstants.AUTHORIZATION_SUBJECT, selectedFields,
-                        TestConstants.HEADERS_V_1_NO_CONTENT_TYPE);
-        final Adaptable actual = underTest.toAdaptable(retrieveAclEntry, channel);
 
         assertWithExternalHeadersThat(actual).isEqualTo(expected);
     }

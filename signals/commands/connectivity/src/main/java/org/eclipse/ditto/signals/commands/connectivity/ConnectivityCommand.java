@@ -90,7 +90,7 @@ public interface ConnectivityCommand<T extends ConnectivityCommand<T>> extends C
          * JSON field containing the ConnectivityCommand's connectionId.
          */
         public static final JsonFieldDefinition<String> JSON_CONNECTION_ID =
-                JsonFactory.newStringFieldDefinition("connectionId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("connectionId", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
     }

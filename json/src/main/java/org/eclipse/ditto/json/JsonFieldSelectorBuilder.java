@@ -97,7 +97,7 @@ public interface JsonFieldSelectorBuilder extends Iterable<JsonPointer> {
      * For example, the field selector string
      * </p>
      * <pre>
-     * "thingId,attributes(acceleration,someData(foo,bar/baz)),acl,features/key"
+     * "thingId,attributes(acceleration,someData(foo,bar/baz)),features/key"
      * </pre>
      * would lead to a JSON field selector which consists of the following JSON pointers:
      * <ul>
@@ -105,7 +105,6 @@ public interface JsonFieldSelectorBuilder extends Iterable<JsonPointer> {
      *     <li>{@code "attributes/acceleration"},</li>
      *     <li>{@code "attributes/someData/foo"},</li>
      *     <li>{@code "attributes/someData/bar/baz"},</li>
-     *     <li>{@code "acl"} and</li>
      *     <li>{@code "features/key"}.</li>
      * </ul>
      *
@@ -127,7 +126,7 @@ public interface JsonFieldSelectorBuilder extends Iterable<JsonPointer> {
      * For example, the field selector string
      * </p>
      * <pre>
-     * "thingId,attributes(acceleration,someData(foo,bar/baz)),acl,features/key"
+     * "thingId,attributes(acceleration,someData(foo,bar/baz)),features/key"
      * </pre>
      * <p>
      * would lead to a JSON field selector which consists of the following JSON pointers:
@@ -136,7 +135,6 @@ public interface JsonFieldSelectorBuilder extends Iterable<JsonPointer> {
      *     <li>{@code "attributes/acceleration"},</li>
      *     <li>{@code "attributes/someData/foo"},</li>
      *     <li>{@code "attributes/someData/bar/baz"},</li>
-     *     <li>{@code "acl"} and</li>
      *     <li>{@code "features/key"}.</li>
      * </ul>
      *

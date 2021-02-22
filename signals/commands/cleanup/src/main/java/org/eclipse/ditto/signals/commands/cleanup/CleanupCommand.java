@@ -72,7 +72,7 @@ public interface CleanupCommand<T extends CleanupCommand<T>> extends Command<T> 
          * JSON field containing the CleanupCommand's entityId.
          */
         public static final JsonFieldDefinition<String> ENTITY_ID =
-                JsonFactory.newStringFieldDefinition("entityId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("entityId", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
     }

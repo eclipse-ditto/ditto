@@ -14,7 +14,6 @@ package org.eclipse.ditto.services.things.persistence.actors.strategies.commands
 
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR;
 import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_ID;
-import static org.eclipse.ditto.model.things.TestConstants.Feature.FLUX_CAPACITOR_V2;
 import static org.eclipse.ditto.model.things.TestConstants.Thing.THING_V2;
 import static org.eclipse.ditto.services.things.persistence.actors.ETagTestUtils.retrieveFeatureDesiredPropertyResponse;
 import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstancesOf;
@@ -100,7 +99,7 @@ public final class RetrieveFeatureDesiredPropertyStrategyTest extends AbstractCo
                 ExceptionFactory.featureDesiredPropertyNotFound(command.getThingEntityId(), command.getFeatureId(),
                         command.getDesiredPropertyPointer(), command.getDittoHeaders());
 
-        assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR_V2.removeDesiredProperty(propertyPointer)), command,
+        assertErrorResult(underTest, THING_V2.setFeature(FLUX_CAPACITOR.removeDesiredProperty(propertyPointer)), command,
                 expectedException);
     }
 

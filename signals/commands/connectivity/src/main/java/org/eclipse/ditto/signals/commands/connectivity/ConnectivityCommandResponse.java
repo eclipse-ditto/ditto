@@ -79,7 +79,7 @@ public interface ConnectivityCommandResponse<T extends ConnectivityCommandRespon
          * JSON field containing the ConnectivityCommandResponse's connectionId.
          */
         public static final JsonFieldDefinition<String> JSON_CONNECTION_ID =
-                JsonFactory.newStringFieldDefinition("connectionId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("connectionId", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
     }

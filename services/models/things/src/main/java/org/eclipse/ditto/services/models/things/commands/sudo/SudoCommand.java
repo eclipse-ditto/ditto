@@ -67,7 +67,7 @@ public interface SudoCommand<T extends SudoCommand<T>> extends Command<T>, WithI
          */
         public static final JsonFieldDefinition<String> JSON_THING_ID =
                 JsonFactory.newStringFieldDefinition("payload/thingId", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1,
+
                         JsonSchemaVersion.V_2);
 
         /**
@@ -76,7 +76,7 @@ public interface SudoCommand<T extends SudoCommand<T>> extends Command<T>, WithI
          */
         public static final JsonFieldDefinition<String> SELECTED_FIELDS =
                 JsonFactory.newStringFieldDefinition("payload/selectedFields", FieldType.REGULAR,
-                        JsonSchemaVersion.V_1, JsonSchemaVersion.V_2);
+                        JsonSchemaVersion.V_2);
 
         private JsonFields() {
             throw new AssertionError();

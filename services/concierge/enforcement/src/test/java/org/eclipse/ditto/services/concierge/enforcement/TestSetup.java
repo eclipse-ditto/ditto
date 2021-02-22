@@ -39,7 +39,6 @@ import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.CaffeineCache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
-import org.eclipse.ditto.services.utils.cacheloaders.AclEnforcerCacheLoader;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcer;
 import org.eclipse.ditto.services.utils.cacheloaders.PolicyEnforcerCacheLoader;
 import org.eclipse.ditto.services.utils.cacheloaders.ThingEnforcementIdCacheLoader;
@@ -158,10 +157,6 @@ public final class TestSetup {
                     CaffeineCache.of(Caffeine.newBuilder(), policyEnforcerCacheLoader);
             final Cache<EntityIdWithResourceType, Entry<Enforcer>> projectedEnforcerCache =
                     policyEnforcerCache.projectValues(PolicyEnforcer::project, PolicyEnforcer::embed);
-            final AclEnforcerCacheLoader aclEnforcerCacheLoader =
-                    new AclEnforcerCacheLoader(askTimeout, thingsShardRegion);
-            final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache =
-                    CaffeineCache.of(Caffeine.newBuilder(), aclEnforcerCacheLoader);
             final ThingEnforcementIdCacheLoader thingEnforcementIdCacheLoader =
                     new ThingEnforcementIdCacheLoader(askTimeout, thingsShardRegion);
             final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache =
@@ -169,14 +164,14 @@ public final class TestSetup {
 
             final Set<EnforcementProvider<?>> enforcementProviders = new HashSet<>();
             enforcementProviders.add(new ThingCommandEnforcement.Provider(thingsShardRegion,
-                    policiesShardRegion, thingIdCache, projectedEnforcerCache, aclEnforcerCache, preEnforcer));
+                    policiesShardRegion, thingIdCache, projectedEnforcerCache, preEnforcer));
             enforcementProviders.add(new PolicyCommandEnforcement.Provider(policiesShardRegion, policyEnforcerCache));
             enforcementProviders.add(
-                    new LiveSignalEnforcement.Provider(thingIdCache, projectedEnforcerCache, aclEnforcerCache,
+                    new LiveSignalEnforcement.Provider(thingIdCache, projectedEnforcerCache,
                             new DummyLiveSignalPub(testActorRef)));
 
             final Props props =
-                    EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, preEnforcer, null, null,
+                    EnforcerActor.props(testActorRef, enforcementProviders, conciergeForwarder, preEnforcer, null,
                             null);
             return system.actorOf(props, EnforcerActor.ACTOR_NAME);
         }

@@ -40,7 +40,7 @@ import akka.stream.javadsl.Merge;
 import akka.stream.javadsl.Sink;
 
 /**
- * Actor to authorize signals by enforcing policies or ACLs on signals.
+ * Actor to authorize signals by enforcing policies on signals.
  */
 public final class EnforcerActor extends AbstractEnforcerActor {
 
@@ -57,10 +57,9 @@ public final class EnforcerActor extends AbstractEnforcerActor {
             final ActorRef conciergeForwarder,
             @Nullable final PreEnforcer preEnforcer,
             @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
 
-        super(pubSubMediator, conciergeForwarder, thingIdCache, aclEnforcerCache, policyEnforcerCache);
+        super(pubSubMediator, conciergeForwarder, thingIdCache, policyEnforcerCache);
         final ActorRef enforcementScheduler =
                 getContext().actorOf(EnforcementScheduler.props(), EnforcementScheduler.ACTOR_NAME);
         sink = assembleSink(enforcementProviders, preEnforcer, enforcementScheduler);
@@ -73,8 +72,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param conciergeForwarder an actorRef to concierge forwarder.
      * @param preEnforcer a function executed before actual enforcement, may be {@code null}.
-     * @param thingIdCache the cache for Thing IDs to either ACL or Policy ID.
-     * @param aclEnforcerCache the ACL cache.
+     * @param thingIdCache the cache for Thing IDs to Policy ID.
      * @param policyEnforcerCache the Policy cache.
      * @return the Akka configuration Props object.
      */
@@ -83,11 +81,10 @@ public final class EnforcerActor extends AbstractEnforcerActor {
             final ActorRef conciergeForwarder,
             @Nullable final PreEnforcer preEnforcer,
             @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityIdWithResourceType, Entry<PolicyEnforcer>> policyEnforcerCache) {
 
         return Props.create(EnforcerActor.class, pubSubMediator, enforcementProviders, conciergeForwarder, preEnforcer,
-                thingIdCache, aclEnforcerCache, policyEnforcerCache);
+                thingIdCache, policyEnforcerCache);
     }
 
     /**
@@ -97,8 +94,7 @@ public final class EnforcerActor extends AbstractEnforcerActor {
      * @param pubSubMediator Akka pub sub mediator.
      * @param enforcementProviders a set of {@link EnforcementProvider}s.
      * @param conciergeForwarder an actorRef to concierge forwarder.
-     * @param thingIdCache the cache for Thing IDs to either ACL or Policy ID.
-     * @param aclEnforcerCache the ACL cache.
+     * @param thingIdCache the cache for Thing IDs to Policy ID.
      * @param policyEnforcerCache the Policy cache.
      * @return the Akka configuration Props object.
      */
@@ -106,11 +102,9 @@ public final class EnforcerActor extends AbstractEnforcerActor {
             final Set<EnforcementProvider<?>> enforcementProviders,
             final ActorRef conciergeForwarder,
             @Nullable final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
-            @Nullable final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
             @Nullable final Cache<EntityIdWithResourceType, Entry<PolicyEnforcer>> policyEnforcerCache) {
 
-        return props(pubSubMediator, enforcementProviders, conciergeForwarder, null, thingIdCache, aclEnforcerCache,
-                policyEnforcerCache);
+        return props(pubSubMediator, enforcementProviders, conciergeForwarder, null, thingIdCache, policyEnforcerCache);
     }
 
     @Override

@@ -39,10 +39,10 @@ public final class StreamingAck implements Jsonifiable.WithPredicate<JsonObject,
     static final String TYPE = "gateway:streaming.ack";
 
     private static final JsonFieldDefinition<String> JSON_STREAMING_TYPE =
-            JsonFactory.newStringFieldDefinition("streamingType", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("streamingType", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
     private static final JsonFieldDefinition<Boolean> JSON_SUBSCRIBED =
-            JsonFactory.newBooleanFieldDefinition("subscribed", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newBooleanFieldDefinition("subscribed", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final StreamingType streamingType;

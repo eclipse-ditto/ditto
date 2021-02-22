@@ -54,11 +54,11 @@ public final class AttributeCreated extends AbstractThingEvent<AttributeCreated>
     public static final String TYPE = TYPE_PREFIX + NAME;
 
     static final JsonFieldDefinition<String> JSON_ATTRIBUTE =
-            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     static final JsonFieldDefinition<JsonValue> JSON_VALUE =
-            JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newJsonValueFieldDefinition("value", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final JsonPointer attributePointer;

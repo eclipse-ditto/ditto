@@ -22,15 +22,13 @@ import org.eclipse.ditto.services.utils.cache.Cache;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.services.utils.cache.entry.Entry;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
-import org.eclipse.ditto.signals.commands.things.ThingCommand;
 
 /**
- * Creates an {@link EnforcerRetriever} which retrieves an enforcer by using an acl- or policy-enforcer-cache depending
- * on the {@code resourceType} of the requested {@code entityId}.
+ * Creates an {@link EnforcerRetriever} which retrieves an enforcer by using an policy-enforcer-cache.
  */
-final class PolicyOrAclEnforcerRetrieverFactory {
+final class PolicyEnforcerRetrieverFactory {
 
-    private PolicyOrAclEnforcerRetrieverFactory() {
+    private PolicyEnforcerRetrieverFactory() {
         throw new AssertionError();
     }
 
@@ -39,20 +37,16 @@ final class PolicyOrAclEnforcerRetrieverFactory {
      *
      * @param idCache the id-cache.
      * @param policyEnforcerCache the policy-enforcer-cache.
-     * @param aclEnforcerCache the acl-enforcer-cache.
      * @return the instance.
      */
     public static EnforcerRetriever<Enforcer> create(
             final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> idCache,
-            final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
-            final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache) {
+            final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache) {
         requireNonNull(idCache);
         requireNonNull(policyEnforcerCache);
-        requireNonNull(aclEnforcerCache);
 
         final Map<String, Cache<EntityIdWithResourceType, Entry<Enforcer>>> mapping = new HashMap<>();
         mapping.put(PolicyCommand.RESOURCE_TYPE, policyEnforcerCache);
-        mapping.put(ThingCommand.RESOURCE_TYPE, aclEnforcerCache);
 
         return new EnforcerRetriever<>(idCache, mapping);
     }

@@ -23,7 +23,6 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.policies.PolicyIdInvalidException;
@@ -252,22 +251,17 @@ final class EnforcementFlow {
      * Get the enforcer of a thing or an empty source if it does not exist.
      *
      * @param metadata metadata of the thing.
-     * @param thing the thing (possibly containing ACL)
+     * @param thing the thing
      * @return source of an enforcer or an empty source.
      */
     private Source<Entry<Enforcer>, NotUsed> getEnforcer(final Metadata metadata, final JsonObject thing) {
-        final Optional<JsonObject> acl = thing.getValue(Thing.JsonFields.ACL);
-        if (acl.isPresent()) {
-            return Source.single(Entry.permanent(AclEnforcer.of(ThingsModelFactory.newAcl(acl.get()))));
-        } else {
-            try {
-                return thing.getValue(Thing.JsonFields.POLICY_ID)
-                        .map(PolicyId::of)
-                        .map(policyId -> readCachedEnforcer(metadata, getPolicyEntityId(policyId), 0))
-                        .orElse(ENFORCER_NONEXISTENT);
-            } catch (PolicyIdInvalidException e) {
-                return ENFORCER_NONEXISTENT;
-            }
+        try {
+            return thing.getValue(Thing.JsonFields.POLICY_ID)
+                    .map(PolicyId::of)
+                    .map(policyId -> readCachedEnforcer(metadata, getPolicyEntityId(policyId), 0))
+                    .orElse(ENFORCER_NONEXISTENT);
+        } catch (PolicyIdInvalidException e) {
+            return ENFORCER_NONEXISTENT;
         }
     }
 

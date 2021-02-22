@@ -571,35 +571,35 @@ public class DittoRuntimeException extends RuntimeException
          * JSON field containing the HTTP status code of the exception.
          */
         public static final JsonFieldDefinition<Integer> STATUS =
-                JsonFactory.newIntFieldDefinition("status", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newIntFieldDefinition("status", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the error code of the exception.
          */
         public static final JsonFieldDefinition<String> ERROR_CODE =
-                JsonFactory.newStringFieldDefinition("error", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("error", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the message of the exception.
          */
         public static final JsonFieldDefinition<String> MESSAGE =
-                JsonFactory.newStringFieldDefinition("message", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("message", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the description of the message.
          */
         public static final JsonFieldDefinition<String> DESCRIPTION =
-                JsonFactory.newStringFieldDefinition("description", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("description", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * JSON field containing the link to further information about the exception.
          */
         public static final JsonFieldDefinition<String> HREF =
-                JsonFactory.newStringFieldDefinition("href", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("href", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

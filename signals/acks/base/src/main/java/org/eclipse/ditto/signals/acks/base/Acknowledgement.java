@@ -295,42 +295,42 @@ public interface Acknowledgement extends CommandResponse<Acknowledgement>, WithO
          * Definition of the JSON field for the Acknowledgement's label.
          */
         public static final JsonFieldDefinition<String> LABEL =
-                JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("label", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Definition of the JSON field for the Acknowledgement's entity ID.
          */
         public static final JsonFieldDefinition<String> ENTITY_ID =
-                JsonFactory.newStringFieldDefinition("entityId", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("entityId", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Definition of the JSON field for the Acknowledgement's entity type.
          */
         public static final JsonFieldDefinition<String> ENTITY_TYPE =
-                JsonFactory.newStringFieldDefinition("entityType", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("entityType", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Definition of the JSON field for the Acknowledgement's status code.
          */
         public static final JsonFieldDefinition<Integer> STATUS_CODE =
-                JsonFactory.newIntFieldDefinition("status", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newIntFieldDefinition("status", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Definition of the JSON field for the optional Acknowledgement's payload.
          */
         public static final JsonFieldDefinition<JsonValue> PAYLOAD =
-                JsonFactory.newJsonValueFieldDefinition("payload", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonValueFieldDefinition("payload", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         /**
          * Definition of the JSON field for the Acknowledgement's DittoHeaders.
          */
         public static final JsonFieldDefinition<JsonObject> DITTO_HEADERS =
-                JsonFactory.newJsonObjectFieldDefinition("headers", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newJsonObjectFieldDefinition("headers", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
     }

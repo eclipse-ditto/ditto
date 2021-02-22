@@ -24,7 +24,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
-import org.eclipse.ditto.model.enforcers.EffectedSubjectIds;
+import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.enforcers.testbench.algorithms.PolicyAlgorithm;
 import org.eclipse.ditto.model.enforcers.testbench.scenarios.Scenario;
@@ -520,15 +520,15 @@ public abstract class AbstractPolicyAlgorithmTest {
             assertThat(actualJsonView).isEqualToIgnoringFieldDefinitions(expectedJsonView);
         });
 
-        setup.getExpectedSubjectIds().ifPresent(expectedSubjectIds -> {
+        setup.getExpectedSubjects().ifPresent(expectedSubjectIds -> {
             final ResourceKey resKey = ResourceKey.newInstance(Scenario.THING_TYPE, setup.getResource());
             final Permissions reqPermissions = setup.getRequiredPermissions();
-            final EffectedSubjectIds effectedSubjectIds = algorithm.getSubjectIdsWithPermission(resKey, reqPermissions);
-            final Set<String> grantedSubjectIds = effectedSubjectIds.getGranted();
+            final EffectedSubjects effectedSubjects = algorithm.getSubjectsWithPermission(resKey, reqPermissions);
+            final Set<AuthorizationSubject> grantedSubjects = effectedSubjects.getGranted();
 
-            assertThat(grantedSubjectIds)
+            assertThat(grantedSubjects)
                     .overridingErrorMessage("Expected\n<%s> to have <%s> granted on resource <%s> but actually" +
-                            " only\n<%s> have!", expectedSubjectIds, reqPermissions, resKey, effectedSubjectIds)
+                            " only\n<%s> have!", expectedSubjectIds, reqPermissions, resKey, effectedSubjects)
                     .containsAll(expectedSubjectIds);
         });
 

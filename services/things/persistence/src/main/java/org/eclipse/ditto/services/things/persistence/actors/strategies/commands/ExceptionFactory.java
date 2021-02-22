@@ -12,17 +12,12 @@
  */
 package org.eclipse.ditto.services.things.persistence.actors.strategies.commands;
 
-import java.util.Optional;
-
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonPointer;
-import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.things.ThingId;
-import org.eclipse.ditto.signals.commands.things.exceptions.AclModificationInvalidException;
-import org.eclipse.ditto.signals.commands.things.exceptions.AclNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributeNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.AttributesNotAccessibleException;
 import org.eclipse.ditto.signals.commands.things.exceptions.FeatureDefinitionNotAccessibleException;
@@ -67,25 +62,6 @@ final class ExceptionFactory {
 
     static DittoRuntimeException featuresNotFound(final ThingId thingId, final DittoHeaders dittoHeaders) {
         return FeaturesNotAccessibleException.newBuilder(thingId)
-                .dittoHeaders(dittoHeaders)
-                .build();
-    }
-
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    static DittoRuntimeException aclInvalid(final ThingId thingId, final Optional<String> message,
-            final DittoHeaders dittoHeaders) {
-
-        return AclModificationInvalidException.newBuilder(thingId)
-                .description(message.orElse(null))
-                .dittoHeaders(dittoHeaders)
-                .build();
-    }
-
-    static DittoRuntimeException aclEntryNotFound(final ThingId thingId,
-            final AuthorizationSubject authorizationSubject,
-            final DittoHeaders dittoHeaders) {
-
-        return AclNotAccessibleException.newBuilder(thingId, authorizationSubject)
                 .dittoHeaders(dittoHeaders)
                 .build();
     }

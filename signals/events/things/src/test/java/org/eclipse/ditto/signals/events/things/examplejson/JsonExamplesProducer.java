@@ -28,23 +28,16 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.policies.PolicyId;
-import org.eclipse.ditto.model.things.AccessControlList;
-import org.eclipse.ditto.model.things.AclEntry;
 import org.eclipse.ditto.model.things.Attributes;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.FeatureDefinition;
 import org.eclipse.ditto.model.things.FeatureProperties;
 import org.eclipse.ditto.model.things.Features;
-import org.eclipse.ditto.model.things.Permission;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingRevision;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
-import org.eclipse.ditto.signals.events.things.AclEntryCreated;
-import org.eclipse.ditto.signals.events.things.AclEntryDeleted;
-import org.eclipse.ditto.signals.events.things.AclEntryModified;
-import org.eclipse.ditto.signals.events.things.AclModified;
 import org.eclipse.ditto.signals.events.things.AttributeCreated;
 import org.eclipse.ditto.signals.events.things.AttributeDeleted;
 import org.eclipse.ditto.signals.events.things.AttributeModified;
@@ -66,7 +59,6 @@ import org.eclipse.ditto.signals.events.things.FeaturePropertyModified;
 import org.eclipse.ditto.signals.events.things.FeaturesCreated;
 import org.eclipse.ditto.signals.events.things.FeaturesDeleted;
 import org.eclipse.ditto.signals.events.things.FeaturesModified;
-import org.eclipse.ditto.signals.events.things.PolicyIdCreated;
 import org.eclipse.ditto.signals.events.things.PolicyIdModified;
 import org.eclipse.ditto.signals.events.things.ThingCreated;
 import org.eclipse.ditto.signals.events.things.ThingDeleted;
@@ -82,16 +74,10 @@ public class JsonExamplesProducer {
      * Thing
      */
     private static final ThingId THING_ID = ThingId.of(NAMESPACE, "xdk_53");
-    private static final String POLICY_ID = NAMESPACE + ":policy0815";
+    private static final PolicyId POLICY_ID = PolicyId.of(NAMESPACE + ":policy0815");
     private static final ThingLifecycle LIFECYCLE = ThingLifecycle.ACTIVE;
     private static final AuthorizationSubject AUTH_SUBJECT_1 =
             AuthorizationModelFactory.newAuthSubject("the_auth_subject");
-    private static final AclEntry ACL_ENTRY_1 =
-            ThingsModelFactory.newAclEntry(AUTH_SUBJECT_1, Permission.READ, Permission.WRITE, Permission.ADMINISTRATE);
-    private static final AuthorizationSubject AUTH_SUBJECT_2 =
-            AuthorizationModelFactory.newAuthSubject("the_auth_subject_2");
-    private static final AclEntry ACL_ENTRY_2 = ThingsModelFactory.newAclEntry(AUTH_SUBJECT_2, Permission.READ);
-    private static final AccessControlList ACL = ThingsModelFactory.newAcl(ACL_ENTRY_1, ACL_ENTRY_2);
     private static final JsonObject ATTRIBUTE_VALUE = JsonFactory.newObjectBuilder()
             .set("latitude", 44.673856)
             .set("longitude", 8.261719)
@@ -158,25 +144,6 @@ public class JsonExamplesProducer {
 
         final ThingDeleted thingDeleted = ThingDeleted.of(THING_ID, REVISION_NUMBER, DITTO_HEADERS);
         writeJson(eventsDir.resolve(Paths.get("thingDeleted.json")), thingDeleted);
-
-        final AclEntryCreated aclEntryCreated = AclEntryCreated.of(THING_ID, ACL_ENTRY_1, REVISION_NUMBER,
-                DITTO_HEADERS);
-        writeJson(eventsDir.resolve(Paths.get("aclEntryCreated.json")), aclEntryCreated, JsonSchemaVersion.V_1);
-
-        final AclEntryModified aclEntryModified = AclEntryModified.of(THING_ID, ACL_ENTRY_1, REVISION_NUMBER,
-                DITTO_HEADERS);
-        writeJson(eventsDir.resolve(Paths.get("aclEntryModified.json")), aclEntryModified, JsonSchemaVersion.V_1);
-
-        final AclModified aclModified = AclModified.of(THING_ID, ACL, REVISION_NUMBER, DITTO_HEADERS);
-        writeJson(eventsDir.resolve(Paths.get("aclModified.json")), aclModified, JsonSchemaVersion.V_1);
-
-        final AclEntryDeleted aclEntryDeleted = AclEntryDeleted.of(THING_ID, AUTH_SUBJECT_1, REVISION_NUMBER,
-                DITTO_HEADERS);
-        writeJson(eventsDir.resolve(Paths.get("aclEntryDeleted.json")), aclEntryDeleted, JsonSchemaVersion.V_1);
-
-        final PolicyIdCreated policyIdCreated =
-                PolicyIdCreated.of(THING_ID, PolicyId.of(THING_ID), REVISION_NUMBER, DITTO_HEADERS);
-        writeJson(eventsDir.resolve(Paths.get("policyIdCreated.json")), policyIdCreated);
 
         final PolicyIdModified policyIdModified =
                 PolicyIdModified.of(THING_ID, PolicyId.of(THING_ID), REVISION_NUMBER, DITTO_HEADERS);

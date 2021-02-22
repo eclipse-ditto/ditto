@@ -13,10 +13,7 @@
 package org.eclipse.ditto.model.base.headers;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -99,32 +96,6 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     }
 
     /**
-     * Creates a single-line String representation of the passed {@code readSubjects} which were retrieved by the
-     * {@link #getReadSubjects()} of the DittoHeaders instance. Used when transmitting via a messaging header.
-     *
-     * @param readSubjects the authorization subjects having "READ" permission.
-     * @return a String representation.
-     * @deprecated Use {@link DittoHeaderDefinition#READ_SUBJECTS} to read subjects
-     */
-    @Deprecated
-    static String readSubjectsToString(final Set<String> readSubjects) {
-        return String.join(",", readSubjects);
-    }
-
-    /**
-     * Transforms the single-line String representation of {@link #readSubjectsToString(Set)} back to a Set of
-     * {@code readSubjects} as it is returned by {@link #getReadSubjects()}.
-     *
-     * @param readSubjectsString the String representation.
-     * @return the authorization subjects having "READ" permission for the key in the map defining a pointer.
-     * @deprecated Use {@link DittoHeaderDefinition#READ_SUBJECTS} to read subjects
-     */
-    @Deprecated
-    static Set<String> readSubjectsFromString(final String readSubjectsString) {
-        return new HashSet<>(Arrays.asList(readSubjectsString.split(",")));
-    }
-
-    /**
      * Returns a mutable builder with a fluent API for immutable {@code DittoHeaders}. The builder is initialised with
      * the entries of this instance.
      *
@@ -164,32 +135,11 @@ public interface DittoHeaders extends Jsonifiable<JsonObject>, Map<String, Strin
     Optional<JsonSchemaVersion> getSchemaVersion();
 
     /**
-     * Returns the authorization subjects for the command containing this header in a List of their String
-     * representation. Changes on the returned List are not reflected back to this headers object.
-     *
-     * @return the authorization subjects for the command.
-     * @deprecated as of 1.1.0, please use {@link #getAuthorizationContext()} instead for retrieving the
-     * {@code authorizationSubjects}
-     */
-    @Deprecated
-    List<String> getAuthorizationSubjects();
-
-    /**
      * Returns the AuthorizationContext for the command containing this header.
      *
      * @return the AuthorizationContext.
      */
     AuthorizationContext getAuthorizationContext();
-
-    /**
-     * Returns the authorization subjects having "READ" permission for the key in the map defining a pointer in the
-     * Thing. Changes on the returned Set are not reflected back to this headers object.
-     *
-     * @return the read subjects for pointers in the Thing.
-     * @deprecated as of 1.1.0, please use {@link #getReadGrantedSubjects()} instead.
-     */
-    @Deprecated
-    Set<String> getReadSubjects();
 
     /**
      * Returns the authorization subjects with granted "READ" permissions for the key in the map defining a pointer in

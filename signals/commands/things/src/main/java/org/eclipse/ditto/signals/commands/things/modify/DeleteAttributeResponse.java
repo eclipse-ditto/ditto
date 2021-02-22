@@ -52,7 +52,7 @@ public final class DeleteAttributeResponse extends AbstractCommandResponse<Delet
     public static final String TYPE = TYPE_PREFIX + DeleteAttribute.NAME;
 
     static final JsonFieldDefinition<String> JSON_ATTRIBUTE =
-            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("attribute", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ThingId thingId;

@@ -72,7 +72,7 @@ public interface SudoCommand<T extends SudoCommand<T>> extends Command<T> {
          * retrieve.
          */
         public static final JsonFieldDefinition<String> SELECTED_FIELDS =
-                JsonFactory.newStringFieldDefinition("payload/selectedFields", FieldType.REGULAR, JsonSchemaVersion.V_1,
+                JsonFactory.newStringFieldDefinition("payload/selectedFields", FieldType.REGULAR,
                         JsonSchemaVersion.V_2);
 
         private JsonFields() {

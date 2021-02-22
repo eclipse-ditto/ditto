@@ -29,8 +29,7 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * Handles substitution for ACL {@link org.eclipse.ditto.model.base.auth.AuthorizationSubject}s and
- * Policy {@link org.eclipse.ditto.model.policies.SubjectId}s
+ * Handles substitution for Policy {@link org.eclipse.ditto.model.policies.SubjectId}s
  * inside a {@link CreateThing} command.
  */
 final class CreateThingSubstitutionStrategy extends AbstractTypedSubstitutionStrategy<CreateThing> {
@@ -58,13 +57,10 @@ final class CreateThingSubstitutionStrategy extends AbstractTypedSubstitutionStr
                     substituteInitialPolicy(inlinePolicyJson, substitutionAlgorithm, dittoHeaders);
         }
 
-        final Thing existingThing = createThing.getThing();
-        final Thing substitutedThing = substituteThing(existingThing, substitutionAlgorithm, dittoHeaders);
-
-        if (existingThing.equals(substitutedThing) && Objects.equals(inlinePolicyJson, substitutedInlinePolicyJson)) {
+        if (Objects.equals(inlinePolicyJson, substitutedInlinePolicyJson)) {
             return createThing;
         } else {
-            return CreateThing.of(substitutedThing, substitutedInlinePolicyJson,
+            return CreateThing.of(createThing.getThing(), substitutedInlinePolicyJson,
                     createThing.getPolicyIdOrPlaceholder().orElse(null), dittoHeaders);
         }
     }

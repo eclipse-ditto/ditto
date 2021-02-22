@@ -95,11 +95,4 @@ public final class ThingMergedTest {
         assertThat(underTest.getTimestamp()).contains(TestConstants.TIMESTAMP);
     }
 
-    @Test
-    public void ensureSchemaVersion() {
-        final ThingId thingId = ThingId.of("foo", "bar");
-        assertThatThrownBy(() -> ThingMerged.of(thingId, JsonPointer.empty(), JsonObject.empty(),
-                1L, null, DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_1).build(), null))
-                .isInstanceOf(UnsupportedSchemaVersionException.class);
-    }
 }

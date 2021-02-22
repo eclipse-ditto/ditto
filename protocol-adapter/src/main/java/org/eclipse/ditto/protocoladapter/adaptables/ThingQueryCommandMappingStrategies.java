@@ -23,8 +23,6 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.JsonifiableMapper;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAcl;
-import org.eclipse.ditto.signals.commands.things.query.RetrieveAclEntry;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttribute;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveAttributes;
 import org.eclipse.ditto.signals.commands.things.query.RetrieveFeature;
@@ -65,12 +63,6 @@ final class ThingQueryCommandMappingStrategies extends AbstractThingMappingStrat
                 .dittoHeaders(dittoHeadersFrom(adaptable))
                 .namespace(namespaceFrom(adaptable))
                 .selectedFields(selectedFieldsFrom(adaptable)).build());
-
-        mappingStrategies.put(RetrieveAcl.TYPE, adaptable -> RetrieveAcl.of(thingIdFrom(adaptable),
-                dittoHeadersFrom(adaptable)));
-
-        mappingStrategies.put(RetrieveAclEntry.TYPE, adaptable -> RetrieveAclEntry.of(thingIdFrom(adaptable),
-                authorizationSubjectFrom(adaptable), selectedFieldsFrom(adaptable), dittoHeadersFrom(adaptable)));
 
         mappingStrategies.put(RetrieveAttributes.TYPE, adaptable -> RetrieveAttributes.of(thingIdFrom(adaptable),
                 selectedFieldsFrom(adaptable), dittoHeadersFrom(adaptable)));

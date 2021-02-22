@@ -24,7 +24,6 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
-import org.eclipse.ditto.model.enforcers.AclEnforcer;
 import org.eclipse.ditto.model.enforcers.EffectedSubjects;
 import org.eclipse.ditto.model.enforcers.Enforcer;
 import org.eclipse.ditto.model.messages.MessageFormatInvalidException;
@@ -73,15 +72,12 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
     private LiveSignalEnforcement(final Contextual<Signal<?>> context,
             final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
             final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
-            final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
             final LiveSignalPub liveSignalPub) {
 
         super(context);
         requireNonNull(thingIdCache);
         requireNonNull(policyEnforcerCache);
-        requireNonNull(aclEnforcerCache);
-        enforcerRetriever =
-                PolicyOrAclEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache, aclEnforcerCache);
+        enforcerRetriever = PolicyEnforcerRetrieverFactory.create(thingIdCache, policyEnforcerCache);
         this.liveSignalPub = liveSignalPub;
     }
 
@@ -92,7 +88,6 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
 
         private final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache;
         private final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache;
-        private final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache;
         private final LiveSignalPub liveSignalPub;
 
         /**
@@ -100,17 +95,14 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
          *
          * @param thingIdCache the thing-id-cache.
          * @param policyEnforcerCache the policy-enforcer cache.
-         * @param aclEnforcerCache the acl-enforcer cache.
          * @param liveSignalPub distributed-pub access for live signal publication
          */
         public Provider(final Cache<EntityIdWithResourceType, Entry<EntityIdWithResourceType>> thingIdCache,
                 final Cache<EntityIdWithResourceType, Entry<Enforcer>> policyEnforcerCache,
-                final Cache<EntityIdWithResourceType, Entry<Enforcer>> aclEnforcerCache,
                 final LiveSignalPub liveSignalPub) {
 
             this.thingIdCache = requireNonNull(thingIdCache);
             this.policyEnforcerCache = requireNonNull(policyEnforcerCache);
-            this.aclEnforcerCache = requireNonNull(aclEnforcerCache);
             this.liveSignalPub = liveSignalPub;
         }
 
@@ -127,8 +119,7 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
 
         @Override
         public AbstractEnforcement<Signal<?>> createEnforcement(final Contextual<Signal<?>> context) {
-            return new LiveSignalEnforcement(context, thingIdCache, policyEnforcerCache, aclEnforcerCache,
-                    liveSignalPub);
+            return new LiveSignalEnforcement(context, thingIdCache, policyEnforcerCache, liveSignalPub);
         }
 
     }
@@ -224,11 +215,8 @@ public final class LiveSignalEnforcement extends AbstractEnforcement<Signal<?>> 
             case LIVE_EVENTS:
                 return enforceLiveEvent(liveSignal, enforcer);
             case LIVE_COMMANDS:
-                if (enforcer instanceof AclEnforcer) {
-                    ThingCommandEnforcement.authorizeByAclOrThrow(enforcer, (ThingCommand<?>) liveSignal);
-                } else {
-                    ThingCommandEnforcement.authorizeByPolicyOrThrow(enforcer, (ThingCommand<?>) liveSignal);
-                }
+
+                ThingCommandEnforcement.authorizeByPolicyOrThrow(enforcer, (ThingCommand<?>) liveSignal);
                 final ThingCommand<?> withReadSubjects =
                         addEffectedReadSubjectsToThingSignal((ThingCommand<?>) liveSignal, enforcer);
                 log(withReadSubjects).info("Live Command was authorized: <{}>", withReadSubjects);

@@ -28,6 +28,7 @@ import org.eclipse.ditto.json.JsonParseOptions;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.model.policies.PolicyId;
 import org.eclipse.ditto.model.things.Thing;
 import org.eclipse.ditto.model.things.ThingLifecycle;
 import org.eclipse.ditto.model.things.ThingsModelFactory;
@@ -117,17 +118,11 @@ public final class CommandAndEventJsonExamplesProducer {
     }
 
     private static Thing createExampleThing(final ThingId thingId) {
-        final AuthorizationSubject authorizationSubject = newAuthSubject("the_acl_subject");
-        final AuthorizationSubject anotherAuthorizationSubject = newAuthSubject("another_acl_subject");
 
         return ThingsModelFactory.newThingBuilder() //
                 .setLifecycle(ThingLifecycle.ACTIVE) //
                 .setRevision(1) //
-                .setPermissions(authorizationSubject, org.eclipse.ditto.model.things.Permission.READ,
-                        org.eclipse.ditto.model.things.Permission.WRITE,
-                        org.eclipse.ditto.model.things.Permission.ADMINISTRATE) //
-                .setPermissions(anotherAuthorizationSubject, org.eclipse.ditto.model.things.Permission.READ,
-                        org.eclipse.ditto.model.things.Permission.WRITE) //
+                .setPolicyId(PolicyId.of(thingId)) //
                 .setId(thingId) //
                 .build();
     }

@@ -49,7 +49,7 @@ public final class TestConnectionResponse extends AbstractCommandResponse<TestCo
     public static final String TYPE = TYPE_PREFIX + TestConnection.NAME;
 
     static final JsonFieldDefinition<String> JSON_TEST_RESULT =
-            JsonFactory.newStringFieldDefinition("testResult", FieldType.REGULAR, JsonSchemaVersion.V_1,
+            JsonFactory.newStringFieldDefinition("testResult", FieldType.REGULAR,
                     JsonSchemaVersion.V_2);
 
     private final ConnectionId connectionId;

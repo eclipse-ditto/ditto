@@ -63,18 +63,6 @@ public final class ThingNotDeletableExceptionTest {
     }
 
     @Test
-    public void checkMessageV1() {
-        final ThingId thingId = ThingId.of("foo", "bar");
-        final DittoRuntimeException createdException = ThingNotDeletableException.newBuilder(thingId)
-                .dittoHeaders(DittoHeaders.newBuilder().schemaVersion(JsonSchemaVersion.V_1).build())
-                .build();
-
-        final String expectedMessage = "The Thing with ID '"+thingId.toString()+ "' could not be deleted as the " +
-                "requester had insufficient permissions ( WRITE and ADMINISTRATE are required).";
-        assertThat(createdException.getMessage()).isEqualTo(expectedMessage);
-    }
-
-    @Test
     public void checkMessageV2() {
         final ThingId thingId = ThingId.of("foo", "bar");
         final DittoRuntimeException createdException = ThingNotDeletableException.newBuilder(thingId)
