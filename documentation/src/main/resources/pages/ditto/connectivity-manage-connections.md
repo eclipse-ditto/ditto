@@ -1,5 +1,6 @@
 ---
-title: Manage connections keywords:
+title: Manage connections 
+keywords:
 tags: [connectivity]
 permalink: connectivity-manage-connections.html
 ---
