@@ -44,7 +44,7 @@ public final class JsonValueSourceRefTest {
 
     @BeforeClass
     public static void beforeClass() {
-        actorSystem = ActorSystem.create("AkkaTestSystem");
+        actorSystem = ActorSystem.create(JsonValueSourceRefTest.class.getSimpleName());
     }
 
     @AfterClass

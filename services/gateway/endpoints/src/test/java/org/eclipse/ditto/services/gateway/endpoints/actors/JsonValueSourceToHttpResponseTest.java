@@ -49,7 +49,7 @@ public final class JsonValueSourceToHttpResponseTest {
 
     @BeforeClass
     public static void setUpClass() {
-        actorSystem = ActorSystem.create("AkkaTestSystem");
+        actorSystem = ActorSystem.create(JsonValueSourceToHttpResponseTest.class.getSimpleName());
     }
 
     @Test
