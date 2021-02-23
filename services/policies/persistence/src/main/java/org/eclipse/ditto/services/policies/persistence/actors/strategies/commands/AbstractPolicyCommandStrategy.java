@@ -186,9 +186,12 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
      */
     protected Subject potentiallyAdjustSubject(final Subject subject) {
         final Optional<SubjectExpiry> expiryOptional = subject.getExpiry();
-        if (expiryOptional.isPresent()) {
-            final SubjectExpiry subjectExpiry = expiryOptional.get();
-            return Subject.newInstance(subject.getId(), subject.getType(), roundPolicySubjectExpiry(subjectExpiry));
+        final Optional<SubjectAnnouncement> announcementOptional = subject.getAnnouncement();
+        if (expiryOptional.isPresent() || announcementOptional.isPresent()) {
+            final SubjectExpiry subjectExpiry = expiryOptional.map(this::roundPolicySubjectExpiry).orElse(null);
+            final SubjectAnnouncement subjectAnnouncement =
+                    announcementOptional.map(this::roundSubjectAnnouncement).orElse(null);
+            return Subject.newInstance(subject.getId(), subject.getType(), subjectExpiry, subjectAnnouncement);
         } else {
             return subject;
         }

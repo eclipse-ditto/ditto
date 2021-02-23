@@ -22,6 +22,10 @@ import static org.eclipse.ditto.services.policies.persistence.testhelper.ETagTes
 import static org.eclipse.ditto.services.policies.persistence.testhelper.ETagTestUtils.retrievePolicyResponse;
 import static org.eclipse.ditto.services.policies.persistence.testhelper.ETagTestUtils.retrieveResourceResponse;
 import static org.eclipse.ditto.services.policies.persistence.testhelper.ETagTestUtils.retrieveSubjectResponse;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -33,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
+import org.eclipse.ditto.model.base.common.DittoDuration;
 import org.eclipse.ditto.model.base.entity.Revision;
 import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
@@ -51,6 +56,7 @@ import org.eclipse.ditto.model.policies.PolicyTooLargeException;
 import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.SubjectAnnouncement;
 import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectExpiryInvalidException;
 import org.eclipse.ditto.model.policies.SubjectId;
@@ -69,6 +75,7 @@ import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersistenceActor;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
+import org.eclipse.ditto.signals.announcements.policies.SubjectDeletionAnnouncement;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistence;
 import org.eclipse.ditto.signals.commands.cleanup.CleanupPersistenceResponse;
 import org.eclipse.ditto.signals.commands.policies.PolicyCommand;
@@ -94,6 +101,7 @@ import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntry;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyResource;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifySubject;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifySubjects;
+import org.eclipse.ditto.signals.commands.policies.modify.ModifySubjectsResponse;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicy;
 import org.eclipse.ditto.signals.commands.policies.query.RetrievePolicyEntry;
@@ -107,7 +115,10 @@ import org.eclipse.ditto.signals.events.policies.SubjectCreated;
 import org.eclipse.ditto.signals.events.policies.SubjectDeleted;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import akka.actor.AbstractActor;
 import akka.actor.Actor;
@@ -130,6 +141,8 @@ import scala.concurrent.duration.FiniteDuration;
  * Unit test for the {@link PolicyPersistenceActor}.
  */
 public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PolicyPersistenceActorTest.class);
 
     private static final long POLICY_SIZE_LIMIT_BYTES = Long.parseLong(
             System.getProperty(PolicyCommandSizeValidator.DITTO_LIMITS_POLICIES_MAX_SIZE_BYTES, "-1"));
@@ -720,14 +733,17 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void createSubjectWithExpiry() {
         new TestKit(actorSystem) {
             {
+                waitPastTimeBorder();
                 final Policy policy = createPolicyWithRandomId();
                 final Instant expiryInstant = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
                         .plus(2, ChronoUnit.SECONDS)
                         .atZone(ZoneId.systemDefault()).toInstant();
                 final SubjectExpiry subjectExpiry = SubjectExpiry.newInstance(expiryInstant);
+                final SubjectAnnouncement subjectAnnouncement =
+                        SubjectAnnouncement.of(DittoDuration.parseDuration("1s"), false);
                 final Subject subjectToAdd =
                         Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, "anotherSubjectId"),
-                                SubjectType.GENERATED, subjectExpiry);
+                                SubjectType.GENERATED, subjectExpiry, subjectAnnouncement);
 
                 final DittoHeaders headersMockWithOtherAuth =
                         createDittoHeaders(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
@@ -762,7 +778,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         expiryInstant.plusSeconds(secondsToAdd); // to next 10s rounded up
                 final SubjectExpiry expectedSubjectExpiry = SubjectExpiry.newInstance(expectedRoundedExpiryInstant);
                 final Subject expectedAdjustedSubjectToAdd = Subject.newInstance(subjectToAdd.getId(),
-                        subjectToAdd.getType(), expectedSubjectExpiry);
+                        subjectToAdd.getType(), expectedSubjectExpiry, subjectAnnouncement);
 
                 // THEN: the subject expiry should be rounded up to the configured "subject-expiry-granularity"
                 //  (10s for this test)
@@ -792,6 +808,13 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 assertThat(((SubjectDeleted) subjectDeletedMsg).getSubjectId())
                         .isEqualTo(expectedAdjustedSubjectToAdd.getId());
 
+                // THEN: a SubjectDeletionAnnouncement should have been published
+                final var announcementCaptor = ArgumentCaptor.forClass(SubjectDeletionAnnouncement.class);
+                verify(policyAnnouncementPub).publish(announcementCaptor.capture(), any());
+                final SubjectDeletionAnnouncement announcement = announcementCaptor.getValue();
+                Assertions.assertThat(announcement.getSubjectIds()).containsExactly(subjectToAdd.getId());
+                Assertions.assertThat(announcement.getDeletedAt()).isEqualTo(expectedRoundedExpiryInstant);
+
                 // THEN: a PolicyTag should be emitted via pub/sub indicating that the policy enforcer caches should be invalidated
                 final DistributedPubSubMediator.Publish policyTagForCacheInvalidation =
                         pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
@@ -808,8 +831,62 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     @Test
+    public void sendAnnouncementBeforeExpiry() {
+        new TestKit(actorSystem) {
+            {
+                // Do not wait past time border because no expiration will occur.
+                final Policy policy = createPolicyWithRandomId();
+                final Instant expiryInstant = Instant.now().plus(Duration.ofHours(2));
+                final SubjectExpiry subjectExpiry1 = SubjectExpiry.newInstance(expiryInstant);
+                final SubjectExpiry subjectExpiry2 = SubjectExpiry.newInstance(expiryInstant.plus(Duration.ofHours(1)));
+                final SubjectAnnouncement subjectAnnouncement =
+                        SubjectAnnouncement.of(DittoDuration.parseDuration("10h"), false);
+                final Subject subject1 =
+                        Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, "subject1"),
+                                SubjectType.GENERATED, subjectExpiry1, subjectAnnouncement);
+
+                final Subject subject2 =
+                        Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, "subject2"),
+                                SubjectType.GENERATED, subjectExpiry2, subjectAnnouncement);
+
+                final DittoHeaders headersMockWithOtherAuth =
+                        createDittoHeaders(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
+
+                final PolicyId policyId = policy.getEntityId().orElseThrow();
+                final ActorRef underTest = createPersistenceActorFor(this, policy);
+
+                // GIVEN: a Policy is created
+                final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
+                underTest.tell(createPolicyCommand, getRef());
+                expectMsgClass(CreatePolicyResponse.class);
+
+                // WHEN: the Policy's subject is modified having an "expiry" in the far future
+                final ModifySubjects modifySubjects =
+                        ModifySubjects.of(policyId, ANOTHER_POLICY_LABEL, Subjects.newInstance(subject1, subject2),
+                                headersMockWithOtherAuth);
+                underTest.tell(modifySubjects, getRef());
+                expectMsgClass(ModifySubjectsResponse.class);
+
+                // THEN: announcements are published
+                final var captor = ArgumentCaptor.forClass(SubjectDeletionAnnouncement.class);
+                verify(policyAnnouncementPub, times(2)).publish(captor.capture(), any());
+                final SubjectDeletionAnnouncement announcement1 = captor.getAllValues().get(0);
+                final SubjectDeletionAnnouncement announcement2 = captor.getAllValues().get(1);
+                Assertions.assertThat(announcement1.getSubjectIds()).containsExactly(subject1.getId());
+                Assertions.assertThat(announcement1.getDeletedAt()).isAfterOrEqualTo(subjectExpiry1.getTimestamp());
+                Assertions.assertThat(announcement2.getSubjectIds()).containsExactly(subject2.getId());
+                Assertions.assertThat(announcement2.getDeletedAt()).isAfterOrEqualTo(subjectExpiry2.getTimestamp());
+
+                // THEN: announcements are published no more than once while the actor is alive.
+                verifyNoMoreInteractions(policyAnnouncementPub);
+            }
+        };
+    }
+
+    @Test
     public void createPolicyWith2SubjectsWithExpiry() {
         new TestKit(actorSystem) {{
+            waitPastTimeBorder();
             final Instant expiryInstant = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
                     .plus(2, ChronoUnit.SECONDS)
                     .atZone(ZoneId.systemDefault()).toInstant();
@@ -1106,6 +1183,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void ensureSubjectExpiryIsCleanedUpAfterRecovery() {
         new TestKit(actorSystem) {
             {
+                waitPastTimeBorder();
                 final Policy policy = createPolicyWithRandomId();
                 final PolicyId policyId = policy.getEntityId().orElseThrow();
                 final ActorRef underTest = createPersistenceActorFor(this, policy);
@@ -1196,6 +1274,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void ensureExpiredSubjectIsRemovedDuringRecovery() throws InterruptedException {
         new TestKit(actorSystem) {
             {
+                waitPastTimeBorder();
                 final Policy policy = createPolicyWithRandomId();
                 final PolicyId policyId = policy.getEntityId().orElseThrow();
                 final ClusterShardingSettings shardingSettings =
@@ -1213,9 +1292,11 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         .plus(2, ChronoUnit.SECONDS)
                         .atZone(ZoneId.systemDefault()).toInstant();
                 final SubjectExpiry subjectExpiry = SubjectExpiry.newInstance(expiryInstant);
+                final SubjectAnnouncement subjectAnnouncement =
+                        SubjectAnnouncement.of(DittoDuration.parseDuration("1s"), false);
                 final Subject expiringSubject =
                         Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, "about-to-expire"),
-                                SubjectType.GENERATED, subjectExpiry);
+                                SubjectType.GENERATED, subjectExpiry, subjectAnnouncement);
                 final Policy policyWithExpiringSubject = policy.toBuilder()
                         .setSubjectFor(TestConstants.Policy.SUPPORT_LABEL, expiringSubject)
                         .build();
@@ -1225,7 +1306,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         expiryInstant.plusSeconds(secondsToAdd); // to next 10s rounded up
                 final SubjectExpiry expectedSubjectExpiry = SubjectExpiry.newInstance(expectedRoundedExpiryInstant);
                 final Subject expectedAdjustedSubjectToAdd = Subject.newInstance(expiringSubject.getId(),
-                        expiringSubject.getType(), expectedSubjectExpiry);
+                        expiringSubject.getType(), expectedSubjectExpiry, subjectAnnouncement);
 
                 final Policy adjustedPolicyWithExpiringSubject = policyWithExpiringSubject.toBuilder()
                         .setSubjectFor(TestConstants.Policy.SUPPORT_LABEL, expectedAdjustedSubjectToAdd)
@@ -1265,6 +1346,13 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 // THEN: the restored policy persistence actor has a different reference and the same actor path
                 assertThat(secondPersistenceActor).isNotEqualTo(firstPersistenceActor);
                 assertThat(secondPersistenceActor.path()).isEqualTo(firstPersistenceActor.path());
+
+                // THEN: SubjectDeletionAnnouncement is published
+                final var announcementCaptor = ArgumentCaptor.forClass(SubjectDeletionAnnouncement.class);
+                verify(policyAnnouncementPub).publish(announcementCaptor.capture(), any());
+                final var announcement = announcementCaptor.getValue();
+                Assertions.assertThat(announcement.getSubjectIds()).containsExactly(expiringSubject.getId());
+                Assertions.assertThat(announcement.getDeletedAt()).isEqualTo(expectedRoundedExpiryInstant);
 
                 // THEN: returned policy via SudoRetrievePolicyResponse does no longer contain the already expired subject:
                 final Policy expectedPolicyWithoutExpiredSubject = incrementRevision(policy.toBuilder()
@@ -1495,6 +1583,26 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator,
                 policyAnnouncementPub);
         return testKit.watch(actorSystem.actorOf(props));
+    }
+
+    private void waitPastTimeBorder() {
+        final Instant now = Instant.now();
+        final int secondRemainder = (int) (now.getEpochSecond() % 10L);
+        final long nanoSecond = now.getNano();
+        // sleep for some time if remainder is too close to the next border
+        final int maxRemainder = 7;
+        final long minNano = 100_000L;
+        if (secondRemainder > maxRemainder || secondRemainder == 0 && nanoSecond < minNano) {
+            final int effectiveRemainder = secondRemainder == 0 ? 10 : secondRemainder;
+            final int secondUntilBorder = 10 - effectiveRemainder;
+            final int millisToSleep = secondUntilBorder * 1000 + 500;
+            try {
+                LOGGER.info("Sleeping {} ms to avoid 10s border for subject expiry test", millisToSleep);
+                TimeUnit.MILLISECONDS.sleep(millisToSleep);
+            } catch (final Exception e) {
+                throw new AssertionError(e);
+            }
+        }
     }
 
     private static Policy incrementRevision(final Policy policy, final int n) {

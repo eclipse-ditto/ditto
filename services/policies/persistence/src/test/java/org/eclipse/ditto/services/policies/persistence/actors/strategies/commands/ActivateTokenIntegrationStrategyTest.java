@@ -57,7 +57,7 @@ public final class ActivateTokenIntegrationStrategyTest extends AbstractPolicyCo
     @Before
     public void setUp() {
         underTest = new ActivateTokenIntegrationStrategy(
-                DefaultPolicyConfig.of(ConfigFactory.load("policy-test")),
+                DefaultPolicyConfig.of(ConfigFactory.load("activate-token-integration-test")),
                 ActorSystem.create("test"));
     }
 
