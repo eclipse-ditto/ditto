@@ -20,6 +20,9 @@ import javax.annotation.concurrent.Immutable;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.common.ConditionChecker;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import akka.NotUsed;
 import akka.stream.SourceRef;
 import akka.stream.javadsl.Source;
@@ -36,7 +39,7 @@ public final class JsonValueSourceRef implements AkkaJacksonCborSerializable {
 
     private final SourceRef<JsonValue> sourceRef;
 
-    private JsonValueSourceRef(final SourceRef<JsonValue> sourceRef) {
+    private JsonValueSourceRef(@JsonProperty("sourceRef") final SourceRef<JsonValue> sourceRef) {
         this.sourceRef = sourceRef;
     }
 
@@ -65,6 +68,7 @@ public final class JsonValueSourceRef implements AkkaJacksonCborSerializable {
      *
      * @return the Source.
      */
+    @JsonIgnore
     public Source<JsonValue, NotUsed> getSource() {
         return sourceRef.getSource();
     }

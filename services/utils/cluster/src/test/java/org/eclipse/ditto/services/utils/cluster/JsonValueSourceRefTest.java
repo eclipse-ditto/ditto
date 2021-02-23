@@ -34,7 +34,6 @@ import akka.stream.SourceRef;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
 import akka.testkit.TestKit;
-import akka.testkit.TestProbe;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -92,19 +91,6 @@ public final class JsonValueSourceRefTest {
         final var underTest = JsonValueSourceRef.of(getSourceRef());
 
         assertThat(underTest.getSource()).isNotNull();
-    }
-
-    @Test
-    public void serializationWorks() {
-        final var underTest = JsonValueSourceRef.of(getSourceRef());
-
-        final var messageSender = TestProbe.apply(actorSystem);
-        final var messageReceiver = TestProbe.apply(actorSystem);
-
-        final var senderRef = messageSender.ref();
-        senderRef.tell(underTest, messageReceiver.ref());
-
-        messageReceiver.expectMsgClass(JsonValueSourceRef.class);
     }
 
     private static SourceRef<JsonValue> getSourceRef() {
