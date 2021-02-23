@@ -26,12 +26,15 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.typesafe.config.ConfigFactory;
+
 import akka.actor.ActorSystem;
 import akka.stream.Materializer;
 import akka.stream.SourceRef;
 import akka.stream.javadsl.Source;
 import akka.stream.javadsl.StreamRefs;
 import akka.testkit.TestKit;
+import akka.testkit.TestProbe;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import scala.concurrent.duration.FiniteDuration;
 
@@ -44,7 +47,8 @@ public final class JsonValueSourceRefTest {
 
     @BeforeClass
     public static void beforeClass() {
-        actorSystem = ActorSystem.create(JsonValueSourceRefTest.class.getSimpleName());
+        final var serializationTestConfig = ConfigFactory.load("serialization-test");
+        actorSystem = ActorSystem.create(JsonValueSourceRefTest.class.getSimpleName(), serializationTestConfig);
     }
 
     @AfterClass
@@ -76,8 +80,7 @@ public final class JsonValueSourceRefTest {
 
     @Test
     public void getSourceRefReturnsExpected() {
-        final var source = Source.from(List.of(JsonValue.of("Hello"), JsonValue.of(" "), JsonValue.of("Ditto!")));
-        final var jsonValueSourceRef = source.runWith(StreamRefs.sourceRef(), Materializer.apply(actorSystem));
+        final var jsonValueSourceRef = getSourceRef();
 
         final var underTest = JsonValueSourceRef.of(jsonValueSourceRef);
 
@@ -86,12 +89,27 @@ public final class JsonValueSourceRefTest {
 
     @Test
     public void getSourceReturnsNotNull() {
-        final var source = Source.from(List.of(JsonValue.of("Hello"), JsonValue.of(" "), JsonValue.of("Ditto!")));
-        final var sourceRef = source.runWith(StreamRefs.sourceRef(), Materializer.apply(actorSystem));
-
-        final var underTest = JsonValueSourceRef.of(sourceRef);
+        final var underTest = JsonValueSourceRef.of(getSourceRef());
 
         assertThat(underTest.getSource()).isNotNull();
+    }
+
+    @Test
+    public void serializationWorks() {
+        final var underTest = JsonValueSourceRef.of(getSourceRef());
+
+        final var messageSender = TestProbe.apply(actorSystem);
+        final var messageReceiver = TestProbe.apply(actorSystem);
+
+        final var senderRef = messageSender.ref();
+        senderRef.tell(underTest, messageReceiver.ref());
+
+        messageReceiver.expectMsgClass(JsonValueSourceRef.class);
+    }
+
+    private static SourceRef<JsonValue> getSourceRef() {
+        final var source = Source.from(List.of(JsonValue.of("Hello"), JsonValue.of(" "), JsonValue.of("Ditto!")));
+        return source.runWith(StreamRefs.sourceRef(), Materializer.apply(actorSystem));
     }
 
 }
