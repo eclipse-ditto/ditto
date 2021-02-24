@@ -306,7 +306,16 @@ public enum DittoHeaderDefinition implements HeaderDefinition {
      * @since 2.0.0
      */
     POLICY_ENFORCER_INVALIDATED_PREEMPTIVELY("ditto-policy-enforcer-invalidated-preemptively", boolean.class,
-            false, false, HeaderValueValidators.getBooleanValidator());
+            false, false, HeaderValueValidators.getBooleanValidator()),
+
+    /**
+     * Internal header which may be set by PersistenceActors in order to declare tags to be stored by the event
+     * journaling {@code EventAdapter} as {@code tag} fields in the journal persistence.
+     *
+     * @since 2.0.0
+     */
+    EVENT_JOURNAL_TAGS("ditto-event-journal-tags", JsonArray.class,
+            false, false, HeaderValueValidators.getJsonArrayValidator());
 
     /**
      * Map to speed up lookup of header definition by key.

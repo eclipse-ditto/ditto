@@ -23,10 +23,9 @@ import org.eclipse.ditto.signals.base.JsonParsable;
  * @deprecated no longer used in any of Ditto's classes
  */
 @Deprecated
-public abstract class AbstractEventRegistry<T extends Event> extends AbstractJsonParsableRegistry<T>
-        implements EventRegistry<T> {
+public abstract class AbstractEventRegistry extends AbstractJsonParsableRegistry<Event> implements EventRegistry<Event> {
 
-    protected AbstractEventRegistry(final Map<String, JsonParsable<T>> parseStrategies) {
+    protected AbstractEventRegistry(final Map<String, JsonParsable<Event>> parseStrategies) {
         super(parseStrategies);
     }
 

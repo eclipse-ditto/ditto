@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import org.bson.Document;
 import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
@@ -238,6 +239,23 @@ public final class MongoReadJournalIT {
     }
 
     @Test
+    public void extractJournalPidsWithSpecificTag() {
+        final Set<String> tagged = Set.of("always-live", "awesome");
+        final Set<String> alwaysLiveTagged = Set.of("always-live");
+        insert("test_journal", new Document().append("pid", "pid1").append("to", 1L).append("_tg", tagged));
+        insert("test_journal", new Document().append("pid", "pid2").append("to", 1L));
+        insert("test_journal", new Document().append("pid", "pid3").append("to", 2L).append("_tg", alwaysLiveTagged));
+        insert("test_journal", new Document().append("pid", "pid4").append("to", 2L).append("_tg", tagged));
+
+        final List<String> pids =
+                readJournal.getJournalPidsWithTag("always-live", 2, Duration.ZERO, materializer)
+                        .runWith(Sink.seq(), materializer)
+                        .toCompletableFuture().join();
+
+        assertThat(pids).containsExactly("pid1", "pid3", "pid4");
+    }
+
+    @Test
     public void extractJournalPidsAboveALowerBound() {
         insert("test_journal", new Document().append("pid", "pid1").append("to", 1L));
         insert("test_journal", new Document().append("pid", "pid2").append("to", 1L));
@@ -250,6 +268,24 @@ public final class MongoReadJournalIT {
                         .toCompletableFuture().join();
 
         assertThat(pids).containsExactly("pid3", "pid4");
+    }
+
+    @Test
+    public void extractJournalPidsAboveALowerBoundWithSpecificTag() {
+        final Set<String> tagged = Set.of("always-live");
+        insert("test_journal", new Document().append("pid", "pid1").append("to", 1L).append("_tg", tagged));
+        insert("test_journal", new Document().append("pid", "pid2").append("to", 1L));
+        insert("test_journal", new Document().append("pid", "pid3").append("to", 2L).append("_tg", tagged));
+        insert("test_journal", new Document().append("pid", "pid4").append("to", 2L).append("_tg", tagged));
+        insert("test_journal", new Document().append("pid", "pid5").append("to", 3L));
+        insert("test_journal", new Document().append("pid", "pid6").append("to", 3L).append("_tg", tagged));
+
+        final List<String> pids =
+                readJournal.getJournalPidsAboveWithTag("pid2", "always-live", 2, materializer)
+                        .runWith(Sink.seq(), materializer)
+                        .toCompletableFuture().join();
+
+        assertThat(pids).containsExactly("pid3", "pid4", "pid6");
     }
 
     private void insert(final String collection, final Document... documents) {

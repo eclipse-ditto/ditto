@@ -22,6 +22,7 @@ import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonCollectors;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Policy;
@@ -55,8 +56,6 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
             @Nullable final Metadata metadata) {
 
         final Iterable<PolicyEntry> policyEntries = command.getPolicyEntries();
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
-
         final JsonArray policyEntriesJsonArray = StreamSupport.stream(policyEntries.spliterator(), false)
                 .map(PolicyEntry::toJson)
                 .collect(JsonCollectors.valuesToArray());
@@ -70,12 +69,14 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
             return ResultFactory.newErrorResult(e, command);
         }
 
-        final Set<PolicyEntry> adjustedEntries = potentiallyAdjustPolicyEntries(policyEntries);
+        final DittoHeadersBuilder<?, ?> adjustedHeadersBuilder = command.getDittoHeaders().toBuilder();
+        final Set<PolicyEntry> adjustedEntries = potentiallyAdjustPolicyEntries(policyEntries, adjustedHeadersBuilder);
+        final DittoHeaders adjustedHeaders = adjustedHeadersBuilder.build();
         final ModifyPolicyEntries adjustedCommand = ModifyPolicyEntries.of(command.getEntityId(), adjustedEntries,
-                dittoHeaders);
+                adjustedHeaders);
 
         final Optional<Result<PolicyEvent<?>>> alreadyExpiredSubject =
-                checkForAlreadyExpiredSubject(policyEntries, dittoHeaders, command);
+                checkForAlreadyExpiredSubject(policyEntries, adjustedHeaders, command);
         if (alreadyExpiredSubject.isPresent()) {
             return alreadyExpiredSubject.get();
         }
@@ -85,14 +86,14 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
         if (validator.isValid()) {
             final PolicyId policyId = context.getState();
             final PolicyEntriesModified policyEntriesModified = PolicyEntriesModified.of(policyId, adjustedEntries,
-                    nextRevision, getEventTimestamp(), dittoHeaders);
+                    nextRevision, getEventTimestamp(), adjustedHeaders);
             final WithDittoHeaders<?> response = appendETagHeaderIfProvided(adjustedCommand,
-                    ModifyPolicyEntriesResponse.of(policyId, dittoHeaders), entity);
+                    ModifyPolicyEntriesResponse.of(policyId, adjustedHeaders), entity);
 
             return ResultFactory.newMutationResult(adjustedCommand, policyEntriesModified, response);
         } else {
             return ResultFactory.newErrorResult(
-                    policyInvalid(context.getState(), validator.getReason().orElse(null), dittoHeaders),
+                    policyInvalid(context.getState(), validator.getReason().orElse(null), adjustedHeaders),
                     command);
         }
     }

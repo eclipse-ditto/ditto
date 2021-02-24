@@ -29,6 +29,7 @@ import org.eclipse.ditto.model.base.common.DittoDuration;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyEntry;
@@ -41,6 +42,7 @@ import org.eclipse.ditto.model.policies.SubjectExpiryInvalidException;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.services.policies.common.config.PolicyConfig;
 import org.eclipse.ditto.services.utils.headers.conditional.ConditionalHeadersValidator;
+import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersistenceActor;
 import org.eclipse.ditto.services.utils.persistentactors.etags.AbstractConditionHeaderCheckingCommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.results.Result;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
@@ -133,11 +135,13 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
      * </ul>
      *
      * @param policyEntries the PolicyEntries to be potentially adjusted.
+     * @param headersBuilder a DittoHeadersBuilder used in order to adjust headers of the originating command.
      * @return the adjusted PolicyEntries or - if not adjusted - the original.
      */
-    protected Set<PolicyEntry> potentiallyAdjustPolicyEntries(final Iterable<PolicyEntry> policyEntries) {
+    protected Set<PolicyEntry> potentiallyAdjustPolicyEntries(final Iterable<PolicyEntry> policyEntries,
+            final DittoHeadersBuilder<?, ?> headersBuilder) {
         return StreamSupport.stream(policyEntries.spliterator(), false)
-                .map(this::potentiallyAdjustPolicyEntry)
+                .map(policyEntry -> potentiallyAdjustPolicyEntry(policyEntry, headersBuilder))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
@@ -150,10 +154,12 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
      * </ul>
      *
      * @param policyEntry the PolicyEntry to be potentially adjusted.
+     * @param headersBuilder a DittoHeadersBuilder used in order to adjust headers of the originating command.
      * @return the adjusted PolicyEntry or - if not adjusted - the original.
      */
-    protected PolicyEntry potentiallyAdjustPolicyEntry(final PolicyEntry policyEntry) {
-        final Subjects adjustedSubjects = potentiallyAdjustSubjects(policyEntry.getSubjects());
+    protected PolicyEntry potentiallyAdjustPolicyEntry(final PolicyEntry policyEntry,
+            final DittoHeadersBuilder<?, ?> headersBuilder) {
+        final Subjects adjustedSubjects = potentiallyAdjustSubjects(policyEntry.getSubjects(), headersBuilder);
         return PolicyEntry.newInstance(policyEntry.getLabel(), adjustedSubjects, policyEntry.getResources());
     }
 
@@ -165,11 +171,13 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
      * </ul>
      *
      * @param subjects the Subjects to be potentially adjusted.
+     * @param headersBuilder a DittoHeadersBuilder used in order to adjust headers of the originating command.
      * @return the adjusted Subjects or - if not adjusted - the original.
      */
-    protected Subjects potentiallyAdjustSubjects(final Subjects subjects) {
+    protected Subjects potentiallyAdjustSubjects(final Subjects subjects,
+            final DittoHeadersBuilder<?, ?> headersBuilder) {
         return Subjects.newInstance(subjects.stream()
-                .map(this::potentiallyAdjustSubject)
+                .map(subject -> potentiallyAdjustSubject(subject, headersBuilder))
                 .collect(Collectors.toList())
         );
     }
@@ -182,15 +190,20 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
      * </ul>
      *
      * @param subject the Subject to be potentially adjusted.
+     * @param headersBuilder a DittoHeadersBuilder used in order to adjust headers of the originating command.
      * @return the adjusted Subject or - if not adjusted - the original.
      */
-    protected Subject potentiallyAdjustSubject(final Subject subject) {
+    protected Subject potentiallyAdjustSubject(final Subject subject,
+            final DittoHeadersBuilder<?, ?> headersBuilder) {
         final Optional<SubjectExpiry> expiryOptional = subject.getExpiry();
         final Optional<SubjectAnnouncement> announcementOptional = subject.getAnnouncement();
         if (expiryOptional.isPresent() || announcementOptional.isPresent()) {
             final SubjectExpiry subjectExpiry = expiryOptional.map(this::roundPolicySubjectExpiry).orElse(null);
             final SubjectAnnouncement subjectAnnouncement =
                     announcementOptional.map(this::roundSubjectAnnouncement).orElse(null);
+            if (null != subjectAnnouncement) {
+                headersBuilder.journalTags(Set.of(AbstractShardedPersistenceActor.JOURNAL_TAG_ALWAYS_ALIVE));
+            }
             return Subject.newInstance(subject.getId(), subject.getType(), subjectExpiry, subjectAnnouncement);
         } else {
             return subject;

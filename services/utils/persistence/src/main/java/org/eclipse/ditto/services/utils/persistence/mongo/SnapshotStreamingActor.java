@@ -137,8 +137,8 @@ public final class SnapshotStreamingActor extends AbstractActor {
     }
 
     private StreamedSnapshot mapSnapshot(final Document snapshot) {
-        final EntityId entityId = pid2EntityId.apply(snapshot.getString(MongoReadJournal.ID));
-        snapshot.remove(MongoReadJournal.ID);
+        final EntityId entityId = pid2EntityId.apply(snapshot.getString(MongoReadJournal.J_ID));
+        snapshot.remove(MongoReadJournal.J_ID);
         final JsonObject snapshotJson = JsonObject.of(snapshot.toJson());
         return StreamedSnapshot.of(entityId, snapshotJson);
     }

@@ -62,6 +62,12 @@ public abstract class AbstractShardedPersistenceActor<
         K,
         E extends Event<? extends E>> extends AbstractPersistentActorWithTimersAndCleanup implements ResultVisitor<E> {
 
+    /**
+     * An event journal {@code Tag} used to tag journal entries managed by a PersistenceActor as "always alive" meaning
+     * that those entities should be always kept in-memory and re-started on a cold-start of the cluster.
+     */
+    public static final String JOURNAL_TAG_ALWAYS_ALIVE = "always-alive";
+
     private final SnapshotAdapter<S> snapshotAdapter;
     private final Receive handleEvents;
     private final Receive handleCleanups;
@@ -78,6 +84,7 @@ public abstract class AbstractShardedPersistenceActor<
      * The entity ID.
      */
     protected final I entityId;
+    protected boolean alwaysAlive = false;
 
     private long accessCounter = 0L;
 
@@ -99,6 +106,7 @@ public abstract class AbstractShardedPersistenceActor<
         handleEvents = ReceiveBuilder.create()
                 .match(getEventClass(), event -> {
                     entity = getEventStrategy().handle((E) event, entity, getRevisionNumber());
+                    alwaysAlive |= ((E) event).getDittoHeaders().getJournalTags().contains(JOURNAL_TAG_ALWAYS_ALIVE);
                     onEntityModified();
                 })
                 .build();
@@ -296,6 +304,26 @@ public abstract class AbstractShardedPersistenceActor<
      */
     protected void persistAndApplyEvent(final E event, final BiConsumer<E, S> handler) {
 
+        final E modifiedEvent = modifyEventBeforePersist(event);
+        if (modifiedEvent.getDittoHeaders().isDryRun()) {
+            handler.accept(modifiedEvent, entity);
+        } else {
+            persistEvent(modifiedEvent, persistedEvent -> {
+                // after the event was persisted, apply the event on the current actor state
+                applyEvent(persistedEvent);
+                handler.accept(persistedEvent, entity);
+            });
+        }
+    }
+
+    /**
+     * Allows to modify the passed in {@code event} before {@link #persistEvent(Event, Consumer)} is invoked.
+     * Overwrite this method and call the super method in order to additionally modify the event before persisting it.
+     *
+     * @param event the event to potentially modify.
+     * @return the modified or unmodified event to persist.
+     */
+    protected E modifyEventBeforePersist(final E event) {
         final E modifiedEvent;
         if (null != entity) {
             // set version of event to the version of the entity
@@ -306,16 +334,7 @@ public abstract class AbstractShardedPersistenceActor<
         } else {
             modifiedEvent = event;
         }
-
-        if (modifiedEvent.getDittoHeaders().isDryRun()) {
-            handler.accept(modifiedEvent, entity);
-        } else {
-            persistEvent(modifiedEvent, persistedEvent -> {
-                // after the event was persisted, apply the event on the current actor state
-                applyEvent(persistedEvent);
-                handler.accept(persistedEvent, entity);
-            });
-        }
+        return modifiedEvent;
     }
 
     /**
@@ -333,6 +352,8 @@ public abstract class AbstractShardedPersistenceActor<
         } else if (accessCounter > message.accessCounter) {
             // if the entity was accessed in any way since the last check
             scheduleCheckForActivity(getActivityCheckConfig().getInactiveInterval());
+        } else if (alwaysAlive) {
+            log.debug("Entity <{}> is marked as 'always-alive', preventing Actor shutdown.", entityId);
         } else {
             // safe to shutdown after a period of inactivity if:
             // - entity is active (and taking regular snapshots of itself), or

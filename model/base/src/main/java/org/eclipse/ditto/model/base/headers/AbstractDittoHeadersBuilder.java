@@ -488,6 +488,14 @@ public abstract class AbstractDittoHeadersBuilder<S extends AbstractDittoHeaders
     }
 
     @Override
+    public S journalTags(final Collection<String> journalTags) {
+        putJsonValue(DittoHeaderDefinition.EVENT_JOURNAL_TAGS, journalTags.stream()
+                .map(JsonValue::of)
+                .collect(JsonCollectors.valuesToArray()));
+        return myself;
+    }
+
+    @Override
     public S putHeader(final CharSequence key, final CharSequence value) {
         validateKey(key);
         checkNotNull(value, "value");

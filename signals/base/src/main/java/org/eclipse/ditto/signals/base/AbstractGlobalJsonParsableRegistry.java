@@ -38,7 +38,7 @@ public abstract class AbstractGlobalJsonParsableRegistry<T, A extends Annotation
      * based on a given annotation.
      */
     protected AbstractGlobalJsonParsableRegistry(
-            final Class<T> parsedClass,
+            final Class<?> parsedClass,
             final Class<A> annotationClass,
             final AbstractAnnotationBasedJsonParsableFactory<T, A> annotationBasedJsonParsableFactory) {
 

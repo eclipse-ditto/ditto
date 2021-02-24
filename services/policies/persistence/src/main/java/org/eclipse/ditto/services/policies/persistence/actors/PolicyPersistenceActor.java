@@ -264,6 +264,18 @@ public final class PolicyPersistenceActor
     }
 
     @Override
+    protected PolicyEvent<?> modifyEventBeforePersist(final PolicyEvent<?> event) {
+        final PolicyEvent<?> superEvent = super.modifyEventBeforePersist(event);
+        if (findEarliestAnnouncement(entity, lastAnnouncement).isPresent()) {
+            final DittoHeaders headersWithJournalTags = superEvent.getDittoHeaders().toBuilder()
+                    .journalTags(Set.of(JOURNAL_TAG_ALWAYS_ALIVE))
+                    .build();
+            return superEvent.setDittoHeaders(headersWithJournalTags);
+        }
+        return superEvent;
+    }
+
+    @Override
     protected void onEntityModified() {
         sendOrScheduleAnnouncement();
         scheduleNextSubjectExpiryCheck();
@@ -272,6 +284,7 @@ public final class PolicyPersistenceActor
     private void sendOrScheduleAnnouncement() {
         final var earliestAnnouncement = findEarliestAnnouncement(entity, lastAnnouncement);
         if (earliestAnnouncement.isPresent()) {
+            alwaysAlive = true;
             final Instant cutOff = earliestAnnouncement.get();
             final Instant now = Instant.now();
             if (cutOff.isBefore(now.plus(ANNOUNCEMENT_WINDOW))) {

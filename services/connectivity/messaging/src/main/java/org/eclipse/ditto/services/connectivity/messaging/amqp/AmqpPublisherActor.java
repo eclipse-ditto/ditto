@@ -259,7 +259,7 @@ public final class AmqpPublisherActor extends BasePublisherActor<AmqpTarget> {
     // create a target producer. the previous incarnation, if any, must be closed.
     private void createTargetProducer(final Destination destination) throws JMSException {
         staticTargets.put(destination, session.createProducer(destination));
-        logger.info("Target producer <{}> created", destination);
+        logger.info("Target producer <{}> ({}) created", destination, destination.getClass().getSimpleName());
     }
 
     private static Stream<Map.Entry<Destination, MessageProducer>> findByValue(

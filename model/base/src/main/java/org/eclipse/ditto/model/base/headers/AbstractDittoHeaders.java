@@ -423,6 +423,14 @@ public abstract class AbstractDittoHeaders extends AbstractMap<String, String> i
     }
 
     @Override
+    public Set<String> getJournalTags() {
+        final JsonArray jsonValueArray = getJsonArrayForDefinition(DittoHeaderDefinition.EVENT_JOURNAL_TAGS);
+        return jsonValueArray.stream()
+                .map(JsonValue::asString)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    @Override
     public JsonObject toJson() {
         final JsonObjectBuilder jsonObjectBuilder = JsonObject.newBuilder();
         headers.forEach((key, header) -> {

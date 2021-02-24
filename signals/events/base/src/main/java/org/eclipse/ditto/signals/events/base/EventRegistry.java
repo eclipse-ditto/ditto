@@ -16,8 +16,6 @@ import org.eclipse.ditto.signals.base.JsonParsableRegistry;
 
 /**
  * Registry aware of a set of {@link Event}s which it can parse from a {@link org.eclipse.ditto.json.JsonObject}.
- *
- * @param <T> the type of the Event to parse.
  */
 public interface EventRegistry<T extends Event> extends JsonParsableRegistry<T> {
 }

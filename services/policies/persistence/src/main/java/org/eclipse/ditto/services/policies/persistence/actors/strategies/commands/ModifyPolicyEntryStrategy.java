@@ -22,6 +22,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Label;
@@ -60,7 +61,6 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
         final Policy nonNullPolicy = checkNotNull(policy, "policy");
         final PolicyEntry policyEntry = command.getPolicyEntry();
         final Label label = policyEntry.getLabel();
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final JsonObject policyJsonObject = nonNullPolicy.removeEntry(label).toJson();
         final JsonObject policyEntryJsonObject = policyEntry.toJson();
@@ -85,13 +85,15 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
             return ResultFactory.newErrorResult(e, command);
         }
 
-        final PolicyEntry adjustedPolicyEntry = potentiallyAdjustPolicyEntry(policyEntry);
+        final DittoHeadersBuilder<?, ?> adjustedHeadersBuilder = command.getDittoHeaders().toBuilder();
+        final PolicyEntry adjustedPolicyEntry = potentiallyAdjustPolicyEntry(policyEntry, adjustedHeadersBuilder);
+        final DittoHeaders adjustedHeaders = adjustedHeadersBuilder.build();
         final ModifyPolicyEntry adjustedCommand = ModifyPolicyEntry.of(command.getEntityId(), adjustedPolicyEntry,
-                dittoHeaders);
+                adjustedHeaders);
         final Policy newPolicy = nonNullPolicy.setEntry(adjustedPolicyEntry);
 
         final Optional<Result<PolicyEvent<?>>> alreadyExpiredSubject =
-                checkForAlreadyExpiredSubject(newPolicy, dittoHeaders, command);
+                checkForAlreadyExpiredSubject(newPolicy, adjustedHeaders, command);
         if (alreadyExpiredSubject.isPresent()) {
             return alreadyExpiredSubject.get();
         }
@@ -105,14 +107,14 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
             if (nonNullPolicy.contains(label)) {
                 eventToPersist =
                         PolicyEntryModified.of(policyId, adjustedPolicyEntry, nextRevision, getEventTimestamp(),
-                                dittoHeaders);
-                createdOrModifiedResponse = ModifyPolicyEntryResponse.modified(policyId, label, dittoHeaders);
+                                adjustedHeaders);
+                createdOrModifiedResponse = ModifyPolicyEntryResponse.modified(policyId, label, adjustedHeaders);
             } else {
                 eventToPersist =
                         PolicyEntryCreated.of(policyId, adjustedPolicyEntry, nextRevision, getEventTimestamp(),
-                                dittoHeaders);
+                                adjustedHeaders);
                 createdOrModifiedResponse = ModifyPolicyEntryResponse.created(policyId, adjustedPolicyEntry,
-                        dittoHeaders);
+                        adjustedHeaders);
             }
             final WithDittoHeaders<?> response =
                     appendETagHeaderIfProvided(adjustedCommand, createdOrModifiedResponse, nonNullPolicy);
@@ -120,7 +122,7 @@ final class ModifyPolicyEntryStrategy extends AbstractPolicyCommandStrategy<Modi
             return ResultFactory.newMutationResult(adjustedCommand, eventToPersist, response);
         } else {
             return ResultFactory.newErrorResult(
-                    policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders),
+                    policyEntryInvalid(policyId, label, validator.getReason().orElse(null), adjustedHeaders),
                     command);
         }
     }

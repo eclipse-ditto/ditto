@@ -20,6 +20,7 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.DittoHeadersBuilder;
 import org.eclipse.ditto.model.base.headers.entitytag.EntityTag;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Policy;
@@ -56,19 +57,20 @@ final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySu
         final PolicyId policyId = context.getState();
         final Label label = command.getLabel();
         final Subject subject = command.getSubject();
-        final DittoHeaders dittoHeaders = command.getDittoHeaders();
 
         final Optional<PolicyEntry> optionalEntry = nonNullPolicy.getEntryFor(label);
         if (optionalEntry.isPresent()) {
             final PolicyEntry policyEntry = optionalEntry.get();
-            final Subject adjustedSubject = potentiallyAdjustSubject(subject);
+            final DittoHeadersBuilder<?, ?> adjustedHeadersBuilder = command.getDittoHeaders().toBuilder();
+            final Subject adjustedSubject = potentiallyAdjustSubject(subject, adjustedHeadersBuilder);
+            final DittoHeaders adjustedHeaders = adjustedHeadersBuilder.build();
             final ModifySubject adjustedCommand = ModifySubject.of(
-                    command.getEntityId(), command.getLabel(), adjustedSubject, dittoHeaders);
+                    command.getEntityId(), command.getLabel(), adjustedSubject, adjustedHeaders);
 
             final Policy newPolicy = nonNullPolicy.setSubjectFor(label, adjustedSubject);
 
             final Optional<Result<PolicyEvent<?>>> alreadyExpiredSubject =
-                    checkForAlreadyExpiredSubject(newPolicy, dittoHeaders, command);
+                    checkForAlreadyExpiredSubject(newPolicy, adjustedHeaders, command);
             if (alreadyExpiredSubject.isPresent()) {
                 return alreadyExpiredSubject.get();
             }
@@ -80,23 +82,25 @@ final class ModifySubjectStrategy extends AbstractPolicyCommandStrategy<ModifySu
                 final ModifySubjectResponse rawResponse;
 
                 if (policyEntry.getSubjects().getSubject(adjustedSubject.getId()).isPresent()) {
-                    rawResponse = ModifySubjectResponse.modified(policyId, label, adjustedSubject.getId(), dittoHeaders);
+                    rawResponse = ModifySubjectResponse.modified(policyId, label, adjustedSubject.getId(),
+                            adjustedHeaders);
                     event = SubjectModified.of(policyId, label, adjustedSubject, nextRevision, getEventTimestamp(),
-                            dittoHeaders);
+                            adjustedHeaders);
                 } else {
-                    rawResponse = ModifySubjectResponse.created(policyId, label, adjustedSubject, dittoHeaders);
+                    rawResponse = ModifySubjectResponse.created(policyId, label, adjustedSubject, adjustedHeaders);
                     event = SubjectCreated.of(policyId, label, adjustedSubject, nextRevision, getEventTimestamp(),
-                            dittoHeaders);
+                            adjustedHeaders);
                 }
                 return ResultFactory.newMutationResult(adjustedCommand, event,
                         appendETagHeaderIfProvided(adjustedCommand, rawResponse, nonNullPolicy));
             } else {
                 return ResultFactory.newErrorResult(
-                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), dittoHeaders),
+                        policyEntryInvalid(policyId, label, validator.getReason().orElse(null), adjustedHeaders),
                         command);
             }
         } else {
-            return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, dittoHeaders), command);
+            return ResultFactory.newErrorResult(policyEntryNotFound(policyId, label, command.getDittoHeaders()),
+                    command);
         }
     }
 
