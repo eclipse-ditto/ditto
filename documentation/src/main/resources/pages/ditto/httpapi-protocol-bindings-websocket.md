@@ -39,7 +39,7 @@ request by the `correlation-id` header). <br/>
 The response indicates the success or the failure of the command and, depending on the command type, contains the result
 payload.
 
-Please find examples of commands and their response pattern at [Protocol examples](protocol-examples.html).
+Please find examples of commands, and their response pattern at [Protocol examples](protocol-examples.html).
 
 ### Request receiving events/change notifications
 
