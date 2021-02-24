@@ -28,7 +28,7 @@
         <!-- ### Compile ### -->
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-model-placeholders</artifactId>
+            <artifactId>ditto-services-models-placeholders</artifactId>
         </dependency>
 
         <dependency>
@@ -59,6 +59,10 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-events-connectivity</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-protocol-adapter</artifactId>
         </dependency>
     </dependencies>
 

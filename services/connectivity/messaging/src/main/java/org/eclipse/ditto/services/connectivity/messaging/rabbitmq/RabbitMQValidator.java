@@ -12,6 +12,11 @@
  */
 package org.eclipse.ditto.services.connectivity.messaging.rabbitmq;
 
+import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newEntityPlaceholder;
+import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newFeaturePlaceholder;
+import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newPolicyPlaceholder;
+import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newThingPlaceholder;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -56,9 +61,8 @@ public final class RabbitMQValidator extends AbstractProtocolValidator {
         source.getEnforcement().ifPresent(enforcement -> {
             validateTemplate(enforcement.getInput(), dittoHeaders, PlaceholderFactory.newHeadersPlaceholder());
             enforcement.getFilters().forEach(filterTemplate ->
-                    validateTemplate(filterTemplate, dittoHeaders, PlaceholderFactory.newThingPlaceholder(),
-                            PlaceholderFactory.newPolicyPlaceholder(), PlaceholderFactory.newEntityPlaceholder(),
-                            PlaceholderFactory.newFeaturePlaceholder()));
+                    validateTemplate(filterTemplate, dittoHeaders, newThingPlaceholder(),
+                            newPolicyPlaceholder(), newEntityPlaceholder(), newFeaturePlaceholder()));
         });
         source.getHeaderMapping().ifPresent(mapping -> validateHeaderMapping(mapping, dittoHeaders));
     }

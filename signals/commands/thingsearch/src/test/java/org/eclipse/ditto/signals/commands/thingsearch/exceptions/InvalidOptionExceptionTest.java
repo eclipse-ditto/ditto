@@ -75,13 +75,6 @@ public final class InvalidOptionExceptionTest {
     }
 
     @Test
-    public void copy() {
-        final DittoRuntimeException copy =
-                DittoRuntimeException.newBuilder(TestConstants.INVALID_OPTION_EXCEPTION).build();
-        assertThat(copy).isEqualTo(TestConstants.INVALID_OPTION_EXCEPTION);
-    }
-
-    @Test
     public void checkGetters() {
         assertThat(TestConstants.INVALID_OPTION_EXCEPTION.getMessage()).isEqualTo(EXPECTED_MESSAGE);
         assertThat(TestConstants.INVALID_OPTION_EXCEPTION.getHttpStatus())

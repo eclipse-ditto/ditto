@@ -13,8 +13,12 @@
 package org.eclipse.ditto.services.connectivity.messaging.mqtt;
 
 import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newHeadersPlaceholder;
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newThingPlaceholder;
-import static org.eclipse.ditto.model.placeholders.PlaceholderFactory.newTopicPathPlaceholder;
+import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newEntityPlaceholder;
+import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newFeaturePlaceholder;
+import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newPolicyPlaceholder;
+import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newSourceAddressPlaceholder;
+import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newThingPlaceholder;
+import static org.eclipse.ditto.services.models.connectivity.placeholders.ConnectivityPlaceholders.newTopicPathPlaceholder;
 
 import java.text.MessageFormat;
 import java.util.AbstractMap;
@@ -46,12 +50,12 @@ import org.eclipse.ditto.model.placeholders.ExpressionResolver;
 import org.eclipse.ditto.model.placeholders.Placeholder;
 import org.eclipse.ditto.model.placeholders.PlaceholderFactory;
 import org.eclipse.ditto.model.placeholders.PlaceholderFilter;
-import org.eclipse.ditto.model.placeholders.SourceAddressPlaceholder;
-import org.eclipse.ditto.model.placeholders.ThingPlaceholder;
 import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.connectivity.messaging.validation.AbstractProtocolValidator;
 import org.eclipse.ditto.services.models.connectivity.EnforcementFactoryFactory;
+import org.eclipse.ditto.services.models.connectivity.placeholders.SourceAddressPlaceholder;
+import org.eclipse.ditto.services.models.connectivity.placeholders.ThingPlaceholder;
 
 import com.hivemq.client.mqtt.datatypes.MqttQos;
 import com.hivemq.client.mqtt.datatypes.MqttTopic;
@@ -103,7 +107,7 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
 
         validateTargetQoS(qos.get(), dittoHeaders, targetDescription);
         validateTemplate(target.getAddress(), dittoHeaders, newThingPlaceholder(), newTopicPathPlaceholder(),
-                newHeadersPlaceholder(), PlaceholderFactory.newFeaturePlaceholder());
+                newHeadersPlaceholder(), newFeaturePlaceholder());
     }
 
     /**
@@ -152,7 +156,7 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
 
     protected static void validateEnforcementInput(final Enforcement enforcement,
             final Supplier<String> sourceDescription, final DittoHeaders dittoHeaders) {
-        final SourceAddressPlaceholder sourceAddressPlaceholder = PlaceholderFactory.newSourceAddressPlaceholder();
+        final SourceAddressPlaceholder sourceAddressPlaceholder = newSourceAddressPlaceholder();
         try {
             EnforcementFactoryFactory
                     .newEnforcementFilterFactory(enforcement, sourceAddressPlaceholder)
@@ -274,9 +278,9 @@ public abstract class AbstractMqttValidator extends AbstractProtocolValidator {
             final Consumer<String> unresolvedPlaceholderListener) {
 
         final List<Placeholder<CharSequence>> placeholders = Arrays.asList(
-                PlaceholderFactory.newThingPlaceholder(),
-                PlaceholderFactory.newPolicyPlaceholder(),
-                PlaceholderFactory.newEntityPlaceholder()
+                newThingPlaceholder(),
+                newPolicyPlaceholder(),
+                newEntityPlaceholder()
         );
 
         for (final Placeholder<CharSequence> placeholder : placeholders) {

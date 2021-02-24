@@ -71,15 +71,6 @@ public class PolicyInvalidExceptionTest {
 
 
     @Test
-    public void copy() {
-        final DittoRuntimeException copy =
-                DittoRuntimeException.newBuilder(TestConstants.Thing.POLICY_INVALID_EXCEPTION).build();
-
-        assertThat(copy).isEqualTo(TestConstants.Thing.POLICY_INVALID_EXCEPTION);
-    }
-
-
-    @Test
     public void checkGetters() {
         final String expectedMessage =
                 "The Policy specified for the Thing with ID '" + TestConstants.Thing.THING_ID + "' is invalid.";

@@ -21,11 +21,10 @@ import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.query.Query;
 import org.eclipse.ditto.model.query.criteria.Criteria;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-
-import org.eclipse.ditto.services.thingsearch.common.model.ResultList;
 
 /**
  * Abstract base class for search persistence tests parameterized with version.

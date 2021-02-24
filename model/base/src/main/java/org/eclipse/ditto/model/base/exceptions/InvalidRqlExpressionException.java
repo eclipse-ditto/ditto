@@ -33,6 +33,7 @@ public final class InvalidRqlExpressionException extends DittoRuntimeException {
      */
     public static final String ERROR_CODE = "rql.expression.invalid";
 
+    static final String DEFAULT_MESSAGE = "The given RQL expression was invalid";
     static final String DEFAULT_DESCRIPTION = "Ensure that all opening parentheses have also closing ones and that " +
             "the RQL expression is valid.";
     static final HttpStatus HTTP_STATUS = HttpStatus.BAD_REQUEST;
@@ -40,17 +41,12 @@ public final class InvalidRqlExpressionException extends DittoRuntimeException {
     private static final long serialVersionUID = 8900314242209005665L;
 
     private InvalidRqlExpressionException(final DittoHeaders dittoHeaders,
-            final String message,
-            final String description,
-            final Throwable cause,
-            final URI href) {
+            @Nullable final String message,
+            @Nullable final String description,
+            @Nullable final Throwable cause,
+            @Nullable final URI href) {
 
         super(ERROR_CODE, HTTP_STATUS, dittoHeaders, message, description, cause, href);
-    }
-
-    @Override
-    protected DittoRuntimeExceptionBuilder<? extends DittoRuntimeException> getEmptyBuilder() {
-        return new Builder();
     }
 
     /**
@@ -109,15 +105,16 @@ public final class InvalidRqlExpressionException extends DittoRuntimeException {
     public static final class Builder extends DittoRuntimeExceptionBuilder<InvalidRqlExpressionException> {
 
         private Builder() {
+            message(DEFAULT_MESSAGE);
             description(DEFAULT_DESCRIPTION);
         }
 
         @Override
         protected InvalidRqlExpressionException doBuild(final DittoHeaders dittoHeaders,
-                final String message,
-                final String description,
-                final Throwable cause,
-                final URI href) {
+                @Nullable final String message,
+                @Nullable final String description,
+                @Nullable final Throwable cause,
+                @Nullable final URI href) {
 
             return new InvalidRqlExpressionException(dittoHeaders, message, description, cause, href);
         }

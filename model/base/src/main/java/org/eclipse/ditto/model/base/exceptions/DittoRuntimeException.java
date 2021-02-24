@@ -12,7 +12,6 @@
  */
 package org.eclipse.ditto.model.base.exceptions;
 
-import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotEmpty;
 import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.net.URI;
@@ -27,7 +26,6 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
-import javax.annotation.concurrent.NotThreadSafe;
 
 import org.atteo.classindex.IndexSubclasses;
 import org.eclipse.ditto.json.JsonFactory;
@@ -50,7 +48,7 @@ import org.eclipse.ditto.model.base.json.Jsonifiable;
  * Parent RuntimeException for all RuntimeExceptions of Ditto.
  */
 @IndexSubclasses
-public class DittoRuntimeException extends RuntimeException
+public abstract class DittoRuntimeException extends RuntimeException
         implements Jsonifiable.WithPredicate<JsonObject, JsonField>, DittoHeadersSettable<DittoRuntimeException>,
         WithManifest {
 
@@ -120,34 +118,6 @@ public class DittoRuntimeException extends RuntimeException
     }
 
     /**
-     * Each subclass should override this method to provide an implementation of {@code
-     * DittoRuntimeExceptionBuilder}.
-     * <p>
-     * Per default, an instance {@link Builder} is used, which builds a generic {@code DittoRuntimeException}.
-     *
-     * @return A builder to construct a DittoRuntimeException.
-     */
-    protected DittoRuntimeExceptionBuilder<? extends DittoRuntimeException> getEmptyBuilder() {
-        return new Builder(errorCode, httpStatus);
-    }
-
-    /**
-     * Construct a builder {@code b} such that {@code b.build()} has identical class and fields as {@code this}.
-     * <p>
-     * A subclass should extend this method if it adds another field.
-     *
-     * @return A builder to construct an identical copy of {@code this}.
-     */
-    public DittoRuntimeExceptionBuilder<? extends DittoRuntimeException> getBuilder() {
-        return getEmptyBuilder()
-                .dittoHeaders(dittoHeaders)
-                .message(getMessage())
-                .cause(getCause())
-                .description(description)
-                .href(href);
-    }
-
-    /**
      * Takes the throwable and tries to map it to a DittoRuntimeException.
      * <p>
      * If the throwable is a {@link CompletionException} or a {@link ExecutionException},
@@ -179,56 +149,6 @@ public class DittoRuntimeException extends RuntimeException
         }
 
         return throwable;
-    }
-
-    /**
-     * Returns a new mutable builder for fluently creating instances of {@code DittoRuntimeException}s..
-     *
-     * @param errorCode a code which uniquely identifies the exception.
-     * @param statusCode the HTTP status code.
-     * @return the new builder.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if {@code errorCode} is empty.
-     * @deprecated as of 2.0.0 please use {@link #newBuilder(String, HttpStatus)} instead.
-     */
-    @Deprecated
-    public static Builder newBuilder(final String errorCode, final HttpStatusCode statusCode) {
-        return new Builder(errorCode, statusCode.getAsHttpStatus());
-    }
-
-    /**
-     * Returns a new mutable builder for fluently creating instances of {@code DittoRuntimeException}s..
-     *
-     * @param errorCode a code which uniquely identifies the exception.
-     * @param httpStatus the HTTP status.
-     * @return the new builder.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @throws IllegalArgumentException if {@code errorCode} is empty.
-     * @since 2.0.0
-     */
-    public static Builder newBuilder(final String errorCode, final HttpStatus httpStatus) {
-        return new Builder(errorCode, httpStatus);
-    }
-
-    /**
-     * Returns a new mutable builder with a fluent API for a {@code dittoRuntimeException}. The builder is already
-     * initialized with the properties of the given exception.
-     *
-     * @param dittoRuntimeException the exception to be copied.
-     * @return the new builder.
-     * @throws NullPointerException if {@code dittoRuntimeException} is {@code null}.
-     */
-    public static DittoRuntimeExceptionBuilder<? extends DittoRuntimeException> newBuilder(
-            final DittoRuntimeException dittoRuntimeException) {
-
-        checkNotNull(dittoRuntimeException, "dittoRuntimeException to be copied");
-
-        return dittoRuntimeException.getBuilder()
-                .dittoHeaders(dittoRuntimeException.dittoHeaders)
-                .message(dittoRuntimeException.getMessage())
-                .description(dittoRuntimeException.description)
-                .cause(dittoRuntimeException.getCause())
-                .href(dittoRuntimeException.href);
     }
 
     /**
@@ -315,22 +235,6 @@ public class DittoRuntimeException extends RuntimeException
     @Override
     public DittoHeaders getDittoHeaders() {
         return dittoHeaders;
-    }
-
-    /**
-     * Each DittoRuntimeException inheriting from DittoRuntimeException must implement its custom
-     * {@link #setDittoHeaders(DittoHeaders)}. If this is not done, the concrete type of the DittoRuntimeException is
-     * erased when this method is invoked.
-     * Unfortunately this can't be enforced without API breakage.
-     * TODO Ditto 2.0: fix that
-     *
-     * @param dittoHeaders the DittoHeaders to set.
-     * @return the newly created object with the set DittoHeaders.
-     * @throws NullPointerException if the passed {@code dittoHeaders} is null.
-     */
-    @Override
-    public DittoRuntimeException setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return newBuilder(this).dittoHeaders(dittoHeaders).build();
     }
 
     @Override
@@ -476,42 +380,11 @@ public class DittoRuntimeException extends RuntimeException
         return builder;
     }
 
-    /**
-     * Deserialize an error whose java class isn't known.
-     *
-     * @param jsonObject the error object.
-     * @param headers the headers.
-     * @return a generic {@code DittoRuntimeException} object if the JSON can be parsed as such; an empty optional
-     * otherwise.
-     */
-    public static Optional<DittoRuntimeException> fromUnknownErrorJson(final JsonObject jsonObject,
-            final DittoHeaders headers) {
-
-        final DittoRuntimeException result;
-        final Optional<String> errorCodeOptional = jsonObject.getValue(JsonFields.ERROR_CODE);
-        if (errorCodeOptional.isPresent()) {
-            final Optional<HttpStatus> httpStatusOptional = getHttpStatus(jsonObject);
-            if (httpStatusOptional.isPresent()) {
-                final Builder builder = new Builder(errorCodeOptional.get(), httpStatusOptional.get());
-                builder.dittoHeaders(headers);
-                jsonObject.getValue(JsonFields.MESSAGE).ifPresent(builder::message);
-                jsonObject.getValue(JsonFields.DESCRIPTION).ifPresent(builder::description);
-                getHref(jsonObject).ifPresent(builder::href);
-                result = builder.build();
-            } else {
-                result = null;
-            }
-        } else {
-            result = null;
-        }
-        return Optional.ofNullable(result);
-    }
-
-    private static Optional<HttpStatus> getHttpStatus(final JsonObject jsonObject) {
+    protected static Optional<HttpStatus> getHttpStatus(final JsonObject jsonObject) {
         return jsonObject.getValue(JsonFields.STATUS).flatMap(HttpStatus::tryGetInstance);
     }
 
-    private static Optional<URI> getHref(final JsonObject jsonObject) {
+    protected static Optional<URI> getHref(final JsonObject jsonObject) {
         final Function<String, URI> uriForStringOrNull = uriString -> {
             try {
                 return new URI(uriString);
@@ -533,32 +406,6 @@ public class DittoRuntimeException extends RuntimeException
                 ", href=" + href +
                 ", dittoHeaders=" + dittoHeaders +
                 ']';
-    }
-
-    /**
-     * A mutable builder with a fluent API for a {@link DittoRuntimeException}.
-     */
-    @NotThreadSafe
-    public static final class Builder extends DittoRuntimeExceptionBuilder<DittoRuntimeException> {
-
-        private final String errorCode;
-        private final HttpStatus httpStatus;
-
-        private Builder(final String theErrorCode, final HttpStatus httpStatus) {
-            checkNotNull(theErrorCode, "exception error code");
-            errorCode = checkNotEmpty(theErrorCode, "exception error code");
-            this.httpStatus = checkNotNull(httpStatus, "httpStatus");
-        }
-
-        @Override
-        protected DittoRuntimeException doBuild(final DittoHeaders dittoHeaders,
-                @Nullable final String message,
-                @Nullable final String description,
-                @Nullable final Throwable cause,
-                @Nullable final URI href) {
-
-            return new DittoRuntimeException(errorCode, httpStatus, dittoHeaders, message, description, cause, href);
-        }
     }
 
     /**

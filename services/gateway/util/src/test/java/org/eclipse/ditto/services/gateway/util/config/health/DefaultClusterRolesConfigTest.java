@@ -16,7 +16,6 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import org.assertj.core.api.JUnitSoftAssertions;
-import org.eclipse.ditto.services.gateway.util.config.health.DefaultClusterRolesConfig;
 import org.eclipse.ditto.services.gateway.util.config.health.HealthCheckConfig.ClusterRolesConfig.ClusterRolesConfigValue;
 import org.junit.BeforeClass;
 import org.junit.Rule;

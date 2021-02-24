@@ -611,10 +611,9 @@ final class StreamingSessionActor extends AbstractActorWithTimers {
                 .thenAccept(_void -> logger.info("Acknowledgement label declaration successful for labels: <{}>",
                         acknowledgementLabels))
                 .exceptionally(error -> {
-                    final DittoRuntimeException template = AcknowledgementLabelNotUniqueException.getInstance();
                     final DittoRuntimeException dittoRuntimeException =
                             DittoRuntimeException.asDittoRuntimeException(error,
-                                    cause -> DittoRuntimeException.newBuilder(template).cause(cause).build());
+                                    cause -> AcknowledgementLabelNotUniqueException.newBuilder().cause(cause).build());
                     logger.info("Acknowledgement label declaration failed for labels: <{}> - cause: {} {}",
                             acknowledgementLabels, error.getClass().getSimpleName(), error.getMessage());
                     self.tell(dittoRuntimeException, ActorRef.noSender());

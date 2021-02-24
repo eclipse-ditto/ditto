@@ -80,12 +80,13 @@ public final class ThingErrorResponseTest {
     @Test
     public void createInstanceFromUnregisteredException() {
         final JsonObject genericExceptionJson = KNOWN_JSON.toBuilder()
-                .set(ThingCommandResponse.JsonFields.PAYLOAD,
-                        DittoRuntimeException
-                                .newBuilder("some.error", HttpStatus.VARIANT_ALSO_NEGOTIATES)
-                                .description("the description")
-                                .message("the message")
-                                .build().toJson(FieldType.regularOrSpecial()))
+                .set(ThingCommandResponse.JsonFields.PAYLOAD, JsonObject.newBuilder()
+                        .set(DittoRuntimeException.JsonFields.ERROR_CODE, "some.error")
+                        .set(DittoRuntimeException.JsonFields.STATUS,
+                                HttpStatus.VARIANT_ALSO_NEGOTIATES.getCode())
+                        .set(DittoRuntimeException.JsonFields.DESCRIPTION, "the description")
+                        .set(DittoRuntimeException.JsonFields.MESSAGE, "the message")
+                        .build())
                 .build();
 
         final ThingErrorResponse underTest =

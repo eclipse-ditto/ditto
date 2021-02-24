@@ -19,7 +19,6 @@ import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJso
 import java.util.Collections;
 import java.util.List;
 
-import javax.annotation.Nullable;
 import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonArray;
