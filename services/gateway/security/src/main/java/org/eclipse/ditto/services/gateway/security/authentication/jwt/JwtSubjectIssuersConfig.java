@@ -66,7 +66,7 @@ public final class JwtSubjectIssuersConfig {
                 // merge the default and extension config
                 Stream.concat(config.getOpenIdConnectIssuers().entrySet().stream(),
                         config.getOpenIdConnectIssuersExtension().entrySet().stream())
-                        .map(entry -> new JwtSubjectIssuerConfig(entry.getValue(), entry.getKey()))
+                        .map(entry -> new JwtSubjectIssuerConfig(entry.getKey(), entry.getValue().getIssuer(), entry.getValue().getAuthorizationSubjectTemplates()))
                         .collect(Collectors.toSet());
         return new JwtSubjectIssuersConfig(configItems, config.getProtocol());
     }

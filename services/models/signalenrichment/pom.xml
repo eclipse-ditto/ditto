@@ -27,25 +27,25 @@
 
     <dependencies>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-things</artifactId>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-protocol-adapter</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-commands-things</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-cache</artifactId>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-cache-loaders</artifactId>
         </dependency>
 
@@ -56,7 +56,7 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-signals-base</artifactId>
             <type>test-jar</type>
             <scope>test</scope>

@@ -26,24 +26,20 @@
 
     <dependencies>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-base</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-model-thingsearch-parser</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-akka</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>${project.groupId}</groupId>
+            <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-models-thingsearch</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
@@ -53,19 +49,16 @@
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-testkit_${scala.version}</artifactId>
-            <version>${akka.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-stream-testkit_${scala.version}</artifactId>
-            <version>${akka.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
-            <version>${slf4j.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

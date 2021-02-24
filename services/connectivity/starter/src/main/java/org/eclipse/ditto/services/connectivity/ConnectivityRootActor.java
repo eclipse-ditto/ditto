@@ -38,10 +38,8 @@ import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
-import org.eclipse.ditto.services.utils.health.config.MetricsReporterConfig;
 import org.eclipse.ditto.services.utils.health.config.PersistenceConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.signals.base.Signal;
 import org.eclipse.ditto.signals.commands.connectivity.ConnectivityCommandInterceptor;
@@ -177,16 +175,9 @@ public final class ConnectivityRootActor extends DittoRootActor {
         }
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
 
-        final MetricsReporterConfig metricsReporterConfig =
-                healthCheckConfig.getPersistenceConfig().getMetricsReporterConfig();
         return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
                 DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
-                        MongoHealthChecker.props(),
-                        MongoMetricsReporter.props(
-                                metricsReporterConfig.getResolution(),
-                                metricsReporterConfig.getHistory(),
-                                pubSubMediator
-                        )
+                        MongoHealthChecker.props()
                 ));
     }
 

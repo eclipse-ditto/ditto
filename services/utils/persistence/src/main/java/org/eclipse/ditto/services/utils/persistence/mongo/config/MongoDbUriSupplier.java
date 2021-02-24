@@ -45,9 +45,6 @@ final class MongoDbUriSupplier implements Supplier<String> {
      */
     static final String URI_CONFIG_PATH = "uri";
 
-    static final String EXTRA_URI_OPTIONS_PATH = DefaultOptionsConfig.CONFIG_PATH + "." +
-            MongoDbConfig.OptionsConfig.OptionsConfigValue.EXTRA_URI_OPTIONS.getConfigPath();
-
     private final URI mongoDbSourceUri;
     private final Map<String, Object> extraUriOptions;
 

@@ -44,8 +44,9 @@ public final class JjwtDeserializerTest {
                 .setExpiration(KNOWN_EXP)
                 .compact();
 
-        final Jwt jwt = Jwts.parser()
+        final Jwt jwt = Jwts.parserBuilder()
                 .deserializeJsonWith(JjwtDeserializer.getInstance())
+                .build()
                 .parse(compact);
 
         final Object jwtBody = jwt.getBody();
