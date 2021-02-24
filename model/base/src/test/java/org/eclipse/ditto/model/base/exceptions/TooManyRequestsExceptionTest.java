@@ -58,12 +58,6 @@ public class TooManyRequestsExceptionTest {
     }
 
     @Test
-    public void copy() {
-        final DittoRuntimeException copy = DittoRuntimeException.newBuilder(UNDER_TEST).build();
-        assertThat(copy).isEqualTo(UNDER_TEST);
-    }
-
-    @Test
     public void retryAfterHeaderIsSet() {
         assertThat(UNDER_TEST.getDittoHeaders().get(TooManyRequestsException.RETRY_AFTER)).isEqualTo("3600");
     }

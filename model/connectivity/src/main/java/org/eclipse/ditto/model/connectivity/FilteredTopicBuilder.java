@@ -13,6 +13,7 @@
 package org.eclipse.ditto.model.connectivity;
 
 import java.util.Collection;
+
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 

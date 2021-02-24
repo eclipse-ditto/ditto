@@ -34,8 +34,8 @@ import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.model.things.Feature;
 import org.eclipse.ditto.model.things.Features;
 import org.eclipse.ditto.model.things.Thing;
-import org.eclipse.ditto.model.things.ThingsModelFactory;
 import org.eclipse.ditto.model.things.ThingId;
+import org.eclipse.ditto.model.things.ThingsModelFactory;
 
 /**
  * Tests Policy with granted permissions only.

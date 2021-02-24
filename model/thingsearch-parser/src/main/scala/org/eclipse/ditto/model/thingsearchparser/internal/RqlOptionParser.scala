@@ -12,8 +12,6 @@
  */
 package org.eclipse.ditto.model.thingsearchparser.internal
 
-import java.util
-
 import akka.parboiled2._
 import org.eclipse.ditto.model.rql.ParserException
 import org.eclipse.ditto.model.rqlparser.internal.RqlParserBase
@@ -21,6 +19,7 @@ import org.eclipse.ditto.model.thingsearch
 import org.eclipse.ditto.model.thingsearch.{LimitOption, Option, SearchModelFactory, SortOption, SortOptionEntry}
 import org.eclipse.ditto.model.thingsearchparser.OptionParser
 
+import java.util
 import scala.collection.JavaConverters
 import scala.util.{Failure, Success}
 

@@ -66,6 +66,34 @@ public final class GlobalErrorRegistry
                         .build());
     }
 
+    @Override
+    public DittoRuntimeException parse(final String jsonString, final DittoHeaders dittoHeaders) {
+        try {
+            return super.parse(jsonString, dittoHeaders);
+        } catch (final JsonTypeNotParsableException e) {
+            return UnknownDittoRuntimeException.fromJson(JsonObject.of(jsonString), dittoHeaders);
+        }
+    }
+
+    @Override
+    public DittoRuntimeException parse(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+        try {
+            return super.parse(jsonObject, dittoHeaders);
+        } catch (final JsonTypeNotParsableException e) {
+            return UnknownDittoRuntimeException.fromJson(jsonObject, dittoHeaders);
+        }
+    }
+
+    @Override
+    public DittoRuntimeException parse(final JsonObject jsonObject, final DittoHeaders dittoHeaders,
+            final ParseInnerJson parseInnerJson) {
+        try {
+            return super.parse(jsonObject, dittoHeaders, parseInnerJson);
+        } catch (final JsonTypeNotParsableException e) {
+            return UnknownDittoRuntimeException.fromJson(jsonObject, dittoHeaders);
+        }
+    }
+
     /**
      * Contains all strategies to deserialize {@link DittoJsonException} from a combination of
      * {@link JsonObject} and {@link DittoHeaders}.

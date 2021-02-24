@@ -41,6 +41,7 @@ public class MissingThingIdsException extends DittoRuntimeException implements T
 
     /**
      * Status code of this exception.
+     *
      * @deprecated as of 2.0.0 please use {@link #HTTP_STATUS} instead.
      */
     @Deprecated
@@ -66,11 +67,6 @@ public class MissingThingIdsException extends DittoRuntimeException implements T
             @Nullable final URI href) {
 
         super(ERROR_CODE, HTTP_STATUS, dittoHeaders, message, description, cause, href);
-    }
-
-    @Override
-    protected Builder getEmptyBuilder() {
-        return new Builder();
     }
 
     /**

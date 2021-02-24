@@ -37,7 +37,6 @@ import org.eclipse.ditto.signals.commands.connectivity.modify.CreateConnectionRe
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.DeleteConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnection;
-import org.eclipse.ditto.signals.commands.connectivity.modify.ModifyConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnection;
 import org.eclipse.ditto.signals.commands.connectivity.modify.OpenConnectionResponse;
 import org.eclipse.ditto.signals.commands.connectivity.modify.TestConnection;

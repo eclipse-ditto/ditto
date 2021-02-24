@@ -23,30 +23,21 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
-import org.eclipse.ditto.model.messages.Message;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestConstants;
 import org.eclipse.ditto.services.utils.protocol.ProtocolAdapterProvider;
 import org.eclipse.ditto.signals.commands.messages.MessageCommand;
-import org.eclipse.ditto.signals.commands.messages.SendClaimMessage;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
 import akka.actor.ActorSystem;
-import akka.http.javadsl.model.HttpEntity;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.StatusCodes;
 import akka.http.javadsl.server.Route;
 import akka.http.javadsl.testkit.TestRoute;
 import akka.http.javadsl.testkit.TestRouteResult;
-import akka.http.javadsl.unmarshalling.Unmarshaller;
-import akka.stream.Materializer;
-import scala.Function1;
-import scala.PartialFunction;
-import scala.concurrent.ExecutionContext;
-import scala.concurrent.Future;
 
 /**
  * Tests {@link MessagesRoute}.

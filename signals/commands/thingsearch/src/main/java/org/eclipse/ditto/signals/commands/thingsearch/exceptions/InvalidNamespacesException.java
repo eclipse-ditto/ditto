@@ -51,11 +51,6 @@ public class InvalidNamespacesException extends DittoRuntimeException implements
         super(ERROR_CODE, STATUS_CODE, dittoHeaders, message, description, cause, href);
     }
 
-    @Override
-    protected DittoRuntimeExceptionBuilder<? extends DittoRuntimeException> getEmptyBuilder() {
-        return new Builder();
-    }
-
     /**
      * A mutable builder for a {@code InvalidNamespacesException}.
      *

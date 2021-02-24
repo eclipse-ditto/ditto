@@ -15,7 +15,6 @@ package org.eclipse.ditto.model.base.common;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
-import org.eclipse.ditto.model.base.common.BinaryValidationResult;
 import org.junit.Test;
 
 /**

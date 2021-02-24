@@ -30,8 +30,8 @@ import org.eclipse.ditto.model.base.json.JsonParsableCommand;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
-import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.signals.commands.base.AbstractCommand;
 import org.eclipse.ditto.signals.commands.base.CommandJsonDeserializer;
 

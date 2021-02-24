@@ -242,7 +242,7 @@ The websocket will be closed right after it has been opened if any other another
 This means that it is not possible to establish a second websocket connection with the same declared acknowledgements 
 before closing the first one.
 
-{% include warning.html content="Therefore it is not recommended relying on the websocket API for high 
+{% include warning.html content="Therefore, it is not recommended relying on the websocket API for high 
     availability scenarios." 
 %}
 
