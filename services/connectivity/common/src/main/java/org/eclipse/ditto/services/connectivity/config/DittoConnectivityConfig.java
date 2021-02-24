@@ -52,6 +52,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     private final HealthCheckConfig healthCheckConfig;
     private final ConnectionConfig connectionConfig;
     private final ReconnectConfig reconnectConfig;
+    private final ConnectionIdsRetrievalConfig connectionIdsRetrievalConfig;
     private final ClientConfig clientConfig;
     private final ProtocolConfig protocolConfig;
     private final MonitoringConfig monitoringConfig;
@@ -67,6 +68,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
         protocolConfig = DefaultProtocolConfig.of(dittoScopedConfig);
         connectionConfig = DefaultConnectionConfig.of(serviceSpecificConfig);
         reconnectConfig = DefaultReconnectConfig.of(serviceSpecificConfig);
+        connectionIdsRetrievalConfig = DefaultConnectionIdsRetrievalConfig.of(serviceSpecificConfig);
         clientConfig = DefaultClientConfig.of(serviceSpecificConfig);
         monitoringConfig = DefaultMonitoringConfig.of(serviceSpecificConfig);
         mappingConfig = DefaultMappingConfig.of(serviceSpecificConfig);
@@ -94,6 +96,11 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     @Override
     public ReconnectConfig getReconnectConfig() {
         return reconnectConfig;
+    }
+
+    @Override
+    public ConnectionIdsRetrievalConfig getConnectionIdsRetrievalConfig() {
+        return connectionIdsRetrievalConfig;
     }
 
     @Override
@@ -177,6 +184,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
                 Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
                 Objects.equals(connectionConfig, that.connectionConfig) &&
                 Objects.equals(reconnectConfig, that.reconnectConfig) &&
+                Objects.equals(connectionIdsRetrievalConfig, that.connectionIdsRetrievalConfig) &&
                 Objects.equals(clientConfig, that.clientConfig) &&
                 Objects.equals(protocolConfig, that.protocolConfig) &&
                 Objects.equals(monitoringConfig, that.monitoringConfig) &&
@@ -188,7 +196,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
     @Override
     public int hashCode() {
         return Objects.hash(serviceSpecificConfig, persistenceOperationsConfig, mongoDbConfig, healthCheckConfig,
-                connectionConfig, reconnectConfig, clientConfig, protocolConfig,
+                connectionConfig, reconnectConfig, connectionIdsRetrievalConfig, clientConfig, protocolConfig,
                 monitoringConfig, mappingConfig, signalEnrichmentConfig, acknowledgementConfig);
     }
 
@@ -201,6 +209,7 @@ public final class DittoConnectivityConfig implements ConnectivityConfig {
                 ", healthCheckConfig=" + healthCheckConfig +
                 ", connectionConfig=" + connectionConfig +
                 ", reconnectConfig=" + reconnectConfig +
+                ", connectionIdsRetrievalConfig=" + connectionIdsRetrievalConfig +
                 ", clientConfig=" + clientConfig +
                 ", protocolConfig=" + protocolConfig +
                 ", monitoringConfig=" + monitoringConfig +
