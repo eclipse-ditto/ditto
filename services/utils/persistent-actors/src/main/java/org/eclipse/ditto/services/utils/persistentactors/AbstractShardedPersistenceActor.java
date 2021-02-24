@@ -18,7 +18,6 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
-import org.eclipse.ditto.model.base.acks.DittoAcknowledgementLabel;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
@@ -184,6 +183,14 @@ public abstract class AbstractShardedPersistenceActor<
      * @return its schema version according to content.
      */
     protected abstract JsonSchemaVersion getEntitySchemaVersion(S entity);
+
+    /**
+     * Check whether the headers indicate the necessity of a response for a mutation command.
+     *
+     * @param dittoHeaders headers of the mutation command.
+     * @return whether a response should be sent.
+     */
+    protected abstract boolean shouldSendResponse(DittoHeaders dittoHeaders);
 
     /**
      * Callback at the end of recovery. Overridable in subclasses.
@@ -419,13 +426,6 @@ public abstract class AbstractShardedPersistenceActor<
         });
     }
 
-    private boolean shouldSendResponse(final DittoHeaders dittoHeaders) {
-        return dittoHeaders.isResponseRequired() ||
-                dittoHeaders.getAcknowledgementRequests()
-                        .stream()
-                        .anyMatch(ar -> DittoAcknowledgementLabel.TWIN_PERSISTED.equals(ar.getLabel()));
-    }
-
     @Override
     public void onQuery(final Command<?> command, final WithDittoHeaders<?> response) {
         if (command.getDittoHeaders().isResponseRequired()) {
@@ -438,6 +438,17 @@ public abstract class AbstractShardedPersistenceActor<
         if (shouldSendResponse(errorCausingCommand.getDittoHeaders())) {
             notifySender(error);
         }
+    }
+
+    /**
+     * Send a reply and increment access counter.
+     *
+     * @param sender recipient of the message.
+     * @param message the message.
+     */
+    protected void notifySender(final ActorRef sender, final WithDittoHeaders<?> message) {
+        accessCounter++;
+        sender.tell(message, getSelf());
     }
 
     private long getNextRevisionNumber() {
@@ -494,11 +505,6 @@ public abstract class AbstractShardedPersistenceActor<
 
     private void notifySender(final WithDittoHeaders<?> message) {
         notifySender(getSender(), message);
-    }
-
-    private void notifySender(final ActorRef sender, final WithDittoHeaders<?> message) {
-        accessCounter++;
-        sender.tell(message, getSelf());
     }
 
     private void takeSnapshotByInterval(final Control takeSnapshot) {

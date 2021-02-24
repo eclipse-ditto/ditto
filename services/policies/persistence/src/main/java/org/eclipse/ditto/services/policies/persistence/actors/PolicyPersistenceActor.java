@@ -15,9 +15,10 @@ package org.eclipse.ditto.services.policies.persistence.actors;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
-import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collector;
@@ -30,6 +31,7 @@ import javax.annotation.Nullable;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.Policy;
@@ -98,7 +100,7 @@ public final class PolicyPersistenceActor
     /**
      * Collectors to group a stream of subjects by expiry.
      */
-    private static final Collector<Subject, ?, Map<Instant, List<SubjectId>>> GROUP_BY_EXPIRY_COLLECTOR =
+    private static final Collector<Subject, ?, Map<Instant, Set<SubjectId>>> GROUP_BY_EXPIRY_COLLECTOR =
             getGroupByExpiryCollector();
 
     private final ActorRef pubSubMediator;
@@ -213,8 +215,32 @@ public final class PolicyPersistenceActor
     }
 
     @Override
+    public void onMutation(final Command<?> command, final PolicyEvent<?> event, final WithDittoHeaders<?> response,
+            final boolean becomeCreated, final boolean becomeDeleted) {
+
+        final Policy previousEntity = entity;
+        persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
+            announceSubjectDeletion(previousEntity, entity);
+            if (shouldSendResponse(command.getDittoHeaders())) {
+                notifySender(getSender(), response);
+            }
+            if (becomeDeleted) {
+                becomeDeletedHandler();
+            }
+            if (becomeCreated) {
+                becomeCreatedHandler();
+            }
+        });
+    }
+
+    @Override
     protected JsonSchemaVersion getEntitySchemaVersion(final Policy entity) {
         return entity.getImplementedSchemaVersion();
+    }
+
+    @Override
+    protected boolean shouldSendResponse(final DittoHeaders dittoHeaders) {
+        return dittoHeaders.isResponseRequired();
     }
 
     @Override
@@ -258,7 +284,7 @@ public final class PolicyPersistenceActor
 
     private void sendAnnouncement(final AnnounceSubjectDeletion announceSubjectDeletion) {
         final Instant cutOff = announceSubjectDeletion.cutOff.plus(ANNOUNCEMENT_WINDOW);
-        final Map<Instant, List<SubjectId>> subjectIdsByExpiry =
+        final Map<Instant, Set<SubjectId>> subjectIdsByExpiry =
                 streamAndFlatMapSubjects(entity, getSubjectAnnouncementInsideWindow(lastAnnouncement, cutOff))
                         .collect(GROUP_BY_EXPIRY_COLLECTOR);
         subjectIdsByExpiry.keySet().stream().sorted().forEach(deletedAt -> {
@@ -338,17 +364,39 @@ public final class PolicyPersistenceActor
                 });
     }
 
+    private void announceSubjectDeletion(@Nullable final Policy previousPolicy, @Nullable final Policy nextPolicy) {
+        final Collector<SubjectId, ?, Set<SubjectId>> linkedHashSetCollector =
+                Collectors.toCollection(LinkedHashSet::new);
+        final Set<SubjectId> subjectIdsWithAnnouncementWhenDeleted =
+                streamAndFlatMapSubjects(previousPolicy, subject ->
+                        subject.getAnnouncement()
+                                .filter(SubjectAnnouncement::isWhenDeleted)
+                                .map(sa -> subject.getId()))
+                        .collect(linkedHashSetCollector);
+        final Set<SubjectId> nextSubjectIds =
+                streamAndFlatMapSubjects(nextPolicy, subject -> Optional.of(subject.getId()))
+                        .collect(Collectors.toSet());
+        final Set<SubjectId> subjectIdsToAnnounce = subjectIdsWithAnnouncementWhenDeleted.stream()
+                .filter(subjectId -> !nextSubjectIds.contains(subjectId))
+                .collect(linkedHashSetCollector);
+        if (!subjectIdsToAnnounce.isEmpty()) {
+            final var announcement =
+                    SubjectDeletionAnnouncement.of(entityId, Instant.now(), subjectIdsToAnnounce, DittoHeaders.empty());
+            policyAnnouncementPub.publish(announcement, ActorRef.noSender());
+        }
+    }
+
     private static Duration truncateToOneDay(final Duration duration) {
         final Duration oneDay = Duration.ofDays(1);
         return duration.compareTo(oneDay) < 0 ? duration : oneDay;
     }
 
-    private static Collector<Subject, ?, Map<Instant, List<SubjectId>>> getGroupByExpiryCollector() {
+    private static Collector<Subject, ?, Map<Instant, Set<SubjectId>>> getGroupByExpiryCollector() {
         return Collectors.filtering(
                 subject -> subject.getExpiry().isPresent(),
                 Collectors.groupingBy(
                         subject -> subject.getExpiry().orElseThrow().getTimestamp(),
-                        Collectors.mapping(Subject::getId, Collectors.toList())
+                        Collectors.mapping(Subject::getId, Collectors.toCollection(LinkedHashSet::new))
                 )
         );
     }
@@ -376,30 +424,29 @@ public final class PolicyPersistenceActor
                 .filter(pair -> pair.second().getExpiry().isPresent());
     }
 
-    private static Optional<SubjectExpiry> findEarliestSubjectExpiryTimestamp(
-            @Nullable final Iterable<PolicyEntry> policyEntries) {
+    private static Optional<SubjectExpiry> findEarliestSubjectExpiryTimestamp(@Nullable final Policy policyEntries) {
 
         return findMinValueSubject(policyEntries, Subject::getExpiry,
                 Comparator.comparing(SubjectExpiry::getTimestamp));
     }
 
-    private static Optional<Instant> findEarliestAnnouncement(@Nullable final Iterable<PolicyEntry> policyEntries,
+    private static Optional<Instant> findEarliestAnnouncement(@Nullable final Policy policyEntries,
             final Instant lastAnnouncement) {
         return findMinValueSubject(policyEntries, getRelevantAnnouncementInstantFunction(lastAnnouncement),
                 Comparator.naturalOrder());
     }
 
-    private static <T> Optional<T> findMinValueSubject(@Nullable final Iterable<PolicyEntry> policyEntries,
+    private static <T> Optional<T> findMinValueSubject(@Nullable final Policy policyEntries,
             final Function<Subject, Optional<T>> getValueFunction,
             final Comparator<T> comparator) {
 
         return streamAndFlatMapSubjects(policyEntries, getValueFunction).min(comparator);
     }
 
-    private static <T> Stream<T> streamAndFlatMapSubjects(@Nullable final Iterable<PolicyEntry> policyEntries,
+    private static <T> Stream<T> streamAndFlatMapSubjects(@Nullable final Policy policyEntries,
             final Function<Subject, Optional<T>> flatMapFunction) {
 
-        if (null == policyEntries) {
+        if (null == policyEntries || policyEntries.getLifecycle().filter(PolicyLifecycle.DELETED::equals).isPresent()) {
             return Stream.empty();
         }
 

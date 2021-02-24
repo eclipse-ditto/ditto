@@ -310,6 +310,11 @@ public final class ConnectionPersistenceActor
     }
 
     @Override
+    protected boolean shouldSendResponse(final DittoHeaders dittoHeaders) {
+        return dittoHeaders.isResponseRequired();
+    }
+
+    @Override
     public void postStop() throws Exception {
         log.info("stopped connection <{}>", entityId);
         super.postStop();

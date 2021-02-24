@@ -831,6 +831,63 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     }
 
     @Test
+    public void sendAnnouncementAfterDeletion() {
+        new TestKit(actorSystem) {
+            {
+                final SubjectAnnouncement subjectAnnouncement = SubjectAnnouncement.of(null, true);
+                final Subject subject1 =
+                        Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, "subject1"),
+                                SubjectType.GENERATED, null, subjectAnnouncement);
+                final Subject subject2 =
+                        Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, "subject2"),
+                                SubjectType.GENERATED, null, subjectAnnouncement);
+                final Policy policy = createPolicyWithRandomId().toBuilder()
+                        .forLabel(POLICY_LABEL)
+                        .setSubject(subject1)
+                        .forLabel(ANOTHER_POLICY_LABEL)
+                        .setSubject(subject2)
+                        .build();
+                final PolicyId policyId = policy.getEntityId().orElseThrow();
+
+                final DittoHeaders headersMockWithOtherAuth =
+                        createDittoHeaders(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
+
+                final ActorRef underTest = createPersistenceActorFor(this, policy);
+
+                // GIVEN: a Policy is created
+                final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
+                underTest.tell(createPolicyCommand, getRef());
+                expectMsgClass(CreatePolicyResponse.class);
+
+                // WHEN: subject2 is deleted
+                final var deletePolicyEntry =
+                        DeletePolicyEntry.of(policyId, ANOTHER_POLICY_LABEL, headersMockWithOtherAuth);
+                underTest.tell(deletePolicyEntry, getRef());
+                expectMsgClass(DeletePolicyEntryResponse.class);
+
+                // THEN: announcement is published for subject2
+                final var captor = ArgumentCaptor.forClass(SubjectDeletionAnnouncement.class);
+                verify(policyAnnouncementPub).publish(captor.capture(), any());
+                final SubjectDeletionAnnouncement announcement2 = captor.getValue();
+                Assertions.assertThat(announcement2.getSubjectIds()).containsExactly(subject2.getId());
+
+                // WHEN: policy is deleted
+                final var deletePolicy = DeletePolicy.of(policyId, headersMockWithOtherAuth);
+                underTest.tell(deletePolicy, getRef());
+                expectMsgClass(DeletePolicyResponse.class);
+
+                // THEN: announcement is published for subject1
+                verify(policyAnnouncementPub, times(2)).publish(captor.capture(), any());
+                final SubjectDeletionAnnouncement announcement1 = captor.getValue();
+                Assertions.assertThat(announcement1.getSubjectIds()).containsExactly(subject1.getId());
+
+                // THEN: announcements are published no more than once while the actor is alive.
+                verifyNoMoreInteractions(policyAnnouncementPub);
+            }
+        };
+    }
+
+    @Test
     public void sendAnnouncementBeforeExpiry() {
         new TestKit(actorSystem) {
             {
