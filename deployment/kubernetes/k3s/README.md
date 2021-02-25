@@ -20,7 +20,7 @@ sudo chown <groupId>:<userId> /etc/rancher/k3s/k3s.yaml
 
 Copy k3s kube config to .kube directory:
 ```bash
-cp /etc/rancher/k3s/k3s.yaml .kube/config
+cp /etc/rancher/k3s/k3s.yaml .kube/
 ```
 
 Verify that the `kubectl` command works:
