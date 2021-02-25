@@ -66,12 +66,12 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
 
     private final PolicyId policyId;
     private final Label label;
-    @Nullable private final ResourceKey resourceKey;
+    private final ResourceKey resourceKey;
     @Nullable private final Resource resourceCreated;
 
     private ModifyResourceResponse(final PolicyId policyId,
             final Label label,
-            @Nullable final ResourceKey resourceKey,
+            final ResourceKey resourceKey,
             @Nullable final Resource resourceCreated,
             final HttpStatus httpStatus,
             final DittoHeaders dittoHeaders) {
@@ -79,28 +79,8 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
         super(TYPE, httpStatus, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.label = checkNotNull(label, "Label");
-        this.resourceKey = resourceKey;
+        this.resourceKey = checkNotNull(resourceKey, "resourceKey");
         this.resourceCreated = resourceCreated;
-    }
-
-    /**
-     * Creates a response to a {@code ModifyResource} command.
-     *
-     * @param policyId the Policy ID of the created resource.
-     * @param label the Label of the PolicyEntry.
-     * @param resourceCreated the Resource created.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
-     * @deprecated Policy ID is now typed. Use {@link #created(PolicyId, Label, Resource, DittoHeaders)} instead.
-     */
-    @Deprecated
-    public static ModifyResourceResponse created(final String policyId,
-            final Label label,
-            final Resource resourceCreated,
-            final DittoHeaders dittoHeaders) {
-
-        return created(PolicyId.of(policyId), label, resourceCreated, dittoHeaders);
     }
 
     /**
@@ -131,60 +111,6 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      *
      * @param policyId the Policy ID of the modified resource.
      * @param label the Label of the PolicyEntry.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use {@link #modified(PolicyId, Label, ResourceKey, DittoHeaders)} instead.
-     */
-    @Deprecated
-    public static ModifyResourceResponse modified(final String policyId, final Label label,
-            final DittoHeaders dittoHeaders) {
-
-        return modified(PolicyId.of(policyId), label, null, dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@code ModifyResource} command.
-     *
-     * @param policyId the Policy ID of the modified resource.
-     * @param label the Label of the PolicyEntry.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated since 1.1.0, use {@link #modified(PolicyId, Label, ResourceKey, DittoHeaders)} instead.
-     */
-    @Deprecated
-    public static ModifyResourceResponse modified(final PolicyId policyId, final Label label,
-            final DittoHeaders dittoHeaders) {
-
-        return modified(PolicyId.of(policyId), label, null, dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@code ModifyResource} command.
-     *
-     * @param policyId the Policy ID of the modified resource.
-     * @param label the Label of the PolicyEntry.
-     * @param resourceKey the resource key of the modified resource
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy ID is now typed. Use {@link #modified(PolicyId, Label, ResourceKey, DittoHeaders)} instead.
-     */
-    @Deprecated
-    public static ModifyResourceResponse modified(final String policyId,
-            final Label label,
-            final ResourceKey resourceKey,
-            final DittoHeaders dittoHeaders) {
-
-        return modified(PolicyId.of(policyId), label, resourceKey, dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@code ModifyResource} command.
-     *
-     * @param policyId the Policy ID of the modified resource.
-     * @param label the Label of the PolicyEntry.
      * @param resourceKey the resource key of the modified resource
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
@@ -193,7 +119,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
      */
     public static ModifyResourceResponse modified(final PolicyId policyId,
             final Label label,
-            @Nullable final ResourceKey resourceKey,
+            final ResourceKey resourceKey,
             final DittoHeaders dittoHeaders) {
 
         return new ModifyResourceResponse(policyId,
@@ -238,16 +164,15 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
             final String stringLabel = jsonObject.getValueOrThrow(JSON_LABEL);
             final Label label = PoliciesModelFactory.newLabel(stringLabel);
 
-            final Optional<ResourceKey> extractedResourceKey = jsonObject.getValue(JSON_RESOURCE_KEY)
-                    .map(ResourceKey::newInstance);
+            final String extractedResourceKey = jsonObject.getValueOrThrow(JSON_RESOURCE_KEY);
+            final ResourceKey resourceKey = ResourceKey.newInstance(extractedResourceKey);
 
-            @Nullable final Resource extractedResourceCreated = jsonObject.getValue(JSON_RESOURCE)
+            @Nullable final Resource createdResource = jsonObject.getValue(JSON_RESOURCE)
                     .map(JsonValue::asObject)
-                    .flatMap(obj -> extractedResourceKey.map(resKey -> PoliciesModelFactory.newResource(resKey, obj)))
+                    .map(obj -> PoliciesModelFactory.newResource(resourceKey, obj))
                     .orElse(null);
 
-            return new ModifyResourceResponse(policyId, label, extractedResourceKey.orElse(null),
-                    extractedResourceCreated, httpStatus, dittoHeaders);
+            return new ModifyResourceResponse(policyId, label, resourceKey, createdResource, httpStatus, dittoHeaders);
         });
     }
 
@@ -293,9 +218,7 @@ public final class ModifyResourceResponse extends AbstractCommandResponse<Modify
         jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
                 predicate);
         jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
-        if (null != resourceKey) {
-            jsonObjectBuilder.set(JSON_RESOURCE_KEY, resourceKey.toString(), predicate);
-        }
+        jsonObjectBuilder.set(JSON_RESOURCE_KEY, resourceKey.toString(), predicate);
         if (null != resourceCreated) {
             jsonObjectBuilder.set(JSON_RESOURCE, resourceCreated.toJson(schemaVersion, thePredicate), predicate);
         }

@@ -61,36 +61,19 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
             JsonFactory.newJsonValueFieldDefinition("policyEntry", FieldType.REGULAR, JsonSchemaVersion.V_2);
 
     private final PolicyId policyId;
-    @Nullable private final Label label;
+    private final Label label;
     @Nullable private final PolicyEntry policyEntryCreated;
 
     private ModifyPolicyEntryResponse(final PolicyId policyId,
             final HttpStatus httpStatus,
             @Nullable final PolicyEntry policyEntryCreated,
-            @Nullable final Label label,
+            final Label label,
             final DittoHeaders dittoHeaders) {
 
         super(TYPE, httpStatus, dittoHeaders);
         this.policyId = checkNotNull(policyId, "Policy ID");
         this.policyEntryCreated = policyEntryCreated;
-        this.label = label;
-    }
-
-    /**
-     * Creates a response to a {@code ModifyPolicyEntry} command.
-     *
-     * @param policyId the Policy ID of the created policy entry.
-     * @param policyEntryCreated (optional) the PolicyEntry created.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if {@code statusCode} or {@code dittoHeaders} is {@code null}.
-     * @deprecated Policy ID is now typed. Use {@link #created(PolicyId, PolicyEntry, DittoHeaders)} instead.
-     */
-    @Deprecated
-    public static ModifyPolicyEntryResponse created(final String policyId, final PolicyEntry policyEntryCreated,
-            final DittoHeaders dittoHeaders) {
-
-        return created(PolicyId.of(policyId), policyEntryCreated, dittoHeaders);
+        this.label = checkNotNull(label, "label");
     }
 
     /**
@@ -116,41 +99,13 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
      * Creates a response to a {@code ModifyPolicyEntry} command.
      *
      * @param policyId the Policy ID of the modified policy entry.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated Policy Id is now Typed. Use {@link #modified(PolicyId, Label, DittoHeaders)} instead.
-     */
-    @Deprecated
-    public static ModifyPolicyEntryResponse modified(final String policyId, final DittoHeaders dittoHeaders) {
-        return modified(PolicyId.of(policyId), null, dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@code ModifyPolicyEntry} command.
-     *
-     * @param policyId the Policy ID of the modified policy entry.
-     * @param dittoHeaders the headers of the preceding command.
-     * @return the response.
-     * @throws NullPointerException if any argument is {@code null}.
-     * @deprecated since 1.1.0, use {@link #modified(PolicyId, Label, DittoHeaders)} instead.
-     */
-    @Deprecated
-    public static ModifyPolicyEntryResponse modified(final PolicyId policyId, final DittoHeaders dittoHeaders) {
-        return modified(policyId, null, dittoHeaders);
-    }
-
-    /**
-     * Creates a response to a {@code ModifyPolicyEntry} command.
-     *
-     * @param policyId the Policy ID of the modified policy entry.
      * @param label the label of the modified policy entry.
      * @param dittoHeaders the headers of the preceding command.
      * @return the response.
      * @throws NullPointerException if {@code policyId} or {@code dittoHeaders} is {@code null}.
      * @since 1.1.0
      */
-    public static ModifyPolicyEntryResponse modified(final PolicyId policyId, @Nullable final Label label,
+    public static ModifyPolicyEntryResponse modified(final PolicyId policyId, final Label label,
             final DittoHeaders dittoHeaders) {
 
         return new ModifyPolicyEntryResponse(policyId, HttpStatus.NO_CONTENT, null, label, dittoHeaders);
@@ -187,17 +142,16 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
                     final String extractedPolicyId =
                             jsonObject.getValueOrThrow(PolicyCommandResponse.JsonFields.JSON_POLICY_ID);
                     final PolicyId policyId = PolicyId.of(extractedPolicyId);
-                    final Optional<String> readLabel = jsonObject.getValue(JSON_LABEL);
+                    final String readLabel = jsonObject.getValueOrThrow(JSON_LABEL);
 
-                    @Nullable
-                    final PolicyEntry extractedPolicyEntryCreated = jsonObject.getValue(JSON_POLICY_ENTRY)
+                    @Nullable final PolicyEntry extractedPolicyEntryCreated = jsonObject.getValue(JSON_POLICY_ENTRY)
                             .filter(JsonValue::isObject)
                             .map(JsonValue::asObject)
-                            .flatMap(obj -> readLabel.map(label -> PoliciesModelFactory.newPolicyEntry(label, obj)))
+                            .map(obj -> PoliciesModelFactory.newPolicyEntry(readLabel, obj))
                             .orElse(null);
 
                     return new ModifyPolicyEntryResponse(policyId, httpStatus, extractedPolicyEntryCreated,
-                            readLabel.map(Label::of).orElse(null), dittoHeaders);
+                            Label.of(readLabel), dittoHeaders);
                 });
     }
 
@@ -222,9 +176,6 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
 
     @Override
     public JsonPointer getResourcePath() {
-        if (null == label) {
-            return JsonPointer.empty();
-        }
         final String path = "/entries/" + label;
         return JsonPointer.of(path);
     }
@@ -236,9 +187,7 @@ public final class ModifyPolicyEntryResponse extends AbstractCommandResponse<Mod
         final Predicate<JsonField> predicate = schemaVersion.and(thePredicate);
         jsonObjectBuilder.set(PolicyCommandResponse.JsonFields.JSON_POLICY_ID, String.valueOf(policyId),
                 predicate);
-        if (null != label) {
-            jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
-        }
+        jsonObjectBuilder.set(JSON_LABEL, label.toString(), predicate);
         if (null != policyEntryCreated) {
             jsonObjectBuilder.set(JSON_POLICY_ENTRY, policyEntryCreated.toJson(schemaVersion, thePredicate), predicate);
         }
