@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -20,98 +20,99 @@ import javax.annotation.concurrent.Immutable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
-import org.eclipse.ditto.json.JsonMissingFieldException;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonObjectBuilder;
 import org.eclipse.ditto.json.JsonValue;
-import org.eclipse.ditto.model.base.common.ConditionChecker;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
+import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
+import org.eclipse.ditto.signals.base.WithId;
 
 /**
- * Internal simple command which is Jsonifiable, has a command name, an optional correlationId and optionally payload.
+ * Internal simple "ping" command to be sent to PersistenceActors (identified by the contained {@code entityId})
+ * which is Jsonifiable and has an optional correlationId and optionally payload.
  */
 @Immutable
-public final class SimpleCommand implements Jsonifiable<JsonObject> {
+public final class PingCommand implements Jsonifiable<JsonObject>, WithId {
 
-    private final String commandName;
+    private final EntityId entityId;
     @Nullable private final String correlationId;
     @Nullable private final JsonValue payload;
 
-    private SimpleCommand(final String commandName, @Nullable final String correlationId, @Nullable final JsonValue payload) {
-        this.commandName = ConditionChecker.checkNotNull(commandName, "command name");
+    private PingCommand(final EntityId entityId, @Nullable final String correlationId,
+            @Nullable final JsonValue payload) {
+        this.entityId = entityId;
         this.correlationId = correlationId;
         this.payload = payload;
     }
 
     /**
-     * Returns a new {@code SimpleCommand} instance.
+     * Returns a new {@code PingCommand} instance.
      *
-     * @param commandName the name of the command.
-     * @param correlationId an optional identifier correlating a SimpleCommand to a SimpleCommandResponse.
-     * @param payload optional payload to transmit with the SimpleCommand.
-     * @return the new SimpleCommand instance.
+     * @param entityId the Entity ID to send the ping command to.
+     * @param correlationId an optional identifier correlating a PingCommand to a PingCommandResponse.
+     * @param payload optional payload to transmit with the PingCommand.
+     * @return the new PingCommand instance.
      */
-    public static SimpleCommand of(final String commandName, @Nullable final String correlationId, @Nullable final JsonValue payload) {
-        return new SimpleCommand(commandName, correlationId, payload);
+    public static PingCommand of(final EntityId entityId, @Nullable final String correlationId,
+            @Nullable final JsonValue payload) {
+        return new PingCommand(entityId, correlationId, payload);
     }
 
     /**
-     * Creates a new {@code SimpleCommand} from a JSON string.
+     * Creates a new {@code PingCommand} from a JSON string.
      *
-     * @param jsonString the JSON string of which a new SimpleCommand is to be created.
-     * @return the SimpleCommand which was created from the given JSON string.
+     * @param jsonString the JSON string of which a new PingCommand is to be created.
+     * @return the PingCommand which was created from the given JSON string.
      * @throws NullPointerException if {@code jsonString} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonString} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonString} does not contain a JSON
      * object or if it is not valid JSON.
-     * @throws JsonMissingFieldException if the passed in {@code jsonString} was not in the expected 'SimpleCommand'
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the passed in {@code jsonString} was not in the
+     * expected 'PingCommand'
      * format.
      */
-    public static SimpleCommand fromJson(final String jsonString) {
+    public static PingCommand fromJson(final String jsonString) {
         return fromJson(JsonFactory.newObject(jsonString));
     }
 
     /**
-     * Creates a new {@code SimpleCommand} from a JSON object.
+     * Creates a new {@code PingCommand} from a JSON object.
      *
-     * @param jsonObject the JSON object of which a new SimpleCommand is to be created.
-     * @return the SimpleCommand which was created from the given JSON object.
+     * @param jsonObject the JSON object of which a new PingCommand is to be created.
+     * @return the PingCommand which was created from the given JSON object.
      * @throws NullPointerException if {@code jsonObject} is {@code null}.
      * @throws IllegalArgumentException if {@code jsonObject} is empty.
      * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} is not valid JSON.
-     * @throws JsonMissingFieldException if the passed in {@code jsonObject} was not in the expected 'SimpleCommand'
+     * @throws org.eclipse.ditto.json.JsonMissingFieldException if the passed in {@code jsonObject} was not in the expected 'PingCommand'
      * format.
      */
-    public static SimpleCommand fromJson(final JsonObject jsonObject) {
-        final String extractedCommandName = jsonObject.getValueOrThrow(JsonFields.NAME);
+    public static PingCommand fromJson(final JsonObject jsonObject) {
+        final EntityId extractedEntityId = DefaultEntityId.of(jsonObject.getValueOrThrow(JsonFields.ENTITY_ID));
         final String extractedCorrelationId = jsonObject.getValue(JsonFields.CORRELATION_ID).orElse(null);
         final JsonValue extractedPayload = jsonObject.getValue(JsonFields.PAYLOAD).orElse(null);
 
-        return of(extractedCommandName, extractedCorrelationId, extractedPayload);
+        return of(extractedEntityId, extractedCorrelationId, extractedPayload);
+    }
+
+    @Override
+    public EntityId getEntityId() {
+        return entityId;
     }
 
     /**
-     * Returns the name of the SimpleCommand.
+     * Returns the optional correlationId.
      *
-     * @return the name of the SimpleCommand.
-     */
-    public String getCommandName() {
-        return commandName;
-    }
-
-    /**
-     * Returns the optional correlationId of the SimpleCommand.
-     *
-     * @return the optional correlationId of the SimpleCommand.
+     * @return the optional correlationId.
      */
     public Optional<String> getCorrelationId() {
         return Optional.ofNullable(correlationId);
     }
 
     /**
-     * Returns the optional JSON payload of the SimpleCommand.
+     * Returns the optional JSON payload.
      *
-     * @return the optional JSON payload of the SimpleCommand.
+     * @return the optional JSON payload.
      */
     public Optional<JsonValue> getPayload() {
         return Optional.ofNullable(payload);
@@ -120,7 +121,7 @@ public final class SimpleCommand implements Jsonifiable<JsonObject> {
     @Override
     public JsonObject toJson() {
         final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
-                .set(JsonFields.NAME, commandName);
+                .set(JsonFields.ENTITY_ID, entityId.toString());
         if (null != correlationId) {
             jsonObjectBuilder.set(JsonFields.CORRELATION_ID, correlationId);
         }
@@ -138,36 +139,36 @@ public final class SimpleCommand implements Jsonifiable<JsonObject> {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        final SimpleCommand that = (SimpleCommand) o;
-        return Objects.equals(commandName, that.commandName) &&
+        final PingCommand that = (PingCommand) o;
+        return Objects.equals(entityId, that.entityId) &&
                 Objects.equals(correlationId, that.correlationId) &&
                 Objects.equals(payload, that.payload);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(commandName, correlationId, payload);
+        return Objects.hash(entityId, correlationId, payload);
     }
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + " [" +
-                "commandName=" + commandName +
+                "entityId=" + entityId +
                 ", correlationId=" + correlationId +
                 ", payload=" + payload +
                 "]";
     }
 
     /**
-     * An enumeration of the known {@link JsonFieldDefinition}s of a SimpleCommand.
+     * An enumeration of the known {@link JsonFieldDefinition}s of a PingCommand.
      */
     @Immutable
     public static final class JsonFields {
 
         /**
-         * JSON field containing the command name.
+         * JSON field containing the entity ID.
          */
-        static final JsonFieldDefinition<String> NAME = JsonFactory.newStringFieldDefinition("command");
+        static final JsonFieldDefinition<String> ENTITY_ID = JsonFactory.newStringFieldDefinition("entityId");
 
         /**
          * JSON field containing the correlationId.

@@ -36,7 +36,7 @@ final class EnableConnectionLogsStrategy extends AbstractEphemeralStrategy<Enabl
     }
 
     @Override
-    WithDittoHeaders getResponse(final ConnectionState state, final DittoHeaders headers) {
+    WithDittoHeaders<?> getResponse(final ConnectionState state, final DittoHeaders headers) {
         return EnableConnectionLogsResponse.of(state.id(), headers);
     }
 

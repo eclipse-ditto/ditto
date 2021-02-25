@@ -22,6 +22,7 @@ import org.eclipse.ditto.services.policies.persistence.actors.PoliciesPersistenc
 import org.eclipse.ditto.services.policies.persistence.actors.PolicyPersistenceOperationsActor;
 import org.eclipse.ditto.services.policies.persistence.actors.PolicySupervisorActor;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.cluster.ClusterUtil;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
@@ -34,6 +35,8 @@ import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
+import org.eclipse.ditto.services.utils.persistentactors.PersistencePingActor;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.services.utils.pubsub.PolicyAnnouncementPubSubFactory;
 import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
@@ -89,6 +92,10 @@ public final class PoliciesRootActor extends DittoRootActor {
                 .start(PoliciesMessagingConstants.SHARD_REGION, policySupervisorProps, shardingSettings,
                         ShardRegionExtractor.of(clusterConfig.getNumberOfShards(), actorSystem));
 
+        startClusterSingletonActor(PersistencePingActor.props(policiesShardRegion,
+                        policiesConfig.getPingConfig(), MongoReadJournal.newInstance(actorSystem)),
+                PersistencePingActor.ACTOR_NAME);
+
         startChildActor(PolicyPersistenceOperationsActor.ACTOR_NAME,
                 PolicyPersistenceOperationsActor.props(pubSubMediator, policiesConfig.getMongoDbConfig(),
                         actorSystem.settings().config(), policiesConfig.getPersistenceOperationsConfig()));
@@ -140,6 +147,10 @@ public final class PoliciesRootActor extends DittoRootActor {
         return ReceiveBuilder.create()
                 .match(RetrieveStatisticsDetails.class, this::handleRetrieveStatisticsDetails)
                 .build().orElse(super.createReceive());
+    }
+
+    private void startClusterSingletonActor(final Props props, final String name) {
+        ClusterUtil.startSingleton(getContext(), CLUSTER_ROLE, name, props);
     }
 
     private void handleRetrieveStatisticsDetails(final RetrieveStatisticsDetails command) {

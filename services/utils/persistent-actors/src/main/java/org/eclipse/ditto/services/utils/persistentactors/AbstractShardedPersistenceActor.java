@@ -18,12 +18,15 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
+import org.eclipse.ditto.services.utils.akka.PingCommand;
+import org.eclipse.ditto.services.utils.akka.PingCommandResponse;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
@@ -273,6 +276,7 @@ public abstract class AbstractShardedPersistenceActor<
         final Receive receive = handleCleanups.orElse(ReceiveBuilder.create()
                 .match(commandStrategy.getMatchingClass(), commandStrategy::isDefined, this::handleByCommandStrategy)
                 .match(CheckForActivity.class, this::checkForActivity)
+                .match(PingCommand.class, this::processPingCommand)
                 .matchEquals(Control.TAKE_SNAPSHOT, this::takeSnapshotByInterval)
                 .match(SaveSnapshotSuccess.class, this::saveSnapshotSuccess)
                 .match(SaveSnapshotFailure.class, this::saveSnapshotFailure)
@@ -283,6 +287,29 @@ public abstract class AbstractShardedPersistenceActor<
 
         scheduleCheckForActivity(getActivityCheckConfig().getInactiveInterval());
         scheduleSnapshot();
+    }
+
+    private void processPingCommand(final PingCommand ping) {
+
+        final String journalTag = ping.getPayload()
+                .filter(JsonValue::isString)
+                .map(JsonValue::asString)
+                .orElse(null);
+        if (JOURNAL_TAG_ALWAYS_ALIVE.equals(journalTag)) {
+            final String correlationId = ping.getCorrelationId().orElse(null);
+            log.withCorrelationId(correlationId)
+                    .debug("Received ping for this as <{}> tagged actor", journalTag);
+            getSender().tell(PingCommandResponse.of(correlationId, JsonValue.nullLiteral()), getSelf());
+        } else if (null != journalTag && journalTag.isEmpty()) {
+            // persistence actor was sent a "ping" with empty journal tag
+            // (was recovered because of a fallback without a tag)
+            final String correlationId = ping.getCorrelationId().orElse(null);
+            log.withCorrelationId(correlationId).debug("Received ping for this actor");
+            getSender().tell(PingCommandResponse.of(correlationId, JsonValue.nullLiteral()), getSelf());
+
+            // TODO TJ build in adding the "always-alive" tag here, e.g. by modifying the complete entity once again?
+            //  or by persisting a "dummy event" which is just tagged?
+        }
     }
 
     protected void becomeDeletedHandler() {
@@ -352,8 +379,8 @@ public abstract class AbstractShardedPersistenceActor<
         } else if (accessCounter > message.accessCounter) {
             // if the entity was accessed in any way since the last check
             scheduleCheckForActivity(getActivityCheckConfig().getInactiveInterval());
-        } else if (alwaysAlive) {
-            log.debug("Entity <{}> is marked as 'always-alive', preventing Actor shutdown.", entityId);
+        } else if (isEntityActive() && alwaysAlive) {
+            log.debug("Entity <{}> is active and marked as 'always-alive', preventing Actor shutdown.", entityId);
         } else {
             // safe to shutdown after a period of inactivity if:
             // - entity is active (and taking regular snapshots of itself), or
@@ -393,7 +420,7 @@ public abstract class AbstractShardedPersistenceActor<
         if (interval.isNegative() || interval.isZero()) {
             log.debug("Activity check is disabled: <{}>", interval);
         } else {
-            log.debug("Scheduling for Activity Check in <{}> seconds.", interval);
+            log.debug("Scheduling for Activity Check in <{}>", interval);
             timers().startSingleTimer("activityCheck", new CheckForActivity(accessCounter), interval);
         }
     }

@@ -94,6 +94,11 @@ import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionM
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatus;
 import org.eclipse.ditto.signals.commands.connectivity.query.RetrieveConnectionStatusResponse;
 import org.eclipse.ditto.signals.commands.thingsearch.subscription.CreateSubscription;
+import org.eclipse.ditto.signals.events.connectivity.ConnectionClosed;
+import org.eclipse.ditto.signals.events.connectivity.ConnectionCreated;
+import org.eclipse.ditto.signals.events.connectivity.ConnectionDeleted;
+import org.eclipse.ditto.signals.events.connectivity.ConnectionModified;
+import org.eclipse.ditto.signals.events.connectivity.ConnectionOpened;
 import org.eclipse.ditto.signals.events.connectivity.ConnectivityEvent;
 
 import akka.actor.ActorRef;
@@ -320,18 +325,6 @@ public final class ConnectionPersistenceActor
         super.postStop();
     }
 
-    /**
-     * Keep 1 stale event for cleanup if the connection's desired state is open so that this actor's pid stays
-     * in the set of current persistence IDs known to the persistence plugin and will be woken up by the reconnect
-     * actor after service restart.
-     *
-     * @return number of stale events to keep after cleanup.
-     */
-    @Override
-    protected long staleEventsKeptAfterCleanup() {
-        return isDesiredStateOpen() ? 1 : 0;
-    }
-
     @Override
     protected void recoveryCompleted(final RecoveryCompleted event) {
         log.info("Connection <{}> was recovered: {}", entityId, entity);
@@ -343,6 +336,36 @@ public final class ConnectionPersistenceActor
             restoreOpenConnection();
         }
         becomeCreatedOrDeletedHandler();
+    }
+
+    @Override
+    protected ConnectivityEvent<?> modifyEventBeforePersist(final ConnectivityEvent<?> event) {
+        final ConnectivityEvent<?> superEvent = super.modifyEventBeforePersist(event);
+
+        final ConnectivityStatus targetConnectionStatus;
+        if (event instanceof ConnectionCreated) {
+            targetConnectionStatus = ((ConnectionCreated) event).getConnection().getConnectionStatus();
+        } else if (event instanceof ConnectionModified) {
+            targetConnectionStatus = ((ConnectionModified) event).getConnection().getConnectionStatus();
+        } else if (event instanceof ConnectionDeleted) {
+            targetConnectionStatus = ConnectivityStatus.CLOSED;
+        } else if (event instanceof ConnectionOpened) {
+            targetConnectionStatus = ConnectivityStatus.OPEN;
+        } else if (event instanceof ConnectionClosed) {
+            targetConnectionStatus = ConnectivityStatus.CLOSED;
+        } else if (null != entity) {
+            targetConnectionStatus = entity.getConnectionStatus();
+        } else {
+            targetConnectionStatus = ConnectivityStatus.UNKNOWN;
+        }
+
+        if (targetConnectionStatus == ConnectivityStatus.OPEN) {
+            final DittoHeaders headersWithJournalTags = superEvent.getDittoHeaders().toBuilder()
+                    .journalTags(Set.of(JOURNAL_TAG_ALWAYS_ALIVE))
+                    .build();
+            return superEvent.setDittoHeaders(headersWithJournalTags);
+        }
+        return superEvent;
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Contributors to the Eclipse Foundation
+ * Copyright (c) 2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.config;
+package org.eclipse.ditto.services.utils.persistentactors.config;
 
 import java.time.Duration;
 import java.util.Objects;
@@ -23,10 +23,10 @@ import org.eclipse.ditto.services.utils.config.ScopedConfig;
 import com.typesafe.config.Config;
 
 /**
- * This class is the default implementation of the config for for throttling the recovery of connections.
+ * This class is the default implementation of {@link RateConfig}.
  */
 @Immutable
-public final class DefaultRateConfig implements ReconnectConfig.RateConfig {
+public final class DefaultRateConfig implements RateConfig {
 
     private static final String CONFIG_PATH = "rate";
 

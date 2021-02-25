@@ -33,6 +33,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.assertj.core.api.Assertions;
@@ -158,7 +159,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     @Test
     public void tryToRetrievePolicyWhichWasNotYetCreated() {
         final PolicyId policyId = PolicyId.of("test.ns", "23420815");
-        final PolicyCommand retrievePolicyCommand = RetrievePolicy.of(policyId, dittoHeadersV2);
+        final PolicyCommand<?> retrievePolicyCommand = RetrievePolicy.of(policyId, dittoHeadersV2);
 
         new TestKit(actorSystem) {
             {
@@ -213,9 +214,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
     public void retrievePolicy() {
         final Policy policy = createPolicyWithRandomId();
         final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
-        final PolicyCommand retrievePolicyCommand =
+        final PolicyCommand<?> retrievePolicyCommand =
                 RetrievePolicy.of(policy.getEntityId().orElse(null), dittoHeadersV2);
-        final PolicyQueryCommandResponse expectedResponse =
+        final PolicyQueryCommandResponse<?> expectedResponse =
                 retrievePolicyResponse(incrementRevision(policy, 1), retrievePolicyCommand.getDittoHeaders());
 
         new TestKit(actorSystem) {
@@ -780,11 +781,14 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final Subject expectedAdjustedSubjectToAdd = Subject.newInstance(subjectToAdd.getId(),
                         subjectToAdd.getType(), expectedSubjectExpiry, subjectAnnouncement);
 
+                final DittoHeaders expectedEventHeaders = headersMockWithOtherAuth.toBuilder()
+                        .journalTags(Set.of(AbstractShardedPersistenceActor.JOURNAL_TAG_ALWAYS_ALIVE))
+                        .build();
                 // THEN: the subject expiry should be rounded up to the configured "subject-expiry-granularity"
                 //  (10s for this test)
                 expectMsgEquals(
                         modifySubjectResponse(policyId, POLICY_LABEL, expectedAdjustedSubjectToAdd,
-                                headersMockWithOtherAuth, true));
+                                expectedEventHeaders, true));
 
                 final RetrieveSubject retrieveSubject =
                         RetrieveSubject.of(policyId, POLICY_LABEL, subjectToAdd.getId(), headersMockWithOtherAuth);

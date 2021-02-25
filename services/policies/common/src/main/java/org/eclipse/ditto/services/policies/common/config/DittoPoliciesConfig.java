@@ -31,6 +31,8 @@ import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.TagsConfig;
 import org.eclipse.ditto.services.utils.persistence.operations.DefaultPersistenceOperationsConfig;
 import org.eclipse.ditto.services.utils.persistence.operations.PersistenceOperationsConfig;
+import org.eclipse.ditto.services.utils.persistentactors.config.DefaultPingConfig;
+import org.eclipse.ditto.services.utils.persistentactors.config.PingConfig;
 
 /**
  * This class implements the config of the Ditto Policies service.
@@ -45,6 +47,7 @@ public final class DittoPoliciesConfig implements PoliciesConfig {
     private final MongoDbConfig mongoDbConfig;
     private final HealthCheckConfig healthCheckConfig;
     private final PolicyConfig policyConfig;
+    private final PingConfig pingConfig;
     private final TagsConfig tagsConfig;
 
     private DittoPoliciesConfig(final ScopedConfig dittoScopedConfig) {
@@ -53,6 +56,7 @@ public final class DittoPoliciesConfig implements PoliciesConfig {
         mongoDbConfig = DefaultMongoDbConfig.of(dittoScopedConfig);
         healthCheckConfig = DefaultHealthCheckConfig.of(dittoScopedConfig);
         policyConfig = DefaultPolicyConfig.of(serviceSpecificConfig);
+        pingConfig = DefaultPingConfig.of(serviceSpecificConfig);
         tagsConfig = DefaultTagsConfig.of(serviceSpecificConfig);
     }
 
@@ -109,6 +113,11 @@ public final class DittoPoliciesConfig implements PoliciesConfig {
     }
 
     @Override
+    public PingConfig getPingConfig() {
+        return pingConfig;
+    }
+
+    @Override
     public TagsConfig getTagsConfig() {
         return tagsConfig;
     }
@@ -127,13 +136,14 @@ public final class DittoPoliciesConfig implements PoliciesConfig {
                 Objects.equals(mongoDbConfig, that.mongoDbConfig) &&
                 Objects.equals(healthCheckConfig, that.healthCheckConfig) &&
                 Objects.equals(policyConfig, that.policyConfig) &&
+                Objects.equals(pingConfig, that.pingConfig) &&
                 Objects.equals(tagsConfig, that.tagsConfig);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(serviceSpecificConfig, persistenceOperationsConfig, mongoDbConfig, healthCheckConfig,
-                policyConfig, tagsConfig);
+                policyConfig, pingConfig, tagsConfig);
     }
 
     @Override
@@ -144,6 +154,7 @@ public final class DittoPoliciesConfig implements PoliciesConfig {
                 ", mongoDbConfig=" + mongoDbConfig +
                 ", healthCheckConfig=" + healthCheckConfig +
                 ", policyConfig=" + policyConfig +
+                ", pingConfig=" + pingConfig +
                 ", tagsConfig=" + tagsConfig +
                 "]";
     }
