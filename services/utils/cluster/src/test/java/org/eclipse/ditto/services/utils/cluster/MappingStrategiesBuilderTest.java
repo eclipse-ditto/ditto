@@ -22,6 +22,8 @@ import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.ThingConstants;
+import org.eclipse.ditto.services.utils.akka.PingCommand;
+import org.eclipse.ditto.services.utils.akka.PingCommandResponse;
 import org.eclipse.ditto.services.utils.akka.SimpleCommand;
 import org.eclipse.ditto.services.utils.akka.SimpleCommandResponse;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
@@ -140,6 +142,8 @@ public final class MappingStrategiesBuilderTest {
                         ShardedMessageEnvelope.class.getSimpleName(),
                         SimpleCommand.class.getSimpleName(),
                         SimpleCommandResponse.class.getSimpleName(),
+                        PingCommand.class.getSimpleName(),
+                        PingCommandResponse.class.getSimpleName(),
                         StatusInfo.class.getSimpleName(),
                         Acknowledgement.getType(ThingConstants.ENTITY_TYPE),
                         Acknowledgements.getType(ThingConstants.ENTITY_TYPE),
