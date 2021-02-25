@@ -175,6 +175,23 @@ public abstract class AbstractRoute extends AllDirectives {
         }
     }
 
+    /**
+     * Handle a request by converting it to a command.
+     *
+     * @param ctx the request context.
+     * @param dittoHeaders the extracted Ditto headers.
+     * @param payloadSource source of the request body.
+     * @param requestJsonToCommandFunction function converting a string to a command.
+     * @return the request handling route.
+     */
+    public Route handlePerRequest(final RequestContext ctx,
+            final DittoHeaders dittoHeaders,
+            final Source<ByteString, ?> payloadSource,
+            final Function<String, Command> requestJsonToCommandFunction) {
+
+        return handlePerRequest(ctx, dittoHeaders, payloadSource, requestJsonToCommandFunction, null);
+    }
+
     protected Route handlePerRequest(final RequestContext ctx, final Command command) {
         return handlePerRequest(ctx, command.getDittoHeaders(), Source.empty(), emptyRequestBody -> command);
     }
@@ -184,14 +201,6 @@ public abstract class AbstractRoute extends AllDirectives {
 
         return handlePerRequest(ctx, command.getDittoHeaders(), Source.empty(),
                 emptyRequestBody -> command, responseTransformFunction);
-    }
-
-    protected Route handlePerRequest(final RequestContext ctx,
-            final DittoHeaders dittoHeaders,
-            final Source<ByteString, ?> payloadSource,
-            final Function<String, Command> requestJsonToCommandFunction) {
-
-        return handlePerRequest(ctx, dittoHeaders, payloadSource, requestJsonToCommandFunction, null);
     }
 
     protected Route handlePerRequest(final RequestContext ctx,

@@ -19,9 +19,12 @@ import java.util.List;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
+import org.eclipse.ditto.model.base.common.DittoDuration;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.SubjectAnnouncement;
+import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.services.gateway.endpoints.EndpointTestBase;
 import org.eclipse.ditto.services.gateway.security.authentication.AuthenticationResult;
@@ -161,6 +164,24 @@ public final class PoliciesRouteTest extends EndpointTestBase {
     }
 
     @Test
+    public void activateTopLevelTokenIntegrationWithAnnouncement() {
+        final var subjectAnnouncement = SubjectAnnouncement.of(DittoDuration.parseDuration("1h"), true);
+        getRoute(getTokenAuthResult()).run(HttpRequest.POST("/policies/ns%3An/actions/activateTokenIntegration/")
+                .withEntity(APPLICATION_JSON, subjectAnnouncement.toJsonString()))
+                .assertStatusCode(StatusCodes.OK)
+                .assertEntity(TopLevelPolicyActionCommand.of(
+                        ActivateTokenIntegration.of(PolicyId.of("ns:n"),
+                                Label.of("-"),
+                                List.of(SubjectId.newInstance("integration:{{policy-entry:label}}:aud-1"),
+                                        SubjectId.newInstance("integration:{{policy-entry:label}}:aud-2")),
+                                SubjectExpiry.newInstance(DummyJwt.EXPIRY),
+                                subjectAnnouncement,
+                                DittoHeaders.empty()),
+                        List.of()
+                ).toJsonString());
+    }
+
+    @Test
     public void deactivateTopLevelTokenIntegration() {
         getRoute(getTokenAuthResult()).run(HttpRequest.POST("/policies/ns%3An/actions/deactivateTokenIntegration"))
                 .assertStatusCode(StatusCodes.OK)
@@ -191,6 +212,23 @@ public final class PoliciesRouteTest extends EndpointTestBase {
                         List.of(SubjectId.newInstance("integration:{{policy-entry:label}}:aud-1"),
                                 SubjectId.newInstance("integration:{{policy-entry:label}}:aud-2")),
                         DummyJwt.EXPIRY,
+                        DittoHeaders.empty()
+                ).toJsonString());
+    }
+
+    @Test
+    public void activateTokenIntegrationForEntryWithAnnouncement() {
+        final var subjectAnnouncement = SubjectAnnouncement.of(DittoDuration.parseDuration("1s"), true);
+        getRoute(getTokenAuthResult()).run(HttpRequest.POST(
+                "/policies/ns%3An/entries/label/actions/activateTokenIntegration/")
+                .withEntity(APPLICATION_JSON, subjectAnnouncement.toJsonString()))
+                .assertStatusCode(StatusCodes.OK)
+                .assertEntity(ActivateTokenIntegration.of(PolicyId.of("ns:n"),
+                        Label.of("label"),
+                        List.of(SubjectId.newInstance("integration:{{policy-entry:label}}:aud-1"),
+                                SubjectId.newInstance("integration:{{policy-entry:label}}:aud-2")),
+                        SubjectExpiry.newInstance(DummyJwt.EXPIRY),
+                        subjectAnnouncement,
                         DittoHeaders.empty()
                 ).toJsonString());
     }

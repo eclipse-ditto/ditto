@@ -14,8 +14,11 @@ package org.eclipse.ditto.services.gateway.endpoints.routes.policies;
 
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 import static org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute.extractJwt;
+import static org.eclipse.ditto.services.gateway.endpoints.routes.policies.PoliciesRoute.handleSubjectAnnouncement;
 
 import java.util.Set;
+
+import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
@@ -29,6 +32,8 @@ import org.eclipse.ditto.model.policies.Resource;
 import org.eclipse.ditto.model.policies.ResourceKey;
 import org.eclipse.ditto.model.policies.Resources;
 import org.eclipse.ditto.model.policies.Subject;
+import org.eclipse.ditto.model.policies.SubjectAnnouncement;
+import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.Subjects;
 import org.eclipse.ditto.protocoladapter.HeaderTranslator;
@@ -366,17 +371,20 @@ final class PolicyEntriesRoute extends AbstractRoute {
                         rawPathPrefix(PathMatchers.slash().concat(ActivateTokenIntegration.NAME), () ->
                                 pathEndOrSingleSlash(() ->
                                         extractJwt(dittoHeaders, authResult, ActivateTokenIntegration.NAME, jwt ->
-                                                post(() -> handlePerRequest(ctx, activateTokenIntegration(
-                                                        dittoHeaders, policyId, label, jwt)))
+                                                post(() -> handleSubjectAnnouncement(this, dittoHeaders, sa ->
+                                                        activateTokenIntegration(dittoHeaders, policyId, label,
+                                                                jwt, sa))
+                                                )
                                         )
-                                )
-                        ),
+                                )),
                         // POST /entries/<label>/actions/deactivateTokenIntegration
                         rawPathPrefix(PathMatchers.slash().concat(DeactivateTokenIntegration.NAME), () ->
                                 pathEndOrSingleSlash(() ->
-                                        extractJwt(dittoHeaders, authResult, DeactivateTokenIntegration.NAME, jwt ->
-                                                post(() -> handlePerRequest(ctx, deactivateTokenIntegration(
-                                                        dittoHeaders, policyId, label, jwt)))
+                                        extractJwt(dittoHeaders, authResult, DeactivateTokenIntegration.NAME,
+                                                jwt ->
+                                                        post(() -> handlePerRequest(ctx,
+                                                                deactivateTokenIntegration(
+                                                                        dittoHeaders, policyId, label, jwt)))
                                         )
                                 )
                         )
@@ -385,9 +393,10 @@ final class PolicyEntriesRoute extends AbstractRoute {
     }
 
     private ActivateTokenIntegration activateTokenIntegration(final DittoHeaders dittoHeaders, final PolicyId policyId,
-            final String label, final JsonWebToken jwt) {
+            final String label, final JsonWebToken jwt, @Nullable final SubjectAnnouncement subjectAnnouncement) {
         final Set<SubjectId> subjectIds = tokenIntegrationSubjectIdFactory.getSubjectIds(dittoHeaders, jwt);
-        return ActivateTokenIntegration.of(policyId, Label.of(label), subjectIds, jwt.getExpirationTime(),
+        final SubjectExpiry subjectExpiry = SubjectExpiry.newInstance(jwt.getExpirationTime());
+        return ActivateTokenIntegration.of(policyId, Label.of(label), subjectIds, subjectExpiry, subjectAnnouncement,
                 dittoHeaders);
     }
 

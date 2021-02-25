@@ -132,6 +132,8 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
      * <ul>
      * <li>If a {@link SubjectExpiry} was contained in the Subject, it is rounded up according to the configured
      * {@link PolicyConfig#getSubjectExpiryGranularity()}.</li>
+     * <li>If a {@link SubjectAnnouncement} was contained in the Subject, its before-expiry duration is rounded up
+     * according to the configured {@link PolicyConfig#getSubjectDeletionAnnouncementGranularity()}.</li>
      * </ul>
      *
      * @param policyEntries the PolicyEntries to be potentially adjusted.
@@ -151,6 +153,8 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
      * <ul>
      * <li>If a {@link SubjectExpiry} was contained in the Subject, it is rounded up according to the configured
      * {@link PolicyConfig#getSubjectExpiryGranularity()}.</li>
+     * <li>If a {@link SubjectAnnouncement} was contained in the Subject, its before-expiry duration is rounded up
+     * according to the configured {@link PolicyConfig#getSubjectDeletionAnnouncementGranularity()}.</li>
      * </ul>
      *
      * @param policyEntry the PolicyEntry to be potentially adjusted.
@@ -168,6 +172,8 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
      * <ul>
      * <li>If a {@link SubjectExpiry} was contained in the Subject, it is rounded up according to the configured
      * {@link PolicyConfig#getSubjectExpiryGranularity()}.</li>
+     * <li>If a {@link SubjectAnnouncement} was contained in the Subject, its before-expiry duration is rounded up
+     * according to the configured {@link PolicyConfig#getSubjectDeletionAnnouncementGranularity()}.</li>
      * </ul>
      *
      * @param subjects the Subjects to be potentially adjusted.
@@ -187,6 +193,8 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
      * <ul>
      * <li>If a {@link SubjectExpiry} was contained in the Subject, it is rounded up according to the configured
      * {@link PolicyConfig#getSubjectExpiryGranularity()}.</li>
+     * <li>If a {@link SubjectAnnouncement} was contained in the Subject, its before-expiry duration is rounded up
+     * according to the configured {@link PolicyConfig#getSubjectDeletionAnnouncementGranularity()}.</li>
      * </ul>
      *
      * @param subject the Subject to be potentially adjusted.
@@ -211,7 +219,7 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
     }
 
     /**
-     * Roundgs up the provided {@code expiry} according to the configured
+     * Rounds up the provided {@code expiry} according to the configured
      * {@link PolicyConfig#getSubjectExpiryGranularity()}.
      *
      * @param expiry the SubjectExpiry to round up.
@@ -245,6 +253,13 @@ abstract class AbstractPolicyCommandStrategy<C extends Command<C>, E extends Pol
         return SubjectExpiry.newInstance(roundedUp);
     }
 
+    /**
+     * Rounds up the before-expiry duration of a {@link SubjectAnnouncement}
+     * according to the configured {@link PolicyConfig#getSubjectDeletionAnnouncementGranularity()}.
+     *
+     * @param subjectAnnouncement the subject-announcement to adjust.
+     * @return the result of adjustment.
+     */
     @Nullable
     protected SubjectAnnouncement roundSubjectAnnouncement(@Nullable final SubjectAnnouncement subjectAnnouncement) {
         final Optional<DittoDuration> beforeExpiry =
