@@ -41,10 +41,10 @@ files of Ditto's microservices:
 * Connectivity: [connectivity.conf](https://github.com/eclipse/ditto/blob/master/services/connectivity/starter/src/main/resources/connectivity.conf)
 * Gateway: [gateway.conf](https://github.com/eclipse/ditto/blob/master/services/gateway/starter/src/main/resources/gateway.conf)
 
-Whenever you find the syntax `${?UPPER_CASE_ENV_NAME}` in the configuration files, you may overwrite the default value 
+Whenever you find the syntax `${?UPPER_CASE_ENV_NAME}` in the configuration files, you may overwrite the default value
 by specifying that environment variable when running the container.
 
-When no environment variable is defined in the config, you may change the default value anyway by specifying a 
+When no environment variable is defined in the config, you may change the default value anyway by specifying a
 "System property" you pass to the Java process.
 
 The following example configures the devops password of the gateway-service started via docker-compose. In order
@@ -67,7 +67,7 @@ HTTP API calls to Ditto may be authenticated with a reverse proxy (e.g. a nginx)
 * passes the authenticated username as HTTP header
 * ensures that this HTTP header can never be written by the end-user
 
-By default, `pre-authentication` is **disabled** in the Ditto [gateway](architecture-services-gateway.html) services.  
+By default, `pre-authentication` is **disabled** in the Ditto [gateway](architecture-services-gateway.html) services.
 It can however be enabled by configuring the environment variable `ENABLE_PRE_AUTHENTICATION` to the value `true`.
 
 When it is enabled, the reverse proxy has to set the HTTP header `x-ditto-pre-authenticated`.<br/>
@@ -76,7 +76,7 @@ user and the subject contains e.g. the user-id or -name.
 
 This string must then be used in [policies](basic-policy.html#subjects) as "Subject ID".
 
-Example for a nginx "proxy" configuration: 
+Example for a nginx "proxy" configuration:
 ```
 auth_basic                    "Authentication required";
 auth_basic_user_file          nginx.htpasswd;
@@ -88,12 +88,27 @@ proxy_set_header              x-ditto-pre-authenticated "nginx:${remote_user}";
 ### OpenID Connect
 
 The authentication provider must be added to the ditto-gateway configuration.
+`auth-subjects`, an optional field, takes a list of placeholders that will be
+evaluated against incoming JWT's.
+For each entry in `auth-subjects` and authorization subject will be generated.
+If the entry contains unresolvable placeholders, it will be ignored in full.
+When `auth-subjects` is not provided, the “sub” claim (`{%raw%}{{ jwt:sub }}{%endraw%}`) is used by default.
+
 
 ```
 ditto.gateway.authentication {
     oauth {
       openid-connect-issuers = {
-        myprovider = "localhost:9000"
+        myprovider = {
+          issuer = "localhost:9000"
+          auth-subjects = [
+            "{%raw%}{{ jwt:sub }}{%endraw%}",
+            "{%raw%}{{ jwt:sub }}/{{ jwt:scp }}{%endraw%}",
+            "{%raw%}{{ jwt:sub }}/{{ jwt:scp }}@{{ jwt:client_id }}{%endraw%}",
+            "{%raw%}{{ jwt:sub }}/{{ jwt:scp }}@{{ jwt:non_existing }}{%endraw%}",
+            "{%raw%}{{ jwt:roles/support }}{%endraw%}"
+          ]
+        }
       }
     }
 }
@@ -101,30 +116,36 @@ ditto.gateway.authentication {
 
 In order to do this by specifying a Java system property, use the following:
 
-```
--Dditto.gateway.authentication.oauth.openid-connect-issuers.myprovider=localhost:9000
+```shell
+-Dditto.gateway.authentication.oauth.openid-connect-issuers.myprovider.issuer=localhost:9000
+-Dditto.gateway.authentication.oauth.openid-connect-issuers.myprovider.auth-subjects.0='{%raw%}{{ jwt:sub }}/{{ jwt:scp }}{%endraw%}'
+
 ```
 
-The configured subject-issuer will be used to prefix the value of the “sub” claim, e.g.
+The configured subject-issuer will be used to prefix the value of each individual `auth-subject`.
 
 ```json
 {
   "subjects": {
-    "<provider>:<sub-claim>": {
+    "<provider>:<auth-subject-0>": {
+      "type": "generated"
+    }
+    ...
+    "<provider>:<auth-subject-n>": {
       "type": "generated"
     }
   }
 }
 ```
 
-As of the OAuth2.0 and OpenID Connect standards Ditto expects the headers `Authorization: Bearer <JWT>` and 
-`Content-Type: application/json`, containing the issued token of the provider. 
+As of the OAuth2.0 and OpenID Connect standards Ditto expects the headers `Authorization: Bearer <JWT>` and
+`Content-Type: application/json`, containing the issued token of the provider.
 
-**The token has to be issued beforehand. The required logic is not provided by Ditto.** When using 
-the OIDC provider [keycloak](https://www.keycloak.org/), a project like [keycloak-gatekeeper](https://github.com/keycloak/keycloak-gatekeeper) 
+**The token has to be issued beforehand. The required logic is not provided by Ditto.** When using
+the OIDC provider [keycloak](https://www.keycloak.org/), a project like [keycloak-gatekeeper](https://github.com/keycloak/keycloak-gatekeeper)
 may be put in front of Ditto to handle the token-logic.
 
-**If the chosen OIDC provider uses a self-signed certificate**, the certificate has to be retrieved and configured for the 
+**If the chosen OIDC provider uses a self-signed certificate**, the certificate has to be retrieved and configured for the
 akka-http ssl configuration.
 
 ```
@@ -161,7 +182,7 @@ In the default configuration, each Ditto service opens a HTTP endpoint, where it
 Ditto will automatically publish gathered metrics at the endpoint `http://<container-host-or-ip>:9095/`.
 
 Further, Prometheus can be configured to poll on all Ditto service endpoints in order to persist the historical metrics.
-Grafana can add a Prometheus server as its data source and can display 
+Grafana can add a Prometheus server as its data source and can display
 the metrics based on the keys mentioned in section ["Gathered metrics"](#gathered-metrics).
 
 ### Gathered metrics
@@ -208,7 +229,7 @@ To put it in a nutshell, Ditto reports:
     * roundtrip times from request to response
     * amount of HTTP calls
     * status code of HTTP responses
-* MongoDB metrics for [things-service](architecture-services-things.html), 
+* MongoDB metrics for [things-service](architecture-services-things.html),
 [policies-service](architecture-services-policies.html), [things-search-service](architecture-services-things-search.html)
     * inserts, updates, reads per second
     * roundtrip times

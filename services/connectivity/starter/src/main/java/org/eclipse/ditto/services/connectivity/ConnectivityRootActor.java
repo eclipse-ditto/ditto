@@ -21,6 +21,7 @@ import javax.naming.NamingException;
 import org.eclipse.ditto.services.base.actors.DittoRootActor;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
+import org.eclipse.ditto.services.connectivity.messaging.ConnectionIdsRetrievalActor;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectivityProxyActor;
 import org.eclipse.ditto.services.connectivity.messaging.ReconnectActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceOperationsActor;
@@ -96,6 +97,10 @@ public final class ConnectivityRootActor extends DittoRootActor {
                 ReconnectActor.props(getConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),
                         MongoReadJournal.newInstance(actorSystem)),
                 ReconnectActor.ACTOR_NAME);
+
+        startClusterSingletonActor(
+                ConnectionIdsRetrievalActor.props(MongoReadJournal.newInstance(actorSystem)),
+                ConnectionIdsRetrievalActor.ACTOR_NAME);
 
         startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME,
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),

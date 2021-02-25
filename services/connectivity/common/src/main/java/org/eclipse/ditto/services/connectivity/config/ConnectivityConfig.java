@@ -45,6 +45,13 @@ public interface ConnectivityConfig extends ServiceSpecificConfig, WithHealthChe
     ReconnectConfig getReconnectConfig();
 
     /**
+     * Returns the config for Connectivity service's behaviour for retrieval of connection ids.
+     *
+     * @return the config.
+     */
+    ConnectionIdsRetrievalConfig getConnectionIdsRetrievalConfig();
+
+    /**
      * Returns the config for the Connectivity service's client.
      *
      * @return the config.
