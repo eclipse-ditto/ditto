@@ -189,6 +189,8 @@ public final class CborJsonValueSerializer extends SerializerWithStringManifest 
         private static final String KEY_PREFIX = "akka.actor.serializers-json";
         private static final String KEY_SIZE = KEY_PREFIX + ".direct-buffer-size";
         private static final String KEY_POOL_LIMIT = KEY_PREFIX + ".direct-buffer-pool-limit";
+        private static final String DEFAULT_KEY_SIZE = "64 KiB";
+        private static final String DEFAULT_KEY_POOL_LIMIT = "500";
 
         private final Config config;
 
@@ -207,8 +209,8 @@ public final class CborJsonValueSerializer extends SerializerWithStringManifest 
         }
 
         private static Config getFallbackConfig() {
-            return ConfigFactory.parseMap(Map.of(KEY_SIZE, ConfigValueFactory.fromAnyRef("64 KiB"),
-                    KEY_POOL_LIMIT, ConfigValueFactory.fromAnyRef("500")));
+            return ConfigFactory.parseMap(Map.of(KEY_SIZE, ConfigValueFactory.fromAnyRef(DEFAULT_KEY_SIZE),
+                    KEY_POOL_LIMIT, ConfigValueFactory.fromAnyRef(DEFAULT_KEY_POOL_LIMIT)));
         }
 
         int getBufferSize() {
