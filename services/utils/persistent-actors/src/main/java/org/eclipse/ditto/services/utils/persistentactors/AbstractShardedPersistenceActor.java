@@ -13,17 +13,32 @@
 package org.eclipse.ditto.services.utils.persistentactors;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 
+import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonField;
+import org.eclipse.ditto.json.JsonFieldDefinition;
+import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.json.JsonObjectBuilder;
+import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.entity.id.DefaultEntityId;
 import org.eclipse.ditto.model.base.entity.id.EntityId;
+import org.eclipse.ditto.model.base.entity.metadata.Metadata;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.headers.WithDittoHeaders;
+import org.eclipse.ditto.model.base.json.FieldType;
+import org.eclipse.ditto.model.base.json.JsonParsableEvent;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.services.utils.akka.PingCommand;
 import org.eclipse.ditto.services.utils.akka.PingCommandResponse;
@@ -38,6 +53,7 @@ import org.eclipse.ditto.services.utils.persistentactors.results.ResultFactory;
 import org.eclipse.ditto.services.utils.persistentactors.results.ResultVisitor;
 import org.eclipse.ditto.signals.commands.base.Command;
 import org.eclipse.ditto.signals.events.base.Event;
+import org.eclipse.ditto.signals.events.base.EventJsonDeserializer;
 
 import akka.actor.ActorRef;
 import akka.japi.pf.ReceiveBuilder;
@@ -111,6 +127,10 @@ public abstract class AbstractShardedPersistenceActor<
                     entity = getEventStrategy().handle((E) event, entity, getRevisionNumber());
                     alwaysAlive |= ((E) event).getDittoHeaders().getJournalTags().contains(JOURNAL_TAG_ALWAYS_ALIVE);
                     onEntityModified();
+                })
+                .match(EmptyEvent.class, event -> {
+                    log.withCorrelationId(event).debug("Recovered EmptyEvent: <{}>", event);
+                    alwaysAlive |= event.getEffect().equals(EmptyEvent.EFFECT_ALWAYS_ALIVE);
                 })
                 .build();
 
@@ -275,6 +295,7 @@ public abstract class AbstractShardedPersistenceActor<
 
         final Receive receive = handleCleanups.orElse(ReceiveBuilder.create()
                 .match(commandStrategy.getMatchingClass(), commandStrategy::isDefined, this::handleByCommandStrategy)
+                .match(PersistEmptyEvent.class, this::handlePersistEmptyEvent)
                 .match(CheckForActivity.class, this::checkForActivity)
                 .match(PingCommand.class, this::processPingCommand)
                 .matchEquals(Control.TAKE_SNAPSHOT, this::takeSnapshotByInterval)
@@ -289,27 +310,22 @@ public abstract class AbstractShardedPersistenceActor<
         scheduleSnapshot();
     }
 
-    private void processPingCommand(final PingCommand ping) {
+    /**
+     * Processes a received {@link PingCommand}.
+     * May be overwritten in order to hook into processing ping commands with additional functionality.
+     *
+     * @param ping the ping command.
+     */
+    protected void processPingCommand(final PingCommand ping) {
 
         final String journalTag = ping.getPayload()
                 .filter(JsonValue::isString)
                 .map(JsonValue::asString)
                 .orElse(null);
-        if (JOURNAL_TAG_ALWAYS_ALIVE.equals(journalTag)) {
-            final String correlationId = ping.getCorrelationId().orElse(null);
-            log.withCorrelationId(correlationId)
-                    .debug("Received ping for this as <{}> tagged actor", journalTag);
-            getSender().tell(PingCommandResponse.of(correlationId, JsonValue.nullLiteral()), getSelf());
-        } else if (null != journalTag && journalTag.isEmpty()) {
-            // persistence actor was sent a "ping" with empty journal tag
-            // (was recovered because of a fallback without a tag)
-            final String correlationId = ping.getCorrelationId().orElse(null);
-            log.withCorrelationId(correlationId).debug("Received ping for this actor");
-            getSender().tell(PingCommandResponse.of(correlationId, JsonValue.nullLiteral()), getSelf());
-
-            // TODO TJ build in adding the "always-alive" tag here, e.g. by modifying the complete entity once again?
-            //  or by persisting a "dummy event" which is just tagged?
-        }
+        final String correlationId = ping.getCorrelationId().orElse(null);
+        log.withCorrelationId(correlationId)
+                .debug("Received ping for this actor with tag <{}>", journalTag);
+        getSender().tell(PingCommandResponse.of(correlationId, JsonValue.nullLiteral()), getSelf());
     }
 
     protected void becomeDeletedHandler() {
@@ -391,6 +407,11 @@ public abstract class AbstractShardedPersistenceActor<
                 shutdown("Entity <{}> was deleted recently. Shutting Actor down ...", entityId);
             }
         }
+    }
+
+    private void handlePersistEmptyEvent(final PersistEmptyEvent persistEmptyEvent) {
+        log.debug("Received PersistEmptyEvent: <{}>", persistEmptyEvent);
+        persist(persistEmptyEvent.getEmptyEvent(), event -> log.debug("Persisted EmptyEvent: <{}>", event));
     }
 
     /**
@@ -637,6 +658,175 @@ public abstract class AbstractShardedPersistenceActor<
 
     private enum Control {
         TAKE_SNAPSHOT
+    }
+
+
+    /**
+     * Local message this actor may sent to itself in order to persist an {@link EmptyEvent} to the event journal,
+     * e.g. in order to save a specific journal tag with that event to the event journal.
+     */
+    @Immutable
+    protected static final class PersistEmptyEvent {
+
+        private final EmptyEvent emptyEvent;
+
+        public PersistEmptyEvent(final EmptyEvent emptyEvent) {
+            this.emptyEvent = emptyEvent;
+        }
+
+        protected EmptyEvent getEmptyEvent() {
+            return emptyEvent;
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" +
+                    "emptyEvent=" + emptyEvent +
+                    "]";
+        }
+    }
+
+    /**
+     * An event which can be persisted to the backing event journal which does not contain any change "instruction" to
+     * alter the managed entity's state.
+     */
+    @Immutable
+    @JsonParsableEvent(name = EmptyEvent.NAME, typePrefix= EmptyEvent.TYPE_PREFIX)
+    protected static final class EmptyEvent implements Event<EmptyEvent> {
+
+        /**
+         * Known effect of the "empty event" which shall keep an persistence actor always alive.
+         */
+        public static final JsonValue EFFECT_ALWAYS_ALIVE = JsonValue.of("alwaysAlive");
+
+        private static final String TYPE_PREFIX = "persistence-actor-internal:";
+
+        private static final String NAME = "empty-event";
+
+        private static final String TYPE = TYPE_PREFIX + NAME;
+
+        private static final JsonFieldDefinition<String> JSON_ENTITY_ID =
+                JsonFactory.newStringFieldDefinition("entityId", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        private static final JsonFieldDefinition<JsonValue> JSON_EFFECT =
+                JsonFactory.newJsonValueFieldDefinition("effect", FieldType.REGULAR, JsonSchemaVersion.V_2);
+
+        private final EntityId entityId;
+        private final JsonValue effect;
+        private final long revision;
+        private final DittoHeaders dittoHeaders;
+
+        public EmptyEvent(final EntityId entityId, final JsonValue effect, final long revision,
+                final DittoHeaders dittoHeaders) {
+            this.entityId = entityId;
+            this.revision = revision;
+            this.effect = effect;
+            this.dittoHeaders = dittoHeaders;
+        }
+
+        /**
+         * Creates a {@code EmptyEvent} event from a JSON object.
+         *
+         * @param jsonObject the JSON object of which the event is to be created.
+         * @param dittoHeaders the headers of the command which was the cause of this event.
+         * @return the event.
+         * @throws NullPointerException if any argument is {@code null}.
+         * @throws org.eclipse.ditto.json.JsonParseException if the passed in {@code jsonObject} was not in the expected
+         * format.
+         */
+        @SuppressWarnings("unused") // used via reflection
+        public static EmptyEvent fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
+            return new EventJsonDeserializer<EmptyEvent>(TYPE, jsonObject)
+                    .deserialize((revision, timestamp, metadata) -> {
+                        final EntityId readEntityId = DefaultEntityId.of(jsonObject.getValueOrThrow(JSON_ENTITY_ID));
+                        final JsonValue readEffect = jsonObject.getValueOrThrow(JSON_EFFECT);
+                        return new EmptyEvent(readEntityId, readEffect, revision, dittoHeaders);
+                    });
+        }
+
+        /**
+         * Returns the effect of the empty event - might also be a Json {@code null} if no effect is provided.
+         *
+         * @return the effect of the empty event.
+         */
+        public JsonValue getEffect() {
+            return effect;
+        }
+
+        @Override
+        public DittoHeaders getDittoHeaders() {
+            return dittoHeaders;
+        }
+
+        @Override
+        public EmptyEvent setDittoHeaders(final DittoHeaders dittoHeaders) {
+            return new EmptyEvent(entityId, effect, revision, dittoHeaders);
+        }
+
+        @Override
+        public String getType() {
+            return TYPE;
+        }
+
+        @Nonnull
+        @Override
+        public String getManifest() {
+            return getType();
+        }
+
+        @Override
+        public JsonObject toJson(final JsonSchemaVersion schemaVersion, final Predicate<JsonField> thePredicate) {
+            final JsonObjectBuilder jsonObjectBuilder = JsonFactory.newObjectBuilder()
+                    .set(Event.JsonFields.TYPE, getType())
+                    .set(JSON_ENTITY_ID, entityId.toString())
+                    .set(JSON_EFFECT, effect);
+            return jsonObjectBuilder.build();
+        }
+
+        @Override
+        public EntityId getEntityId() {
+            return entityId;
+        }
+
+        @Override
+        public JsonPointer getResourcePath() {
+            return JsonPointer.empty();
+        }
+
+        @Override
+        public String getResourceType() {
+            return "empty";
+        }
+
+        @Override
+        public long getRevision() {
+            return revision;
+        }
+
+        @Override
+        public EmptyEvent setRevision(final long revision) {
+            return new EmptyEvent(entityId, effect, revision, dittoHeaders);
+        }
+
+        @Override
+        public Optional<Instant> getTimestamp() {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<Metadata> getMetadata() {
+            return Optional.empty();
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + " [" +
+                    "entityId=" + entityId +
+                    ", effect=" + effect +
+                    ", revision=" + revision +
+                    ", dittoHeaders=" + dittoHeaders +
+                    "]";
+        }
     }
 
 }

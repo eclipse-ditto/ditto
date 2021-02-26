@@ -29,6 +29,7 @@ import java.util.function.Consumer;
 
 import javax.annotation.Nullable;
 
+import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.model.base.exceptions.DittoRuntimeExceptionBuilder;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -68,6 +69,7 @@ import org.eclipse.ditto.services.connectivity.messaging.validation.ConnectionVa
 import org.eclipse.ditto.services.connectivity.messaging.validation.DittoConnectivityCommandValidator;
 import org.eclipse.ditto.services.connectivity.util.ConnectivityMdcEntryKey;
 import org.eclipse.ditto.services.models.connectivity.BaseClientState;
+import org.eclipse.ditto.services.utils.akka.PingCommand;
 import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapter;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
@@ -366,6 +368,28 @@ public final class ConnectionPersistenceActor
             return superEvent.setDittoHeaders(headersWithJournalTags);
         }
         return superEvent;
+    }
+
+    @Override
+    protected void processPingCommand(final PingCommand ping) {
+
+        super.processPingCommand(ping);
+        final String journalTag = ping.getPayload()
+                .filter(JsonValue::isString)
+                .map(JsonValue::asString)
+                .orElse(null);
+
+        if (journalTag != null && journalTag.isEmpty() && isDesiredStateOpen() && !alwaysAlive) {
+            // persistence actor was sent a "ping" with empty journal tag:
+            //  build in adding the "always-alive" tag here by persisting an "empty" event which is just tagged to be
+            //  "always alive"
+            final EmptyEvent emptyEvent = new EmptyEvent(entityId, EmptyEvent.EFFECT_ALWAYS_ALIVE, getRevisionNumber() + 1,
+                    DittoHeaders.newBuilder()
+                            .correlationId(ping.getCorrelationId().orElse(null))
+                            .journalTags(Set.of(JOURNAL_TAG_ALWAYS_ALIVE))
+                            .build());
+            getSelf().tell(new PersistEmptyEvent(emptyEvent), ActorRef.noSender());
+        }
     }
 
     @Override

@@ -73,7 +73,7 @@ public final class ThingMongoEventAdapter extends AbstractMongoEventAdapter<Thin
     private final Map<String, Function<JsonObject, JsonObject>> migrationMappings;
 
     public ThingMongoEventAdapter(@Nullable final ExtendedActorSystem system) {
-        super(ThingEvent.class, system, GlobalEventRegistry.getInstance());
+        super(system, GlobalEventRegistry.getInstance());
 
         migrationMappings = new HashMap<>();
         migrationMappings.put(FeatureModified.NAME,

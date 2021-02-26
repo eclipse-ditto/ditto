@@ -42,7 +42,7 @@ public abstract class AbstractPolicyMongoEventAdapter extends AbstractMongoEvent
                     JsonSchemaVersion.V_2);
 
     protected AbstractPolicyMongoEventAdapter(@Nullable final ExtendedActorSystem system) {
-        super(PolicyEvent.class, system, GlobalEventRegistry.getInstance());
+        super(system, GlobalEventRegistry.getInstance());
     }
 
     /**

@@ -48,22 +48,19 @@ public abstract class AbstractMongoEventAdapter<T extends Event<?>> implements E
             .filter(Event.JsonFields.REVISION::equals)
             .isPresent();
 
-    private final Class<T> eventClass;
     @Nullable protected final ExtendedActorSystem system;
     protected final EventRegistry<T> eventRegistry;
 
-    protected AbstractMongoEventAdapter(final Class<? extends Event> eventClass,
-            @Nullable final ExtendedActorSystem system,
+    protected AbstractMongoEventAdapter(@Nullable final ExtendedActorSystem system,
             final EventRegistry<T> eventRegistry) {
-        this.eventClass = (Class<T>) eventClass;
         this.system = system;
         this.eventRegistry = eventRegistry;
     }
 
     @Override
     public String manifest(final Object event) {
-        if (eventClass.isAssignableFrom(event.getClass())) {
-            return eventClass.cast(event).getType();
+        if (event instanceof Event) {
+            return ((Event<?>) event).getType();
         } else {
             throw new IllegalArgumentException(
                     "Unable to create manifest for a non-'Event' object! Was: " + event.getClass());
@@ -72,8 +69,8 @@ public abstract class AbstractMongoEventAdapter<T extends Event<?>> implements E
 
     @Override
     public Object toJournal(final Object event) {
-        if (eventClass.isAssignableFrom(event.getClass())) {
-            final T theEvent = eventClass.cast(event);
+        if (event instanceof Event) {
+            final Event<?> theEvent = (Event<?>) event;
             final JsonSchemaVersion schemaVersion = theEvent.getImplementedSchemaVersion();
             final JsonObject jsonObject = performToJournalMigration(
                     theEvent.toJson(schemaVersion, IS_REVISION.negate().and(FieldType.regularOrSpecial()))

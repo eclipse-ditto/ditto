@@ -35,7 +35,7 @@ import akka.actor.ExtendedActorSystem;
 public final class ConnectivityMongoEventAdapter extends AbstractMongoEventAdapter<ConnectivityEvent<?>> {
 
     public ConnectivityMongoEventAdapter(@Nullable final ExtendedActorSystem system) {
-        super(ConnectivityEvent.class, system, createEventRegistry());
+        super(system, createEventRegistry());
     }
 
     private static EventRegistry<ConnectivityEvent<?>> createEventRegistry() {
