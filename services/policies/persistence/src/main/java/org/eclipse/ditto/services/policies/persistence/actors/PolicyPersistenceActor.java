@@ -300,6 +300,7 @@ public final class PolicyPersistenceActor
         final Map<Instant, Set<SubjectId>> subjectIdsByExpiry =
                 streamAndFlatMapSubjects(entity, getSubjectAnnouncementInsideWindow(lastAnnouncement, cutOff))
                         .collect(GROUP_BY_EXPIRY_COLLECTOR);
+        log.info("Sending announcements for <{}>", subjectIdsByExpiry);
         subjectIdsByExpiry.keySet().stream().sorted().forEach(deletedAt -> {
             final var subjectIds = subjectIdsByExpiry.get(deletedAt);
             final var announcement =
