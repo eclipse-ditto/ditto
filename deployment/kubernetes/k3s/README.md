@@ -132,7 +132,9 @@ Now Ditto should be up & running. You can access Ditto on the local port *30080*
 
 #### Ditto status/health endpoint
 To check if Ditto is up & running you can use the Ditto health endpoint.
-curl -u devops --request GET localhost:30080/status/health
+
+    curl -u devops --request GET localhost:30080/status/health
+
 Default devops password is: "foobar"
 
 Have Fun!
