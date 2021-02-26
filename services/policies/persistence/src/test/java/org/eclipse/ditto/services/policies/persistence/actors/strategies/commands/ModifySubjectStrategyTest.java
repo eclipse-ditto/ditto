@@ -30,7 +30,6 @@ import org.eclipse.ditto.model.policies.SubjectIssuer;
 import org.eclipse.ditto.services.policies.common.config.DefaultPolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
-import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyEntryModificationInvalidException;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifySubject;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifySubjectResponse;
 import org.eclipse.ditto.signals.events.policies.SubjectCreated;
@@ -106,18 +105,17 @@ public final class ModifySubjectStrategyTest extends AbstractPolicyCommandStrate
     public void modifySubjectOfPolicyWithExpiryTimestampInThePast() {
         final CommandStrategy.Context<PolicyId> context = getDefaultContext();
 
-        final Instant expiry = Instant.parse("2020-11-23T15:52:36.123Z");
-        final SubjectExpiry expectedSubjectExpiry = SubjectExpiry.newInstance(expiry);
-        final Subject subject = Subject.newInstance(SubjectId.newInstance(SubjectIssuer.INTEGRATION, "this-is-me"),
-                TestConstants.Policy.SUBJECT_TYPE, expectedSubjectExpiry);
-        final DittoHeaders dittoHeaders = DittoHeaders.empty();
-        final ModifySubject command =
-                ModifySubject.of(context.getState(), TestConstants.Policy.LABEL, subject, dittoHeaders);
+        final var subject = Subject.newInstance(SubjectId.newInstance(SubjectIssuer.INTEGRATION, "this-is-me"),
+                TestConstants.Policy.SUBJECT_TYPE,
+                SubjectExpiry.newInstance(Instant.parse("2020-11-23T15:52:36.123Z")));
+        final var dittoHeaders = DittoHeaders.newBuilder().randomCorrelationId().build();
+        final var command = ModifySubject.of(context.getState(), TestConstants.Policy.LABEL, subject, dittoHeaders);
+        final var expectedRoundedExpirySubjectExpiry = SubjectExpiry.newInstance("2020-11-23T15:52:40Z");
 
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
-                SubjectExpiryInvalidException.newBuilderTimestampInThePast(expectedSubjectExpiry)
+                SubjectExpiryInvalidException.newBuilderTimestampInThePast(expectedRoundedExpirySubjectExpiry)
                         .description("It must not be in the past, please adjust to a timestamp in the future.")
-                        .dittoHeaders(dittoHeaders)
+                        .dittoHeaders(command.getDittoHeaders())
                         .build());
     }
 

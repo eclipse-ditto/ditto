@@ -32,7 +32,6 @@ import org.eclipse.ditto.model.policies.SubjectId;
 import org.eclipse.ditto.model.policies.SubjectType;
 import org.eclipse.ditto.services.policies.common.config.DefaultPolicyConfig;
 import org.eclipse.ditto.services.policies.persistence.TestConstants;
-import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyModificationInvalidException;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntries;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntriesResponse;
 import org.eclipse.ditto.signals.events.policies.PolicyEntriesModified;
@@ -135,10 +134,8 @@ public final class ModifyPolicyEntriesStrategyTest extends AbstractPolicyCommand
                 .build();
         final ModifyPolicyEntries command = ModifyPolicyEntries.of(TestConstants.Policy.POLICY_ID, policy, dittoHeaders);
 
-        final SubjectExpiry expectedSubjectExpiry = SubjectExpiry.newInstance("2020-11-23T15:52:40Z");
-
         assertErrorResult(underTest, TestConstants.Policy.POLICY, command,
-                SubjectExpiryInvalidException.newBuilderTimestampInThePast(expectedSubjectExpiry)
+                SubjectExpiryInvalidException.newBuilderTimestampInThePast(subjectExpiry)
                         .description("It must not be in the past, please adjust to a timestamp in the future.")
                         .dittoHeaders(dittoHeaders)
                         .build());

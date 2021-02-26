@@ -175,6 +175,7 @@ public final class SendingTest {
         final var acknowledgementStatus = HttpStatus.INTERNAL_SERVER_ERROR;
         Mockito.when(acknowledgement.getHttpStatus()).thenReturn(acknowledgementStatus);
         Mockito.when(acknowledgement.getEntity()).thenReturn(Optional.of(acknowledgementPayload));
+        Mockito.when(acknowledgement.getLabel()).thenReturn(ACKNOWLEDGEMENT_LABEL);
         final var expectedException = MessageSendingFailedException.newBuilder()
                 .httpStatus(acknowledgementStatus)
                 .message("Received negative acknowledgement for label <" + ACKNOWLEDGEMENT_LABEL + ">.")
