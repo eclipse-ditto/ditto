@@ -77,7 +77,7 @@ final class ThingEventAdapter extends AbstractThingAdapter<ThingEvent<?>> implem
 
         return Adaptable.newBuilder(eventsTopicPathBuilder.build())
                 .withPayload(payloadBuilder.build())
-                .withHeaders(ProtocolFactory.newHeadersWithDittoContentType(event.getDittoHeaders()))
+                .withHeaders(ProtocolFactory.newHeadersWithJsonContentType(event.getDittoHeaders()))
                 .build();
     }
 

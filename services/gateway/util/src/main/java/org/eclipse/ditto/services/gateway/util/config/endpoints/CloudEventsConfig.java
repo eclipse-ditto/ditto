@@ -16,11 +16,10 @@ import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
-import akka.http.javadsl.model.MediaTypes;
 import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.services.utils.config.KnownConfigValue;
 
-import static org.eclipse.ditto.model.base.common.DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE;
+import akka.http.javadsl.model.MediaTypes;
 
 /**
  * Provides configuration settings for the cloud events endpoint of the Ditto Gateway service.
@@ -56,7 +55,8 @@ public interface CloudEventsConfig {
         /**
          * Set of allowed data types
          */
-        DATA_TYPES("data-types", Set.of(MediaTypes.APPLICATION_JSON.toString(), DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE));
+        DATA_TYPES("data-types",
+                Set.of(MediaTypes.APPLICATION_JSON.toString(), DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE));
 
         private final String path;
         private final Object defaultValue;

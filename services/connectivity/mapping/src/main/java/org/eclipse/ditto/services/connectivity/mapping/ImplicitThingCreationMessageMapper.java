@@ -13,7 +13,6 @@
 
 package org.eclipse.ditto.services.connectivity.mapping;
 
-import static org.eclipse.ditto.model.base.common.DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE;
 import static org.eclipse.ditto.model.base.exceptions.DittoJsonException.wrapJsonRuntimeException;
 
 import java.util.Collections;
@@ -196,7 +195,6 @@ public final class ImplicitThingCreationMessageMapper extends AbstractMessageMap
         final JsonObject inlinePolicyJson = createInlinePolicyJson(thingJson);
         final String copyPolicyFrom = getCopyPolicyFrom(thingJson);
         final DittoHeaders dittoHeaders = message.getInternalHeaders().toBuilder()
-                .contentType(DITTO_PROTOCOL_CONTENT_TYPE)
                 .putHeaders(commandHeaders)
                 .build();
         return CreateThing.of(newThing, inlinePolicyJson, copyPolicyFrom, dittoHeaders);

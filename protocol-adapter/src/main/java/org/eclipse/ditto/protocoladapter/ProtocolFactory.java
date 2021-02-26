@@ -311,6 +311,19 @@ public final class ProtocolFactory {
     }
 
     /**
+     * Returns new {@code Headers} for the specified {@code headers} map with having
+     * {@link ContentType#APPLICATION_JSON} set for the content-type header.
+     *
+     * @param headers the headers map.
+     * @return the headers.
+     */
+    public static DittoHeaders newHeadersWithJsonContentType(final Map<String, String> headers) {
+        return DittoHeaders.newBuilder(headers)
+                .contentType(ContentType.APPLICATION_JSON)
+                .build();
+    }
+
+    /**
      * Returns new {@code Headers} for the specified {@code headers} map with Json merge patch content-type.
      *
      * @param headers the headers map.

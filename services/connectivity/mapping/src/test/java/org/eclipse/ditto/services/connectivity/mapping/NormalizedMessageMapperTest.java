@@ -105,7 +105,7 @@ public final class NormalizedMessageMapperTest {
                         "    \"path\": \"/\",\n" +
                         "    \"headers\": {\n" +
                         "      \"response-required\": \"false\",\n" +
-                        "      \"content-type\": \"application/vnd.eclipse.ditto+json\"\n" +
+                        "      \"content-type\": \"application/json\"\n" +
                         "    }\n" +
                         "  }\n" +
                         "}"));
@@ -140,7 +140,7 @@ public final class NormalizedMessageMapperTest {
                         "    \"path\": \"/features/featureId/properties/the/quick/brown/fox/jumps/over/the/lazy/dog\",\n" +
                         "    \"headers\": {\n" +
                         "      \"response-required\": \"false\",\n" +
-                        "      \"content-type\": \"application/vnd.eclipse.ditto+json\"\n" +
+                        "      \"content-type\": \"application/json\"\n" +
                         "    }\n" +
                         "  }\n" +
                         "}"));
@@ -186,7 +186,7 @@ public final class NormalizedMessageMapperTest {
                         "  \"_context\": {\n" +
                         "    \"topic\": \"thing/id/things/twin/events/modified\",\n" +
                         "    \"headers\": {\n" +
-                        "      \"content-type\": \"application/vnd.eclipse.ditto+json\"\n" +
+                        "      \"content-type\": \"application/json\"\n" +
                         "    }\n" +
                         "  }\n" +
                         "}"));

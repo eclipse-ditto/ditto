@@ -204,7 +204,6 @@ public final class TestConstants {
         map.put("suffixed_thing_id", "{{ header:device_id }}.some.suffix");
         map.put("subject", "{{ topic:action-subject }}");
         map.put("correlation-id", "{{ header:correlation-id }}");
-        map.put("content-type", "{{ header:content-type }}");
         map.put("reply-to", "{{ header:reply-to }}");
         map.put("ditto-connection-id", "hallo");
         HEADER_MAPPING = ConnectivityModelFactory.newHeaderMapping(map);

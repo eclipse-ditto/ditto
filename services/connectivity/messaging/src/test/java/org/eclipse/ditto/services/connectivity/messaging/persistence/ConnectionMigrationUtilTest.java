@@ -147,7 +147,6 @@ public class ConnectionMigrationUtilTest {
             .build();
     private static final HeaderMapping LEGACY_TARGET_HEADER_MAPPING =
             ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
-                    .set("content-type", "{{header:content-type}}")
                     .set("correlation-id", "{{header:correlation-id}}")
                     .set("reply-to", "{{header:reply-to}}")
                     .build());

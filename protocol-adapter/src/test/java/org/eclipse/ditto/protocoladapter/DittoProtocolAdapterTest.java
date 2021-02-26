@@ -30,6 +30,7 @@ import org.eclipse.ditto.model.base.common.DittoConstants;
 import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaderDefinition;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
+import org.eclipse.ditto.model.base.headers.contenttype.ContentType;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
 import org.eclipse.ditto.model.things.ThingId;
@@ -504,7 +505,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 "    \"the-ack-label\": { \"status\": 508,\"headers\":{\"response-required\":false} }\n" +
                 "  },\n" +
                 "  \"status\": 424,\n" +
-                "  \"headers\": { \"content-type\": \"" + DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE +
+                "  \"headers\": { \"content-type\": \"" + ContentType.APPLICATION_JSON.getValue() +
                 "\",\"response-required\":false }\n" +
                 "}"));
 
@@ -517,7 +518,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                                 HttpStatus.LOOP_DETECTED, DittoHeaders.empty())
                 ),
                 DittoHeaders.newBuilder()
-                        .contentType(DittoConstants.DITTO_PROTOCOL_CONTENT_TYPE)
+                        .contentType(ContentType.APPLICATION_JSON)
                         .build()
         ));
 
