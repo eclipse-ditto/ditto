@@ -75,6 +75,7 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.config.InstanceIdentifierSupplier;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.ActivityCheckConfig;
 import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersistenceActor;
+import org.eclipse.ditto.services.utils.persistentactors.EmptyEvent;
 import org.eclipse.ditto.services.utils.persistentactors.commands.CommandStrategy;
 import org.eclipse.ditto.services.utils.persistentactors.commands.DefaultContext;
 import org.eclipse.ditto.services.utils.persistentactors.events.EventStrategy;
@@ -383,7 +384,8 @@ public final class ConnectionPersistenceActor
             // persistence actor was sent a "ping" with empty journal tag:
             //  build in adding the "always-alive" tag here by persisting an "empty" event which is just tagged to be
             //  "always alive"
-            final EmptyEvent emptyEvent = new EmptyEvent(entityId, EmptyEvent.EFFECT_ALWAYS_ALIVE, getRevisionNumber() + 1,
+            final EmptyEvent
+                    emptyEvent = new EmptyEvent(entityId, EmptyEvent.EFFECT_ALWAYS_ALIVE, getRevisionNumber() + 1,
                     DittoHeaders.newBuilder()
                             .correlationId(ping.getCorrelationId().orElse(null))
                             .journalTags(Set.of(JOURNAL_TAG_ALWAYS_ALIVE))
