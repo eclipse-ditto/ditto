@@ -252,11 +252,17 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-dependency-plugin</artifactId>
-                    <version>3.0.2</version>
+                    <version>3.1.2</version>
                 </plugin>
                 <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
-                    <version>3.0.2</version>
+                    <version>3.2.0</version>
+                    <configuration>
+                        <archive>
+                            <addMavenDescriptor>false</addMavenDescriptor>
+                        </archive>
+                    </configuration>
                 </plugin>
 
                 <!-- Declaration for the 3 following plugins is explicitly needed by Maven 3 -->
@@ -459,8 +465,12 @@
                     <artifactId>maven-bundle-plugin</artifactId>
                     <version>4.2.1</version>
                     <configuration>
+                        <archive>
+                            <addMavenDescriptor>false</addMavenDescriptor>
+                        </archive>
                         <instructions>
                             <Bundle-Vendor>Eclipse Ditto</Bundle-Vendor>
+                            <Bundle-License>EPL-2.0</Bundle-License>
                             <Bundle-DocURL>https://eclipse.org/ditto/</Bundle-DocURL>
                             <_noee>true</_noee>
                             <!-- stays at 1.8 as all exported bundles (json, model, protocol-adapter, signals, ...) are 1.8 -->
@@ -563,7 +573,7 @@
                         </goals>
                         <configuration>
                             <includeArtifactIds>ditto-legal</includeArtifactIds>
-                            <excludes>NOTICE-THIRD-PARTY.md,3rd-party-dependencies/**,META-INF/**</excludes>
+                            <excludes>**/*.iml,NOTICE-THIRD-PARTY.md,3rd-party-dependencies/**,META-INF/**</excludes>
                             <outputDirectory>${project.build.outputDirectory}/META-INF</outputDirectory>
                         </configuration>
                     </execution>
