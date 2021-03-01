@@ -41,9 +41,4 @@ post:
         * containing a a subject ID matching the JWT's authenticated subject
         * containing a `READ` permission granted to a `thing:/` resource path
   requestBody:
-    content:
-      application/json:
-        schema:
-          $ref: '../../schemas/policies/subjectAnnouncementRequestEntity.yml'
-    description: Settings for announcements to be made about the injected subject.
-    required: false
+    $ref: '../../requests/policies/actions/activateTokenIntegration.yml'

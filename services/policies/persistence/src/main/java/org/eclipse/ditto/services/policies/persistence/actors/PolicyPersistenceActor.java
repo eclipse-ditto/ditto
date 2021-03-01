@@ -438,33 +438,33 @@ public final class PolicyPersistenceActor
                 .filter(pair -> pair.second().getExpiry().isPresent());
     }
 
-    private static Optional<SubjectExpiry> findEarliestSubjectExpiryTimestamp(@Nullable final Policy policyEntries) {
+    private static Optional<SubjectExpiry> findEarliestSubjectExpiryTimestamp(@Nullable final Policy policy) {
 
-        return findMinValueSubject(policyEntries, Subject::getExpiry,
+        return findMinValueSubject(policy, Subject::getExpiry,
                 Comparator.comparing(SubjectExpiry::getTimestamp));
     }
 
-    private static Optional<Instant> findEarliestAnnouncement(@Nullable final Policy policyEntries,
+    private static Optional<Instant> findEarliestAnnouncement(@Nullable final Policy policy,
             final Instant lastAnnouncement) {
-        return findMinValueSubject(policyEntries, getRelevantAnnouncementInstantFunction(lastAnnouncement),
+        return findMinValueSubject(policy, getRelevantAnnouncementInstantFunction(lastAnnouncement),
                 Comparator.naturalOrder());
     }
 
-    private static <T> Optional<T> findMinValueSubject(@Nullable final Policy policyEntries,
+    private static <T> Optional<T> findMinValueSubject(@Nullable final Policy policy,
             final Function<Subject, Optional<T>> getValueFunction,
             final Comparator<T> comparator) {
 
-        return streamAndFlatMapSubjects(policyEntries, getValueFunction).min(comparator);
+        return streamAndFlatMapSubjects(policy, getValueFunction).min(comparator);
     }
 
-    private static <T> Stream<T> streamAndFlatMapSubjects(@Nullable final Policy policyEntries,
+    private static <T> Stream<T> streamAndFlatMapSubjects(@Nullable final Policy policy,
             final Function<Subject, Optional<T>> flatMapFunction) {
 
-        if (null == policyEntries || policyEntries.getLifecycle().filter(PolicyLifecycle.DELETED::equals).isPresent()) {
+        if (null == policy || policy.getLifecycle().filter(PolicyLifecycle.DELETED::equals).isPresent()) {
             return Stream.empty();
         }
 
-        return StreamSupport.stream(policyEntries.spliterator(), false)
+        return StreamSupport.stream(policy.spliterator(), false)
                 .map(PolicyEntry::getSubjects)
                 .flatMap(Subjects::stream)
                 .map(flatMapFunction)

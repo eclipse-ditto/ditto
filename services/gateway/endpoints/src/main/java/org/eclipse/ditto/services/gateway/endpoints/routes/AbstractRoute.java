@@ -143,7 +143,7 @@ public abstract class AbstractRoute extends AllDirectives {
             } else {
                 LOGGER.warn("Exception during materialization of HTTP request: {}", exc.getMessage(), exc);
             }
-            return Supervision.stop(); // in any case, stop!
+            return (Supervision.Directive) Supervision.stop(); // in any case, stop!
         });
     }
 
@@ -187,16 +187,16 @@ public abstract class AbstractRoute extends AllDirectives {
     public Route handlePerRequest(final RequestContext ctx,
             final DittoHeaders dittoHeaders,
             final Source<ByteString, ?> payloadSource,
-            final Function<String, Command> requestJsonToCommandFunction) {
+            final Function<String, Command<?>> requestJsonToCommandFunction) {
 
         return handlePerRequest(ctx, dittoHeaders, payloadSource, requestJsonToCommandFunction, null);
     }
 
-    protected Route handlePerRequest(final RequestContext ctx, final Command command) {
+    protected Route handlePerRequest(final RequestContext ctx, final Command<?> command) {
         return handlePerRequest(ctx, command.getDittoHeaders(), Source.empty(), emptyRequestBody -> command);
     }
 
-    protected Route handlePerRequest(final RequestContext ctx, final Command command,
+    protected Route handlePerRequest(final RequestContext ctx, final Command<?> command,
             final Function<JsonValue, JsonValue> responseTransformFunction) {
 
         return handlePerRequest(ctx, command.getDittoHeaders(), Source.empty(),
@@ -206,7 +206,7 @@ public abstract class AbstractRoute extends AllDirectives {
     protected Route handlePerRequest(final RequestContext ctx,
             final DittoHeaders dittoHeaders,
             final Source<ByteString, ?> payloadSource,
-            final Function<String, Command> requestJsonToCommandFunction,
+            final Function<String, Command<?>> requestJsonToCommandFunction,
             @Nullable final Function<JsonValue, JsonValue> responseTransformFunction) {
 
         // check if Akka HTTP timeout was overwritten by our code (e.g. for claim messages)
@@ -236,7 +236,7 @@ public abstract class AbstractRoute extends AllDirectives {
     private Route doHandlePerRequest(final RequestContext ctx,
             final DittoHeaders dittoHeaders,
             final Source<ByteString, ?> payloadSource,
-            final Function<String, Command> requestJsonToCommandFunction,
+            final Function<String, Command<?>> requestJsonToCommandFunction,
             @Nullable final Function<JsonValue, JsonValue> responseTransformFunction) {
 
         final CompletableFuture<HttpResponse> httpResponseFuture = new CompletableFuture<>();

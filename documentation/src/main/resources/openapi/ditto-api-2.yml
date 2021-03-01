@@ -3493,23 +3493,7 @@ paths:
             * containing a a subject ID matching the JWT's authenticated subject
             * containing a `READ` permission granted to a `thing:/` resource path
       requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Settings for announcements to be made about the subject.
-              properties:
-                beforeExpiry:
-                  type: string
-                  description: 'The duration before expiry when an announcement should be made. Must be a positive integer followed by one of `h` (hour), `m` (minute) or `s` (second).'
-                whenDeleted:
-                  type: boolean
-                  description: Whether an announcement should be made when this subject is deleted.
-              example:
-                beforeExpiry: 5m
-                whenDeleted: true
-        description: Settings for announcements to be made about the injected subject.
-        required: false
+        $ref: '#/components/requestBodies/ActivateTokenIntegration'
   '/policies/{policyId}/actions/deactivateTokenIntegration':
     post:
       summary: Deactivate subjects for this policy derived from the token
@@ -3978,11 +3962,7 @@ paths:
             * containing a a subject ID matching the JWT's authenticated subject
             * containing a `READ` permission granted to a `thing:/` resource path
       requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/paths/~1policies~1%7BpolicyId%7D~1actions~1activateTokenIntegration/post/requestBody/content/application~1json/schema'
-        description: Settings for announcements to be made about the injected subjects.
+        $ref: '#/components/requestBodies/ActivateTokenIntegration'
   '/policies/{policyId}/entries/{label}/actions/deactivateTokenIntegration':
     post:
       summary: Deactivate a subject for this policy entry derived from the token
@@ -5142,6 +5122,19 @@ components:
 
           * for an list, the JSON value is the list: `[ 1,2,3 ]`
       required: true
+    ActivateTokenIntegration:
+      content:
+        application/json:
+          schema:
+            properties:
+              announcement:
+                $ref: '#/components/schemas/SubjectAnnouncement'
+          example:
+            announcement:
+              beforeExpiry: 5m
+              whenDeleted: true
+      description: Optional request payload for `activateTokenIntegration` policy action.
+      required: false
   responses:
     EntityTooLarge:
       description: The created or modified entity is larger than the accepted limit of 100 kB.
@@ -5923,24 +5916,13 @@ components:
           description: The optional expiry timestamp (formatted in ISO-8601) indicates how long this subject should be considered active before it is automatically deleted from the Policy.
           format: date-time
         announcement:
-          type: object
-          description: Settings for announcements to be made about the subject.
-          properties:
-            beforeExpiry:
-              type: string
-              description: 'The duration before expiry when an announcement should be made. Must be a positive integer followed by one of `h` (hour), `m` (minute) or `s` (second).'
-            whenDeleted:
-              type: boolean
-              description: Whether an announcement should be made when this subject is deleted.
-          example:
-            beforeExpiry: 5m
-            whenDeleted: true
+          $ref: '#/components/schemas/SubjectAnnouncement'
       example:
         type: 'This is some description for this subject, adjust as needed.'
         expiry: '2020-12-07T11:36:40Z'
         announcement:
           beforeExpiry: 5m
-          onDeletion: true
+          whenDeleted: true
     Resources:
       type: object
       description: |-
@@ -5988,6 +5970,21 @@ components:
       enum:
         - READ
         - WRITE
+    SubjectAnnouncement:
+      type: object
+      description: Settings for announcements to be made about the subject.
+      properties:
+        beforeExpiry:
+          type: string
+          description: |-
+            The duration before expiry when an announcement should be made.
+            Must be a positive integer followed by one of `h` (hour), `m` (minute) or `s` (second).
+        whenDeleted:
+          type: boolean
+          description: Whether an announcement should be made when this subject is deleted.
+      example:
+        beforeExpiry: 5m
+        whenDeleted: true
     Features:
       type: object
       description: |-

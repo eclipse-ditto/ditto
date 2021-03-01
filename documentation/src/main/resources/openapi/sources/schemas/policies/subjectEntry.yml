@@ -26,5 +26,5 @@ example:
   type: "This is some description for this subject, adjust as needed."
   expiry: "2020-12-07T11:36:40Z"
   announcement:
-    "beforeExpiry": "5m"
-    "onDeletion": true
+    beforeExpiry: "5m"
+    whenDeleted: true

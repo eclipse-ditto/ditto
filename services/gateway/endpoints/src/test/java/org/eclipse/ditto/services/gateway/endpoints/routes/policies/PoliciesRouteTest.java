@@ -16,6 +16,7 @@ import static akka.http.javadsl.model.ContentTypes.APPLICATION_JSON;
 
 import java.util.List;
 
+import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
@@ -166,8 +167,11 @@ public final class PoliciesRouteTest extends EndpointTestBase {
     @Test
     public void activateTopLevelTokenIntegrationWithAnnouncement() {
         final var subjectAnnouncement = SubjectAnnouncement.of(DittoDuration.parseDuration("1h"), true);
+        final JsonObject requestPayload = JsonObject.newBuilder()
+                .set("announcement", subjectAnnouncement.toJson())
+                .build();
         getRoute(getTokenAuthResult()).run(HttpRequest.POST("/policies/ns%3An/actions/activateTokenIntegration/")
-                .withEntity(APPLICATION_JSON, subjectAnnouncement.toJsonString()))
+                .withEntity(APPLICATION_JSON, requestPayload.toString()))
                 .assertStatusCode(StatusCodes.OK)
                 .assertEntity(TopLevelPolicyActionCommand.of(
                         ActivateTokenIntegration.of(PolicyId.of("ns:n"),
@@ -219,9 +223,12 @@ public final class PoliciesRouteTest extends EndpointTestBase {
     @Test
     public void activateTokenIntegrationForEntryWithAnnouncement() {
         final var subjectAnnouncement = SubjectAnnouncement.of(DittoDuration.parseDuration("1s"), true);
+        final JsonObject requestPayload = JsonObject.newBuilder()
+                .set("announcement", subjectAnnouncement.toJson())
+                .build();
         getRoute(getTokenAuthResult()).run(HttpRequest.POST(
                 "/policies/ns%3An/entries/label/actions/activateTokenIntegration/")
-                .withEntity(APPLICATION_JSON, subjectAnnouncement.toJsonString()))
+                .withEntity(APPLICATION_JSON, requestPayload.toString()))
                 .assertStatusCode(StatusCodes.OK)
                 .assertEntity(ActivateTokenIntegration.of(PolicyId.of("ns:n"),
                         Label.of("label"),

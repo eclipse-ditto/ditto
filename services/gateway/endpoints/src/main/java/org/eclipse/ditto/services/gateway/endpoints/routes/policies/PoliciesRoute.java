@@ -22,6 +22,7 @@ import java.util.function.Function;
 import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
+import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
@@ -30,6 +31,7 @@ import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
 import org.eclipse.ditto.model.policies.PolicyId;
+import org.eclipse.ditto.model.policies.Subject;
 import org.eclipse.ditto.model.policies.SubjectAnnouncement;
 import org.eclipse.ditto.model.policies.SubjectExpiry;
 import org.eclipse.ditto.model.policies.SubjectId;
@@ -66,6 +68,9 @@ public final class PoliciesRoute extends AbstractRoute {
     private static final String PATH_ENTRIES = "entries";
 
     private static final Label DUMMY_LABEL = Label.of("-");
+
+    private static final JsonFieldDefinition<JsonObject> ACTION_ACTIVATE_TOKEN_INTEGRATION_ANNOUNCEMENT =
+            Subject.JsonFields.ANNOUNCEMENT;
 
     private final PolicyEntriesRoute policyEntriesRoute;
     private final TokenIntegrationSubjectIdFactory tokenIntegrationSubjectIdFactory;
@@ -226,7 +231,9 @@ public final class PoliciesRoute extends AbstractRoute {
         if (body.isEmpty()) {
             return null;
         } else {
-            return SubjectAnnouncement.fromJson(JsonObject.of(body));
+            final Optional<JsonObject> announcement = JsonObject.of(body)
+                    .getValue(ACTION_ACTIVATE_TOKEN_INTEGRATION_ANNOUNCEMENT);
+            return announcement.map(SubjectAnnouncement::fromJson).orElse(null);
         }
     }
 
@@ -247,7 +254,7 @@ public final class PoliciesRoute extends AbstractRoute {
     }
 
     static Route handleSubjectAnnouncement(final AbstractRoute route, final DittoHeaders dittoHeaders,
-            final Function<SubjectAnnouncement, Command> commandConstructor) {
+            final Function<SubjectAnnouncement, Command<?>> commandConstructor) {
         return route.extractRequestContext(context ->
                 route.handlePerRequest(context, dittoHeaders, context.getRequest().entity().getDataBytes(),
                         body -> commandConstructor.apply(toSubjectAnnouncement(body))));

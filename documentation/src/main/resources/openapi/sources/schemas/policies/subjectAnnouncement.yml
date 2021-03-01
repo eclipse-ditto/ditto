@@ -13,7 +13,9 @@ description: Settings for announcements to be made about the subject.
 properties:
   beforeExpiry:
     type: string
-    description: The duration before expiry when an announcement should be made. Must be a positive integer followed by one of `h` (hour), `m` (minute) or `s` (second).
+    description: |-
+      The duration before expiry when an announcement should be made.
+      Must be a positive integer followed by one of `h` (hour), `m` (minute) or `s` (second).
   whenDeleted:
     type: boolean
     description: Whether an announcement should be made when this subject is deleted.
