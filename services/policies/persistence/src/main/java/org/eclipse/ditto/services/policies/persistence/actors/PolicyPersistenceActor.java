@@ -220,7 +220,7 @@ public final class PolicyPersistenceActor
 
         final Policy previousEntity = entity;
         persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
-            announceSubjectDeletion(previousEntity, entity);
+            announceSubjectDeletion(previousEntity, entity, persistedEvent.getDittoHeaders());
             if (shouldSendResponse(command.getDittoHeaders())) {
                 notifySender(getSender(), response);
             }
@@ -304,7 +304,9 @@ public final class PolicyPersistenceActor
         subjectIdsByExpiry.keySet().stream().sorted().forEach(deletedAt -> {
             final var subjectIds = subjectIdsByExpiry.get(deletedAt);
             final var announcement =
-                    SubjectDeletionAnnouncement.of(entityId, deletedAt, subjectIds, DittoHeaders.empty());
+                    SubjectDeletionAnnouncement.of(entityId, deletedAt, subjectIds, DittoHeaders.newBuilder()
+                        .randomCorrelationId()
+                            .build());
             policyAnnouncementPub.publish(announcement, ActorRef.noSender());
         });
         lastAnnouncement = cutOff;
@@ -378,7 +380,8 @@ public final class PolicyPersistenceActor
                 });
     }
 
-    private void announceSubjectDeletion(@Nullable final Policy previousPolicy, @Nullable final Policy nextPolicy) {
+    private void announceSubjectDeletion(@Nullable final Policy previousPolicy, @Nullable final Policy nextPolicy,
+            final DittoHeaders dittoHeaders) {
         final Collector<SubjectId, ?, Set<SubjectId>> linkedHashSetCollector =
                 Collectors.toCollection(LinkedHashSet::new);
         final Set<SubjectId> subjectIdsWithAnnouncementWhenDeleted =
@@ -395,7 +398,7 @@ public final class PolicyPersistenceActor
                 .collect(linkedHashSetCollector);
         if (!subjectIdsToAnnounce.isEmpty()) {
             final var announcement =
-                    SubjectDeletionAnnouncement.of(entityId, Instant.now(), subjectIdsToAnnounce, DittoHeaders.empty());
+                    SubjectDeletionAnnouncement.of(entityId, Instant.now(), subjectIdsToAnnounce, dittoHeaders);
             policyAnnouncementPub.publish(announcement, ActorRef.noSender());
         }
     }
