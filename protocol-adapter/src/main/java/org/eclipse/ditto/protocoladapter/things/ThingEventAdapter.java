@@ -18,6 +18,7 @@ import java.util.Optional;
 
 import org.eclipse.ditto.json.JsonPointer;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.protocoladapter.AbstractAdapter;
 import org.eclipse.ditto.protocoladapter.Adaptable;
 import org.eclipse.ditto.protocoladapter.EventAdapter;
@@ -75,9 +76,16 @@ final class ThingEventAdapter extends AbstractThingAdapter<ThingEvent<?>> implem
                 event.getEntity(event.getDittoHeaders().getSchemaVersion().orElse(event.getLatestSchemaVersion()));
         value.ifPresent(payloadBuilder::withValue);
 
+        final DittoHeaders headers;
+        if (value.isPresent()) {
+            headers = ProtocolFactory.newHeadersWithJsonContentType(event.getDittoHeaders());
+        } else {
+            headers = event.getDittoHeaders();
+        }
+
         return Adaptable.newBuilder(eventsTopicPathBuilder.build())
                 .withPayload(payloadBuilder.build())
-                .withHeaders(ProtocolFactory.newHeadersWithJsonContentType(event.getDittoHeaders()))
+                .withHeaders(headers)
                 .build();
     }
 
