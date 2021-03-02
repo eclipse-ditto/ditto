@@ -35,6 +35,7 @@ import javax.net.ssl.TrustManagerFactory;
 
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.services.connectivity.messaging.internal.ExceptionMapper;
 
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 

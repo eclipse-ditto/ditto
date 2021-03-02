@@ -204,6 +204,14 @@ public interface ConnectionBuilder {
     ConnectionBuilder lifecycle(@Nullable ConnectionLifecycle lifecycle);
 
     /**
+     * Sets the {@link SshTunnel} of the connection.
+     *
+     * @param sshTunnel the connection ssh tunnel
+     * @return this builder
+     */
+    ConnectionBuilder sshTunnel(@Nullable SshTunnel sshTunnel);
+
+    /**
      * Sets the payload mapping definition of the connection.
      *
      * @param payloadMappingDefinition the payload mapping definition.

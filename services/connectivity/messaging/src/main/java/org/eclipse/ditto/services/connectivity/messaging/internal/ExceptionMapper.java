@@ -10,7 +10,7 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.eclipse.ditto.services.connectivity.messaging.internal.ssl;
+package org.eclipse.ditto.services.connectivity.messaging.internal;
 
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStoreException;
@@ -30,7 +30,7 @@ import org.eclipse.ditto.signals.commands.connectivity.exceptions.ConnectionUnav
 /**
  * Helper class to map SSL exceptions to Ditto exceptions with more meaningful descriptions.
  */
-final class ExceptionMapper {
+public final class ExceptionMapper {
 
     private static final String CERTIFICATE_LABEL = "CERTIFICATE";
     private final DittoHeaders dittoHeaders;
@@ -40,14 +40,14 @@ final class ExceptionMapper {
      *
      * @param dittoHeaders ditto headers
      */
-    ExceptionMapper(@Nullable final DittoHeaders dittoHeaders) {
+    public ExceptionMapper(@Nullable final DittoHeaders dittoHeaders) {
         this.dittoHeaders = dittoHeaders != null ? dittoHeaders : DittoHeaders.empty();
     }
 
     /**
      * @return preconfigured builder for fatal errors
      */
-    DittoRuntimeExceptionBuilder<ConnectionUnavailableException> fatalError(final String whatHappened) {
+    public DittoRuntimeExceptionBuilder<ConnectionUnavailableException> fatalError(final String whatHappened) {
         return ConnectionUnavailableException.newBuilder(ConnectionId.of("unimportant"))
                 .message(String.format("Fatal error: %s.", whatHappened))
                 .description("Please contact the service team.")
@@ -75,7 +75,7 @@ final class ExceptionMapper {
      * @param <T> the result type
      * @return the result if no exception occurred
      */
-    <T> T handleExceptions(final ThrowingSupplier<T> supplier) {
+    public <T> T handleExceptions(final ThrowingSupplier<T> supplier) {
         try {
             return supplier.get();
         } catch (final CertificateException e) {
@@ -95,7 +95,7 @@ final class ExceptionMapper {
     }
 
     @FunctionalInterface
-    interface ThrowingSupplier<T> {
+    public interface ThrowingSupplier<T> {
 
         /**
          * @return the result.

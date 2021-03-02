@@ -27,4 +27,19 @@ public interface CredentialsVisitor<T> {
      */
     T clientCertificate(ClientCertificateCredentials credentials);
 
+    /**
+     * Evaluate username password credentials.
+     *
+     * @param credentials the username password credentials.
+     * @return evaluation result.
+     */
+    T usernamePassword(UserPasswordCredentials credentials);
+
+    /**
+     * Evaluate keypair credentials.
+     *
+     * @param credentials the keypair credentials.
+     * @return evaluation result.
+     */
+    T keyPair(KeyPairCredentials credentials);
 }

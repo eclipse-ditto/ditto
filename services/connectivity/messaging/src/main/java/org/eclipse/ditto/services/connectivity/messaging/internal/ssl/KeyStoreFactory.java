@@ -17,11 +17,13 @@ import java.security.KeyStoreException;
 import java.security.PrivateKey;
 import java.security.cert.Certificate;
 
+import org.eclipse.ditto.services.connectivity.messaging.internal.ExceptionMapper;
+
 final class KeyStoreFactory {
 
     private final ExceptionMapper exceptionMapper;
 
-    KeyStoreFactory(final ExceptionMapper exceptionMapper)  {
+    KeyStoreFactory(final ExceptionMapper exceptionMapper) {
         this.exceptionMapper = exceptionMapper;
     }
 
