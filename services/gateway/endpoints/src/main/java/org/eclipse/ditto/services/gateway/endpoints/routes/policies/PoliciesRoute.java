@@ -25,8 +25,10 @@ import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonFieldDefinition;
 import org.eclipse.ditto.json.JsonObject;
 import org.eclipse.ditto.json.JsonValue;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
+import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.Policy;
@@ -209,7 +211,7 @@ public final class PoliciesRoute extends AbstractRoute {
     private TopLevelPolicyActionCommand topLevelActivateTokenIntegration(final DittoHeaders dittoHeaders,
             final PolicyId policyId, final JsonWebToken jwt, @Nullable final SubjectAnnouncement subjectAnnouncement) {
 
-        final Set<SubjectId> subjectIds = tokenIntegrationSubjectIdFactory.getSubjectIds(dittoHeaders, jwt);
+        final Set<SubjectId> subjectIds = resolveSubjectIdsForActivateTokenIntegrationAction(dittoHeaders, jwt);
         final SubjectExpiry expiry = SubjectExpiry.newInstance(jwt.getExpirationTime());
         final ActivateTokenIntegration activateTokenIntegration =
                 ActivateTokenIntegration.of(policyId, DUMMY_LABEL, subjectIds, expiry, subjectAnnouncement,
@@ -220,10 +222,25 @@ public final class PoliciesRoute extends AbstractRoute {
     private TopLevelPolicyActionCommand topLevelDeactivateTokenIntegration(final DittoHeaders dittoHeaders,
             final PolicyId policyId, final JsonWebToken jwt) {
 
-        final Set<SubjectId> subjectIds = tokenIntegrationSubjectIdFactory.getSubjectIds(dittoHeaders, jwt);
+        final Set<SubjectId> subjectIds = resolveSubjectIdsForActivateTokenIntegrationAction(dittoHeaders, jwt);
         final DeactivateTokenIntegration deactivateTokenIntegration =
                 DeactivateTokenIntegration.of(policyId, DUMMY_LABEL, subjectIds, dittoHeaders);
         return TopLevelPolicyActionCommand.of(deactivateTokenIntegration, List.of());
+    }
+
+    private Set<SubjectId> resolveSubjectIdsForActivateTokenIntegrationAction(final DittoHeaders dittoHeaders,
+            final JsonWebToken jwt) {
+
+        try {
+            return tokenIntegrationSubjectIdFactory.getSubjectIds(dittoHeaders, jwt);
+        } catch (final UnresolvedPlaceholderException e) {
+            throw PolicyActionFailedException.newBuilder()
+                    .action(ActivateTokenIntegration.NAME)
+                    .status(HttpStatus.BAD_REQUEST)
+                    .description("Mandatory placeholders could not be resolved, in detail: " + e.getMessage())
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
     }
 
     @Nullable

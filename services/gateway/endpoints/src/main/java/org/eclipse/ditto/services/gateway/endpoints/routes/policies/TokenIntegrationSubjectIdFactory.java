@@ -40,6 +40,8 @@ public interface TokenIntegrationSubjectIdFactory {
      * @param dittoHeaders the Ditto headers.
      * @param jwt the JWT.
      * @return the computed subject IDs.
+     * @throws org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException if mandatory placeholders could not
+     * be resolved within the configured {@code subjectTemplate} of this TokenIntegrationSubjectIdFactory.
      */
     Set<SubjectId> getSubjectIds(DittoHeaders dittoHeaders, JsonWebToken jwt);
 

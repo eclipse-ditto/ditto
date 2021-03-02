@@ -23,8 +23,9 @@ import org.eclipse.ditto.model.jwt.JsonWebToken;
 
 /**
  * Dummy JSON web token for tests.
+ * Do not make final in order to have a subclass.
  */
-final class DummyJwt implements JsonWebToken {
+class DummyJwt implements JsonWebToken {
 
     static final Instant EXPIRY = Instant.now().plus(Duration.ofDays(1));
 

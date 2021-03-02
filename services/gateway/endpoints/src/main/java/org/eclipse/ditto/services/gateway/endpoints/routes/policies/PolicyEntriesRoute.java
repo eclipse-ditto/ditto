@@ -22,8 +22,10 @@ import javax.annotation.Nullable;
 
 import org.eclipse.ditto.json.JsonFactory;
 import org.eclipse.ditto.json.JsonObject;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
+import org.eclipse.ditto.model.placeholders.UnresolvedPlaceholderException;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PoliciesModelFactory;
 import org.eclipse.ditto.model.policies.PolicyEntry;
@@ -43,6 +45,7 @@ import org.eclipse.ditto.services.gateway.util.config.endpoints.CommandConfig;
 import org.eclipse.ditto.services.gateway.util.config.endpoints.HttpConfig;
 import org.eclipse.ditto.signals.commands.policies.actions.ActivateTokenIntegration;
 import org.eclipse.ditto.signals.commands.policies.actions.DeactivateTokenIntegration;
+import org.eclipse.ditto.signals.commands.policies.exceptions.PolicyActionFailedException;
 import org.eclipse.ditto.signals.commands.policies.modify.DeletePolicyEntry;
 import org.eclipse.ditto.signals.commands.policies.modify.DeleteResource;
 import org.eclipse.ditto.signals.commands.policies.modify.DeleteSubject;
@@ -394,7 +397,7 @@ final class PolicyEntriesRoute extends AbstractRoute {
 
     private ActivateTokenIntegration activateTokenIntegration(final DittoHeaders dittoHeaders, final PolicyId policyId,
             final String label, final JsonWebToken jwt, @Nullable final SubjectAnnouncement subjectAnnouncement) {
-        final Set<SubjectId> subjectIds = tokenIntegrationSubjectIdFactory.getSubjectIds(dittoHeaders, jwt);
+        final Set<SubjectId> subjectIds = resolveSubjectIdsForActivateTokenIntegrationAction(dittoHeaders, jwt);
         final SubjectExpiry subjectExpiry = SubjectExpiry.newInstance(jwt.getExpirationTime());
         return ActivateTokenIntegration.of(policyId, Label.of(label), subjectIds, subjectExpiry, subjectAnnouncement,
                 dittoHeaders);
@@ -402,8 +405,23 @@ final class PolicyEntriesRoute extends AbstractRoute {
 
     private DeactivateTokenIntegration deactivateTokenIntegration(final DittoHeaders dittoHeaders,
             final PolicyId policyId, final String label, final JsonWebToken jwt) {
-        final Set<SubjectId> subjectIds = tokenIntegrationSubjectIdFactory.getSubjectIds(dittoHeaders, jwt);
+        final Set<SubjectId> subjectIds = resolveSubjectIdsForActivateTokenIntegrationAction(dittoHeaders, jwt);
         return DeactivateTokenIntegration.of(policyId, Label.of(label), subjectIds, dittoHeaders);
+    }
+
+    private Set<SubjectId> resolveSubjectIdsForActivateTokenIntegrationAction(final DittoHeaders dittoHeaders,
+            final JsonWebToken jwt) {
+
+        try {
+            return tokenIntegrationSubjectIdFactory.getSubjectIds(dittoHeaders, jwt);
+        } catch (final UnresolvedPlaceholderException e) {
+            throw PolicyActionFailedException.newBuilder()
+                    .action(ActivateTokenIntegration.NAME)
+                    .status(HttpStatus.BAD_REQUEST)
+                    .description("Mandatory placeholders could not be resolved, in detail: " + e.getMessage())
+                    .dittoHeaders(dittoHeaders)
+                    .build();
+        }
     }
 
     private static ResourceKey resourceKeyFromUnmatchedPath(final String resource) {

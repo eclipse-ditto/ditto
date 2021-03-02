@@ -21,6 +21,7 @@ import org.eclipse.ditto.model.base.auth.AuthorizationContext;
 import org.eclipse.ditto.model.base.auth.AuthorizationSubject;
 import org.eclipse.ditto.model.base.auth.DittoAuthorizationContextType;
 import org.eclipse.ditto.model.base.common.DittoDuration;
+import org.eclipse.ditto.model.base.common.HttpStatus;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.policies.Label;
 import org.eclipse.ditto.model.policies.PolicyId;
@@ -162,6 +163,29 @@ public final class PoliciesRouteTest extends EndpointTestBase {
                                 DittoHeaders.empty()),
                         List.of()
                 ).toJsonString());
+    }
+
+    @Test
+    public void activateTopLevelTokenIntegrationWithUnresolvedJwtPlaceholder() {
+        final JwtAuthenticationResult jwtAuthResultWithoutAudClaim =
+                JwtAuthenticationResult.successful(DittoHeaders.empty(), getDummyAuthorizationContext(),
+                        new DummyJwt() {
+                            @Override
+                            public JsonObject getBody() {
+                                return super.getBody().toBuilder()
+                                        .remove("aud")
+                                        .build();
+                            }
+                        });
+        getRoute(jwtAuthResultWithoutAudClaim).run(HttpRequest.POST("/policies/ns%3An/actions/activateTokenIntegration/"))
+                .assertStatusCode(StatusCodes.BAD_REQUEST)
+                .assertEntity(PolicyActionFailedException.newBuilder()
+                        .action("activateTokenIntegration")
+                        .status(HttpStatus.BAD_REQUEST)
+                        .description("Mandatory placeholders could not be resolved, in detail: " +
+                                "The placeholder 'jwt:aud' could not be resolved.")
+                        .build()
+                        .toJsonString());
     }
 
     @Test

@@ -29,7 +29,10 @@ public final class JwtPlaceholder implements Placeholder<JsonWebToken> {
 
     private static final JwtPlaceholder INSTANCE = new JwtPlaceholder();
 
-    private static final String PREFIX = "jwt";
+    /**
+     * JWT Placeholder prefix.
+     */
+    public static final String PREFIX = "jwt";
 
     /**
      * Get the instance of {@code JwtPlaceholder}.
