@@ -30,6 +30,7 @@ import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.JsonSchemaVersion;
 import org.eclipse.ditto.model.connectivity.Connection;
+import org.eclipse.ditto.model.connectivity.ConnectionType;
 import org.eclipse.ditto.model.connectivity.ConnectivityModelFactory;
 import org.eclipse.ditto.model.connectivity.Enforcement;
 import org.eclipse.ditto.model.connectivity.Source;
@@ -306,7 +307,11 @@ final class ConnectionMigrationUtil {
 
         @Override
         public JsonObject apply(final JsonObject connectionJsonObject) {
-            if (containsTargets(connectionJsonObject)) {
+            final boolean shouldSkipMigration = connectionJsonObject.getValue(Connection.JsonFields.CONNECTION_TYPE)
+                    .flatMap(ConnectionType::forName)
+                    .filter(ConnectionType.MQTT::equals)
+                    .isPresent();
+            if (!shouldSkipMigration && containsTargets(connectionJsonObject)) {
                 final JsonArray migratedTargets = connectionJsonObject.getValue(Connection.JsonFields.TARGETS)
                         .map(MigrateTargetHeaderMappings::migrateTargets)
                         .orElse(null);
