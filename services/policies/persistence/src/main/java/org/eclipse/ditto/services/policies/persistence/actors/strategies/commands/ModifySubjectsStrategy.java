@@ -60,7 +60,7 @@ final class ModifySubjectsStrategy extends AbstractPolicyCommandStrategy<ModifyS
 
         if (nonNullPolicy.getEntryFor(label).isPresent()) {
             final DittoHeadersBuilder<?, ?> adjustedHeadersBuilder = command.getDittoHeaders().toBuilder();
-            final Subjects adjustedSubjects = potentiallyAdjustSubjects(subjects, adjustedHeadersBuilder);
+            final Subjects adjustedSubjects = potentiallyAdjustSubjects(subjects);
             final DittoHeaders adjustedHeaders = adjustedHeadersBuilder.build();
             final ModifySubjects adjustedCommand = ModifySubjects.of(command.getEntityId(), command.getLabel(),
                     adjustedSubjects, adjustedHeaders);

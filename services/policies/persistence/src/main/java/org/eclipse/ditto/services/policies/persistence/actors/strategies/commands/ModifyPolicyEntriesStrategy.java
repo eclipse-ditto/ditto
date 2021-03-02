@@ -70,7 +70,7 @@ final class ModifyPolicyEntriesStrategy extends AbstractPolicyCommandStrategy<Mo
         }
 
         final DittoHeadersBuilder<?, ?> adjustedHeadersBuilder = command.getDittoHeaders().toBuilder();
-        final Set<PolicyEntry> adjustedEntries = potentiallyAdjustPolicyEntries(policyEntries, adjustedHeadersBuilder);
+        final Set<PolicyEntry> adjustedEntries = potentiallyAdjustPolicyEntries(policyEntries);
         final DittoHeaders adjustedHeaders = adjustedHeadersBuilder.build();
         final ModifyPolicyEntries adjustedCommand = ModifyPolicyEntries.of(command.getEntityId(), adjustedEntries,
                 adjustedHeaders);

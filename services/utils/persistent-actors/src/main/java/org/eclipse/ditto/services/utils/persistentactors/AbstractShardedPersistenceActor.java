@@ -110,12 +110,10 @@ public abstract class AbstractShardedPersistenceActor<
         handleEvents = ReceiveBuilder.create()
                 .match(getEventClass(), event -> {
                     entity = getEventStrategy().handle((E) event, entity, getRevisionNumber());
-                    alwaysAlive |= ((E) event).getDittoHeaders().getJournalTags().contains(JOURNAL_TAG_ALWAYS_ALIVE);
                     onEntityModified();
                 })
                 .match(EmptyEvent.class, event -> {
                     log.withCorrelationId(event).debug("Recovered EmptyEvent: <{}>", event);
-                    alwaysAlive |= event.getEffect().equals(EmptyEvent.EFFECT_ALWAYS_ALIVE);
                 })
                 .build();
 
@@ -209,12 +207,20 @@ public abstract class AbstractShardedPersistenceActor<
     protected abstract boolean shouldSendResponse(DittoHeaders dittoHeaders);
 
     /**
+     * Check if the present entity requires this actor to stay alive forever.
+     *
+     * @return whether this actor should always be alive.
+     */
+    protected abstract boolean isEntityAlwaysAlive();
+
+    /**
      * Callback at the end of recovery. Overridable in subclasses.
      *
      * @param event the event that recovery completed.
      */
     protected void recoveryCompleted(final RecoveryCompleted event) {
         // override to introduce additional logging and other side effects
+        alwaysAlive = isEntityAlwaysAlive();
         becomeCreatedOrDeletedHandler();
     }
 
@@ -371,15 +377,14 @@ public abstract class AbstractShardedPersistenceActor<
      * @param message the check-for-activity message.
      */
     protected void checkForActivity(final CheckForActivity message) {
+        scheduleCheckForActivity(getActivityCheckConfig().getDeletedInterval());
         if (entityExistsAsDeleted() && lastSnapshotRevision < getRevisionNumber()) {
             // take a snapshot after a period of inactivity if:
             // - entity is deleted,
             // - the latest snapshot is out of date or is still ongoing.
             takeSnapshot("the entity is deleted and has no up-to-date snapshot");
-            scheduleCheckForActivity(getActivityCheckConfig().getDeletedInterval());
         } else if (accessCounter > message.accessCounter) {
-            // if the entity was accessed in any way since the last check
-            scheduleCheckForActivity(getActivityCheckConfig().getInactiveInterval());
+            log.debug("Entity <{}> was accessed since last activity check, preventing Actor shutdown.", entityId);
         } else if (isEntityActive() && alwaysAlive) {
             log.debug("Entity <{}> is active and marked as 'always-alive', preventing Actor shutdown.", entityId);
         } else {

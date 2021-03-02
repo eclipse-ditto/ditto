@@ -94,9 +94,6 @@ final class ActivateTokenIntegrationStrategy
             final SubjectExpiry adjustedSubjectExpiry = roundPolicySubjectExpiry(commandSubjectExpiry);
             final SubjectAnnouncement adjustedSubjectAnnouncement =
                     roundSubjectAnnouncement(command.getSubjectAnnouncement().orElse(null));
-            if (null != adjustedSubjectAnnouncement) {
-                adjustedHeadersBuilder.journalTags(Set.of(AbstractShardedPersistenceActor.JOURNAL_TAG_ALWAYS_ALIVE));
-            }
             final DittoHeaders adjustedHeaders = adjustedHeadersBuilder.build();
             final ActivateTokenIntegration adjustedCommand = ActivateTokenIntegration.of(
                     command.getEntityId(), command.getLabel(), subjectIds, adjustedSubjectExpiry.getTimestamp(),

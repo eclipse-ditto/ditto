@@ -323,6 +323,11 @@ public final class ConnectionPersistenceActor
     }
 
     @Override
+    protected boolean isEntityAlwaysAlive() {
+        return isDesiredStateOpen();
+    }
+
+    @Override
     public void postStop() throws Exception {
         log.info("stopped connection <{}>", entityId);
         super.postStop();
@@ -338,7 +343,7 @@ public final class ConnectionPersistenceActor
             log.debug("Opening connection <{}> after recovery.", entityId);
             restoreOpenConnection();
         }
-        becomeCreatedOrDeletedHandler();
+        super.recoveryCompleted(event);
     }
 
     @Override
@@ -362,7 +367,7 @@ public final class ConnectionPersistenceActor
             targetConnectionStatus = ConnectivityStatus.UNKNOWN;
         }
 
-        if (targetConnectionStatus == ConnectivityStatus.OPEN) {
+        if (alwaysAlive = (targetConnectionStatus == ConnectivityStatus.OPEN)) {
             final DittoHeaders headersWithJournalTags = superEvent.getDittoHeaders().toBuilder()
                     .journalTags(Set.of(JOURNAL_TAG_ALWAYS_ALIVE))
                     .build();

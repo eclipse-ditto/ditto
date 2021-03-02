@@ -22,6 +22,7 @@ import static org.eclipse.ditto.services.policies.persistence.testhelper.ETagTes
 import static org.eclipse.ditto.services.policies.persistence.testhelper.ETagTestUtils.retrievePolicyResponse;
 import static org.eclipse.ditto.services.policies.persistence.testhelper.ETagTestUtils.retrieveResourceResponse;
 import static org.eclipse.ditto.services.policies.persistence.testhelper.ETagTestUtils.retrieveSubjectResponse;
+import static org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersistenceActor.JOURNAL_TAG_ALWAYS_ALIVE;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -73,6 +74,7 @@ import org.eclipse.ditto.services.policies.persistence.TestConstants;
 import org.eclipse.ditto.services.policies.persistence.serializer.PolicyMongoSnapshotAdapter;
 import org.eclipse.ditto.services.utils.cluster.ShardRegionExtractor;
 import org.eclipse.ditto.services.utils.persistence.SnapshotAdapter;
+import org.eclipse.ditto.services.utils.persistentactors.AbstractPersistenceSupervisor;
 import org.eclipse.ditto.services.utils.persistentactors.AbstractShardedPersistenceActor;
 import org.eclipse.ditto.services.utils.pubsub.DistributedPub;
 import org.eclipse.ditto.signals.announcements.policies.PolicyAnnouncement;
@@ -101,6 +103,7 @@ import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicy;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyPolicyEntry;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifyResource;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifySubject;
+import org.eclipse.ditto.signals.commands.policies.modify.ModifySubjectResponse;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifySubjects;
 import org.eclipse.ditto.signals.commands.policies.modify.ModifySubjectsResponse;
 import org.eclipse.ditto.signals.commands.policies.query.PolicyQueryCommandResponse;
@@ -112,6 +115,7 @@ import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubject;
 import org.eclipse.ditto.signals.commands.policies.query.RetrieveSubjectResponse;
 import org.eclipse.ditto.signals.events.policies.PolicyCreated;
 import org.eclipse.ditto.signals.events.policies.PolicyEntryCreated;
+import org.eclipse.ditto.signals.events.policies.PolicyEvent;
 import org.eclipse.ditto.signals.events.policies.SubjectCreated;
 import org.eclipse.ditto.signals.events.policies.SubjectDeleted;
 import org.junit.Before;
@@ -782,7 +786,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                         subjectToAdd.getType(), expectedSubjectExpiry, subjectAnnouncement);
 
                 final DittoHeaders expectedEventHeaders = headersMockWithOtherAuth.toBuilder()
-                        .journalTags(Set.of(AbstractShardedPersistenceActor.JOURNAL_TAG_ALWAYS_ALIVE))
+                        .journalTags(Set.of(JOURNAL_TAG_ALWAYS_ALIVE))
                         .build();
                 // THEN: the subject expiry should be rounded up to the configured "subject-expiry-granularity"
                 //  (10s for this test)
@@ -1635,6 +1639,62 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         };
     }
 
+    @Test
+    public void stayAliveIfAndOnlyIfFutureAnnouncementsExist() {
+        new TestKit(actorSystem) {
+            {
+                final Policy policy = createPolicyWithRandomId();
+                final Instant expiryInstant = Instant.now().plus(Duration.ofHours(2));
+                final SubjectExpiry subjectExpiry = SubjectExpiry.newInstance(expiryInstant);
+                final SubjectAnnouncement subjectAnnouncement =
+                        SubjectAnnouncement.of(DittoDuration.parseDuration("1s"), false);
+                final Subject subjectToAdd =
+                        Subject.newInstance(SubjectId.newInstance(SubjectIssuer.GOOGLE, "anotherSubjectId"),
+                                SubjectType.GENERATED, subjectExpiry, subjectAnnouncement);
+
+                final DittoHeaders headersMockWithOtherAuth =
+                        createDittoHeaders(JsonSchemaVersion.LATEST, AUTH_SUBJECT, UNAUTH_SUBJECT);
+
+                final PolicyId policyId = policy.getEntityId().orElseThrow();
+                final ActorRef underTest = createPersistenceActorFor(this, policy);
+
+                // GIVEN: a Policy is created without a Subject having an "expiry" date
+                final CreatePolicy createPolicyCommand = CreatePolicy.of(policy, dittoHeadersV2);
+                underTest.tell(createPolicyCommand, getRef());
+                expectMsgClass(CreatePolicyResponse.class);
+
+                // THEN: the persisted event should not have any tag
+                Assertions.assertThat(expectPolicyEvent().getDittoHeaders().getJournalTags()).isEmpty();
+
+                // WHEN: the Policy's subject is modified having an "expiry" in the near future
+                final ModifySubject modifySubject =
+                        ModifySubject.of(policyId, POLICY_LABEL, subjectToAdd, headersMockWithOtherAuth);
+                underTest.tell(modifySubject, getRef());
+
+                // THEN: the persisted event should have the "always-alive" tag
+                expectMsgClass(ModifySubjectResponse.class);
+                Assertions.assertThat(expectPolicyEvent().getDittoHeaders().getJournalTags())
+                        .containsExactly(JOURNAL_TAG_ALWAYS_ALIVE);
+
+                // WHEN: the subject is deleted
+                final DeleteSubject deleteSubject =
+                        DeleteSubject.of(policyId, POLICY_LABEL, subjectToAdd.getId(), headersMockWithOtherAuth);
+                underTest.tell(deleteSubject, getRef());
+                expectMsgClass(DeleteSubjectResponse.class);
+
+                // THEN: a SubjectDeleted event without "always-alive" tag is emitted
+                final var subjectDeleted = expectPolicyEvent();
+                assertThat(subjectDeleted).isInstanceOf(SubjectDeleted.class);
+                Assertions.assertThat(subjectDeleted.getDittoHeaders().getJournalTags()).isEmpty();
+
+                // THEN: the persistent actor should stop itself after activity checks.
+                final var checkForActivity = AbstractShardedPersistenceActor.checkForActivity(Integer.MAX_VALUE);
+                underTest.tell(checkForActivity, ActorRef.noSender());
+                expectMsg(AbstractPersistenceSupervisor.Control.PASSIVATE);
+            }
+        };
+    }
+
     private ActorRef createPersistenceActorFor(final TestKit testKit, final Policy policy) {
         return createPersistenceActorFor(testKit, policy.getEntityId().orElseThrow(NoSuchElementException::new));
     }
@@ -1643,7 +1703,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
         final SnapshotAdapter<Policy> snapshotAdapter = new PolicyMongoSnapshotAdapter();
         final Props props = PolicyPersistenceActor.props(policyId, snapshotAdapter, pubSubMediator,
                 policyAnnouncementPub);
-        return testKit.watch(actorSystem.actorOf(props));
+        return testKit.watch(testKit.childActorOf(props));
     }
 
     private void waitPastTimeBorder() {
@@ -1664,6 +1724,12 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 throw new AssertionError(e);
             }
         }
+    }
+
+    private PolicyEvent<?> expectPolicyEvent() {
+        final var publish = pubSubMediatorTestProbe.expectMsgClass(DistributedPubSubMediator.Publish.class);
+        assertThat(publish.message()).isInstanceOf(PolicyEvent.class);
+        return (PolicyEvent<?>) publish.message();
     }
 
     private static Policy incrementRevision(final Policy policy, final int n) {

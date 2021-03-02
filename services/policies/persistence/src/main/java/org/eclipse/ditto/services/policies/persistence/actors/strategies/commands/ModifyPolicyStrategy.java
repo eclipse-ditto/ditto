@@ -58,8 +58,8 @@ final class ModifyPolicyStrategy extends AbstractPolicyCommandStrategy<ModifyPol
 
         final Instant eventTs = getEventTimestamp();
         final DittoHeadersBuilder<?, ?> adjustedHeadersBuilder = command.getDittoHeaders().toBuilder();
-        final Set<PolicyEntry> adjustedEntries = potentiallyAdjustPolicyEntries(command.getPolicy().getEntriesSet(),
-                adjustedHeadersBuilder);
+        final Set<PolicyEntry> adjustedEntries = potentiallyAdjustPolicyEntries(command.getPolicy().getEntriesSet()
+        );
         final DittoHeaders adjustedHeaders = adjustedHeadersBuilder.build();
         final Policy adjustedPolicy = PoliciesModelFactory.newPolicyBuilder(
                 command.getPolicy().getEntityId().orElseThrow(), adjustedEntries).build();

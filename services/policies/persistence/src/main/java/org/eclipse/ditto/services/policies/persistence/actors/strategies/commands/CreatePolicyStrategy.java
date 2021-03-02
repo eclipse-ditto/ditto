@@ -58,8 +58,8 @@ final class CreatePolicyStrategy extends AbstractPolicyCommandStrategy<CreatePol
         // Policy not yet created - do so ..
         final Policy newPolicy = command.getPolicy();
         final DittoHeadersBuilder<? ,?> adjustedHeadersBuilder = command.getDittoHeaders().toBuilder();
-        final Set<PolicyEntry> adjustedEntries = potentiallyAdjustPolicyEntries(command.getPolicy().getEntriesSet(),
-                adjustedHeadersBuilder);
+        final Set<PolicyEntry> adjustedEntries = potentiallyAdjustPolicyEntries(command.getPolicy().getEntriesSet()
+        );
         final DittoHeaders adjustedHeaders = adjustedHeadersBuilder.build();
         final PolicyBuilder newPolicyBuilder = PoliciesModelFactory.newPolicyBuilder(
                 newPolicy.getEntityId().orElseThrow(), adjustedEntries);

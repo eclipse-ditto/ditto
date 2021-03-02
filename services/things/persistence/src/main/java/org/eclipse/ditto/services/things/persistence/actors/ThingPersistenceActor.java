@@ -176,8 +176,8 @@ public final class ThingPersistenceActor
         if (entity != null) {
             entity = enhanceThingWithLifecycle(entity);
             log.info("Thing <{}> was recovered.", entityId);
-            becomeCreatedOrDeletedHandler();
         }
+        super.recoveryCompleted(event);
     }
 
     @Override
@@ -191,6 +191,11 @@ public final class ThingPersistenceActor
                 dittoHeaders.getAcknowledgementRequests()
                         .stream()
                         .anyMatch(ar -> DittoAcknowledgementLabel.TWIN_PERSISTED.equals(ar.getLabel()));
+    }
+
+    @Override
+    protected boolean isEntityAlwaysAlive() {
+        return false;
     }
 
     @Override

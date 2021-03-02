@@ -244,6 +244,11 @@ public final class PolicyPersistenceActor
     }
 
     @Override
+    protected boolean isEntityAlwaysAlive() {
+        return findEarliestAnnouncement(entity, lastAnnouncement).isPresent();
+    }
+
+    @Override
     protected Receive matchAnyAfterInitialization() {
         return ReceiveBuilder.create()
                 .matchEquals(DeleteOldestExpiredSubject.INSTANCE, d -> handleDeleteExpiredSubjects())
@@ -259,19 +264,21 @@ public final class PolicyPersistenceActor
             // if we have an expired subject at this point (after recovery), it must first be removed before e.g.
             //  sending back the policy to a SudoRetrievePolicy command from concierge
             handleDeleteExpiredSubjects();
-            becomeCreatedOrDeletedHandler();
         }
+        super.recoveryCompleted(event);
     }
 
     @Override
     protected PolicyEvent<?> modifyEventBeforePersist(final PolicyEvent<?> event) {
         final PolicyEvent<?> superEvent = super.modifyEventBeforePersist(event);
-        if (findEarliestAnnouncement(entity, lastAnnouncement).isPresent()) {
+
+        if (alwaysAlive = willEntityBeAlwaysAlive(event)) {
             final DittoHeaders headersWithJournalTags = superEvent.getDittoHeaders().toBuilder()
                     .journalTags(Set.of(JOURNAL_TAG_ALWAYS_ALIVE))
                     .build();
             return superEvent.setDittoHeaders(headersWithJournalTags);
         }
+
         return superEvent;
     }
 
@@ -281,10 +288,16 @@ public final class PolicyPersistenceActor
         scheduleNextSubjectExpiryCheck();
     }
 
+    private boolean willEntityBeAlwaysAlive(final PolicyEvent<?> policyEvent) {
+        final Policy nextPolicy = getEventStrategy().handle(policyEvent, entity, getRevisionNumber());
+        return streamAndFlatMapSubjects(nextPolicy, getRelevantAnnouncementInstantFunction(lastAnnouncement))
+                .findAny()
+                .isPresent();
+    }
+
     private void sendOrScheduleAnnouncement() {
         final var earliestAnnouncement = findEarliestAnnouncement(entity, lastAnnouncement);
         if (earliestAnnouncement.isPresent()) {
-            alwaysAlive = true;
             final Instant cutOff = earliestAnnouncement.get();
             final Instant now = Instant.now();
             if (cutOff.isBefore(now.plus(ANNOUNCEMENT_WINDOW))) {
