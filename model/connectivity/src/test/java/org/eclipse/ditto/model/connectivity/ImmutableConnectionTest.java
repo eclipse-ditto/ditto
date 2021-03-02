@@ -124,7 +124,7 @@ public final class ImmutableConnectionTest {
                     .map(o -> o.asObject().toBuilder()
                             .set(Target.JsonFields.HEADER_MAPPING, o.asObject()
                                     .getValue(Target.JsonFields.HEADER_MAPPING)
-                                    .orElseGet(ImmutableTarget.DEFAULT_HEADER_MAPPING::toJson))
+                                    .orElseGet(ConnectivityModelFactory.emptyHeaderMapping()::toJson))
                             .build())
                     .collect(JsonCollectors.valuesToArray());
 
@@ -207,12 +207,6 @@ public final class ImmutableConnectionTest {
 
     private static final JsonObject KNOWN_LEGACY_JSON = KNOWN_JSON
             .set(Connection.JsonFields.MAPPING_CONTEXT, KNOWN_MAPPING_CONTEXT.toJson());
-
-    private static final HeaderMapping DEFAULT_TARGET_HEADER_MAPPING =
-            ConnectivityModelFactory.newHeaderMapping(JsonObject.newBuilder()
-                    .set("correlation-id", "{{header:correlation-id}}")
-                    .set("reply-to", "{{header:reply-to}}")
-                    .build());
 
     @Test
     public void testHashCodeAndEquals() {
@@ -492,7 +486,8 @@ public final class ImmutableConnectionTest {
                         .build();
 
         connectionWithoutHeaderMappingForTarget.getTargets()
-                .forEach(target -> assertThat(target.getHeaderMapping()).contains(DEFAULT_TARGET_HEADER_MAPPING));
+                .forEach(target -> assertThat(target.getHeaderMapping())
+                        .contains(ConnectivityModelFactory.emptyHeaderMapping()));
     }
 
     @Test
@@ -505,7 +500,8 @@ public final class ImmutableConnectionTest {
                 ImmutableConnection.fromJson(connectionJsonWithoutHeaderMappingForTarget);
 
         connectionWithoutHeaderMappingForTarget.getTargets()
-                .forEach(target -> assertThat(target.getHeaderMapping()).contains(DEFAULT_TARGET_HEADER_MAPPING));
+                .forEach(target -> assertThat(target.getHeaderMapping())
+                        .contains(ConnectivityModelFactory.emptyHeaderMapping()));
     }
 
     private List<Source> addSourceMapping(final List<Source> sources, final String... mapping) {

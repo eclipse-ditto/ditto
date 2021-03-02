@@ -57,6 +57,7 @@ public final class ImmutableTargetTest {
             .set(Target.JsonFields.ADDRESS, ADDRESS)
             .set(Target.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
             .set(Target.JsonFields.ISSUED_ACKNOWLEDGEMENT_LABEL, "custom-ack")
+            .set(Target.JsonFields.HEADER_MAPPING, JsonObject.empty())
             .set(Target.JsonFields.PAYLOAD_MAPPING, JsonArray.of(DITTO_MAPPING, CUSTOM_MAPPING))
             .build();
 
@@ -74,6 +75,7 @@ public final class ImmutableTargetTest {
             .set(Target.JsonFields.ADDRESS, MQTT_ADDRESS)
             .set(Target.JsonFields.QOS, 1)
             .set(Target.JsonFields.AUTHORIZATION_CONTEXT, JsonFactory.newArrayBuilder().add("eclipse", "ditto").build())
+            .set(Target.JsonFields.HEADER_MAPPING, JsonObject.empty())
             .build();
 
     @Test

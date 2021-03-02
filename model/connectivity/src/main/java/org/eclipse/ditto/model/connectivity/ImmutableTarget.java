@@ -64,7 +64,7 @@ final class ImmutableTarget implements Target {
     private final AuthorizationContext authorizationContext;
     private final String originalAddress;
     @Nullable private final AcknowledgementLabel issuedAcknowledgementLabel;
-    @Nullable private final HeaderMapping headerMapping;
+    private final HeaderMapping headerMapping;
     private final PayloadMapping payloadMapping;
 
     private ImmutableTarget(final ImmutableTarget.Builder builder) {
@@ -116,7 +116,7 @@ final class ImmutableTarget implements Target {
 
     @Override
     public Optional<HeaderMapping> getHeaderMapping() {
-        return Optional.ofNullable(headerMapping);
+        return Optional.of(headerMapping);
     }
 
     @Override
@@ -150,10 +150,8 @@ final class ImmutableTarget implements Target {
                     predicate);
         }
 
-        if (headerMapping != null) {
-            jsonObjectBuilder.set(JsonFields.HEADER_MAPPING, headerMapping.toJson(schemaVersion, thePredicate),
-                    predicate);
-        }
+        jsonObjectBuilder.set(JsonFields.HEADER_MAPPING, headerMapping.toJson(schemaVersion, thePredicate),
+                predicate);
 
         if (!payloadMapping.isEmpty()) {
             jsonObjectBuilder.set(Target.JsonFields.PAYLOAD_MAPPING, payloadMapping.toJson(), predicate);
@@ -265,7 +263,7 @@ final class ImmutableTarget implements Target {
         @Nullable private Integer qos;
         @Nullable private AuthorizationContext authorizationContext;
         @Nullable private AcknowledgementLabel issuedAcknowledgementLabel;
-        @Nullable private HeaderMapping headerMapping;
+        private HeaderMapping headerMapping = ConnectivityModelFactory.emptyHeaderMapping();
 
         Builder() {
         }
@@ -341,7 +339,7 @@ final class ImmutableTarget implements Target {
 
         @Override
         public TargetBuilder headerMapping(@Nullable final HeaderMapping headerMapping) {
-            this.headerMapping = headerMapping;
+            this.headerMapping = headerMapping == null ? ConnectivityModelFactory.emptyHeaderMapping() : headerMapping;
             return this;
         }
 
