@@ -90,7 +90,7 @@ final class ImmutableSource implements Source {
     private final AuthorizationContext authorizationContext;
     @Nullable private final Enforcement enforcement;
     @Nullable private final FilteredAcknowledgementRequest acknowledgementRequests;
-    @Nullable private final HeaderMapping headerMapping;
+    private final HeaderMapping headerMapping;
     private final PayloadMapping payloadMapping;
     private final boolean replyTargetEnabled;
     @Nullable private final ReplyTarget replyTarget;
@@ -149,7 +149,7 @@ final class ImmutableSource implements Source {
 
     @Override
     public Optional<HeaderMapping> getHeaderMapping() {
-        return Optional.ofNullable(headerMapping);
+        return Optional.of(headerMapping);
     }
 
     @Override
@@ -202,10 +202,8 @@ final class ImmutableSource implements Source {
                     acknowledgementRequests.toJson(schemaVersion, thePredicate), predicate);
         }
 
-        if (headerMapping != null) {
-            jsonObjectBuilder.set(JsonFields.HEADER_MAPPING, headerMapping.toJson(schemaVersion, thePredicate),
+        jsonObjectBuilder.set(JsonFields.HEADER_MAPPING, headerMapping.toJson(schemaVersion, thePredicate),
                     predicate);
-        }
 
         if (!payloadMapping.isEmpty()) {
             jsonObjectBuilder.set(JsonFields.PAYLOAD_MAPPING, payloadMapping.toJson(), predicate);
@@ -405,7 +403,7 @@ final class ImmutableSource implements Source {
 
         // optional:
         @Nullable private Enforcement enforcement;
-        @Nullable private HeaderMapping headerMapping;
+        private HeaderMapping headerMapping = ConnectivityModelFactory.emptyHeaderMapping();
         @Nullable private Integer qos = null;
         @Nullable private FilteredAcknowledgementRequest acknowledgementRequests;
         private boolean replyTargetEnabled = DEFAULT_REPLY_TARGET_ENABLED;
@@ -486,7 +484,7 @@ final class ImmutableSource implements Source {
 
         @Override
         public Builder headerMapping(@Nullable final HeaderMapping headerMapping) {
-            this.headerMapping = headerMapping;
+            this.headerMapping = headerMapping == null ? ConnectivityModelFactory.emptyHeaderMapping() : headerMapping;
             return this;
         }
 
