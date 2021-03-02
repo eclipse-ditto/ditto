@@ -785,14 +785,11 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final Subject expectedAdjustedSubjectToAdd = Subject.newInstance(subjectToAdd.getId(),
                         subjectToAdd.getType(), expectedSubjectExpiry, subjectAnnouncement);
 
-                final DittoHeaders expectedEventHeaders = headersMockWithOtherAuth.toBuilder()
-                        .journalTags(Set.of(JOURNAL_TAG_ALWAYS_ALIVE))
-                        .build();
                 // THEN: the subject expiry should be rounded up to the configured "subject-expiry-granularity"
                 //  (10s for this test)
                 expectMsgEquals(
                         modifySubjectResponse(policyId, POLICY_LABEL, expectedAdjustedSubjectToAdd,
-                                expectedEventHeaders, true));
+                                headersMockWithOtherAuth, true));
 
                 final RetrieveSubject retrieveSubject =
                         RetrieveSubject.of(policyId, POLICY_LABEL, subjectToAdd.getId(), headersMockWithOtherAuth);
