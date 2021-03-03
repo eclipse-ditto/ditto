@@ -221,6 +221,7 @@ public final class PolicyPersistenceActor
         final Policy previousEntity = entity;
         persistAndApplyEvent(event, (persistedEvent, resultingEntity) -> {
             announceSubjectDeletion(previousEntity, entity, persistedEvent.getDittoHeaders());
+            sendPastDueAnnouncementsOfNewSubjects(previousEntity, entity);
             if (shouldSendResponse(command.getDittoHeaders())) {
                 notifySender(getSender(), response);
             }
@@ -310,21 +311,24 @@ public final class PolicyPersistenceActor
 
     private void sendAnnouncement(final AnnounceSubjectDeletion announceSubjectDeletion) {
         final Instant cutOff = announceSubjectDeletion.cutOff.plus(ANNOUNCEMENT_WINDOW);
-        final Map<Instant, Set<SubjectId>> subjectIdsByExpiry =
-                streamAndFlatMapSubjects(entity, getSubjectAnnouncementInsideWindow(lastAnnouncement, cutOff))
-                        .collect(GROUP_BY_EXPIRY_COLLECTOR);
+        publishExpiryAnnouncementsByTimestamp(
+                streamAndFlatMapSubjects(entity, getSubjectAnnouncementInsideWindow(lastAnnouncement, cutOff)));
+        lastAnnouncement = cutOff;
+        // schedule the next announcement after updating lastAnnouncement
+        sendOrScheduleAnnouncement();
+    }
+
+    private void publishExpiryAnnouncementsByTimestamp(final Stream<Subject> relevantSubjects) {
+        final Map<Instant, Set<SubjectId>> subjectIdsByExpiry = relevantSubjects.collect(GROUP_BY_EXPIRY_COLLECTOR);
         log.info("Sending announcements for <{}>", subjectIdsByExpiry);
         subjectIdsByExpiry.keySet().stream().sorted().forEach(deletedAt -> {
             final var subjectIds = subjectIdsByExpiry.get(deletedAt);
             final var announcement =
                     SubjectDeletionAnnouncement.of(entityId, deletedAt, subjectIds, DittoHeaders.newBuilder()
-                        .randomCorrelationId()
+                            .randomCorrelationId()
                             .build());
             policyAnnouncementPub.publish(announcement, ActorRef.noSender());
         });
-        lastAnnouncement = cutOff;
-        // schedule the next announcement after updating lastAnnouncement
-        sendOrScheduleAnnouncement();
     }
 
     private void scheduleNextAnnouncement(final Instant now, final Instant cutOff) {
@@ -414,6 +418,25 @@ public final class PolicyPersistenceActor
                     SubjectDeletionAnnouncement.of(entityId, Instant.now(), subjectIdsToAnnounce, dittoHeaders);
             policyAnnouncementPub.publish(announcement, ActorRef.noSender());
         }
+    }
+
+    private void sendPastDueAnnouncementsOfNewSubjects(@Nullable final Policy previousPolicy,
+            @Nullable final Policy nextPolicy) {
+
+        final Set<Subject> previousSubjectIds =
+                streamAndFlatMapSubjects(previousPolicy, Optional::of).collect(Collectors.toSet());
+        final Stream<Subject> newSubjectsWithPastDueAnnouncements = streamAndFlatMapSubjects(nextPolicy,
+                subject -> {
+                    final var pastDue = getAnnouncementInstant(subject)
+                            .filter(instant -> !lastAnnouncement.isBefore(instant))
+                            .isPresent();
+                    if (pastDue && !previousSubjectIds.contains(subject)) {
+                        return Optional.of(subject);
+                    } else {
+                        return Optional.empty();
+                    }
+                });
+        publishExpiryAnnouncementsByTimestamp(newSubjectsWithPastDueAnnouncements);
     }
 
     private static Duration truncateToOneDay(final Duration duration) {
