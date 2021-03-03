@@ -1,0 +1,50 @@
+# Copyright (c) 2021 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Eclipse Public License 2.0 which is available at
+# http://www.eclipse.org/legal/epl-2.0
+#
+# SPDX-License-Identifier: EPL-2.0
+name: push-dockerhub-nightly
+
+on:
+  schedule:
+    - cron: '0 1 * * *' # run at 1 AM UTC
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: azure/docker-login@v1
+        with:
+          username: eclipsedittobot
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+      - name: Branch name
+        id: branch_name
+        run: |
+          echo "IMAGE_TAG=nightly" >> $GITHUB_ENV
+      - name: Building Docker images for tag
+        run: |
+          echo $IMAGE_TAG
+      - name: Build the Docker images
+        run: |
+          docker build -f services/dockerfile-release --build-arg SERVICE_STARTER=ditto-services-policies-starter     --build-arg SERVICE_VERSION=0-SNAPSHOT   -t eclipse/ditto-policies:$IMAGE_TAG .;
+          docker build -f services/dockerfile-release --build-arg SERVICE_STARTER=ditto-services-things-starter       --build-arg SERVICE_VERSION=0-SNAPSHOT   -t eclipse/ditto-things:$IMAGE_TAG .;
+          docker build -f services/dockerfile-release --build-arg SERVICE_STARTER=ditto-services-thingsearch-starter  --build-arg SERVICE_VERSION=0-SNAPSHOT   -t eclipse/ditto-things-search:$IMAGE_TAG .;
+          docker build -f services/dockerfile-release --build-arg SERVICE_STARTER=ditto-services-concierge-starter    --build-arg SERVICE_VERSION=0-SNAPSHOT   -t eclipse/ditto-concierge:$IMAGE_TAG .;
+          docker build -f services/dockerfile-release --build-arg SERVICE_STARTER=ditto-services-gateway-starter      --build-arg SERVICE_VERSION=0-SNAPSHOT   -t eclipse/ditto-gateway:$IMAGE_TAG .;
+          docker build -f services/dockerfile-release --build-arg SERVICE_STARTER=ditto-services-connectivity-starter --build-arg SERVICE_VERSION=0-SNAPSHOT   -t eclipse/ditto-connectivity:$IMAGE_TAG .;
+      - name: Push the Docker images to Docker Hub
+        run: |
+          docker push eclipse/ditto-policies:$IMAGE_TAG;
+          docker push eclipse/ditto-things:$IMAGE_TAG;
+          docker push eclipse/ditto-things-search:$IMAGE_TAG;
+          docker push eclipse/ditto-concierge:$IMAGE_TAG;
+          docker push eclipse/ditto-gateway:$IMAGE_TAG;
+          docker push eclipse/ditto-connectivity:$IMAGE_TAG;
+
