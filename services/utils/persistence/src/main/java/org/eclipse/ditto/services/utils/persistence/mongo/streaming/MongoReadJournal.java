@@ -181,7 +181,8 @@ public class MongoReadJournal {
      * Retrieve all unique PIDs in journals selected by a provided {@code tag}.
      * Does its best not to create long-living cursors on the database by reading {@code batchSize} events per query.
      *
-     * @param tag the Tag name the journal entries have to contain in order to be selected.
+     * @param tag the Tag name the journal entries have to contain in order to be selected, or an empty string to select
+     * all journal entries.
      * @param batchSize how many events to read in one query.
      * @param maxIdleTime how long the stream is allowed to idle without sending any element. Bounds the number of
      * retries with exponential back-off.

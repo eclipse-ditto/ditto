@@ -385,10 +385,11 @@ public final class ConnectionPersistenceActor
                 .map(JsonValue::asString)
                 .orElse(null);
 
-        if (journalTag != null && journalTag.isEmpty() && isDesiredStateOpen() && !alwaysAlive) {
+        if (journalTag != null && journalTag.isEmpty() && isDesiredStateOpen()) {
             // persistence actor was sent a "ping" with empty journal tag:
             //  build in adding the "always-alive" tag here by persisting an "empty" event which is just tagged to be
-            //  "always alive"
+            //  "always alive".  Stop persisting the empty event once every open connection has a tagged event, when
+            // the persistence ping actor will have a non-empty journal tag configured.
             final EmptyEvent
                     emptyEvent = new EmptyEvent(entityId, EmptyEvent.EFFECT_ALWAYS_ALIVE, getRevisionNumber() + 1,
                     DittoHeaders.newBuilder()

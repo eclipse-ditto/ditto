@@ -112,9 +112,8 @@ public abstract class AbstractShardedPersistenceActor<
                     entity = getEventStrategy().handle((E) event, entity, getRevisionNumber());
                     onEntityModified();
                 })
-                .match(EmptyEvent.class, event -> {
-                    log.withCorrelationId(event).debug("Recovered EmptyEvent: <{}>", event);
-                })
+                .match(EmptyEvent.class,
+                        event -> log.withCorrelationId(event).debug("Recovered EmptyEvent: <{}>", event))
                 .build();
 
         handleCleanups = super.createReceive();

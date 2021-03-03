@@ -70,7 +70,7 @@ public final class PersistencePingActorTest {
     }
 
     @Test
-    public void testRecoverConnections() {
+    public void pingPersistenceActors() {
         new TestKit(actorSystem) {{
             final TestProbe probe = new TestProbe(actorSystem);
 
@@ -100,7 +100,7 @@ public final class PersistencePingActorTest {
     }
 
     @Test
-    public void testRecoverConnectionsIsNotStartedTwice() {
+    public void testPersistenceActorIsNotPingedTwice() {
         new TestKit(actorSystem) {{
             final TestProbe probe = new TestProbe(actorSystem);
 
