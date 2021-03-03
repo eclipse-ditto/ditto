@@ -449,8 +449,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final RetrievePolicyEntry retrievePolicyEntry =
                         RetrievePolicyEntry.of(policyId, ANOTHER_POLICY_LABEL, headersMockWithOtherAuth);
                 final PolicyEntryNotAccessibleException expectedResponse = PolicyEntryNotAccessibleException
-                        .newBuilder(POLICY_ID, ANOTHER_POLICY_LABEL.toString())
-                        .dittoHeaders(headersMockWithOtherAuth)
+                        .newBuilder(retrievePolicyEntry.getEntityId(), retrievePolicyEntry.getLabel())
+                        .dittoHeaders(retrievePolicyEntry.getDittoHeaders())
                         .build();
                 underTest.tell(retrievePolicyEntry, getRef());
                 expectMsgEquals(expectedResponse);
@@ -618,8 +618,11 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                                 PoliciesResourceType.policyResource(POLICY_RESOURCE_PATH),
                                 headersMockWithOtherAuth);
                 final ResourceNotAccessibleException expectedResponse = ResourceNotAccessibleException
-                        .newBuilder(POLICY_ID, ANOTHER_POLICY_LABEL.toString(), POLICY_RESOURCE_PATH.toString())
-                        .dittoHeaders(headersMockWithOtherAuth).build();
+                        .newBuilder(retrieveResource.getEntityId(),
+                                retrieveResource.getLabel(),
+                                retrieveResource.getResourceKey().toString())
+                        .dittoHeaders(retrieveResource.getDittoHeaders())
+                        .build();
                 underTest.tell(retrieveResource, getRef());
                 expectMsgEquals(expectedResponse);
             }
@@ -725,8 +728,11 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final RetrieveSubject retrieveSubject =
                         RetrieveSubject.of(policyId, ANOTHER_POLICY_LABEL, POLICY_SUBJECT_ID, headersMockWithOtherAuth);
                 final SubjectNotAccessibleException expectedResponse = SubjectNotAccessibleException
-                        .newBuilder(POLICY_ID, ANOTHER_POLICY_LABEL.toString(), POLICY_RESOURCE_PATH.toString())
-                        .dittoHeaders(headersMockWithOtherAuth).build();
+                        .newBuilder(retrieveSubject.getEntityId(),
+                                retrieveSubject.getLabel(),
+                                retrieveSubject.getSubjectId())
+                        .dittoHeaders(retrieveSubject.getDittoHeaders())
+                        .build();
                 underTest.tell(retrieveSubject, getRef());
                 expectMsgEquals(expectedResponse);
             }

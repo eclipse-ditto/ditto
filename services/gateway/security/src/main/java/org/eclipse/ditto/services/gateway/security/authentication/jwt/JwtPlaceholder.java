@@ -17,7 +17,11 @@ import static org.eclipse.ditto.model.base.common.ConditionChecker.checkNotNull;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
+import org.eclipse.ditto.json.JsonArray;
 import org.eclipse.ditto.json.JsonValue;
 import org.eclipse.ditto.model.jwt.JsonWebToken;
 import org.eclipse.ditto.model.placeholders.Placeholder;
@@ -26,6 +30,12 @@ import org.eclipse.ditto.model.placeholders.Placeholder;
  * The placeholder that replaces {@code jwt:<body-claim>}.
  */
 public final class JwtPlaceholder implements Placeholder<JsonWebToken> {
+
+    /**
+     * Compiled Pattern of a string containing any unresolved non-empty JsonArray-String notations inside.
+     * All strings matching this pattern are valid JSON arrays. Not all JSON arrays match this pattern.
+     */
+    private static final Pattern JSON_ARRAY_PATTERN = Pattern.compile("(\\[\"(?:\\\\\"|[^\"])*+\"(?:,\"(?:\\\\\"|[^\"])*+\")*+])");
 
     private static final JwtPlaceholder INSTANCE = new JwtPlaceholder();
 
@@ -65,4 +75,35 @@ public final class JwtPlaceholder implements Placeholder<JsonWebToken> {
         return jwt.getBody().getValue(placeholder).map(JsonValue::formatAsString);
     }
 
+    /**
+     * Checks whether the passed {@code resolvedSubject} (resolved via JWT and header placeholder mechanism) contains
+     * JsonArrays ({@code ["..."]} and expands those JsonArrays to multiple resolved subjects returned as resulting
+     * stream of this operation.
+     * <p>
+     * Is able to handle an arbitrary amount of JsonArrays in the passed resolvedSubjects.
+     *
+     * @param resolvedSubject the resolved subjects potentially containing JsonArrays as JsonArray-String values.
+     * @return a stream of a single subject when the passed in {@code resolvedSubject} did not contain any
+     * JsonArray-String notation or else a stream of multiple subjects with the JsonArrays being resolved to multiple
+     * results of the stream.
+     */
+    public static Stream<String> expandJsonArraysInResolvedSubject(final String resolvedSubject) {
+        final Matcher jsonArrayMatcher = JSON_ARRAY_PATTERN.matcher(resolvedSubject);
+        final int group = 1;
+        if (jsonArrayMatcher.find()) {
+            final String beforeMatched = resolvedSubject.substring(0, jsonArrayMatcher.start(group));
+            final String matchedStr =
+                    resolvedSubject.substring(jsonArrayMatcher.start(group), jsonArrayMatcher.end(group));
+            final String afterMatched = resolvedSubject.substring(jsonArrayMatcher.end(group));
+            return JsonArray.of(matchedStr).stream()
+                    .filter(JsonValue::isString)
+                    .map(JsonValue::asString)
+                    .flatMap(arrayStringElem -> expandJsonArraysInResolvedSubject(beforeMatched) // recurse!
+                            .flatMap(before -> expandJsonArraysInResolvedSubject(afterMatched) // recurse!
+                                    .map(after -> before.concat(arrayStringElem).concat(after))
+                            )
+                    );
+        }
+        return Stream.of(resolvedSubject);
+    }
 }

@@ -248,7 +248,11 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
 
             connectionActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
 
-            expectMsg(new Status.Failure(SESSION_EXCEPTION));
+            final var failure = expectMsgClass(Status.Failure.class);
+
+            assertThat(failure.cause()).isInstanceOf(ConnectionFailedException.class)
+                    .hasMessage("Failed to %s:%s", "create JMS connection", JMS_EXCEPTION.getMessage())
+                    .hasCause(JMS_EXCEPTION);
         }};
     }
 
@@ -399,7 +403,12 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsg(new Status.Failure(SESSION_EXCEPTION));
+
+            final var failure = expectMsgClass(Status.Failure.class);
+
+            assertThat(failure.cause()).isInstanceOf(ConnectionFailedException.class)
+                    .hasMessage("Failed to %s:%s", "connect JMS client", JMS_EXCEPTION.getMessage())
+                    .hasCause(JMS_EXCEPTION);
         }};
     }
 
@@ -412,7 +421,12 @@ public final class AmqpClientActorTest extends AbstractBaseClientActorTest {
             final ActorRef amqpClientActor = actorSystem.actorOf(props);
 
             amqpClientActor.tell(OpenConnection.of(CONNECTION_ID, DittoHeaders.empty()), getRef());
-            expectMsg(new Status.Failure(SESSION_EXCEPTION));
+
+            final var failure = expectMsgClass(Status.Failure.class);
+
+            assertThat(failure.cause()).isInstanceOf(ConnectionFailedException.class)
+                    .hasMessage("Failed to %s:%s", "create session", JMS_EXCEPTION.getMessage())
+                    .hasCause(JMS_EXCEPTION);
         }};
     }
 

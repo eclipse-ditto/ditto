@@ -28,6 +28,12 @@ merge functionality is available via the HTTP API and the all channels using the
 [Merge updates via HTTP](httpapi-concepts.html#merge-updates)
 or the [Merge protocol specification](protocol-specification-things-merge.html) for more details and examples.
 
+#### [OIDC: Added support for arbitrary claims for authorization subjects](https://github.com/eclipse/ditto/issues/512)
+
+OpenID Connect support has been extended; Previously, only the `sub` field from a JWT was injected as an authorization subject.
+This is now configurable: The Ditto Gateway config takes a list of placeholder strings that are used to construct authorization subjects.
+See [OpenID Connect](installation-operating.html#openid-connect)
+
 ### Bugfixes
 
 ## Migration notes
@@ -62,3 +68,35 @@ can be updated to contain the "old" default in this case:
     }
 }
 ```
+
+### OpenID Connect configuration for gateway
+
+The oauth configuration section of the Gateway service has been altered to support
+[arbitrary claims for authorization subjects](https://github.com/eclipse/ditto/issues/512). The `openid-connect-issuers` map now takes
+key-object pairs rather than key-string pairs:
+
+old:
+
+```
+oauth = {
+  openid-connect-issuers = {
+    someissuer = "https://example.com"
+  }
+}
+```
+
+new:
+
+```
+
+oauth = {
+  openid-connect-issuers = {
+    someissuer = {
+      issuer = "https://example.com"
+    }
+  }
+}
+
+```
+
+The `auth-subjects` field is optional. When not supplied, the 'old' behaviour (using the JWT `sub` field) remains.

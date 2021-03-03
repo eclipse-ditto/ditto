@@ -22,6 +22,7 @@ import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.junit.Test;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
+import nl.jqno.equalsverifier.Warning;
 
 /**
  * Unit test for {@link DittoRuntimeException}.
@@ -48,9 +49,10 @@ public final class DittoRuntimeExceptionTest {
     @Test
     public void testHashCodeAndEquals() {
         EqualsVerifier.forClass(DittoRuntimeException.class)
-                .withIgnoredFields("detailMessage", "cause", "stackTrace", "suppressedExceptions")
+                .withIgnoredFields("cause", "stackTrace", "suppressedExceptions")
                 .withRedefinedSuperclass()
                 .usingGetClass()
+                .suppress(Warning.NONFINAL_FIELDS)
                 .verify();
     }
 

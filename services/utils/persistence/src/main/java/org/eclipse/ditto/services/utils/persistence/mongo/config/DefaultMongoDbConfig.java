@@ -13,6 +13,7 @@
 package org.eclipse.ditto.services.utils.persistence.mongo.config;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -44,7 +45,17 @@ public final class DefaultMongoDbConfig implements MongoDbConfig {
         maxQueryTime = config.getDuration(MongoDbConfigValue.MAX_QUERY_TIME.getConfigPath());
         optionsConfig = DefaultOptionsConfig.of(config);
         final String configuredUri = config.getString(MongoDbConfigValue.URI.getConfigPath());
-        mongoDbUri = determineMongoDbUri(configuredUri, optionsConfig.extraUriOptions());
+        final Map<String, Object> configuredExtraUriOptions = optionsConfig.extraUriOptions();
+
+        final String sslKey = OptionsConfig.OptionsConfigValue.SSL_ENABLED.getConfigPath();
+        final Map<String, Object> extraUriOptions;
+        if (configuredExtraUriOptions.containsKey(sslKey)) {
+            extraUriOptions = configuredExtraUriOptions;
+        } else {
+            extraUriOptions = new HashMap<>(configuredExtraUriOptions);
+            extraUriOptions.put(sslKey, optionsConfig.isSslEnabled());
+        }
+        mongoDbUri = determineMongoDbUri(configuredUri, extraUriOptions);
         connectionPoolConfig = DefaultConnectionPoolConfig.of(config);
         circuitBreakerConfig = DefaultCircuitBreakerConfig.of(config);
         monitoringConfig = DefaultMonitoringConfig.of(config);

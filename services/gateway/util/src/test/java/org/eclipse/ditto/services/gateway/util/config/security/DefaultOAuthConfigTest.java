@@ -18,6 +18,7 @@ import static org.mutabilitydetector.unittesting.MutabilityAssert.assertInstance
 import static org.mutabilitydetector.unittesting.MutabilityMatchers.areImmutable;
 
 import java.util.Collections;
+import java.util.List;
 
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.eclipse.ditto.model.policies.SubjectIssuer;
@@ -89,14 +90,24 @@ public final class DefaultOAuthConfigTest {
         softly.assertThat(underTest.getOpenIdConnectIssuers())
                 .as(OAuthConfig.OAuthConfigValue.OPENID_CONNECT_ISSUERS.getConfigPath())
                 .isEqualTo(
-                        Collections.singletonMap(SubjectIssuer.newInstance("google"), "https://accounts.google.com"));
+                        Collections.singletonMap(
+                                SubjectIssuer.newInstance("google"),
+                                DefaultSubjectIssuerConfig.of(
+                                        "https://accounts.google.com",
+                                        List.of(
+                                                "{{ jwt:sub }}",
+                                                "{{ jwt:sub }}/{{ jwt:scope }}",
+                                                "{{ jwt:sub }}/{{ jwt:scope }}@{{ jwt:client_id }}",
+                                                "{{ jwt:sub }}/{{ jwt:scope }}@{{ jwt:non_existing }}",
+                                                "{{ jwt:roles/support }}"
+                                        ))));
 
         softly.assertThat(underTest.getOpenIdConnectIssuersExtension())
                 .as(OAuthConfig.OAuthConfigValue.OPENID_CONNECT_ISSUERS_EXTENSION.getConfigPath())
-                .isEqualTo(Collections.singletonMap(SubjectIssuer.newInstance("additional"),
-                        "https://additional.google.com"));
+                .isEqualTo(Collections.singletonMap(
+                        SubjectIssuer.newInstance("additional"),
+                        DefaultSubjectIssuerConfig.of("https://additional.google.com", List.of("{{ jwt:sub }}"))));
 
         softly.assertThat(underTest.getTokenIntegrationSubject()).isEqualTo("ditto:ditto");
     }
-
 }

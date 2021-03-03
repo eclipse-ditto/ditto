@@ -38,13 +38,15 @@ public final class ThingCommandToModifyExceptionRegistryTest {
     public void mapModifyThingToThingNotModifiable() {
         final DeleteAttribute modifyThing = DeleteAttribute.of(ThingId.of("org.eclipse.ditto:thingId"),
                 JsonPointer.of("abc"),
-                DittoHeaders.empty());
-        final DittoRuntimeException mappedException = registryUnderTest.exceptionFrom(modifyThing);
-        final DittoRuntimeException expectedException = AttributeNotModifiableException.newBuilder(
-                ThingId.of("org.eclipse.ditto:thingId"),
-                JsonPointer.of("abc")).build();
+                DittoHeaders.newBuilder().randomCorrelationId().build());
 
-        assertThat(mappedException).isEqualTo(expectedException);
+        final DittoRuntimeException expectedException =
+                AttributeNotModifiableException.newBuilder(modifyThing.getEntityId(),
+                        JsonPointer.of("/attributes" + modifyThing.getAttributePointer()))
+                        .dittoHeaders(modifyThing.getDittoHeaders())
+                        .build();
+
+        assertThat(registryUnderTest.exceptionFrom(modifyThing)).isEqualTo(expectedException);
     }
 
 }

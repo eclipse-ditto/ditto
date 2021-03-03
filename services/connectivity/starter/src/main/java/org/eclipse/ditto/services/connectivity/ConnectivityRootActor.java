@@ -21,6 +21,7 @@ import javax.naming.NamingException;
 import org.eclipse.ditto.services.base.actors.DittoRootActor;
 import org.eclipse.ditto.services.connectivity.config.ConnectivityConfig;
 import org.eclipse.ditto.services.connectivity.messaging.ClientActorPropsFactory;
+import org.eclipse.ditto.services.connectivity.messaging.ConnectionIdsRetrievalActor;
 import org.eclipse.ditto.services.connectivity.messaging.ConnectivityProxyActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceOperationsActor;
 import org.eclipse.ditto.services.connectivity.messaging.persistence.ConnectionPersistenceStreamingActorCreator;
@@ -36,10 +37,8 @@ import org.eclipse.ditto.services.utils.cluster.config.ClusterConfig;
 import org.eclipse.ditto.services.utils.health.DefaultHealthCheckingActorFactory;
 import org.eclipse.ditto.services.utils.health.HealthCheckingActorOptions;
 import org.eclipse.ditto.services.utils.health.config.HealthCheckConfig;
-import org.eclipse.ditto.services.utils.health.config.MetricsReporterConfig;
 import org.eclipse.ditto.services.utils.health.config.PersistenceConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoHealthChecker;
-import org.eclipse.ditto.services.utils.persistence.mongo.MongoMetricsReporter;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.services.utils.persistentactors.PersistencePingActor;
 import org.eclipse.ditto.signals.base.Signal;
@@ -99,6 +98,10 @@ public final class ConnectivityRootActor extends DittoRootActor {
                         startConnectionShardRegion(actorSystem, connectionSupervisorProps, clusterConfig),
                         connectivityConfig.getPingConfig(), MongoReadJournal.newInstance(actorSystem)),
                 PersistencePingActor.ACTOR_NAME);
+
+        startClusterSingletonActor(
+                ConnectionIdsRetrievalActor.props(MongoReadJournal.newInstance(actorSystem)),
+                ConnectionIdsRetrievalActor.ACTOR_NAME);
 
         startChildActor(ConnectionPersistenceOperationsActor.ACTOR_NAME,
                 ConnectionPersistenceOperationsActor.props(pubSubMediator, connectivityConfig.getMongoDbConfig(),
@@ -173,16 +176,9 @@ public final class ConnectivityRootActor extends DittoRootActor {
         }
         final HealthCheckingActorOptions healthCheckingActorOptions = hcBuilder.build();
 
-        final MetricsReporterConfig metricsReporterConfig =
-                healthCheckConfig.getPersistenceConfig().getMetricsReporterConfig();
         return startChildActor(DefaultHealthCheckingActorFactory.ACTOR_NAME,
                 DefaultHealthCheckingActorFactory.props(healthCheckingActorOptions,
-                        MongoHealthChecker.props(),
-                        MongoMetricsReporter.props(
-                                metricsReporterConfig.getResolution(),
-                                metricsReporterConfig.getHistory(),
-                                pubSubMediator
-                        )
+                        MongoHealthChecker.props()
                 ));
     }
 

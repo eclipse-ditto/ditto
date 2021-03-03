@@ -45,6 +45,7 @@ public interface CborFactory {
      *
      * @param bytes the bytes to parse with CBOR.
      * @return the parsed JsonValue.
+     * @throws JsonParseException if the content of {@code bytes} cannot be deserialized to a {@link JsonValue}.
      */
     JsonValue readFrom(byte[] bytes);
 
@@ -54,8 +55,9 @@ public interface CborFactory {
      *
      * @param bytes the bytes to parse with CBOR.
      * @param offset the offset where to start reading from.
-     * @param length the lenght of how much bytes to read.
+     * @param length the length of how much bytes to read.
      * @return the parsed JsonValue.
+     * @throws JsonParseException if the content of {@code bytes} cannot be deserialized to a {@link JsonValue}.
      */
     JsonValue readFrom(byte[] bytes, int offset, int length);
 
@@ -64,6 +66,7 @@ public interface CborFactory {
      *
      * @param byteBuffer the ByteBuffer to parse with CBOR.
      * @return the parsed JsonValue.
+     * @throws JsonParseException if the content of {@code byteBuffer} cannot be deserialized to a {@link JsonValue}.
      */
     JsonValue readFrom(ByteBuffer byteBuffer);
 
