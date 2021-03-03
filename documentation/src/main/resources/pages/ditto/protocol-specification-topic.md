@@ -17,6 +17,7 @@ Examples for valid topic paths are:
 * `org.eclipse.ditto/fancy-car-42/things/live/messages/hello.world`
 * `org.eclipse.ditto/fancy-policy-1/policies/commands/create`
 * `org.eclipse.ditto/fancy-policy-1/policies/commands/delete`
+* `org.eclipse.ditto/fancy-policy-1/policies/announcements/subjectDeletion`
 
 ## Namespace
 
@@ -83,7 +84,7 @@ the defined `{channel}`.
 
 ### Commands criterion
 
-*commands* are sent to Ditto in order to do something, either on the digital twin or on a real connected device.
+*commands* are sent to Ditto in order to do something, either on the digital twin or on a real connected device.  
 They are separated in ModifyCommands for creating, modifying, deleting and QueryCommands for retrieving.
 
 For each command Ditto processed a command response is created.
@@ -93,19 +94,19 @@ Command responses have the same topic path as the commands which they answer to.
 
 ### Events criterion
 
-*events* are emitted by Ditto for each command which successfully *modified* an entity.
+*events* are emitted by Ditto for each command which successfully *modified* an entity.  
 Each ModifyCommand causes a specific Event type to be published for which interested parties can subscribe themselves.
 
 ### Search criterion
 
-*search* requests can only be put on the *twin channel*.
+*search* requests can only be put on the *twin channel*.  
 They contain a query string defining on which data to search in the population of all **digital twins**.
 Ditto respects the [authorization](basic-auth.html) information while searching for the requested data and returns the
 search result as paged list of search hits.
 
 ### Messages criterion
 
-*messages* are always exchanged via the *live channel*.
+*messages* are always exchanged via the *live channel*.  
 They carry a custom payload and can be answered by another, correlated message.
 
 ### Errors criterion
@@ -119,11 +120,16 @@ They contain a *status integer* which reflects an HTTP status code with the same
 have to be successfully fulfilled to regard the command as successfully executed.
 
 *acks* can be returned in response to [events](#events-criterion) which have defined in their `headers`, that specific 
-acknowledgement labels were required by the issuing command.<br/>
+acknowledgement labels were required by the issuing command.  
 Acks contain a *status integer* which reflects a status code with the same semantics as in HTTP, reflecting whether the
-ack was successful (2xx status range) or not (4xx or 5xx status range).<br/>
+ack was successful (2xx status range) or not (4xx or 5xx status range).  
 Acks contain *headers* which include at least the `correlation-id` of the command/event to acknowledge, and optionally 
 contain a custom *payload*. 
+
+### Announcement criterion
+
+*announcements* are published by Ditto prior to an *event* taking place.  
+They are created by Ditto and are e.g. published a configured amount of time before an event will likely happen.
 
 
 ## Action (optional)
@@ -174,3 +180,6 @@ For *acks* criterion, the *action* segment specifies the identifier, which is de
 The criterion has to match the regular expression `[a-zA-Z0-9-_:]{3,100}`, i.e. letters of the Latin alphabet, numbers,
 dashes, and underscores.
 
+### Announcement criterion actions
+
+For the *announcement* criterion, the *action* segment specifies the announcement name.

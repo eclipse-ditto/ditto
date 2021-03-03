@@ -149,6 +149,15 @@ WebSocket session, the following text message has to be sent to the backend: `ST
 
 From then on the WebSocket session will receive all live events it is entitled to see.
 
+### Request policy announcements
+
+In order to subscribe for [Policy announcements](protocol-specification-policies-announcement.html) which can be 
+published to a WebSocket session, the following text message has to be sent to the backend: 
+`START-SEND-POLICY-ANNOUNCEMENTS`
+
+From then on the WebSocket session will receive all announcements related to policies related to the authenticated 
+subjects of the websocket session.
+
 ### Overview
 
 The following table shows which WebSocket protocol message are supported:
@@ -156,14 +165,16 @@ The following table shows which WebSocket protocol message are supported:
 | Description | Request message | Response message |
 |-------------|-----------------|------------------|
 | Refresh JWT based authentication |  `JWT-TOKEN` | `-` |
-| Subscribe for [events/change notifications](basic-changenotifications.html) | `START-SEND-EVENTS` | `START-SEND-EVENTS:ACK` |
-| Stop receiving change notifications | `STOP-SEND-EVENTS` | `STOP-SEND-EVENTS:ACK` |
-| Subscribe for [messages](basic-messages.html) | `START-SEND-MESSAGES` | `START-SEND-MESSAGES:ACK` |
-| Stop receiving messages | `STOP-SEND-MESSAGES` | `STOP-SEND-MESSAGES:ACK` |
-| Subscribe for [live commands](protocol-twinlive.html) | `START-SEND-LIVE-COMMANDS` | `START-SEND-LIVE-COMMANDS:ACK` |
-| Stop receiving live commands | `STOP-SEND-LIVE-COMMANDS` | `STOP-SEND-LIVE-COMMANDS:ACK` |
-| Subscribe for [live events](protocol-twinlive.html) | `START-SEND-LIVE-EVENTS` | `START-SEND-LIVE-EVENTS:ACK` |
-| Stop receiving live commands | `STOP-SEND-LIVE-EVENTS` | `STOP-SEND-LIVE-EVENTS:ACK` |
+| Subscribe for [Thing events/change notifications](basic-changenotifications.html) | `START-SEND-EVENTS` | `START-SEND-EVENTS:ACK` |
+| Stop receiving Thing change notifications | `STOP-SEND-EVENTS` | `STOP-SEND-EVENTS:ACK` |
+| Subscribe for [Thing messages](basic-messages.html) | `START-SEND-MESSAGES` | `START-SEND-MESSAGES:ACK` |
+| Stop receiving Thing messages | `STOP-SEND-MESSAGES` | `STOP-SEND-MESSAGES:ACK` |
+| Subscribe for [Thing live commands](protocol-twinlive.html) | `START-SEND-LIVE-COMMANDS` | `START-SEND-LIVE-COMMANDS:ACK` |
+| Stop receiving Thing live commands | `STOP-SEND-LIVE-COMMANDS` | `STOP-SEND-LIVE-COMMANDS:ACK` |
+| Subscribe for [Thing live events](protocol-twinlive.html) | `START-SEND-LIVE-EVENTS` | `START-SEND-LIVE-EVENTS:ACK` |
+| Stop receiving Thing live commands | `STOP-SEND-LIVE-EVENTS` | `STOP-SEND-LIVE-EVENTS:ACK` |
+| Subscribe for [Policy announcements](protocol-specification-policies-announcement.html) | `START-SEND-POLICY-ANNOUNCEMENTS` | `START-SEND-POLICY-ANNOUNCEMENTS:ACK` |
+| Stop receiving Policy announcements | `STOP-SEND-POLICY-ANNOUNCEMENTS` | `STOP-SEND-POLICY-ANNOUNCEMENTS:ACK` |
 
 ### Authentication
 
@@ -183,10 +194,11 @@ to the request message. This is supported for all request messages:
 
 | Description | Request message | [Enrich by extra fields](basic-enrichment.html) |
 |-------------|-----------------|------------------|
-| Subscribe for [events/change notifications](basic-changenotifications.html) | `START-SEND-EVENTS` | &#10004; |
-| Subscribe for [messages](basic-messages.html) | `START-SEND-MESSAGES` | &#10004; |
-| Subscribe for [live commands](protocol-twinlive.html) | `START-SEND-LIVE-COMMANDS` | &#10004; |
-| Subscribe for [live events](protocol-twinlive.html) | `START-SEND-LIVE-EVENTS` | &#10004; |
+| Subscribe for [Thing events/change notifications](basic-changenotifications.html) | `START-SEND-EVENTS` | &#10004; |
+| Subscribe for [Thing messages](basic-messages.html) | `START-SEND-MESSAGES` | &#10004; |
+| Subscribe for [Thing live commands](protocol-twinlive.html) | `START-SEND-LIVE-COMMANDS` | &#10004; |
+| Subscribe for [Thing live events](protocol-twinlive.html) | `START-SEND-LIVE-EVENTS` | &#10004; |
+| Subscribe for [Policy announcements](protocol-specification-policies-announcement.html) | `START-SEND-POLICY-ANNOUNCEMENTS` | &#10060; |
 
 Analog to the [filtering](#filtering) the parameter is defined like an HTTP query parameter, e.g.:
 ```
@@ -201,10 +213,11 @@ following parameters can additionally be provided when sending the WebSocket pro
 
 | Description | Request message | [Filter by namespaces](basic-changenotifications.html#by-namespaces) | [Filter by RQL expression](basic-changenotifications.html#by-rql-expression) |
 |-------------|-----------------|------------------|-----------|
-| Subscribe for [events/change notifications](basic-changenotifications.html) | `START-SEND-EVENTS` | &#10004; | &#10004; |
-| Subscribe for [messages](basic-messages.html) | `START-SEND-MESSAGES` | &#10004; | &#10060; |
-| Subscribe for [live commands](protocol-twinlive.html) | `START-SEND-LIVE-COMMANDS` | &#10004; | &#10060; |
-| Subscribe for [live events](protocol-twinlive.html) | `START-SEND-LIVE-EVENTS` | &#10004; | &#10004; |
+| Subscribe for [Thing events/change notifications](basic-changenotifications.html) | `START-SEND-EVENTS` | &#10004; | &#10004; |
+| Subscribe for [Thing messages](basic-messages.html) | `START-SEND-MESSAGES` | &#10004; | &#10060; |
+| Subscribe for [Thing live commands](protocol-twinlive.html) | `START-SEND-LIVE-COMMANDS` | &#10004; | &#10060; |
+| Subscribe for [Thing live events](protocol-twinlive.html) | `START-SEND-LIVE-EVENTS` | &#10004; | &#10004; |
+| Subscribe for [Policy announcements](protocol-specification-policies-announcement.html) | `START-SEND-POLICY-ANNOUNCEMENTS` | &#10004; | &#10060; |
 
 The parameters are specified similar to HTTP query parameters, the first one separated with a `?` and all following ones
 with `&`.  You have to URL encode the filter values before using them in a configuration.

@@ -20,4 +20,4 @@ is composed of multiple correlated Protocol messages.
 Therefore, each Protocol message contains a `correlation-id` which can be used to associate related Protocol messages.
 
 The [Signals](basic-signals.html#communication-pattern) chapter already describes the basic communication pattern of
-**commands**, **responses** and **events**.
+**commands**, **responses**, **events** and **announcements**.

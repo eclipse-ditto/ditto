@@ -265,9 +265,10 @@ This is an example `"replyTarget"` containing both header mapping and expected r
 Targets are used to connect to messages brokers / external systems in order to publish messages **to them**.
 
 Target messages can be of the following type:
-* [messages](basic-messages.html)
-* [events](basic-signals-event.html)
-* [live commands/responses/events](protocol-twinlive.html)
+* [Thing messages](basic-messages.html)
+* [Thing events](basic-signals-event.html)
+* [Thing live commands/responses/events](protocol-twinlive.html)
+* [Policy announcements](protocol-specification-policies-announcement.html)
 
 Targets contain:
 * one address (that is interpreted differently depending on the [connection type](#connection-types), e.g. as queue, topic, etc.),
@@ -285,10 +286,11 @@ following parameters can additionally be provided when specifying the `topics` o
 
 | Description | Topic | [Filter by namespaces](basic-changenotifications.html#by-namespaces) | [Filter by RQL expression](basic-changenotifications.html#by-rql-expression) |
 |-------------|-----------------|------------------|-----------|
-| Subscribe for [events/change notifications](basic-changenotifications.html) | `_/_/things/twin/events` | &#10004; | &#10004; |
-| Subscribe for [messages](basic-messages.html) | `_/_/things/live/messages` | &#10004; | &#10060; |
-| Subscribe for [live commands](protocol-twinlive.html) | `_/_/things/live/commands` | &#10004; | &#10060; |
-| Subscribe for [live events](protocol-twinlive.html) | `_/_/things/live/events` | &#10004; | &#10004; |
+| Subscribe for [Thing events/change notifications](basic-changenotifications.html) | `_/_/things/twin/events` | &#10004; | &#10004; |
+| Subscribe for [Thing messages](basic-messages.html) | `_/_/things/live/messages` | &#10004; | &#10060; |
+| Subscribe for [Thing live commands](protocol-twinlive.html) | `_/_/things/live/commands` | &#10004; | &#10060; |
+| Subscribe for [Thing live events](protocol-twinlive.html) | `_/_/things/live/events` | &#10004; | &#10004; |
+| Subscribe for [Policy announcements](protocol-specification-policies-announcement.html) | `_/_/policies/announcements` | &#10004; | &#10060; |
 
 The parameters are specified similar to HTTP query parameters, the first one separated with a `?` and all following ones
 with `&`. You need to URL-encode the filter values before using them in a configuration.
@@ -315,10 +317,11 @@ to the topic. This is supported for all topics:
 
 | Description | Topic | [Enrich by extra fields](basic-enrichment.html) |
 |-------------|-----------------|------------------|
-| Subscribe for [events/change notifications](basic-changenotifications.html) | `_/_/things/twin/events` | &#10004; |
-| Subscribe for [messages](basic-messages.html) | `_/_/things/live/messages` | &#10004; |
-| Subscribe for [live commands](protocol-twinlive.html) | `_/_/things/live/commands` | &#10004; |
-| Subscribe for [live events](protocol-twinlive.html) | `_/_/things/live/events` | &#10004; |
+| Subscribe for [Thing events/change notifications](basic-changenotifications.html) | `_/_/things/twin/events` | &#10004; |
+| Subscribe for [Thing messages](basic-messages.html) | `_/_/things/live/messages` | &#10004; |
+| Subscribe for [Thing live commands](protocol-twinlive.html) | `_/_/things/live/commands` | &#10004; |
+| Subscribe for [Thing live events](protocol-twinlive.html) | `_/_/things/live/events` | &#10004; |
+| Subscribe for [Policy announcements](protocol-specification-policies-announcement.html) | `_/_/policies/announcements` | &#10060; |
 
 Example:
 ```json
