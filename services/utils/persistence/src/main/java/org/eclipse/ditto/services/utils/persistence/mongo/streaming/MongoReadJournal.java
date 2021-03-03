@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -29,6 +30,9 @@ import org.eclipse.ditto.services.utils.persistence.mongo.DittoMongoClient;
 import org.eclipse.ditto.services.utils.persistence.mongo.MongoClientWrapper;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.DefaultMongoDbConfig;
 import org.eclipse.ditto.services.utils.persistence.mongo.config.MongoDbConfig;
+import org.eclipse.ditto.services.utils.persistence.mongo.indices.Index;
+import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexFactory;
+import org.eclipse.ditto.services.utils.persistence.mongo.indices.IndexInitializer;
 import org.eclipse.ditto.utils.jsr305.annotations.AllValuesAreNonnullByDefault;
 
 import com.mongodb.client.model.Accumulators;
@@ -39,6 +43,7 @@ import com.mongodb.client.model.Sorts;
 import com.mongodb.reactivestreams.client.MongoCollection;
 import com.typesafe.config.Config;
 
+import akka.Done;
 import akka.NotUsed;
 import akka.actor.ActorSystem;
 import akka.contrib.persistence.mongodb.JournallingFieldNames$;
@@ -47,6 +52,7 @@ import akka.japi.Pair;
 import akka.stream.Attributes;
 import akka.stream.Materializer;
 import akka.stream.RestartSettings;
+import akka.stream.SystemMaterializer;
 import akka.stream.javadsl.RestartSource;
 import akka.stream.javadsl.Sink;
 import akka.stream.javadsl.Source;
@@ -92,15 +98,21 @@ public class MongoReadJournal {
 
     private static final Duration MAX_BACK_OFF_DURATION = Duration.ofSeconds(128L);
 
+    private static final Index TAG_PID_INDEX =
+            IndexFactory.newInstance("ditto_tag_pid", List.of(J_TAGS, J_PROCESSOR_ID), false, true);
+
     private final String journalCollection;
     private final String snapsCollection;
     private final DittoMongoClient mongoClient;
+    private final IndexInitializer indexInitializer;
 
     private MongoReadJournal(final String journalCollection, final String snapsCollection,
-            final DittoMongoClient mongoClient) {
+            final DittoMongoClient mongoClient, final ActorSystem actorSystem) {
         this.journalCollection = journalCollection;
         this.snapsCollection = snapsCollection;
         this.mongoClient = mongoClient;
+        final var materializer = SystemMaterializer.get(actorSystem).materializer();
+        indexInitializer = IndexInitializer.of(mongoClient.getDefaultDatabase(), materializer);
     }
 
     /**
@@ -113,21 +125,7 @@ public class MongoReadJournal {
         final Config config = system.settings().config();
         final MongoDbConfig mongoDbConfig =
                 DefaultMongoDbConfig.of(DefaultScopedConfig.dittoScoped(config));
-        return newInstance(config, MongoClientWrapper.newInstance(mongoDbConfig));
-    }
-
-    /**
-     * Instantiate a read journal from collection names and database client, primarily for tests.
-     *
-     * @param journalCollection the journal collection name.
-     * @param snapsCollection the snapshot collection name.
-     * @param dittoMongoClient the client.
-     * @return a read journal for the journal and snapshot collections.
-     */
-    public static MongoReadJournal newInstance(final String journalCollection, final String snapsCollection,
-            final DittoMongoClient dittoMongoClient) {
-
-        return new MongoReadJournal(journalCollection, snapsCollection, dittoMongoClient);
+        return newInstance(config, MongoClientWrapper.newInstance(mongoDbConfig), system);
     }
 
     /**
@@ -137,14 +135,24 @@ public class MongoReadJournal {
      * @param mongoClient The Mongo client wrapper.
      * @return A {@code MongoReadJournal} object.
      */
-    public static MongoReadJournal newInstance(final Config config, final DittoMongoClient mongoClient) {
+    public static MongoReadJournal newInstance(final Config config, final DittoMongoClient mongoClient,
+            final ActorSystem actorSystem) {
         final String autoStartJournalKey = extractAutoStartConfigKey(config, AKKA_PERSISTENCE_JOURNAL_AUTO_START);
         final String autoStartSnapsKey = extractAutoStartConfigKey(config, AKKA_PERSISTENCE_SNAPS_AUTO_START);
         final String journalCollection =
                 getOverrideCollectionName(config.getConfig(autoStartJournalKey), JOURNAL_COLLECTION_NAME_KEY);
         final String snapshotCollection =
                 getOverrideCollectionName(config.getConfig(autoStartSnapsKey), SNAPS_COLLECTION_NAME_KEY);
-        return new MongoReadJournal(journalCollection, snapshotCollection, mongoClient);
+        return new MongoReadJournal(journalCollection, snapshotCollection, mongoClient, actorSystem);
+    }
+
+    /**
+     * Ensure a compound index exists for journal PID streaming based on tags.
+     *
+     * @return a future that completes after index creation completes or fails when index creation fails.
+     */
+    public CompletionStage<Done> ensureTagPidIndex() {
+        return indexInitializer.createNonExistingIndices(journalCollection, List.of(TAG_PID_INDEX));
     }
 
     /**
@@ -181,7 +189,8 @@ public class MongoReadJournal {
      * @return Source of all persistence IDs such that each element contains the persistence IDs in {@code batchSize}
      * events that do not occur in prior buckets.
      */
-    public Source<String, NotUsed> getJournalPidsWithTag(final String tag, final int batchSize, final Duration maxIdleTime,
+    public Source<String, NotUsed> getJournalPidsWithTag(final String tag, final int batchSize,
+            final Duration maxIdleTime,
             final Materializer mat) {
 
         final int maxRestarts = computeMaxRestarts(maxIdleTime);
@@ -274,7 +283,8 @@ public class MongoReadJournal {
         return this.unfoldBatchedSource(lowerBoundPid,
                 mat,
                 SnapshotBatch::getMaxPid,
-                actualStartPid -> listNewestActiveSnapshotsByBatch(snapshotStore, actualStartPid, batchSize, snapshotFields))
+                actualStartPid -> listNewestActiveSnapshotsByBatch(snapshotStore, actualStartPid, batchSize,
+                        snapshotFields))
                 .mapConcat(x -> x)
                 .map(SnapshotBatch::getItems);
     }
@@ -305,15 +315,12 @@ public class MongoReadJournal {
             final String tag, final int batchSize, final Duration maxBackOff, final int maxRestarts) {
 
         final List<Bson> pipeline = new ArrayList<>(5);
-        // optional match stage
-        if (!startPid.isEmpty()) {
-            if (!tag.isEmpty()) {
-                pipeline.add(Aggregates.match(Filters.and(Filters.gt(J_PROCESSOR_ID, startPid), Filters.eq(J_TAGS, tag))));
-            } else {
-                pipeline.add(Aggregates.match(Filters.gt(J_PROCESSOR_ID, startPid)));
-            }
-        } else if (!tag.isEmpty()) {
+        // optional match stages: consecutive match stages are optimized together ($match + $match coalescence)
+        if (!tag.isEmpty()) {
             pipeline.add(Aggregates.match(Filters.eq(J_TAGS, tag)));
+        }
+        if (!startPid.isEmpty()) {
+            pipeline.add(Aggregates.match(Filters.gt(J_PROCESSOR_ID, startPid)));
         }
 
         // sort stage

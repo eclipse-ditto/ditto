@@ -34,7 +34,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.assertj.core.api.Assertions;
@@ -787,9 +786,8 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
 
                 // THEN: the subject expiry should be rounded up to the configured "subject-expiry-granularity"
                 //  (10s for this test)
-                expectMsgEquals(
-                        modifySubjectResponse(policyId, POLICY_LABEL, expectedAdjustedSubjectToAdd,
-                                headersMockWithOtherAuth, true));
+                expectMsgEquals(modifySubjectResponse(policyId, POLICY_LABEL, expectedAdjustedSubjectToAdd,
+                        headersMockWithOtherAuth, true));
 
                 final RetrieveSubject retrieveSubject =
                         RetrieveSubject.of(policyId, POLICY_LABEL, subjectToAdd.getId(), headersMockWithOtherAuth);

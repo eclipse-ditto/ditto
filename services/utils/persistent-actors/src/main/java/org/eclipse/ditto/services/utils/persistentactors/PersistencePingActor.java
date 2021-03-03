@@ -24,6 +24,7 @@ import org.eclipse.ditto.model.base.exceptions.DittoRuntimeException;
 import org.eclipse.ditto.services.utils.akka.PingCommand;
 import org.eclipse.ditto.services.utils.akka.PingCommandResponse;
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
+import org.eclipse.ditto.services.utils.akka.logging.ThreadSafeDittoLoggingAdapter;
 import org.eclipse.ditto.services.utils.persistence.mongo.streaming.MongoReadJournal;
 import org.eclipse.ditto.services.utils.persistentactors.config.PingConfig;
 import org.eclipse.ditto.services.utils.persistentactors.config.RateConfig;
@@ -33,7 +34,6 @@ import akka.actor.AbstractActor;
 import akka.actor.ActorRef;
 import akka.actor.Cancellable;
 import akka.actor.Props;
-import akka.event.DiagnosticLoggingAdapter;
 import akka.japi.pf.ReceiveBuilder;
 import akka.stream.Materializer;
 import akka.stream.javadsl.Source;
@@ -54,7 +54,7 @@ public final class PersistencePingActor extends AbstractActor {
 
     private static final String CORRELATION_ID_PREFIX = "persistence-ping-actor-triggered:";
 
-    private final DiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
+    private final ThreadSafeDittoLoggingAdapter log = DittoLoggerFactory.getThreadSafeDittoLoggingAdapter(this);
 
     private final ActorRef persistenceActorShardRegion;
     private final Supplier<Source<String, NotUsed>> persistenceIdsSourceSupplier;
@@ -85,6 +85,10 @@ public final class PersistencePingActor extends AbstractActor {
                 pingConfig.getReadJournalBatchSize(),
                 pingConfig.getInterval(),
                 materializer);
+        readJournal.ensureTagPidIndex().exceptionally(e -> {
+            log.error(e, "Failed to create TagPidIndex");
+            return null;
+        });
     }
 
     /**

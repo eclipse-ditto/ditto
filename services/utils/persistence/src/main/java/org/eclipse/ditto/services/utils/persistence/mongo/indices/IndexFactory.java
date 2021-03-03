@@ -54,6 +54,22 @@ public final class IndexFactory {
     }
 
     /**
+     * Returns a new {@link Index} with all fields having default (i.e. ascending) index direction.
+     *
+     * @param name the name of the index.
+     * @param fields the fields which form the index.
+     * @param unique whether or not the index should be unique.
+     * @param sparse whether or not the index should be sparse.
+     * @return the index.
+     * @see #newInstanceWithCustomKeys(String, List, boolean)
+     */
+    public static Index newInstance(final String name, final List<String> fields, final boolean unique,
+            final boolean sparse) {
+        final BsonDocument keys = createKeysDocument(createDefaultKeys(requireNonNull(fields)));
+        return Index.of(keys, name, unique, sparse, BACKGROUND_OPTION_DEFAULT);
+    }
+
+    /**
      * Returns a new {@link Index} with custom keys, in contrast to method {@link #newInstance(String, List, boolean)}.
      * When {@code unique} is true, the created index will also be {@code sparse}.
      *

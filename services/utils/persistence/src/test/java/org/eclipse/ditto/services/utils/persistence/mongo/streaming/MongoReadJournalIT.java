@@ -87,7 +87,7 @@ public final class MongoReadJournalIT {
                 .withValue("akka.contrib.persistence.mongodb.mongo.mongouri", ConfigValueFactory.fromAnyRef(mongoUri));
         actorSystem = ActorSystem.create("AkkaTestSystem", config);
         materializer = SystemMaterializer.get(actorSystem).materializer();
-        readJournal = MongoReadJournal.newInstance(config, mongoClient);
+        readJournal = MongoReadJournal.newInstance(config, mongoClient, actorSystem);
     }
 
     @After
