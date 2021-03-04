@@ -25,12 +25,20 @@
     <packaging>jar</packaging>
     <name>Eclipse Ditto :: Services :: Models :: Concierge</name>
 
-    <properties>
-        <!-- deactivate binary comp check for this module only for now -->
-        <binary-compatibility-check.version>${revision}</binary-compatibility-check.version>
-    </properties>
-
     <dependencies>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-commands-messages</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-commands-things</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.ditto</groupId>
+            <artifactId>ditto-signals-commands-thingsearch</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-models-things</artifactId>
@@ -51,11 +59,6 @@
         <dependency>
             <groupId>org.eclipse.ditto</groupId>
             <artifactId>ditto-services-utils-cache</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.eclipse.ditto</groupId>
-            <artifactId>ditto-services-models-caching</artifactId>
         </dependency>
 
         <dependency>

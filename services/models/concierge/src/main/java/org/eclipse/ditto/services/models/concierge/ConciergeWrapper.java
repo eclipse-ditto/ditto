@@ -12,10 +12,6 @@
  */
 package org.eclipse.ditto.services.models.concierge;
 
-import org.eclipse.ditto.model.base.json.FieldType;
-import org.eclipse.ditto.services.models.caching.EntityId;
-import org.eclipse.ditto.services.models.streaming.StreamingType;
-import org.eclipse.ditto.signals.base.ShardedMessageEnvelope;
 import org.eclipse.ditto.services.utils.cache.EntityIdWithResourceType;
 import org.eclipse.ditto.signals.base.Signal;
 

@@ -26,11 +26,6 @@ import org.eclipse.ditto.model.base.entity.id.EntityId;
 import org.eclipse.ditto.model.base.headers.DittoHeaders;
 import org.eclipse.ditto.model.base.json.FieldType;
 import org.eclipse.ditto.model.base.json.Jsonifiable;
-import org.eclipse.ditto.model.policies.PoliciesResourceType;
-import org.eclipse.ditto.model.policies.Policy;
-import org.eclipse.ditto.services.base.config.ServiceConfigReader;
-import org.eclipse.ditto.services.models.caching.EntityId;
-import org.eclipse.ditto.services.models.caching.Entry;
 import org.eclipse.ditto.model.things.ThingId;
 import org.eclipse.ditto.services.models.policies.PolicyReferenceTag;
 import org.eclipse.ditto.services.models.streaming.IdentifiableStreamingMessage;
@@ -41,9 +36,6 @@ import org.eclipse.ditto.services.utils.akka.logging.DittoDiagnosticLoggingAdapt
 import org.eclipse.ditto.services.utils.akka.logging.DittoLoggerFactory;
 import org.eclipse.ditto.services.utils.akka.streaming.StreamAck;
 import org.eclipse.ditto.services.utils.cluster.DistPubSubAccess;
-import org.eclipse.ditto.services.utils.cache.Cache;
-import org.eclipse.ditto.services.utils.cache.CacheFactory;
-import org.eclipse.ditto.services.utils.cache.PolicyCacheLoader;
 import org.eclipse.ditto.services.utils.cluster.RetrieveStatisticsDetailsResponseSupplier;
 import org.eclipse.ditto.services.utils.namespaces.BlockNamespaceBehavior;
 import org.eclipse.ditto.services.utils.namespaces.BlockedNamespaces;
@@ -74,14 +66,11 @@ final class ThingsUpdater extends AbstractActorWithTimers {
      */
     static final String ACTOR_NAME = "thingsUpdater";
 
-    private static final String POLICY_CACHE_METRIC_NAME_PREFIX = "ditto_authorization_policy_cache_";
-
     private final DittoDiagnosticLoggingAdapter log = DittoLoggerFactory.getDiagnosticLoggingAdapter(this);
     private final ActorRef shardRegion;
     private final BlockNamespaceBehavior namespaceBlockingBehavior;
     private final RetrieveStatisticsDetailsResponseSupplier retrieveStatisticsDetailsResponseSupplier;
     private final DistributedSub thingEventSub;
-    private final Cache<EntityId, Entry<Policy>> policyCache;
 
     private Set<String> previousShardIds = Collections.emptySet();
 
@@ -91,21 +80,6 @@ final class ThingsUpdater extends AbstractActorWithTimers {
             final UpdaterConfig updaterConfig,
             final BlockedNamespaces blockedNamespaces,
             final ActorRef pubSubMediator) {
-
-        final ActorSystem actorSystem = context().system();
-
-        // Start the proxy for the Things and Policies sharding, too.
-        final ActorRef thingsShardRegion = shardRegionFactory.getThingsShardRegion(numberOfShards);
-        final ActorRef policiesShardRegion = shardRegionFactory.getPoliciesShardRegion(numberOfShards);
-
-        final Duration askTimeout = configReader.caches().askTimeout();
-        final PolicyCacheLoader policyCacheLoader =
-                new PolicyCacheLoader(askTimeout, policiesShardRegion);
-        policyCache = CacheFactory.createCache(policyCacheLoader, configReader.caches().policy(),
-        POLICY_CACHE_METRIC_NAME_PREFIX + "policy",
-                actorSystem.dispatchers().lookup("policy-cache-dispatcher"));
-        policyCache.subscribeForInvalidation(policyCacheLoader);
-        policyCacheLoader.registerCacheInvalidator(policyCache::invalidate);
 
         this.thingEventSub = thingEventSub;
 
@@ -130,7 +104,6 @@ final class ThingsUpdater extends AbstractActorWithTimers {
     /**
      * Creates Akka configuration object for this actor.
      *
-     * @param configReader the ConfigReader of this service.
      * @param thingEventSub Ditto distributed-sub access for thing events.
      * @param thingUpdaterShardRegion shard region of thing-updaters
      * @param updaterConfig configuration for updaters.
@@ -234,26 +207,6 @@ final class ThingsUpdater extends AbstractActorWithTimers {
                 .debug("Forwarding incoming ThingEvent for thingId '{}'",
                         String.valueOf(thingEvent.getThingEntityId()));
         forwardEventToShardRegion(thingEvent, ThingEvent::getThingEntityId);
-    }
-
-    /**
-     * TODO TJ needed?
-     * @param policyEvent
-     */
-    private void processPolicyEvent(final PolicyEvent<?> policyEvent) {
-        LogUtil.enhanceLogWithCorrelationId(log, policyEvent);
-        final String policyId = policyEvent.getPolicyId();
-
-        policyCache.invalidate(EntityId.of(PoliciesResourceType.POLICY, policyId));
-
-        namespaceBlockingBehavior.block(policyEvent)
-                .thenCompose(event -> thingIdsForPolicy(policyId))
-                .thenAccept(thingIds -> thingIds.forEach(id -> forwardPolicyEventToShardRegion(policyEvent, id)))
-                .exceptionally(error -> {
-                    LogUtil.enhanceLogWithCorrelationId(log, policyEvent);
-                    log.info("Policy event ''{}'' not applied due to ''{}''", policyEvent, error);
-                    return null;
-                });
     }
 
     private <J extends Jsonifiable<?>> void forwardJsonifiableToShardRegion(final J message,
