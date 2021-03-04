@@ -62,14 +62,6 @@ final class ImmutableLabel implements Label {
                     .build();
         }
 
-        final Validator validator = NoControlCharactersNoSlashesValidator.getInstance(labelValue);
-        if (!validator.isValid()) {
-            throw PolicyEntryInvalidException.newBuilder()
-                    .message("The Policy Label " + labelValue + " is invalid")
-                    .description(validator.getReason().orElse(null))
-                    .build();
-        }
-
         return new ImmutableLabel(labelValue.toString());
     }
 
