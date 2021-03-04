@@ -822,7 +822,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 verify(policyAnnouncementPub).publish(announcementCaptor.capture(), any());
                 final SubjectDeletionAnnouncement announcement = announcementCaptor.getValue();
                 Assertions.assertThat(announcement.getSubjectIds()).containsExactly(subjectToAdd.getId());
-                Assertions.assertThat(announcement.getDeletedAt()).isEqualTo(expectedRoundedExpiryInstant);
+                Assertions.assertThat(announcement.getDeleteAt()).isEqualTo(expectedRoundedExpiryInstant);
 
                 // THEN: a PolicyTag should be emitted via pub/sub indicating that the policy enforcer caches should be invalidated
                 final DistributedPubSubMediator.Publish policyTagForCacheInvalidation =
@@ -939,9 +939,9 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 final SubjectDeletionAnnouncement announcement1 = captor.getAllValues().get(0);
                 final SubjectDeletionAnnouncement announcement2 = captor.getAllValues().get(1);
                 Assertions.assertThat(announcement1.getSubjectIds()).containsExactly(subject1.getId());
-                Assertions.assertThat(announcement1.getDeletedAt()).isAfterOrEqualTo(subjectExpiry1.getTimestamp());
+                Assertions.assertThat(announcement1.getDeleteAt()).isAfterOrEqualTo(subjectExpiry1.getTimestamp());
                 Assertions.assertThat(announcement2.getSubjectIds()).containsExactly(subject2.getId());
-                Assertions.assertThat(announcement2.getDeletedAt()).isAfterOrEqualTo(subjectExpiry2.getTimestamp());
+                Assertions.assertThat(announcement2.getDeleteAt()).isAfterOrEqualTo(subjectExpiry2.getTimestamp());
 
                 // THEN: announcements are published no more than once while the actor is alive.
                 verifyNoMoreInteractions(policyAnnouncementPub);
@@ -1418,7 +1418,7 @@ public final class PolicyPersistenceActorTest extends PersistenceActorTestBase {
                 verify(policyAnnouncementPub).publish(announcementCaptor.capture(), any());
                 final var announcement = announcementCaptor.getValue();
                 Assertions.assertThat(announcement.getSubjectIds()).containsExactly(expiringSubject.getId());
-                Assertions.assertThat(announcement.getDeletedAt()).isEqualTo(expectedRoundedExpiryInstant);
+                Assertions.assertThat(announcement.getDeleteAt()).isEqualTo(expectedRoundedExpiryInstant);
 
                 // THEN: returned policy via SudoRetrievePolicyResponse does no longer contain the already expired subject:
                 final Policy expectedPolicyWithoutExpiredSubject = incrementRevision(policy.toBuilder()

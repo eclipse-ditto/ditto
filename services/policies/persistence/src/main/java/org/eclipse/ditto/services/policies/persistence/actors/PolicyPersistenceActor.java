@@ -321,10 +321,10 @@ public final class PolicyPersistenceActor
     private void publishExpiryAnnouncementsByTimestamp(final Stream<Subject> relevantSubjects) {
         final Map<Instant, Set<SubjectId>> subjectIdsByExpiry = relevantSubjects.collect(GROUP_BY_EXPIRY_COLLECTOR);
         log.info("Sending announcements for <{}>", subjectIdsByExpiry);
-        subjectIdsByExpiry.keySet().stream().sorted().forEach(deletedAt -> {
-            final var subjectIds = subjectIdsByExpiry.get(deletedAt);
+        subjectIdsByExpiry.keySet().stream().sorted().forEach(deleteAt -> {
+            final var subjectIds = subjectIdsByExpiry.get(deleteAt);
             final var announcement =
-                    SubjectDeletionAnnouncement.of(entityId, deletedAt, subjectIds, DittoHeaders.newBuilder()
+                    SubjectDeletionAnnouncement.of(entityId, deleteAt, subjectIds, DittoHeaders.newBuilder()
                             .randomCorrelationId()
                             .build());
             policyAnnouncementPub.publish(announcement, ActorRef.noSender());

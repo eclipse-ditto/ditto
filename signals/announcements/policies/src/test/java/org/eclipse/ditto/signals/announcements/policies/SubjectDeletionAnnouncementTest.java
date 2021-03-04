@@ -83,7 +83,7 @@ public final class SubjectDeletionAnnouncementTest {
         final JsonObject expected = JsonObject.of(String.format("{\n" +
                 "  \"type\": \"policies.announcements:subjectDeletion\",\n" +
                 "  \"policyId\": \"policy:id\",\n" +
-                "  \"deletedAt\": \"%s\",\n" +
+                "  \"deleteAt\": \"%s\",\n" +
                 "  \"subjectIds\": [\"ditto:ditto\"]\n" +
                 "}", expiry.toString()));
 
@@ -98,7 +98,7 @@ public final class SubjectDeletionAnnouncementTest {
         final JsonObject json = JsonObject.of(String.format("{\n" +
                 "  \"type\": \"policies.announcements:subjectDeletion\",\n" +
                 "  \"policyId\": \"policy:id\",\n" +
-                "  \"deletedAt\": \"%s\",\n" +
+                "  \"deleteAt\": \"%s\",\n" +
                 "  \"subjectIds\": [\"ditto:ditto\"]\n" +
                 "}", expiry.toString()));
 

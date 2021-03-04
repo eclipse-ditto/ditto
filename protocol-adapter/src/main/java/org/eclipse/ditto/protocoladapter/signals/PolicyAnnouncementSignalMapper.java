@@ -44,7 +44,7 @@ final class PolicyAnnouncementSignalMapper extends AbstractSignalMapper<PolicyAn
 
     private static JsonObject getSubjectDeletionAnnouncementPayload(final SubjectDeletionAnnouncement announcement) {
         return JsonObject.newBuilder()
-                .set(SubjectDeletionAnnouncement.JsonFields.DELETED_AT, announcement.getDeletedAt().toString())
+                .set(SubjectDeletionAnnouncement.JsonFields.DELETE_AT, announcement.getDeleteAt().toString())
                 .set(SubjectDeletionAnnouncement.JsonFields.SUBJECT_IDS, announcement.getSubjectIds()
                         .stream()
                         .map(JsonValue::of)

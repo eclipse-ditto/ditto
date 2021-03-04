@@ -62,7 +62,7 @@ final class PolicyAnnouncementMappingStrategies extends AbstractPolicyMappingStr
         final PolicyId policyId = policyIdFromTopicPath(adaptable.getTopicPath());
         final DittoHeaders dittoHeaders = dittoHeadersFrom(adaptable);
         final JsonObject payload = getValueFromPayload(adaptable);
-        final Instant expiry = Instant.parse(payload.getValueOrThrow(SubjectDeletionAnnouncement.JsonFields.DELETED_AT));
+        final Instant expiry = Instant.parse(payload.getValueOrThrow(SubjectDeletionAnnouncement.JsonFields.DELETE_AT));
         final Set<SubjectId> expiringSubjectIds =
                 payload.getValueOrThrow(SubjectDeletionAnnouncement.JsonFields.SUBJECT_IDS)
                         .stream()

@@ -29,6 +29,6 @@ Announcement indicating that some subjects of a policy are deleted or about to b
 |-----------|-------------------------|
 | **topic** | `<namespace>/<policyName>/policies/announcements/subjectDeletion` |
 | **path**  | `/`     |
-| **value** |  `JsonObject` containing<br/>* `deletedAt` timestamp (as ISO-8601 `string`)<br/>* `subjectIds` of policy [subjects](basic-policy.html#subjects) which will soon be deleted (`JsonArray` of subjects `string`s)|
+| **value** |  `JsonObject` containing<br/>* `deleteAt` timestamp (as ISO-8601 `string`)<br/>* `subjectIds` of policy [subjects](basic-policy.html#subjects) which will soon be deleted (`JsonArray` of subjects `string`s)|
 
-
+**Example:** [Announcement for subject deletion](protocol-examples-policies-announcement-subjectDeletion.html)

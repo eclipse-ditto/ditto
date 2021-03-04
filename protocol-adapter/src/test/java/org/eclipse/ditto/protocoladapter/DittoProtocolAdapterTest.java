@@ -556,7 +556,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
 
         final JsonValue payload = adaptable.getPayload().getValue().orElseThrow(NoSuchElementException::new);
         final JsonValue expectedPayload = JsonObject.newBuilder()
-                .set(SubjectDeletionAnnouncement.JsonFields.DELETED_AT, expiry.toString())
+                .set(SubjectDeletionAnnouncement.JsonFields.DELETE_AT, expiry.toString())
                 .set(SubjectDeletionAnnouncement.JsonFields.SUBJECT_IDS,
                         JsonArray.of("[\"ditto:sub1\",\"ditto:sub2\"]"))
                 .build();
@@ -573,7 +573,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                         "  \"headers\": {\"correlation-id\": \"%s\"},\n" +
                         "  \"path\": \"/\",\n" +
                         "  \"value\": {\n" +
-                        "    \"deletedAt\": \"%s\",\n" +
+                        "    \"deleteAt\": \"%s\",\n" +
                         "    \"subjectIds\": [\n" +
                         "      \"ditto:sub1\",\n" +
                         "      \"ditto:sub2\"\n" +
@@ -591,7 +591,7 @@ public final class DittoProtocolAdapterTest implements ProtocolAdapterTest {
                 Arrays.asList(SubjectId.newInstance("ditto:sub1"), SubjectId.newInstance("ditto:sub2")));
 
         assertThat((CharSequence) announcement.getEntityId()).isEqualTo(PolicyId.of("policy:id"));
-        assertThat(announcement.getDeletedAt()).isEqualTo(expiry);
+        assertThat(announcement.getDeleteAt()).isEqualTo(expiry);
         assertThat(announcement.getSubjectIds()).isEqualTo(expectedSubjectIds);
         assertThat(announcement.getDittoHeaders().getCorrelationId()).contains(correlationId);
     }

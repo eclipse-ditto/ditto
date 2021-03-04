@@ -59,14 +59,14 @@ public final class SubjectDeletionAnnouncement extends AbstractPolicyAnnouncemen
      */
     public static final String TYPE = TYPE_PREFIX + NAME;
 
-    private final Instant deletedAt;
+    private final Instant deleteAt;
     private final Set<SubjectId> subjectIds;
 
-    private SubjectDeletionAnnouncement(final PolicyId policyId, final Instant deletedAt,
+    private SubjectDeletionAnnouncement(final PolicyId policyId, final Instant deleteAt,
             final Collection<SubjectId> subjectIds,
             final DittoHeaders dittoHeaders) {
         super(policyId, dittoHeaders);
-        this.deletedAt = checkNotNull(deletedAt, "deletedAt");
+        this.deleteAt = checkNotNull(deleteAt, "deleteAt");
         this.subjectIds =
                 Collections.unmodifiableSet(new LinkedHashSet<>(checkNotNull(subjectIds, "subjectIds")));
     }
@@ -75,15 +75,15 @@ public final class SubjectDeletionAnnouncement extends AbstractPolicyAnnouncemen
      * Create a announcement for subject deletion.
      *
      * @param policyId the policy ID.
-     * @param deletedAt when the subjects will be deleted.
+     * @param deleteAt when the subjects will be deleted.
      * @param subjectIds what subjects will be deleted.
      * @param dittoHeaders headers of the announcement.
      * @return the announcement.
      */
-    public static SubjectDeletionAnnouncement of(final PolicyId policyId, final Instant deletedAt,
+    public static SubjectDeletionAnnouncement of(final PolicyId policyId, final Instant deleteAt,
             final Collection<SubjectId> subjectIds, final DittoHeaders dittoHeaders) {
 
-        return new SubjectDeletionAnnouncement(policyId, deletedAt, subjectIds, dittoHeaders);
+        return new SubjectDeletionAnnouncement(policyId, deleteAt, subjectIds, dittoHeaders);
     }
 
     /**
@@ -98,25 +98,25 @@ public final class SubjectDeletionAnnouncement extends AbstractPolicyAnnouncemen
      */
     public static SubjectDeletionAnnouncement fromJson(final JsonObject jsonObject, final DittoHeaders dittoHeaders) {
         final PolicyId policyId = PolicyId.of(jsonObject.getValueOrThrow(PolicyAnnouncement.JsonFields.JSON_POLICY_ID));
-        final Instant deletedAt = parseInstant(jsonObject.getValueOrThrow(JsonFields.DELETED_AT));
+        final Instant deleteAt = parseInstant(jsonObject.getValueOrThrow(JsonFields.DELETE_AT));
         final Collection<SubjectId> subjectIds = jsonObject.getValueOrThrow(
                 JsonFields.SUBJECT_IDS)
                 .stream()
                 .map(value -> SubjectId.newInstance(value.asString()))
                 .collect(Collectors.toList());
-        return of(policyId, deletedAt, subjectIds, dittoHeaders);
+        return of(policyId, deleteAt, subjectIds, dittoHeaders);
     }
 
     @Override
     public SubjectDeletionAnnouncement setDittoHeaders(final DittoHeaders dittoHeaders) {
-        return new SubjectDeletionAnnouncement(getEntityId(), deletedAt, subjectIds, dittoHeaders);
+        return new SubjectDeletionAnnouncement(getEntityId(), deleteAt, subjectIds, dittoHeaders);
     }
 
     @Override
     protected void appendPolicyAnnouncementPayload(final JsonObjectBuilder jsonObjectBuilder,
             final Predicate<JsonField> predicate) {
 
-        jsonObjectBuilder.set(JsonFields.DELETED_AT, deletedAt.toString(), predicate);
+        jsonObjectBuilder.set(JsonFields.DELETE_AT, deleteAt.toString(), predicate);
         jsonObjectBuilder.set(JsonFields.SUBJECT_IDS, toArray(subjectIds), predicate);
     }
 
@@ -145,8 +145,8 @@ public final class SubjectDeletionAnnouncement extends AbstractPolicyAnnouncemen
      *
      * @return the subject deletion timestamp.
      */
-    public Instant getDeletedAt() {
-        return deletedAt;
+    public Instant getDeleteAt() {
+        return deleteAt;
     }
 
     /**
@@ -165,7 +165,7 @@ public final class SubjectDeletionAnnouncement extends AbstractPolicyAnnouncemen
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" + super.toString() +
-                ", deletedAt=" + deletedAt +
+                ", deleteAt=" + deleteAt +
                 ", subjectIds=" + subjectIds +
                 "]";
     }
@@ -174,7 +174,7 @@ public final class SubjectDeletionAnnouncement extends AbstractPolicyAnnouncemen
     public boolean equals(final Object other) {
         if (super.equals(other)) {
             final SubjectDeletionAnnouncement that = (SubjectDeletionAnnouncement) other;
-            return Objects.equals(deletedAt, that.deletedAt) && Objects.equals(subjectIds, that.subjectIds);
+            return Objects.equals(deleteAt, that.deleteAt) && Objects.equals(subjectIds, that.subjectIds);
         } else {
             return false;
         }
@@ -182,16 +182,16 @@ public final class SubjectDeletionAnnouncement extends AbstractPolicyAnnouncemen
 
     @Override
     public int hashCode() {
-        return Objects.hash(deletedAt, subjectIds, super.hashCode());
+        return Objects.hash(deleteAt, subjectIds, super.hashCode());
     }
 
-    private static Instant parseInstant(final String deletedAt) {
+    private static Instant parseInstant(final String deleteAt) {
         try {
-            return Instant.parse(deletedAt);
+            return Instant.parse(deleteAt);
         } catch (final DateTimeParseException e) {
             throw JsonParseException.newBuilder()
                     .message(String.format("Deletion timestamp '%s' is not valid. " +
-                            "It must be provided as ISO-8601 formatted char sequence.", deletedAt))
+                            "It must be provided as ISO-8601 formatted char sequence.", deleteAt))
                     .build();
         }
     }
@@ -204,8 +204,8 @@ public final class SubjectDeletionAnnouncement extends AbstractPolicyAnnouncemen
         /**
          * JSON field for the timestamp when the subjects will be deleted.
          */
-        public static final JsonFieldDefinition<String> DELETED_AT =
-                JsonFactory.newStringFieldDefinition("deletedAt", JsonSchemaVersion.V_2, FieldType.REGULAR);
+        public static final JsonFieldDefinition<String> DELETE_AT =
+                JsonFactory.newStringFieldDefinition("deleteAt", JsonSchemaVersion.V_2, FieldType.REGULAR);
 
         /**
          * JSON field for the subjects that will will be deleted.

@@ -9,7 +9,7 @@
   },
   "path": "/",
   "value": {
-    "deletedAt": "2021-03-03T16:05:55Z",
+    "deleteAt": "2021-03-03T16:05:55Z",
     "subjectIds": [
       "integration:some-label:my-aud-1",
       "integration:some-label:my-aud-2"
