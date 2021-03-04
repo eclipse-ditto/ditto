@@ -11,7 +11,7 @@
 
 FROM adoptopenjdk/openjdk11-openj9:jdk-11.0.9_11_openj9-0.23.0-alpine-slim
 
-ARG MAVEN_REPO=https://repo.eclipse.org/content/repositories/ditto/org/eclipse/ditto/
+ARG MAVEN_REPO=https://repo.eclipse.org/service/local/artifact/maven/content
 ARG SERVICE_STARTER
 ARG SERVICE_VERSION
 
@@ -30,7 +30,7 @@ RUN set -x \
     && groupadd --system ditto \
     && useradd --no-log-init --system --home-dir $DITTO_HOME --shell /bin/sh --gid ditto --uid 1000 ditto \
     && cd $DITTO_HOME \
-    && wget -q --show-progress -O ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar ${MAVEN_REPO}${SERVICE_STARTER}/${SERVICE_VERSION}/${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar \
+    && wget -q --show-progress -O ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar ${MAVEN_REPO}?r=ditto&g=org.eclipse.ditto&a=${SERVICE_STARTER}&v=${SERVICE_VERSION}&c=allinone \
     && ln -s ${SERVICE_STARTER}-${SERVICE_VERSION}-allinone.jar starter.jar \
     && chown -R ditto:ditto $DITTO_HOME \
     && apk del .tmp-deps
