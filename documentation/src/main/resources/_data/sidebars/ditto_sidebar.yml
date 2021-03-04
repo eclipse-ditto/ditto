@@ -669,6 +669,9 @@ entries:
                   - title: Error responses
                     url: /protocol-examples-policies-errorresponses.html
                     output: web
+                  - title: Announcement for subject deletion
+                    url: /protocol-examples-policies-announcement-subjectDeletion.html
+                    output: web
           - title: → Search examples
             url: /protocol-examples-search.html
             output: web
